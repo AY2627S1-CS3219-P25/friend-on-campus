@@ -1,0 +1,25 @@
+{
+  "name": "nus-campus-errand-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NUS CampusErrand Peer-to-Peer Campus Errand Platform (CS3219 AY26/27)",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:student": "npm run dev --workspace=@campus-errand/student-app",
+    "dev:admin": "npm run dev --workspace=@campus-errand/admin-portal",
+    "dev:user": "npm run dev --workspace=@campus-errand/user-service",
+    "dev:supplier": "npm run dev --workspace=@campus-errand/supplier-service",
+    "dev:order": "npm run dev --workspace=@campus-errand/order-service",
+    "dev:credit": "npm run dev --workspace=@campus-errand/credit-service",
+    "dev:notif": "npm run dev --workspace=@campus-errand/notification-service",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "overrides": {
+    "qs": "^6.16.0"
+  }
+}

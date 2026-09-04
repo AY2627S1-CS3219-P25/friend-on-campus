@@ -1,0 +1,13 @@
+{
+  "name": "@campus-errand/common-dtos",
+  "version": "1.0.0",
+  "description": "Shared TypeScript DTOs, interfaces, and event contracts for NUS CampusErrand",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
