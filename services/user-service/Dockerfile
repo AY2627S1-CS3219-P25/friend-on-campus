@@ -15,6 +15,8 @@ COPY services/user-service ./services/user-service
 
 WORKDIR /app/services/user-service
 
+RUN npx prisma generate --schema src/database/prisma/schema.prisma
+
 EXPOSE 8001
 
 CMD ["npx", "tsx", "src/index.ts"]

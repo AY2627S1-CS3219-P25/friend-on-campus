@@ -1,4 +1,11 @@
 /**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-20
+ * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
  */
@@ -38,6 +45,23 @@ export interface LoginUserRequest {
 export interface AuthResponse {
   token: string;
   user: UserDTO;
+}
+
+export interface JWTPayload {
+  id: string;
+  nusEmail: string;
+  role: UserRole;
+  fullName: string;
+}
+
+export interface UpdateUserProfileRequest {
+  fullName?: string;
+  phoneNumber?: string;
+  telegramHandle?: string;
+}
+
+export interface PromoteUserRequest {
+  role: UserRole;
 }
 
 // ==========================================
@@ -95,6 +119,17 @@ export interface UpdateSupplierRequest {
   closingTime?: string;
   imageUrl?: string;
   isActive?: boolean;
+}
+
+export interface SupplierQueryOptions {
+  campusZone?: string;
+  category?: string;
+  search?: string;
+  isActive?: boolean;
+  sortBy?: 'name' | 'campusZone' | 'category' | 'createdAt' | 'supplierCode';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
 }
 
 // ==========================================
@@ -259,4 +294,12 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+}
+
+export interface PaginatedResponse<T = any> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

@@ -7,10 +7,16 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc",
+    "db:generate": "npx prisma generate --schema src/database/prisma/schema.prisma",
+    "db:migrate": "npx prisma migrate dev --schema src/database/prisma/schema.prisma",
+    "db:seed": "npx tsx src/database/seed.ts"
   },
   "dependencies": {
     "@campus-errand/common-dtos": "*",
+    "@prisma/client": "^6.7.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
     "express": "^4.21.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -23,6 +29,9 @@
     "@types/node": "^20.14.0",
     "@types/pg": "^8.11.6",
     "@types/amqplib": "^0.10.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "prisma": "^6.7.0",
     "tsx": "^4.11.0",
     "typescript": "^5.4.5"
   }

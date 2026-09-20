@@ -1,0 +1,32 @@
+// AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-09-20
+// Scope: Defined Prisma schema for User Service in user_db matching D2 specifications.
+// Author review: (to be completed by author after review)
+// AI-generated (edited by yanhwee)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String   @id @default(uuid()) @db.Uuid
+  nusEmail             String   @unique @map("nus_email") @db.VarChar(255)
+  passwordHash         String   @map("password_hash") @db.VarChar(255)
+  fullName             String   @map("full_name") @db.VarChar(100)
+  matricNumber         String   @unique @map("matric_number") @db.VarChar(10)
+  phoneNumber          String?  @map("phone_number") @db.VarChar(20)
+  telegramHandle       String?  @map("telegram_handle") @db.VarChar(50)
+  role                 String   @default("STUDENT") @db.VarChar(20)
+  ratingAvg            Decimal  @default(5.00) @map("rating_avg") @db.Decimal(3, 2)
+  totalCompletedOrders Int      @default(0) @map("total_completed_orders")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("users")
+}
