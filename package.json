@@ -17,9 +17,15 @@
     "dev:credit": "npm run dev --workspace=@campus-errand/credit-service",
     "dev:notif": "npm run dev --workspace=@campus-errand/notification-service",
     "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspaces --if-present",
+    "postinstall": "npm run db:generate --workspaces --if-present",
+    "test:d2": "npx tsx scripts/test-d2-e2e.ts"
   },
   "overrides": {
     "qs": "^6.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2"
   }
 }
