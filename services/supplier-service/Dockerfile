@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY services/supplier-service/package.json ./services/supplier-service/
+COPY services/supplier-service/src/database/prisma ./services/supplier-service/src/database/prisma
 
 RUN npm install
 

@@ -170,3 +170,33 @@ Update root `README.md` to reflect current system state and Milestone D2 deliver
 
 **Files changed / created:**
 - `README.md` — Comprehensive documentation overhaul.
+## 2026-09-20 — dotenv.config() fix for standalone seed scripts
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** Local `npm run db:seed` failed with `DATABASE_URL` not found for user-service (after an earlier stale-node_modules `bcryptjs` error was fixed by `npm install`). Root cause: `client.ts` in both services never called `dotenv.config()` — only the app entrypoints did — so standalone scripts like `seed.ts` never saw `.env`. Fix both services.
+
+**Usage scenario:** Debugging assistance (allowed use).
+
+**Files changed:**
+- `services/user-service/src/database/client.ts` — added `dotenv.config({ path: path.resolve(__dirname, '../.env') })`.
+- `services/supplier-service/src/database/client.ts` — same fix.
+- `services/user-service/src/.env` (new) — `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/user_db`.
+
+Verified: `npm run db:seed --workspace=@campus-errand/user-service` and `--workspace=@campus-errand/supplier-service` both now run cleanly with no inline env var needed.
+
+## 2026-09-20 (later) — Fix admin-portal "Showing 1 to 4 of 4 campus locations" bug
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** After seeding 21 real suppliers and rebuilding the full docker-compose stack, admin-portal (accessed directly at http://localhost:5174) showed only 4 mock campus locations instead of the real 21. Investigated (read-only) and found: admin-portal's Vite dev-server proxy hardcodes `target: 'http://localhost:8002'`/`:8001`; inside its own Docker container `localhost` refers to itself, not supplier-service/user-service, so the proxied `/api/suppliers` call gets ECONNREFUSED, and the frontend's `fetchSuppliers()` silently falls back to a hardcoded 4-item mock array. (Accessing via the gateway at http://localhost/admin/ already worked, since nginx proxies `/api/suppliers` directly to the real service, bypassing this Vite proxy.) User chose to fix the vite config (not just the gateway workaround).
+
+**Usage scenario:** Debugging assistance / config fix (allowed use) — no schema/architecture decisions, just making an existing proxy target environment-aware, mirroring the env-var-driven pattern already used elsewhere in docker-compose.yml.
+
+**Files changed:**
+- `apps/admin-portal/vite.config.ts` — proxy targets now read from `SUPPLIER_SERVICE_URL`/`USER_SERVICE_URL` env vars, falling back to `http://localhost:8002`/`:8001` for normal host-based dev.
+- `docker-compose.yml` — added `SUPPLIER_SERVICE_URL=http://supplier-service:8002` and `USER_SERVICE_URL=http://user-service:8001` to admin-portal's `environment:` block (Docker's internal service DNS names).
+
+Verified: rebuilt/restarted the admin-portal container; `curl http://localhost:5174/api/suppliers` now returns all 21 real seeded suppliers (previously would have hit the broken proxy). `apps/student-app/vite.config.ts` has the identical latent bug but was explicitly left unfixed per user's choice (Option B was admin-portal only).

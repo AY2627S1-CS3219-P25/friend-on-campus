@@ -38,6 +38,9 @@ services:
     container_name: campuserrand-admin-portal
     ports:
       - "5174:5174"
+    environment:
+      - SUPPLIER_SERVICE_URL=http://supplier-service:8002
+      - USER_SERVICE_URL=http://user-service:8001
 
   # ----------------------------------------------------
   # Backend Microservices (Node + tsx)

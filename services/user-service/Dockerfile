@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY services/user-service/package.json ./services/user-service/
+COPY services/user-service/src/database/prisma ./services/user-service/src/database/prisma
 
 # Install dependencies using npm workspace
 RUN npm install
