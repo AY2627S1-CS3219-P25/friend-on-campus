@@ -43,7 +43,7 @@ export interface AuthResponse {
 // ==========================================
 // 2. Supplier Service Types (M3)
 // ==========================================
-export type SupplierCategory = 'Beverages' | 'Food' | 'Printing' | 'Parcels' | 'General';
+export type SupplierCategory = 'Beverages' | 'Food' | 'Printing' | 'Parcels' | 'Shopping' | 'General';
 
 export interface SupplierDTO {
   id: string;
@@ -53,17 +53,48 @@ export interface SupplierDTO {
   exactLocation: string;
   category: SupplierCategory;
   description?: string;
+  building?: string;
+  floor?: string;
+  latitude?: number;
+  longitude?: number;
+  startingTime?: string;
+  closingTime?: string;
+  imageUrl?: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateSupplierRequest {
-  supplierCode: string;
+  supplierCode?: string;
   name: string;
   campusZone: string;
   exactLocation: string;
   category: SupplierCategory;
   description?: string;
+  building?: string;
+  floor?: string;
+  latitude?: number;
+  longitude?: number;
+  startingTime?: string;
+  closingTime?: string;
+  imageUrl?: string;
+}
+
+export interface UpdateSupplierRequest {
+  name?: string;
+  campusZone?: string;
+  exactLocation?: string;
+  category?: SupplierCategory;
+  description?: string;
+  building?: string;
+  floor?: string;
+  latitude?: number;
+  longitude?: number;
+  startingTime?: string;
+  closingTime?: string;
+  imageUrl?: string;
+  isActive?: boolean;
 }
 
 // ==========================================

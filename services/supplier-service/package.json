@@ -6,13 +6,11 @@
   "scripts": {
     "dev": "tsx watch src/backend/server.ts",
     "start": "tsx src/backend/server.ts",
-    "dev:frontend": "vite src/frontend --config src/frontend/vite.config.ts",
-    "build:frontend": "vite build src/frontend --config src/frontend/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "db:generate": "prisma generate --schema src/database/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",
-    "db:seed": "tsx src/database/seed.ts"
+    "db:generate": "npx prisma generate --schema src/database/prisma/schema.prisma",
+    "db:migrate": "npx prisma migrate dev --schema src/database/prisma/schema.prisma",
+    "db:seed": "npx tsx src/database/seed.ts"
   },
   "dependencies": {
     "@campus-errand/common-dtos": "*",
@@ -20,21 +18,15 @@
     "express": "^4.21.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "pg": "^8.11.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "pg": "^8.11.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/cors": "^2.8.17",
     "@types/node": "^20.14.0",
     "@types/pg": "^8.11.6",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.0",
     "prisma": "^6.7.0",
     "tsx": "^4.11.0",
-    "typescript": "^5.4.5",
-    "vite": "^6.0.0"
+    "typescript": "^5.4.5"
   }
 }

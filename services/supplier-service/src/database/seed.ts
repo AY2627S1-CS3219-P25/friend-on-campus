@@ -1,32 +1,9 @@
-/**
- * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
- * Scope: Generated standalone development seed script that reads data/csv/supplier-seed-data.csv
- *        and upserts the rows into PostgreSQL via Prisma (including a minimal CSV parser and
- *        a Windows-1252 decoding fallback for the non-UTF-8 apostrophes in the CSV).
- * Author review: (to be completed by author after review)
- */
-// AI-generated (edited by jagdeepsh)
-//
-// Standalone DEVELOPMENT script — not imported by the running application.
-// Populates the supplier database with the initial seed data from the CSV.
-//
-// Usage (from services/supplier-service, after `prisma migrate dev` has created the tables):
-//   npx tsx src/database/seed.ts                  # uses the default CSV path below
-//   npx tsx src/database/seed.ts path/to/file.csv # or pass a CSV path explicitly
-//   SEED_CSV_PATH=path/to/file.csv npx tsx src/database/seed.ts
-//
-// The script is idempotent: rows are upserted by supplier name, so re-running it
-// updates existing suppliers rather than creating duplicates.
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from './client';
 
-// Repo root is four levels up: src/database -> src -> supplier-service -> services -> <root>
 const DEFAULT_CSV_PATH = path.resolve(__dirname, '../../../../data/csv/supplier-seed-data.csv');
 
-// Column headers exactly as they appear in the CSV.
 const CSV_HEADERS = [
   'Name',
   'Type',
@@ -42,17 +19,13 @@ const CSV_HEADERS = [
 
 type CsvRow = Record<(typeof CSV_HEADERS)[number], string>;
 
-// Reads the CSV as UTF-8, falling back to Windows-1252 if the file contains bytes
-// that are not valid UTF-8 (the seed file has 0x92 "’" characters in a few names).
 function readCsvText(filePath: string): string {
   const buffer = fs.readFileSync(filePath);
   const utf8 = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
-  if (!utf8.includes('�')) return utf8;
+  if (!utf8.includes('')) return utf8;
   return new TextDecoder('windows-1252').decode(buffer);
 }
 
-// Minimal RFC-4180-style CSV parser: handles quoted fields, embedded commas,
-// doubled quotes inside quoted fields, and CRLF / LF line endings.
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -82,7 +55,7 @@ function parseCsv(text: string): string[][] {
       row.push(field);
       field = '';
     } else if (ch === '\r') {
-      // ignore; the following '\n' terminates the row
+      // ignore
     } else if (ch === '\n') {
       row.push(field);
       rows.push(row);
@@ -93,13 +66,11 @@ function parseCsv(text: string): string[][] {
     }
   }
 
-  // Flush the last row if the file does not end with a newline
   if (field.length > 0 || row.length > 0) {
     row.push(field);
     rows.push(row);
   }
 
-  // Drop completely empty rows (e.g. trailing blank line)
   return rows.filter((r) => r.some((cell) => cell.trim() !== ''));
 }
 
@@ -136,6 +107,19 @@ function emptyToNull(value: string): string | null {
   return value === '' ? null : value;
 }
 
+function mapBuildingToCampusZone(building: string | null): string {
+  if (!building) return 'Kent Ridge';
+  const b = building.toLowerCase();
+  if (b.includes('com') || b.includes('terrace')) return 'COM3';
+  if (b.includes('town') || b.includes('riady') || b.includes('erc')) return 'UTown';
+  if (b.includes('prince george') || b.includes('pgp')) return 'PGPR';
+  if (b.includes('central library') || b.includes('clb')) return 'Central Lib';
+  if (b.includes('deck') || b.includes('fass') || b.includes('as1') || b.includes('as2')) return 'FASS';
+  if (b.includes('science') || b.includes('frontier') || b.includes('s1')) return 'Science';
+  if (b.includes('engineering') || b.includes('techno edge') || b.includes('ea') || b.includes('e1')) return 'Engineering';
+  return building;
+}
+
 async function seedSuppliers(csvPath: string) {
   console.log(`[seed] Reading suppliers from ${csvPath}`);
   const records = toRecords(parseCsv(readCsvText(csvPath)));
@@ -144,30 +128,55 @@ async function seedSuppliers(csvPath: string) {
   let created = 0;
   let updated = 0;
 
-  for (const r of records) {
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i];
+    const code = `SUP-${String(i + 1).padStart(3, '0')}`;
+    const building = emptyToNull(r.Building);
+    const floor = emptyToNull(r.Floor);
+    const locationDesc = emptyToNull(r['Location Description']);
+    const exactLocation = locationDesc || (building && floor ? `${building} Level ${floor}` : building || 'NUS Kent Ridge');
+    const campusZone = mapBuildingToCampusZone(building);
+
     const data = {
+      supplierCode: code,
       name: r.Name,
-      type: emptyToNull(r.Type),
-      building: emptyToNull(r.Building),
-      floor: emptyToNull(r.Floor),
-      locationDescription: emptyToNull(r['Location Description']),
+      campusZone,
+      exactLocation,
+      category: r.Type || 'General',
+      description: locationDesc,
+      building,
+      floor,
       latitude: parseCoordinate(r.Latitude, 'latitude', r.Name),
       longitude: parseCoordinate(r.Longitude, 'longitude', r.Name),
       startingTime: emptyToNull(r.StartingTime),
       closingTime: emptyToNull(r.ClosingTime),
       imageUrl: emptyToNull(r.ImageURL),
+      isActive: true,
     };
 
-    const existing = await prisma.supplier.findUnique({ where: { name: data.name } });
+    const existing = await prisma.supplier.findUnique({ where: { supplierCode: code } });
     await prisma.supplier.upsert({
-      where: { name: data.name },
+      where: { supplierCode: code },
       create: data,
-      update: data,
+      update: {
+        name: data.name,
+        campusZone: data.campusZone,
+        exactLocation: data.exactLocation,
+        category: data.category,
+        description: data.description,
+        building: data.building,
+        floor: data.floor,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        startingTime: data.startingTime,
+        closingTime: data.closingTime,
+        imageUrl: data.imageUrl,
+      },
     });
 
     if (existing) updated++;
     else created++;
-    console.log(`[seed]   ${existing ? 'updated' : 'created'}: ${data.name}`);
+    console.log(`[seed]   ${existing ? 'updated' : 'created'} [${code}]: ${data.name}`);
   }
 
   console.log(`[seed] Done. created=${created} updated=${updated}`);
@@ -181,9 +190,6 @@ async function main() {
   }
 
   await seedSuppliers(csvPath);
-
-  // TODO: add any other one-off development create operations here
-  // (e.g. additional fixtures, lookup tables) as the schema grows.
 }
 
 main()

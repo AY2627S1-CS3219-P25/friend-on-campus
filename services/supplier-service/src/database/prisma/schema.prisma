@@ -23,19 +23,23 @@ datasource db {
 // One row per supplier / campus location. Columns map 1:1 to the seed CSV.
 // TODO: finalise field types/constraints (e.g. structured opening hours) once requirements settle.
 model Supplier {
-  id                  String   @id @default(uuid())
-  name                String   @unique                         // CSV: Name
-  type                String?                                  // CSV: Type (e.g. Food, Shopping, Printing)
-  building            String?                                  // CSV: Building
-  floor               String?                                  // CSV: Floor
-  locationDescription String?  @map("location_description")    // CSV: Location Description
-  latitude            Float?                                   // CSV: Latitude
-  longitude           Float?                                   // CSV: Longitude
-  startingTime        String?  @map("starting_time")           // CSV: StartingTime (e.g. "0900hrs")
-  closingTime         String?  @map("closing_time")            // CSV: ClosingTime  (e.g. "1800hrs")
-  imageUrl            String?  @map("image_url")               // CSV: ImageURL (may be blank)
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  supplierCode  String   @unique @map("supplier_code")
+  name          String
+  campusZone    String   @map("campus_zone")
+  exactLocation String   @map("exact_location")
+  category      String
+  description   String?
+  building      String?
+  floor         String?
+  latitude      Float?
+  longitude     Float?
+  startingTime  String?  @map("starting_time")
+  closingTime   String?  @map("closing_time")
+  imageUrl      String?  @map("image_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("suppliers")
 }

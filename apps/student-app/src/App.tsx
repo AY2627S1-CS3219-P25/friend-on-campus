@@ -4,18 +4,13 @@ import {
   PlusCircle,
   Clock,
   Wallet,
-  Coffee,
-  Printer,
-  Package,
   MapPin,
   ArrowRight,
-  CheckCircle2,
   AlertCircle,
   Coins,
   ShieldCheck,
-  Send,
 } from 'lucide-react';
-import { OrderDTO, SupplierDTO, CreditWalletDTO } from '@campus-errand/common-dtos';
+import { OrderDTO, CreditWalletDTO } from '@campus-errand/common-dtos';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'tasks' | 'wallet'>('feed');

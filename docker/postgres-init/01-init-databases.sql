@@ -37,16 +37,24 @@ CREATE TABLE IF NOT EXISTS suppliers (
     exact_location VARCHAR(255) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description TEXT,
+    building VARCHAR(100),
+    floor VARCHAR(20),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    starting_time VARCHAR(20),
+    closing_time VARCHAR(20),
+    image_url TEXT,
     is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-INSERT INTO suppliers (supplier_code, name, campus_zone, exact_location, category, description) VALUES
-('SUP-001', 'CoffeeBean @ COM3', 'COM3', 'COM3 Level 1 Lobby', 'Beverages', 'Specialty coffee, pastries, and sandwiches'),
-('SUP-002', 'Printers @ PCCommons', 'UTown', 'Stephen Riady Centre Level 1', 'Printing', 'NUS fast printing & lecture note pickup hub'),
-('SUP-003', 'PGP Mailroom & Smart Lockers', 'PGPR', 'Prince George''s Park Residences Foyer', 'Parcels', 'Courier parcel lockers and delivery collection point'),
-('SUP-004', 'Fine Food Canteen (UTown)', 'UTown', 'Town Plaza Level 1', 'Food', 'Mala Xiang Guo, Chicken Rice, and Drinks'),
-('SUP-005', 'The Deck @ FASS', 'FASS', 'Faculty of Arts & Social Sciences Level 2', 'Food', 'Yong Tau Foo and Japanese Bento')
+INSERT INTO suppliers (supplier_code, name, campus_zone, exact_location, category, description, building, floor, latitude, longitude, starting_time, closing_time) VALUES
+('SUP-001', 'CoffeeBean @ COM3', 'COM3', 'COM3 Level 1 Lobby', 'Beverages', 'Specialty coffee, pastries, and sandwiches', 'COM3', '1', 1.2949, 103.7740, '0800hrs', '2000hrs'),
+('SUP-002', 'Printers @ PCCommons', 'UTown', 'Stephen Riady Centre Level 1', 'Printing', 'NUS fast printing & lecture note pickup hub', 'Stephen Riady Centre', '1', 1.3045, 103.7732, '0000hrs', '2359hrs'),
+('SUP-003', 'PGP Mailroom & Smart Lockers', 'PGPR', 'Prince George''s Park Residences Foyer', 'Parcels', 'Courier parcel lockers and delivery collection point', 'Prince George''s Park Residences', '1', 1.2908, 103.7771, '0000hrs', '2359hrs'),
+('SUP-004', 'Fine Food Canteen (UTown)', 'UTown', 'Town Plaza Level 1', 'Food', 'Mala Xiang Guo, Chicken Rice, and Drinks', 'Town Plaza', '1', 1.3040, 103.7725, '0730hrs', '2100hrs'),
+('SUP-005', 'The Deck @ FASS', 'FASS', 'Faculty of Arts & Social Sciences Level 2', 'Food', 'Yong Tau Foo and Japanese Bento', 'FASS', '2', 1.2968, 103.7720, '0800hrs', '1930hrs')
 ON CONFLICT (supplier_code) DO NOTHING;
 
 -- Connect to order_db and create schema
