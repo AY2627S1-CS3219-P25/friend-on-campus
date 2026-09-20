@@ -1,3 +1,6 @@
+include:
+  - path: ./services/user-service/docker-compose.yml
+
 services:
   # ----------------------------------------------------
   # Ingress API Gateway & Reverse Proxy (Nginx)
@@ -45,24 +48,6 @@ services:
   # ----------------------------------------------------
   # Backend Microservices (Node + tsx)
   # ----------------------------------------------------
-  user-service:
-    build:
-      context: .
-      dockerfile: services/user-service/Dockerfile
-    container_name: campuserrand-user-service
-    ports:
-      - "8001:8001"
-    environment:
-      - PORT=8001
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/user_db
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
-      - JWT_SECRET=cs3219supersecretjwtkey123
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
   supplier-service:
     build:
       context: .

@@ -3,28 +3,9 @@
 -- CS3219 NUS CampusErrand
 -- ==========================================
 
-CREATE DATABASE user_db;
 CREATE DATABASE supplier_db;
 CREATE DATABASE order_db;
 CREATE DATABASE credit_db;
-
--- Connect to user_db and create schema
-\c user_db;
-
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nus_email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100) NOT NULL,
-    matric_number VARCHAR(10) UNIQUE NOT NULL,
-    phone_number VARCHAR(20),
-    telegram_handle VARCHAR(50),
-    role VARCHAR(20) NOT NULL DEFAULT 'STUDENT',
-    rating_avg NUMERIC(3, 2) DEFAULT 5.00,
-    total_completed_orders INT DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- Connect to supplier_db and create schema & seeds
 \c supplier_db;
