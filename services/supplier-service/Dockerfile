@@ -12,6 +12,8 @@ COPY services/supplier-service ./services/supplier-service
 
 WORKDIR /app/services/supplier-service
 
+RUN npx prisma generate --schema src/database/prisma/schema.prisma
+
 EXPOSE 8002
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["npx", "tsx", "src/backend/server.ts"]

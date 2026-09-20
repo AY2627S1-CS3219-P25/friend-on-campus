@@ -1,0 +1,41 @@
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
+// Scope: Generated initial Prisma schema mirroring the columns of data/csv/supplier-seed-data.csv.
+// Author review: (to be completed by author after review)
+//
+// AI-generated (edited by jagdeepsh)
+//
+// Prisma schema for the supplier-service PostgreSQL database.
+// Because this file does not live at the default ./prisma/schema.prisma,
+// pass it explicitly to the Prisma CLI, e.g.:
+//   npx prisma generate     --schema src/database/prisma/schema.prisma
+//   npx prisma migrate dev  --schema src/database/prisma/schema.prisma --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// One row per supplier / campus location. Columns map 1:1 to the seed CSV.
+// TODO: finalise field types/constraints (e.g. structured opening hours) once requirements settle.
+model Supplier {
+  id                  String   @id @default(uuid())
+  name                String   @unique                         // CSV: Name
+  type                String?                                  // CSV: Type (e.g. Food, Shopping, Printing)
+  building            String?                                  // CSV: Building
+  floor               String?                                  // CSV: Floor
+  locationDescription String?  @map("location_description")    // CSV: Location Description
+  latitude            Float?                                   // CSV: Latitude
+  longitude           Float?                                   // CSV: Longitude
+  startingTime        String?  @map("starting_time")           // CSV: StartingTime (e.g. "0900hrs")
+  closingTime         String?  @map("closing_time")            // CSV: ClosingTime  (e.g. "1800hrs")
+  imageUrl            String?  @map("image_url")               // CSV: ImageURL (may be blank)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("suppliers")
+}
