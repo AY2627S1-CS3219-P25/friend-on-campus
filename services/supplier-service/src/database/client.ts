@@ -5,7 +5,7 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by jagdeepsh)
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/client';
 
 // Single shared Prisma client instance for the whole process.
 // Both the running application (backend -> supplierRepository) and the

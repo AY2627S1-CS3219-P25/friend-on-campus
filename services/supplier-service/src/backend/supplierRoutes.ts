@@ -1,24 +1,49 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-20
+ * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+
 import { Router, Request, Response } from 'express';
 import * as supplierRepository from '../database/supplierRepository';
-import { CreateSupplierRequest, UpdateSupplierRequest, ApiResponse, SupplierDTO } from '@campus-errand/common-dtos';
+import {
+  CreateSupplierRequest,
+  UpdateSupplierRequest,
+  ApiResponse,
+  SupplierDTO,
+  SupplierQueryOptions,
+} from '@campus-errand/common-dtos';
+import {
+  authenticateToken,
+  requireAdmin,
+  AuthenticatedSupplierRequest,
+} from './authMiddleware';
 
 // GET /api/suppliers
 export async function getSuppliers(req: Request, res: Response) {
   try {
-    const { campusZone, category, search, isActive } = req.query;
+    const { campusZone, category, search, isActive, sortBy, sortOrder, page, limit } = req.query;
 
     let activeFilter: boolean | undefined = undefined;
     if (isActive === 'true') activeFilter = true;
     if (isActive === 'false') activeFilter = false;
 
-    const suppliers = await supplierRepository.getSuppliers({
+    const queryOptions: SupplierQueryOptions = {
       campusZone: campusZone ? String(campusZone) : undefined,
       category: category ? String(category) : undefined,
       search: search ? String(search) : undefined,
       isActive: activeFilter,
-    });
+      sortBy: sortBy as any,
+      sortOrder: sortOrder === 'desc' ? 'desc' : 'asc',
+      page: page !== undefined ? parseInt(String(page), 10) : undefined,
+      limit: limit !== undefined ? parseInt(String(limit), 10) : undefined,
+    };
 
-    return res.json({ success: true, data: suppliers });
+    const result = await supplierRepository.getSuppliers(queryOptions);
+
+    return res.json({ success: true, data: result });
   } catch (err: any) {
     console.error('Error fetching suppliers:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
@@ -47,8 +72,8 @@ export async function getSupplier(req: Request, res: Response) {
   }
 }
 
-// POST /api/suppliers
-export async function createSupplier(req: Request, res: Response) {
+// POST /api/suppliers (Admin Only)
+export async function createSupplier(req: AuthenticatedSupplierRequest, res: Response) {
   try {
     const body: CreateSupplierRequest = req.body;
 
@@ -71,8 +96,8 @@ export async function createSupplier(req: Request, res: Response) {
   }
 }
 
-// PUT /api/suppliers/:id
-export async function updateSupplier(req: Request, res: Response) {
+// PUT /api/suppliers/:id (Admin Only)
+export async function updateSupplier(req: AuthenticatedSupplierRequest, res: Response) {
   try {
     const { id } = req.params;
     const body: UpdateSupplierRequest = req.body;
@@ -94,8 +119,8 @@ export async function updateSupplier(req: Request, res: Response) {
   }
 }
 
-// PATCH /api/suppliers/:id/toggle
-export async function toggleSupplier(req: Request, res: Response) {
+// PATCH /api/suppliers/:id/toggle (Admin Only)
+export async function toggleSupplier(req: AuthenticatedSupplierRequest, res: Response) {
   try {
     const { id } = req.params;
     const updated = await supplierRepository.toggleSupplierActive(id);
@@ -115,8 +140,8 @@ export async function toggleSupplier(req: Request, res: Response) {
   }
 }
 
-// DELETE /api/suppliers/:id
-export async function deleteSupplier(req: Request, res: Response) {
+// DELETE /api/suppliers/:id (Admin Only)
+export async function deleteSupplier(req: AuthenticatedSupplierRequest, res: Response) {
   try {
     const { id } = req.params;
     const permanent = req.query.permanent === 'true';
@@ -142,11 +167,14 @@ export async function deleteSupplier(req: Request, res: Response) {
 
 const router = Router();
 
+// Public / Student Read Access
 router.get('/', getSuppliers);
 router.get('/:id', getSupplier);
-router.post('/', createSupplier);
-router.put('/:id', updateSupplier);
-router.patch('/:id/toggle', toggleSupplier);
-router.delete('/:id', deleteSupplier);
+
+// Admin-Only Mutation Access
+router.post('/', authenticateToken, requireAdmin, createSupplier);
+router.put('/:id', authenticateToken, requireAdmin, updateSupplier);
+router.patch('/:id/toggle', authenticateToken, requireAdmin, toggleSupplier);
+router.delete('/:id', authenticateToken, requireAdmin, deleteSupplier);
 
 export default router;

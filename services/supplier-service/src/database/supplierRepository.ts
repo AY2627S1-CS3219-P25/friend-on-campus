@@ -1,14 +1,19 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-20
+ * Scope: Enhanced supplier repository with dynamic sorting, pagination, and total count calculations for Milestone D2.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+
 import { prisma } from './client';
-import { CreateSupplierRequest, UpdateSupplierRequest, SupplierDTO } from '@campus-errand/common-dtos';
+import {
+  CreateSupplierRequest,
+  UpdateSupplierRequest,
+  SupplierQueryOptions,
+} from '@campus-errand/common-dtos';
 
-export interface SupplierFilterOptions {
-  campusZone?: string;
-  category?: string;
-  search?: string;
-  isActive?: boolean;
-}
-
-export async function getSuppliers(filter?: SupplierFilterOptions) {
+export async function getSuppliers(filter?: SupplierQueryOptions) {
   const whereClause: any = {};
 
   if (filter?.campusZone) {
@@ -31,14 +36,55 @@ export async function getSuppliers(filter?: SupplierFilterOptions) {
         { exactLocation: { contains: term, mode: 'insensitive' } },
         { building: { contains: term, mode: 'insensitive' } },
         { description: { contains: term, mode: 'insensitive' } },
+        { supplierCode: { contains: term, mode: 'insensitive' } },
       ];
     }
   }
 
-  return prisma.supplier.findMany({
+  // Determine sorting order
+  const validSortFields = ['name', 'campusZone', 'category', 'createdAt', 'supplierCode'];
+  const sortBy = filter?.sortBy && validSortFields.includes(filter.sortBy) ? filter.sortBy : 'name';
+  const sortOrder = filter?.sortOrder === 'desc' ? 'desc' : 'asc';
+  const orderBy = { [sortBy]: sortOrder };
+
+  // If pagination is requested (page or limit provided)
+  if (filter?.page !== undefined || filter?.limit !== undefined) {
+    const page = Math.max(1, filter.page ?? 1);
+    const limit = Math.min(100, Math.max(1, filter.limit ?? 10));
+    const skip = (page - 1) * limit;
+
+    const [suppliers, total] = await Promise.all([
+      prisma.supplier.findMany({
+        where: whereClause,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      prisma.supplier.count({ where: whereClause }),
+    ]);
+
+    return {
+      suppliers,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // Fallback: return full list
+  const suppliers = await prisma.supplier.findMany({
     where: whereClause,
-    orderBy: { name: 'asc' },
+    orderBy,
   });
+
+  return {
+    suppliers,
+    total: suppliers.length,
+    page: 1,
+    limit: suppliers.length,
+    totalPages: 1,
+  };
 }
 
 export async function getSupplierById(id: string) {
