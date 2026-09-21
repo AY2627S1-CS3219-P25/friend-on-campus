@@ -1,14 +1,18 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createPrivateKey,
+  randomBytes,
+  sign,
+} from 'node:crypto';
+import type { KeyObject } from 'node:crypto';
 import { UserRole } from '../persistence/auth-repository';
 
-// `alg` and `typ` are standard JOSE header names and must remain abbreviated
-// for JWT interoperability. Application-owned payload claims use descriptive names.
-const JWT_HEADER = Object.freeze({ alg: 'HS256', typ: 'JWT' });
+const JWT_HEADER = Object.freeze({ alg: 'EdDSA', typ: 'JWT' });
 
-export interface AccessTokenClaims {
+interface JwtAccessTokenClaims {
   userId: string;
   sessionId: string;
-  userRole: UserRole;
+  role: UserRole;
   issuedAt: number;
   expiresAt: number;
   issuer: string;
@@ -16,14 +20,13 @@ export interface AccessTokenClaims {
 }
 
 export interface TokenManager {
-  issueAccessToken(userId: string, sessionId: string, userRole: UserRole): string;
-  verifyAccessToken(accessToken: string): AccessTokenClaims;
+  issueAccessToken(userId: string, sessionId: string, role: UserRole): string;
   generateRefreshToken(): string;
   hashRefreshToken(refreshToken: string): string;
 }
 
 export interface TokenManagerOptions {
-  accessTokenSigningSecret: string;
+  accessTokenPrivateKey: string;
   accessTokenLifetimeSeconds: number;
   accessTokenIssuer: string;
   accessTokenAudience: string;
@@ -33,86 +36,42 @@ function encodeJson(value: object): string {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
 
-function parseJsonPart<T>(part: string): T {
-  return JSON.parse(Buffer.from(part, 'base64url').toString('utf8')) as T;
-}
-
-function isAccessTokenClaims(value: unknown): value is AccessTokenClaims {
-  if (typeof value !== 'object' || value === null) {
-    return false;
+function readPrivateKey(encodedKey: string): KeyObject {
+  if (encodedKey.length !== 64 || !/^[A-Za-z0-9_-]+$/.test(encodedKey)) {
+    throw new Error('JWT private key must be a 64-character Base64URL string');
   }
 
-  const claims = value as Partial<AccessTokenClaims>;
-  return (
-    typeof claims.userId === 'string' &&
-    typeof claims.sessionId === 'string' &&
-    (claims.userRole === 'STUDENT' || claims.userRole === 'ADMIN') &&
-    typeof claims.issuedAt === 'number' &&
-    typeof claims.expiresAt === 'number' &&
-    typeof claims.issuer === 'string' &&
-    typeof claims.audience === 'string'
-  );
+  const key = createPrivateKey({
+    key: Buffer.from(encodedKey, 'base64url'),
+    format: 'der',
+    type: 'pkcs8',
+  });
+  if (key.asymmetricKeyType !== 'ed25519') {
+    throw new Error('JWT private key must be an Ed25519 key');
+  }
+
+  return key;
 }
 
 export function createTokenManager(options: TokenManagerOptions): TokenManager {
-  function createSignature(unsignedToken: string): string {
-    return createHmac('sha256', options.accessTokenSigningSecret)
-      .update(unsignedToken)
-      .digest('base64url');
-  }
+  const privateKey = readPrivateKey(options.accessTokenPrivateKey);
 
   return {
-    issueAccessToken(userId, sessionId, userRole) {
+    issueAccessToken(userId, sessionId, role) {
       const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
-      const claims: AccessTokenClaims = {
+      const claims: JwtAccessTokenClaims = {
         userId,
         sessionId,
-        userRole,
+        role,
         issuedAt: currentUnixTimeSeconds,
         expiresAt: currentUnixTimeSeconds + options.accessTokenLifetimeSeconds,
         issuer: options.accessTokenIssuer,
         audience: options.accessTokenAudience,
       };
       const unsignedToken = `${encodeJson(JWT_HEADER)}.${encodeJson(claims)}`;
+      const signature = sign(null, Buffer.from(unsignedToken), privateKey);
 
-      return `${unsignedToken}.${createSignature(unsignedToken)}`;
-    },
-
-    verifyAccessToken(accessToken) {
-      const parts = accessToken.split('.');
-      if (parts.length !== 3) {
-        throw new Error('Invalid access token');
-      }
-
-      const [headerPart, claimsPart, signaturePart] = parts;
-      const unsignedToken = `${headerPart}.${claimsPart}`;
-      const suppliedSignature = Buffer.from(signaturePart, 'base64url');
-      const expectedSignature = Buffer.from(createSignature(unsignedToken), 'base64url');
-      if (
-        suppliedSignature.length !== expectedSignature.length ||
-        !timingSafeEqual(suppliedSignature, expectedSignature)
-      ) {
-        throw new Error('Invalid access token');
-      }
-
-      const header = parseJsonPart<{ alg?: string; typ?: string }>(headerPart);
-      if (header.alg !== JWT_HEADER.alg || header.typ !== JWT_HEADER.typ) {
-        throw new Error('Invalid access token');
-      }
-
-      const claims = parseJsonPart<unknown>(claimsPart);
-      const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
-      if (
-        !isAccessTokenClaims(claims) ||
-        claims.issuer !== options.accessTokenIssuer ||
-        claims.audience !== options.accessTokenAudience ||
-        claims.expiresAt <= currentUnixTimeSeconds ||
-        claims.issuedAt > currentUnixTimeSeconds + 60
-      ) {
-        throw new Error('Invalid access token');
-      }
-
-      return claims;
+      return `${unsignedToken}.${signature.toString('base64url')}`;
     },
 
     generateRefreshToken() {

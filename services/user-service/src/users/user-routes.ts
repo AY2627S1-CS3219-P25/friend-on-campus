@@ -17,7 +17,7 @@ function asyncRoute(
 }
 
 function authenticatedUserId(res: Response): string {
-  const authenticatedUser = res.locals.authenticatedUser as
+  const authenticatedUser = res.locals.auth as
     | { userId?: unknown }
     | undefined;
   if (typeof authenticatedUser?.userId !== 'string') {

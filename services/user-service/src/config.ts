@@ -4,7 +4,6 @@ dotenv.config();
 
 const DEFAULT_PORT = 8001;
 const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5433/user_db';
-const DEVELOPMENT_JWT_SECRET = 'development-only-user-service-secret-change-me';
 
 function readPort(value: string | undefined): number {
   if (value === undefined) {
@@ -22,7 +21,8 @@ function readPort(value: string | undefined): number {
 export interface AppConfig {
   port: number;
   databaseUrl: string;
-  accessTokenSigningSecret: string;
+  accessTokenPrivateKey: string;
+  accessTokenPublicKey: string;
   accessTokenLifetimeSeconds: number;
   refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
@@ -30,6 +30,15 @@ export interface AppConfig {
   accessTokenAudience: string;
   corsOrigin: string;
   secureCookies: boolean;
+}
+
+function readRequiredKey(name: 'JWT_PRIVATE_KEY' | 'JWT_PUBLIC_KEY'): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+
+  return value;
 }
 
 function readDurationSeconds(value: string | undefined, fallback: string): number {
@@ -55,21 +64,12 @@ function readDurationSeconds(value: string | undefined, fallback: string): numbe
 }
 
 const nodeEnvironment = process.env.NODE_ENV ?? 'development';
-const accessTokenSigningSecret = process.env.JWT_SECRET ?? DEVELOPMENT_JWT_SECRET;
-if (accessTokenSigningSecret.length < 32) {
-  throw new Error('JWT_SECRET must contain at least 32 characters');
-}
-if (
-  nodeEnvironment === 'production' &&
-  accessTokenSigningSecret === DEVELOPMENT_JWT_SECRET
-) {
-  throw new Error('JWT_SECRET must be explicitly configured in production');
-}
 
 export const config: AppConfig = Object.freeze({
   port: readPort(process.env.PORT),
   databaseUrl: process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
-  accessTokenSigningSecret,
+  accessTokenPrivateKey: readRequiredKey('JWT_PRIVATE_KEY'),
+  accessTokenPublicKey: readRequiredKey('JWT_PUBLIC_KEY'),
   accessTokenLifetimeSeconds: readDurationSeconds(process.env.JWT_ACCESS_TOKEN_TTL, '15m'),
   refreshTokenIdleLifetimeSeconds: readDurationSeconds(
     process.env.JWT_REFRESH_TOKEN_TTL,

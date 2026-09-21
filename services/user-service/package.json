@@ -13,6 +13,7 @@
     "db:seed": "npx tsx src/database/seed.ts"
   },
   "dependencies": {
+    "@campus-errand/auth": "*",
     "@campus-errand/common-dtos": "*",
     "@prisma/client": "^6.7.0",
     "bcryptjs": "^2.4.3",

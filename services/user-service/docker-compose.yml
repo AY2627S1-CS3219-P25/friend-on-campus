@@ -28,6 +28,10 @@ services:
       PORT: 8001
       DATABASE_URL: postgresql://postgres:postgres@user-db:5432/user_db
       RABBITMQ_URL: amqp://guest:guest@localhost:5672
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:
       user-db:
         condition: service_healthy
