@@ -1,6 +1,25 @@
-/**
- * Session persistence for authentication is currently kept in
- * auth-repository.ts so registration can create a user and session atomically.
- * Profile-related session operations may move here when that module is built.
- */
-export {};
+import { Database } from './database';
+
+export interface SessionRepository {
+  isActiveSession(sessionId: string, userId: string): Promise<boolean>;
+}
+
+export function createSessionRepository(database: Database): SessionRepository {
+  return {
+    async isActiveSession(sessionId, userId) {
+      const result = await database.pool.query(
+        `
+          SELECT 1
+          FROM sessions
+          WHERE id = $1
+            AND user_id = $2
+            AND idle_expires_at > NOW()
+          LIMIT 1
+        `,
+        [sessionId, userId],
+      );
+
+      return result.rowCount === 1;
+    },
+  };
+}

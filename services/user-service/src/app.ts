@@ -1,14 +1,17 @@
 import cors from 'cors';
-import express, { Request, Response } from 'express';
+import express, { Request, RequestHandler, Response } from 'express';
 import { AuthModule } from './auth/auth-module';
 import { createAuthRouter } from './auth/auth-routes';
 import { errorHandler } from './http/error-handler';
 import { requestLogger } from './http/request-logger';
 import { Database } from './persistence/database';
 import { createUserRouter } from './users/user-routes';
+import { UserModule } from './users/user-module';
 
 export interface AppDependencies {
   auth: AuthModule;
+  users: UserModule;
+  requireAuthentication: RequestHandler;
   database: Database;
   corsOrigin: string;
   secureCookies: boolean;
@@ -45,7 +48,10 @@ export function createApp(dependencies: AppDependencies) {
     '/api/auth',
     createAuthRouter(dependencies.auth, { secureCookies: dependencies.secureCookies }),
   );
-  app.use('/api/users', createUserRouter());
+  app.use(
+    '/api/users',
+    createUserRouter(dependencies.users, dependencies.requireAuthentication),
+  );
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json({ success: false, error: 'Route not found' });
