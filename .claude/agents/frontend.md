@@ -1,7 +1,7 @@
 ---
 name: frontend
 description: Frontend workstream - apps/student-app and apps/admin-portal (React, TypeScript, Vite, Tailwind, lucide-react). Use when UI work can proceed independently of backend work, or to keep the two very large App.tsx files out of the main session's context. Give it the app, the decided screen/flow, the endpoints to call, and the acceptance criteria.
-tools: Read, Edit, Write, Grep, Glob, Bash
+tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
