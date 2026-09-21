@@ -8,6 +8,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a Log In / Sign Up gate in front of the whole app. Log In posts to /api/auth/login through the gateway with a loading-spinner button and a red error box (code + message) on failure. Sign Up posts to /api/auth/register with 7 fields (5 required, marked with a red asterisk), client-side validation before any API call (required fields filled, retype-password matches password, password 8-24 characters), and auto-logs the user in on success using the token returned by the register response. "Sign up"/"Log in" links toggle between the two forms in place. No role restriction (unlike the admin portal's login gate) — any successfully authenticated account is let in. The rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet data) is unchanged.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Fixed the "Spots" tab hiding suppliers an admin has deactivated. fetchLiveSuppliers now fetches all suppliers (dropped the ?isActive=true query param) instead of only active ones. The Post Errand pickup dropdown still only ever offers active suppliers (new `activeSuppliers` derived list), so unavailable ones can't be selected as a pickup point, but the Spots tab now shows every supplier — inactive ones rendered dimmed (bg-slate-50, opacity-60) with a red "Unavailable" badge and a disabled, unclickable "Pick for Errand" button.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -202,11 +207,11 @@ export default function App() {
     }
   };
 
-  // Fetch live active campus suppliers from Supplier Service
+  // Fetch all campus suppliers (active and inactive) from Supplier Service
   const fetchLiveSuppliers = async () => {
     setIsSuppliersLoading(true);
     try {
-      const res = await fetch('/api/suppliers?isActive=true', {
+      const res = await fetch('/api/suppliers', {
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
       });
       if (res.ok) {
@@ -214,11 +219,12 @@ export default function App() {
         const items = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];
         if (items.length > 0) {
           setSuppliers(items);
+          const firstActive = items.find((it: SupplierDTO) => it.isActive) || items[0];
           setFormData((prev) => ({
             ...prev,
-            supplierId: items[0].id,
-            supplierName: items[0].name,
-            campusZone: items[0].campusZone,
+            supplierId: firstActive.id,
+            supplierName: firstActive.name,
+            campusZone: firstActive.campusZone,
           }));
           return;
         }
@@ -366,6 +372,9 @@ export default function App() {
     if (selectedZone === 'ALL') return true;
     return o.campusZone === selectedZone;
   });
+
+  // Only active suppliers can be picked as a pickup spot for a new errand
+  const activeSuppliers = suppliers.filter((s) => s.isActive);
 
   const filteredSuppliers = suppliers.filter((s) => {
     const q = supplierSearch.toLowerCase().trim();
@@ -707,7 +716,7 @@ export default function App() {
                     Pickup Store / Spot (Live M3 Directory)
                   </label>
                   <span className="text-[10px] text-blue-600 font-semibold">
-                    {suppliers.length} active spots
+                    {activeSuppliers.length} active spots
                   </span>
                 </div>
                 <select
@@ -725,7 +734,7 @@ export default function App() {
                   }}
                   className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
                 >
-                  {suppliers.map((s) => (
+                  {activeSuppliers.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name} ({s.campusZone} - {s.category})
                     </option>
@@ -842,7 +851,9 @@ export default function App() {
               {filteredSuppliers.map((s) => (
                 <div
                   key={s.id}
-                  className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm space-y-2"
+                  className={`rounded-xl p-3.5 border shadow-sm space-y-2 ${
+                    s.isActive ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
+                  }`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -852,9 +863,16 @@ export default function App() {
                       <h3 className="font-bold text-sm text-slate-900 mt-1">{s.name}</h3>
                       <p className="text-xs text-slate-500">{s.exactLocation}</p>
                     </div>
-                    <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
-                      {s.campusZone}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
+                        {s.campusZone}
+                      </span>
+                      {!s.isActive && (
+                        <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded">
+                          Unavailable
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
@@ -862,6 +880,7 @@ export default function App() {
                       {s.category}
                     </span>
                     <button
+                      disabled={!s.isActive}
                       onClick={() => {
                         setFormData((prev) => ({
                           ...prev,
@@ -871,7 +890,7 @@ export default function App() {
                         }));
                         setActiveTab('post');
                       }}
-                      className="text-xs font-bold text-nus-orange hover:text-orange-700 flex items-center space-x-1"
+                      className="text-xs font-bold text-nus-orange hover:text-orange-700 flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:text-slate-400"
                     >
                       <span>Pick for Errand</span>
                       <ArrowRight className="w-3.5 h-3.5" />

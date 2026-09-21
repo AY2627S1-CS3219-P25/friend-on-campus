@@ -23,6 +23,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a real login gate in front of the whole admin dashboard: a login page (NUS email + password) posts to /api/auth/login through the gateway, shows a loading spinner while in flight, decodes the returned JWT's role claim client-side and only proceeds into the dashboard if it is ADMIN (a valid Student login is explicitly rejected with a red error box showing the error code/message). Removed the mount-time auto-login and the "Demo RBAC Role" Admin/Student/Guest switcher (both sidebar and mobile drawer) since the login gate now guarantees only Admins reach the dashboard; replaced with a client-side-only "Log Out" button (no logout endpoint exists on the backend, and none is needed since the JWT is stateless). Removed the now-redundant isAdmin role checks that previously hid the Add Location/Deactivate/Edit/Delete buttons and the Users nav item — since only Admins can log in at all now, those controls render unconditionally.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added the missing Description textarea to the Add Supplier modal (previously only editable via a follow-up Edit). Added a shared validateSupplierForm() check (Name, Campus Zone, Category, Exact Pickup Spot Description) run client-side before either the create or update API call, with inline red error messages shown under each invalid field and no request sent until they're fixed. Turned the plain "*" required-field markers red in both modals and added a "fields marked with * are required" legend to each. Added the missing asterisk + required check on the Edit modal's "Exact Pickup Spot Description" field, which was previously the only one of the four core fields not marked required there, unlike the Add modal.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -138,10 +143,12 @@ export default function App() {
     startingTime: '0800hrs',
     closingTime: '2000hrs',
   });
+  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
 
   // Edit Supplier Modal state
   const [editingSupplier, setEditingSupplier] = useState<SupplierDTO | null>(null);
   const [editFormData, setEditFormData] = useState<UpdateSupplierRequest>({});
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
 
   // Delete Supplier Modal state
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierDTO | null>(null);
@@ -344,9 +351,30 @@ export default function App() {
     }
   };
 
+  // Shared required-field validation for Add/Edit Supplier forms
+  const validateSupplierForm = (data: {
+    name?: string;
+    campusZone?: string;
+    category?: string;
+    exactLocation?: string;
+  }) => {
+    const errors: Record<string, string> = {};
+    if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
+    if (!data.campusZone?.trim()) errors.campusZone = 'Campus Zone is required.';
+    if (!data.category?.trim()) errors.category = 'Category is required.';
+    if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
+    return errors;
+  };
+
   // 1. Create Supplier Handler
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors = validateSupplierForm(newSupplier);
+    if (Object.keys(errors).length > 0) {
+      setAddFormErrors(errors);
+      return;
+    }
+    setAddFormErrors({});
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -400,12 +428,19 @@ export default function App() {
       closingTime: supplier.closingTime || '',
       isActive: supplier.isActive,
     });
+    setEditFormErrors({});
   };
 
   // 3. Save Edit Supplier Handler
   const handleUpdateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSupplier) return;
+    const errors = validateSupplierForm(editFormData);
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors);
+      return;
+    }
+    setEditFormErrors({});
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -848,7 +883,10 @@ export default function App() {
 
             {activeNav === 'suppliers' && (
               <button
-                onClick={() => setIsAddOpen(true)}
+                onClick={() => {
+                  setAddFormErrors({});
+                  setIsAddOpen(true);
+                }}
                 className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
               >
                 <Plus className="w-4 h-4" />
@@ -1798,32 +1836,56 @@ export default function App() {
               <h3 className="font-bold text-base text-slate-900">Add New Campus Supplier</h3>
               <button
                 type="button"
-                onClick={() => setIsAddOpen(false)}
+                onClick={() => {
+                  setAddFormErrors({});
+                  setIsAddOpen(false);
+                }}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            <p className="text-[11px] text-slate-400">
+              Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
+            </p>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Store / Spot Name *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Store / Spot Name <span className="text-rose-600">*</span>
+              </label>
+              {addFormErrors.name && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.name}</p>}
               <input
                 type="text"
-                required
                 placeholder="e.g. LiHO Tea @ UTown"
                 value={newSupplier.name}
-                onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setNewSupplier({ ...newSupplier, name: e.target.value });
+                  if (addFormErrors.name) setAddFormErrors({ ...addFormErrors, name: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  addFormErrors.name ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Campus Zone *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Campus Zone <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.campusZone && (
+                  <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.campusZone}</p>
+                )}
                 <select
                   value={newSupplier.campusZone}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, campusZone: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setNewSupplier({ ...newSupplier, campusZone: e.target.value });
+                    if (addFormErrors.campusZone) setAddFormErrors({ ...addFormErrors, campusZone: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CAMPUS_ZONES.map((z) => (
                     <option key={z} value={z}>{z}</option>
@@ -1832,11 +1894,19 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Category <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.category && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.category}</p>}
                 <select
                   value={newSupplier.category}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, category: e.target.value as SupplierCategory })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setNewSupplier({ ...newSupplier, category: e.target.value as SupplierCategory });
+                    if (addFormErrors.category) setAddFormErrors({ ...addFormErrors, category: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.category ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -1846,14 +1916,23 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Exact Pickup Spot Description *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Exact Pickup Spot Description <span className="text-rose-600">*</span>
+              </label>
+              {addFormErrors.exactLocation && (
+                <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.exactLocation}</p>
+              )}
               <input
                 type="text"
-                required
                 placeholder="e.g. Stephen Riady Centre Level 1 next to FairPrice"
                 value={newSupplier.exactLocation}
-                onChange={(e) => setNewSupplier({ ...newSupplier, exactLocation: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setNewSupplier({ ...newSupplier, exactLocation: e.target.value });
+                  if (addFormErrors.exactLocation) setAddFormErrors({ ...addFormErrors, exactLocation: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  addFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
@@ -1905,10 +1984,24 @@ export default function App() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+              <textarea
+                rows={4}
+                placeholder="e.g. Specialty coffee, pastries, and sandwiches"
+                value={newSupplier.description || ''}
+                onChange={(e) => setNewSupplier({ ...newSupplier, description: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
             <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setIsAddOpen(false)}
+                onClick={() => {
+                  setAddFormErrors({});
+                  setIsAddOpen(false);
+                }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
@@ -1941,31 +2034,55 @@ export default function App() {
               </div>
               <button
                 type="button"
-                onClick={() => setEditingSupplier(null)}
+                onClick={() => {
+                  setEditFormErrors({});
+                  setEditingSupplier(null);
+                }}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            <p className="text-[11px] text-slate-400">
+              Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
+            </p>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Store / Spot Name *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Store / Spot Name <span className="text-rose-600">*</span>
+              </label>
+              {editFormErrors.name && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.name}</p>}
               <input
                 type="text"
-                required
                 value={editFormData.name || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, name: e.target.value });
+                  if (editFormErrors.name) setEditFormErrors({ ...editFormErrors, name: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  editFormErrors.name ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Campus Zone</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Campus Zone <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.campusZone && (
+                  <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.campusZone}</p>
+                )}
                 <select
                   value={editFormData.campusZone}
-                  onChange={(e) => setEditFormData({ ...editFormData, campusZone: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, campusZone: e.target.value });
+                    if (editFormErrors.campusZone) setEditFormErrors({ ...editFormErrors, campusZone: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    editFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CAMPUS_ZONES.map((z) => (
                     <option key={z} value={z}>{z}</option>
@@ -1974,11 +2091,21 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Category <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.category && (
+                  <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.category}</p>
+                )}
                 <select
                   value={editFormData.category}
-                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value as SupplierCategory })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, category: e.target.value as SupplierCategory });
+                    if (editFormErrors.category) setEditFormErrors({ ...editFormErrors, category: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    editFormErrors.category ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -1988,12 +2115,22 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Exact Pickup Spot Description</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Exact Pickup Spot Description <span className="text-rose-600">*</span>
+              </label>
+              {editFormErrors.exactLocation && (
+                <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.exactLocation}</p>
+              )}
               <input
                 type="text"
                 value={editFormData.exactLocation || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, exactLocation: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, exactLocation: e.target.value });
+                  if (editFormErrors.exactLocation) setEditFormErrors({ ...editFormErrors, exactLocation: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  editFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
@@ -2044,7 +2181,7 @@ export default function App() {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
               <textarea
-                rows={2}
+                rows={4}
                 value={editFormData.description || ''}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                 className="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -2054,7 +2191,10 @@ export default function App() {
             <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setEditingSupplier(null)}
+                onClick={() => {
+                  setEditFormErrors({});
+                  setEditingSupplier(null);
+                }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel

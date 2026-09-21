@@ -506,3 +506,31 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `apps/student-app/src/App.tsx` — added `isAuthenticated`/`authToken`/`authView`/login-form/signup-form state, `handleLogin`/`handleSignup` handlers, and an early-return Log In/Sign Up page rendered whenever `!isAuthenticated`. Added `RefreshCw` to the `lucide-react` import for the loading spinner. Attached the stored `authToken` as an `Authorization` header on the existing `fetchLiveSuppliers()` call (harmless — that route stays public by the author's own prior decision — but needed so the token variable isn't flagged as unused under this app's `noUnusedLocals` tsconfig, and is forward-compatible if that route ever requires auth). Rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet keyed to the hardcoded demo user id) is unchanged — the real logged-in user is not yet wired into that mock data, flagged as a separate future task.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`.
+
+## 2026-09-21 (later still) — Show deactivated suppliers as disabled cards in student-app "Spots" tab instead of hiding them
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User noticed that deactivating a supplier in the admin portal made it disappear entirely from the student app's Spots directory, and wanted it to still show up there instead — visually dimmed, with a red "Unavailable" label, and its "Pick for Errand" button disabled/unclickable. Planned in plan mode: root cause was `fetchLiveSuppliers()` calling `/api/suppliers?isActive=true`, a server-side filter that meant inactive suppliers were never sent to the frontend at all. Since that same `suppliers` list also feeds the Post Errand pickup dropdown (which must keep excluding unavailable suppliers, since you shouldn't be able to select one as a new errand's pickup point), the fix needed to split the two consumers rather than just removing the filter outright.
+
+**Usage scenario:** Debugging assistance and implementation code (allowed use) — reused the rose/emerald active-inactive badge convention already established in the admin portal for visual consistency across the app family.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — `fetchLiveSuppliers()` now fetches `/api/suppliers` (dropped `?isActive=true`), and its post-fetch default-selection logic picks the first *active* supplier instead of just `items[0]`. Added a derived `activeSuppliers` list, used for the Post Errand dropdown's options and its "N active spots" counter, so unavailable suppliers stay unselectable there. The Spots tab's card list (`filteredSuppliers`, unchanged) now naturally includes inactive suppliers; each card is dimmed (`bg-slate-50 opacity-60`) when `!s.isActive`, shows a red "Unavailable" badge next to the campus-zone badge, and its "Pick for Errand" button gets `disabled={!s.isActive}` plus matching disabled styling.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`.
+
+## 2026-09-21 (later still) — Add missing Description field, red required-field indicators, and client-side validation to Add/Edit Supplier modals
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User noticed the Add Supplier modal in the admin portal has no Description field at all (only reachable via a follow-up Edit), required fields in both Add and Edit modals are marked with a plain unstyled `*` with no explanatory legend, neither form validates required fields client-side before hitting the API, and the Edit modal's "Exact Pickup Spot Description" field is missing the asterisk/required treatment the equivalent Add-modal field has. Planned in plan mode: confirmed `description` is already a fully supported optional field on both `CreateSupplierRequest`/`UpdateSupplierRequest` and already present (unused) in the Add form's own state — pure frontend gap, no backend/DTO changes needed; confirmed the backend's actual required fields for create (name, campusZone, exactLocation, category) exactly match the four fields already asterisked in the Add modal, informing which fields to validate in both forms for consistency.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — added a small shared `validateSupplierForm()` helper reused by both the create and update handlers rather than duplicating the same four checks twice.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added a Description `<textarea>` to the Add Supplier modal (previously missing entirely). Added `addFormErrors`/`editFormErrors` state and `validateSupplierForm()`, called in `handleCreateSupplier`/`handleUpdateSupplier` before their `fetch()` calls; a failed check blocks submission and populates the errors, which render as inline red text directly under each invalid field's label (and a red border on that field), clearing as soon as the field is edited. Turned every required-field `*` red via a `<span className="text-rose-600">*</span>`, and added a "Fields marked with * are required" legend near the top of both forms. Edit modal's "Exact Pickup Spot Description" field now has the same asterisk + required check as Add's equivalent field (previously the one inconsistency between the two forms), and Campus Zone/Category also gained asterisks there for full parity with Add. Both modals' open/Cancel/X handlers now also reset their respective error state so a previous attempt's messages don't linger into a fresh open.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
