@@ -1,0 +1,45 @@
+import { ErrorRequestHandler } from 'express';
+import { AuthError, AuthErrorCode } from '../auth/auth-module';
+import { logError } from '../utils/logger';
+
+const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
+  INVALID_INPUT: 400,
+  DUPLICATE_EMAIL: 409,
+  DUPLICATE_USERNAME: 409,
+  INVALID_CREDENTIALS: 401,
+  INVALID_SESSION: 401,
+};
+
+export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+  const statusCode =
+    error instanceof AuthError ? AUTH_ERROR_STATUS[error.code] : 500;
+
+  if (error instanceof AuthError) {
+    res.status(statusCode).json({
+      success: false,
+      error: error.message,
+      code: error.code,
+    });
+    return;
+  }
+
+  const requestId =
+    typeof res.locals.requestId === 'string' ? res.locals.requestId : undefined;
+  const errorId = logError('http_request_failed', error, {
+    requestId,
+    method: req.method,
+    path: req.path,
+    statusCode,
+  });
+
+  res.locals.errorId = errorId;
+  res.locals.serverErrorMessage =
+    error instanceof Error ? error.message : String(error);
+  res.setHeader('X-Error-Id', errorId);
+
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    errorId,
+  });
+};
