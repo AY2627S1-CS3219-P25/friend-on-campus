@@ -3,6 +3,11 @@
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented Milestone D2 Admin Portal with Edit/Delete/Details modals, table sorting, pagination, mobile layout per Screen 6 wireframe, and demo RBAC switcher.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Removed redundant quick-category filter chips next to the Filter button; changed the Advanced Filter modal so category/zone chip selections are held as draft state and only applied to the supplier list when "Apply Filters" is clicked (previously filtered live on every chip click); reset now also clears pagination.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -65,10 +70,14 @@ export default function App() {
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  // Applied filters — what the supplier list is actually filtered by
   const [selectedZones, setSelectedZones] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // Draft filters — mutated live by chip clicks inside the modal, only
+  // copied into the applied state above when "Apply Filters" is clicked
+  const [draftSelectedZones, setDraftSelectedZones] = useState<string[]>([]);
+  const [draftSelectedCategories, setDraftSelectedCategories] = useState<string[]>([]);
 
   // Sorting & Pagination state
   const [sortField, setSortField] = useState<keyof SupplierDTO>('name');
@@ -426,6 +435,9 @@ export default function App() {
   const resetAdvancedFilters = () => {
     setSelectedZones([]);
     setSelectedCategories([]);
+    setDraftSelectedZones([]);
+    setDraftSelectedCategories([]);
+    setCurrentPage(1);
     setIsFilterModalOpen(false);
   };
 
@@ -443,11 +455,10 @@ export default function App() {
         (s.building && s.building.toLowerCase().includes(query)) ||
         s.exactLocation.toLowerCase().includes(query);
 
-      const matchesQuickCat = selectedCategory === 'ALL' || s.category === selectedCategory;
-      const matchesModalCat = selectedCategories.length === 0 || selectedCategories.includes(s.category);
+      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(s.category);
       const matchesZone = selectedZones.length === 0 || selectedZones.includes(s.campusZone);
 
-      return matchesSearch && matchesQuickCat && matchesModalCat && matchesZone;
+      return matchesSearch && matchesCategory && matchesZone;
     });
 
     result.sort((a, b) => {
@@ -467,7 +478,7 @@ export default function App() {
     });
 
     return result;
-  }, [suppliers, searchQuery, selectedCategory, selectedCategories, selectedZones, sortField, sortDirection]);
+  }, [suppliers, searchQuery, selectedCategories, selectedZones, sortField, sortDirection]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / pageSize));
@@ -757,7 +768,11 @@ export default function App() {
 
                 <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
                   <button
-                    onClick={() => setIsFilterModalOpen(true)}
+                    onClick={() => {
+                      setDraftSelectedCategories(selectedCategories);
+                      setDraftSelectedZones(selectedZones);
+                      setIsFilterModalOpen(true);
+                    }}
                     className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border shrink-0 transition ${
                       activeFilterCount > 0
                         ? 'bg-blue-50 border-blue-300 text-blue-700'
@@ -772,25 +787,6 @@ export default function App() {
                       </span>
                     )}
                   </button>
-
-                  <div className="h-5 w-px bg-slate-200 shrink-0" />
-
-                  {['ALL', ...CATEGORIES].map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setCurrentPage(1);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition ${
-                        selectedCategory === cat
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -1127,7 +1123,11 @@ export default function App() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-base text-slate-900">Filter Campus Suppliers</h3>
               <button
-                onClick={() => setIsFilterModalOpen(false)}
+                onClick={() => {
+                  setDraftSelectedCategories(selectedCategories);
+                  setDraftSelectedZones(selectedZones);
+                  setIsFilterModalOpen(false);
+                }}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
@@ -1138,12 +1138,12 @@ export default function App() {
               <label className="block text-xs font-bold text-slate-700 mb-2">Category / Type</label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((cat) => {
-                  const active = selectedCategories.includes(cat);
+                  const active = draftSelectedCategories.includes(cat);
                   return (
                     <button
                       key={cat}
                       type="button"
-                      onClick={() => toggleFilterChip(selectedCategories, cat, setSelectedCategories)}
+                      onClick={() => toggleFilterChip(draftSelectedCategories, cat, setDraftSelectedCategories)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                         active
                           ? 'bg-blue-600 border-blue-600 text-white'
@@ -1161,12 +1161,12 @@ export default function App() {
               <label className="block text-xs font-bold text-slate-700 mb-2">Campus Zone</label>
               <div className="flex flex-wrap gap-2">
                 {CAMPUS_ZONES.map((zone) => {
-                  const active = selectedZones.includes(zone);
+                  const active = draftSelectedZones.includes(zone);
                   return (
                     <button
                       key={zone}
                       type="button"
-                      onClick={() => toggleFilterChip(selectedZones, zone, setSelectedZones)}
+                      onClick={() => toggleFilterChip(draftSelectedZones, zone, setDraftSelectedZones)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
                         active
                           ? 'bg-blue-600 border-blue-600 text-white'
@@ -1191,6 +1191,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
+                  setSelectedCategories(draftSelectedCategories);
+                  setSelectedZones(draftSelectedZones);
                   setIsFilterModalOpen(false);
                   setCurrentPage(1);
                 }}

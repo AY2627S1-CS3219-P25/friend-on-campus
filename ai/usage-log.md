@@ -200,3 +200,17 @@ Verified: `npm run db:seed --workspace=@campus-errand/user-service` and `--works
 - `docker-compose.yml` — added `SUPPLIER_SERVICE_URL=http://supplier-service:8002` and `USER_SERVICE_URL=http://user-service:8001` to admin-portal's `environment:` block (Docker's internal service DNS names).
 
 Verified: rebuilt/restarted the admin-portal container; `curl http://localhost:5174/api/suppliers` now returns all 21 real seeded suppliers (previously would have hit the broken proxy). `apps/student-app/vite.config.ts` has the identical latent bug but was explicitly left unfixed per user's choice (Option B was admin-portal only).
+
+## 2026-09-21 — Fix admin-portal filter UI: remove redundant chips, gate filtering behind "Apply Filters"
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User noticed two issues in the admin portal's supplier list toolbar: (1) a redundant row of quick category chip buttons sat next to the "Filter" button, duplicating the category filter already inside the Filter modal; (2) inside the Filter modal, clicking category/zone chips filtered the supplier list immediately, making the "Apply Filters" button a no-op. User wanted the chip row removed and filtering to only take effect once "Apply Filters" is clicked. Planned in plan mode (Explore agent to locate the code, Plan agent to design the draft/applied state split), then clarified two open UX decisions with the user via AskUserQuestion (discard draft on modal close via X — confirmed yes; also reset pagination on "Reset All Filters" — confirmed yes) before implementing.
+
+**Usage scenario:** Requirements interpretation (bug report → concrete UI/state changes) and implementation code (allowed use) — no new architecture, component boundaries, or data schema; purely local React state/UI wiring in an existing component.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — removed the `selectedCategory` quick-filter state and its chip row (toolbar now shows only the "Filter" button); added `draftSelectedCategories`/`draftSelectedZones` state so modal chip clicks no longer mutate the state `filteredAndSorted` depends on; "Apply Filters" now copies draft → applied state (previously only closed the modal); modal's X (close) button now discards draft changes back to applied state; `resetAdvancedFilters` now also resets `draftSelected*` state and `currentPage`.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
