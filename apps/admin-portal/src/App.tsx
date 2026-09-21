@@ -13,6 +13,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Fixed the "Permanent Hard Delete" checkbox in the Delete Supplier modal not resetting between delete attempts (now reset when opening the modal for a supplier and when cancelling). Added client-side RBAC gating so the "Add Location" button and per-row Deactivate/Edit/Delete controls (desktop table and mobile card views) only render for the ADMIN demo role; Student/Guest roles now only see the "view details" (Eye) icon.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added a new admin-only "Users" directory page (sidebar nav, KPI cards, search, filter, sortable table/card list, pagination), fetching from GET /api/users through the existing API Gateway proxy path (no gateway/vite config changes needed, both already route /api/users to user-service). Read-only: no add/edit/delete controls. Search covers nusEmail/fullName/matricNumber/phoneNumber/telegramHandle case-insensitively; filters (role, min rating, min completed orders) follow the same draft-until-"Apply Filters" pattern as the Suppliers page.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -39,6 +44,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   User,
+  Users,
   Menu,
 } from 'lucide-react';
 import {
@@ -46,6 +52,8 @@ import {
   SupplierCategory,
   CreateSupplierRequest,
   UpdateSupplierRequest,
+  UserDTO,
+  UserRole,
 } from '@campus-errand/common-dtos';
 
 const CATEGORIES: SupplierCategory[] = [
@@ -59,11 +67,13 @@ const CATEGORIES: SupplierCategory[] = [
 
 const CAMPUS_ZONES = ['COM3', 'UTown', 'PGPR', 'FASS', 'Central Lib', 'Science', 'Engineering'];
 
+const USER_ROLES: UserRole[] = ['STUDENT', 'ADMIN'];
+
 // Demo tokens for live mentor evaluation
 type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
 
 export default function App() {
-  const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit'>('suppliers');
+  const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit' | 'users'>('suppliers');
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +130,28 @@ export default function App() {
 
   // Mobile menu drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // ----------------------------------------------------
+  // Users Directory state (Admin-only, read-only feature)
+  // ----------------------------------------------------
+  const [users, setUsers] = useState<UserDTO[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [errorUsers, setErrorUsers] = useState<string | null>(null);
+
+  const [searchQueryUsers, setSearchQueryUsers] = useState('');
+  const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
+  // Applied filters — what the user list is actually filtered by
+  const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
+  const [minRating, setMinRating] = useState<number>(0);
+  const [minCompletedOrders, setMinCompletedOrders] = useState<number>(0);
+  // Draft filters — mutated live by the modal, only committed on "Apply Filters"
+  const [draftSelectedUserRoles, setDraftSelectedUserRoles] = useState<string[]>([]);
+  const [draftMinRating, setDraftMinRating] = useState<number>(0);
+  const [draftMinCompletedOrders, setDraftMinCompletedOrders] = useState<number>(0);
+
+  const [sortFieldUsers, setSortFieldUsers] = useState<keyof UserDTO>('fullName');
+  const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
+  const [currentPageUsers, setCurrentPageUsers] = useState(1);
 
   // Authenticate demo sessions with backend User Service
   const loginDemoUser = async (role: DemoRole) => {
@@ -266,6 +298,30 @@ export default function App() {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
     return headers;
+  };
+
+  // Fetch all users for the Users Directory (Admin-only), via the API Gateway
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+    setErrorUsers(null);
+    try {
+      const res = await fetch('/api/users?limit=100', { headers: getAuthHeaders() });
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+      }
+      const json = await res.json();
+      if (json.success && json.data) {
+        setUsers(json.data.items || []);
+      } else {
+        throw new Error(json.error || 'Failed to parse users payload');
+      }
+    } catch (err: any) {
+      console.warn('API error fetching users:', err.message);
+      setErrorUsers('Could not connect to live User Service API (/api/users).');
+      setUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
+    }
   };
 
   // 1. Create Supplier Handler
@@ -498,6 +554,82 @@ export default function App() {
     return set.size;
   }, [suppliers]);
 
+  // ----------------------------------------------------
+  // Users Directory: sort, filter, pagination
+  // ----------------------------------------------------
+  const handleSortUsers = (field: keyof UserDTO) => {
+    if (sortFieldUsers === field) {
+      setSortDirectionUsers((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortFieldUsers(field);
+      setSortDirectionUsers('asc');
+    }
+  };
+
+  const resetUserFilters = () => {
+    setSelectedUserRoles([]);
+    setMinRating(0);
+    setMinCompletedOrders(0);
+    setDraftSelectedUserRoles([]);
+    setDraftMinRating(0);
+    setDraftMinCompletedOrders(0);
+    setCurrentPageUsers(1);
+    setIsUserFilterModalOpen(false);
+  };
+
+  const activeUserFilterCount =
+    (selectedUserRoles.length > 0 ? 1 : 0) + (minRating > 0 ? 1 : 0) + (minCompletedOrders > 0 ? 1 : 0);
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let result = users.filter((u) => {
+      const query = searchQueryUsers.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        u.nusEmail.toLowerCase().includes(query) ||
+        u.fullName.toLowerCase().includes(query) ||
+        u.matricNumber.toLowerCase().includes(query) ||
+        (u.phoneNumber && u.phoneNumber.toLowerCase().includes(query)) ||
+        (u.telegramHandle && u.telegramHandle.toLowerCase().includes(query));
+
+      const matchesRole = selectedUserRoles.length === 0 || selectedUserRoles.includes(u.role);
+      const matchesRating = minRating <= 0 || u.ratingAvg >= minRating;
+      const matchesOrders = minCompletedOrders <= 0 || u.totalCompletedOrders >= minCompletedOrders;
+
+      return matchesSearch && matchesRole && matchesRating && matchesOrders;
+    });
+
+    result.sort((a, b) => {
+      let valA = a[sortFieldUsers];
+      let valB = b[sortFieldUsers];
+
+      if (valA === undefined || valA === null) valA = '';
+      if (valB === undefined || valB === null) valB = '';
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortDirectionUsers === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirectionUsers === 'asc' ? valA - valB : valB - valA;
+      }
+      return 0;
+    });
+
+    return result;
+  }, [users, searchQueryUsers, selectedUserRoles, minRating, minCompletedOrders, sortFieldUsers, sortDirectionUsers]);
+
+  const totalPagesUsers = Math.max(1, Math.ceil(filteredAndSortedUsers.length / pageSize));
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPageUsers - 1) * pageSize;
+    return filteredAndSortedUsers.slice(start, start + pageSize);
+  }, [filteredAndSortedUsers, currentPageUsers, pageSize]);
+
+  const userStats = useMemo(() => {
+    const admins = users.filter((u) => u.role === 'ADMIN').length;
+    const students = users.filter((u) => u.role === 'STUDENT').length;
+    const avgRating = users.length > 0 ? users.reduce((sum, u) => sum + u.ratingAvg, 0) / users.length : 0;
+    return { admins, students, avgRating };
+  }, [users]);
+
   return (
     <div className="flex h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden">
       {/* Desktop Left Sidebar */}
@@ -524,6 +656,23 @@ export default function App() {
             <Building2 className="w-4 h-4" />
             <span>Campus Suppliers (M3)</span>
           </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setActiveNav('users');
+                fetchUsers();
+              }}
+              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
+                activeNav === 'users'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Users</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveNav('health')}
@@ -613,6 +762,8 @@ export default function App() {
               <h2 className="text-base md:text-lg font-bold text-slate-900 leading-tight">
                 {activeNav === 'suppliers'
                   ? 'Campus Suppliers Directory'
+                  : activeNav === 'users'
+                  ? 'User Directory'
                   : activeNav === 'health'
                   ? 'System Health & Services'
                   : 'Audit Log & Resolution'}
@@ -641,14 +792,16 @@ export default function App() {
             </div>
 
             <button
-              onClick={fetchSuppliers}
+              onClick={() => (activeNav === 'users' ? fetchUsers() : fetchSuppliers())}
               className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-              title="Refresh suppliers list"
+              title={activeNav === 'users' ? 'Refresh users list' : 'Refresh suppliers list'}
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${(activeNav === 'users' ? isLoadingUsers : isLoading) ? 'animate-spin' : ''}`}
+              />
             </button>
 
-            {isAdmin && (
+            {isAdmin && activeNav === 'suppliers' && (
               <button
                 onClick={() => setIsAddOpen(true)}
                 className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
@@ -672,6 +825,20 @@ export default function App() {
             >
               Campus Suppliers (M3)
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setActiveNav('users');
+                  fetchUsers();
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+                  activeNav === 'users' ? 'bg-blue-600 text-white' : 'text-slate-300'
+                }`}
+              >
+                Users
+              </button>
+            )}
             <button
               onClick={() => { setActiveNav('health'); setMobileMenuOpen(false); }}
               className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
@@ -719,10 +886,10 @@ export default function App() {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-          {error && (
+          {(activeNav === 'users' ? errorUsers : error) && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>{error}</span>
+              <span>{activeNav === 'users' ? errorUsers : error}</span>
             </div>
           )}
 
@@ -1094,6 +1261,267 @@ export default function App() {
             </div>
           )}
 
+          {activeNav === 'users' && (
+            <div className="space-y-4">
+              {/* Desktop KPI Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Total Users</span>
+                  <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{users.length}</p>
+                </div>
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Admins</span>
+                  <p className="text-xl md:text-2xl font-black text-blue-600 mt-1">{userStats.admins}</p>
+                </div>
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Students</span>
+                  <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{userStats.students}</p>
+                </div>
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Avg Rating</span>
+                  <p className="text-xl md:text-2xl font-black text-emerald-600 mt-1">
+                    {userStats.avgRating.toFixed(2)} ★
+                  </p>
+                </div>
+              </div>
+
+              {/* Filters & Search Row */}
+              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md flex items-center">
+                  <Search className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by email, name, matric no., phone, or Telegram..."
+                    value={searchQueryUsers}
+                    onChange={(e) => {
+                      setSearchQueryUsers(e.target.value);
+                      setCurrentPageUsers(1);
+                    }}
+                    className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {searchQueryUsers && (
+                    <button
+                      onClick={() => setSearchQueryUsers('')}
+                      className="absolute right-3 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
+                  <button
+                    onClick={() => {
+                      setDraftSelectedUserRoles(selectedUserRoles);
+                      setDraftMinRating(minRating);
+                      setDraftMinCompletedOrders(minCompletedOrders);
+                      setIsUserFilterModalOpen(true);
+                    }}
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border shrink-0 transition ${
+                      activeUserFilterCount > 0
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Filter</span>
+                    {activeUserFilterCount > 0 && (
+                      <span className="ml-1 bg-blue-600 text-white rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center font-bold">
+                        {activeUserFilterCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="block md:hidden space-y-3">
+                {paginatedUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2.5"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                          {u.matricNumber}
+                        </span>
+                        <h3 className="font-bold text-sm text-slate-900 mt-1">{u.fullName}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{u.nusEmail}</p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          u.role === 'ADMIN'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                      <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded">
+                        ★ {u.ratingAvg.toFixed(2)}
+                      </span>
+                      <span className="bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded">
+                        {u.totalCompletedOrders} orders completed
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
+                      {u.phoneNumber && <span>{u.phoneNumber}</span>}
+                      {u.telegramHandle && <span>{u.telegramHandle}</span>}
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                      Joined {new Date(u.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Data Table View */}
+              <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
+                      <th
+                        onClick={() => handleSortUsers('matricNumber')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Matric No.</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('fullName')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Name & Email</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('role')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Role</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('ratingAvg')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Rating</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('totalCompletedOrders')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Completed Orders</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th className="p-3.5">Phone</th>
+                      <th className="p-3.5">Telegram</th>
+                      <th
+                        onClick={() => handleSortUsers('createdAt')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Joined</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-50 transition">
+                        <td className="p-3.5 font-mono font-bold text-slate-700">{u.matricNumber}</td>
+                        <td className="p-3.5">
+                          <div className="font-semibold text-slate-900">{u.fullName}</div>
+                          <div className="text-[11px] text-slate-400">{u.nusEmail}</div>
+                        </td>
+                        <td className="p-3.5">
+                          <span
+                            className={`px-2 py-0.5 rounded font-bold ${
+                              u.role === 'ADMIN' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-slate-600">★ {u.ratingAvg.toFixed(2)}</td>
+                        <td className="p-3.5 text-slate-600">{u.totalCompletedOrders}</td>
+                        <td className="p-3.5 text-slate-600">{u.phoneNumber || '—'}</td>
+                        <td className="p-3.5 text-slate-600">{u.telegramHandle || '—'}</td>
+                        <td className="p-3.5 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                    {paginatedUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-slate-400">
+                          No users found matching your query.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Unified Pagination Bar */}
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <span>
+                  Showing {Math.min(filteredAndSortedUsers.length, (currentPageUsers - 1) * pageSize + 1)} to{' '}
+                  {Math.min(filteredAndSortedUsers.length, currentPageUsers * pageSize)} of{' '}
+                  {filteredAndSortedUsers.length} users
+                </span>
+
+                <div className="flex items-center space-x-1">
+                  <button
+                    disabled={currentPageUsers <= 1}
+                    onClick={() => setCurrentPageUsers((p) => Math.max(1, p - 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {Array.from({ length: totalPagesUsers }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPageUsers(page)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                        currentPageUsers === page
+                          ? 'bg-slate-900 text-white'
+                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPageUsers >= totalPagesUsers}
+                    onClick={() => setCurrentPageUsers((p) => Math.min(totalPagesUsers, p + 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeNav === 'health' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
@@ -1223,6 +1651,102 @@ export default function App() {
                   setSelectedZones(draftSelectedZones);
                   setIsFilterModalOpen(false);
                   setCurrentPage(1);
+                }}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Users Filter Modal */}
+      {isUserFilterModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-base text-slate-900">Filter Users</h3>
+              <button
+                onClick={() => {
+                  setDraftSelectedUserRoles(selectedUserRoles);
+                  setDraftMinRating(minRating);
+                  setDraftMinCompletedOrders(minCompletedOrders);
+                  setIsUserFilterModalOpen(false);
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">Role</label>
+              <div className="flex flex-wrap gap-2">
+                {USER_ROLES.map((role) => {
+                  const active = draftSelectedUserRoles.includes(role);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => toggleFilterChip(draftSelectedUserRoles, role, setDraftSelectedUserRoles)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                        active
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {role}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Min Rating</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  value={draftMinRating || ''}
+                  onChange={(e) => setDraftMinRating(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder="0.0"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Min Completed Orders</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={draftMinCompletedOrders || ''}
+                  onChange={(e) => setDraftMinCompletedOrders(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={resetUserFilters}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900"
+              >
+                Reset All Filters
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUserRoles(draftSelectedUserRoles);
+                  setMinRating(draftMinRating);
+                  setMinCompletedOrders(draftMinCompletedOrders);
+                  setIsUserFilterModalOpen(false);
+                  setCurrentPageUsers(1);
                 }}
                 className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
               >

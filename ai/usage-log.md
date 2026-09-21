@@ -217,6 +217,7 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 ## 2026-09-21 (later) — Fix stale "permanent delete" checkbox and add client-side RBAC gating to admin-portal action buttons
 
+
 **Tool:** Claude Code (model: Claude Sonnet 5)
 **Author:** jagdeepsh
 
@@ -226,5 +227,19 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 **Files changed:**
 - `apps/admin-portal/src/App.tsx` — `setIsPermanentDelete(false)` now runs wherever the Delete Supplier modal is opened (mobile card view, desktop table view) or dismissed via Cancel, so the checkbox no longer carries a stale checked state into the next delete attempt. Added a derived `isAdmin = currentRole === 'ADMIN'` and used it to conditionally render the "Add Location" button and the Deactivate/Activate, Edit, and Delete controls in both the mobile card list and the desktop table; the Eye (view details) button remains visible for all roles.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-21 (later still) — Add admin-only "Users" directory page to admin-portal
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted a new admin-only "Users" page in the admin portal, alongside the existing Campus Suppliers page, listing all registered users pulled from the User Service's `GET /api/users` endpoint via the standard API Gateway path (not called directly), with the same layout/search/filter UX as the Suppliers page but strictly read-only — no add/edit/delete. Search across nusEmail, fullName, matricNumber, phoneNumber, telegramHandle (case-insensitive); filter by role, min rating, min completed orders. User explicitly restricted scope to `apps/admin-portal/src` only — no backend, gateway, or config changes. Planned in plan mode: confirmed via investigation that `/api/users` is already proxied by both `vite.config.ts` (dev) and `gateway/nginx.conf` (prod) with zero changes needed, and that the existing demo-admin JWT (`authToken`/`getAuthHeaders()`) already satisfies the endpoint's auth requirement. Clarified two open design choices with the user via AskUserQuestion (numeric min-value filter inputs for rating/completed-orders vs. preset chips; whether to include a KPI stat-card row) before implementing.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — followed the existing single-file component's established patterns (duplicated the suppliers page's search/filter/sort/pagination/draft-vs-applied-filter logic for users rather than introducing a new shared abstraction, consistent with the file's existing convention and to avoid unilaterally making component-boundary/architecture decisions).
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `fetchUsers()` (GET `/api/users?limit=100` with existing `getAuthHeaders()`), an admin-gated "Users" nav entry (desktop sidebar + mobile drawer) that lazily fetches on click, a new `activeNav === 'users'` content section (KPI cards, search+filter toolbar, mobile card list, desktop table, pagination — no action buttons), and a "Filter Users" modal (role chips + min-rating/min-completed-orders number inputs) following the same draft-until-"Apply Filters" pattern used by the Suppliers filter modal. Header refresh button and error banner are now tab-aware (target users vs. suppliers depending on the active nav). No other files touched.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
