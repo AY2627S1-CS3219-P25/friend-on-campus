@@ -52,14 +52,16 @@ You implement decisions; you do not make them. If the task text does not state t
 - Do not edit `apps/**`, Dockerfiles, compose or nginx — report what `frontend` / `infrastructure` must change.
 - No new dependency without the author's say-so. Disclosure header + `// AI-generated (edited by <name>)` on every file touched; leave "Author review" blank. Never commit, push or read `.env`.
 
-## Service facts (2026-09-21 — trust the code if it differs, and say so)
+## Service facts
 
-- **user-service :8001** — real. All routes in `src/index.ts` (`/api/auth/{register,login}`, `/api/users/{me,profile,:id/promote,:id}`, `GET /api/users`). It *issues* the JWT (`JWTPayload`); payload/expiry changes break every verifier. `bcryptjs` cost 10; `toUserDTO` strips the hash. Roles `STUDENT | ADMIN`; last-admin guard via `countAdmins()`. No Prisma migrations folder. Seeds admin/alice/bob, which `scripts/test-d2-e2e.ts` relies on.
-- **supplier-service :8002** — real. Entry is `src/backend/server.ts`. `GET /`, `GET /:id` have no auth; `POST`, `PUT /:id`, `PATCH /:id/toggle`, `DELETE /:id` need `requireAdmin`. Verifies JWTs locally; compose sets no `JWT_SECRET` for it, so it runs on the shared hardcoded fallback. Soft delete by default. No `version` column. Only service with `migrations/`. Seeds 21 rows from `data/csv`.
-- **order-service :8003** — mock: one `src/index.ts`, in-memory array, "publish" is `console.log`. Identity comes from a client-supplied `x-user-id` header with a hardcoded default — do not carry that into real code. An `orders` table (with `version`) exists in the init SQL; no Prisma schema yet. Accept is check-then-set, which cannot guarantee one winner on a real DB (#37) — the mechanism is the author's decision.
-- **credit-service :8004** — mock, same shape and same `x-user-id` identity. `credit_wallets` / `credit_transactions` exist in the init SQL (`CHECK >= 0`, unique `transaction_code`). D1's wallet mockup double-subtracts reserved credits — do not copy it.
-- **notification-service :8005** — mock: `ws` server that re-broadcasts every message to everyone, plus `POST /api/notifications/broadcast`; no socket auth, no user↔connection mapping, not connected to RabbitMQ.
-- Open document-vs-code mismatches are in `docs/requirements/conflicts.md`. Never resolve one yourself.
+The detail is in `docs/services/<name>.md` — read the page for every service you touch before editing. In one line each (2026-09-21):
+
+- **user-service :8001** — real. It *issues* the JWT every other service verifies; payload, secret or expiry changes break them all.
+- **supplier-service :8002** — real. Entry is `src/backend/server.ts`. The only service with a Prisma `migrations/` folder.
+- **order-service :8003**, **credit-service :8004** — in-memory mocks that trust a client-supplied `x-user-id` header; their tables exist only in the init SQL. Do not carry the header-identity pattern into real code.
+- **notification-service :8005** — mock `ws` server that re-broadcasts to everyone; not connected to RabbitMQ.
+
+When your change makes a service page wrong, list the corrections in your report so the main session can update it.
 
 ## Report
 

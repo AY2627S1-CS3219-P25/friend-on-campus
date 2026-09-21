@@ -374,3 +374,33 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Files changed:**
 - `ai/usage-log.md` — appended this entry. Everything else in the commit is described in the 2026-09-21 entries above.
 
+## 2026-09-21 16:45 SGT — Docs clean-up (part 2 of 2)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (these changes are uncommitted, on top of commit 8a897ce)
+
+**Prompt (summarised):** After committing, clean up the docs.
+
+**Usage scenario:** Documentation refactoring (allowed use): removing duplication and placeholder files; no content about design, requirements or priorities was added or changed.
+
+**Files changed:**
+- `CLAUDE.md` — section 4's long per-path table replaced by a compact map that points to `docs/services/` and `docs/architecture/overview.md` (pitfalls list kept); section 8 now names `docs/services/` as the single home for service facts.
+- `.claude/agents/backend.md` — "Service facts" reduced to one line per service plus a pointer to the service pages.
+- `docs/README.md` — rewritten in reading order, with a "who may write what" table and an "add when first needed" table.
+- `docs/api/README.md`, `docs/diagrams/README.md`, `docs/mentor-feedback/README.md` — removed (placeholder-only; their guidance moved into `docs/README.md`).
+- `README.md` — one added line linking to `docs/README.md`, plus a disclosure comment at the end of the file.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 17:00 SGT — Commit docs clean-up; list useful Claude Code plugins
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config
+
+**Prompt (summarised):** Commit the docs clean-up, then list Claude Code plugins that would be useful for this project.
+
+**Usage scenario:** Version-control housekeeping on the author's explicit instruction, and learning support / developer-tooling advice (allowed uses). The plugin list is given in chat only; plugins whose purpose is architecture design, requirements analysis or sprint planning are listed as "do not use here" because of the course AI policy.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry. The commit itself contains the clean-up described in the previous entry.

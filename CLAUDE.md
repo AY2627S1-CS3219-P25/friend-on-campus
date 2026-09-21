@@ -71,24 +71,23 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ## 4. Repo map
 
-State of the code as of 2026-09-21 on `milestone-d2`. If what you see differs, trust the code and update this section.
+Compact map (state as of 2026-09-21; if the code differs, trust the code and fix the docs). **Detail lives in `docs/` — read it instead of re-exploring:** per-service pages in `docs/services/<name>.md` (routes, env vars, data, behaviour as built), the system picture and full directory tree in `docs/architecture/overview.md`.
 
-| Path | Port | What is there now |
-|---|---|---|
-| `services/user-service` | 8001 | **Real.** `src/index.ts` (all routes), `src/middleware/authMiddleware.ts`, `src/database/{client,userRepository,seed}.ts`, `prisma/schema.prisma` (no migrations folder). Routes: `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/users/me`, `PUT /api/users/profile`, `POST /api/users/:id/promote`, `GET /api/users`, `GET /api/users/:id`. |
-| `services/supplier-service` | 8002 | **Real.** Entry is `src/backend/server.ts` (not `index.ts`); `src/backend/{supplierRoutes,authMiddleware}.ts`; `src/database/{client,supplierRepository,seed}.ts`, `prisma/schema.prisma` + `migrations/`. Routes under `/api/suppliers`: `GET /`, `GET /:id` (no auth middleware); `POST /`, `PUT /:id`, `PATCH /:id/toggle`, `DELETE /:id` (`authenticateToken` + `requireAdmin`). |
-| `services/order-service` | 8003 | **Mock.** Single `src/index.ts`, in-memory array, RabbitMQ publish is a `console.log`. Routes exist for list/get/activity/create/accept/pickup/complete/cancel. `pg` and `amqplib` are installed but unused. |
-| `services/credit-service` | 8004 | **Mock.** Single `src/index.ts`, in-memory. Routes: `GET /api/credits/wallet`, `GET /api/credits/ledger`, `POST /api/credits/escrow/{reserve,settle,refund}`. |
-| `services/notification-service` | 8005 | **Mock.** `ws` WebSocket server that re-broadcasts, plus `POST /api/notifications/broadcast`. Not connected to RabbitMQ. |
-| `apps/student-app` | 5173 | One file, `src/App.tsx` (~730 lines), no router. Calls `/api/suppliers?isActive=true` and opens `/ws/`; has a hardcoded fallback list if the fetch fails. |
-| `apps/admin-portal` | 5174 | One file, `src/App.tsx` (~1650 lines), no router. Login + supplier CRUD against the real APIs. Icons: `lucide-react`. |
-| `packages/common-dtos` | — | One file, `src/index.ts`: DTOs, request types, `JWTPayload`, `UserRole = 'STUDENT' \| 'ADMIN'`, `OrderStatus`, event types, `ApiResponse<T>`, `PaginatedResponse<T>`. Imported as `@campus-errand/common-dtos`. |
-| `gateway/nginx.conf` | 80 | Routes `/api/auth/`, `/api/users/`, `/api/suppliers`, `/api/orders`, `/api/credits/` to services, `/ws/` to notification, `/admin/` to admin-portal, `/` to student-app. A new route prefix needs a new `location` block here. |
-| `docker/postgres-init/01-init-databases.sql` | — | Creates `user_db`, `supplier_db`, `order_db`, `credit_db` **and their tables in raw SQL**, and inserts 5 sample suppliers. |
-| `docker-compose.yml` | — | All of the above + `postgres:16-alpine` (5432) + `rabbitmq:3.13-management` (5672, 15672). Containers are named `campuserrand-*`. |
-| `scripts/test-d2-e2e.ts` | — | D2 end-to-end suite (`npm run test:d2`). |
-| `data/csv`, `data/images` | — | 21-row supplier seed CSV read by supplier `seed.ts`; image URLs in the CSV point at the FoC-Template GitHub repo. |
-| `docs/onboarding-guide-sep-3.md` | — | Long beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces). |
+```
+services/user-service          :8001  real (Prisma, user_db)      entry src/index.ts
+services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/backend/server.ts
+services/order-service         :8003  in-memory mock              single src/index.ts
+services/credit-service        :8004  in-memory mock              single src/index.ts
+services/notification-service  :8005  in-memory mock (ws)         single src/index.ts
+apps/student-app               :5173  one src/App.tsx (~730 lines), no router
+apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
+packages/common-dtos                  shared DTOs, JWTPayload, OrderStatus, events, ApiResponse<T>
+gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
+docker/postgres-init/*.sql            creates the 4 databases AND their tables (first boot only)
+docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
+scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
+docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config
+```
 
 Things that are easy to get wrong:
 
@@ -134,7 +133,7 @@ Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if 
 - D2 / Sprint 2 plan (work packages, acceptance checks, API sketch): https://docs.google.com/document/d/1I8sma-xUGapxvc6mSDyOLj8kihsAhL5erxinlP82pv8
 - Architecture overview (intended vs built, per service, with sources; directory layout): `docs/architecture/overview.md` — read it before any cross-service work
 - Per-service documentation (run, config, API, data, behaviour as built): `docs/services/<name>.md` — update the page in the same change that alters a service's routes, env vars, data model or mock/real status
-- Open conflicts: `docs/requirements/conflicts.md` · Recorded decisions: `docs/decisions/` · API contracts: `docs/api/`
+- Open conflicts: `docs/requirements/conflicts.md` · Recorded decisions: `docs/decisions/` · API contracts: `docs/api/` (created when the first contract is written)
 - Onboarding: `docs/onboarding-guide-sep-3.md`
 
 Where the documents, the issues and the code disagree, do not pick a side silently: point out the conflict and let the author decide.
@@ -161,4 +160,4 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 - Every agent stops and returns a question when it needs a design decision the author has not stated. Relay it to the author verbatim; do not answer it yourself and re-launch.
 - Put the author's decided design **in the task text** — agents do not see this conversation.
 - Agents report files changed; the main session writes **one** `ai/usage-log.md` entry per prompt.
-- When code changes make the "Service facts" in `backend.md` wrong (e.g. a mock becomes real), update them in the same change.
+- Service facts have one home: `docs/services/<name>.md`. When a change makes a page wrong (e.g. a mock becomes real), update the page in the same change, and the one-line summaries in section 4 and `.claude/agents/backend.md` only if they became false.
