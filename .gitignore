@@ -40,3 +40,7 @@ Thumbs.db
 *.sln
 *.sw?
 
+
+# Claude Code: personal, per-machine settings (shared config lives in .claude/settings.json)
+# AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-09-21 - added the line below. Author review: <pending>
+.claude/settings.local.json
