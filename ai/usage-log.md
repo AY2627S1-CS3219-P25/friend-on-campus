@@ -228,3 +228,149 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `apps/admin-portal/src/App.tsx` — `setIsPermanentDelete(false)` now runs wherever the Delete Supplier modal is opened (mobile card view, desktop table view) or dismissed via Cancel, so the checkbox no longer carries a stale checked state into the next delete attempt. Added a derived `isAdmin = currentRole === 'ADMIN'` and used it to conditionally render the "Add Location" button and the Deactivate/Activate, Edit, and Delete controls in both the mobile card list and the desktop table; the Eye (view details) button remains visible for all roles.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-21 12:57 SGT — Issue/milestone review and Claude Code tooling plan
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** milestone-d2
+
+**Prompt (summarised):** Clone the repo, switch to `dev` then `milestone-d2` and pull. Read the GitHub issues/milestones and summarise what is assigned to me. Then plan the Claude Code setup for this project (configs, hooks, MCP, plugins, skills, agents) and a docs / design-decisions folder, using the D1 document, the D2 / Sprint 2 plan and the `friend-on-campus` repo as reference.
+
+**Usage scenario:** Learning support / developer-tooling planning (allowed use). Read-only review of issues and docs; the plan covers AI tooling only. No product architecture, schema, interface or requirement-prioritisation decisions were made by the AI; design-decision records are to be authored by the team (AI supplies an empty template only).
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry. No other repo files changed; nothing committed.
+
+## 2026-09-21 13:10 SGT — Restructure and extend CLAUDE.md
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** milestone-d2 (uncommitted; `CLAUDE.md` is identical on `dev`, so the change can be committed on either)
+
+**Prompt (summarised):** Enhance `CLAUDE.md` as part of the Claude Code tooling plan.
+
+**Usage scenario:** Documentation improvement / config boilerplate (allowed use). The course AI-usage policy wording was kept unchanged; added content is factual only (repo map, ports, npm scripts, usage-log format, `gh -R` note, links to D1/D2 docs). No architecture, schema or interface decisions. The "When a request crosses the line" paragraph is a default left for the team to edit; the disclosure header's "Author review" line is left for the author.
+
+**Files changed:**
+- `CLAUDE.md` — rewritten into 7 sections (policy, bookkeeping, stack, repo map, commands, git/GitHub, source documents).
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 13:45 SGT — Repo walkthrough, CLAUDE.md repo map, Claude Code tooling and docs skeleton
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-tooling (created from `milestone-d2`; nothing committed)
+
+**Prompt (summarised):** Make the usage-log hook warn instead of block. Read through the whole project before updating the repo map in `CLAUDE.md`. Then build the agreed Claude Code setup (settings, hooks, skills, agents) and a docs / design-decisions folder.
+
+**Usage scenario:** Documentation improvement, boilerplate/config generation and requirements *discovery/formatting* (allowed uses). The repo map and `docs/requirements/conflicts.md` record observed facts only; the conflicts table's "Resolution" column and every ADR section (context, options, decision, rationale, consequences) are left empty for the team. No product architecture, schema or interface was proposed or changed. Two "TEAM:" markers flag policy wording the team should set themselves (`CLAUDE.md` "When a request crosses the line"; the exempt-file list in `check-disclosure.js`).
+
+**Files changed:**
+- `CLAUDE.md` — section 4 rewritten as a per-path table + "easy to get wrong" list from reading the code; corrected the `npm run test:d2` note (it spawns user/supplier services itself and needs ports 8001/8002 free).
+- `AGENTS.md` — was empty; now a one-line pointer to `CLAUDE.md`.
+- `.gitignore` — ignore `.claude/settings.local.json`.
+- `.claude/settings.json` (JSON, no header possible) — deny commit/push/merge/PR and `.env` reads; allow typecheck/test/read-only git+gh; wire the two hooks.
+- `.claude/settings.local.json` (JSON, git-ignored, personal) — disables unrelated global plugins for this project.
+- `.claude/hooks/check-usage-log.js` — Stop hook, warn-only.
+- `.claude/hooks/check-disclosure.js` — PostToolUse hook on Edit/Write, reminder-only.
+- `.claude/hooks/hooks.test.js` — self-check for both hooks (`node .claude/hooks/hooks.test.js` → "hooks ok").
+- `.claude/skills/{usage-log,new-adr,issue-start}/SKILL.md` — three project skills.
+- `.claude/agents/{ai-policy-reviewer,acceptance-checker}.md` — two read-only agents.
+- `docs/README.md`, `docs/decisions/{README,0000-template}.md`, `docs/requirements/{README,conflicts}.md`, `docs/api/README.md`, `docs/diagrams/README.md`, `docs/evidence/d2/README.md`, `docs/mentor-feedback/README.md` — skeleton.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 14:00 SGT — Suggested Claude Code subagent roster
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-tooling
+
+**Prompt (summarised):** Suggest an agent team (Claude Code subagents) for this project.
+
+**Usage scenario:** Learning support / developer-tooling advice (allowed use). Suggestion given in chat only; concerns AI tooling, not product architecture. Roster deliberately excludes architecture, requirements-prioritisation, sprint-planning, rationale-writing and committing agents, per the course AI policy.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry. No other files changed.
+
+## 2026-09-21 14:30 SGT — Role-based Claude Code agent team
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-tooling (nothing committed)
+
+**Prompt (summarised):** Make the agent team role-based: backend engineer, frontend engineer, QA agent, router agent; then also one agent per service and an infrastructure agent.
+
+**Usage scenario:** Boilerplate / developer-tooling config (allowed use). The team composition was chosen by the author. Every agent prompt carries a stop rule (return the question instead of making a schema/interface/pattern/trade-off decision), the router is dispatch-only (does not rank or plan the backlog), and the tech-writer is barred from rationale. "Facts about this service" blocks describe the code as it is; they contain no proposals.
+
+**Files changed:**
+- `.claude/agents/router.md` — new, read-only dispatcher (returns a plan; the main session launches agents).
+- `.claude/agents/backend-engineer.md` — new; cross-service work + shared backend rulebook.
+- `.claude/agents/{user,supplier,order,credit,notification}-service-engineer.md` — new; one per service, each scoped to its own folder.
+- `.claude/agents/frontend-engineer.md`, `qa-engineer.md`, `tech-writer.md` — new.
+- `.claude/agents/infrastructure-engineer.md` — new (first drafted as `devops-engineer.md`, renamed).
+- `CLAUDE.md` — added section 8 "Agent team".
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 15:00 SGT — Consolidate agent team from 13 to 4
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-tooling (nothing committed)
+
+**Prompt (summarised):** Author supplied guidance (3–5 specialised subagents; main session orchestrates; agent count = independent workstreams, not repo components; avoid over-delegation) and asked for the agent setup to be optimised accordingly.
+
+**Usage scenario:** Boilerplate / developer-tooling config (allowed use). One departure from the supplied layout, flagged to the author: `database` was folded into `backend` and the fourth slot given to `infrastructure`, because in this repo table definitions are edited together with the service's repository code (overlapping files), while container/gateway work is independent. The supplied guidance's "main agent owns architecture decisions" was not adopted: per the course policy those stay with the human author, and every agent keeps its stop rule.
+
+**Files changed:**
+- `.claude/agents/` — removed the 13 earlier agent files (kept outside the repo as a backup) and added `backend.md`, `frontend.md`, `infrastructure.md`, `reviewer.md`.
+- `CLAUDE.md` — section 8 rewritten: four agents, main session as orchestrator, "when to delegate — default is don't" rules.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 15:30 SGT — Architecture overview doc and agent orientation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-tooling (nothing committed)
+
+**Prompt (summarised):** Give the agents information about the directory, let them read `docs/`, and include the different services and the intended architecture.
+
+**Usage scenario:** Documentation of existing material (allowed use). `docs/architecture/overview.md` restates what the team's own sources already say (README, D1, D2 / Sprint 2 plan, compose, nginx, common-dtos), each statement tagged with its source, beside what the code currently does. It proposes no architecture and contains no rationale; differences are pointed to `docs/requirements/conflicts.md` for the team to resolve.
+
+**Files changed:**
+- `docs/architecture/overview.md` — new: system summary, intended shape, per-service intended-vs-built table, directory layout, pointer to open conflicts.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — added an "Orientation" section (reading list incl. `docs/`, and a directory view per role); `infrastructure.md` stop rule now reflects that D1 §3.6 already names GitHub Actions. Author-review lines left as the author wrote them; the author should re-review since content was added after approval.
+- `docs/README.md` — index row for `architecture/`.
+- `CLAUDE.md` — section 7 links to the overview, conflicts, decisions and API folders.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 16:00 SGT — Per-service documentation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-tooling (nothing committed)
+
+**Prompt (summarised):** Add documentation for each of the services.
+
+**Usage scenario:** Documentation of existing code (allowed use). Each page was written after reading that service's source in full and describes what the code does today (run, configuration, files, API table, data, behaviour as built), separately from what D1 / the D2 plan say it should do. "Differences from the documents" sections list observations only — no fixes, designs or priorities are proposed.
+
+**Files changed:**
+- `docs/services/README.md` — index, shared conventions, page template.
+- `docs/services/{user,supplier,order,credit,notification}-service.md` — one page each.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — reading list now includes `docs/services/<name>.md`.
+- `docs/README.md`, `docs/architecture/overview.md`, `CLAUDE.md` (section 7) — links to the service pages.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 16:20 SGT — Commit Claude Code config and docs to `claude-config` (part 1 of 2)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (renamed from the local, never-pushed `chore/claude-tooling`)
+
+**Prompt (summarised):** Branch out to `claude-config`, commit the work, then clean up the docs.
+
+**Usage scenario:** Version-control housekeeping on the author's explicit instruction (the "no commits on your own" rule is about unprompted commits). One local commit containing the tooling and docs listed in the entries above; not pushed. Docs clean-up is logged separately as part 2.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry. Everything else in the commit is described in the 2026-09-21 entries above.
+
