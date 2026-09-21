@@ -116,6 +116,12 @@ docker exec -it campuserrand-postgres psql -U postgres
 
 `npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening.
 
+**Set-up:** new machine or new teammate → `.claude/README.md` (prerequisites, plugins, checks, troubleshooting).
+
+**Plugins:** the team's list (core, recommended, situational, and what must stay off in this repo) is `.claude/PLUGINS.md`; the core set is enabled in `.claude/settings.json`. Do not suggest or use plugins from its "Not in this repo" section.
+
+**Code intelligence:** the `typescript-lsp` plugin is enabled for this project (`.claude/settings.json`). It needs the server on your PATH once per machine — `npm install -g typescript-language-server typescript` — and `npm install` in the repo so imports and the generated Prisma clients resolve. With it, prefer the `LSP` tool (go to definition, find references, hover) over grepping when tracing a type or function across workspaces, e.g. who uses a `common-dtos` type. It does not replace `npm run typecheck` before reporting.
+
 There is no lint script and no unit-test runner yet (tracked in issue #68). Do not add one unprompted.
 
 Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.

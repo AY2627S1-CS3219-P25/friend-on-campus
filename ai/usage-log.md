@@ -404,3 +404,63 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 **Files changed:**
 - `ai/usage-log.md` — appended this entry. The commit itself contains the clean-up described in the previous entry.
+
+## 2026-09-21 17:30 SGT — Set up the typescript-lsp plugin
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (uncommitted)
+
+**Prompt (summarised):** See whether the TypeScript LSP plugin (claude.com/plugins/typescript-lsp) can be added.
+
+**Usage scenario:** Developer-tooling setup (allowed use: config/boilerplate). The plugin was already installed for the author but its prerequisite binary was missing. Machine-level actions, outside the repo: `npm install -g typescript-language-server typescript`; `npm install` in the repo (no lockfile change). No application code touched.
+
+**Files changed:**
+- `.claude/settings.json` (JSON, no header possible) — `enabledPlugins` now lists `typescript-lsp@claude-plugins-official` so teammates are offered it.
+- `.claude/agents/{backend,frontend,reviewer}.md` — `LSP` added to `tools`.
+- `CLAUDE.md` — section 5: prerequisite and when to use the `LSP` tool.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 17:50 SGT — Write down the project's Claude Code plugin list
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (uncommitted)
+
+**Prompt (summarised):** Write down the list of Claude Code plugins the team will use for this project.
+
+**Usage scenario:** Developer-tooling documentation / config (allowed use). Concerns AI tooling only. Plugins whose purpose is architecture design, requirements prioritisation, sprint planning or autonomous loops are listed under "Not in this repo" because of the course AI policy. The final choice of list remains the team's.
+
+**Files changed:**
+- `.claude/PLUGINS.md` — new: core / recommended / situational / not-in-this-repo, with install commands and per-machine setup.
+- `.claude/settings.json` (JSON, no header possible) — `enabledPlugins` now holds the five core plugins.
+- `CLAUDE.md` — section 5 points to the list.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 18:10 SGT — Claude Code set-up guide
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (uncommitted)
+
+**Prompt (summarised):** Include a Claude Code set-up guide as well.
+
+**Usage scenario:** Developer-tooling documentation (allowed use). Describes the existing configuration and the set-up problems actually encountered; no product design content.
+
+**Files changed:**
+- `.claude/README.md` — new: prerequisites, repo and `gh` set-up, language server, plugins, load checks, what each config file does, daily workflow, troubleshooting.
+- `CLAUDE.md` (section 5), `docs/README.md`, `README.md` — one-line links to the guide.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 18:30 SGT — Commit, push `claude-config`, open PR into `dev`
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config
+
+**Prompt (summarised):** Commit, push to the `claude-config` branch and create a pull request into `dev`.
+
+**Usage scenario:** Version-control housekeeping on the author's explicit instruction. The commit contains the typescript-lsp set-up, plugin list and set-up guide described in the three entries above. The PR description states what is AI-generated and that the branch is stacked on `milestone-d2`.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry.

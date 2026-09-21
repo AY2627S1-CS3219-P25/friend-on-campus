@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Independent test-and-review pass with fresh context - writes and runs checks in scripts/ and test files, maps an issue's acceptance criteria to evidence, reports drift between duplicated sources of truth, reviews a diff for bugs and security problems, and checks the diff against the course AI policy before the author commits. Cannot change production code. Give it the issue number or the change to review and which of these you want.
-tools: Read, Edit, Write, Grep, Glob, Bash
+tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:

@@ -1,7 +1,7 @@
 ---
 name: backend
 description: Backend workstream - anything under services/**, packages/common-dtos and the table definitions (Prisma schemas + docker/postgres-init SQL). Express routes, middleware, repositories, seeds, event publish/consume. Use when backend work can proceed independently of UI or infrastructure work, or when it needs a lot of reading that would clutter the main session. Give it the service(s), the design the author has decided, and the acceptance criteria.
-tools: Read, Edit, Write, Grep, Glob, Bash
+tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:

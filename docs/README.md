@@ -17,6 +17,8 @@ Author review: <to be completed by Reallyeasy1>
 5. [`evidence/d2/`](./evidence/d2/README.md) — acceptance-check results for the D2 demo.
 6. [`onboarding-guide-sep-3.md`](./onboarding-guide-sep-3.md) — beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces), written 3 Sep from the starter template; for current service behaviour prefer `services/`.
 
+AI tooling (Claude Code set-up, plugins, agents, hooks) is documented next to its config: [`../.claude/README.md`](../.claude/README.md) and [`../.claude/PLUGINS.md`](../.claude/PLUGINS.md).
+
 ## Who may write what
 
 | Content | Humans | AI tools |
