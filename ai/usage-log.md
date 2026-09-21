@@ -214,3 +214,17 @@ Verified: rebuilt/restarted the admin-portal container; `curl http://localhost:5
 - `apps/admin-portal/src/App.tsx` — removed the `selectedCategory` quick-filter state and its chip row (toolbar now shows only the "Filter" button); added `draftSelectedCategories`/`draftSelectedZones` state so modal chip clicks no longer mutate the state `filteredAndSorted` depends on; "Apply Filters" now copies draft → applied state (previously only closed the modal); modal's X (close) button now discards draft changes back to applied state; `resetAdvancedFilters` now also resets `draftSelected*` state and `currentPage`.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-21 (later) — Fix stale "permanent delete" checkbox and add client-side RBAC gating to admin-portal action buttons
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User found two more bugs while manually testing role switching in the admin portal: (1) the "Permanent Hard Delete" checkbox in the Delete Supplier confirmation modal stayed checked across separate delete attempts (e.g. checked while testing as Student, still checked after switching to Guest), risking an accidental hard delete instead of the intended soft-delete safeguard; (2) although the backend already rejects CUD API calls from non-ADMIN roles, the Student/Guest UI still rendered the "Add Location" button and the per-row Deactivate/Edit/Delete controls — user wants these hidden entirely for non-admin roles so only the "view details" (Eye icon) is visible, as defense in depth on top of the existing server-side enforcement.
+
+**Usage scenario:** Debugging assistance and implementation code (allowed use) — no new architecture or API surface; purely local component state/UI gating using the existing `currentRole` demo-auth state already in the file.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — `setIsPermanentDelete(false)` now runs wherever the Delete Supplier modal is opened (mobile card view, desktop table view) or dismissed via Cancel, so the checkbox no longer carries a stale checked state into the next delete attempt. Added a derived `isAdmin = currentRole === 'ADMIN'` and used it to conditionally render the "Add Location" button and the Deactivate/Activate, Edit, and Delete controls in both the mobile card list and the desktop table; the Eye (view details) button remains visible for all roles.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.

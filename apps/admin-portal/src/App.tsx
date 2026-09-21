@@ -8,6 +8,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Removed redundant quick-category filter chips next to the Filter button; changed the Advanced Filter modal so category/zone chip selections are held as draft state and only applied to the supplier list when "Apply Filters" is clicked (previously filtered live on every chip click); reset now also clears pagination.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Fixed the "Permanent Hard Delete" checkbox in the Delete Supplier modal not resetting between delete attempts (now reset when opening the modal for a supplier and when cancelling). Added client-side RBAC gating so the "Add Location" button and per-row Deactivate/Edit/Delete controls (desktop table and mobile card views) only render for the ADMIN demo role; Student/Guest roles now only see the "view details" (Eye) icon.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -67,6 +72,7 @@ export default function App() {
   // Demo Auth Role Switcher state
   const [currentRole, setCurrentRole] = useState<DemoRole>('ADMIN');
   const [authToken, setAuthToken] = useState<string>('');
+  const isAdmin = currentRole === 'ADMIN';
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -642,14 +648,16 @@ export default function App() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
 
-            <button
-              onClick={() => setIsAddOpen(true)}
-              className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Location</span>
-              <span className="sm:hidden">Add</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsAddOpen(true)}
+                className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add Location</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -836,14 +844,18 @@ export default function App() {
                     )}
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <button
-                        onClick={() => toggleStatus(s.id)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
-                          s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                      >
-                        {s.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
+                      {isAdmin ? (
+                        <button
+                          onClick={() => toggleStatus(s.id)}
+                          className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
+                            s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {s.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                      ) : (
+                        <span />
+                      )}
 
                       <div className="flex items-center space-x-1">
                         <button
@@ -853,20 +865,27 @@ export default function App() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => openEditModal(s)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Edit Location"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingSupplier(s)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
-                          title="Delete Location"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => openEditModal(s)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              title="Edit Location"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDeletingSupplier(s);
+                                setIsPermanentDelete(false);
+                              }}
+                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                              title="Delete Location"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -980,15 +999,17 @@ export default function App() {
                           )}
                         </td>
                         <td className="p-3.5 text-right space-x-1">
-                          <button
-                            onClick={() => toggleStatus(s.id)}
-                            className={`text-xs font-semibold px-2 py-1 rounded transition ${
-                              s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                            title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
-                          >
-                            {s.isActive ? 'Deactivate' : 'Activate'}
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => toggleStatus(s.id)}
+                              className={`text-xs font-semibold px-2 py-1 rounded transition ${
+                                s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                              }`}
+                              title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
+                            >
+                              {s.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+                          )}
                           <button
                             onClick={() => setViewingSupplier(s)}
                             className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
@@ -996,20 +1017,27 @@ export default function App() {
                           >
                             <Eye className="w-3.5 h-3.5 inline" />
                           </button>
-                          <button
-                            onClick={() => openEditModal(s)}
-                            className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
-                            title="Edit details"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 inline" />
-                          </button>
-                          <button
-                            onClick={() => setDeletingSupplier(s)}
-                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
-                            title="Delete supplier"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline" />
-                          </button>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => openEditModal(s)}
+                                className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                                title="Edit details"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 inline" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDeletingSupplier(s);
+                                  setIsPermanentDelete(false);
+                                }}
+                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                                title="Delete supplier"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 inline" />
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1529,7 +1557,10 @@ export default function App() {
             <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setDeletingSupplier(null)}
+                onClick={() => {
+                  setDeletingSupplier(null);
+                  setIsPermanentDelete(false);
+                }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
