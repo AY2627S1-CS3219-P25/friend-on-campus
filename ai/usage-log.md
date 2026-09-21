@@ -478,3 +478,17 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 **Files changed:**
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 (later still) — Add real Admin Login gate to admin-portal, remove now-redundant role gating
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the admin portal to stop auto-displaying the dashboard on load and instead show a real "Admin Log In" page (NUS email + password, styled like a typical login box). On submit, POST to `/api/auth/login` through the gateway, show a loading spinner on the button while in flight, then decode the returned JWT's role claim client-side and only show the dashboard if it's ADMIN; otherwise show a red error box with the error code and message (covers bad credentials, network errors, and a valid-but-non-admin account). Planned in plan mode; user then asked (mid-review) to also: replace the sidebar/mobile "Demo RBAC Role" Admin/Student/Guest switcher with a Log Out button (confirmed via AskUserQuestion: fully functional client-side logout, no API call since no logout endpoint exists and none is needed for a stateless JWT), and remove the now-redundant `isAdmin` role checks gating Add Location/Deactivate/Edit/Delete and the Users nav item, since only Admins can reach the dashboard at all now. Scope explicitly restricted to `apps/admin-portal/src` only.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — followed the existing file's conventions throughout (relative-path gateway fetches, Tailwind vocabulary already used for cards/inputs/errors, `RefreshCw` reused for the spinner); no new npm dependency for JWT decoding (plain `atob()` on the token's payload segment instead of pulling in a jwt-decode library, which would have required Dockerfile/package.json changes outside the requested scope).
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `isAuthenticated`/`loginEmail`/`loginPassword`/`isLoggingIn`/`loginError` state, a module-level `decodeJwtRole()` helper, `handleAdminLogin`/`handleLogout` handlers, and an early-return login page rendered whenever `!isAuthenticated`. Removed the mount-time `loginDemoUser('ADMIN')` auto-login effect and the `loginDemoUser` function itself (now fully replaced by the real login flow); removed the "Demo RBAC Role" switcher (sidebar footer + mobile drawer), replaced with a "Log Out" button in both places. Removed the `isAdmin` derived flag and every conditional it gated (Add Location button, Deactivate/Activate + Edit + Delete buttons in both the mobile card and desktop table views, and the Users nav item in both sidebar and mobile drawer) — these now render unconditionally since the login gate itself is the access control. Dropped the now-unused `ShieldAlert`/`User` icon imports, added `LogOut`.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.

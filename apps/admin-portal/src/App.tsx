@@ -18,6 +18,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a new admin-only "Users" directory page (sidebar nav, KPI cards, search, filter, sortable table/card list, pagination), fetching from GET /api/users through the existing API Gateway proxy path (no gateway/vite config changes needed, both already route /api/users to user-service). Read-only: no add/edit/delete controls. Search covers nusEmail/fullName/matricNumber/phoneNumber/telegramHandle case-insensitively; filters (role, min rating, min completed orders) follow the same draft-until-"Apply Filters" pattern as the Suppliers page.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added a real login gate in front of the whole admin dashboard: a login page (NUS email + password) posts to /api/auth/login through the gateway, shows a loading spinner while in flight, decodes the returned JWT's role claim client-side and only proceeds into the dashboard if it is ADMIN (a valid Student login is explicitly rejected with a red error box showing the error code/message). Removed the mount-time auto-login and the "Demo RBAC Role" Admin/Student/Guest switcher (both sidebar and mobile drawer) since the login gate now guarantees only Admins reach the dashboard; replaced with a client-side-only "Log Out" button (no logout endpoint exists on the backend, and none is needed since the JWT is stateless). Removed the now-redundant isAdmin role checks that previously hid the Add Location/Deactivate/Edit/Delete buttons and the Users nav item — since only Admins can log in at all now, those controls render unconditionally.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -41,11 +46,10 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
   ShieldCheck,
-  User,
   Users,
   Menu,
+  LogOut,
 } from 'lucide-react';
 import {
   SupplierDTO,
@@ -69,6 +73,18 @@ const CAMPUS_ZONES = ['COM3', 'UTown', 'PGPR', 'FASS', 'Central Lib', 'Science',
 
 const USER_ROLES: UserRole[] = ['STUDENT', 'ADMIN'];
 
+// Reads the `role` claim out of a JWT payload without verifying its signature
+// (signature verification happens server-side; this is just a client-side gate).
+function decodeJwtRole(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json).role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Demo tokens for live mentor evaluation
 type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
 
@@ -82,7 +98,13 @@ export default function App() {
   // Demo Auth Role Switcher state
   const [currentRole, setCurrentRole] = useState<DemoRole>('ADMIN');
   const [authToken, setAuthToken] = useState<string>('');
-  const isAdmin = currentRole === 'ADMIN';
+
+  // Admin Login Gate state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -153,54 +175,52 @@ export default function App() {
   const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
   const [currentPageUsers, setCurrentPageUsers] = useState(1);
 
-  // Authenticate demo sessions with backend User Service
-  const loginDemoUser = async (role: DemoRole) => {
-    setCurrentRole(role);
-    if (role === 'GUEST') {
-      setAuthToken('');
-      setActionAlert({
-        type: 'success',
-        message: 'Switched session to Guest (Unauthenticated). Write operations will be rejected (401).',
-      });
-      return;
-    }
-
+  // Admin Login Gate handlers
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
     try {
-      const email = role === 'ADMIN' ? 'admin@nus.edu.sg' : 'alice@u.nus.edu';
-      const password = role === 'ADMIN' ? 'AdminPassword123!' : 'Password123!';
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nusEmail: email, password }),
+        body: JSON.stringify({ nusEmail: loginEmail, password: loginPassword }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.data?.token) {
-          setAuthToken(data.data.token);
-          setActionAlert({
-            type: 'success',
-            message: `Switched session to ${role} (${email}). Live JWT acquired.`,
-          });
-          return;
-        }
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setLoginError({
+          code: data.error || `HTTP_${res.status}`,
+          message: data.message || 'Login failed. Please check your credentials.',
+        });
+        return;
       }
-    } catch (e) {
-      console.warn('Could not auto-login via /api/auth/login, setting demo role:', e);
+      const token: string = data.data.token;
+      const role = decodeJwtRole(token);
+      if (role !== 'ADMIN') {
+        setLoginError({
+          code: 'FORBIDDEN_ROLE',
+          message: `Access denied — this portal is for Administrators only. Your account role is ${role ?? 'UNKNOWN'}.`,
+        });
+        return;
+      }
+      setAuthToken(token);
+      setCurrentRole('ADMIN');
+      setIsAuthenticated(true);
+      setLoginPassword('');
+    } catch (err: any) {
+      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
+    } finally {
+      setIsLoggingIn(false);
     }
-
-    // Fallback demo indicator
-    setAuthToken(`demo-${role.toLowerCase()}-token`);
-    setActionAlert({
-      type: 'success',
-      message: `Switched session to ${role}.`,
-    });
   };
 
-  useEffect(() => {
-    loginDemoUser('ADMIN');
-  }, []);
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthToken('');
+    setLoginEmail('');
+    setLoginPassword('');
+    setLoginError(null);
+  };
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
@@ -630,6 +650,65 @@ export default function App() {
     return { admins, students, avgRating };
   }, [users]);
 
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-100">
+        <form onSubmit={handleAdminLogin} className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm space-y-5">
+          <div className="text-center space-y-1">
+            <div className="w-10 h-10 mx-auto rounded-lg bg-orange-500 flex items-center justify-center font-black text-white text-xl">
+              A
+            </div>
+            <h1 className="text-lg font-bold text-slate-900">Admin Log In</h1>
+            <p className="text-xs text-slate-500">NUS CampusErrand Admin Control Portal</p>
+          </div>
+
+          {loginError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+              <p className="font-bold">{loginError.code}</p>
+              <p>{loginError.message}</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="example@nus.edu.sg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoggingIn}
+            className="w-full flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+          >
+            {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
+            <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden">
       {/* Desktop Left Sidebar */}
@@ -657,22 +736,20 @@ export default function App() {
             <span>Campus Suppliers (M3)</span>
           </button>
 
-          {isAdmin && (
-            <button
-              onClick={() => {
-                setActiveNav('users');
-                fetchUsers();
-              }}
-              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-                activeNav === 'users'
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Users</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setActiveNav('users');
+              fetchUsers();
+            }}
+            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
+              activeNav === 'users'
+                ? 'bg-blue-600 text-white shadow'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Users</span>
+          </button>
 
           <button
             onClick={() => setActiveNav('health')}
@@ -699,51 +776,19 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Demo RBAC Switcher Footer */}
+        {/* Session Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/60">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-            <span>Demo RBAC Role</span>
-            {currentRole === 'ADMIN' ? (
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            ) : currentRole === 'STUDENT' ? (
-              <ShieldAlert className="w-4 h-4 text-amber-400" />
-            ) : (
-              <User className="w-4 h-4 text-slate-400" />
-            )}
+          <div className="flex items-center space-x-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-xs font-bold text-slate-300 truncate">{loginEmail || 'Admin'}</span>
           </div>
-          <div className="grid grid-cols-3 gap-1 bg-slate-800 p-1 rounded-lg text-[11px] font-semibold text-center">
-            <button
-              onClick={() => loginDemoUser('ADMIN')}
-              className={`py-1 rounded ${
-                currentRole === 'ADMIN' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => loginDemoUser('STUDENT')}
-              className={`py-1 rounded ${
-                currentRole === 'STUDENT' ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Student
-            </button>
-            <button
-              onClick={() => loginDemoUser('GUEST')}
-              className={`py-1 rounded ${
-                currentRole === 'GUEST' ? 'bg-rose-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Guest
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-500 mt-2">
-            {currentRole === 'ADMIN'
-              ? '✅ Full write access to create, edit, toggle, and delete.'
-              : currentRole === 'STUDENT'
-              ? '⛔ Read-only; write endpoints return 403 Forbidden.'
-              : '⛔ No token; write endpoints return 401 Unauthorized.'}
-          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Log Out</span>
+          </button>
         </div>
       </aside>
 
@@ -801,7 +846,7 @@ export default function App() {
               />
             </button>
 
-            {isAdmin && activeNav === 'suppliers' && (
+            {activeNav === 'suppliers' && (
               <button
                 onClick={() => setIsAddOpen(true)}
                 className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
@@ -825,20 +870,18 @@ export default function App() {
             >
               Campus Suppliers (M3)
             </button>
-            {isAdmin && (
-              <button
-                onClick={() => {
-                  setActiveNav('users');
-                  fetchUsers();
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
-                  activeNav === 'users' ? 'bg-blue-600 text-white' : 'text-slate-300'
-                }`}
-              >
-                Users
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setActiveNav('users');
+                fetchUsers();
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+                activeNav === 'users' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Users
+            </button>
             <button
               onClick={() => { setActiveNav('health'); setMobileMenuOpen(false); }}
               className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
@@ -848,12 +891,13 @@ export default function App() {
               Microservice Health
             </button>
             <div className="pt-2 border-t border-slate-800">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Switch Role</span>
-              <div className="grid grid-cols-3 gap-1 text-[11px]">
-                <button onClick={() => loginDemoUser('ADMIN')} className="bg-emerald-700 py-1 rounded text-center">Admin</button>
-                <button onClick={() => loginDemoUser('STUDENT')} className="bg-amber-700 py-1 rounded text-center">Student</button>
-                <button onClick={() => loginDemoUser('GUEST')} className="bg-rose-700 py-1 rounded text-center">Guest</button>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
             </div>
           </div>
         )}
@@ -1011,18 +1055,14 @@ export default function App() {
                     )}
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                      {isAdmin ? (
-                        <button
-                          onClick={() => toggleStatus(s.id)}
-                          className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
-                            s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                        >
-                          {s.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                      ) : (
-                        <span />
-                      )}
+                      <button
+                        onClick={() => toggleStatus(s.id)}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
+                          s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {s.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
 
                       <div className="flex items-center space-x-1">
                         <button
@@ -1032,27 +1072,23 @@ export default function App() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => openEditModal(s)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="Edit Location"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeletingSupplier(s);
-                                setIsPermanentDelete(false);
-                              }}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
-                              title="Delete Location"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => openEditModal(s)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="Edit Location"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingSupplier(s);
+                            setIsPermanentDelete(false);
+                          }}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                          title="Delete Location"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1166,17 +1202,15 @@ export default function App() {
                           )}
                         </td>
                         <td className="p-3.5 text-right space-x-1">
-                          {isAdmin && (
-                            <button
-                              onClick={() => toggleStatus(s.id)}
-                              className={`text-xs font-semibold px-2 py-1 rounded transition ${
-                                s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                              }`}
-                              title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
-                            >
-                              {s.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => toggleStatus(s.id)}
+                            className={`text-xs font-semibold px-2 py-1 rounded transition ${
+                              s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                            title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
+                          >
+                            {s.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
                           <button
                             onClick={() => setViewingSupplier(s)}
                             className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
@@ -1184,27 +1218,23 @@ export default function App() {
                           >
                             <Eye className="w-3.5 h-3.5 inline" />
                           </button>
-                          {isAdmin && (
-                            <>
-                              <button
-                                onClick={() => openEditModal(s)}
-                                className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
-                                title="Edit details"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 inline" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDeletingSupplier(s);
-                                  setIsPermanentDelete(false);
-                                }}
-                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
-                                title="Delete supplier"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 inline" />
-                              </button>
-                            </>
-                          )}
+                          <button
+                            onClick={() => openEditModal(s)}
+                            className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                            title="Edit details"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 inline" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletingSupplier(s);
+                              setIsPermanentDelete(false);
+                            }}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            title="Delete supplier"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 inline" />
+                          </button>
                         </td>
                       </tr>
                     ))}
