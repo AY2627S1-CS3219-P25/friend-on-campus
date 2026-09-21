@@ -3,6 +3,11 @@
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Connected Student App to live Supplier Service API (/api/suppliers), added dynamic supplier dropdown in errand creation, and added campus supplier directory browsing tab.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added a Log In / Sign Up gate in front of the whole app. Log In posts to /api/auth/login through the gateway with a loading-spinner button and a red error box (code + message) on failure. Sign Up posts to /api/auth/register with 7 fields (5 required, marked with a red asterisk), client-side validation before any API call (required fields filled, retype-password matches password, password 8-24 characters), and auto-logs the user in on success using the token returned by the register response. "Sign up"/"Log in" links toggle between the two forms in place. No role restriction (unlike the admin portal's login gate) — any successfully authenticated account is let in. The rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet data) is unchanged.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -19,10 +24,33 @@ import {
   ShieldCheck,
   Store,
   Search,
+  RefreshCw,
 } from 'lucide-react';
 import { OrderDTO, CreditWalletDTO, SupplierDTO } from '@campus-errand/common-dtos';
 
 export default function App() {
+  // Login / Sign Up Gate state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authToken, setAuthToken] = useState('');
+  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
+
+  const [signupData, setSignupData] = useState({
+    nusEmail: '',
+    password: '',
+    retypePassword: '',
+    fullName: '',
+    matricNumber: '',
+    phoneNumber: '',
+    telegramHandle: '',
+  });
+  const [isSigningUp, setIsSigningUp] = useState(false);
+  const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
+
   const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'wallet'>('feed');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [wsStatus, setWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
@@ -93,11 +121,94 @@ export default function App() {
 
   const [notification, setNotification] = useState<string | null>(null);
 
+  // Log In handler
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nusEmail: loginEmail, password: loginPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setLoginError({
+          code: data.error || `HTTP_${res.status}`,
+          message: data.message || 'Login failed. Please check your credentials.',
+        });
+        return;
+      }
+      setAuthToken(data.data.token);
+      setIsAuthenticated(true);
+    } catch (err: any) {
+      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  // Sign Up handler
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignupError(null);
+
+    if (
+      !signupData.nusEmail ||
+      !signupData.password ||
+      !signupData.retypePassword ||
+      !signupData.fullName ||
+      !signupData.matricNumber
+    ) {
+      setSignupError({ code: 'VALIDATION_ERROR', message: 'Please fill in all required fields marked with *.' });
+      return;
+    }
+    if (signupData.password !== signupData.retypePassword) {
+      setSignupError({ code: 'PASSWORD_MISMATCH', message: 'Passwords do not match.' });
+      return;
+    }
+    if (signupData.password.length < 8 || signupData.password.length > 24) {
+      setSignupError({ code: 'INVALID_PASSWORD', message: 'Password must be between 8 and 24 characters long.' });
+      return;
+    }
+
+    setIsSigningUp(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nusEmail: signupData.nusEmail,
+          password: signupData.password,
+          fullName: signupData.fullName,
+          matricNumber: signupData.matricNumber,
+          phoneNumber: signupData.phoneNumber || undefined,
+          telegramHandle: signupData.telegramHandle || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setSignupError({ code: data.error || `HTTP_${res.status}`, message: data.message || 'Sign up failed.' });
+        return;
+      }
+      // Auto-login on successful registration
+      setAuthToken(data.data.token);
+      setIsAuthenticated(true);
+    } catch (err: any) {
+      setSignupError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the registration server.' });
+    } finally {
+      setIsSigningUp(false);
+    }
+  };
+
   // Fetch live active campus suppliers from Supplier Service
   const fetchLiveSuppliers = async () => {
     setIsSuppliersLoading(true);
     try {
-      const res = await fetch('/api/suppliers?isActive=true');
+      const res = await fetch('/api/suppliers?isActive=true', {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
       if (res.ok) {
         const json = await res.json();
         const items = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];
@@ -266,6 +377,190 @@ export default function App() {
       s.exactLocation.toLowerCase().includes(q)
     );
   });
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 px-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-5">
+          <div className="text-center space-y-1">
+            <h1 className="font-extrabold text-lg text-nus-blue">NUS CampusErrand</h1>
+            <p className="text-[11px] text-slate-400">Dual-Role Peer Network</p>
+          </div>
+
+          {authView === 'login' ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <h2 className="text-base font-bold text-slate-900 text-center">Log In</h2>
+              {loginError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+                  <p className="font-bold">{loginError.code}</p>
+                  <p>{loginError.message}</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  disabled={isLoggingIn}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  disabled={isLoggingIn}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+              >
+                {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
+              </button>
+              <p className="text-center text-[11px] text-slate-500">
+                If you don't have an account,{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthView('signup');
+                    setLoginError(null);
+                  }}
+                  className="text-nus-orange font-bold underline"
+                >
+                  Sign up
+                </button>{' '}
+                with us
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handleSignup} className="space-y-3">
+              <h2 className="text-base font-bold text-slate-900 text-center">Sign Up</h2>
+              {signupError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+                  <p className="font-bold">{signupError.code}</p>
+                  <p>{signupError.message}</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  NUS Email <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={signupData.nusEmail}
+                  onChange={(e) => setSignupData({ ...signupData, nusEmail: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Password <span className="text-rose-600">*</span>
+                </label>
+                <p className="text-[10px] text-slate-400 mb-1">Must be 8-24 characters long.</p>
+                <input
+                  type="password"
+                  value={signupData.password}
+                  onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Re-type Password <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={signupData.retypePassword}
+                  onChange={(e) => setSignupData({ ...signupData, retypePassword: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Name <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={signupData.fullName}
+                  onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Matric Number <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={signupData.matricNumber}
+                  onChange={(e) => setSignupData({ ...signupData, matricNumber: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={signupData.phoneNumber}
+                  onChange={(e) => setSignupData({ ...signupData, phoneNumber: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Telegram Handle</label>
+                <input
+                  type="text"
+                  value={signupData.telegramHandle}
+                  onChange={(e) => setSignupData({ ...signupData, telegramHandle: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
+              </p>
+              <button
+                type="submit"
+                disabled={isSigningUp}
+                className="w-full flex items-center justify-center space-x-2 bg-nus-orange hover:bg-orange-600 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+              >
+                {isSigningUp && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>{isSigningUp ? 'Signing up...' : 'Sign Up'}</span>
+              </button>
+              <p className="text-center text-[11px] text-slate-500">
+                Already have an account,{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthView('login');
+                    setSignupError(null);
+                  }}
+                  className="text-nus-blue font-bold underline"
+                >
+                  Log in
+                </button>
+              </p>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 max-w-md mx-auto shadow-2xl relative font-sans">
