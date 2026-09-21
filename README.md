@@ -182,5 +182,13 @@ friend-on-campus/
 
 ## 📄 Milestone Documentation
 
+- **Documentation index** (architecture overview, per-service pages, requirements and open conflicts, design decisions): see [`docs/README.md`](./docs/README.md)
+- **Claude Code set-up for this repo** (AI-usage rules, plugins, agents, hooks): see [`.claude/README.md`](./.claude/README.md)
 - **Team Onboarding Guide**: See [`docs/onboarding-guide-sep-3.md`](./docs/onboarding-guide-sep-3.md)
 
+<!--
+AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
+Scope: Added the "Documentation index" and "Claude Code set-up" links under Milestone Documentation. Nothing else in this file was changed.
+Author review: <to be completed by Reallyeasy1>
+-->
