@@ -4,6 +4,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated D2 test and seed-account descriptions to match the author-approved User Service contracts.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Corrected stale Milestone D2 implementation facts after the author-approved User and Supplier Service migrations.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # Friend of Campus (FoC) 🏃‍♂️💨
 
@@ -63,7 +69,7 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 | Milestone | Scope & Deliverables | Status |
 | :--- | :--- | :---: |
 | **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
-| **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Salted bcrypt password hashing & domain validation<br/>• Stateless JWT authentication & Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• 30/30 automated end-to-end integration tests passing | ✅ **Completed** |
+| **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
 | **D3** | **Order Service (M1) & Credit Service (M4)** (Escrow, State Machine) | ⏳ Upcoming |
 | **D4** | **Notification Service (M5)** (RabbitMQ event choreography & WebSockets) | ⏳ Upcoming |
 
@@ -179,7 +185,7 @@ friend-on-campus/
 ├── packages/
 │   └── common-dtos/             # Shared TypeScript schemas, DTOs & event types
 ├── scripts/
-│   └── test-d2-e2e.ts           # Milestone D2 30-case integration test runner
+│   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
 ├── data/
 │   └── csv/                     # NUS campus supplier seed datasets
 ├── docker/

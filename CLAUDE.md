@@ -5,6 +5,12 @@ Scope: Restructured this file into sections and added repo map, commands, gh/bra
 the usage-log format. The AI-usage policy wording in section 1 is the team's original text, unchanged.
 Author review: <to be completed by Reallyeasy1>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Corrected internal repository facts for the author-approved Prisma and Ed25519 authentication implementation.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # CLAUDE.md — NUS CampusErrand / Friend of Campus (CS3219 AY26/27 S1, Group 25)
 
@@ -81,7 +87,7 @@ services/credit-service        :8004  in-memory mock              single src/ind
 services/notification-service  :8005  in-memory mock (ws)         single src/index.ts
 apps/student-app               :5173  one src/App.tsx (~730 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
-packages/common-dtos                  shared DTOs, JWTPayload, OrderStatus, events, ApiResponse<T>
+packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
 docker/postgres-init/*.sql            creates the 4 databases AND their tables (first boot only)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
@@ -92,7 +98,7 @@ docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code c
 Things that are easy to get wrong:
 
 - **Table definitions live in two places.** Tables are created by `docker/postgres-init/*.sql`, which Postgres runs **only on first boot of an empty volume**; the Dockerfiles run `prisma generate` but never `prisma migrate`. So a column change means editing the init SQL *and* `schema.prisma` (and adding a migration where a `migrations/` folder exists), then `docker compose down -v` to re-run the init script (this wipes local data). Deciding the change is the author's job; keeping the copies in sync is yours.
-- **Auth is a JWT in `Authorization: Bearer …`**, signed by user-service and verified locally by each service with `JWT_SECRET`. Each service has its own copy of `authMiddleware.ts`. Both copies fall back to a hardcoded dev secret when `JWT_SECRET` is unset, and `docker-compose.yml` sets `JWT_SECRET` only on user-service — do not "tidy" either without asking, the services stop trusting each other if they diverge.
+- **Access tokens use Ed25519 in `Authorization: Bearer …`**. User Service signs them with `JWT_PRIVATE_KEY`; Supplier Service verifies them with the shared `@campus-errand/auth` package and `JWT_PUBLIC_KEY`, issuer, and audience. Refresh tokens are opaque and remain in an HttpOnly cookie. Keep these service settings aligned when the author approves an authentication-contract change.
 - **Prisma clients are per service**, generated into `src/database/generated/` (git-ignored). Import from `../database/client`, never from a root `@prisma/client`. Every Prisma CLI call needs `--schema src/database/prisma/schema.prisma` (the npm scripts already pass it).
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
@@ -157,7 +163,7 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 
 **When to delegate — default is don't.** Use 0 agents for most prompts. Number of agents = number of *independent* pieces of work in this task, not number of folders it touches.
 
-- Do it yourself when the task is small, sequential, or tightly coupled — e.g. a JWT change that touches user-service, supplier-service middleware and nginx together is **one** piece of work: do it in the main session (or give the whole thing to one agent), never split it across agents editing both sides independently.
+- Do it yourself when the task is small, sequential, or tightly coupled — e.g. an access-token change that touches User Service, Supplier Service verification, and nginx together is **one** piece of work: do it in the main session (or give the whole thing to one agent), never split it across agents editing both sides independently.
 - Delegate when a piece can genuinely proceed in parallel (a `backend` endpoint and the `frontend` screen against an already-agreed contract), when it needs heavy reading or noisy logs you do not want in context (`frontend` for the big `App.tsx` files, `infrastructure` for container logs), or when you want independent eyes (`reviewer` after you or another agent wrote the code).
 - Never run two agents whose file sets overlap, and never two instances of the same agent on the same service.
 - Do not explore the same code yourself that you just sent an agent to explore.

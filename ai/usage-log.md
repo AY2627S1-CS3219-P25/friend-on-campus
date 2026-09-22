@@ -7,6 +7,12 @@ Author review: <to be completed by ngkhengyang>
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 11 documentation-compliance record below.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 10 D2 contract-alignment record below.
 Author review: <to be completed by ngkhengyang>
 -->
@@ -642,4 +648,24 @@ policy, endpoint behavior, or design decision was added.
 - `scripts/test-d2-e2e.ts` — generates an in-memory Ed25519 key pair for each run and
   validates the implemented User and Supplier Service contracts.
 - `README.md` — updated D2 test prerequisites and current seed-account facts.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 20:35 SGT — Iteration 11 documentation compliance
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Update public and internal documentation facts for the approved
+Prisma, Ed25519 authentication, DTO, deployment, deferred-administration, and D2 test work.
+
+**Usage scenario:** Documentation of implemented code and project guidance (allowed use).
+The author had already approved the underlying behavior and explicitly chose public and
+internal documentation as the scope. No requirements, architecture, or rationale was added.
+
+**Files changed:**
+- `README.md`, `docs/architecture/overview.md`, `docs/requirements/conflicts.md` — corrected
+  stale public implementation facts and references.
+- `CLAUDE.md`, `.claude/README.md`, `.claude/PLUGINS.md`, `.claude/agents/{backend,infrastructure}.md` — corrected
+  factual agent guidance for the current paths and Ed25519 configuration.
 - `ai/usage-log.md` — appended this entry.
