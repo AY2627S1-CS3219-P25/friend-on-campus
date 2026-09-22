@@ -5,6 +5,14 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Adopted the shared registration request and user response DTOs for account creation.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import type { RegisterUserRequest, UserDTO } from '@campus-errand/common-dtos';
 import {
   AuthRepository,
   SessionUserRecord,
@@ -19,23 +27,10 @@ import {
 import { hashPassword, verifyPassword } from './password';
 import { TokenManager } from './tokens';
 
-export interface RegisterInput {
-  username: string;
-  email: string;
-  password: string;
-}
-
 export interface LoginInput {
   email: string;
   password: string;
   keepLoggedIn: boolean;
-}
-
-export interface AuthenticatedUser {
-  userId: string;
-  username: string;
-  email: string;
-  userRole: 'STUDENT' | 'ADMIN';
 }
 
 export interface AuthenticatedSessionResult {
@@ -43,7 +38,7 @@ export interface AuthenticatedSessionResult {
   accessTokenExpiresInSeconds: number;
   refreshToken: string;
   refreshTokenExpiresAt: Date;
-  user: AuthenticatedUser;
+  user: UserDTO;
 }
 
 export interface TokenRefreshResult {
@@ -59,7 +54,7 @@ export interface TokenRefreshResult {
  * creates a session and issues tokens.
  */
 export interface AuthModule {
-  register(input: RegisterInput): Promise<AuthenticatedUser>;
+  register(input: RegisterUserRequest): Promise<UserDTO>;
   login(input: LoginInput): Promise<AuthenticatedSessionResult>;
   refresh(refreshToken: string): Promise<TokenRefreshResult>;
   logout(refreshToken: string): Promise<void>;
@@ -124,7 +119,7 @@ function validateUsername(username: unknown): string {
   return username.trim();
 }
 
-function toAuthenticatedUser(user: UserRecord): AuthenticatedUser {
+function toUserDTO(user: UserRecord): UserDTO {
   return {
     userId: user.id,
     username: user.username,
@@ -181,7 +176,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
           passwordHash,
         });
 
-        return toAuthenticatedUser(user);
+        return toUserDTO(user);
       } catch (error) {
         mapDuplicateUserError(error);
       }
@@ -217,7 +212,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         accessTokenExpiresInSeconds: options.accessTokenLifetimeSeconds,
         refreshToken,
         refreshTokenExpiresAt,
-        user: toAuthenticatedUser(session.user),
+        user: toUserDTO(session.user),
       };
     },
 
