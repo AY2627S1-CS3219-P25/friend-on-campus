@@ -4,9 +4,15 @@
  * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Accepted configured Ed25519 authentication middleware for the author-approved Supplier Service migration.
+ * Author review: <to be completed by ngkhengyang>
+ */
 // AI-generated (edited by yanhwee)
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, RequestHandler, Response } from 'express';
 import * as supplierRepository from '../database/supplierRepository';
 import {
   CreateSupplierRequest,
@@ -15,11 +21,6 @@ import {
   SupplierDTO,
   SupplierQueryOptions,
 } from '@campus-errand/common-dtos';
-import {
-  authenticateToken,
-  requireAdmin,
-  AuthenticatedSupplierRequest,
-} from './authMiddleware';
 
 // GET /api/suppliers
 export async function getSuppliers(req: Request, res: Response) {
@@ -73,7 +74,7 @@ export async function getSupplier(req: Request, res: Response) {
 }
 
 // POST /api/suppliers (Admin Only)
-export async function createSupplier(req: AuthenticatedSupplierRequest, res: Response) {
+export async function createSupplier(req: Request, res: Response) {
   try {
     const body: CreateSupplierRequest = req.body;
 
@@ -97,7 +98,7 @@ export async function createSupplier(req: AuthenticatedSupplierRequest, res: Res
 }
 
 // PUT /api/suppliers/:id (Admin Only)
-export async function updateSupplier(req: AuthenticatedSupplierRequest, res: Response) {
+export async function updateSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const body: UpdateSupplierRequest = req.body;
@@ -120,7 +121,7 @@ export async function updateSupplier(req: AuthenticatedSupplierRequest, res: Res
 }
 
 // PATCH /api/suppliers/:id/toggle (Admin Only)
-export async function toggleSupplier(req: AuthenticatedSupplierRequest, res: Response) {
+export async function toggleSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const updated = await supplierRepository.toggleSupplierActive(id);
@@ -141,7 +142,7 @@ export async function toggleSupplier(req: AuthenticatedSupplierRequest, res: Res
 }
 
 // DELETE /api/suppliers/:id (Admin Only)
-export async function deleteSupplier(req: AuthenticatedSupplierRequest, res: Response) {
+export async function deleteSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const permanent = req.query.permanent === 'true';
@@ -165,16 +166,22 @@ export async function deleteSupplier(req: AuthenticatedSupplierRequest, res: Res
   }
 }
 
-const router = Router();
+// AI-generated (edited by ngkhengyang)
+export function createSupplierRouter(
+  authenticateToken: RequestHandler,
+  requireAdmin: RequestHandler,
+): Router {
+  const router = Router();
 
-// Public / Student Read Access
-router.get('/', getSuppliers);
-router.get('/:id', getSupplier);
+  // Public / Student Read Access
+  router.get('/', getSuppliers);
+  router.get('/:id', getSupplier);
 
-// Admin-Only Mutation Access
-router.post('/', authenticateToken, requireAdmin, createSupplier);
-router.put('/:id', authenticateToken, requireAdmin, updateSupplier);
-router.patch('/:id/toggle', authenticateToken, requireAdmin, toggleSupplier);
-router.delete('/:id', authenticateToken, requireAdmin, deleteSupplier);
+  // Admin-Only Mutation Access
+  router.post('/', authenticateToken, requireAdmin, createSupplier);
+  router.put('/:id', authenticateToken, requireAdmin, updateSupplier);
+  router.patch('/:id/toggle', authenticateToken, requireAdmin, toggleSupplier);
+  router.delete('/:id', authenticateToken, requireAdmin, deleteSupplier);
 
-export default router;
+  return router;
+}

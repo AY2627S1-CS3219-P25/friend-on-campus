@@ -4,6 +4,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # AI Usage Log
 
@@ -585,4 +591,29 @@ data mutation, DTO, or design decision was added.
   existing `@campus-errand/auth` ADMIN middleware and added the two non-mutating `501` routes.
 - `services/user-service/docs/api-reference.md`, `docs/services/user-service.md` — documented
   the deferred routes and their authentication behavior.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 19:45 SGT — Iteration 8 Supplier Service Ed25519 authentication
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved Supplier Service migration from the
+legacy HS256 verifier to the established Ed25519 shared authentication package.
+
+**Usage scenario:** Implementation code and configuration (allowed use). The author had
+already selected Ed25519 access tokens, the shared authentication package, and the
+requirement for other services to accommodate the change. No authentication architecture,
+claims contract, or authorization policy was newly decided.
+
+**Files changed:**
+- `services/supplier-service/src/backend/{server,supplierRoutes}.ts` — configured and
+  injected the shared Ed25519 verifier; preserved public reads and ADMIN-only mutations.
+- `services/supplier-service/src/backend/authMiddleware.ts` — removed the superseded local
+  HS256 verifier and request-payload adapter.
+- `services/supplier-service/package.json`, `package-lock.json` — replaced direct
+  `jsonwebtoken` declarations with the existing shared authentication package.
+- `docker-compose.yml`, `docs/services/supplier-service.md` — passed and documented the
+  public-key verification configuration.
 - `ai/usage-log.md` — appended this entry.
