@@ -15,7 +15,8 @@ Author review: <to be completed by Reallyeasy1>
 3. [`requirements/`](./requirements/README.md) — links to D1, the D2 / Sprint 2 plan and the GitHub backlog, plus [`conflicts.md`](./requirements/conflicts.md), the list of places where documents, issues and code disagree.
 4. [`decisions/`](./decisions/README.md) — one record per design decision. **Written by humans only**; `/new-adr <title>` creates the empty numbered file.
 5. [`evidence/d2/`](./evidence/d2/README.md) — acceptance-check results for the D2 demo.
-6. [`onboarding-guide-sep-3.md`](./onboarding-guide-sep-3.md) — beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces), written 3 Sep from the starter template; for current service behaviour prefer `services/`.
+6. [`code-review.md`](./code-review.md) — the review-comment labels (`[BLOCKING]`, `[SUGGESTION]`, `[NIT]`, `[QUESTION]`) and posting rules.
+7. [`onboarding-guide-sep-3.md`](./onboarding-guide-sep-3.md) — beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces), written 3 Sep from the starter template; for current service behaviour prefer `services/`.
 
 AI tooling (Claude Code set-up, plugins, agents, hooks) is documented next to its config: [`../.claude/README.md`](../.claude/README.md) and [`../.claude/PLUGINS.md`](../.claude/PLUGINS.md).
 

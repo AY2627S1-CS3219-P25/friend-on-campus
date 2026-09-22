@@ -507,3 +507,19 @@ Verified: rebuilt/restarted the admin-portal container; `curl http://localhost:5
 - `.claude/settings.local.json` (git-ignored, personal) — allow `gh pr create` and posting PR reviews via `gh api`.
 - `.claude/README.md` — settings description updated.
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 11:40 SGT — Code review convention
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (uncommitted)
+
+**Prompt (summarised):** Make `[BLOCKING] / [SUGGESTION] / [NIT] / [QUESTION]` the team's code review convention (labels supplied by the author).
+
+**Usage scenario:** Documentation / tooling config (allowed use). Labels and their meanings are the author's; the AI wrote them up and pointed the review agents at them.
+
+**Files changed:**
+- `docs/code-review.md` — new: the four labels and posting rules.
+- `.claude/agents/pr-reviewer.md`, `.claude/agents/reviewer.md` — findings now labelled per the convention instead of blocker/should-fix/nit.
+- `CLAUDE.md` §6, `docs/README.md` — link to it.
+- `ai/usage-log.md` — appended this entry.

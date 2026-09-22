@@ -131,7 +131,8 @@ Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if 
 - Team repo: `AY2627S1-CS3219-P25/nus-campus-errand`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/nus-campus-errand`** to `gh issue` / `gh pr` commands.
 - Branches: `main` (releases), `dev` (integration), `milestone-d2` (D2 demo baseline), feature branches off `dev`.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
-- Never commit, push, merge, force-push, or open/close issues and PRs yourself.
+- Review comments use the labels in `docs/code-review.md`: `[BLOCKING]`, `[SUGGESTION]`, `[NIT]`, `[QUESTION]`. AI reviews are comment-only; a human gives the verdict.
+- Never commit, push, merge, force-push, or close issues and PRs yourself. Opening a PR is allowed only when the author asks.
 
 ## 7. Source documents
 
