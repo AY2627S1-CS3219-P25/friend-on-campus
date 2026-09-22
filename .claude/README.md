@@ -70,7 +70,7 @@ Restart Claude Code from the repo root, then:
 
 | Command | Expect |
 |---|---|
-| `/agents` | `backend`, `frontend`, `infrastructure`, `reviewer` |
+| `/agents` | `backend`, `frontend`, `infrastructure`, `reviewer`, `pr-reviewer` |
 | `/hooks` | a `PostToolUse` hook on `Edit\|Write` and a `Stop` hook. Approve them if asked |
 | `/plugin` | the five core plugins enabled |
 | type `/` | skills `usage-log`, `new-adr`, `issue-start` |
@@ -89,7 +89,7 @@ Restart Claude Code from the repo root, then:
 | `skills/usage-log` | `/usage-log` — appends the log entry in the team's format |
 | `skills/new-adr` | `/new-adr <title>` — creates the next numbered record in `docs/decisions/` with metadata only; you write the content |
 | `skills/issue-start` | `/issue-start <n>` — fetches the issue from the right repo and lists its acceptance criteria and the code it touches |
-| `agents/` | Four subagents; when and when not to use them is in `CLAUDE.md` §8 |
+| `agents/` | Five subagents (`pr-reviewer` reviews an open PR and posts the findings on GitHub: "review PR 75"); when and when not to use them is in `CLAUDE.md` §8 |
 | `PLUGINS.md` | The team's plugin list |
 
 ## 7. Working day to day

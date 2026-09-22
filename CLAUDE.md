@@ -146,7 +146,7 @@ Where the documents, the issues and the code disagree, do not pick a side silent
 
 ## 8. Agent team (`.claude/agents/`)
 
-Four subagents. The **main session is the orchestrator**: it owns the task, integrates the pieces and does the final verification. (Architecture decisions belong to the human author, not to the main session and not to any agent — section 1.)
+Five subagents. The **main session is the orchestrator**: it owns the task, integrates the pieces and does the final verification. (Architecture decisions belong to the human author, not to the main session and not to any agent — section 1.)
 
 | Agent | Writes to | Workstream |
 |---|---|---|
@@ -154,6 +154,7 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 | `frontend` | `apps/**` | student-app, admin-portal |
 | `infrastructure` | Dockerfiles, `docker-compose.yml`, `gateway/`, `.env.example`, `.github/` | Containers, gateway, CI, startup/proxy debugging |
 | `reviewer` | `scripts/**` and test files only | Tests, acceptance evidence, drift, code review, AI-policy check |
+| `pr-reviewer` | nothing (posts a GitHub review) | Full-scope review of an open PR, findings posted as one review with inline comments |
 
 **When to delegate — default is don't.** Use 0 agents for most prompts. Number of agents = number of *independent* pieces of work in this task, not number of folders it touches.
 

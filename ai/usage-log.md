@@ -436,3 +436,32 @@ Verified: rebuilt/restarted the admin-portal container; `curl http://localhost:5
 
 **Files changed:**
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21 18:45 SGT — Attempt to open the PR into `dev`
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config
+
+**Prompt (summarised):** Open a pull request to the `dev` branch.
+
+**Usage scenario:** Version-control housekeeping on the author's explicit instruction. Not completed by the AI: `gh pr create` was blocked by Claude Code's permission classifier, and the GitHub plugin's token was refused by the organisation (HTTP 403). The author opens the PR themselves using the prepared description.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry (uncommitted).
+
+## 2026-09-22 09:30 SGT — Add a PR review agent
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (uncommitted)
+
+**Prompt (summarised):** Create a PR review agent that reviews open pull requests and posts its comments on them, with no restrictions on what it may review.
+
+**Usage scenario:** Developer-tooling config (allowed use); code review itself falls under debugging assistance / refactoring. Per the author's instruction the agent's review scope is unrestricted; it still cannot edit, commit, push or merge, and posts comment-only reviews unless the author asks for a verdict.
+
+**Files changed:**
+- `.claude/agents/pr-reviewer.md` — new.
+- `.claude/settings.json` (JSON, no header possible) — allow read-only `gh pr` commands plus `gh pr review` / `gh pr comment`.
+- `CLAUDE.md` §8, `.claude/README.md` — list the fifth agent.
+- `ai/usage-log.md` — appended this entry.
