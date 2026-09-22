@@ -7,14 +7,14 @@ Author review: <to be completed by Reallyeasy1>
 -->
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected stale code references and removed the resolved legacy-registration-fields mismatch.
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+Scope: Corrected stale code references, removed the resolved legacy-registration-fields mismatch, and recorded the approved generic valid-email policy over the superseded NUS-only test behavior.
 Author review: <to be completed by ngkhengyang>
 -->
 
 # Open conflicts between documents, issues and code
 
-Facts as of 2026-09-22 (current workspace). Nothing here is a recommendation. When the team settles a row, write the outcome in a decision record under [`../decisions/`](../decisions/README.md) and link it in the last column.
+Facts as of 2026-09-23 (current workspace). Nothing here is a recommendation. When the team settles a row, write the outcome in a decision record under [`../decisions/`](../decisions/README.md) and link it in the last column.
 
 ## Already listed in issue #1
 
@@ -40,3 +40,4 @@ Facts as of 2026-09-22 (current workspace). Nothing here is a recommendation. Wh
 | 14 | Backend stack: D2 plan notes an earlier Spring Boot preference; `CLAUDE.md` mandates Node/Express and all services are Express | D2 plan §4 vs CLAUDE.md §3 | |
 | 15 | Table definitions exist twice (raw SQL in `docker/postgres-init` and Prisma schemas) and differ in places, e.g. supplier `id` is `UUID` in SQL and plain `String` in Prisma | `01-init-databases.sql` vs `schema.prisma` files | |
 | 16 | README marks D2 "Completed"; the D2 milestone has 5 open issues and 0 closed | README vs GitHub milestone | |
+| 17 | Earlier D2 behavior rejected non-NUS email domains, while issue #2 F1.1.5 requires only valid email format; the approved implementation accepts syntactically valid domains such as `example.test` | Prior D2 test vs issue #2 F1.1.5, `utils/validation.ts`, `scripts/test-d2-e2e.ts` | Generic valid-email acceptance retained; NUS-only restriction superseded |
