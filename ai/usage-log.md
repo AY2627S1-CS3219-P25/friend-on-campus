@@ -669,3 +669,17 @@ internal documentation as the scope. No requirements, architecture, or rationale
 - `CLAUDE.md`, `.claude/README.md`, `.claude/PLUGINS.md`, `.claude/agents/{backend,infrastructure}.md` — corrected
   factual agent guidance for the current paths and Ed25519 configuration.
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-23 00:34 SGT — Align admin portal demo login
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved admin-portal login alignment with the existing User Service request, response, and seed-password contract.
+
+**Usage scenario:** Implementation code (allowed use). The author approved updating the portal to the established User Service contract; no API, authentication, or data-model decision was made.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — sent `email`, read `accessToken`, and used the current seeded demo password.
+- `ai/usage-log.md` — appended this approved implementation record.

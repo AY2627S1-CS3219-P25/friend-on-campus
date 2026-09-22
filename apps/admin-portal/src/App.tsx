@@ -13,6 +13,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Fixed the "Permanent Hard Delete" checkbox in the Delete Supplier modal not resetting between delete attempts (now reset when opening the modal for a supplier and when cancelling). Added client-side RBAC gating so the "Add Location" button and per-row Deactivate/Edit/Delete controls (desktop table and mobile card views) only render for the ADMIN demo role; Student/Guest roles now only see the "view details" (Eye) icon.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+ * Scope: Aligned demo login requests and access-token handling with the approved User Service contract and seed credentials.
+ * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by yanhwee)
 
@@ -134,19 +139,20 @@ export default function App() {
     }
 
     try {
+      // AI-generated (edited by ngkhengyang)
       const email = role === 'ADMIN' ? 'admin@nus.edu.sg' : 'alice@u.nus.edu';
-      const password = role === 'ADMIN' ? 'AdminPassword123!' : 'Password123!';
+      const password = 'Password123!';
 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nusEmail: email, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (data.data?.token) {
-          setAuthToken(data.data.token);
+        if (data.data?.accessToken) {
+          setAuthToken(data.data.accessToken);
           setActionAlert({
             type: 'success',
             message: `Switched session to ${role} (${email}). Live JWT acquired.`,
