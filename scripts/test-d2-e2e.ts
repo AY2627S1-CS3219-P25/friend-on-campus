@@ -4,9 +4,16 @@
  * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Aligned D2 account, session, profile, administration-placeholder, and Supplier Service RBAC checks with the author-approved Ed25519 contracts.
+ * Author review: <to be completed by ngkhengyang>
+ */
 // AI-generated (edited by yanhwee)
 
 import { spawn, ChildProcess } from 'child_process';
+import { generateKeyPairSync } from 'node:crypto';
 import path from 'path';
 
 const USER_SERVICE_PORT = 8001;
@@ -16,6 +23,20 @@ const SUPPLIER_API = `http://localhost:${SUPPLIER_SERVICE_PORT}`;
 
 let userProcess: ChildProcess | null = null;
 let supplierProcess: ChildProcess | null = null;
+
+// AI-generated (edited by ngkhengyang)
+function createTestJwtEnvironment(): Record<string, string> {
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+
+  return {
+    JWT_PRIVATE_KEY: privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64url'),
+    JWT_PUBLIC_KEY: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
+    JWT_ISSUER: 'friend-on-campus-user-service',
+    JWT_AUDIENCE: 'friend-on-campus-services',
+  };
+}
+
+const testJwtEnvironment = createTestJwtEnvironment();
 
 let totalTests = 0;
 let passedTests = 0;
@@ -57,9 +78,9 @@ async function runTests() {
     cwd: path.resolve(__dirname, '../services/user-service'),
     env: {
       ...process.env,
+      ...testJwtEnvironment,
       PORT: String(USER_SERVICE_PORT),
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/user_db',
-      JWT_SECRET: 'cs3219supersecretjwtkey123',
     },
     stdio: 'pipe',
   });
@@ -72,7 +93,9 @@ async function runTests() {
       ...process.env,
       PORT: String(SUPPLIER_SERVICE_PORT),
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/supplier_db',
-      JWT_SECRET: 'cs3219supersecretjwtkey123',
+      JWT_PUBLIC_KEY: testJwtEnvironment.JWT_PUBLIC_KEY,
+      JWT_ISSUER: testJwtEnvironment.JWT_ISSUER,
+      JWT_AUDIENCE: testJwtEnvironment.JWT_AUDIENCE,
     },
     stdio: 'pipe',
   });
@@ -90,52 +113,50 @@ async function runTests() {
 
   try {
     // -------------------------------------------------------------------------
-    // SCENARIO 1: User Registration & Validation
+    // SCENARIO 1: Account Registration & Validation
     // -------------------------------------------------------------------------
-    console.log('--- Scenario 1: User Registration & NUS Domain Rules ---');
+    console.log('--- Scenario 1: Account Registration & Validation ---');
 
-    // Invalid non-NUS email
-    const regInvalidDomain = await fetch(`${USER_API}/api/auth/register`, {
+    // Invalid email format
+    const regInvalidEmail = await fetch(`${USER_API}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nusEmail: 'hacker@gmail.com',
-        matricNumber: 'A0199999Z',
-        fullName: 'Imposter',
+        username: 'invalid-email',
+        email: 'not-an-email',
         password: 'Password123!',
       }),
     });
-    assert(regInvalidDomain.status === 400, 'Rejects registration with non-NUS domain (hacker@gmail.com)');
+    assert(regInvalidEmail.status === 400, 'Rejects registration with an invalid email address');
 
     // Invalid password length (< 8 chars)
     const regShortPass = await fetch(`${USER_API}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nusEmail: 'testuser@u.nus.edu',
-        matricNumber: 'A0199998Y',
-        fullName: 'Test Short Pass',
+        username: 'short-password',
+        email: 'short-password@example.test',
         password: 'short',
       }),
     });
     assert(regShortPass.status === 400, 'Rejects registration with short password (< 8 chars)');
 
     // Valid student registration
-    const testEmail = `charlie_${Date.now()}@u.nus.edu`;
+    const testUsername = `charlie_${Date.now()}`;
+    const testEmail = `${testUsername}@example.test`;
     const regValid = await fetch(`${USER_API}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nusEmail: testEmail,
-        matricNumber: `A${Math.floor(1000000 + Math.random() * 8999999)}K`,
-        fullName: 'Charlie Student',
+        username: testUsername,
+        email: testEmail,
         password: 'Password123!',
       }),
     });
     const regData = await regValid.json();
-    assert(regValid.status === 201, 'Registers new student with valid NUS credentials (201 Created)');
-    assert(!!regData.data?.token, 'Registration returns valid JWT authentication token');
-    assert(regData.data?.user?.role === 'STUDENT', 'New registrant is assigned STUDENT role by default');
+    assert(regValid.status === 201, 'Registers a new account with a valid email address (201 Created)');
+    assert(!regData.data?.accessToken, 'Registration does not create a login session');
+    assert(regData.data?.user?.userRole === 'STUDENT', 'New registrant is assigned STUDENT role by default');
 
     // -------------------------------------------------------------------------
     // SCENARIO 2: Authentication & Login
@@ -147,28 +168,31 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nusEmail: 'admin@nus.edu.sg',
-        password: 'AdminPassword123!',
+        email: 'admin@nus.edu.sg',
+        password: 'Password123!',
+        keepLoggedIn: false,
       }),
     });
     const adminLoginData = await adminLoginRes.json();
     assert(adminLoginRes.status === 200, 'Admin login with valid credentials succeeds (200 OK)');
-    assert(adminLoginData.data?.user?.role === 'ADMIN', 'Admin user has role ADMIN');
-    const adminToken = adminLoginData.data?.token;
+    assert(adminLoginData.data?.user?.userRole === 'ADMIN', 'Admin user has role ADMIN');
+    const adminToken = adminLoginData.data?.accessToken;
 
-    // Login Student Alice
+    // Login the account registered above; registration itself must not authenticate it.
     const studentLoginRes = await fetch(`${USER_API}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nusEmail: 'alice@u.nus.edu',
+        email: testEmail,
         password: 'Password123!',
+        keepLoggedIn: false,
       }),
     });
     const studentLoginData = await studentLoginRes.json();
-    assert(studentLoginRes.status === 200, 'Student Alice login succeeds (200 OK)');
-    assert(studentLoginData.data?.user?.role === 'STUDENT', 'Student Alice has role STUDENT');
-    const studentToken = studentLoginData.data?.token;
+    assert(studentLoginRes.status === 200, 'Registered student login succeeds (200 OK)');
+    assert(studentLoginData.data?.user?.userRole === 'STUDENT', 'Registered user has role STUDENT');
+    const studentToken = studentLoginData.data?.accessToken;
+    const studentUserId = studentLoginData.data?.user?.userId;
 
     // -------------------------------------------------------------------------
     // SCENARIO 3: User Profile & Immutability Protection
@@ -181,54 +205,64 @@ async function runTests() {
     });
     const meData = await meRes.json();
     assert(meRes.status === 200, 'GET /api/users/me returns authenticated student profile');
-    assert(meData.data?.nusEmail === 'alice@u.nus.edu', 'Profile matches authenticated user email');
+    assert(meData.data?.user?.email === testEmail, 'Profile matches authenticated user email');
 
-    // Attempt to tamper immutable fields (role, nusEmail, matricNumber) via profile update
-    const updateRes = await fetch(`${USER_API}/api/users/profile`, {
-      method: 'PUT',
+    // Attempt to modify the immutable email along with username.
+    const invalidUpdateRes = await fetch(`${USER_API}/api/users/me`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${studentToken}`,
       },
       body: JSON.stringify({
-        fullName: 'Alice Tan (Updated)',
-        telegramHandle: '@alicetan_updated',
-        role: 'ADMIN', // tampering attempt!
-        nusEmail: 'hacked@nus.edu.sg', // tampering attempt!
+        username: `${testUsername}-updated`,
+        email: 'hacked@example.test',
       }),
     });
+    assert(invalidUpdateRes.status === 400, 'Profile update rejects an attempted email modification');
+
+    const updateRes = await fetch(`${USER_API}/api/users/me`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${studentToken}`,
+      },
+      body: JSON.stringify({ username: `${testUsername}-updated` }),
+    });
     const updateData = await updateRes.json();
-    assert(updateRes.status === 200, 'Profile update succeeds for mutable fields');
-    assert(updateData.data?.fullName === 'Alice Tan (Updated)', 'Full name updated successfully');
-    assert(updateData.data?.role === 'STUDENT', 'Security: Role tampering silently ignored (remains STUDENT)');
-    assert(updateData.data?.nusEmail === 'alice@u.nus.edu', 'Security: NUS Email remains immutable');
+    assert(updateRes.status === 200, 'Profile update accepts a username-only request');
+    assert(updateData.data?.user?.username === `${testUsername}-updated`, 'Username updates successfully');
 
     // -------------------------------------------------------------------------
-    // SCENARIO 4: Role Promotion & Demotion Safeguard
+    // SCENARIO 4: Deferred Administration Endpoint Authorization
     // -------------------------------------------------------------------------
-    console.log('\n--- Scenario 4: Role Administration & Last Admin Safeguard ---');
+    console.log('\n--- Scenario 4: Deferred Administration Endpoint Authorization ---');
 
-    // Student attempts to promote someone -> 403 Forbidden
-    const unauthPromote = await fetch(`${USER_API}/api/users/${meData.data.id}/promote`, {
+    const unauthenticatedList = await fetch(`${USER_API}/api/users`);
+    assert(unauthenticatedList.status === 401, 'Unauthenticated user-management request is rejected (401)');
+
+    const studentPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${studentToken}`,
       },
-      body: JSON.stringify({ role: 'ADMIN' }),
     });
-    assert(unauthPromote.status === 403, 'Student cannot promote users (403 Forbidden)');
+    assert(studentPromote.status === 403, 'Student cannot access user-management routes (403)');
 
-    // Admin attempts to demote sole admin -> 400 Bad Request
-    const demoteLastAdmin = await fetch(`${USER_API}/api/users/${adminLoginData.data.user.id}/promote`, {
+    const adminList = await fetch(`${USER_API}/api/users`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    assert(adminList.status === 501, 'ADMIN user listing placeholder returns 501 Not Implemented');
+
+    const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${adminToken}`,
       },
-      body: JSON.stringify({ role: 'STUDENT' }),
     });
-    assert(demoteLastAdmin.status === 400, 'Safeguard: Cannot demote the last administrator in the system (400)');
+    assert(adminPromote.status === 501, 'ADMIN promotion placeholder returns 501 Not Implemented');
 
     // -------------------------------------------------------------------------
     // SCENARIO 5: Public Querying of Campus Suppliers (M3)

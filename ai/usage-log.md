@@ -7,6 +7,12 @@ Author review: <to be completed by ngkhengyang>
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 10 D2 contract-alignment record below.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
 Author review: <to be completed by ngkhengyang>
 -->
@@ -616,4 +622,24 @@ claims contract, or authorization policy was newly decided.
   `jsonwebtoken` declarations with the existing shared authentication package.
 - `docker-compose.yml`, `docs/services/supplier-service.md` — passed and documented the
   public-key verification configuration.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 20:10 SGT — Iteration 10 D2 contract alignment
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved D2 test migration using a generated
+test-only Ed25519 key pair, without using the supplied `.env` key pair.
+
+**Usage scenario:** Test implementation and documentation (allowed use). The author had
+already selected the test-only key source and the implemented account, profile, deferred
+administration, and Supplier Service contracts under test. No new test scope, key-management
+policy, endpoint behavior, or design decision was added.
+
+**Files changed:**
+- `scripts/test-d2-e2e.ts` — generates an in-memory Ed25519 key pair for each run and
+  validates the implemented User and Supplier Service contracts.
+- `README.md` — updated D2 test prerequisites and current seed-account facts.
 - `ai/usage-log.md` — appended this entry.
