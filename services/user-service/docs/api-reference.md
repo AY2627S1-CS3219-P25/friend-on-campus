@@ -4,6 +4,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the author-approved immutable-email profile contract and shared user response fields.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Documented the author-approved deferred ADMIN user-management endpoint placeholders.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # User Service API Reference
 
@@ -24,6 +30,9 @@ own profile. Unless stated otherwise, request and response bodies use JSON.
   - [`GET /api/users/me`](#get-apiusersme)
   - [`PATCH /api/users/me`](#patch-apiusersme)
   - [`PUT /api/users/me/password`](#put-apiusersmepassword)
+- [Deferred administration endpoints](#deferred-administration-endpoints)
+  - [`GET /api/users`](#get-apiusers)
+  - [`POST /api/users/:id/promote`](#post-apiusersidpromote)
 - [Authentication](#authentication)
 - [Common error responses](#common-error-responses)
 
@@ -416,6 +425,33 @@ In addition to the [authentication errors](#authentication-error-responses):
 | `401` | `INVALID_CURRENT_PASSWORD` | The supplied current password is incorrect. |
 | `404` | `USER_NOT_FOUND` | The authenticated account no longer exists. |
 
+## Deferred administration endpoints
+
+The following routes are reserved for future User Service administration work. They
+authenticate the caller and require the `ADMIN` role, but do not read or mutate data
+in this iteration.
+
+### `GET /api/users`
+
+Requires an `ADMIN` Bearer access token. The route returns `501 Not Implemented` with
+no response body.
+
+### `POST /api/users/:id/promote`
+
+Requires an `ADMIN` Bearer access token. The route returns `501 Not Implemented` with
+no response body; the supplied user ID is not read or acted upon.
+
+For both deferred routes, missing or invalid authentication returns the applicable
+`401` authentication response and a non-`ADMIN` authenticated caller receives:
+
+```json
+{
+  "success": false,
+  "error": "Administrator access is required",
+  "code": "ADMIN_REQUIRED"
+}
+```
+
 ## Authentication
 
 Protected endpoints expect the access token returned by login or refresh in the
@@ -436,6 +472,7 @@ issuer, audience, and expiry are valid.
 | `401` | `MISSING_TOKEN` | The `Authorization` header does not contain a Bearer token. |
 | `401` | `TOKEN_EXPIRED` | The access token has expired. A client may refresh the session and retry once. |
 | `401` | `INVALID_TOKEN` | The token is malformed or has an invalid signature, claims, issuer, or audience. |
+| `403` | `ADMIN_REQUIRED` | The authenticated caller does not have the `ADMIN` role. |
 
 Example:
 

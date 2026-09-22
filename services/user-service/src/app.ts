@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Passed the author-approved ADMIN authorization middleware to deferred User Service routes.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import cors from 'cors';
 import express, { Request, RequestHandler, Response } from 'express';
 import { AuthModule } from './auth/auth-module';
@@ -12,6 +19,7 @@ export interface AppDependencies {
   auth: AuthModule;
   users: UserModule;
   requireAuthentication: RequestHandler;
+  requireAdmin: RequestHandler;
   database: Database;
   corsOrigin: string;
   secureCookies: boolean;
@@ -50,7 +58,11 @@ export function createApp(dependencies: AppDependencies) {
   );
   app.use(
     '/api/users',
-    createUserRouter(dependencies.users, dependencies.requireAuthentication),
+    createUserRouter(
+      dependencies.users,
+      dependencies.requireAuthentication,
+      dependencies.requireAdmin,
+    ),
   );
 
   app.use((_req: Request, res: Response) => {

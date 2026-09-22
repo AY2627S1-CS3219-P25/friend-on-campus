@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Added author-approved authenticated ADMIN endpoint placeholders that deliberately return 501.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import {
   NextFunction,
   Request,
@@ -30,6 +37,7 @@ function authenticatedUserId(res: Response): string {
 export function createUserRouter(
   users: UserModule,
   requireAuthentication: RequestHandler,
+  requireAdmin: RequestHandler,
 ): Router {
   const router = Router();
 
@@ -58,6 +66,16 @@ export function createUserRouter(
       res.status(204).send();
     }),
   );
+
+  // AI-generated (edited by ngkhengyang)
+  router.get('/', requireAdmin, (_req, res) => {
+    res.status(501).end();
+  });
+
+  // AI-generated (edited by ngkhengyang)
+  router.post('/:id/promote', requireAdmin, (_req, res) => {
+    res.status(501).end();
+  });
 
   return router;
 }

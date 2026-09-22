@@ -565,3 +565,24 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `services/user-service/src/users/user-module.ts`, `src/persistence/user-repository.ts`, `src/http/error-handler.ts` — enforced username-only updates, removed email mutation, and adopted shared user/password DTOs.
 - `services/user-service/docs/api-reference.md`, `docs/services/user-service.md` — documented immutable email and `userId`/`userRole` responses.
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 19:20 SGT — Iteration 7 deferred administration endpoints
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved iteration only: authenticated, ADMIN-gated
+User Service placeholders for future user management.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected the
+User Service as the future owner of administration, the two endpoint paths, the middleware
+order, and the required `501` placeholder behavior. No user-management functionality,
+data mutation, DTO, or design decision was added.
+
+**Files changed:**
+- `services/user-service/src/{index,app}.ts`, `src/users/user-routes.ts` — wired the
+  existing `@campus-errand/auth` ADMIN middleware and added the two non-mutating `501` routes.
+- `services/user-service/docs/api-reference.md`, `docs/services/user-service.md` — documented
+  the deferred routes and their authentication behavior.
+- `ai/usage-log.md` — appended this entry.

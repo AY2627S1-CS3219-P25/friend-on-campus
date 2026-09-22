@@ -4,8 +4,14 @@
  * Scope: Wired the author-approved Prisma persistence adapter into User Service startup.
  * Author review: <to be completed by ngkhengyang>
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Wired the author-approved ADMIN authorization middleware into deferred User Service routes.
+ * Author review: <to be completed by ngkhengyang>
+ */
 // AI-generated (edited by ngkhengyang)
-import { authMiddleware } from '@campus-errand/auth';
+import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import { createApp } from './app';
 import { createAuthModule } from './auth/auth-module';
 import { createTokenManager } from './auth/tokens';
@@ -44,6 +50,7 @@ const app = createApp({
   auth,
   users,
   requireAuthentication,
+  requireAdmin,
   database,
   corsOrigin: config.corsOrigin,
   secureCookies: config.secureCookies,
