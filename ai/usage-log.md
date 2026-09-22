@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Appended the Iteration 1 through Iteration 3 and Iteration 5 implementation records below.
+Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
 -->
 
@@ -549,4 +549,19 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `services/user-service/docker-compose.yml` — removed the obsolete standalone `user-db` deployment and volume.
 - `services/user-service/src/config.ts`, `.env.example` — changed direct local development to `localhost:5432/user_db`.
 - `docs/services/user-service.md`, `services/user-service/docs/auth-setup.md` — updated shared-database connection, startup, and reset instructions.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 18:59 SGT — Iteration 6 immutable profile and password contract
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved username-only profile update and shared profile/password DTO contract.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected immutable email, username-only updates, the shared user field names, and the current-password change flow. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `services/user-service/src/users/user-module.ts`, `src/persistence/user-repository.ts`, `src/http/error-handler.ts` — enforced username-only updates, removed email mutation, and adopted shared user/password DTOs.
+- `services/user-service/docs/api-reference.md`, `docs/services/user-service.md` — documented immutable email and `userId`/`userRole` responses.
 - `ai/usage-log.md` — appended this entry.

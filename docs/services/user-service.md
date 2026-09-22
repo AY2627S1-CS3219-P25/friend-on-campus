@@ -16,6 +16,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated local and Compose database connection facts for the shared PostgreSQL deployment.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Updated profile and password endpoint facts for the immutable-email contract.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # user-service
 
@@ -76,7 +82,7 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | `POST /api/auth/refresh` | refresh cookie or body | Rotates refresh token and returns access token. |
 | `POST /api/auth/logout` | refresh cookie or body | Revokes that refresh session and clears the cookie. |
 | `GET /api/users/me` | Bearer token | Returns authenticated profile. |
-| `PATCH /api/users/me` | Bearer token | Updates the profile according to the route implementation. |
+| `PATCH /api/users/me` | Bearer token | Updates username only; email is immutable. |
 | `PUT /api/users/me/password` | Bearer token | Verifies current password and changes password. |
 
 The endpoint-level request and response examples are in

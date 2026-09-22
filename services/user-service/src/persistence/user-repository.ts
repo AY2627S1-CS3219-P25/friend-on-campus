@@ -5,6 +5,13 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Removed email mutation from the User Service profile persistence path.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { PrismaClient, User as PrismaUser } from '../database/generated/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
@@ -18,8 +25,7 @@ export interface UserRecord {
 }
 
 export interface UpdateUserRecord {
-  username?: string;
-  email?: string;
+  username: string;
 }
 
 export interface UserRepository {
@@ -52,10 +58,7 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
     async updateProfile(userId, input) {
       const updated = await prisma.user.updateMany({
         where: { id: userId },
-        data: {
-          ...(input.username !== undefined ? { username: input.username } : {}),
-          ...(input.email !== undefined ? { email: input.email } : {}),
-        },
+        data: { username: input.username },
       });
       if (updated.count !== 1) {
         return null;

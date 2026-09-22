@@ -1,3 +1,10 @@
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Documented the author-approved immutable-email profile contract and shared user response fields.
+Author review: <to be completed by ngkhengyang>
+-->
+
 # User Service API Reference
 
 The User Service manages account registration, authentication sessions, and a user's
@@ -301,10 +308,10 @@ Status: `200 OK`
   "success": true,
   "data": {
     "user": {
-      "id": "95a7644d-0748-410c-bb51-e30bb2f17561",
+      "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
       "username": "alice",
       "email": "alice@u.nus.edu",
-      "role": "STUDENT"
+      "userRole": "STUDENT"
     }
   }
 }
@@ -320,8 +327,7 @@ In addition to the [authentication errors](#authentication-error-responses):
 
 ### `PATCH /api/users/me`
 
-Updates the authenticated user's username, email address, or both. Properties not
-included in the request remain unchanged.
+Updates the authenticated user's username. Email is immutable.
 
 #### Request
 
@@ -332,18 +338,16 @@ Content-Type: application/json
 
 ```json
 {
-  "username": "alice-new",
-  "email": "alice-new@u.nus.edu"
+  "username": "alice-new"
 }
 ```
 
 | Field | Type | Required | Validation |
 |---|---|---:|---|
-| `username` | string | At least one field is required | Must contain 1-50 characters after trimming, cannot be whitespace-only, and must be unique without regard to case. |
-| `email` | string | At least one field is required | Must be valid, at most 320 characters, and unique without regard to case. |
+| `username` | string | Yes | Must contain 1-50 characters after trimming, cannot be whitespace-only, and must be unique without regard to case. |
 
-The request must contain at least one supported field and cannot contain properties
-other than `username` and `email`.
+The request must contain only `username`. Email, role, IDs, and legacy profile fields
+are rejected with `400 INVALID_INPUT`.
 
 #### Success response
 
@@ -354,10 +358,10 @@ Status: `200 OK`
   "success": true,
   "data": {
     "user": {
-      "id": "95a7644d-0748-410c-bb51-e30bb2f17561",
+      "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
       "username": "alice-new",
-      "email": "alice-new@u.nus.edu",
-      "role": "STUDENT"
+      "email": "alice@u.nus.edu",
+      "userRole": "STUDENT"
     }
   }
 }
@@ -371,7 +375,6 @@ In addition to the [authentication errors](#authentication-error-responses):
 |---:|---|---|
 | `400` | `INVALID_INPUT` | The body is empty, contains an unsupported field, or contains an invalid value. |
 | `404` | `USER_NOT_FOUND` | The authenticated account no longer exists. |
-| `409` | `DUPLICATE_EMAIL` | The new email address is already registered. |
 | `409` | `DUPLICATE_USERNAME` | The new username is already in use. |
 
 ### `PUT /api/users/me/password`

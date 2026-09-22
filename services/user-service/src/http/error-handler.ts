@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Removed the no-longer-reachable duplicate-email profile error mapping.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { ErrorRequestHandler } from 'express';
 import { AuthError, AuthErrorCode } from '../auth/auth-module';
 import { logError } from '../utils/logger';
@@ -14,7 +21,6 @@ const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
 const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   INVALID_INPUT: 400,
   DUPLICATE_USERNAME: 409,
-  DUPLICATE_EMAIL: 409,
   INVALID_CURRENT_PASSWORD: 401,
   USER_NOT_FOUND: 404,
 };

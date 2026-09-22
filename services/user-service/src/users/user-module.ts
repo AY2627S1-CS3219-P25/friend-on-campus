@@ -5,46 +5,35 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Enforced username-only profile updates and adopted shared user and password DTOs.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import type {
+  ChangePasswordRequest,
+  UpdateUserProfileRequest,
+  UserDTO,
+} from '@campus-errand/common-dtos';
 import { hashPassword, verifyPassword } from '../auth/password';
 import {
   UserRecord,
   UserRepository,
   UpdateUserRecord,
 } from '../persistence/user-repository';
-import {
-  isValidEmail,
-  isValidPassword,
-  isValidUsername,
-  normalizeEmail,
-} from '../utils/validation';
-
-export interface UserProfile {
-  id: string;
-  username: string;
-  email: string;
-  role: 'STUDENT' | 'ADMIN';
-}
-
-export interface UpdateOwnProfileInput {
-  username?: string;
-  email?: string;
-}
-
-export interface ChangePasswordInput {
-  currentPassword: string;
-  newPassword: string;
-}
+import { isValidPassword, isValidUsername } from '../utils/validation';
 
 export interface UserModule {
-  getOwnProfile(userId: string): Promise<UserProfile>;
-  updateOwnProfile(userId: string, input: UpdateOwnProfileInput): Promise<UserProfile>;
-  changePassword(userId: string, input: ChangePasswordInput): Promise<void>;
+  getOwnProfile(userId: string): Promise<UserDTO>;
+  updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
+  changePassword(userId: string, input: ChangePasswordRequest): Promise<void>;
 }
 
 export type UserErrorCode =
   | 'INVALID_INPUT'
   | 'DUPLICATE_USERNAME'
-  | 'DUPLICATE_EMAIL'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND';
 
@@ -68,12 +57,12 @@ interface DuplicateUserError {
   meta?: { target?: unknown };
 }
 
-function toUserProfile(user: UserRecord): UserProfile {
+function toUserDTO(user: UserRecord): UserDTO {
   return {
-    id: user.id,
+    userId: user.id,
     username: user.username,
     email: user.email,
-    role: user.role,
+    userRole: user.role,
   };
 }
 
@@ -86,28 +75,16 @@ function validateProfileUpdate(input: unknown): UpdateUserRecord {
     throw new UserError('INVALID_INPUT', 'A profile update is required');
   }
 
-  const supportedFields = new Set(['username', 'email']);
   const fields = Object.keys(input);
-  if (fields.length === 0 || fields.some((field) => !supportedFields.has(field))) {
-    throw new UserError('INVALID_INPUT', 'Only username and email can be updated');
+  if (fields.length !== 1 || fields[0] !== 'username') {
+    throw new UserError('INVALID_INPUT', 'Only username can be updated');
   }
 
-  const update: UpdateUserRecord = {};
-  if (Object.prototype.hasOwnProperty.call(input, 'username')) {
-    if (!isValidUsername(input.username)) {
-      throw new UserError('INVALID_INPUT', 'Username must be between 1 and 50 characters');
-    }
-    update.username = input.username.trim();
+  if (!isValidUsername(input.username)) {
+    throw new UserError('INVALID_INPUT', 'Username must be between 1 and 50 characters');
   }
 
-  if (Object.prototype.hasOwnProperty.call(input, 'email')) {
-    if (!isValidEmail(input.email)) {
-      throw new UserError('INVALID_INPUT', 'A valid email address is required');
-    }
-    update.email = normalizeEmail(input.email);
-  }
-
-  return update;
+  return { username: input.username.trim() };
 }
 
 function mapDuplicateUserError(error: unknown): never {
@@ -116,20 +93,12 @@ function mapDuplicateUserError(error: unknown): never {
   const isUsernameConflict =
     databaseError.constraint === 'users_username_case_insensitive_uq' ||
     (databaseError.code === 'P2002' && prismaTarget.includes('username'));
-  const isEmailConflict =
-    databaseError.constraint === 'users_email_case_insensitive_uq' ||
-    (databaseError.code === 'P2002' && prismaTarget.includes('email'));
-
   if (databaseError.code !== '23505' && databaseError.code !== 'P2002') {
     throw error;
   }
 
   if (isUsernameConflict) {
     throw new UserError('DUPLICATE_USERNAME', 'Username is already in use');
-  }
-
-  if (isEmailConflict) {
-    throw new UserError('DUPLICATE_EMAIL', 'Email address is already in use');
   }
 
   throw error;
@@ -143,7 +112,7 @@ export function createUserModule(options: UserModuleOptions): UserModule {
         throw new UserError('USER_NOT_FOUND', 'User not found');
       }
 
-      return toUserProfile(user);
+      return toUserDTO(user);
     },
 
     async updateOwnProfile(userId, input) {
@@ -155,7 +124,7 @@ export function createUserModule(options: UserModuleOptions): UserModule {
           throw new UserError('USER_NOT_FOUND', 'User not found');
         }
 
-        return toUserProfile(user);
+        return toUserDTO(user);
       } catch (error) {
         if (error instanceof UserError) {
           throw error;
