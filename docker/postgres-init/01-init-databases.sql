@@ -1,11 +1,51 @@
+-- AI Assistance Disclosure:
+-- Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+-- Scope: Restored user_db and the author-approved User Service schema to the shared PostgreSQL initialization script.
+-- Author review: <to be completed by ngkhengyang>
+
 -- ==========================================
 -- Database-per-Service Multi-Database Init Script
 -- CS3219 NUS CampusErrand
 -- ==========================================
 
+CREATE DATABASE user_db;
 CREATE DATABASE supplier_db;
 CREATE DATABASE order_db;
 CREATE DATABASE credit_db;
+
+-- Connect to user_db and create schema
+\c user_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(320) NOT NULL,
+    password_hash TEXT NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'STUDENT' CHECK (role IN ('STUDENT', 'ADMIN')),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+    CHECK (BTRIM(username) <> ''),
+    CHECK (BTRIM(email) <> '')
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_username_case_insensitive_uq
+    ON users (LOWER(username));
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_case_insensitive_uq
+    ON users (LOWER(email));
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    refresh_token_hash TEXT NOT NULL UNIQUE,
+    persistent BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    idle_expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS sessions_user_expiry_idx
+    ON sessions (user_id, idle_expires_at);
 
 -- Connect to supplier_db and create schema & seeds
 \c supplier_db;

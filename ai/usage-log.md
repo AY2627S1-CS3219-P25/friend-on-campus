@@ -1,3 +1,10 @@
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 1 and Iteration 2 implementation records below.
+Author review: <to be completed by ngkhengyang>
+-->
+
 # AI Usage Log
 
 ## 2026-09-19 16:35 SGT — Supplier service scaffold (frontend / backend / database)
@@ -463,4 +470,51 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Usage scenario:** Version-control housekeeping on the author's explicit instruction. The commit contains the typescript-lsp set-up, plugin list and set-up guide described in the three entries above. The PR description states what is AI-generated and that the branch is stacked on `milestone-d2`.
 
 **Files changed:**
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 14:53 SGT — Inventory merged teammate work
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Summarise teammates' merged pull-request work and identify remaining requirements to implement.
+
+**Usage scenario:** Codebase fact-finding (allowed use). Inspected local Git history, branches, and existing documentation to report what is present. The course policy prohibits AI consolidation or prioritisation of remaining requirements, so that part was left to the author.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 16:50 SGT — Iteration 1 shared DTO contract
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the first approved iteration only: replace the shared user and authentication DTO contract with the agreed PR-shaped fields and names.
+
+**Usage scenario:** Implementation code (allowed use). The author had already finalised the user fields, registration/login behaviour, immutable email, password-change payload, and token naming. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — replaced legacy user/auth DTO fields with the approved account, authentication, profile-update, password-change, and JWT claim DTOs; renamed the registration event email field.
+- `ai/usage-log.md` — appended this implementation record and disclosure header.
+
+## 2026-09-22 17:30 SGT — Iteration 2 Prisma persistence model
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved Prisma persistence iteration for the User Service before proceeding to deployment or endpoint work.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected Prisma, the approved account/session fields, case-insensitive account uniqueness, and one logical database per service. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `services/user-service/src/database/prisma/schema.prisma` and `src/database/prisma/migrations/` — replaced the legacy model with User and Session persistence models and the matching Prisma migration.
+- `services/user-service/src/persistence/{database,auth-repository,user-repository}.ts`, `src/index.ts`, and `src/database/seed.ts` — replaced runtime pg access and legacy seed handling with Prisma operations.
+- `services/user-service/src/{database/userRepository,middleware/authMiddleware}.ts` and `services/user-service/migrations/` — removed obsolete legacy implementations superseded by the active Prisma path.
+- `docker/postgres-init/01-init-databases.sql` — restored user_db and synchronized the fresh-volume schema.
+- `services/user-service/package.json`, `package-lock.json` — removed unused raw-pg and legacy JWT/bcrypt dependency declarations.
+- `services/user-service/src/auth/auth-module.ts`, `src/users/user-module.ts` — preserved duplicate username/email error mapping for Prisma errors.
+- `docs/services/user-service.md` — updated persistence facts.
 - `ai/usage-log.md` — appended this entry.

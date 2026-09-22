@@ -4,7 +4,14 @@
  * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Replaced legacy user and authentication DTOs with the author-approved account and session contract.
+ * Author review: (to be completed by author after review)
+ */
 // AI-generated (edited by yanhwee)
+// AI-generated (edited by ngkhengyang)
 /**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
@@ -16,52 +23,47 @@
 export type UserRole = 'STUDENT' | 'ADMIN';
 
 export interface UserDTO {
-  id: string;
-  nusEmail: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
-  role: UserRole;
-  ratingAvg: number;
-  totalCompletedOrders: number;
-  createdAt: string;
+  userId: string;
+  username: string;
+  email: string;
+  userRole: UserRole;
 }
 
 export interface RegisterUserRequest {
-  nusEmail: string;
+  username: string;
+  email: string;
   password: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
 }
 
 export interface LoginUserRequest {
-  nusEmail: string;
+  email: string;
   password: string;
+  keepLoggedIn: boolean;
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  accessTokenExpiresInSeconds: number;
   user: UserDTO;
 }
 
 export interface JWTPayload {
-  id: string;
-  nusEmail: string;
+  userId: string;
+  sessionId: string;
   role: UserRole;
-  fullName: string;
+  issuedAt: number;
+  expiresAt: number;
+  issuer: string;
+  audience: string;
 }
 
 export interface UpdateUserProfileRequest {
-  fullName?: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
+  username?: string;
 }
 
-export interface PromoteUserRequest {
-  role: UserRole;
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 // ==========================================
@@ -234,7 +236,7 @@ export interface BaseEvent {
 export interface UserRegisteredEvent extends BaseEvent {
   eventType: 'user.registered';
   userId: string;
-  nusEmail: string;
+  email: string;
   initialGrant: number;
 }
 

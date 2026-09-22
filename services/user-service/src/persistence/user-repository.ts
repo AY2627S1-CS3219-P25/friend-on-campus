@@ -1,4 +1,11 @@
-import { Database } from './database';
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Replaced raw pg profile and password queries with equivalent Prisma persistence operations.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import { PrismaClient, User as PrismaUser } from '../database/generated/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
 
@@ -25,68 +32,46 @@ export interface UserRepository {
   ): Promise<boolean>;
 }
 
-interface UserRow {
-  id: string;
-  username: string;
-  email: string;
-  password_hash: string;
-  role: UserRole;
-}
-
-function toUserRecord(row: UserRow): UserRecord {
+function toUserRecord(row: PrismaUser): UserRecord {
   return {
     id: row.id,
     username: row.username,
     email: row.email,
-    passwordHash: row.password_hash,
-    role: row.role,
+    passwordHash: row.passwordHash,
+    role: row.role as UserRole,
   };
 }
 
-export function createUserRepository(database: Database): UserRepository {
+export function createUserRepository(prisma: PrismaClient): UserRepository {
   return {
     async findById(userId) {
-      const result = await database.pool.query<UserRow>(
-        `
-          SELECT id, username, email, password_hash, role
-          FROM users
-          WHERE id = $1
-          LIMIT 1
-        `,
-        [userId],
-      );
-
-      return result.rows[0] ? toUserRecord(result.rows[0]) : null;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      return user ? toUserRecord(user) : null;
     },
 
     async updateProfile(userId, input) {
-      const result = await database.pool.query<UserRow>(
-        `
-          UPDATE users
-          SET
-            username = COALESCE($2, username),
-            email = COALESCE($3, email),
-            updated_at = NOW()
-          WHERE id = $1
-          RETURNING id, username, email, password_hash, role
-        `,
-        [userId, input.username ?? null, input.email ?? null],
-      );
+      const updated = await prisma.user.updateMany({
+        where: { id: userId },
+        data: {
+          ...(input.username !== undefined ? { username: input.username } : {}),
+          ...(input.email !== undefined ? { email: input.email } : {}),
+        },
+      });
+      if (updated.count !== 1) {
+        return null;
+      }
 
-      return result.rows[0] ? toUserRecord(result.rows[0]) : null;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      return user ? toUserRecord(user) : null;
     },
 
     async updatePassword(userId, currentPasswordHash, newPasswordHash) {
-      const result = await database.pool.query(
-        `
-          UPDATE users
-          SET password_hash = $2, updated_at = NOW()
-          WHERE id = $1 AND password_hash = $3
-        `,
-        [userId, newPasswordHash, currentPasswordHash],
-      );
+      const updated = await prisma.user.updateMany({
+        where: { id: userId, passwordHash: currentPasswordHash },
+        data: { passwordHash: newPasswordHash },
+      });
 
-      return result.rowCount === 1;
+      return updated.count === 1;
     },
   };
 }

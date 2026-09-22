@@ -1,0 +1,6 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+# Scope: Declared PostgreSQL as the provider for the User Service Prisma migrations.
+# Author review: <to be completed by ngkhengyang>
+
+provider = "postgresql"

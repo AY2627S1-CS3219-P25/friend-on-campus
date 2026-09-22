@@ -1,17 +1,25 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Wired the author-approved Prisma persistence adapter into User Service startup.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { authMiddleware } from '@campus-errand/auth';
 import { createApp } from './app';
 import { createAuthModule } from './auth/auth-module';
 import { createTokenManager } from './auth/tokens';
 import { config } from './config';
+import { prisma } from './database/client';
 import { createAuthRepository } from './persistence/auth-repository';
 import { createDatabase } from './persistence/database';
 import { createUserRepository } from './persistence/user-repository';
 import { logError } from './utils/logger';
 import { createUserModule } from './users/user-module';
 
-const database = createDatabase(config.databaseUrl);
-const repository = createAuthRepository(database);
-const userRepository = createUserRepository(database);
+const database = createDatabase(prisma);
+const repository = createAuthRepository(prisma);
+const userRepository = createUserRepository(prisma);
 const tokens = createTokenManager({
   accessTokenPrivateKey: config.accessTokenPrivateKey,
   accessTokenLifetimeSeconds: config.accessTokenLifetimeSeconds,

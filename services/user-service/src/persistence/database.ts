@@ -1,26 +1,26 @@
-import { Pool, PoolClient } from 'pg';
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Replaced the pg pool wrapper with the Prisma readiness and shutdown adapter.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import { PrismaClient } from '../database/generated/client';
 import { logError } from '../utils/logger';
 
 export interface Database {
-  pool: Pool;
+  prisma: PrismaClient;
   isReady(): Promise<boolean>;
-  withTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
 
-export function createDatabase(connectionString: string): Database {
-  const pool = new Pool({ connectionString });
-
-  pool.on('error', (error) => {
-    logError('database_pool_error', error);
-  });
-
+export function createDatabase(prisma: PrismaClient): Database {
   return {
-    pool,
+    prisma,
 
     async isReady() {
       try {
-        await pool.query(`
+        await prisma.$queryRawUnsafe(`
           SELECT
             u.id,
             u.username,
@@ -42,24 +42,8 @@ export function createDatabase(connectionString: string): Database {
       }
     },
 
-    async withTransaction<T>(work: (client: PoolClient) => Promise<T>) {
-      const client = await pool.connect();
-
-      try {
-        await client.query('BEGIN');
-        const result = await work(client);
-        await client.query('COMMIT');
-        return result;
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-
     async close() {
-      await pool.end();
+      await prisma.$disconnect();
     },
   };
 }

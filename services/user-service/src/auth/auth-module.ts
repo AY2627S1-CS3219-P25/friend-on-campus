@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Preserved duplicate-account error handling while adapting it to Prisma constraint errors.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import {
   AuthRepository,
   SessionUserRecord,
@@ -83,9 +90,10 @@ export interface AuthModuleOptions {
   persistentRefreshTokenIdleLifetimeSeconds: number;
 }
 
-interface PostgresError {
+interface DuplicateUserError {
   code?: string;
   constraint?: string;
+  meta?: { target?: unknown };
 }
 
 function addSeconds(date: Date, seconds: number): Date {
@@ -126,16 +134,24 @@ function toAuthenticatedUser(user: UserRecord): AuthenticatedUser {
 }
 
 function mapDuplicateUserError(error: unknown): never {
-  const postgresError = error as PostgresError;
-  if (postgresError.code !== '23505') {
+  const databaseError = error as DuplicateUserError;
+  const prismaTarget = JSON.stringify(databaseError.meta?.target)?.toLowerCase() ?? '';
+  const isUsernameConflict =
+    databaseError.constraint === 'users_username_case_insensitive_uq' ||
+    (databaseError.code === 'P2002' && prismaTarget.includes('username'));
+  const isEmailConflict =
+    databaseError.constraint === 'users_email_case_insensitive_uq' ||
+    (databaseError.code === 'P2002' && prismaTarget.includes('email'));
+
+  if (databaseError.code !== '23505' && databaseError.code !== 'P2002') {
     throw error;
   }
 
-  if (postgresError.constraint === 'users_username_case_insensitive_uq') {
+  if (isUsernameConflict) {
     throw new AuthError('DUPLICATE_USERNAME', 'Username is already in use');
   }
 
-  if (postgresError.constraint === 'users_email_case_insensitive_uq') {
+  if (isEmailConflict) {
     throw new AuthError('DUPLICATE_EMAIL', 'Email address is already in use');
   }
 
