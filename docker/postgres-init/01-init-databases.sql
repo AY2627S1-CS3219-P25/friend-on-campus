@@ -1,7 +1,8 @@
 -- AI Assistance Disclosure:
--- Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
--- Scope: Restored user_db and the author-approved User Service schema to the shared PostgreSQL initialization script.
+-- Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+-- Scope: Restored user_db and the author-approved User Service schema to the shared PostgreSQL initialization script; synchronized the session foreign key's update action with the Prisma migration.
 -- Author review: <to be completed by ngkhengyang>
+-- AI-generated (edited by ngkhengyang)
 
 -- ==========================================
 -- Database-per-Service Multi-Database Init Script
@@ -36,7 +37,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_case_insensitive_uq
 
 CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     refresh_token_hash TEXT NOT NULL UNIQUE,
     persistent BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
