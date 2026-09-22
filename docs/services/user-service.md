@@ -10,6 +10,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated the page to describe the author-approved Prisma account and session persistence implementation.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Updated local and Compose database connection facts for the shared PostgreSQL deployment.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # user-service
 
@@ -30,9 +36,9 @@ npm run db:seed --workspace=@campus-errand/user-service
 npm run dev:user
 ```
 
-`DATABASE_URL` selects `user_db`. The current local default is
-`postgresql://postgres:postgres@localhost:5433/user_db`; deployment container
-consolidation is tracked separately.
+`DATABASE_URL` selects `user_db`. Direct local development connects to
+`postgresql://postgres:postgres@localhost:5432/user_db`; the Compose service uses
+the shared `postgres` hostname on port `5432`.
 
 ## Configuration
 

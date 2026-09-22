@@ -1,9 +1,16 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Updated the local User Service database default for the shared PostgreSQL container.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const DEFAULT_PORT = 8001;
-const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5433/user_db';
+const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/user_db';
 
 function readPort(value: string | undefined): number {
   if (value === undefined) {

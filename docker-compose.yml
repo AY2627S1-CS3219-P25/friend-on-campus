@@ -1,5 +1,7 @@
-include:
-  - path: ./services/user-service/docker-compose.yml
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+# Scope: Consolidated User Service onto the shared PostgreSQL Compose deployment.
+# Author review: <to be completed by ngkhengyang>
 
 services:
   # ----------------------------------------------------
@@ -55,6 +57,39 @@ services:
   # ----------------------------------------------------
   # Backend Microservices (Node + tsx)
   # ----------------------------------------------------
+  # AI-generated (edited by ngkhengyang)
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    container_name: campuserrand-user-service
+    ports:
+      - "8001:8001"
+    environment:
+      PORT: 8001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/user_db
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-friend-on-campus-services}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-15m}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
+      JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8001/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   supplier-service:
     build:
       context: .

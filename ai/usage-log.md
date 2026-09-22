@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Appended the Iteration 1 and Iteration 2 implementation records below.
+Scope: Appended the Iteration 1 through Iteration 3 implementation records below.
 Author review: <to be completed by ngkhengyang>
 -->
 
@@ -517,4 +517,21 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `services/user-service/package.json`, `package-lock.json` — removed unused raw-pg and legacy JWT/bcrypt dependency declarations.
 - `services/user-service/src/auth/auth-module.ts`, `src/users/user-module.ts` — preserved duplicate username/email error mapping for Prisma errors.
 - `docs/services/user-service.md` — updated persistence facts.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 17:47 SGT — Iteration 3 shared PostgreSQL deployment
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved User Service deployment consolidation onto the existing shared PostgreSQL container.
+
+**Usage scenario:** Implementation code and configuration (allowed use). The author had already selected one logical database per service in a shared PostgreSQL container and specified that `user_db` remain there. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `docker-compose.yml` — moved User Service into the root Compose stack and connected it to `postgres:5432/user_db`.
+- `services/user-service/docker-compose.yml` — removed the obsolete standalone `user-db` deployment and volume.
+- `services/user-service/src/config.ts`, `.env.example` — changed direct local development to `localhost:5432/user_db`.
+- `docs/services/user-service.md`, `services/user-service/docs/auth-setup.md` — updated shared-database connection, startup, and reset instructions.
 - `ai/usage-log.md` — appended this entry.

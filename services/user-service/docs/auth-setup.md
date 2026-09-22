@@ -1,10 +1,16 @@
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Replaced standalone User Service database startup instructions with the shared PostgreSQL workflow.
+Author review: <to be completed by ngkhengyang>
+-->
+
 # Authentication Setup
 
 ## Contents
 
 - [Before you start](#before-you-start)
 - [Start the full stack from the repository root](#start-the-full-stack-from-the-repository-root)
-- [Start the User Service from its directory with Docker Compose](#start-the-user-service-from-its-directory-with-docker-compose)
 - [Start the User Service with npm](#start-the-user-service-with-npm)
 - [Set up another backend service](#set-up-another-backend-service)
 - [Check that authentication works](#check-that-authentication-works)
@@ -60,9 +66,13 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
    curl.exe --fail http://localhost:8001/ready
    ```
 
-## Start the User Service from its directory with Docker Compose
+## Start the User Service with npm
 
-1. Complete the root `.env` setup in [Start the full stack from the repository root](#start-the-full-stack-from-the-repository-root).
+1. From the repository root, start the shared PostgreSQL service:
+
+   ```sh
+   docker compose up postgres -d
+   ```
 
 2. Move to the User Service directory:
 
@@ -70,33 +80,7 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
    cd services/user-service
    ```
 
-3. Start the User Service and its database using the root environment file:
-
-   ```sh
-   docker compose --env-file ../../.env up --build
-   ```
-
-4. Check that the User Service is ready:
-
-   ```sh
-   # macOS and Linux
-   curl --fail http://localhost:8001/ready
-   ```
-
-   ```powershell
-   # Windows PowerShell
-   curl.exe --fail http://localhost:8001/ready
-   ```
-
-## Start the User Service with npm
-
-1. Move to the User Service directory:
-
-   ```sh
-   cd services/user-service
-   ```
-
-2. Create the User Service environment file:
+3. Create the User Service environment file:
 
    ```sh
    # macOS and Linux
@@ -108,13 +92,7 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
    Copy-Item .env.example .env
    ```
 
-3. Copy `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` from root `.env` into `services/user-service/.env`.
-
-4. Start the User Service database:
-
-   ```sh
-   docker compose --env-file ../../.env up user-db -d
-   ```
+4. Copy `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` from root `.env` into `services/user-service/.env`.
 
 5. Start the User Service:
 
@@ -168,11 +146,12 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
 
 ## Reset local User Service data
 
-This removes the local User Service database and its test data.
+The shared PostgreSQL volume holds every service database. Resetting it removes all
+local service data, not only User Service data.
 
-From `services/user-service`:
+From the repository root:
 
 ```sh
-docker compose --env-file ../../.env down -v
-docker compose --env-file ../../.env up --build
+docker compose down -v
+docker compose up postgres -d
 ```
