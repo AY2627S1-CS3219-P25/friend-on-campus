@@ -81,7 +81,7 @@ Restart Claude Code from the repo root, then:
 
 | Path | What it does |
 |---|---|
-| `settings.json` | Shared. **Denies** `git commit`, `git push`, `git merge`, `gh pr create/merge` and reading `.env` files; allows typecheck, `test:d2` and read-only git/gh without prompting; wires the hooks; enables the core plugins |
+| `settings.json` | Shared. **Denies** `git commit`, `git push`, `git merge`, `gh pr merge` and reading `.env` files; allows typecheck, `test:d2` and read-only git/gh without prompting; wires the hooks; enables the core plugins |
 | `settings.local.json` | Yours, git-ignored. Personal plugin switches and permissions |
 | `hooks/check-usage-log.js` | When Claude stops: warns **you** if files changed but `ai/usage-log.md` has no newer entry. Warn-only |
 | `hooks/check-disclosure.js` | After each edit: reminds **Claude** if the file lacks the "AI Assistance Disclosure" header. Its `SKIP` list names exempt file types |

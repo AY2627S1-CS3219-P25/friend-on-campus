@@ -465,3 +465,45 @@ Verified: rebuilt/restarted the admin-portal container; `curl http://localhost:5
 - `.claude/settings.json` (JSON, no header possible) — allow read-only `gh pr` commands plus `gh pr review` / `gh pr comment`.
 - `CLAUDE.md` §8, `.claude/README.md` — list the fifth agent.
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 10:00 SGT — Review PR #76 (user-service base functionalities)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config
+
+**Prompt (summarised):** Review pull request #76.
+
+**Usage scenario:** Code review / debugging assistance (allowed use). Run through the `pr-reviewer` agent's procedure in a subagent; the review is drafted to a scratch file and shown to the author before anything is posted on GitHub. Findings are observations about the PR's code; adopting any design suggestion in them is the team's decision.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry. No repo files were edited by the review.
+
+## 2026-09-22 10:40 SGT — Post the PR #76 review on GitHub
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config
+
+**Prompt (summarised):** Add the review findings as comments on pull request #76.
+
+**Usage scenario:** Code review (allowed use), posted on the author's explicit instruction as a comment-only review (no approve / request-changes verdict) under the author's GitHub account. Review URL: https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/76#pullrequestreview-5277008596
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 11:10 SGT — Allow Claude Code to open pull requests
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude-config (uncommitted)
+
+**Prompt (summarised):** How to allow Claude Code to open pull requests without the author running the command.
+
+**Usage scenario:** Developer-tooling config (allowed use). The course policy forbids AI commits, not PR creation; the earlier deny rule was the AI's own addition and is removed. Merge remains denied.
+
+**Files changed:**
+- `.claude/settings.json` (JSON) — removed `Bash(gh pr create:*)` from `deny` (`gh pr merge` stays denied).
+- `.claude/settings.local.json` (git-ignored, personal) — allow `gh pr create` and posting PR reviews via `gh api`.
+- `.claude/README.md` — settings description updated.
+- `ai/usage-log.md` — appended this entry.
