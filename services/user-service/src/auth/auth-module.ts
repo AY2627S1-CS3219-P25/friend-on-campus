@@ -12,7 +12,20 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
-import type { RegisterUserRequest, UserDTO } from '@campus-errand/common-dtos';
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Adopted shared login, access-token, and refresh-token response DTOs for session handling.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import type {
+  AuthResponse,
+  LoginUserRequest,
+  RefreshTokenResponse,
+  RegisterUserRequest,
+  UserDTO,
+} from '@campus-errand/common-dtos';
 import {
   AuthRepository,
   SessionUserRecord,
@@ -27,23 +40,14 @@ import {
 import { hashPassword, verifyPassword } from './password';
 import { TokenManager } from './tokens';
 
-export interface LoginInput {
-  email: string;
-  password: string;
-  keepLoggedIn: boolean;
-}
+export type LoginInput = LoginUserRequest;
 
-export interface AuthenticatedSessionResult {
-  accessToken: string;
-  accessTokenExpiresInSeconds: number;
+export interface AuthenticatedSessionResult extends AuthResponse {
   refreshToken: string;
   refreshTokenExpiresAt: Date;
-  user: UserDTO;
 }
 
-export interface TokenRefreshResult {
-  accessToken: string;
-  accessTokenExpiresInSeconds: number;
+export interface TokenRefreshResult extends RefreshTokenResponse {
   refreshToken: string;
   refreshTokenExpiresAt: Date;
 }

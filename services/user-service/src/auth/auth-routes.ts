@@ -1,4 +1,12 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Typed login and refresh JSON responses with the shared session DTOs.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
+import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
 import { AuthModule } from './auth-module';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -87,13 +95,14 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
         result.refreshTokenExpiresAt,
         options.secureCookies,
       );
+      const response: AuthResponse = {
+        accessToken: result.accessToken,
+        accessTokenExpiresInSeconds: result.accessTokenExpiresInSeconds,
+        user: result.user,
+      };
       res.json({
         success: true,
-        data: {
-          accessToken: result.accessToken,
-          accessTokenExpiresInSeconds: result.accessTokenExpiresInSeconds,
-          user: result.user,
-        },
+        data: response,
       });
     }),
   );
@@ -109,12 +118,13 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
         result.refreshTokenExpiresAt,
         options.secureCookies,
       );
+      const response: RefreshTokenResponse = {
+        accessToken: result.accessToken,
+        accessTokenExpiresInSeconds: result.accessTokenExpiresInSeconds,
+      };
       res.json({
         success: true,
-        data: {
-          accessToken: result.accessToken,
-          accessTokenExpiresInSeconds: result.accessTokenExpiresInSeconds,
-        },
+        data: response,
       });
     }),
   );

@@ -13,6 +13,13 @@
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
 /**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Added the author-approved refresh-token response DTO.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+/**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
  */
@@ -45,6 +52,11 @@ export interface AuthResponse {
   accessToken: string;
   accessTokenExpiresInSeconds: number;
   user: UserDTO;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  accessTokenExpiresInSeconds: number;
 }
 
 export interface JWTPayload {
