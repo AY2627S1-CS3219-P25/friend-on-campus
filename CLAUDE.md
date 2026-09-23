@@ -12,6 +12,13 @@ Scope: Corrected internal repository facts for the author-approved Prisma and Ed
 Author review: <to be completed by ngkhengyang>
 -->
 
+<!--
+AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+Scope: Added the "every PR must link the issue(s) it closes" rule to section 6, alongside the new PR template and workflow.
+Author review: <to be completed by Reallyeasy1>
+-->
+
 # CLAUDE.md — NUS CampusErrand / Friend of Campus (CS3219 AY26/27 S1, Group 25)
 
 ## 1. AI usage policy (course rules — these override everything else in this file)
@@ -137,6 +144,7 @@ Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if 
 - Team repo: `AY2627S1-CS3219-P25/nus-campus-errand`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/nus-campus-errand`** to `gh issue` / `gh pr` commands.
 - Branches: `main` (releases), `dev` (integration), `milestone-d2` (D2 demo baseline), feature branches off `dev`.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
+- **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this, and the `PR links an issue` workflow (`.github/workflows/pr-linked-issue.yml`) fails any PR whose body has none. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, say so in the body.
 - Never commit, push, merge, force-push, or open/close issues and PRs yourself.
 
 ## 7. Source documents
