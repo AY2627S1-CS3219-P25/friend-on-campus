@@ -139,6 +139,7 @@ function toUserDTO(user: UserRecord): UserDTO {
     username: user.username,
     email: user.email,
     userRole: user.role,
+    status: user.status,
   };
 }
 

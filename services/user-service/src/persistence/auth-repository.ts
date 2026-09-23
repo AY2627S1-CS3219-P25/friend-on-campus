@@ -23,6 +23,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string;
   role: UserRole;
+  status: boolean;
 }
 
 export interface SessionUserRecord {
@@ -68,6 +69,7 @@ function toUserRecord(row: PrismaUser): UserRecord {
     email: row.email,
     passwordHash: row.passwordHash,
     role: row.role as UserRole,
+    status: row.status,
   };
 }
 
@@ -99,7 +101,7 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
       // Matches the users_email_case_insensitive_uq expression index (LOWER(email)); a plain
       // `WHERE email = $1` cannot use it. Parameterised by Prisma's tagged template.
       const rows = await prisma.$queryRaw<PrismaUser[]>`
-        SELECT id, username, email, password_hash AS "passwordHash", role,
+        SELECT id, username, email, password_hash AS "passwordHash", role, status,
                created_at AS "createdAt", updated_at AS "updatedAt"
         FROM users
         WHERE LOWER(email) = LOWER(${email})

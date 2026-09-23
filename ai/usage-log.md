@@ -799,3 +799,17 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `.github/workflows/pr-linked-issue.yml` — new; fails a PR whose body has no `Closes/Fixes/Resolves #N` (or issue URL) reference.
 - `CLAUDE.md` — section 6: rule that every PR body links the issue(s) it closes; disclosure entry. Follow-up commit: wording aligned with the workflow (an issue must exist; the check does not accept a PR with none).
 - `ai/usage-log.md` — this entry.
+
+## 2026-09-23 (later still) — Add Status column and Disable/Reinstate toggle to admin portal Users table
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the admin portal's Users table (desktop and mobile) to show the `status` field (added to the User model, and exposed via a new admin-only `PATCH /api/users/:id/admin` endpoint, in earlier prompts this session) as a Status column, plus a per-row button — red "Disable" when active, green "Reinstate" when disabled — that calls that endpoint through the gateway with the admin's Bearer token. Explicitly asked for robust state handling so the button can't end up toggling the wrong direction. Planned in plan mode: found the existing supplier `toggleStatus()` in this same file as the direct precedent to mirror, but noted it has no in-flight guard against double-clicks — the new handler adds one, since that's exactly the failure mode the user was concerned about.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — reused the existing supplier status-toggle pattern (fetch → update state from server response → success/error `actionAlert`) rather than inventing a new one, and reused the CheckCircle/XCircle Active/Unavailable badge styling already established for suppliers.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `togglingUserIds` (`Set<string>`) state and a `toggleUserStatus(userId)` handler that calls `PATCH /api/users/:id/admin` with `getAuthHeaders()`, updates `users` state from the server's returned user object (never flips the boolean locally/optimistically), and tracks the in-flight request per row to disable that row's button until the response lands. Added a Status column (Active/Disabled badge, sortable) and an Actions column with the Disable/Reinstate button to the desktop table, and the equivalent badge + button to the mobile card view.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`; rebuilt and restarted the `admin-portal` container.
