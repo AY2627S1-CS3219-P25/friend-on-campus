@@ -4,6 +4,12 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this page from services/supplier-service source, docker-compose.yml, the init SQL and D1 / D2-plan text. Descriptive only.
 Author review: <to be completed by the service owner>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Documented the author-approved Ed25519 access-token verification migration.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # supplier-service
 
@@ -28,13 +34,16 @@ npm run dev:supplier
 |---|---|---|
 | `PORT` | listen port | `8002` |
 | `DATABASE_URL` | Prisma connection | none — required |
-| `JWT_SECRET` | verifying tokens issued by user-service | the same hardcoded development string as user-service |
+| `JWT_PUBLIC_KEY` | Ed25519 access-token verification | required |
+| `JWT_ISSUER` | required access-token issuer claim | `friend-on-campus-user-service` |
+| `JWT_AUDIENCE` | required access-token audience claim | `friend-on-campus-services` |
 
-`docker-compose.yml` does not set `JWT_SECRET` for this container, so in Docker it runs on the default.
+`docker-compose.yml` passes the public key, issuer, and audience to this container; it
+does not receive the User Service private signing key.
 
 ## Files
 
-Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `src/backend/authMiddleware.ts` (`authenticateToken`, `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/`.
+Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/`.
 
 ## API (mounted at `/api/suppliers`)
 
@@ -59,7 +68,8 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 - `supplierCode` is generated as `SUP-NNN` from the row count when not supplied, with a timestamp-based fallback if that code exists.
 - `DELETE` soft-deletes (sets `isActive=false`) unless `?permanent=true`, which removes the row. Nothing checks order-service for references.
 - No duplicate check on name + campus location; no `version` column, so concurrent edits are last-write-wins; `category` is not validated against `SupplierCategory`.
-- The JWT is verified locally; this service never calls user-service.
+- Access tokens are verified locally with Ed25519 against the configured public key,
+  issuer, and audience; this service never calls User Service.
 
 ## Differences from the documents
 

@@ -16,6 +16,7 @@
     "dev:order": "npm run dev --workspace=@campus-errand/order-service",
     "dev:credit": "npm run dev --workspace=@campus-errand/credit-service",
     "dev:notif": "npm run dev --workspace=@campus-errand/notification-service",
+    "generate:jwt-keys": "node scripts/generate-jwt-keys.mjs",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:generate": "npm run db:generate --workspaces --if-present",

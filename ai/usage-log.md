@@ -1,3 +1,28 @@
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 11 documentation-compliance record below.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 10 D2 contract-alignment record below.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
+Author review: <to be completed by ngkhengyang>
+-->
+
 # AI Usage Log
 
 ## 2026-09-19 16:35 SGT — Supplier service scaffold (frontend / backend / database)
@@ -479,6 +504,199 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Files changed:**
 - `ai/usage-log.md` — appended this entry.
 
+## 2026-09-22 14:53 SGT — Inventory merged teammate work
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Summarise teammates' merged pull-request work and identify remaining requirements to implement.
+
+**Usage scenario:** Codebase fact-finding (allowed use). Inspected local Git history, branches, and existing documentation to report what is present. The course policy prohibits AI consolidation or prioritisation of remaining requirements, so that part was left to the author.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 16:50 SGT — Iteration 1 shared DTO contract
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the first approved iteration only: replace the shared user and authentication DTO contract with the agreed PR-shaped fields and names.
+
+**Usage scenario:** Implementation code (allowed use). The author had already finalised the user fields, registration/login behaviour, immutable email, password-change payload, and token naming. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — replaced legacy user/auth DTO fields with the approved account, authentication, profile-update, password-change, and JWT claim DTOs; renamed the registration event email field.
+- `ai/usage-log.md` — appended this implementation record and disclosure header.
+
+## 2026-09-22 17:30 SGT — Iteration 2 Prisma persistence model
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved Prisma persistence iteration for the User Service before proceeding to deployment or endpoint work.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected Prisma, the approved account/session fields, case-insensitive account uniqueness, and one logical database per service. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `services/user-service/src/database/prisma/schema.prisma` and `src/database/prisma/migrations/` — replaced the legacy model with User and Session persistence models and the matching Prisma migration.
+- `services/user-service/src/persistence/{database,auth-repository,user-repository}.ts`, `src/index.ts`, and `src/database/seed.ts` — replaced runtime pg access and legacy seed handling with Prisma operations.
+- `services/user-service/src/{database/userRepository,middleware/authMiddleware}.ts` and `services/user-service/migrations/` — removed obsolete legacy implementations superseded by the active Prisma path.
+- `docker/postgres-init/01-init-databases.sql` — restored user_db and synchronized the fresh-volume schema.
+- `services/user-service/package.json`, `package-lock.json` — removed unused raw-pg and legacy JWT/bcrypt dependency declarations.
+- `services/user-service/src/auth/auth-module.ts`, `src/users/user-module.ts` — preserved duplicate username/email error mapping for Prisma errors.
+- `docs/services/user-service.md` — updated persistence facts.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 18:24 SGT — Iteration 5 login and session DTO contract
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved login and refresh-session contract using the specified `RefreshTokenResponse` DTO.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected Ed25519 access tokens, refresh-session rotation, cookie handling, keep-logged-in behaviour, and the DTO name. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — added `RefreshTokenResponse`.
+- `services/user-service/src/auth/auth-module.ts`, `auth-routes.ts` — adopted the shared login, access-token, and refresh-token response DTOs without exposing refresh tokens in JSON.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 17:47 SGT — Iteration 3 shared PostgreSQL deployment
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved User Service deployment consolidation onto the existing shared PostgreSQL container.
+
+**Usage scenario:** Implementation code and configuration (allowed use). The author had already selected one logical database per service in a shared PostgreSQL container and specified that `user_db` remain there. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `docker-compose.yml` — moved User Service into the root Compose stack and connected it to `postgres:5432/user_db`.
+- `services/user-service/docker-compose.yml` — removed the obsolete standalone `user-db` deployment and volume.
+- `services/user-service/src/config.ts`, `.env.example` — changed direct local development to `localhost:5432/user_db`.
+- `docs/services/user-service.md`, `services/user-service/docs/auth-setup.md` — updated shared-database connection, startup, and reset instructions.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 18:59 SGT — Iteration 6 immutable profile and password contract
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved username-only profile update and shared profile/password DTO contract.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected immutable email, username-only updates, the shared user field names, and the current-password change flow. No new requirements, architecture, or design decisions were made.
+
+**Files changed:**
+- `services/user-service/src/users/user-module.ts`, `src/persistence/user-repository.ts`, `src/http/error-handler.ts` — enforced username-only updates, removed email mutation, and adopted shared user/password DTOs.
+- `services/user-service/docs/api-reference.md`, `docs/services/user-service.md` — documented immutable email and `userId`/`userRole` responses.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 19:20 SGT — Iteration 7 deferred administration endpoints
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved iteration only: authenticated, ADMIN-gated
+User Service placeholders for future user management.
+
+**Usage scenario:** Implementation code (allowed use). The author had already selected the
+User Service as the future owner of administration, the two endpoint paths, the middleware
+order, and the required `501` placeholder behavior. No user-management functionality,
+data mutation, DTO, or design decision was added.
+
+**Files changed:**
+- `services/user-service/src/{index,app}.ts`, `src/users/user-routes.ts` — wired the
+  existing `@campus-errand/auth` ADMIN middleware and added the two non-mutating `501` routes.
+- `services/user-service/docs/api-reference.md`, `docs/services/user-service.md` — documented
+  the deferred routes and their authentication behavior.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 19:45 SGT — Iteration 8 Supplier Service Ed25519 authentication
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved Supplier Service migration from the
+legacy HS256 verifier to the established Ed25519 shared authentication package.
+
+**Usage scenario:** Implementation code and configuration (allowed use). The author had
+already selected Ed25519 access tokens, the shared authentication package, and the
+requirement for other services to accommodate the change. No authentication architecture,
+claims contract, or authorization policy was newly decided.
+
+**Files changed:**
+- `services/supplier-service/src/backend/{server,supplierRoutes}.ts` — configured and
+  injected the shared Ed25519 verifier; preserved public reads and ADMIN-only mutations.
+- `services/supplier-service/src/backend/authMiddleware.ts` — removed the superseded local
+  HS256 verifier and request-payload adapter.
+- `services/supplier-service/package.json`, `package-lock.json` — replaced direct
+  `jsonwebtoken` declarations with the existing shared authentication package.
+- `docker-compose.yml`, `docs/services/supplier-service.md` — passed and documented the
+  public-key verification configuration.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 20:10 SGT — Iteration 10 D2 contract alignment
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved D2 test migration using a generated
+test-only Ed25519 key pair, without using the supplied `.env` key pair.
+
+**Usage scenario:** Test implementation and documentation (allowed use). The author had
+already selected the test-only key source and the implemented account, profile, deferred
+administration, and Supplier Service contracts under test. No new test scope, key-management
+policy, endpoint behavior, or design decision was added.
+
+**Files changed:**
+- `scripts/test-d2-e2e.ts` — generates an in-memory Ed25519 key pair for each run and
+  validates the implemented User and Supplier Service contracts.
+- `README.md` — updated D2 test prerequisites and current seed-account facts.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-22 20:35 SGT — Iteration 11 documentation compliance
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Update public and internal documentation facts for the approved
+Prisma, Ed25519 authentication, DTO, deployment, deferred-administration, and D2 test work.
+
+**Usage scenario:** Documentation of implemented code and project guidance (allowed use).
+The author had already approved the underlying behavior and explicitly chose public and
+internal documentation as the scope. No requirements, architecture, or rationale was added.
+
+**Files changed:**
+- `README.md`, `docs/architecture/overview.md`, `docs/requirements/conflicts.md` — corrected
+  stale public implementation facts and references.
+- `CLAUDE.md`, `.claude/README.md`, `.claude/PLUGINS.md`, `.claude/agents/{backend,infrastructure}.md` — corrected
+  factual agent guidance for the current paths and Ed25519 configuration.
+- `ai/usage-log.md` — appended this entry.
+
+## 2026-09-23 00:34 SGT — Align admin portal demo login
+
+**Tool:** Codex (model: GPT-5.6 Terra)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the approved admin-portal login alignment with the existing User Service request, response, and seed-password contract.
+
+**Usage scenario:** Implementation code (allowed use). The author approved updating the portal to the established User Service contract; no API, authentication, or data-model decision was made.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — sent `email`, read `accessToken`, and used the current seeded demo password.
+- `ai/usage-log.md` — appended this approved implementation record.
 ## 2026-09-21 (later still) — Add real Admin Login gate to admin-portal, remove now-redundant role gating
 
 **Tool:** Claude Code (model: Claude Sonnet 5)
@@ -534,3 +752,34 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`.
 - `apps/admin-portal/src/App.tsx` — added a Description `<textarea>` to the Add Supplier modal (previously missing entirely). Added `addFormErrors`/`editFormErrors` state and `validateSupplierForm()`, called in `handleCreateSupplier`/`handleUpdateSupplier` before their `fetch()` calls; a failed check blocks submission and populates the errors, which render as inline red text directly under each invalid field's label (and a red border on that field), clearing as soon as the field is edited. Turned every required-field `*` red via a `<span className="text-rose-600">*</span>`, and added a "Fields marked with * are required" legend near the top of both forms. Edit modal's "Exact Pickup Spot Description" field now has the same asterisk + required check as Add's equivalent field (previously the one inconsistency between the two forms), and Campus Zone/Category also gained asterisks there for full parity with Add. Both modals' open/Cancel/X handlers now also reset their respective error state so a previous attempt's messages don't linger into a fresh open.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-23 19:10 SGT — Merge dev into user-service-base and apply review-round-2 fixes (PR #76)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** pr76-fixes (local branch from origin/user-service-base 48e0518, `git merge --no-commit origin/dev`)
+
+**Prompt (summarised):** Fix the findings of the second review round on PR #76 so the PR can be merged.
+
+**Usage scenario:** Implementation of changes the PR author had already agreed to in the review threads (replies marked "Addressed" whose commits were never pushed), plus the mechanical merge with `dev`. No new design decisions were taken: the contract changes (RFC 7519 claim names, optional `keepLoggedIn`, required `username` on profile update) were the author's stated intent; the admin Users page keeps its UI behind a local type until the deferred `GET /api/users` exists (issue #70) — whether that page should instead be hidden, whether profile fields such as Telegram handle belong in the product, and whether a password change should revoke other sessions are left to the team. Verified with `npm run typecheck` (all 9 workspaces) and `npm run test:d2` (see result in the PR). Left uncommitted, merge in progress, for the author to review and commit; nothing was pushed.
+
+**Files changed:**
+- `ai/usage-log.md` — merge conflict resolved (both sides kept); this entry.
+- `apps/admin-portal/src/App.tsx` — merge conflict resolved: dev's login gate kept and moved to `{ email, password }` / `accessToken` / `{ error, code }`; Users page typed with local `AdminUserListItem`; 501 from `/api/users` shown as "not implemented yet".
+- `apps/student-app/src/App.tsx` — login and sign-up moved to the User Service contract (`username`, `email`, `password`); auto-login after registration via a follow-up login call; full name, matric, phone, Telegram inputs removed.
+- `packages/common-dtos/src/index.ts` — `JWTPayload` uses `sub, sid, role, iat, exp, iss, aud`; `keepLoggedIn?`; `UpdateUserProfileRequest.username` required.
+- `packages/auth/src/index.ts`, `packages/auth/package.json` — verifies the standard claims; imports `JWTPayload` from common-dtos (new workspace dependency, lockfile updated).
+- `services/user-service/src/auth/tokens.ts` — emits the standard claims.
+- `services/user-service/src/auth/auth-module.ts` — dummy-hash verification for unknown emails; expired-session clean-up on login and refresh.
+- `services/user-service/src/persistence/auth-repository.ts` — `LOWER(email)` look-up; `deleteExpiredSessions`.
+- `services/user-service/src/auth/auth-routes.ts` — malformed cookie treated as absent.
+- `services/user-service/src/http/error-handler.ts` — body-parser 4xx errors answered as JSON 4xx.
+- `services/user-service/src/users/user-routes.ts` — 501 placeholders return a JSON body with code `NOT_IMPLEMENTED`.
+- `services/user-service/src/database/prisma/schema.prisma` — comment explaining the missing `@unique`.
+- `services/user-service/src/database/seed.ts` — `LOWER(email)` look-up.
+- `services/user-service/package.json` — removed unused `@types/amqplib` (no header possible).
+- `docker-compose.yml` — `${JWT_PRIVATE_KEY:?…}` / `${JWT_PUBLIC_KEY:?…}` fail fast; `CORS_ORIGIN` passed to user-service.
+- `.env.example`, `services/user-service/.env.example` — `CORS_ORIGIN` listed.
+- `scripts/test-d2-e2e.ts` — Windows-runnable (shell spawn, process-tree kill), 30 s readiness timeout, standard-claims assertion.
+- `docs/services/user-service.md`, `services/user-service/docs/authentication-for-services.md` — claim names updated.
+- `package-lock.json` — regenerated for the auth package dependency.

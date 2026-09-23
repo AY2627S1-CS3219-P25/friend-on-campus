@@ -3,6 +3,15 @@
 // Scope: Defined Prisma schema for User Service in user_db matching D2 specifications.
 // Author review: (to be completed by author after review)
 // AI-generated (edited by yanhwee)
+// AI Assistance Disclosure:
+// Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+// Scope: Replaced the legacy user model with the author-approved account and refresh-session persistence model.
+// Author review: (to be completed by ngkhengyang)
+// AI-generated (edited by ngkhengyang)
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+// Scope: Documented why username/email carry no @unique here (case-insensitive expression indexes live in SQL).
+// Author review: <to be completed by ngkhengyang>
 
 generator client {
   provider = "prisma-client-js"
@@ -14,19 +23,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// `username` and `email` are unique case-insensitively via the expression indexes
+// users_username_case_insensitive_uq and users_email_case_insensitive_uq on LOWER(...), created in the
+// migration SQL under migrations/ and in docker/postgres-init/01-init-databases.sql. Prisma cannot express
+// an expression index, so they are deliberately not `@unique` here; look-ups must go through LOWER(email)
+// (see auth-repository.findUserByEmail) and duplicate errors arrive as Postgres 23505 with the constraint name.
 model User {
-  id                   String   @id @default(uuid()) @db.Uuid
-  nusEmail             String   @unique @map("nus_email") @db.VarChar(255)
-  passwordHash         String   @map("password_hash") @db.VarChar(255)
-  fullName             String   @map("full_name") @db.VarChar(100)
-  matricNumber         String   @unique @map("matric_number") @db.VarChar(10)
-  phoneNumber          String?  @map("phone_number") @db.VarChar(20)
-  telegramHandle       String?  @map("telegram_handle") @db.VarChar(50)
-  role                 String   @default("STUDENT") @db.VarChar(20)
-  ratingAvg            Decimal  @default(5.00) @map("rating_avg") @db.Decimal(3, 2)
-  totalCompletedOrders Int      @default(0) @map("total_completed_orders")
-  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id           String    @id @default(uuid()) @db.Uuid
+  username     String    @db.VarChar(50)
+  email        String    @db.VarChar(320)
+  passwordHash String    @map("password_hash")
+  role         String    @default("STUDENT") @db.VarChar(20)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions     Session[]
 
   @@map("users")
+}
+
+model Session {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  refreshTokenHash String   @unique @map("refresh_token_hash")
+  persistent       Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt       DateTime @default(now()) @map("last_used_at") @db.Timestamptz(6)
+  idleExpiresAt    DateTime @map("idle_expires_at") @db.Timestamptz(6)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, idleExpiresAt], map: "sessions_user_expiry_idx")
+  @@map("sessions")
 }

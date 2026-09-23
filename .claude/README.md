@@ -5,6 +5,12 @@ Scope: Wrote this set-up guide from the configuration in this folder and from pr
 setting it up on Windows (gh default repo, missing language server, missing node_modules, plugin start-up timeouts).
 Author review: <to be completed by Reallyeasy1>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Corrected the shared-DTO reference example after the author-approved authentication migration.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # Claude Code set-up guide for this repo
 
@@ -74,7 +80,7 @@ Restart Claude Code from the repo root, then:
 | `/hooks` | a `PostToolUse` hook on `Edit\|Write` and a `Stop` hook. Approve them if asked |
 | `/plugin` | the five core plugins enabled |
 | type `/` | skills `usage-log`, `new-adr`, `issue-start` |
-| ask: "use LSP to find all references to JWTPayload" | hits in both `authMiddleware.ts` files and `services/user-service/src/index.ts` |
+| ask: "use LSP to find all references to `AuthResponse`" | hits in the shared DTO package and User Service session handling |
 | `node .claude/hooks/hooks.test.js` (in a terminal) | `hooks ok` |
 
 ## 6. What is in this folder

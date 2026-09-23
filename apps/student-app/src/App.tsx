@@ -13,6 +13,15 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Fixed the "Spots" tab hiding suppliers an admin has deactivated. fetchLiveSuppliers now fetches all suppliers (dropped the ?isActive=true query param) instead of only active ones. The Post Errand pickup dropdown still only ever offers active suppliers (new `activeSuppliers` derived list), so unavailable ones can't be selected as a pickup point, but the Spots tab now shows every supplier — inactive ones rendered dimmed (bg-slate-50, opacity-60) with a red "Unavailable" badge and a disabled, unclickable "Pick for Errand" button.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Merge of dev into the user-service PR: Log In posts { email, password } and reads data.data.accessToken;
+ * Sign Up now sends the User Service (PR #76) registration contract { username, email, password } (the full name,
+ * matric number, phone and Telegram fields were removed because the new user model has no such columns) and,
+ * since registration no longer returns a token, auto-login is done with a follow-up /api/auth/login call.
+ * Error boxes read the service's { error, code } shape.
+ * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by yanhwee)
 
@@ -44,14 +53,12 @@ export default function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
 
+  // AI-generated (edited by ngkhengyang)
   const [signupData, setSignupData] = useState({
-    nusEmail: '',
+    username: '',
+    email: '',
     password: '',
     retypePassword: '',
-    fullName: '',
-    matricNumber: '',
-    phoneNumber: '',
-    telegramHandle: '',
   });
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
@@ -126,26 +133,37 @@ export default function App() {
 
   const [notification, setNotification] = useState<string | null>(null);
 
+  // AI-generated (edited by ngkhengyang)
+  // User Service contract (PR #76): POST /api/auth/login { email, password } -> { accessToken, user };
+  // errors are { error, code }.
+  const loginWithPassword = async (email: string, password: string) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { ok: false as const, code: data.code || `HTTP_${res.status}`, message: data.error };
+    }
+    return { ok: true as const, accessToken: data.data.accessToken as string };
+  };
+
   // Log In handler
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nusEmail: loginEmail, password: loginPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+      const result = await loginWithPassword(loginEmail, loginPassword);
+      if (!result.ok) {
         setLoginError({
-          code: data.error || `HTTP_${res.status}`,
-          message: data.message || 'Login failed. Please check your credentials.',
+          code: result.code,
+          message: result.message || 'Login failed. Please check your credentials.',
         });
         return;
       }
-      setAuthToken(data.data.token);
+      setAuthToken(result.accessToken);
       setIsAuthenticated(true);
     } catch (err: any) {
       setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
@@ -160,11 +178,10 @@ export default function App() {
     setSignupError(null);
 
     if (
-      !signupData.nusEmail ||
+      !signupData.username.trim() ||
+      !signupData.email ||
       !signupData.password ||
-      !signupData.retypePassword ||
-      !signupData.fullName ||
-      !signupData.matricNumber
+      !signupData.retypePassword
     ) {
       setSignupError({ code: 'VALIDATION_ERROR', message: 'Please fill in all required fields marked with *.' });
       return;
@@ -180,25 +197,29 @@ export default function App() {
 
     setIsSigningUp(true);
     try {
+      // AI-generated (edited by ngkhengyang)
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nusEmail: signupData.nusEmail,
+          username: signupData.username.trim(),
+          email: signupData.email,
           password: signupData.password,
-          fullName: signupData.fullName,
-          matricNumber: signupData.matricNumber,
-          phoneNumber: signupData.phoneNumber || undefined,
-          telegramHandle: signupData.telegramHandle || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setSignupError({ code: data.error || `HTTP_${res.status}`, message: data.message || 'Sign up failed.' });
+        setSignupError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Sign up failed.' });
         return;
       }
-      // Auto-login on successful registration
-      setAuthToken(data.data.token);
+      // Registration creates the account only; log in to get a session.
+      const login = await loginWithPassword(signupData.email, signupData.password);
+      if (!login.ok) {
+        setSignupError({ code: login.code, message: login.message || 'Account created, but automatic login failed. Please log in.' });
+        setAuthView('login');
+        return;
+      }
+      setAuthToken(login.accessToken);
       setIsAuthenticated(true);
     } catch (err: any) {
       setSignupError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the registration server.' });
@@ -459,14 +480,28 @@ export default function App() {
                   <p>{signupError.message}</p>
                 </div>
               )}
+              {/* AI-generated (edited by ngkhengyang) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  NUS Email <span className="text-rose-600">*</span>
+                  Username <span className="text-rose-600">*</span>
+                </label>
+                <p className="text-[10px] text-slate-400 mb-1">1-50 characters.</p>
+                <input
+                  type="text"
+                  value={signupData.username}
+                  onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
+                  disabled={isSigningUp}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Email <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="email"
-                  value={signupData.nusEmail}
-                  onChange={(e) => setSignupData({ ...signupData, nusEmail: e.target.value })}
+                  value={signupData.email}
+                  onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                   disabled={isSigningUp}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
                 />
@@ -492,50 +527,6 @@ export default function App() {
                   type="password"
                   value={signupData.retypePassword}
                   onChange={(e) => setSignupData({ ...signupData, retypePassword: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={signupData.fullName}
-                  onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Matric Number <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={signupData.matricNumber}
-                  onChange={(e) => setSignupData({ ...signupData, matricNumber: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
-                <input
-                  type="tel"
-                  value={signupData.phoneNumber}
-                  onChange={(e) => setSignupData({ ...signupData, phoneNumber: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Telegram Handle</label>
-                <input
-                  type="text"
-                  value={signupData.telegramHandle}
-                  onChange={(e) => setSignupData({ ...signupData, telegramHandle: e.target.value })}
                   disabled={isSigningUp}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
                 />

@@ -4,7 +4,30 @@
  * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Replaced legacy user and authentication DTOs with the author-approved account and session contract.
+ * Author review: (to be completed by author after review)
+ */
 // AI-generated (edited by yanhwee)
+// AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Added the author-approved refresh-token response DTO.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: JWTPayload now uses the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud);
+ * LoginUserRequest.keepLoggedIn made optional and UpdateUserProfileRequest.username made required to match
+ * the User Service behaviour and API reference. Applied on the PR author's behalf after review round 2.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 /**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
@@ -16,52 +39,56 @@
 export type UserRole = 'STUDENT' | 'ADMIN';
 
 export interface UserDTO {
-  id: string;
-  nusEmail: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
-  role: UserRole;
-  ratingAvg: number;
-  totalCompletedOrders: number;
-  createdAt: string;
+  userId: string;
+  username: string;
+  email: string;
+  userRole: UserRole;
 }
 
 export interface RegisterUserRequest {
-  nusEmail: string;
+  username: string;
+  email: string;
   password: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
 }
 
 export interface LoginUserRequest {
-  nusEmail: string;
+  email: string;
   password: string;
+  keepLoggedIn?: boolean;
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  accessTokenExpiresInSeconds: number;
   user: UserDTO;
 }
 
+export interface RefreshTokenResponse {
+  accessToken: string;
+  accessTokenExpiresInSeconds: number;
+}
+
+/**
+ * Access-token claims (RFC 7519 registered names so standard JWT libraries enforce exp/iss/aud).
+ * sub = user id, sid = login session id.
+ */
 export interface JWTPayload {
-  id: string;
-  nusEmail: string;
+  sub: string;
+  sid: string;
   role: UserRole;
-  fullName: string;
+  iat: number;
+  exp: number;
+  iss: string;
+  aud: string;
 }
 
 export interface UpdateUserProfileRequest {
-  fullName?: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
+  username: string;
 }
 
-export interface PromoteUserRequest {
-  role: UserRole;
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 // ==========================================
@@ -234,7 +261,7 @@ export interface BaseEvent {
 export interface UserRegisteredEvent extends BaseEvent {
   eventType: 'user.registered';
   userId: string;
-  nusEmail: string;
+  email: string;
   initialGrant: number;
 }
 

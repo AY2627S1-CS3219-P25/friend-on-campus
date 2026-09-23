@@ -5,6 +5,12 @@ Scope: Wrote this list from the plugins installed on the author's machine (names
 from the local plugin registry) and the project's stack and AI-usage policy. Only plugins verified to exist are named.
 Author review: <to be completed by Reallyeasy1>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Corrected the password-hashing terminology in the internal plugin guide.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # Claude Code plugins for this project
 
@@ -26,7 +32,7 @@ Marketplaces: `claude-plugins-official` is built in. `claude-code-plugins` needs
 
 | Plugin | Marketplace | Used for |
 |---|---|---|
-| `security-guidance` | `claude-code-plugins` | Warns on risky patterns as files are written (shell exec, injection, secrets) — relevant to JWT, bcrypt and query code |
+| `security-guidance` | `claude-code-plugins` | Warns on risky patterns as files are written (shell exec, injection, secrets) — relevant to JWT, password hashing, and query code |
 | `code-review` | `claude-plugins-official` | `/code-review` on a diff or PR |
 | `code-simplifier` | `claude-plugins-official` | Refactoring passes (an allowed AI use) |
 | `claude-md-management` | `claude-plugins-official` | Keeping `CLAUDE.md` accurate as mocks become real services |

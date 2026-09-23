@@ -1,81 +1,62 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Implemented database seeding for initial Admin and Student accounts for Milestone D2 demonstration.
+ * Scope: Implemented database seeding for initial Admin and Student accounts for Milestone D2.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-
-import bcrypt from 'bcryptjs';
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Updated development seed accounts for the author-approved Prisma user model and scrypt password format.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Existing-account look-up now matches on LOWER(email) like the service does, so the seed updates an
+ * account registered with different letter-casing instead of colliding with the unique index.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import { hashPassword } from '../auth/password';
 import { prisma } from './client';
 
+interface SeedUser {
+  username: string;
+  email: string;
+  role: 'STUDENT' | 'ADMIN';
+}
+
+const seedUsers: SeedUser[] = [
+  { username: 'alice', email: 'alice@u.nus.edu', role: 'STUDENT' },
+  { username: 'bob', email: 'bob@u.nus.edu', role: 'STUDENT' },
+  { username: 'admin', email: 'admin@nus.edu.sg', role: 'ADMIN' },
+];
+
 async function main() {
-  console.log('[user-seed] Seeding initial users...');
+  const passwordHash = await hashPassword('Password123!');
 
-  const adminPasswordHash = await bcrypt.hash('AdminPassword123!', 10);
-  const studentPasswordHash = await bcrypt.hash('Password123!', 10);
-
-  const initialUsers = [
-    {
-      nusEmail: 'admin@nus.edu.sg',
-      passwordHash: adminPasswordHash,
-      fullName: 'NUS Campus Admin',
-      matricNumber: 'STAFF001',
-      phoneNumber: '+65 6516 0000',
-      telegramHandle: '@nus_admin',
-      role: 'ADMIN',
-    },
-    {
-      nusEmail: 'alice@u.nus.edu',
-      passwordHash: studentPasswordHash,
-      fullName: 'Alice Tan',
-      matricNumber: 'A0212345X',
-      phoneNumber: '+65 9123 4567',
-      telegramHandle: '@alice_nus',
-      role: 'STUDENT',
-    },
-    {
-      nusEmail: 'bob@u.nus.edu',
-      passwordHash: studentPasswordHash,
-      fullName: 'Bob Lim',
-      matricNumber: 'A0223456Y',
-      phoneNumber: '+65 9234 5678',
-      telegramHandle: '@bob_courier',
-      role: 'STUDENT',
-    },
-  ];
-
-  for (const u of initialUsers) {
-    const existing = await prisma.user.findUnique({
-      where: { nusEmail: u.nusEmail },
-    });
-
+  for (const user of seedUsers) {
+    const [existing] = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM users WHERE LOWER(email) = LOWER(${user.email}) LIMIT 1
+    `;
     if (existing) {
       await prisma.user.update({
-        where: { nusEmail: u.nusEmail },
-        data: {
-          fullName: u.fullName,
-          role: u.role,
-          passwordHash: u.passwordHash,
-          phoneNumber: u.phoneNumber,
-          telegramHandle: u.telegramHandle,
-        },
+        where: { id: existing.id },
+        data: { username: user.username, role: user.role, passwordHash },
       });
-      console.log(`[user-seed] Updated existing user: ${u.nusEmail} (${u.role})`);
-    } else {
-      await prisma.user.create({
-        data: u,
-      });
-      console.log(`[user-seed] Created initial user: ${u.nusEmail} (${u.role})`);
+      continue;
     }
-  }
 
-  console.log('[user-seed] Completed user seeding.');
+    await prisma.user.create({ data: { ...user, passwordHash } });
+  }
 }
 
 main()
-  .catch((e) => {
-    console.error('[user-seed] Error seeding users:', e);
+  .catch((error: unknown) => {
+    console.error('[user-seed] Error seeding development users:', error);
     process.exitCode = 1;
   })
   .finally(async () => {

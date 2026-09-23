@@ -6,10 +6,16 @@ gateway/nginx.conf, packages/common-dtos) and from reading the code on milestone
 sources already say and what the code currently does; it proposes nothing and contains no rationale.
 Author review: <to be completed by Reallyeasy1>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+Scope: Corrected User and Supplier Service implementation facts, repository paths, and resolved documentation references.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # Architecture overview — intended vs built
 
-Read this before working on any service. **"Intended"** is what the team has written down (source given in brackets). **"Built"** is what the code on `milestone-d2` does as of 2026-09-21. Where they differ, neither is automatically right: see [`../requirements/conflicts.md`](../requirements/conflicts.md) and ask the author. *Why* the team chose any of this belongs in [`../decisions/`](../decisions/README.md), written by the team.
+Read this before working on any service. **"Intended"** is what the team has written down (source given in brackets). **"Built"** is what the current code does as of 2026-09-22. Where they differ, neither is automatically right: see [`../requirements/conflicts.md`](../requirements/conflicts.md) and ask the author. *Why* the team chose any of this belongs in [`../decisions/`](../decisions/README.md), written by the team.
 
 ## 1. The system in one paragraph
 
@@ -28,7 +34,7 @@ Friend of Campus / NUS CampusErrand is a peer-to-peer errand platform for NUS st
    order-service, credit-service ── publish ──► RabbitMQ ── consume ──► credit-service, notification-service
 ```
 
-- **Microservices, one database per service**, in an npm-workspaces monorepo. All five databases' worth of data lives in one PostgreSQL 16 server as separate databases; cross-service user/supplier/order IDs are logical references, never foreign keys. [README; D2 plan §4, App. B; `docker-compose.yml`]
+- **Microservices, one database per service**, in an npm-workspaces monorepo. The four currently provisioned service databases live in one PostgreSQL 16 server as separate databases; cross-service user/supplier/order IDs are logical references, never foreign keys. [README; D2 plan §4, App. B; `docker-compose.yml`]
 - **Single entry point**: nginx on :80 routes `/api/auth`, `/api/users`, `/api/suppliers`, `/api/orders`, `/api/credits`, `/ws/`, `/admin/` and `/`. Services must also work when called directly with the UI stopped. [`gateway/nginx.conf`; D2 plan §5]
 - **Synchronous REST** between clients and services, and from order-service to credit-service for reservation (`CREDIT_SERVICE_URL`). An errand becomes `OPEN` only after the reservation is confirmed; a lost response is retried with the same operation ID rather than treated as failure. [`docker-compose.yml`; D2 plan App. D; D1 F3.1, F4.3]
 - **Asynchronous event choreography over RabbitMQ** for everything after that: order lifecycle events (`order.created`, `order.accepted`, `order.completed`, `order.cancelled`, `order.expired`, plus picked-up/delivered) carry order ID, user IDs and timestamp; credit-service settles or releases in response; notification-service turns them into WebSocket pushes. [D1 F3.5.5, F3.6.1, F4.6, F5, §5.4 "M6"]
@@ -46,8 +52,8 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 
 | Service | Owns (intended) | Built today |
 |---|---|---|
-| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma + bcrypt, issues a JWT, routes in one `src/index.ts`. No event is published. |
-| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), admin-only writes via locally verified JWT. Reads are unauthenticated; no `version` column. |
+| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable; deferred ADMIN user-management routes return `501`. No event is published. |
+| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. Reads are unauthenticated; no `version` column. |
 | **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
 | **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Mock: in-memory wallet and ledger, same header identity. `credit_wallets` / `credit_transactions` exist in the init SQL only. |
 | **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
@@ -63,13 +69,13 @@ nus-campus-errand/
 │   ├── student-app/            Vite + React + Tailwind; src/App.tsx, vite.config.ts (dev proxy), Dockerfile
 │   └── admin-portal/           same shape; proxy targets from SUPPLIER_SERVICE_URL / USER_SERVICE_URL
 ├── services/
-│   ├── user-service/           src/index.ts, src/middleware/authMiddleware.ts, src/database/{client,userRepository,seed}.ts, prisma/schema.prisma
-│   ├── supplier-service/       src/backend/{server,supplierRoutes,authMiddleware}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}
+│   ├── user-service/           src/{index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
+│   ├── supplier-service/       src/backend/{server,supplierRoutes}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}
 │   ├── order-service/          src/index.ts            (mock)
 │   ├── credit-service/         src/index.ts            (mock)
 │   └── notification-service/   src/index.ts            (mock)
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile
-├── packages/common-dtos/       src/index.ts — DTOs, JWTPayload, OrderStatus, event types, ApiResponse<T>
+├── packages/common-dtos/       src/index.ts — shared user/auth DTOs, OrderStatus, event types, ApiResponse<T>
 ├── gateway/nginx.conf          ingress routing
 ├── docker/postgres-init/       01-init-databases.sql — creates the 4 databases AND their tables (first boot only)
 ├── docker-compose.yml          gateway, 2 apps, 5 services, postgres:16, rabbitmq:3.13-management
@@ -86,4 +92,4 @@ Generated and ignored: `node_modules/`, `dist/`, `**/src/database/generated/` (p
 
 ## 5. Where intent and code currently differ
 
-Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), username (12), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15), README's D2 status (16). Unresolved rows are open questions for the team, not defects for an AI tool to fix.
+Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15), README's D2 status (16). Unresolved rows are open questions for the team, not defects for an AI tool to fix.

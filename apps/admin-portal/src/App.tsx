@@ -15,6 +15,21 @@
  * Author review: (to be completed by author after review)
  *
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+ * Scope: Aligned demo login requests and access-token handling with the approved User Service contract and seed credentials.
+ * Author review: <to be completed by ngkhengyang>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Merge of dev into the user-service PR: the login gate now posts { email, password } and reads
+ * data.data.accessToken (the User Service contract from PR #76); error boxes read the service's { error, code }
+ * shape. The Users directory page keeps its UI but is typed against a local AdminUserListItem instead of the
+ * shared UserDTO, because GET /api/users is a 501 placeholder in PR #76 and the page's columns (matric, rating,
+ * completed orders, phone, Telegram) are not part of the new UserDTO; the page shows a "not implemented yet"
+ * message until the endpoint exists (issue #70).
+ * Author review: <to be completed by ngkhengyang>
+ *
+ * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a new admin-only "Users" directory page (sidebar nav, KPI cards, search, filter, sortable table/card list, pagination), fetching from GET /api/users through the existing API Gateway proxy path (no gateway/vite config changes needed, both already route /api/users to user-service). Read-only: no add/edit/delete controls. Search covers nusEmail/fullName/matricNumber/phoneNumber/telegramHandle case-insensitively; filters (role, min rating, min completed orders) follow the same draft-until-"Apply Filters" pattern as the Suppliers page.
  * Author review: (to be completed by author after review)
@@ -61,9 +76,25 @@ import {
   SupplierCategory,
   CreateSupplierRequest,
   UpdateSupplierRequest,
-  UserDTO,
   UserRole,
 } from '@campus-errand/common-dtos';
+
+// AI-generated (edited by ngkhengyang)
+// Row shape the Users directory page was built for. User Service (PR #76) does not provide a user
+// list yet (GET /api/users answers 501 NOT_IMPLEMENTED) and its UserDTO has only userId/username/email/userRole,
+// so this stays a local type until the list endpoint (issue #70) defines the real contract in common-dtos.
+interface AdminUserListItem {
+  id: string;
+  nusEmail: string;
+  fullName: string;
+  matricNumber: string;
+  phoneNumber?: string;
+  telegramHandle?: string;
+  role: UserRole;
+  ratingAvg: number;
+  totalCompletedOrders: number;
+  createdAt: string;
+}
 
 const CATEGORIES: SupplierCategory[] = [
   'Beverages',
@@ -163,7 +194,7 @@ export default function App() {
   // ----------------------------------------------------
   // Users Directory state (Admin-only, read-only feature)
   // ----------------------------------------------------
-  const [users, setUsers] = useState<UserDTO[]>([]);
+  const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
 
@@ -178,7 +209,7 @@ export default function App() {
   const [draftMinRating, setDraftMinRating] = useState<number>(0);
   const [draftMinCompletedOrders, setDraftMinCompletedOrders] = useState<number>(0);
 
-  const [sortFieldUsers, setSortFieldUsers] = useState<keyof UserDTO>('fullName');
+  const [sortFieldUsers, setSortFieldUsers] = useState<keyof AdminUserListItem>('fullName');
   const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
   const [currentPageUsers, setCurrentPageUsers] = useState(1);
 
@@ -188,20 +219,22 @@ export default function App() {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
+      // AI-generated (edited by ngkhengyang)
+      // User Service contract (PR #76): { email, password } in, { accessToken, user } out; errors are { error, code }.
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nusEmail: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         setLoginError({
-          code: data.error || `HTTP_${res.status}`,
-          message: data.message || 'Login failed. Please check your credentials.',
+          code: data.code || `HTTP_${res.status}`,
+          message: data.error || 'Login failed. Please check your credentials.',
         });
         return;
       }
-      const token: string = data.data.token;
+      const token: string = data.data.accessToken;
       const role = decodeJwtRole(token);
       if (role !== 'ADMIN') {
         setLoginError({
@@ -333,6 +366,12 @@ export default function App() {
     setErrorUsers(null);
     try {
       const res = await fetch('/api/users?limit=100', { headers: getAuthHeaders() });
+      // AI-generated (edited by ngkhengyang)
+      if (res.status === 501) {
+        setErrorUsers('User listing is not implemented in User Service yet (GET /api/users returns 501).');
+        setUsers([]);
+        return;
+      }
       if (!res.ok) {
         throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
       }
@@ -612,7 +651,7 @@ export default function App() {
   // ----------------------------------------------------
   // Users Directory: sort, filter, pagination
   // ----------------------------------------------------
-  const handleSortUsers = (field: keyof UserDTO) => {
+  const handleSortUsers = (field: keyof AdminUserListItem) => {
     if (sortFieldUsers === field) {
       setSortDirectionUsers((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
