@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+ * Scope: Implemented Ed25519 access-token issuance with interoperable JWT claims and refresh-token session claims.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import {
   createHash,
   createPrivateKey,
@@ -5,19 +12,10 @@ import {
   sign,
 } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
+import type { JWTPayload } from '@campus-errand/common-dtos';
 import { UserRole } from '../persistence/auth-repository';
 
 const JWT_HEADER = Object.freeze({ alg: 'EdDSA', typ: 'JWT' });
-
-interface JwtAccessTokenClaims {
-  userId: string;
-  sessionId: string;
-  role: UserRole;
-  issuedAt: number;
-  expiresAt: number;
-  issuer: string;
-  audience: string;
-}
 
 export interface TokenManager {
   issueAccessToken(userId: string, sessionId: string, role: UserRole): string;
@@ -59,14 +57,14 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
   return {
     issueAccessToken(userId, sessionId, role) {
       const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
-      const claims: JwtAccessTokenClaims = {
-        userId,
-        sessionId,
+      const claims: JWTPayload = {
+        sub: userId,
+        sid: sessionId,
         role,
-        issuedAt: currentUnixTimeSeconds,
-        expiresAt: currentUnixTimeSeconds + options.accessTokenLifetimeSeconds,
-        issuer: options.accessTokenIssuer,
-        audience: options.accessTokenAudience,
+        iat: currentUnixTimeSeconds,
+        exp: currentUnixTimeSeconds + options.accessTokenLifetimeSeconds,
+        iss: options.accessTokenIssuer,
+        aud: options.accessTokenAudience,
       };
       const unsignedToken = `${encodeJson(JWT_HEADER)}.${encodeJson(claims)}`;
       const signature = sign(null, Buffer.from(unsignedToken), privateKey);

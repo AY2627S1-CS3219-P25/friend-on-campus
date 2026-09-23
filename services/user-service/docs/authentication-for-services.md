@@ -1,3 +1,10 @@
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+Scope: Documented how backend services verify User Service Ed25519 access tokens, including interoperable JWT claims, and apply service-owned authorization.
+Author review: <to be completed by ngkhengyang>
+-->
+
 # Authentication for Backend Services
 
 Use this document when adding authentication to a backend HTTP route.
@@ -32,25 +39,25 @@ An access token issued by the User Service contains this payload:
 
 ```json
 {
-  "userId": "a-user-id",
-  "sessionId": "a-session-id",
+  "sub": "a-user-id",
+  "sid": "a-session-id",
   "role": "STUDENT",
-  "issuedAt": 1789870000,
-  "expiresAt": 1789870900,
-  "issuer": "friend-on-campus-user-service",
-  "audience": "friend-on-campus-services"
+  "iat": 1789870000,
+  "exp": 1789870900,
+  "iss": "friend-on-campus-user-service",
+  "aud": "friend-on-campus-services"
 }
 ```
 
 | Attribute | Meaning |
 |---|---|
-| `userId` | ID of the authenticated user. Use this for ownership checks. |
-| `sessionId` | ID of the login session that issued the token. Other services do not need to query or store the session. |
+| `sub` | ID of the authenticated user. Use this for ownership checks. |
+| `sid` | ID of the login session that issued the token. Other services do not need to query or store the session. |
 | `role` | Platform role: `STUDENT` or `ADMIN`. |
-| `issuedAt` | Time the token was issued, as Unix time in seconds. |
-| `expiresAt` | Time the token expires, as Unix time in seconds. |
-| `issuer` | Service that issued the token. It must match the middleware configuration. |
-| `audience` | Services allowed to accept the token. It must match the middleware configuration. |
+| `iat` | Time the token was issued, as Unix time in seconds. |
+| `exp` | Time the token expires, as Unix time in seconds. |
+| `iss` | Service that issued the token. It must match the middleware configuration. |
+| `aud` | Services allowed to accept the token. It must match the middleware configuration. |
 
 A JWT is encoded and signed, not encrypted. A client can read this payload, so do not place secrets in it. Do not trust a decoded payload directly; only use the identity exposed by `authMiddleware` after it verifies the signature, payload shape, expiry, issuer, and audience.
 

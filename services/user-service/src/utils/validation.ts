@@ -1,3 +1,9 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+ * Scope: Implemented User Service validation and normalization helpers for account and profile inputs.
+ * Author review: <to be completed by ngkhengyang>
+ */
 const MAX_USERNAME_LENGTH = 50;
 const MAX_EMAIL_LENGTH = 320;
 const MIN_PASSWORD_LENGTH = 8;

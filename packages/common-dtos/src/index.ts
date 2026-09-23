@@ -15,7 +15,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Added the author-approved refresh-token response DTO.
+ * Scope: Added the author-approved refresh-token response DTO, standardized shared JWT claims, and structured API error codes.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -45,7 +45,7 @@ export interface RegisterUserRequest {
 export interface LoginUserRequest {
   email: string;
   password: string;
-  keepLoggedIn: boolean;
+  keepLoggedIn?: boolean;
 }
 
 export interface AuthResponse {
@@ -60,13 +60,13 @@ export interface RefreshTokenResponse {
 }
 
 export interface JWTPayload {
-  userId: string;
-  sessionId: string;
+  sub: string;
+  sid: string;
   role: UserRole;
-  issuedAt: number;
-  expiresAt: number;
-  issuer: string;
-  audience: string;
+  iat: number;
+  exp: number;
+  iss: string;
+  aud: string;
 }
 
 export interface UpdateUserProfileRequest {
@@ -307,6 +307,7 @@ export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  code?: string;
   message?: string;
 }
 

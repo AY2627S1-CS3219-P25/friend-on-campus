@@ -1,13 +1,13 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Documented the author-approved immutable-email profile contract and shared user response fields.
+Scope: Documented the User Service authentication and immutable-email profile API contract with shared response fields.
 Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Documented the author-approved deferred ADMIN user-management endpoint placeholders.
+Scope: Documented the deferred ADMIN user-management endpoint placeholders, structured `501` responses, and refresh-token replay behavior.
 Author review: <to be completed by ngkhengyang>
 -->
 
@@ -32,6 +32,7 @@ own profile. Unless stated otherwise, request and response bodies use JSON.
   - [`PUT /api/users/me/password`](#put-apiusersmepassword)
 - [Deferred administration endpoints](#deferred-administration-endpoints)
   - [`GET /api/users`](#get-apiusers)
+  - [`GET /api/users/:id`](#get-apiusersid)
   - [`POST /api/users/:id/promote`](#post-apiusersidpromote)
 - [Authentication](#authentication)
 - [Common error responses](#common-error-responses)
@@ -253,6 +254,9 @@ Status: `200 OK`
 The response replaces the `refresh_token` cookie with the newly rotated token and
 extends the session's idle expiry according to whether the session is persistent.
 
+A previously rotated refresh token is treated as an invalid session and returns
+`401 INVALID_SESSION`; it does not revoke the active session.
+
 #### Error responses
 
 | Status | Code | Meaning |
@@ -433,15 +437,27 @@ in this iteration.
 
 ### `GET /api/users`
 
-Requires an `ADMIN` Bearer access token. The route returns `501 Not Implemented` with
-no response body.
+Requires an `ADMIN` Bearer access token. The route returns `501 Not Implemented`:
+
+```json
+{
+  "success": false,
+  "error": "User management is not implemented",
+  "code": "NOT_IMPLEMENTED"
+}
+```
+
+### `GET /api/users/:id`
+
+Requires an `ADMIN` Bearer access token. The route returns the same structured
+`501 Not Implemented` response; the supplied user ID is not read or acted upon.
 
 ### `POST /api/users/:id/promote`
 
-Requires an `ADMIN` Bearer access token. The route returns `501 Not Implemented` with
-no response body; the supplied user ID is not read or acted upon.
+Requires an `ADMIN` Bearer access token. The route returns the structured `501 Not
+Implemented` response shown above; the supplied user ID is not read or acted upon.
 
-For both deferred routes, missing or invalid authentication returns the applicable
+For all deferred routes, missing or invalid authentication returns the applicable
 `401` authentication response and a non-`ADMIN` authenticated caller receives:
 
 ```json

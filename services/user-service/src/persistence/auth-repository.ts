@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Replaced raw pg account and session queries with equivalent Prisma persistence operations.
+ * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -40,6 +40,7 @@ export interface CreateSessionRecord {
 export interface AuthRepository {
   createUser(input: CreateUserRecord): Promise<UserRecord>;
   findUserByEmail(email: string): Promise<UserRecord | null>;
+  cleanupExpiredSessions(now: Date): Promise<void>;
   createSession(input: CreateSessionRecord): Promise<SessionUserRecord>;
   rotateSession(
     currentTokenHash: string,
@@ -87,8 +88,27 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
     },
 
     async findUserByEmail(email) {
-      const user = await prisma.user.findFirst({ where: { email } });
+      const users = await prisma.$queryRaw<PrismaUser[]>`
+        SELECT
+          id,
+          username,
+          email,
+          password_hash AS "passwordHash",
+          role,
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM users
+        WHERE LOWER(email) = LOWER(${email})
+        LIMIT 1
+      `;
+      const user = users[0];
       return user ? toUserRecord(user) : null;
+    },
+
+    async cleanupExpiredSessions(now) {
+      await prisma.session.deleteMany({
+        where: { idleExpiresAt: { lte: now } },
+      });
     },
 
     async createSession(input) {

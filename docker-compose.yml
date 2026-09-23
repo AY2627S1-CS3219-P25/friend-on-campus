@@ -80,6 +80,7 @@ services:
       JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-15m}
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
       JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     depends_on:
       postgres:
         condition: service_healthy

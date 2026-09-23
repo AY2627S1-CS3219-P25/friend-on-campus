@@ -5,7 +5,7 @@
 // AI-generated (edited by yanhwee)
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-// Scope: Replaced the legacy user model with the author-approved account and refresh-session persistence model.
+// Scope: Implemented the User and Session persistence model for account data and refresh-token sessions; documented intentional SQL expression-index maintenance.
 // Author review: (to be completed by ngkhengyang)
 // AI-generated (edited by ngkhengyang)
 
@@ -19,6 +19,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Prisma cannot express PostgreSQL expression indexes. The migration SQL intentionally
+// owns the case-insensitive unique indexes on LOWER(username) and LOWER(email).
+// Keep those indexes in migration SQL and verify future migrations do not drop them.
 model User {
   id           String    @id @default(uuid()) @db.Uuid
   username     String    @db.VarChar(50)

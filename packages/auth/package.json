@@ -4,6 +4,9 @@
   "description": "Shared authentication middleware for NUS CampusErrand services",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "dependencies": {
+    "@campus-errand/common-dtos": "*"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },

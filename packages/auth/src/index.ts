@@ -1,6 +1,14 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+ * Scope: Implemented shared Ed25519 JWT verification middleware, standardized shared JWT claims, and admin-authentication helpers.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { createPublicKey, verify } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 import type { RequestHandler, Response } from 'express';
+import type { JWTPayload } from '@campus-errand/common-dtos';
 
 const JWT_HEADER = Object.freeze({ alg: 'EdDSA', typ: 'JWT' });
 
@@ -18,15 +26,7 @@ export interface AuthMiddlewareOptions {
   audience: string;
 }
 
-interface JwtAccessTokenClaims {
-  userId: string;
-  sessionId: string;
-  role: UserRole;
-  issuedAt: number;
-  expiresAt: number;
-  issuer: string;
-  audience: string;
-}
+type JwtAccessTokenClaims = JWTPayload;
 
 type AuthenticationErrorCode =
   | 'MISSING_TOKEN'
@@ -51,15 +51,15 @@ function isJwtAccessTokenClaims(value: unknown): value is JwtAccessTokenClaims {
 
   const claims = value as Partial<JwtAccessTokenClaims>;
   return (
-    typeof claims.userId === 'string' &&
-    claims.userId.length > 0 &&
-    typeof claims.sessionId === 'string' &&
-    claims.sessionId.length > 0 &&
+    typeof claims.sub === 'string' &&
+    claims.sub.length > 0 &&
+    typeof claims.sid === 'string' &&
+    claims.sid.length > 0 &&
     (claims.role === 'STUDENT' || claims.role === 'ADMIN') &&
-    Number.isInteger(claims.issuedAt) &&
-    Number.isInteger(claims.expiresAt) &&
-    typeof claims.issuer === 'string' &&
-    typeof claims.audience === 'string'
+    Number.isInteger(claims.iat) &&
+    Number.isInteger(claims.exp) &&
+    typeof claims.iss === 'string' &&
+    typeof claims.aud === 'string'
   );
 }
 
@@ -106,23 +106,23 @@ function verifyAccessToken(
     const claims = parseJsonPart<unknown>(claimsPart);
     if (
       !isJwtAccessTokenClaims(claims) ||
-      claims.issuer !== options.issuer ||
-      claims.audience !== options.audience
+      claims.iss !== options.issuer ||
+      claims.aud !== options.audience
     ) {
       throw new AuthenticationError('INVALID_TOKEN');
     }
 
     const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
-    if (claims.expiresAt <= currentUnixTimeSeconds) {
+    if (claims.exp <= currentUnixTimeSeconds) {
       throw new AuthenticationError('TOKEN_EXPIRED');
     }
-    if (claims.issuedAt > currentUnixTimeSeconds + 60) {
+    if (claims.iat > currentUnixTimeSeconds + 60) {
       throw new AuthenticationError('INVALID_TOKEN');
     }
 
     return {
-      userId: claims.userId,
-      sessionId: claims.sessionId,
+      userId: claims.sub,
+      sessionId: claims.sid,
       role: claims.role,
     };
   } catch (error) {
