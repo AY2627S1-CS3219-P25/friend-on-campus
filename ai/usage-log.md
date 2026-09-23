@@ -813,3 +813,17 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `apps/admin-portal/src/App.tsx` — added `togglingUserIds` (`Set<string>`) state and a `toggleUserStatus(userId)` handler that calls `PATCH /api/users/:id/admin` with `getAuthHeaders()`, updates `users` state from the server's returned user object (never flips the boolean locally/optimistically), and tracks the in-flight request per row to disable that row's button until the response lands. Added a Status column (Active/Disabled badge, sortable) and an Actions column with the Disable/Reinstate button to the desktop table, and the equivalent badge + button to the mobile card view.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`; rebuilt and restarted the `admin-portal` container.
+
+## 2026-09-24 — Rename student-app "Wallet" tab to "Profile", add Profile Info section (GET/PATCH /me)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the student app's bottom-nav "Wallet" button renamed to "Profile" (with a profile icon), the existing wallet content kept fully intact but shifted below a new "Profile Info" section showing the logged-in user's own account fields via `GET /me`, and an Edit → Cancel/Update flow letting the user change only their username via `PATCH /me`. User asked three specific investigation questions before planning: what `GET /me` returns (confirmed: `{userId, username, email, userRole, status}`, never a password), whether `PATCH /me` is scoped to that specific signed-in user (confirmed: yes, structurally — it reads the target user id from the verified JWT's `sub` claim via `res.locals.auth`, no `:id` param exists to target anyone else), and whether it enforces username uniqueness (confirmed: yes, case-insensitive, via the same `DUPLICATE_USERNAME`/409 mapping used elsewhere). Asked the user via AskUserQuestion which fields should get the red "compulsory" asterisk given only username is actually editable; they chose username and email only (the two NOT NULL + unique fields), not role/status.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — cross-referenced `docker/postgres-init/01-init-databases.sql` for each field's schema constraints to write the small hint text under each field label, matching the user's "password needs 8-24 characters"-style example.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — renamed `activeTab`'s `'wallet'` value to `'profile'` throughout; swapped the `Wallet` icon import for `UserCircle` (its only usage) and the nav label to "Profile", now also lazy-triggering `fetchProfile()` on click. Added `profile`/`isLoadingProfile`/`profileError`/`isEditingProfile`/`editUsernameDraft`/`isUpdatingProfile`/`updateProfileError` state, a `getAuthHeaders()` helper (student-app didn't have one yet), `fetchProfile()`, `startEditingProfile()`/`cancelEditingProfile()`, and `handleUpdateProfile()`. Inserted a new "Profile Info" card (User ID/Username/Email/Role/Status, all disabled except Username while editing, Edit/Cancel/Update buttons) immediately before the existing `<h2>Credit Wallet & Ledger</h2>` — everything from that heading down is unchanged, just pushed below the new section.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container; live-tested `GET /api/users/me` and `PATCH /api/users/me` (rename + revert) directly against the response shapes the new code consumes.

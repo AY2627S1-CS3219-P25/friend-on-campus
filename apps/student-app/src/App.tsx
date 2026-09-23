@@ -22,6 +22,11 @@
  * since registration no longer returns a token, auto-login is done with a follow-up /api/auth/login call.
  * Error boxes read the service's { error, code } shape.
  * Author review: <to be completed by ngkhengyang>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Renamed the bottom-nav "Wallet" tab to "Profile" (UserCircle icon), keeping all existing wallet content unchanged but shifted below a new "Profile Info" section. Added GET /api/users/me (lazy-loaded when the tab opens) displaying User ID/Username/Email/Role/Status, all disabled by default with a "Loading users..." indicator and red error box on failure; red asterisks on Username/Email only (the two NOT NULL+unique fields per 01-init-databases.sql, per the author's choice — Role/Status are also NOT NULL but read-only here). "Edit" enables only the Username input and is replaced by a stacked "Cancel"/"Update" pair; "Update" shows a spinner and calls PATCH /api/users/me, updating the field from the server's returned value on success or showing an inline error (e.g. duplicate username) otherwise; "Cancel" discards the draft and reverts to view mode.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -30,7 +35,7 @@ import {
   Compass,
   PlusCircle,
   Clock,
-  Wallet,
+  UserCircle,
   MapPin,
   ArrowRight,
   AlertCircle,
@@ -40,7 +45,7 @@ import {
   Search,
   RefreshCw,
 } from 'lucide-react';
-import { OrderDTO, CreditWalletDTO, SupplierDTO } from '@campus-errand/common-dtos';
+import { OrderDTO, CreditWalletDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 
 export default function App() {
   // Login / Sign Up Gate state
@@ -63,9 +68,18 @@ export default function App() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'wallet'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'profile'>('feed');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
   const [wsStatus, setWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+
+  // Profile Info state (GET/PATCH /api/users/me)
+  const [profile, setProfile] = useState<UserDTO | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<{ code: string; message: string } | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editUsernameDraft, setEditUsernameDraft] = useState('');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [updateProfileError, setUpdateProfileError] = useState<{ code: string; message: string } | null>(null);
 
   // Live Campus Suppliers State (M3)
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
@@ -225,6 +239,72 @@ export default function App() {
       setSignupError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the registration server.' });
     } finally {
       setIsSigningUp(false);
+    }
+  };
+
+  const getAuthHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    return headers;
+  };
+
+  // Fetch the logged-in user's own profile (GET /api/users/me)
+  const fetchProfile = async () => {
+    setIsLoadingProfile(true);
+    setProfileError(null);
+    try {
+      const res = await fetch('/api/users/me', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(data.data.user);
+      } else {
+        setProfileError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to load profile.' });
+      }
+    } catch (err: any) {
+      setProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const startEditingProfile = () => {
+    if (!profile) return;
+    setEditUsernameDraft(profile.username);
+    setUpdateProfileError(null);
+    setIsEditingProfile(true);
+  };
+
+  const cancelEditingProfile = () => {
+    setIsEditingProfile(false);
+    setUpdateProfileError(null);
+    setEditUsernameDraft('');
+  };
+
+  // Update the logged-in user's own username (PATCH /api/users/me)
+  const handleUpdateProfile = async () => {
+    if (!editUsernameDraft.trim()) {
+      setUpdateProfileError({ code: 'VALIDATION_ERROR', message: 'Username is required.' });
+      return;
+    }
+    setIsUpdatingProfile(true);
+    setUpdateProfileError(null);
+    try {
+      const res = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username: editUsernameDraft.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(data.data.user);
+        setIsEditingProfile(false);
+      } else {
+        setUpdateProfileError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to update username.' });
+      }
+    } catch (err: any) {
+      setUpdateProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
+    } finally {
+      setIsUpdatingProfile(false);
     }
   };
 
@@ -919,9 +999,129 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: Wallet & Ledger */}
-        {activeTab === 'wallet' && (
+        {/* TAB 5: Profile & Wallet */}
+        {activeTab === 'profile' && (
           <div className="space-y-4">
+            <h2 className="text-lg font-bold text-slate-800">Profile Info</h2>
+
+            {isLoadingProfile && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs flex items-center space-x-2">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Loading profile…</span>
+              </div>
+            )}
+
+            {profileError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+                <p className="font-bold">{profileError.code}</p>
+                <p>{profileError.message}</p>
+              </div>
+            )}
+
+            {profile && (
+              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3">
+                <p className="text-[10px] text-slate-400">
+                  Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">User ID:</label>
+                  <p className="text-[10px] text-slate-400 mb-1">Read-only, system-generated identifier.</p>
+                  <input
+                    type="text"
+                    value={profile.userId}
+                    disabled
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Username: <span className="text-rose-600">*</span>
+                  </label>
+                  <p className="text-[10px] text-slate-400 mb-1">
+                    Must be 1-50 characters and unique (case-insensitive).
+                  </p>
+                  {updateProfileError && (
+                    <p className="text-[11px] text-rose-600 mb-1">{updateProfileError.message}</p>
+                  )}
+                  <input
+                    type="text"
+                    value={isEditingProfile ? editUsernameDraft : profile.username}
+                    disabled={!isEditingProfile || isUpdatingProfile}
+                    onChange={(e) => setEditUsernameDraft(e.target.value)}
+                    className={`w-full text-xs p-2.5 rounded-lg border ${
+                      isEditingProfile ? 'border-nus-blue bg-white' : 'border-slate-200 bg-slate-50 text-slate-500'
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Email: <span className="text-rose-600">*</span>
+                  </label>
+                  <p className="text-[10px] text-slate-400 mb-1">
+                    Read-only here. Must be a valid, unique email address.
+                  </p>
+                  <input
+                    type="text"
+                    value={profile.email}
+                    disabled
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Role:</label>
+                  <p className="text-[10px] text-slate-400 mb-1">Read-only. Set by an administrator.</p>
+                  <input
+                    type="text"
+                    value={profile.userRole}
+                    disabled
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Status:</label>
+                  <p className="text-[10px] text-slate-400 mb-1">Read-only. Whether your account is active.</p>
+                  <input
+                    type="text"
+                    value={profile.status ? 'Active' : 'Disabled'}
+                    disabled
+                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                  />
+                </div>
+
+                {!isEditingProfile ? (
+                  <button
+                    onClick={startEditingProfile}
+                    className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs py-2 rounded-lg transition"
+                  >
+                    Edit
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <button
+                      onClick={cancelEditingProfile}
+                      disabled={isUpdatingProfile}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-lg transition disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdateProfile}
+                      disabled={isUpdatingProfile}
+                      className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs py-2 rounded-lg transition disabled:opacity-60"
+                    >
+                      {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                      <span>{isUpdatingProfile ? 'Updating…' : 'Update'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <h2 className="text-lg font-bold text-slate-800">Credit Wallet & Ledger</h2>
 
             {/* Balance Card */}
@@ -1025,13 +1225,16 @@ export default function App() {
         </button>
 
         <button
-          onClick={() => setActiveTab('wallet')}
+          onClick={() => {
+            setActiveTab('profile');
+            fetchProfile();
+          }}
           className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'wallet' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
+            activeTab === 'profile' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
-          <Wallet className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Wallet</span>
+          <UserCircle className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5">Profile</span>
         </button>
       </nav>
     </div>
