@@ -797,5 +797,5 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Files changed:**
 - `.github/pull_request_template.md` — new; PR body layout with a **Linked issues** section pre-filled with `Closes #`.
 - `.github/workflows/pr-linked-issue.yml` — new; fails a PR whose body has no `Closes/Fixes/Resolves #N` (or issue URL) reference.
-- `CLAUDE.md` — section 6: rule that every PR body links the issue(s) it closes; disclosure entry.
+- `CLAUDE.md` — section 6: rule that every PR body links the issue(s) it closes; disclosure entry. Follow-up commit: wording aligned with the workflow (an issue must exist; the check does not accept a PR with none).
 - `ai/usage-log.md` — this entry.
