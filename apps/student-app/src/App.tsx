@@ -27,6 +27,11 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Renamed the bottom-nav "Wallet" tab to "Profile" (UserCircle icon), keeping all existing wallet content unchanged but shifted below a new "Profile Info" section. Added GET /api/users/me (lazy-loaded when the tab opens) displaying User ID/Username/Email/Role/Status, all disabled by default with a "Loading users..." indicator and red error box on failure; red asterisks on Username/Email only (the two NOT NULL+unique fields per 01-init-databases.sql, per the author's choice — Role/Status are also NOT NULL but read-only here). "Edit" enables only the Username input and is replaced by a stacked "Cancel"/"Update" pair; "Update" shows a spinner and calls PATCH /api/users/me, updating the field from the server's returned value on success or showing an inline error (e.g. duplicate username) otherwise; "Cancel" discards the draft and reverts to view mode.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Removed the User ID field from Profile Info (now just Username/Email/Role/Status). Role and Status now render as colored badge divs instead of disabled text inputs: Role is emerald for STUDENT / blue for ADMIN, Status is emerald for Active / rose for Disabled — same "transparent tint + colored border" badge style already used in the admin portal.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -1025,17 +1030,6 @@ export default function App() {
                 </p>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">User ID:</label>
-                  <p className="text-[10px] text-slate-400 mb-1">Read-only, system-generated identifier.</p>
-                  <input
-                    type="text"
-                    value={profile.userId}
-                    disabled
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Username: <span className="text-rose-600">*</span>
                   </label>
@@ -1074,23 +1068,29 @@ export default function App() {
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Role:</label>
                   <p className="text-[10px] text-slate-400 mb-1">Read-only. Set by an administrator.</p>
-                  <input
-                    type="text"
-                    value={profile.userRole}
-                    disabled
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                  />
+                  <div
+                    className={`inline-block text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                      profile.userRole === 'ADMIN'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}
+                  >
+                    {profile.userRole}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Status:</label>
                   <p className="text-[10px] text-slate-400 mb-1">Read-only. Whether your account is active.</p>
-                  <input
-                    type="text"
-                    value={profile.status ? 'Active' : 'Disabled'}
-                    disabled
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                  />
+                  <div
+                    className={`inline-block text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                      profile.status
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}
+                  >
+                    {profile.status ? 'Active' : 'Disabled'}
+                  </div>
                 </div>
 
                 {!isEditingProfile ? (

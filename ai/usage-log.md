@@ -827,3 +827,17 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`; rebui
 - `apps/student-app/src/App.tsx` — renamed `activeTab`'s `'wallet'` value to `'profile'` throughout; swapped the `Wallet` icon import for `UserCircle` (its only usage) and the nav label to "Profile", now also lazy-triggering `fetchProfile()` on click. Added `profile`/`isLoadingProfile`/`profileError`/`isEditingProfile`/`editUsernameDraft`/`isUpdatingProfile`/`updateProfileError` state, a `getAuthHeaders()` helper (student-app didn't have one yet), `fetchProfile()`, `startEditingProfile()`/`cancelEditingProfile()`, and `handleUpdateProfile()`. Inserted a new "Profile Info" card (User ID/Username/Email/Role/Status, all disabled except Username while editing, Edit/Cancel/Update buttons) immediately before the existing `<h2>Credit Wallet & Ledger</h2>` — everything from that heading down is unchanged, just pushed below the new section.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container; live-tested `GET /api/users/me` and `PATCH /api/users/me` (rename + revert) directly against the response shapes the new code consumes.
+
+## 2026-09-24 (later) — Profile Info UI tweaks: drop User ID, colored Role/Status badges
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** Small follow-up to the Profile Info section added earlier today: remove the User ID field from display entirely, and render Role and Status as colored "div box" badges instead of plain disabled text inputs — Status green for Active / red for Disabled, Role green for Student / blue for Admin, using a transparent tinted background with a solid colored border (the badge style already used in the admin portal).
+
+**Usage scenario:** UI refinement on the author's explicit instruction (allowed use) — no new data or endpoints involved, purely display styling of fields already being fetched from `GET /me`.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — removed the "User ID" field block from the Profile Info card. Replaced the Role and Status `<input disabled>` elements with `<div>` badges: Role uses `bg-blue-50 text-blue-700 border-blue-200` for ADMIN and `bg-emerald-50 text-emerald-700 border-emerald-200` for STUDENT; Status uses the same emerald styling for Active and `bg-rose-50 text-rose-700 border-rose-200` for Disabled.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container.
