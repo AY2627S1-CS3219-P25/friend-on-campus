@@ -814,3 +814,19 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `scripts/test-d2-e2e.ts` — Windows-runnable (shell spawn, process-tree kill), 30 s readiness timeout, standard-claims assertion.
 - `docs/services/user-service.md`, `services/user-service/docs/authentication-for-services.md` — claim names updated.
 - `package-lock.json` — regenerated for the auth package dependency.
+
+## 2026-09-23 20:02 SGT — Require PRs to link the issues they close
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude/great-pasteur-kx86kz (rebased onto origin/dev 6ac4fcf)
+
+**Prompt (summarised):** Make it so that pull requests on GitHub tag the issue(s) they close; then rebase the change onto `dev`.
+
+**Usage scenario:** Boilerplate/config generation (PR template, GitHub Actions check) and documentation (CLAUDE.md rule). No product or architecture decision involved; the convention itself (closing keywords in the PR body) is GitHub's standard mechanism. Committed and pushed to the author's own feature branch at the author's explicit request in the Claude Code session; nothing was pushed to `dev` or `main`.
+
+**Files changed:**
+- `.github/pull_request_template.md` — new; PR body layout with a **Linked issues** section pre-filled with `Closes #`.
+- `.github/workflows/pr-linked-issue.yml` — new; fails a PR whose body has no `Closes/Fixes/Resolves #N` (or issue URL) reference.
+- `CLAUDE.md` — section 6: rule that every PR body links the issue(s) it closes; disclosure entry. Follow-up commit: wording aligned with the workflow (an issue must exist; the check does not accept a PR with none).
+- `ai/usage-log.md` — this entry.
