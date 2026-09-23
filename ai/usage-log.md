@@ -257,6 +257,7 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 ## 2026-09-21 (later) — Fix stale "permanent delete" checkbox and add client-side RBAC gating to admin-portal action buttons
 
+
 **Tool:** Claude Code (model: Claude Sonnet 5)
 **Author:** jagdeepsh
 
@@ -269,6 +270,19 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
+## 2026-09-21 (later still) — Add admin-only "Users" directory page to admin-portal
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted a new admin-only "Users" page in the admin portal, alongside the existing Campus Suppliers page, listing all registered users pulled from the User Service's `GET /api/users` endpoint via the standard API Gateway path (not called directly), with the same layout/search/filter UX as the Suppliers page but strictly read-only — no add/edit/delete. Search across nusEmail, fullName, matricNumber, phoneNumber, telegramHandle (case-insensitive); filter by role, min rating, min completed orders. User explicitly restricted scope to `apps/admin-portal/src` only — no backend, gateway, or config changes. Planned in plan mode: confirmed via investigation that `/api/users` is already proxied by both `vite.config.ts` (dev) and `gateway/nginx.conf` (prod) with zero changes needed, and that the existing demo-admin JWT (`authToken`/`getAuthHeaders()`) already satisfies the endpoint's auth requirement. Clarified two open design choices with the user via AskUserQuestion (numeric min-value filter inputs for rating/completed-orders vs. preset chips; whether to include a KPI stat-card row) before implementing.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — followed the existing single-file component's established patterns (duplicated the suppliers page's search/filter/sort/pagination/draft-vs-applied-filter logic for users rather than introducing a new shared abstraction, consistent with the file's existing convention and to avoid unilaterally making component-boundary/architecture decisions).
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `fetchUsers()` (GET `/api/users?limit=100` with existing `getAuthHeaders()`), an admin-gated "Users" nav entry (desktop sidebar + mobile drawer) that lazily fetches on click, a new `activeNav === 'users'` content section (KPI cards, search+filter toolbar, mobile card list, desktop table, pagination — no action buttons), and a "Filter Users" modal (role chips + min-rating/min-completed-orders number inputs) following the same draft-until-"Apply Filters" pattern used by the Suppliers filter modal. Header refresh button and error banner are now tab-aware (target users vs. suppliers depending on the active nav). No other files touched.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 ## 2026-09-21 12:57 SGT — Issue/milestone review and Claude Code tooling plan
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
@@ -714,3 +728,89 @@ internal documentation as the scope. No requirements, architecture, or rationale
 **Files changed:**
 - `apps/admin-portal/src/App.tsx` — sent `email`, read `accessToken`, and used the current seeded demo password.
 - `ai/usage-log.md` — appended this approved implementation record.
+## 2026-09-21 (later still) — Add real Admin Login gate to admin-portal, remove now-redundant role gating
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the admin portal to stop auto-displaying the dashboard on load and instead show a real "Admin Log In" page (NUS email + password, styled like a typical login box). On submit, POST to `/api/auth/login` through the gateway, show a loading spinner on the button while in flight, then decode the returned JWT's role claim client-side and only show the dashboard if it's ADMIN; otherwise show a red error box with the error code and message (covers bad credentials, network errors, and a valid-but-non-admin account). Planned in plan mode; user then asked (mid-review) to also: replace the sidebar/mobile "Demo RBAC Role" Admin/Student/Guest switcher with a Log Out button (confirmed via AskUserQuestion: fully functional client-side logout, no API call since no logout endpoint exists and none is needed for a stateless JWT), and remove the now-redundant `isAdmin` role checks gating Add Location/Deactivate/Edit/Delete and the Users nav item, since only Admins can reach the dashboard at all now. Scope explicitly restricted to `apps/admin-portal/src` only.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — followed the existing file's conventions throughout (relative-path gateway fetches, Tailwind vocabulary already used for cards/inputs/errors, `RefreshCw` reused for the spinner); no new npm dependency for JWT decoding (plain `atob()` on the token's payload segment instead of pulling in a jwt-decode library, which would have required Dockerfile/package.json changes outside the requested scope).
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `isAuthenticated`/`loginEmail`/`loginPassword`/`isLoggingIn`/`loginError` state, a module-level `decodeJwtRole()` helper, `handleAdminLogin`/`handleLogout` handlers, and an early-return login page rendered whenever `!isAuthenticated`. Removed the mount-time `loginDemoUser('ADMIN')` auto-login effect and the `loginDemoUser` function itself (now fully replaced by the real login flow); removed the "Demo RBAC Role" switcher (sidebar footer + mobile drawer), replaced with a "Log Out" button in both places. Removed the `isAdmin` derived flag and every conditional it gated (Add Location button, Deactivate/Activate + Edit + Delete buttons in both the mobile card and desktop table views, and the Users nav item in both sidebar and mobile drawer) — these now render unconditionally since the login gate itself is the access control. Dropped the now-unused `ShieldAlert`/`User` icon imports, added `LogOut`.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-21 (later still) — Add Log In / Sign Up gate to student-app
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** Extended the same login-gate idea used for the admin portal to the student app, but with both a Log In box and a Sign Up box toggled via links, matching the User Service's existing `/api/auth/login` and `/api/auth/register` endpoints. Log In: email + password, loading spinner on submit, red error box (code + message) on failure — same style as the admin login page. Sign Up: NUS Email, Password, Re-type Password, Full Name, Matric Number, Phone Number, Telegram Handle, with the first five marked compulsory (red asterisk) and a note below the fields explaining that; client-side checks before any API call that all compulsory fields are filled, that Re-type Password matches Password, and that Password is 8-24 characters (with a hint under the Password label); on successful registration the returned token logs the user in automatically. Planned in plan mode first — confirmed no role restriction is needed here (unlike the admin gate) since any authenticated account should be let into the student app, and confirmed no other files need changes (vite.config.ts and the gateway already proxy /api/auth).
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — reused the admin login page's error-box and spinner patterns for visual/UX consistency across both apps, but styled with the student app's own branding (`bg-nus-blue`/`text-nus-orange`, mobile card shell) instead of copying the admin portal's slate dashboard look.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — added `isAuthenticated`/`authToken`/`authView`/login-form/signup-form state, `handleLogin`/`handleSignup` handlers, and an early-return Log In/Sign Up page rendered whenever `!isAuthenticated`. Added `RefreshCw` to the `lucide-react` import for the loading spinner. Attached the stored `authToken` as an `Authorization` header on the existing `fetchLiveSuppliers()` call (harmless — that route stays public by the author's own prior decision — but needed so the token variable isn't flagged as unused under this app's `noUnusedLocals` tsconfig, and is forward-compatible if that route ever requires auth). Rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet keyed to the hardcoded demo user id) is unchanged — the real logged-in user is not yet wired into that mock data, flagged as a separate future task.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`.
+
+## 2026-09-21 (later still) — Show deactivated suppliers as disabled cards in student-app "Spots" tab instead of hiding them
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User noticed that deactivating a supplier in the admin portal made it disappear entirely from the student app's Spots directory, and wanted it to still show up there instead — visually dimmed, with a red "Unavailable" label, and its "Pick for Errand" button disabled/unclickable. Planned in plan mode: root cause was `fetchLiveSuppliers()` calling `/api/suppliers?isActive=true`, a server-side filter that meant inactive suppliers were never sent to the frontend at all. Since that same `suppliers` list also feeds the Post Errand pickup dropdown (which must keep excluding unavailable suppliers, since you shouldn't be able to select one as a new errand's pickup point), the fix needed to split the two consumers rather than just removing the filter outright.
+
+**Usage scenario:** Debugging assistance and implementation code (allowed use) — reused the rose/emerald active-inactive badge convention already established in the admin portal for visual consistency across the app family.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — `fetchLiveSuppliers()` now fetches `/api/suppliers` (dropped `?isActive=true`), and its post-fetch default-selection logic picks the first *active* supplier instead of just `items[0]`. Added a derived `activeSuppliers` list, used for the Post Errand dropdown's options and its "N active spots" counter, so unavailable suppliers stay unselectable there. The Spots tab's card list (`filteredSuppliers`, unchanged) now naturally includes inactive suppliers; each card is dimmed (`bg-slate-50 opacity-60`) when `!s.isActive`, shows a red "Unavailable" badge next to the campus-zone badge, and its "Pick for Errand" button gets `disabled={!s.isActive}` plus matching disabled styling.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`.
+
+## 2026-09-21 (later still) — Add missing Description field, red required-field indicators, and client-side validation to Add/Edit Supplier modals
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User noticed the Add Supplier modal in the admin portal has no Description field at all (only reachable via a follow-up Edit), required fields in both Add and Edit modals are marked with a plain unstyled `*` with no explanatory legend, neither form validates required fields client-side before hitting the API, and the Edit modal's "Exact Pickup Spot Description" field is missing the asterisk/required treatment the equivalent Add-modal field has. Planned in plan mode: confirmed `description` is already a fully supported optional field on both `CreateSupplierRequest`/`UpdateSupplierRequest` and already present (unused) in the Add form's own state — pure frontend gap, no backend/DTO changes needed; confirmed the backend's actual required fields for create (name, campusZone, exactLocation, category) exactly match the four fields already asterisked in the Add modal, informing which fields to validate in both forms for consistency.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — added a small shared `validateSupplierForm()` helper reused by both the create and update handlers rather than duplicating the same four checks twice.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added a Description `<textarea>` to the Add Supplier modal (previously missing entirely). Added `addFormErrors`/`editFormErrors` state and `validateSupplierForm()`, called in `handleCreateSupplier`/`handleUpdateSupplier` before their `fetch()` calls; a failed check blocks submission and populates the errors, which render as inline red text directly under each invalid field's label (and a red border on that field), clearing as soon as the field is edited. Turned every required-field `*` red via a `<span className="text-rose-600">*</span>`, and added a "Fields marked with * are required" legend near the top of both forms. Edit modal's "Exact Pickup Spot Description" field now has the same asterisk + required check as Add's equivalent field (previously the one inconsistency between the two forms), and Campus Zone/Category also gained asterisks there for full parity with Add. Both modals' open/Cancel/X handlers now also reset their respective error state so a previous attempt's messages don't linger into a fresh open.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-23 19:10 SGT — Merge dev into user-service-base and apply review-round-2 fixes (PR #76)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** pr76-fixes (local branch from origin/user-service-base 48e0518, `git merge --no-commit origin/dev`)
+
+**Prompt (summarised):** Fix the findings of the second review round on PR #76 so the PR can be merged.
+
+**Usage scenario:** Implementation of changes the PR author had already agreed to in the review threads (replies marked "Addressed" whose commits were never pushed), plus the mechanical merge with `dev`. No new design decisions were taken: the contract changes (RFC 7519 claim names, optional `keepLoggedIn`, required `username` on profile update) were the author's stated intent; the admin Users page keeps its UI behind a local type until the deferred `GET /api/users` exists (issue #70) — whether that page should instead be hidden, whether profile fields such as Telegram handle belong in the product, and whether a password change should revoke other sessions are left to the team. Verified with `npm run typecheck` (all 9 workspaces) and `npm run test:d2` (see result in the PR). Left uncommitted, merge in progress, for the author to review and commit; nothing was pushed.
+
+**Files changed:**
+- `ai/usage-log.md` — merge conflict resolved (both sides kept); this entry.
+- `apps/admin-portal/src/App.tsx` — merge conflict resolved: dev's login gate kept and moved to `{ email, password }` / `accessToken` / `{ error, code }`; Users page typed with local `AdminUserListItem`; 501 from `/api/users` shown as "not implemented yet".
+- `apps/student-app/src/App.tsx` — login and sign-up moved to the User Service contract (`username`, `email`, `password`); auto-login after registration via a follow-up login call; full name, matric, phone, Telegram inputs removed.
+- `packages/common-dtos/src/index.ts` — `JWTPayload` uses `sub, sid, role, iat, exp, iss, aud`; `keepLoggedIn?`; `UpdateUserProfileRequest.username` required.
+- `packages/auth/src/index.ts`, `packages/auth/package.json` — verifies the standard claims; imports `JWTPayload` from common-dtos (new workspace dependency, lockfile updated).
+- `services/user-service/src/auth/tokens.ts` — emits the standard claims.
+- `services/user-service/src/auth/auth-module.ts` — dummy-hash verification for unknown emails; expired-session clean-up on login and refresh.
+- `services/user-service/src/persistence/auth-repository.ts` — `LOWER(email)` look-up; `deleteExpiredSessions`.
+- `services/user-service/src/auth/auth-routes.ts` — malformed cookie treated as absent.
+- `services/user-service/src/http/error-handler.ts` — body-parser 4xx errors answered as JSON 4xx.
+- `services/user-service/src/users/user-routes.ts` — 501 placeholders return a JSON body with code `NOT_IMPLEMENTED`.
+- `services/user-service/src/database/prisma/schema.prisma` — comment explaining the missing `@unique`.
+- `services/user-service/src/database/seed.ts` — `LOWER(email)` look-up.
+- `services/user-service/package.json` — removed unused `@types/amqplib` (no header possible).
+- `docker-compose.yml` — `${JWT_PRIVATE_KEY:?…}` / `${JWT_PUBLIC_KEY:?…}` fail fast; `CORS_ORIGIN` passed to user-service.
+- `.env.example`, `services/user-service/.env.example` — `CORS_ORIGIN` listed.
+- `scripts/test-d2-e2e.ts` — Windows-runnable (shell spawn, process-tree kill), 30 s readiness timeout, standard-claims assertion.
+- `docs/services/user-service.md`, `services/user-service/docs/authentication-for-services.md` — claim names updated.
+- `package-lock.json` — regenerated for the auth package dependency.

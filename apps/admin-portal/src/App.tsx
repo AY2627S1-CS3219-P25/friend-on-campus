@@ -18,6 +18,31 @@
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
  * Scope: Aligned demo login requests and access-token handling with the approved User Service contract and seed credentials.
  * Author review: <to be completed by ngkhengyang>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Merge of dev into the user-service PR: the login gate now posts { email, password } and reads
+ * data.data.accessToken (the User Service contract from PR #76); error boxes read the service's { error, code }
+ * shape. The Users directory page keeps its UI but is typed against a local AdminUserListItem instead of the
+ * shared UserDTO, because GET /api/users is a 501 placeholder in PR #76 and the page's columns (matric, rating,
+ * completed orders, phone, Telegram) are not part of the new UserDTO; the page shows a "not implemented yet"
+ * message until the endpoint exists (issue #70).
+ * Author review: <to be completed by ngkhengyang>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added a new admin-only "Users" directory page (sidebar nav, KPI cards, search, filter, sortable table/card list, pagination), fetching from GET /api/users through the existing API Gateway proxy path (no gateway/vite config changes needed, both already route /api/users to user-service). Read-only: no add/edit/delete controls. Search covers nusEmail/fullName/matricNumber/phoneNumber/telegramHandle case-insensitively; filters (role, min rating, min completed orders) follow the same draft-until-"Apply Filters" pattern as the Suppliers page.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added a real login gate in front of the whole admin dashboard: a login page (NUS email + password) posts to /api/auth/login through the gateway, shows a loading spinner while in flight, decodes the returned JWT's role claim client-side and only proceeds into the dashboard if it is ADMIN (a valid Student login is explicitly rejected with a red error box showing the error code/message). Removed the mount-time auto-login and the "Demo RBAC Role" Admin/Student/Guest switcher (both sidebar and mobile drawer) since the login gate now guarantees only Admins reach the dashboard; replaced with a client-side-only "Log Out" button (no logout endpoint exists on the backend, and none is needed since the JWT is stateless). Removed the now-redundant isAdmin role checks that previously hid the Add Location/Deactivate/Edit/Delete buttons and the Users nav item — since only Admins can log in at all now, those controls render unconditionally.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
+ * Scope: Added the missing Description textarea to the Add Supplier modal (previously only editable via a follow-up Edit). Added a shared validateSupplierForm() check (Name, Campus Zone, Category, Exact Pickup Spot Description) run client-side before either the create or update API call, with inline red error messages shown under each invalid field and no request sent until they're fixed. Turned the plain "*" required-field markers red in both modals and added a "fields marked with * are required" legend to each. Added the missing asterisk + required check on the Edit modal's "Exact Pickup Spot Description" field, which was previously the only one of the four core fields not marked required there, unlike the Add modal.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -41,17 +66,35 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert,
   ShieldCheck,
-  User,
+  Users,
   Menu,
+  LogOut,
 } from 'lucide-react';
 import {
   SupplierDTO,
   SupplierCategory,
   CreateSupplierRequest,
   UpdateSupplierRequest,
+  UserRole,
 } from '@campus-errand/common-dtos';
+
+// AI-generated (edited by ngkhengyang)
+// Row shape the Users directory page was built for. User Service (PR #76) does not provide a user
+// list yet (GET /api/users answers 501 NOT_IMPLEMENTED) and its UserDTO has only userId/username/email/userRole,
+// so this stays a local type until the list endpoint (issue #70) defines the real contract in common-dtos.
+interface AdminUserListItem {
+  id: string;
+  nusEmail: string;
+  fullName: string;
+  matricNumber: string;
+  phoneNumber?: string;
+  telegramHandle?: string;
+  role: UserRole;
+  ratingAvg: number;
+  totalCompletedOrders: number;
+  createdAt: string;
+}
 
 const CATEGORIES: SupplierCategory[] = [
   'Beverages',
@@ -64,11 +107,25 @@ const CATEGORIES: SupplierCategory[] = [
 
 const CAMPUS_ZONES = ['COM3', 'UTown', 'PGPR', 'FASS', 'Central Lib', 'Science', 'Engineering'];
 
+const USER_ROLES: UserRole[] = ['STUDENT', 'ADMIN'];
+
+// Reads the `role` claim out of a JWT payload without verifying its signature
+// (signature verification happens server-side; this is just a client-side gate).
+function decodeJwtRole(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json).role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Demo tokens for live mentor evaluation
 type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
 
 export default function App() {
-  const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit'>('suppliers');
+  const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit' | 'users'>('suppliers');
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +134,13 @@ export default function App() {
   // Demo Auth Role Switcher state
   const [currentRole, setCurrentRole] = useState<DemoRole>('ADMIN');
   const [authToken, setAuthToken] = useState<string>('');
-  const isAdmin = currentRole === 'ADMIN';
+
+  // Admin Login Gate state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,10 +174,12 @@ export default function App() {
     startingTime: '0800hrs',
     closingTime: '2000hrs',
   });
+  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
 
   // Edit Supplier Modal state
   const [editingSupplier, setEditingSupplier] = useState<SupplierDTO | null>(null);
   const [editFormData, setEditFormData] = useState<UpdateSupplierRequest>({});
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
 
   // Delete Supplier Modal state
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierDTO | null>(null);
@@ -126,55 +191,76 @@ export default function App() {
   // Mobile menu drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Authenticate demo sessions with backend User Service
-  const loginDemoUser = async (role: DemoRole) => {
-    setCurrentRole(role);
-    if (role === 'GUEST') {
-      setAuthToken('');
-      setActionAlert({
-        type: 'success',
-        message: 'Switched session to Guest (Unauthenticated). Write operations will be rejected (401).',
-      });
-      return;
-    }
+  // ----------------------------------------------------
+  // Users Directory state (Admin-only, read-only feature)
+  // ----------------------------------------------------
+  const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [errorUsers, setErrorUsers] = useState<string | null>(null);
 
+  const [searchQueryUsers, setSearchQueryUsers] = useState('');
+  const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
+  // Applied filters — what the user list is actually filtered by
+  const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
+  const [minRating, setMinRating] = useState<number>(0);
+  const [minCompletedOrders, setMinCompletedOrders] = useState<number>(0);
+  // Draft filters — mutated live by the modal, only committed on "Apply Filters"
+  const [draftSelectedUserRoles, setDraftSelectedUserRoles] = useState<string[]>([]);
+  const [draftMinRating, setDraftMinRating] = useState<number>(0);
+  const [draftMinCompletedOrders, setDraftMinCompletedOrders] = useState<number>(0);
+
+  const [sortFieldUsers, setSortFieldUsers] = useState<keyof AdminUserListItem>('fullName');
+  const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
+  const [currentPageUsers, setCurrentPageUsers] = useState(1);
+
+  // Admin Login Gate handlers
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
     try {
       // AI-generated (edited by ngkhengyang)
-      const email = role === 'ADMIN' ? 'admin@nus.edu.sg' : 'alice@u.nus.edu';
-      const password = 'Password123!';
-
+      // User Service contract (PR #76): { email, password } in, { accessToken, user } out; errors are { error, code }.
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.data?.accessToken) {
-          setAuthToken(data.data.accessToken);
-          setActionAlert({
-            type: 'success',
-            message: `Switched session to ${role} (${email}). Live JWT acquired.`,
-          });
-          return;
-        }
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setLoginError({
+          code: data.code || `HTTP_${res.status}`,
+          message: data.error || 'Login failed. Please check your credentials.',
+        });
+        return;
       }
-    } catch (e) {
-      console.warn('Could not auto-login via /api/auth/login, setting demo role:', e);
+      const token: string = data.data.accessToken;
+      const role = decodeJwtRole(token);
+      if (role !== 'ADMIN') {
+        setLoginError({
+          code: 'FORBIDDEN_ROLE',
+          message: `Access denied — this portal is for Administrators only. Your account role is ${role ?? 'UNKNOWN'}.`,
+        });
+        return;
+      }
+      setAuthToken(token);
+      setCurrentRole('ADMIN');
+      setIsAuthenticated(true);
+      setLoginPassword('');
+    } catch (err: any) {
+      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
+    } finally {
+      setIsLoggingIn(false);
     }
-
-    // Fallback demo indicator
-    setAuthToken(`demo-${role.toLowerCase()}-token`);
-    setActionAlert({
-      type: 'success',
-      message: `Switched session to ${role}.`,
-    });
   };
 
-  useEffect(() => {
-    loginDemoUser('ADMIN');
-  }, []);
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setAuthToken('');
+    setLoginEmail('');
+    setLoginPassword('');
+    setLoginError(null);
+  };
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
@@ -274,9 +360,60 @@ export default function App() {
     return headers;
   };
 
+  // Fetch all users for the Users Directory (Admin-only), via the API Gateway
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+    setErrorUsers(null);
+    try {
+      const res = await fetch('/api/users?limit=100', { headers: getAuthHeaders() });
+      // AI-generated (edited by ngkhengyang)
+      if (res.status === 501) {
+        setErrorUsers('User listing is not implemented in User Service yet (GET /api/users returns 501).');
+        setUsers([]);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+      }
+      const json = await res.json();
+      if (json.success && json.data) {
+        setUsers(json.data.items || []);
+      } else {
+        throw new Error(json.error || 'Failed to parse users payload');
+      }
+    } catch (err: any) {
+      console.warn('API error fetching users:', err.message);
+      setErrorUsers('Could not connect to live User Service API (/api/users).');
+      setUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  // Shared required-field validation for Add/Edit Supplier forms
+  const validateSupplierForm = (data: {
+    name?: string;
+    campusZone?: string;
+    category?: string;
+    exactLocation?: string;
+  }) => {
+    const errors: Record<string, string> = {};
+    if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
+    if (!data.campusZone?.trim()) errors.campusZone = 'Campus Zone is required.';
+    if (!data.category?.trim()) errors.category = 'Category is required.';
+    if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
+    return errors;
+  };
+
   // 1. Create Supplier Handler
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors = validateSupplierForm(newSupplier);
+    if (Object.keys(errors).length > 0) {
+      setAddFormErrors(errors);
+      return;
+    }
+    setAddFormErrors({});
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -330,12 +467,19 @@ export default function App() {
       closingTime: supplier.closingTime || '',
       isActive: supplier.isActive,
     });
+    setEditFormErrors({});
   };
 
   // 3. Save Edit Supplier Handler
   const handleUpdateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSupplier) return;
+    const errors = validateSupplierForm(editFormData);
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors);
+      return;
+    }
+    setEditFormErrors({});
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -504,6 +648,141 @@ export default function App() {
     return set.size;
   }, [suppliers]);
 
+  // ----------------------------------------------------
+  // Users Directory: sort, filter, pagination
+  // ----------------------------------------------------
+  const handleSortUsers = (field: keyof AdminUserListItem) => {
+    if (sortFieldUsers === field) {
+      setSortDirectionUsers((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortFieldUsers(field);
+      setSortDirectionUsers('asc');
+    }
+  };
+
+  const resetUserFilters = () => {
+    setSelectedUserRoles([]);
+    setMinRating(0);
+    setMinCompletedOrders(0);
+    setDraftSelectedUserRoles([]);
+    setDraftMinRating(0);
+    setDraftMinCompletedOrders(0);
+    setCurrentPageUsers(1);
+    setIsUserFilterModalOpen(false);
+  };
+
+  const activeUserFilterCount =
+    (selectedUserRoles.length > 0 ? 1 : 0) + (minRating > 0 ? 1 : 0) + (minCompletedOrders > 0 ? 1 : 0);
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let result = users.filter((u) => {
+      const query = searchQueryUsers.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        u.nusEmail.toLowerCase().includes(query) ||
+        u.fullName.toLowerCase().includes(query) ||
+        u.matricNumber.toLowerCase().includes(query) ||
+        (u.phoneNumber && u.phoneNumber.toLowerCase().includes(query)) ||
+        (u.telegramHandle && u.telegramHandle.toLowerCase().includes(query));
+
+      const matchesRole = selectedUserRoles.length === 0 || selectedUserRoles.includes(u.role);
+      const matchesRating = minRating <= 0 || u.ratingAvg >= minRating;
+      const matchesOrders = minCompletedOrders <= 0 || u.totalCompletedOrders >= minCompletedOrders;
+
+      return matchesSearch && matchesRole && matchesRating && matchesOrders;
+    });
+
+    result.sort((a, b) => {
+      let valA = a[sortFieldUsers];
+      let valB = b[sortFieldUsers];
+
+      if (valA === undefined || valA === null) valA = '';
+      if (valB === undefined || valB === null) valB = '';
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortDirectionUsers === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirectionUsers === 'asc' ? valA - valB : valB - valA;
+      }
+      return 0;
+    });
+
+    return result;
+  }, [users, searchQueryUsers, selectedUserRoles, minRating, minCompletedOrders, sortFieldUsers, sortDirectionUsers]);
+
+  const totalPagesUsers = Math.max(1, Math.ceil(filteredAndSortedUsers.length / pageSize));
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPageUsers - 1) * pageSize;
+    return filteredAndSortedUsers.slice(start, start + pageSize);
+  }, [filteredAndSortedUsers, currentPageUsers, pageSize]);
+
+  const userStats = useMemo(() => {
+    const admins = users.filter((u) => u.role === 'ADMIN').length;
+    const students = users.filter((u) => u.role === 'STUDENT').length;
+    const avgRating = users.length > 0 ? users.reduce((sum, u) => sum + u.ratingAvg, 0) / users.length : 0;
+    return { admins, students, avgRating };
+  }, [users]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-100">
+        <form onSubmit={handleAdminLogin} className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm space-y-5">
+          <div className="text-center space-y-1">
+            <div className="w-10 h-10 mx-auto rounded-lg bg-orange-500 flex items-center justify-center font-black text-white text-xl">
+              A
+            </div>
+            <h1 className="text-lg font-bold text-slate-900">Admin Log In</h1>
+            <p className="text-xs text-slate-500">NUS CampusErrand Admin Control Portal</p>
+          </div>
+
+          {loginError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+              <p className="font-bold">{loginError.code}</p>
+              <p>{loginError.message}</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="example@nus.edu.sg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                disabled={isLoggingIn}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoggingIn}
+            className="w-full flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+          >
+            {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
+            <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden">
       {/* Desktop Left Sidebar */}
@@ -532,6 +811,21 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => {
+              setActiveNav('users');
+              fetchUsers();
+            }}
+            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
+              activeNav === 'users'
+                ? 'bg-blue-600 text-white shadow'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Users</span>
+          </button>
+
+          <button
             onClick={() => setActiveNav('health')}
             className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
               activeNav === 'health'
@@ -556,51 +850,19 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Demo RBAC Switcher Footer */}
+        {/* Session Footer */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/60">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-            <span>Demo RBAC Role</span>
-            {currentRole === 'ADMIN' ? (
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            ) : currentRole === 'STUDENT' ? (
-              <ShieldAlert className="w-4 h-4 text-amber-400" />
-            ) : (
-              <User className="w-4 h-4 text-slate-400" />
-            )}
+          <div className="flex items-center space-x-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-xs font-bold text-slate-300 truncate">{loginEmail || 'Admin'}</span>
           </div>
-          <div className="grid grid-cols-3 gap-1 bg-slate-800 p-1 rounded-lg text-[11px] font-semibold text-center">
-            <button
-              onClick={() => loginDemoUser('ADMIN')}
-              className={`py-1 rounded ${
-                currentRole === 'ADMIN' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Admin
-            </button>
-            <button
-              onClick={() => loginDemoUser('STUDENT')}
-              className={`py-1 rounded ${
-                currentRole === 'STUDENT' ? 'bg-amber-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Student
-            </button>
-            <button
-              onClick={() => loginDemoUser('GUEST')}
-              className={`py-1 rounded ${
-                currentRole === 'GUEST' ? 'bg-rose-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Guest
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-500 mt-2">
-            {currentRole === 'ADMIN'
-              ? '✅ Full write access to create, edit, toggle, and delete.'
-              : currentRole === 'STUDENT'
-              ? '⛔ Read-only; write endpoints return 403 Forbidden.'
-              : '⛔ No token; write endpoints return 401 Unauthorized.'}
-          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Log Out</span>
+          </button>
         </div>
       </aside>
 
@@ -619,6 +881,8 @@ export default function App() {
               <h2 className="text-base md:text-lg font-bold text-slate-900 leading-tight">
                 {activeNav === 'suppliers'
                   ? 'Campus Suppliers Directory'
+                  : activeNav === 'users'
+                  ? 'User Directory'
                   : activeNav === 'health'
                   ? 'System Health & Services'
                   : 'Audit Log & Resolution'}
@@ -647,16 +911,21 @@ export default function App() {
             </div>
 
             <button
-              onClick={fetchSuppliers}
+              onClick={() => (activeNav === 'users' ? fetchUsers() : fetchSuppliers())}
               className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-              title="Refresh suppliers list"
+              title={activeNav === 'users' ? 'Refresh users list' : 'Refresh suppliers list'}
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${(activeNav === 'users' ? isLoadingUsers : isLoading) ? 'animate-spin' : ''}`}
+              />
             </button>
 
-            {isAdmin && (
+            {activeNav === 'suppliers' && (
               <button
-                onClick={() => setIsAddOpen(true)}
+                onClick={() => {
+                  setAddFormErrors({});
+                  setIsAddOpen(true);
+                }}
                 className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
               >
                 <Plus className="w-4 h-4" />
@@ -679,6 +948,18 @@ export default function App() {
               Campus Suppliers (M3)
             </button>
             <button
+              onClick={() => {
+                setActiveNav('users');
+                fetchUsers();
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+                activeNav === 'users' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Users
+            </button>
+            <button
               onClick={() => { setActiveNav('health'); setMobileMenuOpen(false); }}
               className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
                 activeNav === 'health' ? 'bg-blue-600 text-white' : 'text-slate-300'
@@ -687,12 +968,13 @@ export default function App() {
               Microservice Health
             </button>
             <div className="pt-2 border-t border-slate-800">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Switch Role</span>
-              <div className="grid grid-cols-3 gap-1 text-[11px]">
-                <button onClick={() => loginDemoUser('ADMIN')} className="bg-emerald-700 py-1 rounded text-center">Admin</button>
-                <button onClick={() => loginDemoUser('STUDENT')} className="bg-amber-700 py-1 rounded text-center">Student</button>
-                <button onClick={() => loginDemoUser('GUEST')} className="bg-rose-700 py-1 rounded text-center">Guest</button>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
             </div>
           </div>
         )}
@@ -725,10 +1007,10 @@ export default function App() {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
-          {error && (
+          {(activeNav === 'users' ? errorUsers : error) && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>{error}</span>
+              <span>{activeNav === 'users' ? errorUsers : error}</span>
             </div>
           )}
 
@@ -850,18 +1132,14 @@ export default function App() {
                     )}
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                      {isAdmin ? (
-                        <button
-                          onClick={() => toggleStatus(s.id)}
-                          className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
-                            s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                        >
-                          {s.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                      ) : (
-                        <span />
-                      )}
+                      <button
+                        onClick={() => toggleStatus(s.id)}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
+                          s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {s.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
 
                       <div className="flex items-center space-x-1">
                         <button
@@ -871,27 +1149,23 @@ export default function App() {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => openEditModal(s)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="Edit Location"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeletingSupplier(s);
-                                setIsPermanentDelete(false);
-                              }}
-                              className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
-                              title="Delete Location"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => openEditModal(s)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="Edit Location"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingSupplier(s);
+                            setIsPermanentDelete(false);
+                          }}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                          title="Delete Location"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1005,17 +1279,15 @@ export default function App() {
                           )}
                         </td>
                         <td className="p-3.5 text-right space-x-1">
-                          {isAdmin && (
-                            <button
-                              onClick={() => toggleStatus(s.id)}
-                              className={`text-xs font-semibold px-2 py-1 rounded transition ${
-                                s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                              }`}
-                              title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
-                            >
-                              {s.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                          )}
+                          <button
+                            onClick={() => toggleStatus(s.id)}
+                            className={`text-xs font-semibold px-2 py-1 rounded transition ${
+                              s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                            title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
+                          >
+                            {s.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
                           <button
                             onClick={() => setViewingSupplier(s)}
                             className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
@@ -1023,27 +1295,23 @@ export default function App() {
                           >
                             <Eye className="w-3.5 h-3.5 inline" />
                           </button>
-                          {isAdmin && (
-                            <>
-                              <button
-                                onClick={() => openEditModal(s)}
-                                className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
-                                title="Edit details"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 inline" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDeletingSupplier(s);
-                                  setIsPermanentDelete(false);
-                                }}
-                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
-                                title="Delete supplier"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 inline" />
-                              </button>
-                            </>
-                          )}
+                          <button
+                            onClick={() => openEditModal(s)}
+                            className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                            title="Edit details"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 inline" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletingSupplier(s);
+                              setIsPermanentDelete(false);
+                            }}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            title="Delete supplier"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 inline" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1091,6 +1359,267 @@ export default function App() {
                   <button
                     disabled={currentPage >= totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeNav === 'users' && (
+            <div className="space-y-4">
+              {/* Desktop KPI Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Total Users</span>
+                  <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{users.length}</p>
+                </div>
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Admins</span>
+                  <p className="text-xl md:text-2xl font-black text-blue-600 mt-1">{userStats.admins}</p>
+                </div>
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Students</span>
+                  <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{userStats.students}</p>
+                </div>
+                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Avg Rating</span>
+                  <p className="text-xl md:text-2xl font-black text-emerald-600 mt-1">
+                    {userStats.avgRating.toFixed(2)} ★
+                  </p>
+                </div>
+              </div>
+
+              {/* Filters & Search Row */}
+              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md flex items-center">
+                  <Search className="w-4 h-4 absolute left-3 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by email, name, matric no., phone, or Telegram..."
+                    value={searchQueryUsers}
+                    onChange={(e) => {
+                      setSearchQueryUsers(e.target.value);
+                      setCurrentPageUsers(1);
+                    }}
+                    className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {searchQueryUsers && (
+                    <button
+                      onClick={() => setSearchQueryUsers('')}
+                      className="absolute right-3 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
+                  <button
+                    onClick={() => {
+                      setDraftSelectedUserRoles(selectedUserRoles);
+                      setDraftMinRating(minRating);
+                      setDraftMinCompletedOrders(minCompletedOrders);
+                      setIsUserFilterModalOpen(true);
+                    }}
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border shrink-0 transition ${
+                      activeUserFilterCount > 0
+                        ? 'bg-blue-50 border-blue-300 text-blue-700'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Filter</span>
+                    {activeUserFilterCount > 0 && (
+                      <span className="ml-1 bg-blue-600 text-white rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center font-bold">
+                        {activeUserFilterCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="block md:hidden space-y-3">
+                {paginatedUsers.map((u) => (
+                  <div
+                    key={u.id}
+                    className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2.5"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                          {u.matricNumber}
+                        </span>
+                        <h3 className="font-bold text-sm text-slate-900 mt-1">{u.fullName}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{u.nusEmail}</p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          u.role === 'ADMIN'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                      <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded">
+                        ★ {u.ratingAvg.toFixed(2)}
+                      </span>
+                      <span className="bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded">
+                        {u.totalCompletedOrders} orders completed
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
+                      {u.phoneNumber && <span>{u.phoneNumber}</span>}
+                      {u.telegramHandle && <span>{u.telegramHandle}</span>}
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                      Joined {new Date(u.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Data Table View */}
+              <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
+                      <th
+                        onClick={() => handleSortUsers('matricNumber')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Matric No.</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('fullName')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Name & Email</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('role')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Role</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('ratingAvg')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Rating</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortUsers('totalCompletedOrders')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Completed Orders</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                      <th className="p-3.5">Phone</th>
+                      <th className="p-3.5">Telegram</th>
+                      <th
+                        onClick={() => handleSortUsers('createdAt')}
+                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <span>Joined</span>
+                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginatedUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-50 transition">
+                        <td className="p-3.5 font-mono font-bold text-slate-700">{u.matricNumber}</td>
+                        <td className="p-3.5">
+                          <div className="font-semibold text-slate-900">{u.fullName}</div>
+                          <div className="text-[11px] text-slate-400">{u.nusEmail}</div>
+                        </td>
+                        <td className="p-3.5">
+                          <span
+                            className={`px-2 py-0.5 rounded font-bold ${
+                              u.role === 'ADMIN' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-slate-600">★ {u.ratingAvg.toFixed(2)}</td>
+                        <td className="p-3.5 text-slate-600">{u.totalCompletedOrders}</td>
+                        <td className="p-3.5 text-slate-600">{u.phoneNumber || '—'}</td>
+                        <td className="p-3.5 text-slate-600">{u.telegramHandle || '—'}</td>
+                        <td className="p-3.5 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                    {paginatedUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-slate-400">
+                          No users found matching your query.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Unified Pagination Bar */}
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+                <span>
+                  Showing {Math.min(filteredAndSortedUsers.length, (currentPageUsers - 1) * pageSize + 1)} to{' '}
+                  {Math.min(filteredAndSortedUsers.length, currentPageUsers * pageSize)} of{' '}
+                  {filteredAndSortedUsers.length} users
+                </span>
+
+                <div className="flex items-center space-x-1">
+                  <button
+                    disabled={currentPageUsers <= 1}
+                    onClick={() => setCurrentPageUsers((p) => Math.max(1, p - 1))}
+                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {Array.from({ length: totalPagesUsers }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPageUsers(page)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                        currentPageUsers === page
+                          ? 'bg-slate-900 text-white'
+                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPageUsers >= totalPagesUsers}
+                    onClick={() => setCurrentPageUsers((p) => Math.min(totalPagesUsers, p + 1))}
                     className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -1239,6 +1768,102 @@ export default function App() {
         </div>
       )}
 
+      {/* Users Filter Modal */}
+      {isUserFilterModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-base text-slate-900">Filter Users</h3>
+              <button
+                onClick={() => {
+                  setDraftSelectedUserRoles(selectedUserRoles);
+                  setDraftMinRating(minRating);
+                  setDraftMinCompletedOrders(minCompletedOrders);
+                  setIsUserFilterModalOpen(false);
+                }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">Role</label>
+              <div className="flex flex-wrap gap-2">
+                {USER_ROLES.map((role) => {
+                  const active = draftSelectedUserRoles.includes(role);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => toggleFilterChip(draftSelectedUserRoles, role, setDraftSelectedUserRoles)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                        active
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {role}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Min Rating</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  value={draftMinRating || ''}
+                  onChange={(e) => setDraftMinRating(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder="0.0"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Min Completed Orders</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={draftMinCompletedOrders || ''}
+                  onChange={(e) => setDraftMinCompletedOrders(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={resetUserFilters}
+                className="text-xs font-bold text-slate-600 hover:text-slate-900"
+              >
+                Reset All Filters
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUserRoles(draftSelectedUserRoles);
+                  setMinRating(draftMinRating);
+                  setMinCompletedOrders(draftMinCompletedOrders);
+                  setIsUserFilterModalOpen(false);
+                  setCurrentPageUsers(1);
+                }}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Supplier Modal */}
       {isAddOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1250,32 +1875,56 @@ export default function App() {
               <h3 className="font-bold text-base text-slate-900">Add New Campus Supplier</h3>
               <button
                 type="button"
-                onClick={() => setIsAddOpen(false)}
+                onClick={() => {
+                  setAddFormErrors({});
+                  setIsAddOpen(false);
+                }}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            <p className="text-[11px] text-slate-400">
+              Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
+            </p>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Store / Spot Name *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Store / Spot Name <span className="text-rose-600">*</span>
+              </label>
+              {addFormErrors.name && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.name}</p>}
               <input
                 type="text"
-                required
                 placeholder="e.g. LiHO Tea @ UTown"
                 value={newSupplier.name}
-                onChange={(e) => setNewSupplier({ ...newSupplier, name: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setNewSupplier({ ...newSupplier, name: e.target.value });
+                  if (addFormErrors.name) setAddFormErrors({ ...addFormErrors, name: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  addFormErrors.name ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Campus Zone *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Campus Zone <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.campusZone && (
+                  <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.campusZone}</p>
+                )}
                 <select
                   value={newSupplier.campusZone}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, campusZone: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setNewSupplier({ ...newSupplier, campusZone: e.target.value });
+                    if (addFormErrors.campusZone) setAddFormErrors({ ...addFormErrors, campusZone: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CAMPUS_ZONES.map((z) => (
                     <option key={z} value={z}>{z}</option>
@@ -1284,11 +1933,19 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Category <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.category && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.category}</p>}
                 <select
                   value={newSupplier.category}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, category: e.target.value as SupplierCategory })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setNewSupplier({ ...newSupplier, category: e.target.value as SupplierCategory });
+                    if (addFormErrors.category) setAddFormErrors({ ...addFormErrors, category: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.category ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -1298,14 +1955,23 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Exact Pickup Spot Description *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Exact Pickup Spot Description <span className="text-rose-600">*</span>
+              </label>
+              {addFormErrors.exactLocation && (
+                <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.exactLocation}</p>
+              )}
               <input
                 type="text"
-                required
                 placeholder="e.g. Stephen Riady Centre Level 1 next to FairPrice"
                 value={newSupplier.exactLocation}
-                onChange={(e) => setNewSupplier({ ...newSupplier, exactLocation: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setNewSupplier({ ...newSupplier, exactLocation: e.target.value });
+                  if (addFormErrors.exactLocation) setAddFormErrors({ ...addFormErrors, exactLocation: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  addFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
@@ -1357,10 +2023,24 @@ export default function App() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+              <textarea
+                rows={4}
+                placeholder="e.g. Specialty coffee, pastries, and sandwiches"
+                value={newSupplier.description || ''}
+                onChange={(e) => setNewSupplier({ ...newSupplier, description: e.target.value })}
+                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
             <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setIsAddOpen(false)}
+                onClick={() => {
+                  setAddFormErrors({});
+                  setIsAddOpen(false);
+                }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
@@ -1393,31 +2073,55 @@ export default function App() {
               </div>
               <button
                 type="button"
-                onClick={() => setEditingSupplier(null)}
+                onClick={() => {
+                  setEditFormErrors({});
+                  setEditingSupplier(null);
+                }}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            <p className="text-[11px] text-slate-400">
+              Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
+            </p>
+
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Store / Spot Name *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Store / Spot Name <span className="text-rose-600">*</span>
+              </label>
+              {editFormErrors.name && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.name}</p>}
               <input
                 type="text"
-                required
                 value={editFormData.name || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, name: e.target.value });
+                  if (editFormErrors.name) setEditFormErrors({ ...editFormErrors, name: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  editFormErrors.name ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Campus Zone</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Campus Zone <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.campusZone && (
+                  <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.campusZone}</p>
+                )}
                 <select
                   value={editFormData.campusZone}
-                  onChange={(e) => setEditFormData({ ...editFormData, campusZone: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, campusZone: e.target.value });
+                    if (editFormErrors.campusZone) setEditFormErrors({ ...editFormErrors, campusZone: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    editFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CAMPUS_ZONES.map((z) => (
                     <option key={z} value={z}>{z}</option>
@@ -1426,11 +2130,21 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Category <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.category && (
+                  <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.category}</p>
+                )}
                 <select
                   value={editFormData.category}
-                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value as SupplierCategory })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, category: e.target.value as SupplierCategory });
+                    if (editFormErrors.category) setEditFormErrors({ ...editFormErrors, category: '' });
+                  }}
+                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    editFormErrors.category ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -1440,12 +2154,22 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Exact Pickup Spot Description</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Exact Pickup Spot Description <span className="text-rose-600">*</span>
+              </label>
+              {editFormErrors.exactLocation && (
+                <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.exactLocation}</p>
+              )}
               <input
                 type="text"
                 value={editFormData.exactLocation || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, exactLocation: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, exactLocation: e.target.value });
+                  if (editFormErrors.exactLocation) setEditFormErrors({ ...editFormErrors, exactLocation: '' });
+                }}
+                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  editFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
+                }`}
               />
             </div>
 
@@ -1496,7 +2220,7 @@ export default function App() {
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
               <textarea
-                rows={2}
+                rows={4}
                 value={editFormData.description || ''}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                 className="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1506,7 +2230,10 @@ export default function App() {
             <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
-                onClick={() => setEditingSupplier(null)}
+                onClick={() => {
+                  setEditFormErrors({});
+                  setEditingSupplier(null);
+                }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel

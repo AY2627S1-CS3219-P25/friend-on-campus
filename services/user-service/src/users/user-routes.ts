@@ -5,6 +5,14 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: The deferred ADMIN placeholders now return the service's standard JSON error body with code
+ * NOT_IMPLEMENTED instead of an empty 501, so JSON clients (e.g. the admin portal Users page) do not throw.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import {
   NextFunction,
   Request,
@@ -72,19 +80,16 @@ export function createUserRouter(
   }
 
   // AI-generated (edited by ngkhengyang)
-  router.get('/', requireAdmin, (_req, _res) => {
-    throwNotImplemented();
-  });
+  const notImplemented = (_req: Request, res: Response) => {
+    res.status(501).json({
+      success: false,
+      error: 'User administration is not implemented yet',
+      code: 'NOT_IMPLEMENTED',
+    });
+  };
 
-  // AI-generated (edited by ngkhengyang)
-  router.get('/:id', requireAdmin, (_req, _res) => {
-    throwNotImplemented();
-  });
-
-  // AI-generated (edited by ngkhengyang)
-  router.post('/:id/promote', requireAdmin, (_req, _res) => {
-    throwNotImplemented();
-  });
+  router.get('/', requireAdmin, notImplemented);
+  router.post('/:id/promote', requireAdmin, notImplemented);
 
   return router;
 }

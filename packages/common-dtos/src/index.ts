@@ -20,6 +20,15 @@
  */
 // AI-generated (edited by ngkhengyang)
 /**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: JWTPayload now uses the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud);
+ * LoginUserRequest.keepLoggedIn made optional and UpdateUserProfileRequest.username made required to match
+ * the User Service behaviour and API reference. Applied on the PR author's behalf after review round 2.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+/**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
  */
@@ -59,6 +68,10 @@ export interface RefreshTokenResponse {
   accessTokenExpiresInSeconds: number;
 }
 
+/**
+ * Access-token claims (RFC 7519 registered names so standard JWT libraries enforce exp/iss/aud).
+ * sub = user id, sid = login session id.
+ */
 export interface JWTPayload {
   sub: string;
   sid: string;
@@ -70,7 +83,7 @@ export interface JWTPayload {
 }
 
 export interface UpdateUserProfileRequest {
-  username?: string;
+  username: string;
 }
 
 export interface ChangePasswordRequest {

@@ -8,6 +8,12 @@
 # Scope: Supplied the author-approved Ed25519 verification configuration to Supplier Service.
 # Author review: <to be completed by ngkhengyang>
 
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+# Scope: JWT key variables now fail `docker compose up` immediately with an instruction when unset (`:?`) instead of
+# expanding to an empty string and crashing two containers; CORS_ORIGIN passed through to user-service.
+# Author review: <to be completed by ngkhengyang>
+
 services:
   # ----------------------------------------------------
   # Ingress API Gateway & Reverse Proxy (Nginx)
@@ -73,8 +79,8 @@ services:
     environment:
       PORT: 8001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/user_db
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-friend-on-campus-services}
       JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-15m}
@@ -107,7 +113,7 @@ services:
       - PORT=8002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/supplier_db
       # AI-generated (edited by ngkhengyang)
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:

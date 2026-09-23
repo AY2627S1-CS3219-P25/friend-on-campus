@@ -5,6 +5,14 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: findUserByEmail now queries LOWER(email) so it uses the case-insensitive unique index instead of a
+ * sequential scan; added deleteExpiredSessions for opportunistic clean-up of idle-expired session rows.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { Prisma, PrismaClient, User as PrismaUser } from '../database/generated/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
@@ -49,6 +57,7 @@ export interface AuthRepository {
     persistentIdleExpiresAt: Date,
   ): Promise<SessionUserRecord | null>;
   revokeSession(refreshTokenHash: string): Promise<void>;
+  deleteExpiredSessions(now: Date): Promise<void>;
 }
 
 type SessionWithUser = Prisma.SessionGetPayload<{ include: { user: true } }>;
@@ -88,21 +97,16 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
     },
 
     async findUserByEmail(email) {
-      const users = await prisma.$queryRaw<PrismaUser[]>`
-        SELECT
-          id,
-          username,
-          email,
-          password_hash AS "passwordHash",
-          role,
-          created_at AS "createdAt",
-          updated_at AS "updatedAt"
+      // Matches the users_email_case_insensitive_uq expression index (LOWER(email)); a plain
+      // `WHERE email = $1` cannot use it. Parameterised by Prisma's tagged template.
+      const rows = await prisma.$queryRaw<PrismaUser[]>`
+        SELECT id, username, email, password_hash AS "passwordHash", role,
+               created_at AS "createdAt", updated_at AS "updatedAt"
         FROM users
         WHERE LOWER(email) = LOWER(${email})
         LIMIT 1
       `;
-      const user = users[0];
-      return user ? toUserRecord(user) : null;
+      return rows.length === 1 ? toUserRecord(rows[0]) : null;
     },
 
     async cleanupExpiredSessions(now) {
@@ -161,6 +165,10 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
 
     async revokeSession(refreshTokenHash) {
       await prisma.session.deleteMany({ where: { refreshTokenHash } });
+    },
+
+    async deleteExpiredSessions(now) {
+      await prisma.session.deleteMany({ where: { idleExpiresAt: { lte: now } } });
     },
   };
 }

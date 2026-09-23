@@ -19,6 +19,16 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Login now verifies the password against a constant dummy scrypt hash when the email is unknown, so
+ * unknown-email and wrong-password attempts take comparable time; login and refresh opportunistically delete
+ * idle-expired session rows.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+import { randomBytes } from 'node:crypto';
 import type {
   AuthResponse,
   LoginUserRequest,
@@ -158,6 +168,10 @@ function mapDuplicateUserError(error: unknown): never {
 }
 
 export function createAuthModule(options: AuthModuleOptions): AuthModule {
+  // Verified against when no account matches, so a login for an unknown email costs the same
+  // scrypt work as a wrong password (no account-enumeration timing side channel).
+  const dummyPasswordHash = hashPassword(randomBytes(32).toString('base64url'));
+
   function issueAccessToken(session: SessionUserRecord): string {
     return options.tokens.issueAccessToken(
       session.user.id,
@@ -194,9 +208,15 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
       const passwordMatches = await verifyPassword(password, passwordHash);
 
+      const passwordMatches = await verifyPassword(
+        password,
+        user ? user.passwordHash : await dummyPasswordHash,
+      );
       if (!user || !passwordMatches) {
         throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
       }
+
+      await options.repository.deleteExpiredSessions(new Date());
 
       const persistent = input.keepLoggedIn === true;
       const refreshTokenIdleLifetimeSeconds = persistent
@@ -231,6 +251,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       await options.repository.cleanupExpiredSessions(new Date());
       const nextRefreshToken = options.tokens.generateRefreshToken();
       const now = new Date();
+      await options.repository.deleteExpiredSessions(now);
       const standardIdleExpiresAt = addSeconds(now, options.refreshTokenIdleLifetimeSeconds);
       const persistentIdleExpiresAt = addSeconds(
         now,

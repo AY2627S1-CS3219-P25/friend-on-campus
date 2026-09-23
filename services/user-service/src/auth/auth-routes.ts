@@ -5,6 +5,14 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: A malformed (non-URI-encoded) refresh cookie is now treated as absent (401 INVALID_SESSION) instead of
+ * throwing URIError into the 500 handler.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
 import { AuthError, AuthModule } from './auth-module';
@@ -40,7 +48,7 @@ function readCookie(req: Request, name: string): string | undefined {
       try {
         return decodeURIComponent(cookie.slice(separatorIndex + 1).trim());
       } catch {
-        throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
+        return undefined;
       }
     }
   }

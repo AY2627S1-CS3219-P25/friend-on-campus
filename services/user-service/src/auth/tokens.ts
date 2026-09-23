@@ -1,7 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
- * Scope: Implemented Ed25519 access-token issuance with interoperable JWT claims and refresh-token session claims.
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Access tokens now carry the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud) typed by the
+ * shared JWTPayload from common-dtos, replacing the local claim interface. Signing, refresh-token generation and hashing
+ * are unchanged from the PR author's version.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)

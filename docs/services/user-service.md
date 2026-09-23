@@ -12,6 +12,12 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+Scope: Updated the access-token claim names to the RFC 7519 registered names now emitted by the service.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated local and Compose database connection facts for the shared PostgreSQL deployment.
 Author review: <to be completed by ngkhengyang>
@@ -99,11 +105,10 @@ The endpoint-level request and response examples are in
 
 ## Authentication and sessions
 
-Access tokens use Ed25519 and include standard `sub`, `sid`, `iat`, `exp`, `iss`, and
-`aud` claims plus the custom `role` claim. Refresh tokens are opaque and only their
-hashes are persisted. A previously rotated refresh token returns `401 INVALID_SESSION`
-without revoking the active session. Logout prevents refresh-token use; access tokens
-already issued remain valid until their configured expiry.
+Access tokens use Ed25519 and carry the RFC 7519 registered claims `sub` (user id),
+`sid` (session id), `role`, `iat`, `exp`, `iss`, and `aud`. Refresh tokens are opaque and only their
+hashes are persisted. Logout prevents refresh-token use; access tokens already issued
+remain valid until their configured expiry.
 
 ## Development seed accounts
 

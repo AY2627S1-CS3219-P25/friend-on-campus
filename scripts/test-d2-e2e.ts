@@ -11,8 +11,17 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Made the runner work on Windows (spawn through a shell so `npx` resolves; kill the process tree on
+ * cleanup), raised the service readiness timeout from 8 s to 30 s (user-service cold-starts in ~10 s), and
+ * added an assertion that the access token carries the standard claims (sub, sid, role, iat, exp, iss, aud).
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import path from 'path';
 
@@ -53,12 +62,15 @@ function assert(condition: boolean, message: string) {
   }
 }
 
-function decodeJwtPayload(accessToken: string): Record<string, unknown> {
-  const payload = accessToken.split('.')[1];
-  return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as Record<string, unknown>;
+// On Windows `npx` is npx.cmd, which spawn() only finds through a shell.
+const SPAWN_THROUGH_SHELL = process.platform === 'win32';
+
+function decodeJwtClaims(token: string): Record<string, unknown> {
+  const [, payload] = token.split('.');
+  return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
 }
 
-async function waitReady(url: string, timeoutMs = 8000): Promise<boolean> {
+async function waitReady(url: string, timeoutMs = 30000): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
@@ -88,6 +100,7 @@ async function runTests() {
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/user_db',
     },
     stdio: 'pipe',
+    shell: SPAWN_THROUGH_SHELL,
   });
 
   // 2. Start Supplier Service
@@ -103,6 +116,7 @@ async function runTests() {
       JWT_AUDIENCE: testJwtEnvironment.JWT_AUDIENCE,
     },
     stdio: 'pipe',
+    shell: SPAWN_THROUGH_SHELL,
   });
 
   const userReady = await waitReady(`${USER_API}/health`);
@@ -182,6 +196,17 @@ async function runTests() {
     assert(adminLoginRes.status === 200, 'Admin login with valid credentials succeeds (200 OK)');
     assert(adminLoginData.data?.user?.userRole === 'ADMIN', 'Admin user has role ADMIN');
     const adminToken = adminLoginData.data?.accessToken;
+    const adminClaims = adminToken ? decodeJwtClaims(adminToken) : {};
+    assert(
+      adminClaims.sub === adminLoginData.data?.user?.userId &&
+        typeof adminClaims.sid === 'string' &&
+        adminClaims.role === 'ADMIN' &&
+        typeof adminClaims.iat === 'number' &&
+        typeof adminClaims.exp === 'number' &&
+        adminClaims.iss === testJwtEnvironment.JWT_ISSUER &&
+        adminClaims.aud === testJwtEnvironment.JWT_AUDIENCE,
+      'Access token carries standard JWT claims (sub, sid, role, iat, exp, iss, aud)',
+    );
 
     // Login the account registered above; registration itself must not authenticate it.
     const studentLoginRes = await fetch(`${USER_API}/api/auth/login`, {
@@ -437,13 +462,27 @@ async function runTests() {
   }
 }
 
+// With shell: true on Windows, child.kill() only ends the cmd.exe wrapper and leaves the tsx server
+// listening on the port; taskkill /T ends the whole process tree.
+function killProcessTree(child: ChildProcess) {
+  if (SPAWN_THROUGH_SHELL && child.pid) {
+    try {
+      execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      return;
+    } catch {
+      // fall through to the plain kill
+    }
+  }
+  child.kill();
+}
+
 function cleanup() {
   if (userProcess) {
-    userProcess.kill();
+    killProcessTree(userProcess);
     userProcess = null;
   }
   if (supplierProcess) {
-    supplierProcess.kill();
+    killProcessTree(supplierProcess);
     supplierProcess = null;
   }
 }
