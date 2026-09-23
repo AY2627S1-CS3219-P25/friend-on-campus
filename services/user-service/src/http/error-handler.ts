@@ -5,6 +5,14 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Body-parser client errors (malformed JSON, oversized body) are now answered with their own 4xx status
+ * and a JSON body instead of falling through to the generic 500 handler.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { ErrorRequestHandler } from 'express';
 import { AuthError, AuthErrorCode } from '../auth/auth-module';
 import { logError } from '../utils/logger';
@@ -25,7 +33,24 @@ const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   USER_NOT_FOUND: 404,
 };
 
+interface HttpClientError {
+  status?: unknown;
+  type?: unknown;
+}
+
 export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
+  // express.json() rejects a malformed or oversized body with an error carrying a 4xx `status`.
+  const clientError = error as HttpClientError;
+  if (typeof clientError.status === 'number' && clientError.status >= 400 && clientError.status < 500) {
+    const malformedJson = clientError.type === 'entity.parse.failed';
+    res.status(clientError.status).json({
+      success: false,
+      error: malformedJson ? 'Request body must be valid JSON' : 'Invalid request',
+      code: malformedJson ? 'INVALID_JSON' : 'INVALID_REQUEST',
+    });
+    return;
+  }
+
   const statusCode = error instanceof AuthError
     ? AUTH_ERROR_STATUS[error.code]
     : error instanceof UserError

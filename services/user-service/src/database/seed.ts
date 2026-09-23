@@ -12,6 +12,14 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: Existing-account look-up now matches on LOWER(email) like the service does, so the seed updates an
+ * account registered with different letter-casing instead of colliding with the unique index.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
 import { hashPassword } from '../auth/password';
 import { prisma } from './client';
 
@@ -31,7 +39,9 @@ async function main() {
   const passwordHash = await hashPassword('Password123!');
 
   for (const user of seedUsers) {
-    const existing = await prisma.user.findFirst({ where: { email: user.email } });
+    const [existing] = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM users WHERE LOWER(email) = LOWER(${user.email}) LIMIT 1
+    `;
     if (existing) {
       await prisma.user.update({
         where: { id: existing.id },

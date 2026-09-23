@@ -8,6 +8,10 @@
 // Scope: Replaced the legacy user model with the author-approved account and refresh-session persistence model.
 // Author review: (to be completed by ngkhengyang)
 // AI-generated (edited by ngkhengyang)
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+// Scope: Documented why username/email carry no @unique here (case-insensitive expression indexes live in SQL).
+// Author review: <to be completed by ngkhengyang>
 
 generator client {
   provider = "prisma-client-js"
@@ -19,6 +23,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// `username` and `email` are unique case-insensitively via the expression indexes
+// users_username_case_insensitive_uq and users_email_case_insensitive_uq on LOWER(...), created in the
+// migration SQL under migrations/ and in docker/postgres-init/01-init-databases.sql. Prisma cannot express
+// an expression index, so they are deliberately not `@unique` here; look-ups must go through LOWER(email)
+// (see auth-repository.findUserByEmail) and duplicate errors arrive as Postgres 23505 with the constraint name.
 model User {
   id           String    @id @default(uuid()) @db.Uuid
   username     String    @db.VarChar(50)
