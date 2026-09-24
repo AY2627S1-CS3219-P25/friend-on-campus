@@ -1,11 +1,12 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Normalized UUIDs and translated credit conflicts into HTTP 409 responses.
+ * Scope: Protected wallet and ledger reads with verified token ownership; retained escrow HTTP behavior.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
+import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import { CreditError, type CreditService } from './service';
 import type { EscrowReserveRequest } from './types';
 
@@ -32,16 +33,17 @@ function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): Re
   return (req, res, next) => { handler(req, res).catch(next); };
 }
 
-export function createCreditRouter(credits: CreditService) {
+export function createCreditRouter(credits: CreditService, authenticate: RequestHandler) {
   const router = Router();
-  router.get('/wallet', asyncRoute(async (req, res) => {
-    const userId = uuid(req.headers['x-user-id'], 'x-user-id');
+  router.get('/wallet', authenticate, asyncRoute(async (_req, res) => {
+    const userId = uuid((res.locals.auth as AuthenticatedPrincipal).userId, 'Token userId');
     res.json({ success: true, data: await credits.getWallet(userId) });
   }));
-  router.get('/ledger', asyncRoute(async (req, res) => {
-    const userId = uuid(req.headers['x-user-id'], 'x-user-id');
+  router.get('/ledger', authenticate, asyncRoute(async (_req, res) => {
+    const userId = uuid((res.locals.auth as AuthenticatedPrincipal).userId, 'Token userId');
     res.json({ success: true, data: await credits.getLedger(userId) });
   }));
+  // Service-to-service authentication is deferred; these still trust the body identifiers.
   router.post('/escrow/reserve', asyncRoute(async (req, res) => {
     const data = await credits.reserve(escrowRequest(req.body));
     res.json({ success: true, data, message: 'Escrow reserved successfully' });

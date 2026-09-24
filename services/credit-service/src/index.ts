@@ -1,11 +1,12 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Managed Prisma, RabbitMQ and HTTP readiness, startup failure and graceful shutdown.
+ * Scope: Constructed shared JWT verification before Prisma, RabbitMQ and HTTP startup.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import type { Server } from 'node:http';
+import { authMiddleware } from '@campus-errand/auth';
 import { createApp } from './app';
 import { config } from './config';
 import { createCreditService } from './credits/service';
@@ -32,6 +33,7 @@ function shutdown(failed = false) {
 }
 
 async function main() {
+  const authenticate = authMiddleware(config.auth);
   await prisma.$connect();
   // Verify migrations before accepting HTTP requests or messages.
   await Promise.all([prisma.creditWallet.findFirst(), prisma.creditTransaction.findFirst(),
@@ -42,7 +44,7 @@ async function main() {
     void shutdown(true);
   });
   if (stopping) { await consumer.close(); return; }
-  const app = createApp({ credits, port: config.port, isReady: async () => {
+  const app = createApp({ credits, authenticate, port: config.port, isReady: async () => {
     if (stopping || !consumer?.isReady()) return false;
     await prisma.$queryRaw`SELECT 1`;
     return !stopping && consumer.isReady();
@@ -53,6 +55,6 @@ async function main() {
   process.once('SIGTERM', () => { void shutdown(); });
 }
 void main().catch(async () => {
-  console.error('[Credit Service] Startup failed; check dependencies and deploy migrations');
+  console.error('[Credit Service] Startup failed; check JWT_PUBLIC_KEY, dependencies and deployed migrations');
   await shutdown(true);
 });

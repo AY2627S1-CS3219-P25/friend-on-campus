@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Exercised real PostgreSQL and RabbitMQ idempotency, retry, rollback, redelivery and routing failures.
+ * Scope: Retained messaging and readiness regression coverage with injected HTTP authentication.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -18,6 +18,7 @@ import { createCreditStore, type CreditStore } from '../src/credits/store';
 import { createCreditEventHandler, creditRoutingKeys } from '../src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../src/credits/consumer';
 import { createConfirmedPublisher, startRabbitConsumer, type MessagingConfig } from '../src/messaging/rabbitmq';
+import { createTestAuth } from './auth-fixture';
 
 async function until<T>(check: () => Promise<T>, label: string): Promise<NonNullable<T>> {
   const deadline = Date.now() + 15000;
@@ -80,7 +81,7 @@ async function main() {
   const dead = async () => (await until(() => channel.get(config.deadLetterQueue, { noAck: true }), 'dead-letter')) as GetMessage;
   let consumer: Awaited<ReturnType<typeof startRabbitConsumer>> | undefined;
   let child: ChildProcess | undefined;
-  const app = createApp({ credits, port: 0, isReady: async () => {
+  const app = createApp({ credits, authenticate: createTestAuth().authenticate, port: 0, isReady: async () => {
     await db.$queryRaw`SELECT 1`;
     return consumer?.isReady() ?? false;
   } });

@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Documented fresh database initialization and the separate Credit Service test directory.
+Scope: Documented JWT-protected wallet/ledger reads, verification configuration and authentication tests.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -19,14 +19,16 @@ From the repository root:
 docker compose up -d postgres rabbitmq
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credit_db
 export RABBITMQ_URL=amqp://guest:guest@localhost:5672
+# Use the same public key configured for User Service.
+export JWT_PUBLIC_KEY='<shared Ed25519 public key>'
 npm run db:generate --workspace=@campus-errand/credit-service
 npm run db:deploy --workspace=@campus-errand/credit-service
 npm run dev:credit
 ```
 
-If port 8004 is occupied, set `PORT=8014` for the local process. Compose parses the full project; if it requests JWT keys, use the existing repository key-generation setup. PostgreSQL and RabbitMQ must both be available before startup completes.
+If port 8004 is occupied, set `PORT=8014` for the local process. Compose parses the full project; if it requests JWT keys, use the existing repository key-generation setup. PostgreSQL and RabbitMQ must both be available before startup completes. A missing or malformed public key prevents startup before connections are opened. Credit Service requires only the public key, never `JWT_PRIVATE_KEY`.
 
-For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migrations and starts the consumer and HTTP server. The existing Compose configuration already supplies PostgreSQL/RabbitMQ addresses and dependencies; it was not changed. Docker startup now runs `db:deploy` before starting Node. No volumes need to be reset.
+For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migrations and starts the consumer and HTTP server. Compose supplies PostgreSQL/RabbitMQ addresses and the shared JWT public key, issuer and audience. Docker startup runs `db:deploy` before starting Node. No volumes need to be reset.
 
 ## Fresh database initialization
 
@@ -51,8 +53,8 @@ All five tables start empty. Wallets, grants, escrows and ledger entries are cre
 |---|---|
 | `GET /health` | Liveness, 200 while HTTP is serving |
 | `GET /ready` | 200 only when PostgreSQL responds and RabbitMQ consumers are ready; otherwise 503 |
-| `GET /api/credits/wallet` | `x-user-id` UUID header; returns wallet, lazily initializing 100 credits if missing |
-| `GET /api/credits/ledger` | Same header; returns the user's ledger, newest first |
+| `GET /api/credits/wallet` | Bearer access token; returns the authenticated user's wallet, lazily initializing 100 credits if missing |
+| `GET /api/credits/ledger` | Bearer access token; returns the authenticated user's ledger, newest first |
 | `POST /api/credits/escrow/reserve` | `{orderId, requesterId, amount}`; reserves once per order |
 | `POST /api/credits/escrow/settle` | `{orderId, requesterId, courierId, amount}`; settles the full matching reservation once |
 | `POST /api/credits/escrow/refund` | `{orderId, requesterId, amount}`; refunds the full matching reservation once |
@@ -61,7 +63,22 @@ Success response shapes remain `{success:true,data,...}`; settle returns `{reque
 
 Identical operations do not repeat balance changes, including concurrent requests. Reusing an order with a different requester, amount or settlement courier conflicts. Settlement and refund are mutually exclusive. Partial settlement/refund is no longer supported. Replays return current balances rather than saved historical responses; an identical reserve replay never reopens a terminal escrow.
 
-Wallet creation now writes exactly one welcome ledger entry and grant marker in the same transaction. Existing read DTO fields, including `totalEarnedCredits`, remain unchanged. Authentication remains pending: reads trust `x-user-id`, and mutation endpoints trust body identifiers.
+Wallet creation writes exactly one welcome ledger entry and grant marker in the same transaction. Existing read DTO fields, including `totalEarnedCredits`, remain unchanged.
+
+### User authentication
+
+Wallet and ledger reads use `@campus-errand/auth` following [User Service's authentication contract](../../services/user-service/docs/authentication-for-services.md). The middleware verifies Ed25519 signatures, token claims, expiry, issuer and audience locally. Routes use only `res.locals.auth.userId` (the verified `sub` claim); `x-user-id` and query/body identifiers cannot select another wallet or ledger. Both `STUDENT` and `ADMIN` tokens access only their own records through these endpoints. Credit user IDs must be UUIDs; a verified token with a non-UUID subject receives 400.
+
+```bash
+curl http://localhost:8004/api/credits/wallet \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+curl http://localhost:8004/api/credits/ledger \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+Obtain `ACCESS_TOKEN` through User Service login. Missing Bearer tokens return `401 MISSING_TOKEN`; expired tokens return `401 TOKEN_EXPIRED`; invalid signatures or claims return `401 INVALID_TOKEN`. Failures preserve the shared `{success:false,error,code}` response. Rejected requests never invoke credit rules or create wallets/grants. Refresh remains the frontend/User Service responsibility; logout prevents refresh but an existing access token remains valid until expiry.
+
+`/health` and `/ready` remain public. Service-to-service authentication is deferred: reserve, settle and refund still accept body identifiers without caller authentication. RabbitMQ delivery behavior is unchanged. User JWT authentication on reads does not protect those mutation endpoints.
 
 ## Registration and messages
 
@@ -81,6 +98,9 @@ All configuration is owned by `src/config.ts`; see the service's `.env.example`.
 |---|---|
 | `PORT` | `8004` |
 | `DATABASE_URL` | Local `credit_db` PostgreSQL URL |
+| `JWT_PUBLIC_KEY` | Required 59-character Base64URL DER SPKI Ed25519 public key shared with User Service |
+| `JWT_ISSUER` | `friend-on-campus-user-service` |
+| `JWT_AUDIENCE` | `friend-on-campus-services` |
 | `RABBITMQ_URL` | Local development broker URL, `amqp://guest:guest@localhost:5672` |
 | `CREDIT_EXCHANGE` | `campus.events` (topic) |
 | `CREDIT_QUEUE` | `credit-service.events` |
@@ -101,10 +121,10 @@ On dependency startup failure the process exits unsuccessfully. On a RabbitMQ co
 
 ## Files
 
-- `src/index.ts`: dependency construction, startup checks, readiness and shutdown.
+- `src/index.ts`: constructs JWT middleware once, dependency startup, readiness and shutdown.
 - `src/app.ts`: Express middleware, health/readiness and router assembly.
-- `src/config.ts`: environment defaults and retry validation.
-- `src/credits/routes.ts`: HTTP validation and error translation.
+- `src/config.ts`: environment defaults, JWT verification settings and retry validation.
+- `src/credits/routes.ts`: authenticated wallet/ledger ownership, HTTP validation and error translation.
 - `src/credits/service.ts`: grant, escrow and event idempotency rules.
 - `src/credits/store.ts`: Prisma queries and serializable transaction retries.
 - `src/credits/errors.ts`: expected business and validation errors.
@@ -115,6 +135,7 @@ On dependency startup failure the process exits unsuccessfully. On a RabbitMQ co
 - `src/database/client.ts`: service-local Prisma client.
 - `src/database/prisma/`: authoritative schema and migrations.
 - `tests/*.integration.test.ts`: PostgreSQL/HTTP, messaging and fresh migration checks.
+- `tests/auth-fixture.ts`: ephemeral signing keys and access tokens for tests; no real login or configured private key is needed.
 - `tsconfig.test.json`: typechecks source and tests without adding tests to the application build.
 
 ## Tests
@@ -132,12 +153,12 @@ npm run test:migration --workspace=@campus-errand/credit-service
 npm run typecheck
 ```
 
-Tests require real PostgreSQL; messaging tests additionally require RabbitMQ and local HTTP listening. HTTP tests preserve validation, lifecycle, persistence, concurrent balance mutation and real constraint-failure rollback coverage, adapted to full reservations and welcome entries. Messaging tests cover duplicate IDs/business operations, conflicts, malformed contracts, concurrent consumers, confirmed mandatory returns, retries/DLQ, rollback, readiness, retry restart, and a child process killed after commit before acknowledgement. Migration tests use an empty random schema inside the test database and check that all five tables are created empty and that SQL uniqueness and balance/state constraints are enforced.
+Tests require real PostgreSQL; messaging tests additionally require RabbitMQ and local HTTP listening. HTTP tests cover valid student/admin tokens, missing/malformed/expired tokens, wrong signing keys, issuer/audience and invalid claims; spoofed identity headers/query parameters cannot change ownership or create another user's wallet. They also preserve validation, lifecycle, persistence, concurrent balance mutation and real constraint-failure rollback coverage. Messaging tests cover duplicate IDs/business operations, conflicts, malformed contracts, concurrent consumers, confirmed mandatory returns, retries/DLQ, rollback, readiness, retry restart, and a child process killed after commit before acknowledgement. Migration tests use an empty random schema inside the test database and check that all five tables are created empty and that SQL uniqueness and balance/state constraints are enforced.
 
 Test records, queues, exchanges and schemas use isolated identifiers and are cleaned up. The tests do not delete databases or shared volumes. The person creating a temporary database is responsible for removing it afterward.
 
 ## Remaining integration work
 
-User and Order publishers are still unimplemented; no complete application registration/order workflow is claimed. Credit Service does not publish credit outcome events, and Notification Service was not changed. Authentication and authorization, automatic service restart, operational DLQ recovery, and orphan reservation recovery remain outside this implementation. The existing in-memory Order Service needs separately approved persistence/outbox work for crash-safe publishing. Performance targets have not been benchmarked.
+User and Order publishers are still unimplemented; no complete application registration/order workflow is claimed. Credit Service does not publish credit outcome events, and Notification Service was not changed. Service-to-service authentication and authorization, frontend token wiring for credit requests, automatic service restart, operational DLQ recovery, and orphan reservation recovery remain outside this implementation. The existing in-memory Order Service needs separately approved persistence/outbox work for crash-safe publishing. Performance targets have not been benchmarked.
 
 Tracked service requirements: F4.0–F4.7, Credit N1–N3; existing issue references #15–#22, #42–#46, #69 and #60. This change does not claim all of those requirements complete.

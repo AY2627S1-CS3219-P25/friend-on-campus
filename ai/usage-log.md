@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Appended Credit Service scaffold, Prisma and RabbitMQ implementation records.
+Scope: Appended Credit Service scaffold, Prisma, RabbitMQ and JWT authentication implementation records.
 Author review: <to be completed by huangjiaxi1111>
 -->
 <!--
@@ -982,3 +982,22 @@ Verified:
 - `ai/usage-log.md` — this entry and disclosure.
 
 **Verification:** Client generation, Credit Service build, all nine workspace typechecks and `git diff --check` passed. A temporary PostgreSQL database received the initial migration; the integration suite passed HTTP wallet/reserve/settle/refund, invalid input, insufficient funds, ledger filtering, persistence from another client, concurrent wallet creation/reservations/settlements and rollback on a real unique-constraint failure (including newly created wallets). Prisma's schema diff against the existing `credit_db` reported no differences. Initial deployment to Docker-created tables returned expected P3005; after verifying their schema, the initial migration was recorded using `db:baseline`, and `db:deploy` reported no pending migrations. Its wallet/transaction counts remained zero. A separate Docker image built, started, served HTTP, wrote a test balance and retained it across a container restart. The temporary container and database were removed; the verification image remains. Existing application containers were not replaced. The Docker npm install reported three high-severity dependency audit findings; no unrelated dependency upgrades were made. D2 tests were not required because User Service, Supplier Service and both apps were untouched. No `.env` contents were inspected or printed.
+
+## 2026-09-24 17:43 SGT — Authenticate Credit Service wallet and ledger reads
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Implement the User Service JWT contract for Credit Service while leaving service-to-service authentication for later.
+
+**Usage scenario:** Implementation of the author-approved authentication contract. Added local Ed25519 access-token verification and bound wallet/ledger ownership to the verified token subject; escrow HTTP and RabbitMQ service authentication were deliberately left unchanged.
+
+**Files changed:**
+- `services/credit-service/src/{app.ts,config.ts,index.ts,credits/routes.ts}` — configured and injected shared authentication and protected wallet/ledger routes.
+- `services/credit-service/tests/{auth-fixture.ts,credits.integration.test.ts,messaging.integration.test.ts}` — added ephemeral signed-token coverage and retained messaging regressions.
+- `services/credit-service/{package.json,.env.example}`, `docker-compose.yml` — added the shared auth workspace dependency and JWT public-key settings.
+- `docs/services/credit-service.md` — documented the implemented authentication boundary and remaining service-to-service work.
+- `ai/usage-log.md` — this entry and updated disclosure.
+
+**Verification:** Credit Service typecheck, JWT/HTTP/PostgreSQL integration tests, RabbitMQ integration tests, invalid-key startup checks, Compose validation and `git diff --check` passed. The root typecheck reached all workspaces but failed on pre-existing User Service generated Prisma types missing `status`. The isolated test database was removed; changes remain uncommitted.

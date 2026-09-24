@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Centralized validated RabbitMQ topology and retry configuration.
+ * Scope: Centralized RabbitMQ and public-key access-token verification configuration.
  * Author review: <to be completed by Jiaxi>
  */
 // AI-generated (edited by Jiaxi)
@@ -19,6 +19,12 @@ const exchange = process.env.CREDIT_EXCHANGE || 'campus.events';
 export const config = Object.freeze({
   port: process.env.PORT || 8004,
   databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/credit_db',
+  auth: {
+    // Validated by authMiddleware during startup, before opening connections.
+    publicKey: process.env.JWT_PUBLIC_KEY ?? '',
+    issuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',
+    audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
+  },
   rabbitmq: {
     url: process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672',
     exchange, queue,

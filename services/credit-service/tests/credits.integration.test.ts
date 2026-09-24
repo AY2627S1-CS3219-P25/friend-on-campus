@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Preserved HTTP and database regression tests using full order reservations and one-time grants.
+ * Scope: Tested JWT authentication and wallet ownership alongside HTTP and PostgreSQL regressions.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -12,6 +12,7 @@ import { createApp } from '../src/app';
 import { PrismaClient } from '../src/database/client';
 import { createCreditService } from '../src/credits/service';
 import { createCreditStore, type CreditStore } from '../src/credits/store';
+import { createTestAuth } from './auth-fixture';
 
 async function main() {
   const url = process.env.CREDIT_TEST_DATABASE_URL;
@@ -24,7 +25,8 @@ async function main() {
   const users = Array.from({ length: 8 }, () => randomUUID());
   const [requesterId, courierId, raceUser, newRaceUser, rollbackUser, rollbackCourier, sharedCourier, unknownUser] = users;
   const orderId = randomUUID();
-  const server = createApp({ credits, port: 0 }).listen(0, '127.0.0.1');
+  const auth = createTestAuth();
+  const server = createApp({ credits, authenticate: auth.authenticate, port: 0 }).listen(0, '127.0.0.1');
   try {
     await once(server, 'listening');
     const address = server.address();
@@ -33,19 +35,57 @@ async function main() {
     async function request(path: string, body?: unknown, userId?: string) {
       const response = await fetch(`${base}${path}`, {
         method: body === undefined ? 'GET' : 'POST',
-        headers: { 'content-type': 'application/json', ...(userId ? { 'x-user-id': userId } : {}) },
+        headers: { 'content-type': 'application/json', ...(userId ? { authorization: `Bearer ${auth.token(userId)}` } : {}) },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       return { status: response.status, body: await response.json() as any };
     }
     assert.equal((await request('/health')).status, 200);
-    assert.equal((await request('/api/credits/wallet')).status, 400);
+    assert.equal((await request('/ready')).status, 503);
+    const invalidTokens: Array<[string | undefined, string]> = [
+      [undefined, 'MISSING_TOKEN'],
+      ['Basic ignored', 'MISSING_TOKEN'],
+      ['Bearer malformed', 'INVALID_TOKEN'],
+      [`Bearer ${auth.token(unknownUser, { exp: 1 })}`, 'TOKEN_EXPIRED'],
+      [`Bearer ${auth.token(unknownUser, { iss: 'wrong-issuer' })}`, 'INVALID_TOKEN'],
+      [`Bearer ${auth.token(unknownUser, { aud: 'wrong-audience' })}`, 'INVALID_TOKEN'],
+      [`Bearer ${auth.token(unknownUser, { sid: null })}`, 'INVALID_TOKEN'],
+      [`Bearer ${auth.token(unknownUser, { role: 'UNKNOWN' })}`, 'INVALID_TOKEN'],
+      [`Bearer ${auth.token(unknownUser, { iat: Math.floor(Date.now() / 1000) + 3600 })}`, 'INVALID_TOKEN'],
+      [`Bearer ${createTestAuth().token(unknownUser)}`, 'INVALID_TOKEN'],
+    ];
+    for (const endpoint of ['wallet', 'ledger']) {
+      for (const [authorization, code] of invalidTokens) {
+        const response = await fetch(`${base}/api/credits/${endpoint}?userId=${unknownUser}`, {
+          headers: { 'x-user-id': unknownUser, ...(authorization ? { authorization } : {}) },
+        });
+        assert.equal(response.status, 401, `${endpoint}: ${code}`);
+        const body = await response.json() as any;
+        assert.equal(body.success, false);
+        assert.equal(body.code, code);
+      }
+    }
+    assert.equal(await db.creditWallet.count({ where: { userId: unknownUser } }), 0);
+    assert.equal(await db.creditGrant.count({ where: { userId: unknownUser } }), 0);
     assert.equal((await request('/api/credits/wallet', undefined, 'u1111111-1111-1111-1111-111111111111')).status, 400);
     const wallet = await request('/api/credits/wallet', undefined, requesterId);
     assert.equal(wallet.status, 200);
     assert.equal(wallet.body.data.availableCredits, 100);
     assert.equal(typeof wallet.body.data.updatedAt, 'string');
     assert.equal((await request('/api/credits/ledger', undefined, requesterId)).body.data[0].transactionType, 'WELCOME_GRANT');
+    for (const role of ['STUDENT', 'ADMIN']) {
+      for (const endpoint of ['wallet', 'ledger']) {
+        const response = await fetch(`${base}/api/credits/${endpoint}?userId=${unknownUser}`, {
+          headers: { authorization: `Bearer ${auth.token(requesterId, { role })}`, 'x-user-id': unknownUser },
+        });
+        assert.equal(response.status, 200);
+        const body = await response.json() as any;
+        if (endpoint === 'wallet') assert.equal(body.data.userId, requesterId);
+        else assert.equal(body.data[0].toUserId, requesterId);
+      }
+    }
+    assert.equal(await db.creditWallet.count({ where: { userId: unknownUser } }), 0);
+    console.log('PASS: JWT validation, authenticated wallet/ledger ownership, spoofed identity rejection and public health endpoints');
 
     for (const amount of [0, -1, 1.5, '10', null, 2147483648]) {
       assert.equal((await request('/api/credits/escrow/reserve', { requesterId, orderId, amount })).status, 400);
