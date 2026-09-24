@@ -799,3 +799,17 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `.github/workflows/pr-linked-issue.yml` — new; fails a PR whose body has no `Closes/Fixes/Resolves #N` (or issue URL) reference.
 - `CLAUDE.md` — section 6: rule that every PR body links the issue(s) it closes; disclosure entry. Follow-up commit: wording aligned with the workflow (an issue must exist; the check does not accept a PR with none).
 - `ai/usage-log.md` — this entry.
+
+## 2026-09-23 23:30 SGT — Automated Claude Code pull-request review workflow
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude/great-pasteur-kx86kz (from origin/dev 9ff7430)
+
+**Prompt (summarised):** Set up GitHub Actions so that every PR (opened, reopened, ready for review, new commits) is automatically reviewed by Claude Code via `anthropics/claude-code-action@v1`, authenticated with the author's Claude subscription OAuth token (`CLAUDE_CODE_OAUTH_TOKEN` repository secret, no API key), using Fable where available, with a bounded number of turns, least-privilege permissions, no draft/fork runs, and a high-signal review prompt.
+
+**Usage scenario:** Boilerplate/config generation (CI workflow) and documentation. No application code touched. Decisions left to the author: adding the `CLAUDE_CODE_OAUTH_TOKEN` secret, accepting that Fable runs may bill usage credits on Pro/Max, and whether to keep `--model best` (Fable when available, else Opus) or require Fable with `--model fable`. Nothing was committed or pushed.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — new; runs the Claude Code review on `pull_request` events, skips drafts and fork PRs, one run per PR at a time, read-only tool set, Fable/Opus via `--model best`, `--max-turns 40`.
+- `ai/usage-log.md` — this entry.
