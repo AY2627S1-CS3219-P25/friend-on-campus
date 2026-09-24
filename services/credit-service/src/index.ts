@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Constructed shared JWT verification before Prisma, RabbitMQ and HTTP startup.
+ * Scope: Constructed shared JWT verification and exited cleanly for supervised RabbitMQ recovery.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -40,7 +40,7 @@ async function main() {
     prisma.creditGrant.findFirst(), prisma.creditEscrow.findFirst(), prisma.processedCreditEvent.findFirst()]);
   const credits = createCreditService(createCreditStore(prisma));
   consumer = await startCreditConsumer(config.rabbitmq, credits, () => {
-    console.error('[Credit Service] RabbitMQ consumer unavailable; restart the service after recovery');
+    console.error('[Credit Service] RabbitMQ consumer unavailable; exiting for process supervisor restart');
     void shutdown(true);
   });
   if (stopping) { await consumer.close(); return; }

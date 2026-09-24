@@ -16,7 +16,7 @@
 
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-09-24
-# Scope: Supplied shared access-token verification settings to Credit Service.
+# Scope: Supplied Credit Service JWT settings and automatic container restart supervision.
 # Author review: <to be completed by huangjiaxi1111>
 
 services:
@@ -148,6 +148,7 @@ services:
       context: .
       dockerfile: services/credit-service/Dockerfile
     container_name: campuserrand-credit-service
+    restart: unless-stopped
     ports:
       - "8004:8004"
     environment:

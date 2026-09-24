@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Documented JWT authentication and use of the shared order cancellation event contract.
+Scope: Documented JWT authentication, shared cancellation events and supervised RabbitMQ recovery.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -117,7 +117,7 @@ Transient processing failures are forwarded persistently to the retry queue. A r
 
 Failure logs contain event ID/type, retry count and category with a fixed reason code, not raw payloads, credentials or connection URLs. Original message bodies, IDs, routing keys and failure headers are retained for inspection. See the integration contract for DLQ replay instructions.
 
-On dependency startup failure the process exits unsuccessfully. On a RabbitMQ connection/channel failure or consumer cancellation, it becomes unready and drains/closes the consumer and HTTP server, then disconnects Prisma and exits with an error status. Restart after recovery; automatic reconnect/process supervision is not implemented here. SIGINT/SIGTERM cancel consumers, finish in-flight processing and close resources. Importing `app.ts` does not create connections or listen.
+On dependency startup failure the process exits unsuccessfully. On a RabbitMQ connection/channel failure or consumer cancellation, it becomes unready and drains/closes the consumer and HTTP server, then disconnects Prisma and exits with an error status. Compose configures `restart: unless-stopped`, so Docker restarts the container and it repeatedly attempts normal startup until RabbitMQ is available. A deliberate `docker compose stop credit-service` remains stopped. A host process started with `npm run dev:credit` is not supervised and must be restarted manually or by its development runner. SIGINT/SIGTERM cancel consumers, finish in-flight processing and close resources. Importing `app.ts` does not create connections or listen.
 
 ## Files
 
@@ -159,6 +159,6 @@ Test records, queues, exchanges and schemas use isolated identifiers and are cle
 
 ## Remaining integration work
 
-User and Order publishers are still unimplemented; no complete application registration/order workflow is claimed. Credit Service does not publish credit outcome events, and Notification Service was not changed. Service-to-service authentication and authorization, frontend token wiring for credit requests, automatic service restart, operational DLQ recovery, and orphan reservation recovery remain outside this implementation. The existing in-memory Order Service needs separately approved persistence/outbox work for crash-safe publishing. Performance targets have not been benchmarked.
+User and Order publishers are still unimplemented; no complete application registration/order workflow is claimed. Credit Service does not publish credit outcome events, and Notification Service was not changed. Service-to-service authentication and authorization, frontend token wiring for credit requests, in-process RabbitMQ reconnection for non-Compose runs, operational DLQ recovery, and orphan reservation recovery remain outside this implementation. The existing in-memory Order Service needs separately approved persistence/outbox work for crash-safe publishing. Performance targets have not been benchmarked.
 
 Tracked service requirements: F4.0–F4.7, Credit N1–N3; existing issue references #15–#22, #42–#46, #69 and #60. This change does not claim all of those requirements complete.

@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Specified future service integration and recorded the shared order cancellation event contract.
+Scope: Specified future service integration, shared cancellation events and supervised consumer recovery.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -156,7 +156,7 @@ Bodies and original message IDs are preserved. Headers include `x-credit-origina
 
 After fixing a DLQ message's cause, an operator can replay its original body to `campus.events` with the original routing key and event ID, removing internal retry/failure headers to begin a fresh retry budget. Already committed IDs remain protected; changing a committed event's content is not a repair operation. DLQ recovery is manual in this implementation.
 
-A broker/channel failure makes the consumer unready and shuts the Credit Service process down with an error status. Restart it after broker recovery; automatic process restart policy is outside this change.
+A broker/channel failure makes the consumer unready and shuts the Credit Service process down with an error status. Compose uses `restart: unless-stopped`, so Docker restarts Credit Service and normal startup recreates its connection, channels and consumers once RabbitMQ is available. Direct host runs are not supervised.
 
 ## Verification expected in future upstream work
 
