@@ -886,3 +886,62 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuil
 - `apps/student-app/src/App.tsx` — removed the "User ID" field block from the Profile Info card. Replaced the Role and Status `<input disabled>` elements with `<div>` badges: Role uses `bg-blue-50 text-blue-700 border-blue-200` for ADMIN and `bg-emerald-50 text-emerald-700 border-emerald-200` for STUDENT; Status uses the same emerald styling for Active and `bg-rose-50 text-rose-700 border-rose-200` for Disabled.
 
 Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container.
+
+## 2026-09-24 (later) — Wire admin portal Log Out button to the real POST /api/auth/logout
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the admin portal's Log Out button to actually call a logout API endpoint through the gateway (revoking the session server-side) instead of only clearing the local JWT and navigating back to the login page, with a loading spinner on the button while the call is in flight. Asked whether this could be done with only `App.tsx` + `usage-ai.md` touched. Investigated first: `POST /api/auth/logout` already exists in `user-service` (`auth-routes.ts`) — reads the `refresh_token` HttpOnly cookie already set at login (or a body fallback), calls `auth.logout()` to revoke the session, clears the cookie, returns `204`; it requires no `Authorization` header (the auth router is mounted without `requireAuthentication`). Gateway and the admin portal's vite proxy already route `/api/auth/` correctly. So unlike several earlier features this session, no backend/gateway file needed touching — the user's scope assumption was correct this time.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — confirmed the existing endpoint's behavior by reading `auth-routes.ts`/`auth-module.ts` before wiring the frontend to it, rather than assuming.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — `handleLogout` is now async: calls `POST /api/auth/logout` (network errors are swallowed, not surfaced, since a failed server-side revoke shouldn't block the user from being logged out locally), then always clears `isAuthenticated`/`authToken`/login form state in a `finally` block. Added `isLoggingOut` state; both Log Out buttons (sidebar footer, mobile drawer) swap the `LogOut` icon for a spinning `RefreshCw` and "Logging out…" label while the call is in flight, and are `disabled` during that window.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
+
+## 2026-09-24 (later) — Log Out button for student app Profile page
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** Add a "Log Out" button at the bottom of the student app's Profile page, in a blue box, mirroring the admin portal's Log Out feature added a couple of turns earlier: call `POST /api/auth/logout` through the gateway to clear tokens server-side, and double-check that client-side tokens are also cleared regardless of outcome.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — reused the already-verified `POST /api/auth/logout` endpoint behavior from the admin portal work; the "double check" ask was addressed by structuring the clearing logic in a `finally` block (runs whether the fetch succeeds, throws, or the server returns a non-2xx status) and confirmed live.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — added `isLoggingOut` state and a `handleLogout` handler that calls `POST /api/auth/logout` (network errors swallowed, not surfaced) then unconditionally clears `isAuthenticated`, `authToken`, login form fields, `rememberMe`, `profile`, and resets `activeTab` to `'feed'` inside a `finally` block. Added a full-width blue "Log Out" button (with spinner + "Logging out…" while in flight) as the last element of the Profile page's Profile Info section, below the Transaction Ledger.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container; live-tested end-to-end with curl/cookie jars — logged in with `keepLoggedIn: true`, confirmed a `sessions` row existed, called `POST /api/auth/logout` (returned `204`), confirmed the session count dropped by exactly one and the `refresh_token` cookie was cleared server-side, then confirmed a follow-up `POST /api/auth/refresh` with the cleared cookie correctly returned `401 INVALID_SESSION`.
+
+## 2026-09-24 (later) — "Remember me" + silent session restore for admin portal
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Mirror the student app's "Remember me" checkbox and silent session-restore feature (added earlier this session) into the admin portal's login gate: same checkbox sending `keepLoggedIn` to `POST /api/auth/login`, same default-on silent restore via `POST /api/auth/refresh` on page load so an admin stays logged in across refreshes. Log Out was already implemented and did not need changes.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — reused the already-verified backend session/TTL behavior confirmed in a prior investigation this session (non-persistent sessions default to a 1-day idle window, persistent ones to 30 days, and a session/cookie is always created on login regardless of `keepLoggedIn`). One implementation detail required judgment rather than being handed a design: the admin login gate additionally checks the JWT's `role` claim and only admits ADMIN accounts, so the new silent-restore effect applies that same role check to the restored token (falling through silently to the login page for a non-admin session, matching how a non-admin password login is already handled today) rather than trusting any valid refreshed token.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `isCheckingSession` and `rememberMe` state. New mount effect calls `POST /api/auth/refresh`; on success it decodes the restored access token's role and only auto-authenticates if `ADMIN`. Added an `isCheckingSession` spinner gate before the existing `!isAuthenticated` login-page gate. `handleAdminLogin`'s request body now includes `keepLoggedIn: rememberMe`. Added a "Remember me?" checkbox to the login form between Password and the Log In button. `handleLogout`'s `finally` block now also resets `rememberMe` to `false` and `activeNav` back to `'suppliers'`.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`; rebuilt and restarted the `admin-portal` container; live-tested end-to-end with curl/cookie jars against the real `admin@nus.edu.sg` account — logged in with `keepLoggedIn: false` and confirmed the resulting `sessions` row had `persistent = false` with ~24h remaining on `idle_expires_at`; called `POST /api/auth/refresh` with that cookie (simulating a page reload) and got a rotated access token back; logged out (`204`, session deleted); logged back in with `keepLoggedIn: true` and confirmed `persistent = true` with ~30 days remaining; logged out again and confirmed a subsequent `POST /api/auth/refresh` correctly returned `401 INVALID_SESSION`.
+
+## 2026-09-24 (later) — Relabel "Remember me?" checkbox to "Keep me logged in"
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Rephrase the "Remember me?" checkbox label to "Keep me logged in" on both the admin portal and student app login pages — copy-only, no behavior change.
+
+**Usage scenario:** Requirements-driven copy change (allowed use) — no logic, state, or API contract touched.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — checkbox `<span>` text changed from "Remember me?" to "Keep me logged in".
+- `apps/student-app/src/App.tsx` — checkbox `<span>` text changed from "Remember me?" to "Keep me logged in".
+
+Verified: `npx tsc --noEmit` passes with no errors in both `apps/admin-portal` and `apps/student-app`; rebuilt and restarted both containers.

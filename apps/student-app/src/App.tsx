@@ -32,6 +32,21 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Removed the User ID field from Profile Info (now just Username/Email/Role/Status). Role and Status now render as colored badge divs instead of disabled text inputs: Role is emerald for STUDENT / blue for ADMIN, Status is emerald for Active / rose for Disabled — same "transparent tint + colored border" badge style already used in the admin portal.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Added a "Remember me?" checkbox to the Log In form, sent as keepLoggedIn in the /api/auth/login request (defaults to false everywhere else, e.g. Sign Up's auto-login call is unaffected) — this selects the backend's existing 30-day persistent session window instead of the standard 1-day one, verified live via the sessions table. Added a silent session-restore check on app load: a new mount effect calls POST /api/auth/refresh (the browser attaches the refresh_token cookie automatically) before deciding whether to show the login page; on success it restores the access token and logs the user back in without any interaction, on a 401 it falls through silently to the login page (expected for a first visit or an expired session, not an error). A brief spinner screen covers this check so a still-logged-in user never sees a flash of the login form.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Added a "Log Out" button (blue, full-width) at the bottom of the Profile page's Profile Info section, below the Transaction Ledger. Calls POST /api/auth/logout through the gateway (revokes the session server-side via the refresh_token cookie, no request body/headers needed); client-side auth state (isAuthenticated, authToken, login form fields, rememberMe, profile, activeTab reset to 'feed') is cleared unconditionally in a finally block, so a network failure calling the server never leaves the user stuck logged-in locally. Shows a spinner + "Logging out…" while in flight. Verified live with curl/cookie jars: logout returns 204, the matching sessions row is deleted, the refresh_token cookie is cleared server-side, and a subsequent /api/auth/refresh call correctly returns 401 INVALID_SESSION.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -55,11 +70,14 @@ import { OrderDTO, CreditWalletDTO, SupplierDTO, UserDTO } from '@campus-errand/
 export default function App() {
   // Login / Sign Up Gate state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [authToken, setAuthToken] = useState('');
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
 
@@ -155,11 +173,11 @@ export default function App() {
   // AI-generated (edited by ngkhengyang)
   // User Service contract (PR #76): POST /api/auth/login { email, password } -> { accessToken, user };
   // errors are { error, code }.
-  const loginWithPassword = async (email: string, password: string) => {
+  const loginWithPassword = async (email: string, password: string, keepLoggedIn: boolean = false) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, keepLoggedIn }),
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
@@ -174,7 +192,7 @@ export default function App() {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      const result = await loginWithPassword(loginEmail, loginPassword);
+      const result = await loginWithPassword(loginEmail, loginPassword, rememberMe);
       if (!result.ok) {
         setLoginError({
           code: result.code,
@@ -247,6 +265,28 @@ export default function App() {
     }
   };
 
+  // Silently try to restore a session from the refresh_token cookie on load, so a page
+  // refresh doesn't always force the user back to the login page.
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setAuthToken(data.data.accessToken);
+          setIsAuthenticated(true);
+        }
+        // A failure here (e.g. 401) just means there's no valid session to restore —
+        // expected for a first-ever visit or an expired cookie, not an error to surface.
+      } catch (err) {
+        // Network failure — same silent fallback to the login page.
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    checkSession();
+  }, []);
+
   const getAuthHeaders = (): Record<string, string> => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
@@ -310,6 +350,26 @@ export default function App() {
       setUpdateProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsUpdatingProfile(false);
+    }
+  };
+
+  // Log out: revoke the session server-side, then clear client-side auth state regardless of outcome.
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      // Network failure logging out server-side shouldn't block clearing the local session below.
+    } finally {
+      setIsAuthenticated(false);
+      setAuthToken('');
+      setLoginEmail('');
+      setLoginPassword('');
+      setLoginError(null);
+      setRememberMe(false);
+      setProfile(null);
+      setActiveTab('feed');
+      setIsLoggingOut(false);
     }
   };
 
@@ -493,6 +553,14 @@ export default function App() {
     );
   });
 
+  if (isCheckingSession) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <RefreshCw className="w-6 h-6 text-nus-blue animate-spin" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 px-4">
@@ -533,6 +601,16 @@ export default function App() {
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
                 />
               </div>
+              <label className="flex items-center space-x-2 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoggingIn}
+                  className="rounded border-slate-300 text-nus-blue focus:ring-nus-blue"
+                />
+                <span>Keep me logged in</span>
+              </label>
               <button
                 type="submit"
                 disabled={isLoggingIn}
@@ -1178,6 +1256,15 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+            >
+              {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
+              <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
+            </button>
           </div>
         )}
       </main>

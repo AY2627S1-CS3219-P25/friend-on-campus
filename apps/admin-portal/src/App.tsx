@@ -58,6 +58,21 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
  * Scope: Added a Status column (Active/Disabled badge) and a red "Disable" / green "Reinstate" button to the Users table (desktop) and card (mobile), calling the new admin-only PATCH /api/users/:id/admin endpoint via a new toggleUserStatus() handler (mirrors the existing supplier toggleStatus()). Added a togglingUserIds Set to disable a row's button while its request is in flight, preventing double-click races; the button's label/color is derived solely from the server's returned user object, never flipped optimistically, so it can't drift out of sync with the account's real state.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: handleLogout now calls the real POST /api/auth/logout through the gateway (confirmed already implemented and unauthenticated — it revokes the session via the refresh_token cookie already set at login) before clearing local session state, instead of only clearing client-side state. Added isLoggingOut state; both Log Out buttons (sidebar footer, mobile drawer) show a spinning RefreshCw icon and "Logging out…" label while the request is in flight, and are disabled to prevent double-clicks. Local state is always cleared in a finally block regardless of whether the network call succeeds, so a logout can't get stuck if the server is unreachable.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Mirrored the student app's "Remember me" + silent session-restore feature into the admin login gate. Added a "Keep me logged in" checkbox to the login form, sent as keepLoggedIn in the /api/auth/login request (selects the backend's 30-day persistent session window instead of the standard 1-day one). Added a silent session-restore effect on app load: calls POST /api/auth/refresh (browser auto-attaches the refresh_token cookie); on success it decodes the restored token's role and only auto-authenticates if it's ADMIN (falls through silently to the login page otherwise, matching how a non-admin password login is already handled), on failure it falls through to the login page. A brief spinner screen covers this check. handleLogout now also resets rememberMe and returns activeNav to its default ('suppliers').
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -140,6 +155,9 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,7 +238,7 @@ export default function App() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword, keepLoggedIn: rememberMe }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -250,12 +268,22 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setAuthToken('');
-    setLoginEmail('');
-    setLoginPassword('');
-    setLoginError(null);
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      // Network failure logging out server-side shouldn't block clearing the local session below.
+    } finally {
+      setIsAuthenticated(false);
+      setAuthToken('');
+      setLoginEmail('');
+      setLoginPassword('');
+      setLoginError(null);
+      setRememberMe(false);
+      setActiveNav('suppliers');
+      setIsLoggingOut(false);
+    }
   };
 
   const fetchSuppliers = async () => {
@@ -346,6 +374,34 @@ export default function App() {
 
   useEffect(() => {
     fetchSuppliers();
+  }, []);
+
+  // Silently try to restore a session from the refresh_token cookie on load, so a page
+  // refresh doesn't always force the admin back to the login page.
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/refresh', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const token: string = data.data.accessToken;
+          if (decodeJwtRole(token) === 'ADMIN') {
+            setAuthToken(token);
+            setCurrentRole('ADMIN');
+            setIsAuthenticated(true);
+          }
+          // Non-admin restored session: fall through silently to the login page,
+          // same as a non-admin's password login today (no error, no auto-logout).
+        }
+        // A failure here (e.g. 401) just means there's no valid session to restore —
+        // expected for a first-ever visit or an expired cookie, not an error to surface.
+      } catch (err) {
+        // Network failure — same silent fallback to the login page.
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+    checkSession();
   }, []);
 
   const getAuthHeaders = (): Record<string, string> => {
@@ -737,6 +793,14 @@ export default function App() {
     return { admins, students };
   }, [users]);
 
+  if (isCheckingSession) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-100">
+        <RefreshCw className="w-6 h-6 text-slate-600 animate-spin" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-100">
@@ -782,6 +846,17 @@ export default function App() {
               />
             </div>
           </div>
+
+          <label className="flex items-center space-x-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={isLoggingIn}
+              className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+            <span>Keep me logged in</span>
+          </label>
 
           <button
             type="submit"
@@ -871,10 +946,15 @@ export default function App() {
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Log Out</span>
+            {isLoggingOut ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5" />
+            )}
+            <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
           </button>
         </div>
       </aside>
@@ -983,10 +1063,15 @@ export default function App() {
             <div className="pt-2 border-t border-slate-800">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+                disabled={isLoggingOut}
+                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log Out</span>
+                {isLoggingOut ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
               </button>
             </div>
           </div>
