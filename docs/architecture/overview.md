@@ -18,6 +18,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected User and Supplier Service implementation facts, repository paths, and resolved documentation references.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-24
+Scope: Updated repository layout and conflict status to reflect that 01-init-databases.sql provisions logical databases only while microservices manage their own migrations.
+Author review: (to be completed by author after review)
+-->
 
 # Architecture overview — intended vs built
 
@@ -83,7 +89,7 @@ nus-campus-errand/
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile
 ├── packages/common-dtos/       src/index.ts — shared user/auth DTOs, OrderStatus, event types, ApiResponse<T>
 ├── gateway/nginx.conf          ingress routing
-├── docker/postgres-init/       01-init-databases.sql — creates the 4 databases AND their tables (first boot only)
+├── docker/postgres-init/       01-init-databases.sql — creates the 4 databases (tables managed per-service by migrations)
 ├── docker-compose.yml          gateway, 2 apps, 5 services, postgres:16, rabbitmq:3.13-management
 ├── scripts/test-d2-e2e.ts      D2 end-to-end suite (npm run test:d2)
 ├── data/{csv,images}/          supplier seed data
@@ -98,4 +104,4 @@ Generated and ignored: `node_modules/`, `dist/`, `**/src/database/generated/` (p
 
 ## 5. Where intent and code currently differ
 
-Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15), README's D2 status (16). Unresolved rows are open questions for the team, not defects for an AI tool to fix.
+Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15 - resolved), README's D2 status (16). Unresolved rows are open questions for the team, not defects for an AI tool to fix.

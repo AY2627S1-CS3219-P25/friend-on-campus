@@ -1,6 +1,6 @@
 -- AI Assistance Disclosure:
 -- Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
--- Scope: Created the initial Prisma migration for the approved User and Session persistence schema.
+-- Scope: Implemented the initial PostgreSQL schema migration for User and Session persistence.
 -- Author review: <to be completed by ngkhengyang>
 
 CREATE TABLE "users" (

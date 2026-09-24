@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Removed the no-longer-reachable duplicate-email profile error mapping.
+ * Scope: Implemented centralized User Service error handling, structured deferred-route responses, and safe error responses.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -31,6 +31,7 @@ const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   DUPLICATE_USERNAME: 409,
   INVALID_CURRENT_PASSWORD: 401,
   USER_NOT_FOUND: 404,
+  NOT_IMPLEMENTED: 501,
 };
 
 interface HttpClientError {

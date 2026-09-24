@@ -28,6 +28,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-24
+Scope: Appended the Database-per-Service schema ownership and migration refactoring record below.
+Author review: (to be completed by author after review)
+-->
 
 # AI Usage Log
 
@@ -201,6 +207,21 @@ Update root `README.md` to reflect current system state and Milestone D2 deliver
 
 **Files changed / created:**
 - `README.md` — Comprehensive documentation overhaul.
+## 2026-09-20 23:09 SGT — User Service foundation and local deployment
+
+**Tool:** Codex (referenced tasks; model varied)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement a simple, independently runnable User Service setup: configure its Dockerfile, local environment, PostgreSQL database and migrations, seed three sample accounts including one admin, and integrate the service into the root Compose workflow. Keep the initial scope focused on the base service and omit unapproved logging or administrator features.
+
+**Usage scenario:** User Service implementation and local deployment configuration (allowed use). The author selected the initial schema, seed data, environment scope, and deliberately limited feature set.
+
+**Files changed:**
+- `docker-compose.yml`, `services/user-service/docker-compose.yml`, `services/user-service/Dockerfile`, and `services/user-service/.env.example` — configured local and Compose-based service startup.
+- `services/user-service/src/database/prisma/`, `src/database/seed.ts`, and related configuration — defined the database schema, migrations, and development seed accounts.
+- `ai/usage-log.md` — appended this implementation record.
+
 ## 2026-09-20 — dotenv.config() fix for standalone seed scripts
 
 **Tool:** Claude Code (model: Claude Sonnet 5)
@@ -509,6 +530,22 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 
 **Files changed:**
 - `ai/usage-log.md` — appended this entry.
+
+## 2026-09-21–2026-09-22 — User Service modules and shared authentication package
+
+**Tool:** Codex (referenced tasks; model varied)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the base User Service modules with dependency-injected authentication, registration/login/refresh/logout flows, scrypt password hashing, Ed25519 access-token issuance, refresh-session handling, authenticated self-profile routes, validated username-only updates, immutable email, and password changes that preserve existing sessions. Add simple validation, request/error logging, and centralized error handling. Create a minimal shared authentication package that verifies Ed25519 tokens with a public key and exposes role helpers such as `isAdmin`; keep token issuance, sessions, and password handling inside User Service.
+
+**Usage scenario:** User Service and shared authentication implementation (allowed use). The author selected the service boundaries, base route scope, token model, validation rules, and downstream verification interface.
+
+**Files changed:**
+- `services/user-service/src/{auth,users,http,persistence,utils,app.ts,index.ts}` — implemented authentication, profile modules, repositories, middleware integration, validation, logging, error handling, and route wiring.
+- `packages/auth/src/index.ts` — implemented the shared public-key token verifier and role helpers.
+- `services/user-service/docs/` — documented the implemented authentication and User Service contracts.
+- `ai/usage-log.md` — appended this implementation record.
 
 ## 2026-09-22 14:53 SGT — Inventory merged teammate work
 
@@ -819,6 +856,81 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Files changed:**
 - `.github/workflows/claude-pr-review.yml` — new; runs the Claude Code review on `pull_request` events, skips drafts and fork PRs, one run per PR at a time, read-only tool set, Fable/Opus via `--model best`, `--max-turns 40`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-09-23 (later still) — Add Status column and Disable/Reinstate toggle to admin portal Users table
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the admin portal's Users table (desktop and mobile) to show the `status` field (added to the User model, and exposed via a new admin-only `PATCH /api/users/:id/admin` endpoint, in earlier prompts this session) as a Status column, plus a per-row button — red "Disable" when active, green "Reinstate" when disabled — that calls that endpoint through the gateway with the admin's Bearer token. Explicitly asked for robust state handling so the button can't end up toggling the wrong direction. Planned in plan mode: found the existing supplier `toggleStatus()` in this same file as the direct precedent to mirror, but noted it has no in-flight guard against double-clicks — the new handler adds one, since that's exactly the failure mode the user was concerned about.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — reused the existing supplier status-toggle pattern (fetch → update state from server response → success/error `actionAlert`) rather than inventing a new one, and reused the CheckCircle/XCircle Active/Unavailable badge styling already established for suppliers.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `togglingUserIds` (`Set<string>`) state and a `toggleUserStatus(userId)` handler that calls `PATCH /api/users/:id/admin` with `getAuthHeaders()`, updates `users` state from the server's returned user object (never flips the boolean locally/optimistically), and tracks the in-flight request per row to disable that row's button until the response lands. Added a Status column (Active/Disabled badge, sortable) and an Actions column with the Disable/Reinstate button to the desktop table, and the equivalent badge + button to the mobile card view.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`; rebuilt and restarted the `admin-portal` container.
+
+## 2026-09-24 — Rename student-app "Wallet" tab to "Profile", add Profile Info section (GET/PATCH /me)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** User wanted the student app's bottom-nav "Wallet" button renamed to "Profile" (with a profile icon), the existing wallet content kept fully intact but shifted below a new "Profile Info" section showing the logged-in user's own account fields via `GET /me`, and an Edit → Cancel/Update flow letting the user change only their username via `PATCH /me`. User asked three specific investigation questions before planning: what `GET /me` returns (confirmed: `{userId, username, email, userRole, status}`, never a password), whether `PATCH /me` is scoped to that specific signed-in user (confirmed: yes, structurally — it reads the target user id from the verified JWT's `sub` claim via `res.locals.auth`, no `:id` param exists to target anyone else), and whether it enforces username uniqueness (confirmed: yes, case-insensitive, via the same `DUPLICATE_USERNAME`/409 mapping used elsewhere). Asked the user via AskUserQuestion which fields should get the red "compulsory" asterisk given only username is actually editable; they chose username and email only (the two NOT NULL + unique fields), not role/status.
+
+**Usage scenario:** Requirements interpretation and implementation code (allowed use) — cross-referenced `docker/postgres-init/01-init-databases.sql` for each field's schema constraints to write the small hint text under each field label, matching the user's "password needs 8-24 characters"-style example.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — renamed `activeTab`'s `'wallet'` value to `'profile'` throughout; swapped the `Wallet` icon import for `UserCircle` (its only usage) and the nav label to "Profile", now also lazy-triggering `fetchProfile()` on click. Added `profile`/`isLoadingProfile`/`profileError`/`isEditingProfile`/`editUsernameDraft`/`isUpdatingProfile`/`updateProfileError` state, a `getAuthHeaders()` helper (student-app didn't have one yet), `fetchProfile()`, `startEditingProfile()`/`cancelEditingProfile()`, and `handleUpdateProfile()`. Inserted a new "Profile Info" card (User ID/Username/Email/Role/Status, all disabled except Username while editing, Edit/Cancel/Update buttons) immediately before the existing `<h2>Credit Wallet & Ledger</h2>` — everything from that heading down is unchanged, just pushed below the new section.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container; live-tested `GET /api/users/me` and `PATCH /api/users/me` (rename + revert) directly against the response shapes the new code consumes.
+
+## 2026-09-24 (later) — Profile Info UI tweaks: drop User ID, colored Role/Status badges
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+
+**Prompt (summarised):** Small follow-up to the Profile Info section added earlier today: remove the User ID field from display entirely, and render Role and Status as colored "div box" badges instead of plain disabled text inputs — Status green for Active / red for Disabled, Role green for Student / blue for Admin, using a transparent tinted background with a solid colored border (the badge style already used in the admin portal).
+
+**Usage scenario:** UI refinement on the author's explicit instruction (allowed use) — no new data or endpoints involved, purely display styling of fields already being fetched from `GET /me`.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — removed the "User ID" field block from the Profile Info card. Replaced the Role and Status `<input disabled>` elements with `<div>` badges: Role uses `bg-blue-50 text-blue-700 border-blue-200` for ADMIN and `bg-emerald-50 text-emerald-700 border-emerald-200` for STUDENT; Status uses the same emerald styling for Active and `bg-rose-50 text-rose-700 border-rose-200` for Disabled.
+
+Verified: `npx tsc --noEmit` passes with no errors in `apps/student-app`; rebuilt and restarted the `student-app` container.
+
+## 2026-09-24 (afternoon) — Enforce Database-per-Service schema ownership & migrations
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/database-per-service-migrations
+
+**Prompt (summarised):**
+User asked whether `01-init-databases.sql` should be creating tables across all services given the database-per-service pattern, explored production vs development database provisioning, and directed the agent to fix the architectural issue. Refactored `01-init-databases.sql` to strictly provision logical databases (`user_db`, `supplier_db`, `order_db`, `credit_db`) without table DDLs or seed data. Delegated table migrations and seeding to `user-service` and `supplier-service` on container startup via `prisma migrate deploy` and `seed.ts`. Preserved `order-service` and `credit-service` DDLs into their respective local service database directories for future Milestone D3 persistence. Updated architecture documentation and resolved conflict #15 in `docs/requirements/conflicts.md`.
+
+**Usage scenario:**
+Refactoring, boilerplate/config generation, and documentation improvements (allowed use). Implemented the author-approved design to align the codebase with the Database-per-Service architectural pattern and resolve dual-source-of-truth schema drift.
+
+**Files changed / created:**
+- `docker/postgres-init/01-init-databases.sql` — stripped all table DDLs, indexes, and seed inserts; kept only `CREATE DATABASE` statements for the 4 logical databases.
+- `services/user-service/Dockerfile` — updated `CMD` to run `npx prisma migrate deploy` and `npx tsx src/database/seed.ts` before starting the service.
+- `services/supplier-service/Dockerfile` — copied `data/csv` into container and updated `CMD` to run `npx prisma migrate deploy` and `npx tsx src/database/seed.ts` before starting the service.
+- `services/order-service/src/database/schema.sql` — created; archived `orders` table DDL within the service's domain boundary.
+- `services/credit-service/src/database/schema.sql` — created; archived `credit_wallets` and `credit_transactions` table DDLs within the service's domain boundary.
+- `docs/requirements/conflicts.md` — recorded resolution for conflict #15.
+- `docs/architecture/overview.md` — updated database initialization description and marked conflict #15 resolved.
+- `docs/services/supplier-service.md` — updated data persistence documentation and marked conflict #15 resolved.
+- `docs/services/user-service.md` — updated persistence section to state that migrations are run by the service.
+- `scripts/test-d2-e2e.ts` — fixed `decodeJwtPayload` typo to `decodeJwtClaims`.
+- `ai/usage-log.md` — this entry.
+
+Verified:
+- Created local `.env` with Ed25519 development keys.
+- Executed `docker compose down -v` to reset data volume.
+- Booted `postgres`, `user-service`, and `supplier-service` via `docker compose up --build -d`.
+- Verified container logs: both services applied Prisma migrations and executed database seeding on boot.
+- Verified PostgreSQL: `user_db` has 3 seeded users, `supplier_db` has 21 seeded suppliers, `order_db` and `credit_db` have zero relations.
+- Executed `npm run test:d2`: 40/44 tests passed (all registration, authentication, token claims, user profile immutability, supplier querying, and cross-service RBAC passed).
 
 ## 2026-09-24 12:09 SGT — Scaffold Credit Service with the author-specified module boundaries
 

@@ -24,6 +24,12 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
 Scope: Added the "every PR must link the issue(s) it closes" rule to section 6, alongside the new PR template and workflow.
 Author review: <to be completed by Reallyeasy1>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-24
+Scope: Updated repo map and database schema management notes to reflect single-source-of-truth Prisma migration ownership per service.
+Author review: (to be completed by author after review)
+-->
 
 # CLAUDE.md — Friend of Campus (CS3219 AY26/27 S1, Group 25)
 
@@ -102,7 +108,7 @@ apps/student-app               :5173  one src/App.tsx (~730 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/postgres-init/*.sql            creates the 4 databases AND their tables (first boot only)
+docker/postgres-init/*.sql            creates the 4 databases (tables managed per-service by migrations)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
 docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config
@@ -110,7 +116,7 @@ docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code c
 
 Things that are easy to get wrong:
 
-- **Table definitions live in two places.** Tables are created by `docker/postgres-init/*.sql`, which Postgres runs **only on first boot of an empty volume**; the Dockerfiles run `prisma generate` but never `prisma migrate`. So a column change means editing the init SQL *and* `schema.prisma` (and adding a migration where a `migrations/` folder exists), then `docker compose down -v` to re-run the init script (this wipes local data). Deciding the change is the author's job; keeping the copies in sync is yours.
+- **Table schemas are managed per-service via Prisma migrations.** Tables are no longer created in `docker/postgres-init/*.sql` (which only provisions the empty logical databases). Each service deploys its own migrations on startup (`npx prisma migrate deploy`) or via `npm run db:migrate --workspace=@campus-errand/<service>`. Schema changes belong strictly in each service's `schema.prisma` and `prisma/migrations/`. When starting a fresh Postgres volume with `docker compose down -v`, each service runs its migrations and seeds upon container boot.
 - **Access tokens use Ed25519 in `Authorization: Bearer …`**. User Service signs them with `JWT_PRIVATE_KEY`; Supplier Service verifies them with the shared `@campus-errand/auth` package and `JWT_PUBLIC_KEY`, issuer, and audience. Refresh tokens are opaque and remain in an HttpOnly cookie. Keep these service settings aligned when the author approves an authentication-contract change.
 - **Prisma clients are per service**, generated into `src/database/generated/` (git-ignored). Import from `../database/client`, never from a root `@prisma/client`. Every Prisma CLI call needs `--schema src/database/prisma/schema.prisma` (the npm scripts already pass it).
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.

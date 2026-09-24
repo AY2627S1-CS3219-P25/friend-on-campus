@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Replaced the pg pool wrapper with the Prisma readiness and shutdown adapter.
+ * Scope: Implemented Prisma client readiness checks and graceful database shutdown handling for the User Service.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)

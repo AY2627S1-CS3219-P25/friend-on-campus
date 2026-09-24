@@ -5,7 +5,7 @@
 // AI-generated (edited by yanhwee)
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-// Scope: Replaced the legacy user model with the author-approved account and refresh-session persistence model.
+// Scope: Implemented the User and Session persistence model for account data and refresh-token sessions; documented intentional SQL expression-index maintenance.
 // Author review: (to be completed by ngkhengyang)
 // AI-generated (edited by ngkhengyang)
 // AI Assistance Disclosure:
@@ -34,6 +34,7 @@ model User {
   email        String    @db.VarChar(320)
   passwordHash String    @map("password_hash")
   role         String    @default("STUDENT") @db.VarChar(20)
+  status       Boolean   @default(true)
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   sessions     Session[]

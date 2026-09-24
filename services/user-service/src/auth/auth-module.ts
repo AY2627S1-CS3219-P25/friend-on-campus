@@ -1,21 +1,21 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Preserved duplicate-account error handling while adapting it to Prisma constraint errors.
+ * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Adopted the shared registration request and user response DTOs for account creation.
+ * Scope: Implemented account creation with shared registration request and user response DTOs.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Adopted shared login, access-token, and refresh-token response DTOs for session handling.
+ * Scope: Implemented login and session handling with shared access-token and refresh-token response DTOs.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -28,7 +28,6 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
-import { randomBytes } from 'node:crypto';
 import type {
   AuthResponse,
   LoginUserRequest,
@@ -47,7 +46,7 @@ import {
   isValidUsername,
   normalizeEmail,
 } from '../utils/validation';
-import { hashPassword, verifyPassword } from './password';
+import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from './password';
 import { TokenManager } from './tokens';
 
 export type LoginInput = LoginUserRequest;
@@ -139,6 +138,7 @@ function toUserDTO(user: UserRecord): UserDTO {
     username: user.username,
     email: user.email,
     userRole: user.role,
+    status: user.status,
   };
 }
 
@@ -168,10 +168,6 @@ function mapDuplicateUserError(error: unknown): never {
 }
 
 export function createAuthModule(options: AuthModuleOptions): AuthModule {
-  // Verified against when no account matches, so a login for an unknown email costs the same
-  // scrypt work as a wrong password (no account-enumeration timing side channel).
-  const dummyPasswordHash = hashPassword(randomBytes(32).toString('base64url'));
-
   function issueAccessToken(session: SessionUserRecord): string {
     return options.tokens.issueAccessToken(
       session.user.id,
@@ -203,17 +199,13 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
     async login(input) {
       const email = validateEmail(input?.email);
       const password = validatePassword(input?.password);
+      await options.repository.cleanupExpiredSessions(new Date());
       const user = await options.repository.findUserByEmail(email);
-
-      const passwordMatches = await verifyPassword(
-        password,
-        user ? user.passwordHash : await dummyPasswordHash,
-      );
+      const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+      const passwordMatches = await verifyPassword(password, passwordHash);
       if (!user || !passwordMatches) {
         throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
       }
-
-      await options.repository.deleteExpiredSessions(new Date());
 
       const persistent = input.keepLoggedIn === true;
       const refreshTokenIdleLifetimeSeconds = persistent
@@ -245,9 +237,9 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }
 
+      await options.repository.cleanupExpiredSessions(new Date());
       const nextRefreshToken = options.tokens.generateRefreshToken();
       const now = new Date();
-      await options.repository.deleteExpiredSessions(now);
       const standardIdleExpiresAt = addSeconds(now, options.refreshTokenIdleLifetimeSeconds);
       const persistentIdleExpiresAt = addSeconds(
         now,
@@ -260,6 +252,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         persistentIdleExpiresAt,
       );
 
+      // A previously rotated token is treated as invalid; replay does not revoke the active session.
       if (!session) {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }

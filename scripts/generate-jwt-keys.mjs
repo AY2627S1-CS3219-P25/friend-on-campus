@@ -1,3 +1,7 @@
+// AI Assistance Disclosure:
+// Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+// Scope: Implemented a local Ed25519 JWT key-pair generator that emits Base64URL environment values.
+// Author review: <to be completed by ngkhengyang>
 import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 

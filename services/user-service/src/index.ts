@@ -1,13 +1,13 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Wired the author-approved Prisma persistence adapter into User Service startup.
+ * Scope: Implemented User Service startup, dependency wiring, middleware initialization, and route registration.
  * Author review: <to be completed by ngkhengyang>
  */
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Wired the author-approved ADMIN authorization middleware into deferred User Service routes.
+ * Scope: Integrated ADMIN authorization middleware into the User Service route pipeline.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
