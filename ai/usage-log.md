@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Appended the credit-service scaffold and Prisma replacement implementation and verification records.
+Author review: <to be completed by huangjiaxi1111>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
@@ -813,3 +819,54 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Files changed:**
 - `.github/workflows/claude-pr-review.yml` — new; runs the Claude Code review on `pull_request` events, skips drafts and fork PRs, one run per PR at a time, read-only tool set, Fable/Opus via `--model best`, `--max-turns 40`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-09-24 12:09 SGT — Scaffold Credit Service with the author-specified module boundaries
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Scaffold Credit Service with credit functionality under `src/credits`: `routes.ts` for HTTP translation, `service.ts` for credit rules, `store.ts` for data access; `app.ts` assembles Express, `config.ts` owns environment configuration, and `index.ts` constructs dependencies and starts the server.
+
+**Usage scenario:** Boilerplate generation and refactoring following the author's stated boundaries. Extracted the existing mock behavior, reused shared DTOs and the author's existing untracked `config.ts`, and preserved endpoints, response shapes, initial balances, and insufficient-credit errors. New persistence, authentication, validation, idempotency and event behavior remain outside this scaffold. Read referenced issues #69 and #60 for context; this structural change does not complete their acceptance criteria. No dependencies added; no commits or pushes.
+
+**Files changed:**
+- `services/credit-service/src/index.ts` — constructs the store, service and Express app and starts the listener.
+- `services/credit-service/src/app.ts` — fills the empty scaffold with Express middleware, health check and credit router assembly.
+- `services/credit-service/src/credits/routes.ts` — HTTP request/response translation and existing 400 error mapping; replaces the empty untracked `route.ts` placeholder.
+- `services/credit-service/src/credits/service.ts` — existing wallet creation, ledger reads and escrow rules using the injected store.
+- `services/credit-service/src/credits/store.ts` — isolated in-memory wallet and ledger access with existing sample data.
+- `services/credit-service/src/credits/types.ts` — shared credit DTO re-exports and existing settlement result type.
+- `docs/services/credit-service.md` — module responsibilities and configuration location.
+- `CLAUDE.md`, `.claude/agents/backend.md` — corrected credit-service layout summaries.
+- `ai/usage-log.md` — disclosure and this entry.
+
+**Verification:** `npm run typecheck` passed across all nine workspaces. A transient HTTP smoke check passed for health, default/new wallets, reserve/settle/refund balances, all three insufficient-credit 400 responses, ledger ordering/filtering and independent stores. The sandbox initially blocked loopback binding (`EPERM`); the smoke check passed when rerun with approved escalation. `git diff --check` passed. D2 tests were not required because User Service, Supplier Service and both apps were untouched. No permanent tests or test dependencies added.
+
+## 2026-09-24 13:21 SGT — Replace Credit Service mock persistence with Prisma
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Follow the existing Credit Service PostgreSQL schema, replace mock storage with Prisma, and make the service runnable.
+
+**Usage scenario:** Implementation and configuration of the author's selected Prisma persistence using the existing SQL schema and module boundaries. No columns, constraints, shared DTOs or credit operation paths changed. Read issues #17, #42 and #43: this change provides persistence and negative-balance/integer checks relevant to F4.2.3–F4.2.4, but does not complete authentication, total-balance DTO or performance requirements. The existing caller-supplied identity and implicit 100-credit creation behavior are documented as remaining limitations. No idempotency/event schema was introduced. Prisma dependencies were explicitly authorized by the request. All changes remain uncommitted; nothing was pushed.
+
+**Files changed:**
+- `services/credit-service/src/database/prisma/schema.prisma` — exact table/column/default/nullability mappings for the existing credit SQL.
+- `services/credit-service/src/database/prisma/migrations/20260924050000_existing_credit_tables/migration.sql`, `migration_lock.toml` — initial migration copies the existing SQL and its CHECK constraints.
+- `services/credit-service/src/database/client.ts` — service-local Prisma singleton using the existing centralized configuration.
+- `services/credit-service/src/credits/store.ts` — Prisma reads, DTO mapping, transaction-scoped conditional atomic balance updates and ledger writes.
+- `services/credit-service/src/credits/service.ts` — async credit operations with balance changes and ledger records committed together; transaction codes fit the existing unique VARCHAR(30) column.
+- `services/credit-service/src/credits/routes.ts` — async Express 4 error forwarding, UUID/positive PostgreSQL integer input validation, removal of the invalid mock user fallback.
+- `services/credit-service/src/app.ts` — JSON errors for invalid JSON and unexpected persistence failures.
+- `services/credit-service/src/index.ts` — database/table checks before listening, startup failure reporting and Prisma shutdown.
+- `services/credit-service/src/credits/credits.integration.test.ts` — real PostgreSQL/HTTP lifecycle, validation, persistence, concurrent mutation and rollback coverage without a new test framework.
+- `services/credit-service/package.json`, `package-lock.json` — Prisma dependencies and generation, baseline, deploy and integration scripts; JSON cannot contain disclosure comments.
+- `services/credit-service/Dockerfile` — schema copied before workspace postinstall, Linux Prisma client generation and OpenSSL runtime support.
+- `services/credit-service/.env.example` — local database/environment reference.
+- `docs/services/credit-service.md`, `docs/services/README.md`, `docs/architecture/overview.md`, `CLAUDE.md`, `.claude/agents/backend.md` — persistence, setup and remaining-limitations documentation; preserved pre-existing edits.
+- `ai/usage-log.md` — this entry and disclosure.
+
+**Verification:** Client generation, Credit Service build, all nine workspace typechecks and `git diff --check` passed. A temporary PostgreSQL database received the initial migration; the integration suite passed HTTP wallet/reserve/settle/refund, invalid input, insufficient funds, ledger filtering, persistence from another client, concurrent wallet creation/reservations/settlements and rollback on a real unique-constraint failure (including newly created wallets). Prisma's schema diff against the existing `credit_db` reported no differences. Initial deployment to Docker-created tables returned expected P3005; after verifying their schema, the initial migration was recorded using `db:baseline`, and `db:deploy` reported no pending migrations. Its wallet/transaction counts remained zero. A separate Docker image built, started, served HTTP, wrote a test balance and retained it across a container restart. The temporary container and database were removed; the verification image remains. Existing application containers were not replaced. The Docker npm install reported three high-severity dependency audit findings; no unrelated dependency upgrades were made. D2 tests were not required because User Service, Supplier Service and both apps were untouched. No `.env` contents were inspected or printed.

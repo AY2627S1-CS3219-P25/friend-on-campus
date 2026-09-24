@@ -1,0 +1,42 @@
+// AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-09-24
+// Scope: Mirrored the existing PostgreSQL credit tables without schema changes.
+// Author review: <to be completed by huangjiaxi1111>
+// AI-generated (edited by huangjiaxi1111)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// PostgreSQL CHECK constraints remain in the initialization/migration SQL.
+// Timestamps are nullable in the existing SQL, despite their defaults.
+model CreditWallet {
+  userId             String    @id @map("user_id") @db.Uuid
+  availableCredits   Int       @default(100) @map("available_credits")
+  escrowCredits      Int       @default(0) @map("escrow_credits")
+  totalEarnedCredits Int       @default(0) @map("total_earned_credits")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("credit_wallets")
+}
+
+model CreditTransaction {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transactionCode String    @unique @map("transaction_code") @db.VarChar(30)
+  fromUserId      String?   @map("from_user_id") @db.Uuid
+  toUserId        String?   @map("to_user_id") @db.Uuid
+  orderId         String?   @map("order_id") @db.Uuid
+  amount          Int
+  transactionType String    @map("transaction_type") @db.VarChar(30)
+  description     String?
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("credit_transactions")
+}

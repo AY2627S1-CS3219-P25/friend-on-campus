@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Updated built Credit Service persistence and source layout facts.
+Author review: <to be completed by huangjiaxi1111>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Compiled this overview from the team's own sources (README, D1, D2 / Sprint 2 plan, docker-compose.yml,
 gateway/nginx.conf, packages/common-dtos) and from reading the code on milestone-d2. It restates what those
@@ -55,7 +61,7 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 | **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable; deferred ADMIN user-management routes return `501`. No event is published. |
 | **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. Reads are unauthenticated; no `version` column. |
 | **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
-| **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Mock: in-memory wallet and ledger, same header identity. `credit_wallets` / `credit_transactions` exist in the init SQL only. |
+| **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Prisma-backed wallets and ledger, transactional escrow operations, UUID/integer validation. Existing init SQL mirrored by Prisma schema/migration. Authentication, idempotency and events remain pending. |
 | **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
 | **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; fetches the live supplier directory (with a hardcoded fallback list) and opens `/ws/`; makes no calls to the order or credit APIs yet. |
 | **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login + full supplier CRUD against the real APIs. |
@@ -72,7 +78,7 @@ nus-campus-errand/
 │   ├── user-service/           src/{index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
 │   ├── supplier-service/       src/backend/{server,supplierRoutes}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}
 │   ├── order-service/          src/index.ts            (mock)
-│   ├── credit-service/         src/index.ts            (mock)
+│   ├── credit-service/         src/{index,app,config}.ts, credits/, database/{client.ts,prisma/}
 │   └── notification-service/   src/index.ts            (mock)
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile
 ├── packages/common-dtos/       src/index.ts — shared user/auth DTOs, OrderStatus, event types, ApiResponse<T>

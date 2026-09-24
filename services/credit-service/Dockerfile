@@ -1,16 +1,26 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-09-24
+# Scope: Included the Prisma schema before workspace installation and generated the client.
+# Author review: <to be completed by huangjiaxi1111>
+# AI-generated (edited by huangjiaxi1111)
 FROM node:20-alpine
+
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
 COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY services/credit-service/package.json ./services/credit-service/
+COPY services/credit-service/src/database/prisma ./services/credit-service/src/database/prisma
 
 RUN npm install
 
 COPY services/credit-service ./services/credit-service
 
 WORKDIR /app/services/credit-service
+
+RUN npm run db:generate
 
 EXPOSE 8004
 

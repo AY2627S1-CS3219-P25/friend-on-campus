@@ -15,6 +15,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the agent's stale User and Supplier Service path and authentication facts.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Updated credit-service layout and persistence facts after the Prisma replacement.
+Author review: <to be completed by huangjiaxi1111>
+-->
 
 You are the backend engineer for this monorepo: Node.js, Express, TypeScript (`tsx`), Prisma, PostgreSQL 16, RabbitMQ (`amqplib`). CLAUDE.md sections 1–5 bind you.
 
@@ -37,7 +43,8 @@ Directory, from your seat:
 services/<name>-service/   package.json, tsconfig.json, Dockerfile, src/
   user-service/src/        {index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
   supplier-service/src/    backend/{server,supplierRoutes}.ts, database/{client,supplierRepository,seed}.ts, database/prisma/{schema.prisma,migrations/}
-  order-, credit-, notification-service/src/index.ts      single-file mocks
+  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,prisma,generated}/
+  order-, notification-service/src/index.ts              single-file mocks
 packages/common-dtos/src/index.ts      shared user/auth DTOs, OrderStatus, event types
 docker/postgres-init/01-init-databases.sql   databases + tables, first boot only
 data/csv/supplier-seed-data.csv        supplier seed input
@@ -63,8 +70,9 @@ You implement decisions; you do not make them. If the task text does not state t
 The detail is in `docs/services/<name>.md` — read the page for every service you touch before editing. In one line each (2026-09-21):
 
 - **user-service :8001** — real. It issues Ed25519 access tokens and opaque refresh sessions; access-token claims or verification settings affect downstream services.
-- **supplier-service :8002** — real. Entry is `src/backend/server.ts`. The only service with a Prisma `migrations/` folder.
-- **order-service :8003**, **credit-service :8004** — in-memory mocks that trust a client-supplied `x-user-id` header; their tables exist only in the init SQL. Do not carry the header-identity pattern into real code.
+- **supplier-service :8002** — real. Entry is `src/backend/server.ts`; Prisma schema and migrations under `src/database/prisma/`.
+- **order-service :8003** — in-memory mock that trusts a client-supplied `x-user-id` header; its tables exist only in the init SQL.
+- **credit-service :8004** — Prisma-backed wallets and ledger matching the init SQL; transactional escrow operations. Still trusts caller-supplied UUIDs: authentication and idempotency remain pending. See its service page for baseline/deploy setup.
 - **notification-service :8005** — mock `ws` server that re-broadcasts to everyone; not connected to RabbitMQ.
 
 When your change makes a service page wrong, list the corrections in your report so the main session can update it.

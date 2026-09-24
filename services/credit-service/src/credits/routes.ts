@@ -1,54 +1,61 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Extracted credit HTTP routes and translated existing credit errors into the existing 400 responses.
+ * Scope: Awaited persistent operations, validated SQL-compatible inputs and forwarded async errors.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
-import { Router, type ErrorRequestHandler, type Request, type Response } from 'express';
-import type { ApiResponse } from '@campus-errand/common-dtos';
+import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
 import { CreditError, type CreditService } from './service';
-import type { CreditSettlement, CreditTransactionDTO, CreditWalletDTO } from './types';
+import type { EscrowReserveRequest } from './types';
 
-function getUserId(req: Request): string {
-  return (req.headers['x-user-id'] as string) || 'u1111111-1111-1111-1111-111111111111';
+function uuid(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+    throw new CreditError(`${field} must be a UUID`);
+  }
+  return value;
+}
+
+function escrowRequest(body: unknown): EscrowReserveRequest {
+  if (!body || typeof body !== 'object') throw new CreditError('A JSON request body is required');
+  const input = body as Record<string, unknown>;
+  const requesterId = uuid(input.requesterId, 'requesterId');
+  const orderId = uuid(input.orderId, 'orderId');
+  if (typeof input.amount !== 'number' || !Number.isInteger(input.amount) || input.amount <= 0 || input.amount > 2147483647) {
+    throw new CreditError('amount must be a positive PostgreSQL integer (1–2147483647)');
+  }
+  return { requesterId, orderId, amount: input.amount };
+}
+
+// Express 4 does not forward rejected async handlers automatically.
+function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): RequestHandler {
+  return (req, res, next) => { handler(req, res).catch(next); };
 }
 
 export function createCreditRouter(credits: CreditService) {
   const router = Router();
-
-  router.get('/wallet', (req: Request, res: Response<ApiResponse<CreditWalletDTO>>) => {
-    res.json({ success: true, data: credits.getWallet(getUserId(req)) });
-  });
-
-  router.get('/ledger', (req: Request, res: Response<ApiResponse<CreditTransactionDTO[]>>) => {
-    res.json({ success: true, data: credits.getLedger(getUserId(req)) });
-  });
-
-  router.post('/escrow/reserve', (req: Request, res: Response<ApiResponse<CreditWalletDTO>>) => {
-    res.json({
-      success: true,
-      data: credits.reserve(req.body),
-      message: 'Escrow reserved successfully',
-    });
-  });
-
-  router.post('/escrow/settle', (req: Request, res: Response<ApiResponse<CreditSettlement>>) => {
-    res.json({
-      success: true,
-      data: credits.settle(req.body),
-      message: 'Credits atomically settled to courier',
-    });
-  });
-
-  router.post('/escrow/refund', (req: Request, res: Response<ApiResponse<CreditWalletDTO>>) => {
-    res.json({
-      success: true,
-      data: credits.refund(req.body),
-      message: 'Escrow refunded to available balance',
-    });
-  });
-
+  router.get('/wallet', asyncRoute(async (req, res) => {
+    const userId = uuid(req.headers['x-user-id'], 'x-user-id');
+    res.json({ success: true, data: await credits.getWallet(userId) });
+  }));
+  router.get('/ledger', asyncRoute(async (req, res) => {
+    const userId = uuid(req.headers['x-user-id'], 'x-user-id');
+    res.json({ success: true, data: await credits.getLedger(userId) });
+  }));
+  router.post('/escrow/reserve', asyncRoute(async (req, res) => {
+    const data = await credits.reserve(escrowRequest(req.body));
+    res.json({ success: true, data, message: 'Escrow reserved successfully' });
+  }));
+  router.post('/escrow/settle', asyncRoute(async (req, res) => {
+    const body = escrowRequest(req.body);
+    const courierId = uuid(req.body.courierId, 'courierId');
+    const data = await credits.settle({ ...body, courierId });
+    res.json({ success: true, data, message: 'Credits atomically settled to courier' });
+  }));
+  router.post('/escrow/refund', asyncRoute(async (req, res) => {
+    const data = await credits.refund(escrowRequest(req.body));
+    res.json({ success: true, data, message: 'Escrow refunded to available balance' });
+  }));
   const handleCreditError: ErrorRequestHandler = (error, _req, res, next) => {
     if (error instanceof CreditError) {
       res.status(400).json({ success: false, error: error.message });
@@ -57,6 +64,5 @@ export function createCreditRouter(credits: CreditService) {
     next(error);
   };
   router.use(handleCreditError);
-
   return router;
 }

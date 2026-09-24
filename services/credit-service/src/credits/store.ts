@@ -1,68 +1,88 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Extracted the existing in-memory wallet and ledger data access into an isolated store.
+ * Scope: Replaced mock data with Prisma queries and transaction-scoped atomic balance updates.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
+import type { Prisma, PrismaClient, CreditWallet, CreditTransaction } from '../database/client';
 import type { CreditTransactionDTO, CreditWalletDTO } from './types';
 
-export function createCreditStore() {
-  // In-memory mock wallet store
-  const mockWallets: Record<string, CreditWalletDTO> = {
-    'u1111111-1111-1111-1111-111111111111': {
-      userId: 'u1111111-1111-1111-1111-111111111111',
-      availableCredits: 85,
-      escrowCredits: 15,
-      totalEarnedCredits: 45,
-      updatedAt: new Date().toISOString(),
+function walletDTO(wallet: CreditWallet): CreditWalletDTO {
+  // SQL permits null timestamps; the HTTP DTO requires a string. Do not invent dates.
+  if (!wallet.updatedAt) throw new Error('Wallet updated_at is null');
+  return {
+    userId: wallet.userId,
+    availableCredits: wallet.availableCredits,
+    escrowCredits: wallet.escrowCredits,
+    totalEarnedCredits: wallet.totalEarnedCredits,
+    updatedAt: wallet.updatedAt.toISOString(),
+  };
+}
+
+function transactionDTO(transaction: CreditTransaction): CreditTransactionDTO {
+  const type = transaction.transactionType;
+  if (!['WELCOME_GRANT', 'ESCROW_HOLD', 'ESCROW_RELEASE', 'ESCROW_REFUND'].includes(type)) {
+    throw new Error('Unknown stored credit transaction type');
+  }
+  if (!transaction.createdAt) throw new Error('Transaction created_at is null');
+  return {
+    ...transaction,
+    transactionType: type as CreditTransactionDTO['transactionType'],
+    description: transaction.description ?? undefined,
+    createdAt: transaction.createdAt.toISOString(),
+  };
+}
+
+function queries(db: Prisma.TransactionClient) {
+  return {
+    async findWallet(userId: string) {
+      const wallet = await db.creditWallet.findUnique({ where: { userId } });
+      return wallet ? walletDTO(wallet) : undefined;
     },
-    'u2222222-2222-2222-2222-222222222222': {
-      userId: 'u2222222-2222-2222-2222-222222222222',
-      availableCredits: 120,
-      escrowCredits: 20,
-      totalEarnedCredits: 60,
-      updatedAt: new Date().toISOString(),
+    async createWallet(userId: string, availableCredits: number) {
+      // ON CONFLICT DO NOTHING handles simultaneous first requests.
+      await db.creditWallet.createMany({ data: [{ userId, availableCredits }], skipDuplicates: true });
+      return walletDTO(await db.creditWallet.findUniqueOrThrow({ where: { userId } }));
+    },
+    async changeBalance(
+      userId: string,
+      delta: { available?: number; escrow?: number; earned?: number },
+      minimum: { available?: number; escrow?: number } = {},
+    ) {
+      const result = await db.creditWallet.updateMany({
+        where: {
+          userId,
+          availableCredits: minimum.available === undefined ? undefined : { gte: minimum.available },
+          escrowCredits: minimum.escrow === undefined ? undefined : { gte: minimum.escrow },
+        },
+        data: {
+          availableCredits: { increment: delta.available ?? 0 },
+          escrowCredits: { increment: delta.escrow ?? 0 },
+          totalEarnedCredits: { increment: delta.earned ?? 0 },
+          updatedAt: new Date(),
+        },
+      });
+      return result.count === 1;
+    },
+    async findTransactions(userId: string) {
+      const rows = await db.creditTransaction.findMany({
+        where: { OR: [{ fromUserId: userId }, { toUserId: userId }] },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      });
+      return rows.map(transactionDTO);
+    },
+    async addTransaction(data: Omit<CreditTransactionDTO, 'id' | 'createdAt'>) {
+      await db.creditTransaction.create({ data });
     },
   };
+}
 
-  // In-memory audit ledger
-  const mockLedger: CreditTransactionDTO[] = [
-    {
-      id: 'tx-1',
-      transactionCode: 'TX-1001',
-      fromUserId: null,
-      toUserId: 'u1111111-1111-1111-1111-111111111111',
-      amount: 100,
-      transactionType: 'WELCOME_GRANT',
-      description: 'Initial student registration welcome credits',
-      createdAt: new Date(Date.now() - 7 * 86400000).toISOString(),
-    },
-    {
-      id: 'tx-2',
-      transactionCode: 'TX-1002',
-      fromUserId: 'u1111111-1111-1111-1111-111111111111',
-      toUserId: null,
-      orderId: 'ord-1001',
-      amount: 15,
-      transactionType: 'ESCROW_HOLD',
-      description: 'Escrow lock for errand E-1042',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
+export function createCreditStore(prisma: PrismaClient) {
   return {
-    findWallet(userId: string): CreditWalletDTO | undefined {
-      return mockWallets[userId];
-    },
-    saveWallet(wallet: CreditWalletDTO): void {
-      mockWallets[wallet.userId] = wallet;
-    },
-    findTransactions(userId: string): CreditTransactionDTO[] {
-      return mockLedger.filter((t) => t.fromUserId === userId || t.toUserId === userId);
-    },
-    addTransaction(transaction: CreditTransactionDTO): void {
-      mockLedger.unshift(transaction);
+    ...queries(prisma),
+    transaction<T>(operation: (store: ReturnType<typeof queries>) => Promise<T>) {
+      return prisma.$transaction((tx) => operation(queries(tx)));
     },
   };
 }

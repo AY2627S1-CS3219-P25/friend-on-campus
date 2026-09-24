@@ -1,120 +1,85 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Extracted the existing wallet and escrow rules without changing the mock credit behavior.
+ * Scope: Preserved credit rules using transactional persistence and asynchronous operations.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
+import { randomBytes } from 'node:crypto';
 import type { CreditStore } from './store';
-import type {
-  CreditWalletDTO,
-  CreditSettlement,
-  EscrowReserveRequest,
-  EscrowSettleRequest,
-  EscrowRefundRequest,
-} from './types';
+import type { CreditWalletDTO, CreditSettlement, EscrowReserveRequest, EscrowSettleRequest, EscrowRefundRequest } from './types';
 
 export class CreditError extends Error {}
 
-function createWallet(userId: string): CreditWalletDTO {
-  return {
-    userId,
-    availableCredits: 100,
-    escrowCredits: 0,
-    totalEarnedCredits: 0,
-    updatedAt: new Date().toISOString(),
-  };
+function transactionCode() {
+  // 27 characters, within the existing VARCHAR(30) unique column.
+  return `TX-${randomBytes(12).toString('hex')}`;
 }
 
 export function createCreditService(store: CreditStore) {
   return {
-    getWallet(userId: string): CreditWalletDTO {
-      let wallet = store.findWallet(userId);
-      if (!wallet) {
-        wallet = createWallet(userId);
-        store.saveWallet(wallet);
-      }
-      return wallet;
+    async getWallet(userId: string): Promise<CreditWalletDTO> {
+      return (await store.findWallet(userId)) ?? store.createWallet(userId, 100);
     },
-
     getLedger(userId: string) {
       return store.findTransactions(userId);
     },
-
-    reserve(body: EscrowReserveRequest): CreditWalletDTO {
-      const wallet = store.findWallet(body.requesterId) || createWallet(body.requesterId);
-      if (wallet.availableCredits < body.amount) {
-        throw new CreditError('Insufficient available credits for escrow hold');
-      }
-
-      wallet.availableCredits -= body.amount;
-      wallet.escrowCredits += body.amount;
-      wallet.updatedAt = new Date().toISOString();
-      store.saveWallet(wallet);
-      store.addTransaction({
-        id: `tx-${Date.now()}`,
-        transactionCode: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
-        fromUserId: body.requesterId,
-        toUserId: null,
-        orderId: body.orderId,
-        amount: body.amount,
-        transactionType: 'ESCROW_HOLD',
-        description: `Escrow hold for order ${body.orderId}`,
-        createdAt: new Date().toISOString(),
+    reserve(body: EscrowReserveRequest): Promise<CreditWalletDTO> {
+      return store.transaction(async (tx) => {
+        if (!(await tx.findWallet(body.requesterId))) await tx.createWallet(body.requesterId, 100);
+        const changed = await tx.changeBalance(body.requesterId,
+          { available: -body.amount, escrow: body.amount }, { available: body.amount });
+        if (!changed) throw new CreditError('Insufficient available credits for escrow hold');
+        await tx.addTransaction({
+          transactionCode: transactionCode(),
+          fromUserId: body.requesterId,
+          toUserId: null,
+          orderId: body.orderId,
+          amount: body.amount,
+          transactionType: 'ESCROW_HOLD',
+          description: `Escrow hold for order ${body.orderId}`,
+        });
+        return (await tx.findWallet(body.requesterId))!;
       });
-      return wallet;
     },
-
-    settle(body: EscrowSettleRequest): CreditSettlement {
-      const requesterWallet = store.findWallet(body.requesterId);
-      if (!requesterWallet || requesterWallet.escrowCredits < body.amount) {
-        throw new CreditError('Insufficient escrow credits to settle');
-      }
-      const courierWallet = store.findWallet(body.courierId) || createWallet(body.courierId);
-
-      requesterWallet.escrowCredits -= body.amount;
-      requesterWallet.updatedAt = new Date().toISOString();
-      courierWallet.availableCredits += body.amount;
-      courierWallet.totalEarnedCredits += body.amount;
-      courierWallet.updatedAt = new Date().toISOString();
-      store.saveWallet(requesterWallet);
-      store.saveWallet(courierWallet);
-      store.addTransaction({
-        id: `tx-${Date.now()}`,
-        transactionCode: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
-        fromUserId: body.requesterId,
-        toUserId: body.courierId,
-        orderId: body.orderId,
-        amount: body.amount,
-        transactionType: 'ESCROW_RELEASE',
-        description: `Escrow payout to courier for order ${body.orderId}`,
-        createdAt: new Date().toISOString(),
+    settle(body: EscrowSettleRequest): Promise<CreditSettlement> {
+      return store.transaction(async (tx) => {
+        const changed = await tx.changeBalance(body.requesterId,
+          { escrow: -body.amount }, { escrow: body.amount });
+        if (!changed) throw new CreditError('Insufficient escrow credits to settle');
+        if (!(await tx.findWallet(body.courierId))) await tx.createWallet(body.courierId, 100);
+        await tx.changeBalance(body.courierId, { available: body.amount, earned: body.amount });
+        await tx.addTransaction({
+          transactionCode: transactionCode(),
+          fromUserId: body.requesterId,
+          toUserId: body.courierId,
+          orderId: body.orderId,
+          amount: body.amount,
+          transactionType: 'ESCROW_RELEASE',
+          description: `Escrow payout to courier for order ${body.orderId}`,
+        });
+        return {
+          requesterWallet: (await tx.findWallet(body.requesterId))!,
+          courierWallet: (await tx.findWallet(body.courierId))!,
+        };
       });
-      return { requesterWallet, courierWallet };
     },
-
-    refund(body: EscrowRefundRequest): CreditWalletDTO {
-      const wallet = store.findWallet(body.requesterId);
-      if (!wallet || wallet.escrowCredits < body.amount) {
-        throw new CreditError('Insufficient escrow credits to refund');
-      }
-
-      wallet.escrowCredits -= body.amount;
-      wallet.availableCredits += body.amount;
-      wallet.updatedAt = new Date().toISOString();
-      store.saveWallet(wallet);
-      store.addTransaction({
-        id: `tx-${Date.now()}`,
-        transactionCode: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
-        fromUserId: null,
-        toUserId: body.requesterId,
-        orderId: body.orderId,
-        amount: body.amount,
-        transactionType: 'ESCROW_REFUND',
-        description: `Escrow refund for cancelled/expired order ${body.orderId}`,
-        createdAt: new Date().toISOString(),
+    refund(body: EscrowRefundRequest): Promise<CreditWalletDTO> {
+      return store.transaction(async (tx) => {
+        const changed = await tx.changeBalance(body.requesterId,
+          { available: body.amount, escrow: -body.amount }, { escrow: body.amount });
+        if (!changed) throw new CreditError('Insufficient escrow credits to refund');
+        await tx.addTransaction({
+          transactionCode: transactionCode(),
+          fromUserId: null,
+          toUserId: body.requesterId,
+          orderId: body.orderId,
+          amount: body.amount,
+          transactionType: 'ESCROW_REFUND',
+          description: `Escrow refund for cancelled/expired order ${body.orderId}`,
+        });
+        return (await tx.findWallet(body.requesterId))!;
       });
-      return wallet;
     },
   };
 }
