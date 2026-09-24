@@ -1,4 +1,34 @@
 /**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-20
+ * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Replaced legacy user and authentication DTOs with the author-approved account and session contract.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+// AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
+ * Scope: Added the author-approved refresh-token response DTO.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
+ * Scope: JWTPayload now uses the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud);
+ * LoginUserRequest.keepLoggedIn made optional and UpdateUserProfileRequest.username made required to match
+ * the User Service behaviour and API reference. Applied on the PR author's behalf after review round 2.
+ * Author review: <to be completed by ngkhengyang>
+ */
+// AI-generated (edited by ngkhengyang)
+/**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
  */
@@ -9,41 +39,62 @@
 export type UserRole = 'STUDENT' | 'ADMIN';
 
 export interface UserDTO {
-  id: string;
-  nusEmail: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
-  role: UserRole;
-  ratingAvg: number;
-  totalCompletedOrders: number;
-  createdAt: string;
+  userId: string;
+  username: string;
+  email: string;
+  userRole: UserRole;
 }
 
 export interface RegisterUserRequest {
-  nusEmail: string;
+  username: string;
+  email: string;
   password: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
 }
 
 export interface LoginUserRequest {
-  nusEmail: string;
+  email: string;
   password: string;
+  keepLoggedIn?: boolean;
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  accessTokenExpiresInSeconds: number;
   user: UserDTO;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  accessTokenExpiresInSeconds: number;
+}
+
+/**
+ * Access-token claims (RFC 7519 registered names so standard JWT libraries enforce exp/iss/aud).
+ * sub = user id, sid = login session id.
+ */
+export interface JWTPayload {
+  sub: string;
+  sid: string;
+  role: UserRole;
+  iat: number;
+  exp: number;
+  iss: string;
+  aud: string;
+}
+
+export interface UpdateUserProfileRequest {
+  username: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 // ==========================================
 // 2. Supplier Service Types (M3)
 // ==========================================
-export type SupplierCategory = 'Beverages' | 'Food' | 'Printing' | 'Parcels' | 'General';
+export type SupplierCategory = 'Beverages' | 'Food' | 'Printing' | 'Parcels' | 'Shopping' | 'General';
 
 export interface SupplierDTO {
   id: string;
@@ -53,17 +104,59 @@ export interface SupplierDTO {
   exactLocation: string;
   category: SupplierCategory;
   description?: string;
+  building?: string;
+  floor?: string;
+  latitude?: number;
+  longitude?: number;
+  startingTime?: string;
+  closingTime?: string;
+  imageUrl?: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateSupplierRequest {
-  supplierCode: string;
+  supplierCode?: string;
   name: string;
   campusZone: string;
   exactLocation: string;
   category: SupplierCategory;
   description?: string;
+  building?: string;
+  floor?: string;
+  latitude?: number;
+  longitude?: number;
+  startingTime?: string;
+  closingTime?: string;
+  imageUrl?: string;
+}
+
+export interface UpdateSupplierRequest {
+  name?: string;
+  campusZone?: string;
+  exactLocation?: string;
+  category?: SupplierCategory;
+  description?: string;
+  building?: string;
+  floor?: string;
+  latitude?: number;
+  longitude?: number;
+  startingTime?: string;
+  closingTime?: string;
+  imageUrl?: string;
+  isActive?: boolean;
+}
+
+export interface SupplierQueryOptions {
+  campusZone?: string;
+  category?: string;
+  search?: string;
+  isActive?: boolean;
+  sortBy?: 'name' | 'campusZone' | 'category' | 'createdAt' | 'supplierCode';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
 }
 
 // ==========================================
@@ -168,7 +261,7 @@ export interface BaseEvent {
 export interface UserRegisteredEvent extends BaseEvent {
   eventType: 'user.registered';
   userId: string;
-  nusEmail: string;
+  email: string;
   initialGrant: number;
 }
 
@@ -228,4 +321,12 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+}
+
+export interface PaginatedResponse<T = any> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

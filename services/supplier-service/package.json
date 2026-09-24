@@ -2,15 +2,20 @@
   "name": "@campus-errand/supplier-service",
   "version": "1.0.0",
   "description": "Supplier & Campus Location Directory Microservice for NUS CampusErrand",
-  "main": "src/index.ts",
+  "main": "src/backend/server.ts",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/backend/server.ts",
+    "start": "tsx src/backend/server.ts",
     "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc",
+    "db:generate": "npx prisma generate --schema src/database/prisma/schema.prisma",
+    "db:migrate": "npx prisma migrate dev --schema src/database/prisma/schema.prisma",
+    "db:seed": "npx tsx src/database/seed.ts"
   },
   "dependencies": {
+    "@campus-errand/auth": "*",
     "@campus-errand/common-dtos": "*",
+    "@prisma/client": "^6.7.0",
     "express": "^4.21.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -21,6 +26,7 @@
     "@types/cors": "^2.8.17",
     "@types/node": "^20.14.0",
     "@types/pg": "^8.11.6",
+    "prisma": "^6.7.0",
     "tsx": "^4.11.0",
     "typescript": "^5.4.5"
   }
