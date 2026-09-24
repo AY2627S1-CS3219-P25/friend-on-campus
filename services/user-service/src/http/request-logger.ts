@@ -1,3 +1,9 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+ * Scope: Implemented structured HTTP request logging with correlation IDs and response timing.
+ * Author review: <to be completed by ngkhengyang>
+ */
 import { randomUUID } from 'node:crypto';
 import { RequestHandler } from 'express';
 import { logHttpResponse } from '../utils/logger';

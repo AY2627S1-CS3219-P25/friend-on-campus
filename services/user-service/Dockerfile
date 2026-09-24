@@ -1,3 +1,8 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
+# Scope: Implemented the User Service container build with workspace dependencies, Prisma generation, and a production start command.
+# Author review: <to be completed by ngkhengyang>
+
 FROM node:20-alpine
 
 WORKDIR /app

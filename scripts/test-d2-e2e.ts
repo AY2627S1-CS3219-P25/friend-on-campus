@@ -7,7 +7,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Aligned D2 account, session, profile, administration-placeholder, and Supplier Service RBAC checks with the author-approved Ed25519 contracts.
+ * Scope: Aligned D2 account, session, profile, structured administration-placeholder, and Supplier Service RBAC checks with the author-approved Ed25519 contracts.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by yanhwee)
@@ -215,7 +215,6 @@ async function runTests() {
       body: JSON.stringify({
         email: testEmail,
         password: 'Password123!',
-        keepLoggedIn: false,
       }),
     });
     const studentLoginData = await studentLoginRes.json();
@@ -223,6 +222,13 @@ async function runTests() {
     assert(studentLoginData.data?.user?.userRole === 'STUDENT', 'Registered user has role STUDENT');
     const studentToken = studentLoginData.data?.accessToken;
     const studentUserId = studentLoginData.data?.user?.userId;
+    const studentClaims = decodeJwtPayload(studentToken);
+    assert(studentClaims.sub === studentUserId, 'Access token uses the standard sub claim');
+    assert(typeof studentClaims.sid === 'string', 'Access token includes the standard sid claim');
+    assert(typeof studentClaims.iat === 'number', 'Access token includes the standard iat claim');
+    assert(typeof studentClaims.exp === 'number', 'Access token includes the standard exp claim');
+    assert(studentClaims.iss === 'friend-on-campus-user-service', 'Access token uses the standard iss claim');
+    assert(studentClaims.aud === 'friend-on-campus-services', 'Access token uses the standard aud claim');
 
     // -------------------------------------------------------------------------
     // SCENARIO 3: User Profile & Immutability Protection
@@ -283,7 +289,24 @@ async function runTests() {
     const adminList = await fetch(`${USER_API}/api/users`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     });
+    const adminListData = await adminList.json();
     assert(adminList.status === 501, 'ADMIN user listing placeholder returns 501 Not Implemented');
+    assert(
+      adminListData.success === false &&
+        adminListData.code === 'NOT_IMPLEMENTED' &&
+        adminListData.error === 'User management is not implemented',
+      'ADMIN user listing placeholder returns a structured error',
+    );
+
+    const adminGetUser = await fetch(`${USER_API}/api/users/${studentUserId}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const adminGetUserData = await adminGetUser.json();
+    assert(adminGetUser.status === 501, 'ADMIN user lookup placeholder returns 501 Not Implemented');
+    assert(
+      adminGetUserData.success === false && adminGetUserData.code === 'NOT_IMPLEMENTED',
+      'ADMIN user lookup placeholder returns a structured error',
+    );
 
     const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
       method: 'POST',
@@ -292,7 +315,23 @@ async function runTests() {
         Authorization: `Bearer ${adminToken}`,
       },
     });
+    const adminPromoteData = await adminPromote.json();
     assert(adminPromote.status === 501, 'ADMIN promotion placeholder returns 501 Not Implemented');
+    assert(
+      adminPromoteData.success === false && adminPromoteData.code === 'NOT_IMPLEMENTED',
+      'ADMIN promotion placeholder returns a structured error',
+    );
+
+    const malformedCookie = await fetch(`${USER_API}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Cookie: 'refresh_token=%E0%A4%A' },
+    });
+    const malformedCookieData = await malformedCookie.json();
+    assert(malformedCookie.status === 401, 'Malformed refresh-token cookie returns 401');
+    assert(
+      malformedCookieData.code === 'INVALID_SESSION',
+      'Malformed refresh-token cookie returns INVALID_SESSION',
+    );
 
     // -------------------------------------------------------------------------
     // SCENARIO 5: Public Querying of Campus Suppliers (M3)

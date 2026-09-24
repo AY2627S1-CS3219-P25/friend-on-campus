@@ -31,7 +31,7 @@ Author review: <to be completed by ngkhengyang>
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Documented the author-approved deferred ADMIN User Service endpoint placeholders.
+Scope: Documented the author-approved deferred ADMIN User Service endpoint placeholders, structured `501` responses, and interoperable JWT claims.
 Author review: <to be completed by ngkhengyang>
 -->
 
@@ -96,8 +96,9 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | `GET /api/users/me` | Bearer token | Returns authenticated profile. |
 | `PATCH /api/users/me` | Bearer token | Updates username only; email is immutable. |
 | `PUT /api/users/me/password` | Bearer token | Verifies current password and changes password. |
-| `GET /api/users` | ADMIN Bearer token | Deferred user-management placeholder; returns `501 Not Implemented` and does not list users. |
-| `POST /api/users/:id/promote` | ADMIN Bearer token | Deferred user-management placeholder; returns `501 Not Implemented` and does not promote a user. |
+| `GET /api/users` | ADMIN Bearer token | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
+| `GET /api/users/:id` | ADMIN Bearer token | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
+| `POST /api/users/:id/promote` | ADMIN Bearer token | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
 
 The endpoint-level request and response examples are in
 [`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md).

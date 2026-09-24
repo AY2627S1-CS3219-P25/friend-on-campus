@@ -1,21 +1,21 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Preserved duplicate-account error handling while adapting it to Prisma constraint errors.
+ * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Adopted the shared registration request and user response DTOs for account creation.
+ * Scope: Implemented account creation with shared registration request and user response DTOs.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Adopted shared login, access-token, and refresh-token response DTOs for session handling.
+ * Scope: Implemented login and session handling with shared access-token and refresh-token response DTOs.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -47,7 +47,7 @@ import {
   isValidUsername,
   normalizeEmail,
 } from '../utils/validation';
-import { hashPassword, verifyPassword } from './password';
+import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from './password';
 import { TokenManager } from './tokens';
 
 export type LoginInput = LoginUserRequest;
@@ -203,7 +203,10 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
     async login(input) {
       const email = validateEmail(input?.email);
       const password = validatePassword(input?.password);
+      await options.repository.cleanupExpiredSessions(new Date());
       const user = await options.repository.findUserByEmail(email);
+      const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+      const passwordMatches = await verifyPassword(password, passwordHash);
 
       const passwordMatches = await verifyPassword(
         password,
@@ -245,6 +248,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }
 
+      await options.repository.cleanupExpiredSessions(new Date());
       const nextRefreshToken = options.tokens.generateRefreshToken();
       const now = new Date();
       await options.repository.deleteExpiredSessions(now);
@@ -260,6 +264,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         persistentIdleExpiresAt,
       );
 
+      // A previously rotated token is treated as invalid; replay does not revoke the active session.
       if (!session) {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }

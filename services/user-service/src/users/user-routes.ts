@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Added author-approved authenticated ADMIN endpoint placeholders that deliberately return 501.
+ * Scope: Implemented authenticated profile routes and structured 501 ADMIN user-management placeholders for the User Service.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -21,7 +21,7 @@ import {
   Router,
 } from 'express';
 import { AuthError } from '../auth/auth-module';
-import { UserModule } from './user-module';
+import { UserError, UserModule } from './user-module';
 
 function asyncRoute(
   handler: (req: Request, res: Response) => Promise<void>,
@@ -74,6 +74,10 @@ export function createUserRouter(
       res.status(204).send();
     }),
   );
+
+  function throwNotImplemented(): never {
+    throw new UserError('NOT_IMPLEMENTED', 'User management is not implemented');
+  }
 
   // AI-generated (edited by ngkhengyang)
   const notImplemented = (_req: Request, res: Response) => {

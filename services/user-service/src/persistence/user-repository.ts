@@ -1,14 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Replaced raw pg profile and password queries with equivalent Prisma persistence operations.
+ * Scope: Implemented Prisma-backed persistence operations for user profiles and password changes.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Removed email mutation from the User Service profile persistence path.
+ * Scope: Enforced immutable email addresses in the User Service profile persistence path.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
