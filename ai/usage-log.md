@@ -925,3 +925,19 @@ Verified:
 - Verified container logs: both services applied Prisma migrations and executed database seeding on boot.
 - Verified PostgreSQL: `user_db` has 3 seeded users, `supplier_db` has 21 seeded suppliers, `order_db` and `credit_db` have zero relations.
 - Executed `npm run test:d2`: 40/44 tests passed (all registration, authentication, token claims, user profile immutability, supplier querying, and cross-service RBAC passed).
+
+## 2026-09-24 12:30 SGT — Fold the linked-issue check into the Claude PR review
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** ci/claude-review-linked-issues
+
+**Prompt (summarised):** Diagnose why the `Claude PR review` run on PR #86 failed, then remove the `PR links an issue` CI check and make the Claude review find the GitHub issues related to each PR instead.
+
+**Usage scenario:** CI configuration (allowed use). The failed run was an authentication failure: the `CLAUDE_CODE_OAUTH_TOKEN` secret held an invalid token (the action hides the error text; the signature is `is_error: true`, one turn, zero cost). The author regenerated the token with `claude setup-token`, it was verified locally against `--model best`, the secret was updated, and the rerun reviewed PR #86 successfully. The two earlier "successful" runs had never executed Claude: the action skips PRs that change the workflow file. Then, on the author's instruction, deleted the hard-failing linked-issue workflow and added a Linked-issues step to the review prompt; the review reports and suggests `Closes #<n>` lines but never edits the PR body or fails the PR.
+
+**Files changed:**
+- `.github/workflows/pr-linked-issue.yml` — deleted.
+- `.github/workflows/claude-pr-review.yml` — Linked-issues section in the prompt, `gh issue view` / `gh issue list` allowed, summary comment must include the section; disclosure header appended.
+- `CLAUDE.md` — section 6 linked-issue rule now describes the Claude review check instead of the deleted workflow; disclosure header appended.
+- `ai/usage-log.md` — this entry.
