@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-09-24
-# Scope: Included the Prisma schema before workspace installation and generated the client.
+# Scope: Generated Prisma client and deployed Credit Service migrations before startup.
 # Author review: <to be completed by huangjiaxi1111>
 # AI-generated (edited by huangjiaxi1111)
 FROM node:20-alpine
@@ -24,4 +24,4 @@ RUN npm run db:generate
 
 EXPOSE 8004
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["sh", "-c", "npm run db:deploy && exec /app/node_modules/.bin/tsx src/index.ts"]

@@ -1,113 +1,143 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Documented the Prisma replacement, SQL-compatible requests, migrations and integration checks.
+Scope: Documented fresh database initialization and the separate Credit Service test directory.
 Author review: <to be completed by huangjiaxi1111>
 -->
-<!--
-AI Assistance Disclosure:
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this page from services/credit-service source, docker-compose.yml, the init SQL, common-dtos and D1 / D2-plan text. Descriptive only.
-Author review: <to be completed by the service owner>
--->
 
-# credit-service
+# Credit Service
 
-**Status:** PostgreSQL persistence through the service-local Prisma client, using the existing `credit_db` tables. Port **8004**. Wallets and ledger entries survive service restarts. Authentication, idempotency and RabbitMQ integration are still pending.
+Credit Service runs on port **8004**, owns `credit_db`, and persists wallets, ledger entries, initial grants, per-order escrow state and processed event identities with Prisma. HTTP credit operations and RabbitMQ consumers use the same transactional rules.
 
-## Responsibilities (from the documents)
+User, Order and Notification Services remain unchanged. Upstream publication is not implemented by this task. See [the integration contract](./credit-service-integration-contract.md) for their required future behavior and complete message examples.
 
-Initial credit allocation on registration; available, reserved and total balances per user; reserve on errand creation; settle on completion; release on cancellation or expiry; transaction history; idempotent handling of duplicate requests and redelivered events; asynchronous integration through events. [D1 F4.0–F4.7; Credit Service N1–N3; D2 plan work package F, App. D]
+## Run locally
 
-## Run
+From the repository root:
 
 ```bash
-docker compose up postgres -d
+docker compose up -d postgres rabbitmq
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credit_db
-npm install
-# Once, only when adopting the tables already created by Docker init SQL:
-npm run db:baseline --workspace=@campus-errand/credit-service
+export RABBITMQ_URL=amqp://guest:guest@localhost:5672
+npm run db:generate --workspace=@campus-errand/credit-service
 npm run db:deploy --workspace=@campus-errand/credit-service
 npm run dev:credit
 ```
 
-Compose parses the full project: if it reports missing JWT keys, follow its existing `npm run generate:jwt-keys` setup instruction. Only Postgres is needed when running this service locally. If the existing Credit container already occupies port 8004, use `PORT=8014 npm run dev:credit`.
+If port 8004 is occupied, set `PORT=8014` for the local process. Compose parses the full project; if it requests JWT keys, use the existing repository key-generation setup. PostgreSQL and RabbitMQ must both be available before startup completes.
 
-For Docker, `docker compose up --build -d credit-service` generates the Prisma client in the image and uses the existing PostgreSQL and RabbitMQ dependencies. Docker's init SQL already provisions the credit tables on first boot; the service does not run migrations automatically.
+For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migrations and starts the consumer and HTTP server. The existing Compose configuration already supplies PostgreSQL/RabbitMQ addresses and dependencies; it was not changed. Docker startup now runs `db:deploy` before starting Node. No volumes need to be reset.
 
-The initial Prisma migration copies the existing credit SQL, including CHECK constraints. For tables already created by Docker with that exact SQL, run `db:baseline` once to record the initial migration as applied, then use `db:deploy`. On a completely empty database, skip `db:baseline` and run `db:deploy` to create the tables. Running `db:deploy` on existing tables without a baseline produces Prisma P3005; repeating `db:baseline` after it is recorded produces P3008. Neither command repairs schema drift. Future schema edits require matching SQL and migrations. `db:generate` only generates the client; `db:migrate` is the development migration command. No volume reset is required.
+## Fresh database initialization
 
-Example request (replace with your actual user UUID):
+Start with an empty `credit_db` and run `db:deploy`. Both migrations run in order:
 
-```bash
-curl -H 'x-user-id: 11111111-1111-4111-8111-111111111111' \
-  http://localhost:8004/api/credits/wallet
-```
+1. `20260924050000_existing_credit_tables` creates wallets and ledger entries. Its existing filename is retained; it also initializes a fresh database.
+2. `20260924100000_credit_messaging` creates the grant, escrow and processed-event tables.
 
-## Configuration
+| Table | Purpose |
+|---|---|
+| `credit_grants` | One immutable initial allocation amount per user |
+| `credit_escrows` | One requester/amount and lifecycle per order; `RESERVED`, `SETTLED` or `REFUNDED` |
+| `processed_credit_events` | Event ID, type and hash of the validated payload |
 
-`src/config.ts` loads environment configuration: `PORT` (default `8004`), `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/credit_db`) and the still-unused `RABBITMQ_URL`. Compose uses hostname `postgres` instead of `localhost`. `src/database/client.ts` uses this same configuration, including the local database fallback. Prisma CLI commands need `DATABASE_URL` exported or set in a service-root `.env`; see `.env.example`.
+All five tables start empty. Wallets, grants, escrows and ledger entries are created through normal application operations. There is no legacy-data backfill, reconciliation or baseline step. The original migration is unchanged; the new messaging migration only creates its tables and constraints. This setup targets fresh databases rather than upgrading existing credit records.
+
+`src/database/schema.sql` remains the historical pre-messaging schema. The Prisma schema and versioned migrations are authoritative for the running service.
+
+## HTTP API
+
+| Endpoint | Behavior |
+|---|---|
+| `GET /health` | Liveness, 200 while HTTP is serving |
+| `GET /ready` | 200 only when PostgreSQL responds and RabbitMQ consumers are ready; otherwise 503 |
+| `GET /api/credits/wallet` | `x-user-id` UUID header; returns wallet, lazily initializing 100 credits if missing |
+| `GET /api/credits/ledger` | Same header; returns the user's ledger, newest first |
+| `POST /api/credits/escrow/reserve` | `{orderId, requesterId, amount}`; reserves once per order |
+| `POST /api/credits/escrow/settle` | `{orderId, requesterId, courierId, amount}`; settles the full matching reservation once |
+| `POST /api/credits/escrow/refund` | `{orderId, requesterId, amount}`; refunds the full matching reservation once |
+
+Success response shapes remain `{success:true,data,...}`; settle returns `{requesterWallet,courierWallet}`, reserve/refund return a wallet. UUIDs are normalized to lowercase. Amounts must be positive PostgreSQL integers. Invalid input and insufficient available funds return 400; reservation/terminal/grant conflicts return 409. Unexpected failures return generic 500 errors.
+
+Identical operations do not repeat balance changes, including concurrent requests. Reusing an order with a different requester, amount or settlement courier conflicts. Settlement and refund are mutually exclusive. Partial settlement/refund is no longer supported. Replays return current balances rather than saved historical responses; an identical reserve replay never reopens a terminal escrow.
+
+Wallet creation now writes exactly one welcome ledger entry and grant marker in the same transaction. Existing read DTO fields, including `totalEarnedCredits`, remain unchanged. Authentication remains pending: reads trust `x-user-id`, and mutation endpoints trust body identifiers.
+
+## Registration and messages
+
+The consumer accepts `user.registered`, `order.completed`, `order.cancelled` and `order.expired`. Registration initializes the wallet from `initialGrant`; completion settles; cancellation/expiry refund. JSON, UUIDs, positive integer amounts, email, UTC timestamps, event type and routing-key agreement are validated before credit rules execute.
+
+Compatibility: first read/reserve/courier settlement still creates an unknown wallet with 100 credits. A later registration with the same grant records the event without changing balances. A different grant conflicts and is dead-lettered. If registration arrives first, its amount determines the allocation. This is a compatibility bridge while User Service event publishing is pending.
+
+Processed event ID and payload fingerprint are committed with all credit changes. Reusing an ID with a different validated payload conflicts. Different IDs for the same grant/order operation are also protected by persistent business state. Concurrent work uses serializable transactions with up to ten attempts for serialization/uniqueness contention; exhausted infrastructure failures pass to the bounded message retry policy.
+
+Cancellation uses a temporary local type in `src/credits/events.ts` until future shared DTO work adds `OrderCancelledEvent`.
+
+## Configuration and delivery
+
+All configuration is owned by `src/config.ts`; see the service's `.env.example`.
+
+| Environment variable | Default |
+|---|---|
+| `PORT` | `8004` |
+| `DATABASE_URL` | Local `credit_db` PostgreSQL URL |
+| `RABBITMQ_URL` | Local development broker URL, `amqp://guest:guest@localhost:5672` |
+| `CREDIT_EXCHANGE` | `campus.events` (topic) |
+| `CREDIT_QUEUE` | `credit-service.events` |
+| `CREDIT_RETRY_EXCHANGE` | `<CREDIT_QUEUE>.retry` (direct) |
+| `CREDIT_RETRY_QUEUE` | `<CREDIT_QUEUE>.retry` |
+| `CREDIT_DLX` | `<CREDIT_EXCHANGE>.dlx` (direct) |
+| `CREDIT_DLQ` | `<CREDIT_QUEUE>.dlq` |
+| `CREDIT_RETRY_DELAY_MS` | `1000` |
+| `CREDIT_RETRY_LIMIT` | `5` retries after the initial attempt |
+
+Topology is durable and declaration is repeatable for matching settings. A broker object with the same name but incompatible settings causes startup failure; the service never deletes shared topology to repair it. Both the main and retry consumer use prefetch 1 and manual acknowledgement.
+
+Transient processing failures are forwarded persistently to the retry queue. A retry consumer waits until the message's scheduled time and forwards with confirms directly to Credit Service's main queue. Shutdown leaves waiting retries unacknowledged for the next consumer. There is no TTL dead-letter dependency on retry forwarding. Permanent failures and exhausted retries are persistently forwarded to the DLQ. Every forwarding requires a publisher confirm and no mandatory return before acknowledging its source. A forwarding failure closes the consumer so RabbitMQ can redeliver the original.
+
+Failure logs contain event ID/type, retry count and category with a fixed reason code, not raw payloads, credentials or connection URLs. Original message bodies, IDs, routing keys and failure headers are retained for inspection. See the integration contract for DLQ replay instructions.
+
+On dependency startup failure the process exits unsuccessfully. On a RabbitMQ connection/channel failure or consumer cancellation, it becomes unready and drains/closes the consumer and HTTP server, then disconnects Prisma and exits with an error status. Restart after recovery; automatic reconnect/process supervision is not implemented here. SIGINT/SIGTERM cancel consumers, finish in-flight processing and close resources. Importing `app.ts` does not create connections or listen.
 
 ## Files
 
-- `src/index.ts` connects Prisma and checks both credit tables before starting HTTP; disconnects on shutdown.
-- `src/app.ts` assembles Express, CORS, JSON parsing, the health check and credit router; importing it does not start a server.
-- `src/config.ts` loads environment configuration.
-- `src/credits/routes.ts` translates HTTP requests and credit-rule errors to the existing API responses.
-- `src/credits/service.ts` owns wallet creation and reserve, settle and refund rules.
-- `src/credits/store.ts` owns Prisma queries, DTO mapping and transaction-scoped balance updates. No sample data is inserted.
-- `src/credits/types.ts` re-exports shared credit DTOs and names the existing settlement response shape.
-- `src/database/client.ts` exports the configured Prisma singleton and generated database types.
-- `src/database/prisma/schema.prisma` mirrors the existing tables; `migrations/` includes their original SQL.
-- `src/credits/credits.integration.test.ts` checks the HTTP and persistence behavior against a dedicated test database.
-
-## API
-
-| Method & path | Identity used | Request | Success | Errors |
-|---|---|---|---|---|
-| `GET /api/credits/wallet` | required `x-user-id` UUID header | — | 200 `CreditWalletDTO`; an unknown user gets a persisted wallet with 100 available | 400 invalid/missing UUID |
-| `GET /api/credits/ledger` | same | — | 200 `CreditTransactionDTO[]` where the user is sender or receiver | 400 invalid/missing UUID |
-| `POST /api/credits/escrow/reserve` | body | `EscrowReserveRequest`: `orderId, requesterId, amount` | 200 wallet | 400 insufficient available credits |
-| `POST /api/credits/escrow/settle` | body | `EscrowSettleRequest`: `orderId, requesterId, courierId, amount` | 200 `{ requesterWallet, courierWallet }` | 400 insufficient escrow |
-| `POST /api/credits/escrow/refund` | body | `EscrowRefundRequest`: `orderId, requesterId, amount` | 200 wallet | 400 insufficient escrow |
-
-Only `/api/credits/` (with trailing slash) is routed by the gateway.
-
-All POSTs require UUID identifiers and an integer `amount` in `1..2147483647`, matching PostgreSQL UUID/INT columns and the positive-amount CHECK. Invalid input returns 400. Unexpected database failures return a generic JSON 500, with transaction changes rolled back. The old `u111...`, `ord-1001` and `tx-1` mock identifiers are not valid database UUIDs. Wallet reads no longer select a fake fallback user.
-
-## Data
-
-HTTP DTOs remain `CreditWalletDTO` (`userId, availableCredits, escrowCredits, totalEarnedCredits, updatedAt`) and `CreditTransactionDTO` (`id, transactionCode, fromUserId, toUserId, orderId, amount, transactionType, description, createdAt`), types `WELCOME_GRANT | ESCROW_HOLD | ESCROW_RELEASE | ESCROW_REFUND`.
-
-The existing init SQL is unchanged. Prisma maps `credit_wallets` and `credit_transactions` to camelCase model properties, preserving PostgreSQL UUIDs, INTs, VARCHAR lengths, defaults, nullability and the unique transaction code. SQL CHECK constraints remain in the init SQL and migration. Timestamps remain nullable in SQL; normal service writes populate them. An externally inserted null DTO timestamp or unknown transaction type produces an error rather than inventing a date or changing the shared DTO.
-
-## Behaviour as built
-
-- No authentication. The wallet and ledger reads trust `x-user-id`; reserve, settle and refund act on whichever `requesterId` / `courierId` the caller puts in the body.
-- Balance changes use conditional database increments/decrements, and each escrow operation plus its ledger entry runs in one Prisma transaction. Insufficient funds cannot cause a negative balance, including during concurrent requests. A failed ledger insertion rolls back wallet creation and balance changes from that operation.
-- No idempotency: repeating a reserve, settle or refund for the same `orderId` applies it again. Nothing links a settle/refund to an earlier reserve for that order.
-- A wallet is created implicitly with 100 available credits on first read, first reserve, or first settle as courier; no `WELCOME_GRANT` ledger row is written for it.
-- PostgreSQL generates transaction UUIDs; transaction codes are `TX-` plus 24 random hexadecimal characters (27 characters total), protected by the existing unique constraint. A uniqueness failure rolls back the transaction.
-- Ledger reads sort by creation time descending, then ID descending to break timestamp ties.
-- No events are consumed or published, and order-service does not call these endpoints.
-
-## Differences from the documents
-
-Persistence and transaction atomicity are implemented, but this does not complete all of F4 or Credit N1–N3. Authentication, order-specific escrow tracking, idempotency, event handling and performance criteria remain pending. F4.2.1–F4.2.2 describe available/reserved/total balances; the existing approved table and shared DTO instead include `totalEarnedCredits`, which this change preserves. How initial credits reach a newly registered user (F4.1) remains unresolved: `UserRegisteredEvent` exists, but user-service emits nothing.
+- `src/index.ts`: dependency construction, startup checks, readiness and shutdown.
+- `src/app.ts`: Express middleware, health/readiness and router assembly.
+- `src/config.ts`: environment defaults and retry validation.
+- `src/credits/routes.ts`: HTTP validation and error translation.
+- `src/credits/service.ts`: grant, escrow and event idempotency rules.
+- `src/credits/store.ts`: Prisma queries and serializable transaction retries.
+- `src/credits/errors.ts`: expected business and validation errors.
+- `src/credits/types.ts`: existing shared HTTP DTO exports.
+- `src/credits/events.ts`: message validation and event-to-command translation.
+- `src/credits/consumer.ts`: binds credit handling/error classification to RabbitMQ.
+- `src/messaging/rabbitmq.ts`: generic topology, confirmed forwarding, consumption and shutdown.
+- `src/database/client.ts`: service-local Prisma client.
+- `src/database/prisma/`: authoritative schema and migrations.
+- `tests/*.integration.test.ts`: PostgreSQL/HTTP, messaging and fresh migration checks.
+- `tsconfig.test.json`: typechecks source and tests without adding tests to the application build.
 
 ## Tests
 
-Create a separate database whose name includes `_test`, then run:
+Create a dedicated database containing `_test` in its name, then from the repository root:
 
 ```bash
 export CREDIT_TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credit_service_test
+export CREDIT_TEST_RABBITMQ_URL=amqp://guest:guest@localhost:5672
+npm run db:generate --workspace=@campus-errand/credit-service
 DATABASE_URL="$CREDIT_TEST_DATABASE_URL" npm run db:deploy --workspace=@campus-errand/credit-service
 npm run test:integration --workspace=@campus-errand/credit-service
+npm run test:messaging --workspace=@campus-errand/credit-service
+npm run test:migration --workspace=@campus-errand/credit-service
 npm run typecheck
 ```
 
-The integration script uses a real PostgreSQL database and a temporary HTTP port. It verifies wallet creation, UUID/amount validation, reserve/settle/refund, insufficient funds, ledger filtering, persistence through a second client, concurrent first reads/reservations/settlements, and rollback after a real ledger unique-constraint failure. It deletes only the random test users and their transactions in `finally`. No additional test framework is required.
+Tests require real PostgreSQL; messaging tests additionally require RabbitMQ and local HTTP listening. HTTP tests preserve validation, lifecycle, persistence, concurrent balance mutation and real constraint-failure rollback coverage, adapted to full reservations and welcome entries. Messaging tests cover duplicate IDs/business operations, conflicts, malformed contracts, concurrent consumers, confirmed mandatory returns, retries/DLQ, rollback, readiness, retry restart, and a child process killed after commit before acknowledgement. Migration tests use an empty random schema inside the test database and check that all five tables are created empty and that SQL uniqueness and balance/state constraints are enforced.
 
-## Issues
+Test records, queues, exchanges and schemas use isolated identifiers and are cleaned up. The tests do not delete databases or shared volumes. The person creating a temporary database is responsible for removing it afterward.
 
-#15–#22 (F4.0–F4.7), #42–#46 (Credit N1–N3), #69, #60.
+## Remaining integration work
+
+User and Order publishers are still unimplemented; no complete application registration/order workflow is claimed. Credit Service does not publish credit outcome events, and Notification Service was not changed. Authentication and authorization, automatic service restart, operational DLQ recovery, and orphan reservation recovery remain outside this implementation. The existing in-memory Order Service needs separately approved persistence/outbox work for crash-safe publishing. Performance targets have not been benchmarked.
+
+Tracked service requirements: F4.0–F4.7, Credit N1–N3; existing issue references #15–#22, #42–#46, #69 and #60. This change does not claim all of those requirements complete.

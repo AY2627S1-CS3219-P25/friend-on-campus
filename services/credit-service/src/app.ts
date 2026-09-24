@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Added JSON error responses for malformed input and unexpected persistence errors.
+ * Scope: Added dependency readiness while retaining liveness and JSON error translation.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -10,7 +10,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import { createCreditRouter } from './credits/routes';
 import type { CreditService } from './credits/service';
 
-export function createApp(dependencies: { credits: CreditService; port: string | number }) {
+export function createApp(dependencies: { credits: CreditService; port: string | number; isReady?: () => Promise<boolean> }) {
   const app = express();
   app.use(cors());
   app.use(express.json());
@@ -22,6 +22,11 @@ export function createApp(dependencies: { credits: CreditService; port: string |
       port: dependencies.port,
       timestamp: new Date(),
     });
+  });
+  app.get('/ready', async (_req, res) => {
+    let ready = false;
+    try { ready = await dependencies.isReady?.() ?? false; } catch { /* Dependency unavailable. */ }
+    res.status(ready ? 200 : 503).json({ service: 'credit-service', status: ready ? 'READY' : 'NOT_READY' });
   });
   app.use('/api/credits', createCreditRouter(dependencies.credits));
 

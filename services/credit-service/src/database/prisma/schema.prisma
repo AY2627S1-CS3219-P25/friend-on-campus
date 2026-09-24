@@ -1,6 +1,6 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-09-24
-// Scope: Mirrored the existing PostgreSQL credit tables without schema changes.
+// Scope: Added persistent grants, escrow state and processed event identities.
 // Author review: <to be completed by huangjiaxi1111>
 // AI-generated (edited by huangjiaxi1111)
 
@@ -39,4 +39,33 @@ model CreditTransaction {
   createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("credit_transactions")
+}
+
+model CreditGrant {
+  userId    String   @id @map("user_id") @db.Uuid
+  amount    Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("credit_grants")
+}
+
+model CreditEscrow {
+  orderId     String   @id @map("order_id") @db.Uuid
+  requesterId String   @map("requester_id") @db.Uuid
+  courierId   String?  @map("courier_id") @db.Uuid
+  amount      Int
+  state       String   @db.VarChar(16)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("credit_escrows")
+}
+
+model ProcessedCreditEvent {
+  eventId     String   @id @map("event_id") @db.Uuid
+  eventType   String   @map("event_type") @db.VarChar(64)
+  fingerprint String   @db.VarChar(64)
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
+
+  @@map("processed_credit_events")
 }

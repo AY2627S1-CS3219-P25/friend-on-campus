@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Appended the credit-service scaffold and Prisma replacement implementation and verification records.
+Scope: Appended Credit Service scaffold, Prisma and RabbitMQ implementation records.
 Author review: <to be completed by huangjiaxi1111>
 -->
 <!--

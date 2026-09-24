@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Replaced mock data with Prisma queries and transaction-scoped atomic balance updates.
+ * Scope: Added serializable transactions and persistent grant, escrow and event access.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -36,6 +36,20 @@ function transactionDTO(transaction: CreditTransaction): CreditTransactionDTO {
 
 function queries(db: Prisma.TransactionClient) {
   return {
+    findGrant: (userId: string) => db.creditGrant.findUnique({ where: { userId } }),
+    createGrant: (userId: string, amount: number) => db.creditGrant.create({ data: { userId, amount } }),
+    findEscrow: (orderId: string) => db.creditEscrow.findUnique({ where: { orderId } }),
+    createEscrow: (data: { orderId: string; requesterId: string; amount: number }) =>
+      db.creditEscrow.create({ data: { ...data, state: 'RESERVED' } }),
+    async transitionEscrow(orderId: string, state: 'SETTLED' | 'REFUNDED', courierId?: string) {
+      const result = await db.creditEscrow.updateMany({
+        where: { orderId, state: 'RESERVED' }, data: { state, courierId, updatedAt: new Date() },
+      });
+      return result.count === 1;
+    },
+    findEvent: (eventId: string) => db.processedCreditEvent.findUnique({ where: { eventId } }),
+    addEvent: (data: { eventId: string; eventType: string; fingerprint: string }) =>
+      db.processedCreditEvent.create({ data }),
     async findWallet(userId: string) {
       const wallet = await db.creditWallet.findUnique({ where: { userId } });
       return wallet ? walletDTO(wallet) : undefined;
@@ -81,10 +95,23 @@ function queries(db: Prisma.TransactionClient) {
 export function createCreditStore(prisma: PrismaClient) {
   return {
     ...queries(prisma),
-    transaction<T>(operation: (store: ReturnType<typeof queries>) => Promise<T>) {
-      return prisma.$transaction((tx) => operation(queries(tx)));
+    async transaction<T>(operation: (store: CreditTransactionStore) => Promise<T>): Promise<T> {
+      // Retry the entire transaction after serialization conflicts, never individual writes.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await prisma.$transaction((tx) => operation(queries(tx)), {
+            isolationLevel: 'Serializable', maxWait: 5000, timeout: 10000,
+          });
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (attempt >= 9 || (code !== 'P2034' && code !== 'P2002')) throw error;
+          await new Promise(resolve => setTimeout(resolve, 5 * (attempt + 1)));
+        }
+      }
     },
   };
 }
 
 export type CreditStore = ReturnType<typeof createCreditStore>;
+
+export type CreditTransactionStore = ReturnType<typeof queries>;

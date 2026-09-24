@@ -1,17 +1,17 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Added real PostgreSQL/HTTP integration checks for persistence, rollback and concurrent balance mutations.
+ * Scope: Preserved HTTP and database regression tests using full order reservations and one-time grants.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
-import { createApp } from '../app';
-import { PrismaClient } from '../database/client';
-import { createCreditService } from './service';
-import { createCreditStore, type CreditStore } from './store';
+import { createApp } from '../src/app';
+import { PrismaClient } from '../src/database/client';
+import { createCreditService } from '../src/credits/service';
+import { createCreditStore, type CreditStore } from '../src/credits/store';
 
 async function main() {
   const url = process.env.CREDIT_TEST_DATABASE_URL;
@@ -45,7 +45,7 @@ async function main() {
     assert.equal(wallet.status, 200);
     assert.equal(wallet.body.data.availableCredits, 100);
     assert.equal(typeof wallet.body.data.updatedAt, 'string');
-    assert.deepEqual((await request('/api/credits/ledger', undefined, requesterId)).body.data, []);
+    assert.equal((await request('/api/credits/ledger', undefined, requesterId)).body.data[0].transactionType, 'WELCOME_GRANT');
 
     for (const amount of [0, -1, 1.5, '10', null, 2147483648]) {
       assert.equal((await request('/api/credits/escrow/reserve', { requesterId, orderId, amount })).status, 400);
@@ -59,31 +59,39 @@ async function main() {
     assert.equal(malformed.status, 400);
     assert.equal((await malformed.json() as any).success, false);
 
-    const reserve = await request('/api/credits/escrow/reserve', { requesterId, orderId, amount: 40 });
+    const reserve = await request('/api/credits/escrow/reserve', { requesterId, orderId, amount: 25 });
     assert.equal(reserve.status, 200);
-    assert.equal(reserve.body.data.availableCredits, 60);
-    assert.equal(reserve.body.data.escrowCredits, 40);
+    assert.equal(reserve.body.data.availableCredits, 75);
+    assert.equal(reserve.body.data.escrowCredits, 25);
     const settle = await request('/api/credits/escrow/settle', { requesterId, courierId, orderId, amount: 25 });
     assert.equal(settle.status, 200);
-    assert.equal(settle.body.data.requesterWallet.escrowCredits, 15);
+    assert.equal(settle.body.data.requesterWallet.escrowCredits, 0);
     assert.equal(settle.body.data.courierWallet.availableCredits, 125);
     assert.equal(settle.body.data.courierWallet.totalEarnedCredits, 25);
-    const refund = await request('/api/credits/escrow/refund', { requesterId, orderId, amount: 15 });
+    const refundOrder = randomUUID();
+    await credits.reserve({ requesterId, orderId: refundOrder, amount: 15 });
+    const refund = await request('/api/credits/escrow/refund', { requesterId, orderId: refundOrder, amount: 15 });
     assert.equal(refund.status, 200);
     assert.equal(refund.body.data.availableCredits, 75);
     assert.equal(refund.body.data.escrowCredits, 0);
+    assert.equal((await request('/api/credits/escrow/reserve', { requesterId, orderId: randomUUID(), amount: 1000 })).status, 400);
     for (const operation of ['reserve', 'settle', 'refund']) {
-      assert.equal((await request(`/api/credits/escrow/${operation}`, { requesterId, courierId, orderId, amount: 1000 })).status, 400);
+      assert.equal((await request(`/api/credits/escrow/${operation}`, { requesterId, courierId, orderId, amount: 1000 })).status, 409);
     }
+    const replay = await request('/api/credits/escrow/reserve', { requesterId, orderId, amount: 25 });
+    assert.equal(replay.status, 200);
+    assert.equal(replay.body.data.escrowCredits, 0);
+    assert.equal((await request('/api/credits/escrow/refund', { requesterId, orderId, amount: 25 })).status, 409);
+    assert.equal((await request('/api/credits/escrow/settle', { requesterId, courierId, orderId: refundOrder, amount: 15 })).status, 409);
     for (const operation of ['settle', 'refund']) {
-      assert.equal((await request(`/api/credits/escrow/${operation}`, { requesterId: unknownUser, courierId, orderId, amount: 1 })).status, 400);
+      assert.equal((await request(`/api/credits/escrow/${operation}`, { requesterId: unknownUser, courierId, orderId, amount: 1 })).status, 409);
     }
     assert.equal(await db.creditWallet.count({ where: { userId: unknownUser } }), 0);
     const ledger = (await request('/api/credits/ledger', undefined, requesterId)).body.data;
-    assert.deepEqual(ledger.map((t: any) => t.transactionType), ['ESCROW_REFUND', 'ESCROW_RELEASE', 'ESCROW_HOLD']);
-    assert.equal(new Set(ledger.map((t: any) => t.transactionCode)).size, 3);
+    assert.deepEqual(ledger.map((t: any) => t.transactionType), ['ESCROW_REFUND', 'ESCROW_HOLD', 'ESCROW_RELEASE', 'ESCROW_HOLD', 'WELCOME_GRANT']);
+    assert.equal(new Set(ledger.map((t: any) => t.transactionCode)).size, 5);
     assert(ledger.every((t: any) => t.transactionCode.length <= 30 && /^[0-9a-f-]{36}$/.test(t.id)));
-    assert.equal((await request('/api/credits/ledger', undefined, courierId)).body.data.length, 1);
+    assert.equal((await request('/api/credits/ledger', undefined, courierId)).body.data.length, 2);
     assert.deepEqual((await request('/api/credits/ledger', undefined, unknownUser)).body.data, []);
 
     // A separately constructed client sees committed data; no module memory is involved.
@@ -97,19 +105,20 @@ async function main() {
     const firstReads = await Promise.all(Array.from({ length: 6 }, () => credits.getWallet(newRaceUser)));
     assert(firstReads.every(w => w.availableCredits === 100));
     assert.equal(await db.creditWallet.count({ where: { userId: newRaceUser } }), 1);
-    const racing = await Promise.all(Array.from({ length: 6 }, () => request('/api/credits/escrow/reserve', {
-      requesterId: raceUser, orderId: randomUUID(), amount: 30,
+    const raceOrders = Array.from({ length: 6 }, () => randomUUID());
+    const racing = await Promise.all(raceOrders.map(orderId => request('/api/credits/escrow/reserve', {
+      requesterId: raceUser, orderId, amount: 30,
     })));
     assert.equal(racing.filter(r => r.status === 200).length, 3);
     assert.equal(racing.filter(r => r.status === 400).length, 3);
     assert.equal((await credits.getWallet(raceUser)).availableCredits, 10);
     assert.equal((await credits.getWallet(raceUser)).escrowCredits, 90);
-    assert.equal((await credits.getLedger(raceUser)).length, 3);
-    const payouts = await Promise.all(Array.from({ length: 6 }, () => request('/api/credits/escrow/settle', {
-      requesterId: raceUser, courierId: sharedCourier, orderId: randomUUID(), amount: 30,
+    assert.equal((await credits.getLedger(raceUser)).length, 4);
+    const payouts = await Promise.all(raceOrders.map(orderId => request('/api/credits/escrow/settle', {
+      requesterId: raceUser, courierId: sharedCourier, orderId, amount: 30,
     })));
     assert.equal(payouts.filter(r => r.status === 200).length, 3);
-    assert.equal(payouts.filter(r => r.status === 400).length, 3);
+    assert.equal(payouts.filter(r => r.status === 409).length, 3);
     assert.equal((await credits.getWallet(sharedCourier)).availableCredits, 190);
     assert.equal((await credits.getWallet(sharedCourier)).totalEarnedCredits, 90);
     assert.equal((await credits.getWallet(raceUser)).escrowCredits, 0);
@@ -123,21 +132,24 @@ async function main() {
       })),
     };
     const failing = createCreditService(failingStore);
-    await assert.rejects(failing.reserve({ requesterId: rollbackUser, orderId, amount: 10 }));
+    const rollbackOrder = randomUUID();
+    await assert.rejects(failing.reserve({ requesterId: rollbackUser, orderId: rollbackOrder, amount: 10 }));
     assert.equal(await db.creditWallet.count({ where: { userId: rollbackUser } }), 0);
-    await credits.reserve({ requesterId: rollbackUser, orderId, amount: 50 });
+    await credits.reserve({ requesterId: rollbackUser, orderId: rollbackOrder, amount: 50 });
     const before = await credits.getWallet(rollbackUser);
-    await assert.rejects(failing.settle({ requesterId: rollbackUser, courierId: rollbackCourier, orderId, amount: 25 }));
+    await assert.rejects(failing.settle({ requesterId: rollbackUser, courierId: rollbackCourier, orderId: rollbackOrder, amount: 50 }));
     assert.deepEqual(await credits.getWallet(rollbackUser), before);
     assert.equal(await db.creditWallet.count({ where: { userId: rollbackCourier } }), 0);
-    await assert.rejects(failing.refund({ requesterId: rollbackUser, orderId, amount: 25 }));
+    await assert.rejects(failing.refund({ requesterId: rollbackUser, orderId: rollbackOrder, amount: 50 }));
     assert.deepEqual(await credits.getWallet(rollbackUser), before);
-    assert.equal((await credits.getLedger(rollbackUser)).length, 1);
+    assert.equal((await credits.getLedger(rollbackUser)).length, 2);
     console.log('PASS: HTTP lifecycle, validation, persistence, concurrent creation/reserve/settle, and database-failure rollback');
   } finally {
     if (server.listening) await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve()));
     try {
       await db.creditTransaction.deleteMany({ where: { OR: [{ fromUserId: { in: users } }, { toUserId: { in: users } }] } });
+      await db.creditEscrow.deleteMany({ where: { requesterId: { in: users } } });
+      await db.creditGrant.deleteMany({ where: { userId: { in: users } } });
       await db.creditWallet.deleteMany({ where: { userId: { in: users } } });
     } finally { await db.$disconnect(); }
   }

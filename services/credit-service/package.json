@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --project tsconfig.test.json",
     "build": "tsc",
     "db:generate": "prisma generate --schema src/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema src/database/prisma/schema.prisma",
-    "db:baseline": "prisma migrate resolve --applied 20260924050000_existing_credit_tables --schema src/database/prisma/schema.prisma",
-    "test:integration": "tsx src/credits/credits.integration.test.ts"
+    "test:integration": "tsx tests/credits.integration.test.ts",
+    "test:messaging": "tsx tests/messaging.integration.test.ts",
+    "test:migration": "tsx tests/migration.integration.test.ts"
   },
   "dependencies": {
     "@campus-errand/common-dtos": "*",

@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Awaited persistent operations, validated SQL-compatible inputs and forwarded async errors.
+ * Scope: Normalized UUIDs and translated credit conflicts into HTTP 409 responses.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -13,7 +13,7 @@ function uuid(value: unknown, field: string): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
     throw new CreditError(`${field} must be a UUID`);
   }
-  return value;
+  return value.toLowerCase();
 }
 
 function escrowRequest(body: unknown): EscrowReserveRequest {
@@ -58,7 +58,7 @@ export function createCreditRouter(credits: CreditService) {
   }));
   const handleCreditError: ErrorRequestHandler = (error, _req, res, next) => {
     if (error instanceof CreditError) {
-      res.status(400).json({ success: false, error: error.message });
+      res.status(error.status).json({ success: false, error: error.message });
       return;
     }
     next(error);
