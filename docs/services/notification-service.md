@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this page from services/notification-service source, gateway/nginx.conf, docker-compose.yml and D1 text. Descriptive only.
+Scope: Documented the current Notification Service and its dedicated future RabbitMQ consumer identity.
 Author review: <to be completed by the service owner>
 -->
 
@@ -21,7 +21,7 @@ npm run dev:notif        # needs nothing else running
 
 ## Configuration
 
-`PORT` (default `8005`). `RABBITMQ_URL` is read into a constant and set in compose, but no code connects to RabbitMQ; `amqplib` is an unused dependency.
+`PORT` (default `8005`). `RABBITMQ_URL` is read into a constant and set in compose, but no code connects to RabbitMQ; `amqplib` is an unused dependency. Compose assigns the unused `notification_service` identity access only to its future queue and documented `order.*` bindings.
 
 ## Files
 

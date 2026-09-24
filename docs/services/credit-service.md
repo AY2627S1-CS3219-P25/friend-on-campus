@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Documented JWT authentication, shared cancellation events and supervised RabbitMQ recovery.
+Scope: Documented JWT authentication, shared cancellation events, recovery and dedicated RabbitMQ permissions.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -18,7 +18,7 @@ From the repository root:
 ```bash
 docker compose up -d postgres rabbitmq
 export DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credit_db
-export RABBITMQ_URL=amqp://guest:guest@localhost:5672
+export RABBITMQ_URL=amqp://credit_service:credit-service-dev@localhost:5672/campus
 # Use the same public key configured for User Service.
 export JWT_PUBLIC_KEY='<shared Ed25519 public key>'
 npm run db:generate --workspace=@campus-errand/credit-service
@@ -101,7 +101,7 @@ All configuration is owned by `src/config.ts`; see the service's `.env.example`.
 | `JWT_PUBLIC_KEY` | Required 59-character Base64URL DER SPKI Ed25519 public key shared with User Service |
 | `JWT_ISSUER` | `friend-on-campus-user-service` |
 | `JWT_AUDIENCE` | `friend-on-campus-services` |
-| `RABBITMQ_URL` | Local development broker URL, `amqp://guest:guest@localhost:5672` |
+| `RABBITMQ_URL` | Dedicated development identity, `amqp://credit_service:credit-service-dev@localhost:5672/campus` |
 | `CREDIT_EXCHANGE` | `campus.events` (topic) |
 | `CREDIT_QUEUE` | `credit-service.events` |
 | `CREDIT_RETRY_EXCHANGE` | `<CREDIT_QUEUE>.retry` (direct) |
@@ -112,6 +112,8 @@ All configuration is owned by `src/config.ts`; see the service's `.env.example`.
 | `CREDIT_RETRY_LIMIT` | `5` retries after the initial attempt |
 
 Topology is durable and declaration is repeatable for matching settings. A broker object with the same name but incompatible settings causes startup failure; the service never deletes shared topology to repair it. Both the main and retry consumer use prefetch 1 and manual acknowledgement.
+
+Compose imports `docker/rabbitmq/definitions.json` at broker startup. Credit Service's `credit_service` account can configure and consume only its exchanges and queues, bind only the four supported keys from `campus.events`, and publish only to its retry/dead-letter paths and the default exchange used for retry forwarding. Development credentials are committed for local use; provision distinct secret credentials with equivalent permissions outside local development. The management dashboard uses `campus_admin` / `campus-admin-dev`.
 
 Transient processing failures are forwarded persistently to the retry queue. A retry consumer waits until the message's scheduled time and forwards with confirms directly to Credit Service's main queue. Shutdown leaves waiting retries unacknowledged for the next consumer. There is no TTL dead-letter dependency on retry forwarding. Permanent failures and exhausted retries are persistently forwarded to the DLQ. Every forwarding requires a publisher confirm and no mandatory return before acknowledging its source. A forwarding failure closes the consumer so RabbitMQ can redeliver the original.
 
@@ -144,7 +146,7 @@ Create a dedicated database containing `_test` in its name, then from the reposi
 
 ```bash
 export CREDIT_TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/credit_service_test
-export CREDIT_TEST_RABBITMQ_URL=amqp://guest:guest@localhost:5672
+export CREDIT_TEST_RABBITMQ_URL=amqp://credit_test:credit-test-dev@localhost:5672/campus
 npm run db:generate --workspace=@campus-errand/credit-service
 DATABASE_URL="$CREDIT_TEST_DATABASE_URL" npm run db:deploy --workspace=@campus-errand/credit-service
 npm run test:integration --workspace=@campus-errand/credit-service

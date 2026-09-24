@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Specified future service integration, shared cancellation events and supervised consumer recovery.
+Scope: Specified future service integration, shared cancellation events, recovery and RabbitMQ identities.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -19,7 +19,17 @@ Author review: <to be completed by huangjiaxi1111>
 - Publish using a confirm channel; retain/retry unconfirmed publications. Use `mandatory: true` and handle `basic.return` so an unroutable publication is not treated as delivered. A confirm reports broker acceptance, not completion of credit processing.
 - Credit Service declares its queue and bindings on startup. Provision/start it before publishing initial events; the durable exchange alone does not retain unrouted messages.
 - Do not set expiration on credit events. Do not supply the internal `x-credit-*` headers.
-- Local development: host processes use `amqp://guest:guest@localhost:5672`; Compose processes use `amqp://guest:guest@rabbitmq:5672`. Use configured credentials outside local development and never log connection URLs.
+- Local development uses the `campus` virtual host and the service-specific accounts imported from `docker/rabbitmq/definitions.json`. User Service may publish only `user.registered`; Order Service may publish only documented `order.*` keys; Credit Service may consume only its bound event keys and manage only its queue/retry/dead-letter resources. Use separately provisioned secrets outside local development and never log connection URLs.
+
+| Local identity | Intended access |
+|---|---|
+| `user_service` | Publish `user.registered` to `campus.events` |
+| `order_service` | Publish the documented `order.*` routing keys to `campus.events` |
+| `credit_service` | Bind/consume Credit Service event keys and manage its retry/dead-letter topology |
+| `notification_service` | Bind documented `order.*` keys to Notification Service-owned queues |
+| `credit_test` | Manage only resources whose names begin with `credit-test.` |
+
+The committed passwords are development fixtures. Compose URLs use the service name `rabbitmq`; host processes use `localhost`. Both use the `/campus` URL path for the `campus` virtual host.
 
 Credit Service's durable queue `credit-service.events` has bindings for exactly `user.registered`, `order.completed`, `order.cancelled`, and `order.expired`. Other service subscribers must have their own queues. There is no business outcome event published by Credit Service in this implementation.
 

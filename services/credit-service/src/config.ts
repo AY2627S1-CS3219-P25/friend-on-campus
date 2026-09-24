@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Centralized RabbitMQ and public-key access-token verification configuration.
+ * Scope: Centralized dedicated RabbitMQ identity and public-key access-token verification configuration.
  * Author review: <to be completed by Jiaxi>
  */
 // AI-generated (edited by Jiaxi)
@@ -26,7 +26,7 @@ export const config = Object.freeze({
     audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
   },
   rabbitmq: {
-    url: process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672',
+    url: process.env.RABBITMQ_URL || 'amqp://credit_service:credit-service-dev@localhost:5672/campus',
     exchange, queue,
     retryExchange: process.env.CREDIT_RETRY_EXCHANGE || `${queue}.retry`,
     retryQueue: process.env.CREDIT_RETRY_QUEUE || `${queue}.retry`,

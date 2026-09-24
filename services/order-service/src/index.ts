@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-24
+ * Scope: Replaced the unused shared RabbitMQ credential with Order Service's dedicated development identity.
+ * Author review: <to be completed by huangjiaxi1111>
+ */
+// AI-generated (edited by huangjiaxi1111)
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -15,7 +22,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8003;
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/order_db';
-const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://order_service:order-service-dev@localhost:5672/campus';
 const CREDIT_SERVICE_URL = process.env.CREDIT_SERVICE_URL || 'http://localhost:8004';
 
 app.use(cors());

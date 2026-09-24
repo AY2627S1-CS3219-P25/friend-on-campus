@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Retained messaging and readiness regression coverage with injected HTTP authentication.
+ * Scope: Exercised messaging using the isolated least-privilege RabbitMQ test identity.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -59,7 +59,7 @@ async function main() {
   const handle = createCreditEventHandler(credits);
   const prefix = `credit-test.${randomUUID()}`;
   const config: MessagingConfig = {
-    url: process.env.CREDIT_TEST_RABBITMQ_URL || 'amqp://guest:guest@localhost:5672',
+    url: process.env.CREDIT_TEST_RABBITMQ_URL || 'amqp://credit_test:credit-test-dev@localhost:5672/campus',
     exchange: `${prefix}.events`, queue: `${prefix}.credit`,
     retryExchange: `${prefix}.retry`, retryQueue: `${prefix}.retry`,
     deadLetterExchange: `${prefix}.dlx`, deadLetterQueue: `${prefix}.dlq`, retryDelayMs: 60, retryLimit: 5,

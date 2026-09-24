@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Appended Credit Service scaffold, Prisma, RabbitMQ and JWT authentication implementation records.
+Scope: Appended Credit Service scaffold, Prisma, RabbitMQ, JWT authentication and broker identity implementation records.
 Author review: <to be completed by huangjiaxi1111>
 -->
 <!--
@@ -1001,3 +1001,21 @@ Verified:
 - `ai/usage-log.md` — this entry and updated disclosure.
 
 **Verification:** Credit Service typecheck, JWT/HTTP/PostgreSQL integration tests, RabbitMQ integration tests, invalid-key startup checks, Compose validation and `git diff --check` passed. The root typecheck reached all workspaces but failed on pre-existing User Service generated Prisma types missing `status`. The isolated test database was removed; changes remain uncommitted.
+
+## 2026-09-24 19:48 SGT — Separate RabbitMQ service identities
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Replace the shared RabbitMQ `guest:guest` login with separate service identities and permissions.
+
+**Usage scenario:** Implemented the author's requested broker access separation using RabbitMQ's built-in users, virtual host, resource permissions and routing-key permissions. Development credentials remain local fixtures; production secret provisioning remains with the author and deployment environment.
+
+**Files changed:**
+- `docker/rabbitmq/{rabbitmq.conf,definitions.json}`, `docker-compose.yml` — provisioned the `campus` virtual host, dedicated accounts and restricted permissions, then assigned each service its own connection URL.
+- `services/{credit-service,order-service,notification-service}/**` — replaced shared broker credentials with service-specific development identities and updated the Credit messaging test identity.
+- `README.md`, `docs/onboarding-guide-sep-3.md`, `docs/services/{credit-service.md,credit-service-integration-contract.md,order-service.md,notification-service.md}` — documented the identities, permissions and management login.
+- `ai/usage-log.md` — this entry and updated disclosure.
+
+**Verification:** RabbitMQ imported all dedicated accounts and permissions. Live checks confirmed Order Service can publish `order.created` but cannot publish `user.registered`, Credit Service cannot create another service's queue, and the isolated test account can manage only `credit-test.*` resources. Credit Service connected as `credit_service` on `campus`, reported ready, and its full RabbitMQ integration suite passed. Relevant service typechecks and `git diff --check` passed. The root typecheck still failed only on the existing User Service generated Prisma `status` errors. Test database and queues were cleaned up; changes remain uncommitted.
