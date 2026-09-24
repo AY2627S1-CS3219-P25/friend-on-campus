@@ -43,6 +43,21 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added the missing Description textarea to the Add Supplier modal (previously only editable via a follow-up Edit). Added a shared validateSupplierForm() check (Name, Campus Zone, Category, Exact Pickup Spot Description) run client-side before either the create or update API call, with inline red error messages shown under each invalid field and no request sent until they're fixed. Turned the plain "*" required-field markers red in both modals and added a "fields marked with * are required" legend to each. Added the missing asterisk + required check on the Edit modal's "Exact Pickup Spot Description" field, which was previously the only one of the four core fields not marked required there, unlike the Add modal.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
+ * Scope: Synced the Users directory page to the real, now-implemented UserDTO ({userId, username, email, userRole}) instead of the interim local AdminUserListItem placeholder — removed matric/rating/completed-orders/phone/Telegram/joined-date fields throughout (KPI cards, search predicate, filter modal, table columns, mobile card) since they no longer exist on the User model, and dropped the Min Rating / Min Completed Orders filter inputs along with their state. Search now checks username/email only; the Filter modal keeps only the Role chips. The login gate and student-app login/signup were already aligned to the new contract by teammates during the same merge, so no changes were needed there.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
+ * Scope: Wired fetchUsers() to the now-implemented GET /api/users (removed the dead 501-stub special case, fixed response parsing from json.data.items to json.data.users). Added a visible "Loading users…" indicator inside the Users content area (previously only the small header refresh icon spun), and an empty-state message on the mobile card view to match the desktop table's existing one; both now wait for loading to finish before showing "No users found" so it doesn't flash mid-fetch.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
+ * Scope: Added a Status column (Active/Disabled badge) and a red "Disable" / green "Reinstate" button to the Users table (desktop) and card (mobile), calling the new admin-only PATCH /api/users/:id/admin endpoint via a new toggleUserStatus() handler (mirrors the existing supplier toggleStatus()). Added a togglingUserIds Set to disable a row's button while its request is in flight, preventing double-click races; the button's label/color is derived solely from the server's returned user object, never flipped optimistically, so it can't drift out of sync with the account's real state.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -76,25 +91,9 @@ import {
   SupplierCategory,
   CreateSupplierRequest,
   UpdateSupplierRequest,
+  UserDTO,
   UserRole,
 } from '@campus-errand/common-dtos';
-
-// AI-generated (edited by ngkhengyang)
-// Row shape the Users directory page was built for. User Service (PR #76) does not provide a user
-// list yet (GET /api/users answers 501 NOT_IMPLEMENTED) and its UserDTO has only userId/username/email/userRole,
-// so this stays a local type until the list endpoint (issue #70) defines the real contract in common-dtos.
-interface AdminUserListItem {
-  id: string;
-  nusEmail: string;
-  fullName: string;
-  matricNumber: string;
-  phoneNumber?: string;
-  telegramHandle?: string;
-  role: UserRole;
-  ratingAvg: number;
-  totalCompletedOrders: number;
-  createdAt: string;
-}
 
 const CATEGORIES: SupplierCategory[] = [
   'Beverages',
@@ -194,22 +193,19 @@ export default function App() {
   // ----------------------------------------------------
   // Users Directory state (Admin-only, read-only feature)
   // ----------------------------------------------------
-  const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [users, setUsers] = useState<UserDTO[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
+  const [togglingUserIds, setTogglingUserIds] = useState<Set<string>>(new Set());
 
   const [searchQueryUsers, setSearchQueryUsers] = useState('');
   const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
   // Applied filters — what the user list is actually filtered by
   const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [minCompletedOrders, setMinCompletedOrders] = useState<number>(0);
   // Draft filters — mutated live by the modal, only committed on "Apply Filters"
   const [draftSelectedUserRoles, setDraftSelectedUserRoles] = useState<string[]>([]);
-  const [draftMinRating, setDraftMinRating] = useState<number>(0);
-  const [draftMinCompletedOrders, setDraftMinCompletedOrders] = useState<number>(0);
 
-  const [sortFieldUsers, setSortFieldUsers] = useState<keyof AdminUserListItem>('fullName');
+  const [sortFieldUsers, setSortFieldUsers] = useState<keyof UserDTO>('username');
   const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
   const [currentPageUsers, setCurrentPageUsers] = useState(1);
 
@@ -366,18 +362,12 @@ export default function App() {
     setErrorUsers(null);
     try {
       const res = await fetch('/api/users?limit=100', { headers: getAuthHeaders() });
-      // AI-generated (edited by ngkhengyang)
-      if (res.status === 501) {
-        setErrorUsers('User listing is not implemented in User Service yet (GET /api/users returns 501).');
-        setUsers([]);
-        return;
-      }
       if (!res.ok) {
         throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
       }
       const json = await res.json();
       if (json.success && json.data) {
-        setUsers(json.data.items || []);
+        setUsers(json.data.users || []);
       } else {
         throw new Error(json.error || 'Failed to parse users payload');
       }
@@ -574,6 +564,40 @@ export default function App() {
     }
   };
 
+  // 6. Toggle User Status (Admin-only, via PATCH /api/users/:id/admin)
+  const toggleUserStatus = async (userId: string) => {
+    setTogglingUserIds((prev) => new Set(prev).add(userId));
+    setActionAlert(null);
+    try {
+      const res = await fetch(`/api/users/${userId}/admin`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updatedUser: UserDTO = data.data.user;
+        setUsers((prev) => prev.map((u) => (u.userId === userId ? updatedUser : u)));
+        setActionAlert({
+          type: 'success',
+          message: `User "${updatedUser.username}" ${updatedUser.status ? 'reinstated' : 'disabled'}.`,
+        });
+      } else {
+        setActionAlert({
+          type: 'error',
+          message: data.error || `HTTP ${res.status}: Failed to update user status`,
+        });
+      }
+    } catch (err: any) {
+      setActionAlert({ type: 'error', message: err.message || 'Failed to update user status' });
+    } finally {
+      setTogglingUserIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  };
+
   // Sorting handler
   const handleSort = (field: keyof SupplierDTO) => {
     if (sortField === field) {
@@ -651,7 +675,7 @@ export default function App() {
   // ----------------------------------------------------
   // Users Directory: sort, filter, pagination
   // ----------------------------------------------------
-  const handleSortUsers = (field: keyof AdminUserListItem) => {
+  const handleSortUsers = (field: keyof UserDTO) => {
     if (sortFieldUsers === field) {
       setSortDirectionUsers((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -662,34 +686,24 @@ export default function App() {
 
   const resetUserFilters = () => {
     setSelectedUserRoles([]);
-    setMinRating(0);
-    setMinCompletedOrders(0);
     setDraftSelectedUserRoles([]);
-    setDraftMinRating(0);
-    setDraftMinCompletedOrders(0);
     setCurrentPageUsers(1);
     setIsUserFilterModalOpen(false);
   };
 
-  const activeUserFilterCount =
-    (selectedUserRoles.length > 0 ? 1 : 0) + (minRating > 0 ? 1 : 0) + (minCompletedOrders > 0 ? 1 : 0);
+  const activeUserFilterCount = selectedUserRoles.length > 0 ? 1 : 0;
 
   const filteredAndSortedUsers = useMemo(() => {
     let result = users.filter((u) => {
       const query = searchQueryUsers.toLowerCase().trim();
       const matchesSearch =
         !query ||
-        u.nusEmail.toLowerCase().includes(query) ||
-        u.fullName.toLowerCase().includes(query) ||
-        u.matricNumber.toLowerCase().includes(query) ||
-        (u.phoneNumber && u.phoneNumber.toLowerCase().includes(query)) ||
-        (u.telegramHandle && u.telegramHandle.toLowerCase().includes(query));
+        u.username.toLowerCase().includes(query) ||
+        u.email.toLowerCase().includes(query);
 
-      const matchesRole = selectedUserRoles.length === 0 || selectedUserRoles.includes(u.role);
-      const matchesRating = minRating <= 0 || u.ratingAvg >= minRating;
-      const matchesOrders = minCompletedOrders <= 0 || u.totalCompletedOrders >= minCompletedOrders;
+      const matchesRole = selectedUserRoles.length === 0 || selectedUserRoles.includes(u.userRole);
 
-      return matchesSearch && matchesRole && matchesRating && matchesOrders;
+      return matchesSearch && matchesRole;
     });
 
     result.sort((a, b) => {
@@ -709,7 +723,7 @@ export default function App() {
     });
 
     return result;
-  }, [users, searchQueryUsers, selectedUserRoles, minRating, minCompletedOrders, sortFieldUsers, sortDirectionUsers]);
+  }, [users, searchQueryUsers, selectedUserRoles, sortFieldUsers, sortDirectionUsers]);
 
   const totalPagesUsers = Math.max(1, Math.ceil(filteredAndSortedUsers.length / pageSize));
   const paginatedUsers = useMemo(() => {
@@ -718,10 +732,9 @@ export default function App() {
   }, [filteredAndSortedUsers, currentPageUsers, pageSize]);
 
   const userStats = useMemo(() => {
-    const admins = users.filter((u) => u.role === 'ADMIN').length;
-    const students = users.filter((u) => u.role === 'STUDENT').length;
-    const avgRating = users.length > 0 ? users.reduce((sum, u) => sum + u.ratingAvg, 0) / users.length : 0;
-    return { admins, students, avgRating };
+    const admins = users.filter((u) => u.userRole === 'ADMIN').length;
+    const students = users.filter((u) => u.userRole === 'STUDENT').length;
+    return { admins, students };
   }, [users]);
 
   if (!isAuthenticated) {
@@ -1370,8 +1383,15 @@ export default function App() {
 
           {activeNav === 'users' && (
             <div className="space-y-4">
+              {isLoadingUsers && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs flex items-center space-x-2">
+                  <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Loading users…</span>
+                </div>
+              )}
+
               {/* Desktop KPI Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              <div className="grid grid-cols-3 gap-3 md:gap-4">
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
                   <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Total Users</span>
                   <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{users.length}</p>
@@ -1384,12 +1404,6 @@ export default function App() {
                   <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Students</span>
                   <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{userStats.students}</p>
                 </div>
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Avg Rating</span>
-                  <p className="text-xl md:text-2xl font-black text-emerald-600 mt-1">
-                    {userStats.avgRating.toFixed(2)} ★
-                  </p>
-                </div>
               </div>
 
               {/* Filters & Search Row */}
@@ -1398,7 +1412,7 @@ export default function App() {
                   <Search className="w-4 h-4 absolute left-3 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search by email, name, matric no., phone, or Telegram..."
+                    placeholder="Search by username or email..."
                     value={searchQueryUsers}
                     onChange={(e) => {
                       setSearchQueryUsers(e.target.value);
@@ -1420,8 +1434,6 @@ export default function App() {
                   <button
                     onClick={() => {
                       setDraftSelectedUserRoles(selectedUserRoles);
-                      setDraftMinRating(minRating);
-                      setDraftMinCompletedOrders(minCompletedOrders);
                       setIsUserFilterModalOpen(true);
                     }}
                     className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border shrink-0 transition ${
@@ -1445,47 +1457,48 @@ export default function App() {
               <div className="block md:hidden space-y-3">
                 {paginatedUsers.map((u) => (
                   <div
-                    key={u.id}
+                    key={u.userId}
                     className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2.5"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                          {u.matricNumber}
-                        </span>
-                        <h3 className="font-bold text-sm text-slate-900 mt-1">{u.fullName}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">{u.nusEmail}</p>
+                        <h3 className="font-bold text-sm text-slate-900">{u.username}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{u.email}</p>
                       </div>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          u.role === 'ADMIN'
+                          u.userRole === 'ADMIN'
                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
                             : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}
                       >
-                        {u.role}
+                        {u.userRole}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
-                      <span className="bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded">
-                        ★ {u.ratingAvg.toFixed(2)}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span
+                        className={`text-[11px] font-semibold ${u.status ? 'text-emerald-600' : 'text-rose-500'}`}
+                      >
+                        {u.status ? 'Active' : 'Disabled'}
                       </span>
-                      <span className="bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded">
-                        {u.totalCompletedOrders} orders completed
-                      </span>
+                      <button
+                        disabled={togglingUserIds.has(u.userId)}
+                        onClick={() => toggleUserStatus(u.userId)}
+                        className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                          u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                        }`}
+                      >
+                        {togglingUserIds.has(u.userId) ? 'Working…' : u.status ? 'Disable' : 'Reinstate'}
+                      </button>
                     </div>
-
-                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-500">
-                      {u.phoneNumber && <span>{u.phoneNumber}</span>}
-                      {u.telegramHandle && <span>{u.telegramHandle}</span>}
-                    </div>
-
-                    <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-                      Joined {new Date(u.createdAt).toLocaleDateString()}
-                    </p>
                   </div>
                 ))}
+                {paginatedUsers.length === 0 && !isLoadingUsers && (
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-400 text-xs">
+                    No users found matching your query.
+                  </div>
+                )}
               </div>
 
               {/* Desktop Data Table View */}
@@ -1494,25 +1507,25 @@ export default function App() {
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
                       <th
-                        onClick={() => handleSortUsers('matricNumber')}
+                        onClick={() => handleSortUsers('username')}
                         className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
                       >
                         <div className="flex items-center space-x-1">
-                          <span>Matric No.</span>
+                          <span>Username</span>
                           <ArrowUpDown className="w-3 h-3 text-slate-400" />
                         </div>
                       </th>
                       <th
-                        onClick={() => handleSortUsers('fullName')}
+                        onClick={() => handleSortUsers('email')}
                         className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
                       >
                         <div className="flex items-center space-x-1">
-                          <span>Name & Email</span>
+                          <span>Email</span>
                           <ArrowUpDown className="w-3 h-3 text-slate-400" />
                         </div>
                       </th>
                       <th
-                        onClick={() => handleSortUsers('role')}
+                        onClick={() => handleSortUsers('userRole')}
                         className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
                       >
                         <div className="flex items-center space-x-1">
@@ -1521,63 +1534,60 @@ export default function App() {
                         </div>
                       </th>
                       <th
-                        onClick={() => handleSortUsers('ratingAvg')}
+                        onClick={() => handleSortUsers('status')}
                         className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
                       >
                         <div className="flex items-center space-x-1">
-                          <span>Rating</span>
+                          <span>Status</span>
                           <ArrowUpDown className="w-3 h-3 text-slate-400" />
                         </div>
                       </th>
-                      <th
-                        onClick={() => handleSortUsers('totalCompletedOrders')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Completed Orders</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th className="p-3.5">Phone</th>
-                      <th className="p-3.5">Telegram</th>
-                      <th
-                        onClick={() => handleSortUsers('createdAt')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Joined</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
+                      <th className="p-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {paginatedUsers.map((u) => (
-                      <tr key={u.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3.5 font-mono font-bold text-slate-700">{u.matricNumber}</td>
-                        <td className="p-3.5">
-                          <div className="font-semibold text-slate-900">{u.fullName}</div>
-                          <div className="text-[11px] text-slate-400">{u.nusEmail}</div>
-                        </td>
+                      <tr key={u.userId} className="hover:bg-slate-50 transition">
+                        <td className="p-3.5 font-semibold text-slate-900">{u.username}</td>
+                        <td className="p-3.5 text-slate-600">{u.email}</td>
                         <td className="p-3.5">
                           <span
                             className={`px-2 py-0.5 rounded font-bold ${
-                              u.role === 'ADMIN' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'
+                              u.userRole === 'ADMIN' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'
                             }`}
                           >
-                            {u.role}
+                            {u.userRole}
                           </span>
                         </td>
-                        <td className="p-3.5 text-slate-600">★ {u.ratingAvg.toFixed(2)}</td>
-                        <td className="p-3.5 text-slate-600">{u.totalCompletedOrders}</td>
-                        <td className="p-3.5 text-slate-600">{u.phoneNumber || '—'}</td>
-                        <td className="p-3.5 text-slate-600">{u.telegramHandle || '—'}</td>
-                        <td className="p-3.5 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
+                        <td className="p-3.5">
+                          {u.status ? (
+                            <span className="inline-flex items-center space-x-1 text-emerald-600 font-semibold">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Active</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center space-x-1 text-rose-500 font-semibold">
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Disabled</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-right">
+                          <button
+                            disabled={togglingUserIds.has(u.userId)}
+                            onClick={() => toggleUserStatus(u.userId)}
+                            className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                              u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {togglingUserIds.has(u.userId) ? '...' : u.status ? 'Disable' : 'Reinstate'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
-                    {paginatedUsers.length === 0 && (
+                    {paginatedUsers.length === 0 && !isLoadingUsers && (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-400">
+                        <td colSpan={5} className="p-8 text-center text-slate-400">
                           No users found matching your query.
                         </td>
                       </tr>
@@ -1777,8 +1787,6 @@ export default function App() {
               <button
                 onClick={() => {
                   setDraftSelectedUserRoles(selectedUserRoles);
-                  setDraftMinRating(minRating);
-                  setDraftMinCompletedOrders(minCompletedOrders);
                   setIsUserFilterModalOpen(false);
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -1810,34 +1818,6 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Min Rating</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={5}
-                  step={0.1}
-                  value={draftMinRating || ''}
-                  onChange={(e) => setDraftMinRating(e.target.value === '' ? 0 : Number(e.target.value))}
-                  placeholder="0.0"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Min Completed Orders</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={draftMinCompletedOrders || ''}
-                  onChange={(e) => setDraftMinCompletedOrders(e.target.value === '' ? 0 : Number(e.target.value))}
-                  placeholder="0"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
             <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <button
                 type="button"
@@ -1850,8 +1830,6 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setSelectedUserRoles(draftSelectedUserRoles);
-                  setMinRating(draftMinRating);
-                  setMinCompletedOrders(draftMinCompletedOrders);
                   setIsUserFilterModalOpen(false);
                   setCurrentPageUsers(1);
                 }}

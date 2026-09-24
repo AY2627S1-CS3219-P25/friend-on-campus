@@ -88,8 +88,23 @@ export function createUserRouter(
     });
   };
 
-  router.get('/', requireAdmin, notImplemented);
+  router.get(
+    '/',
+    requireAdmin,
+    asyncRoute(async (_req, res) => {
+      const allUsers = await users.listUsers();
+      res.json({ success: true, data: { users: allUsers } });
+    }),
+  );
   router.post('/:id/promote', requireAdmin, notImplemented);
+  router.patch(
+    '/:id/admin',
+    requireAdmin,
+    asyncRoute(async (req, res) => {
+      const user = await users.toggleUserStatus(req.params.id);
+      res.json({ success: true, data: { user } });
+    }),
+  );
 
   return router;
 }

@@ -34,6 +34,7 @@ model User {
   email        String    @db.VarChar(320)
   passwordHash String    @map("password_hash")
   role         String    @default("STUDENT") @db.VarChar(20)
+  status       Boolean   @default(true)
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   sessions     Session[]

@@ -43,6 +43,7 @@ export interface UserDTO {
   username: string;
   email: string;
   userRole: UserRole;
+  status: boolean;
 }
 
 export interface RegisterUserRequest {

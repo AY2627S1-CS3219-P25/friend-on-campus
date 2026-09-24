@@ -27,8 +27,10 @@ import { isValidPassword, isValidUsername } from '../utils/validation';
 
 export interface UserModule {
   getOwnProfile(userId: string): Promise<UserDTO>;
+  listUsers(): Promise<UserDTO[]>;
   updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
   changePassword(userId: string, input: ChangePasswordRequest): Promise<void>;
+  toggleUserStatus(targetUserId: string): Promise<UserDTO>;
 }
 
 export type UserErrorCode =
@@ -64,6 +66,7 @@ function toUserDTO(user: UserRecord): UserDTO {
     username: user.username,
     email: user.email,
     userRole: user.role,
+    status: user.status,
   };
 }
 
@@ -116,6 +119,11 @@ export function createUserModule(options: UserModuleOptions): UserModule {
       return toUserDTO(user);
     },
 
+    async listUsers() {
+      const users = await options.repository.listAll();
+      return users.map(toUserDTO);
+    },
+
     async updateOwnProfile(userId, input) {
       const update = validateProfileUpdate(input);
 
@@ -162,6 +170,15 @@ export function createUserModule(options: UserModuleOptions): UserModule {
       if (!updated) {
         throw new UserError('INVALID_CURRENT_PASSWORD', 'Current password is incorrect');
       }
+    },
+
+    async toggleUserStatus(targetUserId) {
+      const user = await options.repository.toggleStatus(targetUserId);
+      if (!user) {
+        throw new UserError('USER_NOT_FOUND', 'User not found');
+      }
+
+      return toUserDTO(user);
     },
   };
 }

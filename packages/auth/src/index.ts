@@ -1,25 +1,16 @@
 /**
  * AI Assistance Disclosure:
-<<<<<<< HEAD
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
- * Scope: Implemented shared Ed25519 JWT verification middleware, standardized shared JWT claims, and admin-authentication helpers.
-=======
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Switched access-token verification to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud)
  * and made this package consume the shared JWTPayload type from common-dtos instead of a local duplicate. The
  * verification logic (Ed25519 signature, header, issuer/audience, expiry, clock skew) is unchanged from the PR author's version.
->>>>>>> 37f8285792ec47637de7b55dfc0594a566c1330f
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 import { createPublicKey, verify } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 import type { RequestHandler, Response } from 'express';
-<<<<<<< HEAD
-import type { JWTPayload } from '@campus-errand/common-dtos';
-=======
 import type { JWTPayload, UserRole } from '@campus-errand/common-dtos';
->>>>>>> 37f8285792ec47637de7b55dfc0594a566c1330f
 
 const JWT_HEADER = Object.freeze({ alg: 'EdDSA', typ: 'JWT' });
 
@@ -37,11 +28,6 @@ export interface AuthMiddlewareOptions {
   audience: string;
 }
 
-<<<<<<< HEAD
-type JwtAccessTokenClaims = JWTPayload;
-
-=======
->>>>>>> 37f8285792ec47637de7b55dfc0594a566c1330f
 type AuthenticationErrorCode =
   | 'MISSING_TOKEN'
   | 'TOKEN_EXPIRED'
@@ -119,11 +105,7 @@ function verifyAccessToken(
 
     const claims = parseJsonPart<unknown>(claimsPart);
     if (
-<<<<<<< HEAD
-      !isJwtAccessTokenClaims(claims) ||
-=======
       !isJwtPayload(claims) ||
->>>>>>> 37f8285792ec47637de7b55dfc0594a566c1330f
       claims.iss !== options.issuer ||
       claims.aud !== options.audience
     ) {

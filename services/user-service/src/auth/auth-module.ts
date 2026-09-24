@@ -28,7 +28,6 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
-import { randomBytes } from 'node:crypto';
 import type {
   AuthResponse,
   LoginUserRequest,
@@ -139,6 +138,7 @@ function toUserDTO(user: UserRecord): UserDTO {
     username: user.username,
     email: user.email,
     userRole: user.role,
+    status: user.status,
   };
 }
 
@@ -168,10 +168,6 @@ function mapDuplicateUserError(error: unknown): never {
 }
 
 export function createAuthModule(options: AuthModuleOptions): AuthModule {
-  // Verified against when no account matches, so a login for an unknown email costs the same
-  // scrypt work as a wrong password (no account-enumeration timing side channel).
-  const dummyPasswordHash = hashPassword(randomBytes(32).toString('base64url'));
-
   function issueAccessToken(session: SessionUserRecord): string {
     return options.tokens.issueAccessToken(
       session.user.id,
@@ -207,16 +203,9 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       const user = await options.repository.findUserByEmail(email);
       const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
       const passwordMatches = await verifyPassword(password, passwordHash);
-
-      const passwordMatches = await verifyPassword(
-        password,
-        user ? user.passwordHash : await dummyPasswordHash,
-      );
       if (!user || !passwordMatches) {
         throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
       }
-
-      await options.repository.deleteExpiredSessions(new Date());
 
       const persistent = input.keepLoggedIn === true;
       const refreshTokenIdleLifetimeSeconds = persistent
@@ -251,7 +240,6 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       await options.repository.cleanupExpiredSessions(new Date());
       const nextRefreshToken = options.tokens.generateRefreshToken();
       const now = new Date();
-      await options.repository.deleteExpiredSessions(now);
       const standardIdleExpiresAt = addSeconds(now, options.refreshTokenIdleLifetimeSeconds);
       const persistentIdleExpiresAt = addSeconds(
         now,

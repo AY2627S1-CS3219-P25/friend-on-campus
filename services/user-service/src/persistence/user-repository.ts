@@ -22,6 +22,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string;
   role: UserRole;
+  status: boolean;
 }
 
 export interface UpdateUserRecord {
@@ -30,12 +31,14 @@ export interface UpdateUserRecord {
 
 export interface UserRepository {
   findById(userId: string): Promise<UserRecord | null>;
+  listAll(): Promise<UserRecord[]>;
   updateProfile(userId: string, input: UpdateUserRecord): Promise<UserRecord | null>;
   updatePassword(
     userId: string,
     currentPasswordHash: string,
     newPasswordHash: string,
   ): Promise<boolean>;
+  toggleStatus(userId: string): Promise<UserRecord | null>;
 }
 
 function toUserRecord(row: PrismaUser): UserRecord {
@@ -45,6 +48,7 @@ function toUserRecord(row: PrismaUser): UserRecord {
     email: row.email,
     passwordHash: row.passwordHash,
     role: row.role as UserRole,
+    status: row.status,
   };
 }
 
@@ -53,6 +57,11 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
     async findById(userId) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       return user ? toUserRecord(user) : null;
+    },
+
+    async listAll() {
+      const users = await prisma.user.findMany({ orderBy: { username: 'asc' } });
+      return users.map(toUserRecord);
     },
 
     async updateProfile(userId, input) {
@@ -75,6 +84,20 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
       });
 
       return updated.count === 1;
+    },
+
+    async toggleStatus(userId) {
+      const existing = await prisma.user.findUnique({ where: { id: userId } });
+      if (!existing) {
+        return null;
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: { status: !existing.status },
+      });
+
+      return toUserRecord(updated);
     },
   };
 }
