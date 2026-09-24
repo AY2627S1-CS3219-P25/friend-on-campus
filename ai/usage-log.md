@@ -195,6 +195,21 @@ Update root `README.md` to reflect current system state and Milestone D2 deliver
 
 **Files changed / created:**
 - `README.md` — Comprehensive documentation overhaul.
+## 2026-09-20 23:09 SGT — User Service foundation and local deployment
+
+**Tool:** Codex (referenced tasks; model varied)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement a simple, independently runnable User Service setup: configure its Dockerfile, local environment, PostgreSQL database and migrations, seed three sample accounts including one admin, and integrate the service into the root Compose workflow. Keep the initial scope focused on the base service and omit unapproved logging or administrator features.
+
+**Usage scenario:** User Service implementation and local deployment configuration (allowed use). The author selected the initial schema, seed data, environment scope, and deliberately limited feature set.
+
+**Files changed:**
+- `docker-compose.yml`, `services/user-service/docker-compose.yml`, `services/user-service/Dockerfile`, and `services/user-service/.env.example` — configured local and Compose-based service startup.
+- `services/user-service/src/database/prisma/`, `src/database/seed.ts`, and related configuration — defined the database schema, migrations, and development seed accounts.
+- `ai/usage-log.md` — appended this implementation record.
+
 ## 2026-09-20 — dotenv.config() fix for standalone seed scripts
 
 **Tool:** Claude Code (model: Claude Sonnet 5)
@@ -504,6 +519,22 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 **Files changed:**
 - `ai/usage-log.md` — appended this entry.
 
+## 2026-09-21–2026-09-22 — User Service modules and shared authentication package
+
+**Tool:** Codex (referenced tasks; model varied)
+**Author:** ngkhengyang
+**Branch:** user-service-base
+
+**Prompt (summarised):** Implement the base User Service modules with dependency-injected authentication, registration/login/refresh/logout flows, scrypt password hashing, Ed25519 access-token issuance, refresh-session handling, authenticated self-profile routes, validated username-only updates, immutable email, and password changes that preserve existing sessions. Add simple validation, request/error logging, and centralized error handling. Create a minimal shared authentication package that verifies Ed25519 tokens with a public key and exposes role helpers such as `isAdmin`; keep token issuance, sessions, and password handling inside User Service.
+
+**Usage scenario:** User Service and shared authentication implementation (allowed use). The author selected the service boundaries, base route scope, token model, validation rules, and downstream verification interface.
+
+**Files changed:**
+- `services/user-service/src/{auth,users,http,persistence,utils,app.ts,index.ts}` — implemented authentication, profile modules, repositories, middleware integration, validation, logging, error handling, and route wiring.
+- `packages/auth/src/index.ts` — implemented the shared public-key token verifier and role helpers.
+- `services/user-service/docs/` — documented the implemented authentication and User Service contracts.
+- `ai/usage-log.md` — appended this implementation record.
+
 ## 2026-09-22 14:53 SGT — Inventory merged teammate work
 
 **Tool:** Codex (model: GPT-5)
@@ -798,6 +829,20 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`.
 - `.github/pull_request_template.md` — new; PR body layout with a **Linked issues** section pre-filled with `Closes #`.
 - `.github/workflows/pr-linked-issue.yml` — new; fails a PR whose body has no `Closes/Fixes/Resolves #N` (or issue URL) reference.
 - `CLAUDE.md` — section 6: rule that every PR body links the issue(s) it closes; disclosure entry. Follow-up commit: wording aligned with the workflow (an issue must exist; the check does not accept a PR with none).
+- `ai/usage-log.md` — this entry.
+
+## 2026-09-23 23:30 SGT — Automated Claude Code pull-request review workflow
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** claude/great-pasteur-kx86kz (from origin/dev 9ff7430)
+
+**Prompt (summarised):** Set up GitHub Actions so that every PR (opened, reopened, ready for review, new commits) is automatically reviewed by Claude Code via `anthropics/claude-code-action@v1`, authenticated with the author's Claude subscription OAuth token (`CLAUDE_CODE_OAUTH_TOKEN` repository secret, no API key), using Fable where available, with a bounded number of turns, least-privilege permissions, no draft/fork runs, and a high-signal review prompt.
+
+**Usage scenario:** Boilerplate/config generation (CI workflow) and documentation. No application code touched. Decisions left to the author: adding the `CLAUDE_CODE_OAUTH_TOKEN` secret, accepting that Fable runs may bill usage credits on Pro/Max, and whether to keep `--model best` (Fable when available, else Opus) or require Fable with `--model fable`. Nothing was committed or pushed.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — new; runs the Claude Code review on `pull_request` events, skips drafts and fork PRs, one run per PR at a time, read-only tool set, Fable/Opus via `--model best`, `--max-turns 40`.
 - `ai/usage-log.md` — this entry.
 
 ## 2026-09-23 (later still) — Add Status column and Disable/Reinstate toggle to admin portal Users table

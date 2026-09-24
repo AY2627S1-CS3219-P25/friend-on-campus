@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Replaced standalone User Service database startup instructions with the shared PostgreSQL workflow.
+Scope: Documented User Service authentication setup, Ed25519 key configuration, and shared PostgreSQL startup.
 Author review: <to be completed by ngkhengyang>
 -->
 

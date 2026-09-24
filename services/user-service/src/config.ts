@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Updated the local User Service database default for the shared PostgreSQL container.
+ * Scope: Implemented User Service environment loading and runtime configuration for the database, JWT, CORS, and service settings.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)

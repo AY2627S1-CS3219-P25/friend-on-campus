@@ -1,14 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Preserved duplicate-profile error handling while adapting it to Prisma constraint errors.
+ * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Enforced username-only profile updates and adopted shared user and password DTOs.
+ * Scope: Implemented username-only profile updates and shared user and password DTO handling.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -37,7 +37,8 @@ export type UserErrorCode =
   | 'INVALID_INPUT'
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
-  | 'USER_NOT_FOUND';
+  | 'USER_NOT_FOUND'
+  | 'NOT_IMPLEMENTED';
 
 export class UserError extends Error {
   constructor(

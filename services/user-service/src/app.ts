@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Passed the author-approved ADMIN authorization middleware to deferred User Service routes.
+ * Scope: Implemented the Express application with CORS, authentication middleware, error handling, and User Service route registration.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)

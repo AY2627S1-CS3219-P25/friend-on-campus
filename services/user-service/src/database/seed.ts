@@ -8,7 +8,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Updated development seed accounts for the author-approved Prisma user model and scrypt password format.
+ * Scope: Implemented development seed accounts using the Prisma user model, scrypt password format, and case-insensitive email lookup.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -39,9 +39,13 @@ async function main() {
   const passwordHash = await hashPassword('Password123!');
 
   for (const user of seedUsers) {
-    const [existing] = await prisma.$queryRaw<{ id: string }[]>`
-      SELECT id FROM users WHERE LOWER(email) = LOWER(${user.email}) LIMIT 1
+    const existingUsers = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id
+      FROM users
+      WHERE LOWER(email) = LOWER(${user.email})
+      LIMIT 1
     `;
+    const existing = existingUsers[0];
     if (existing) {
       await prisma.user.update({
         where: { id: existing.id },

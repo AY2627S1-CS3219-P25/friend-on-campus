@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Typed login and refresh JSON responses with the shared session DTOs.
+ * Scope: Implemented User Service authentication HTTP routes with typed responses and safe malformed-cookie handling.
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
@@ -15,7 +15,7 @@
 // AI-generated (edited by ngkhengyang)
 import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
-import { AuthModule } from './auth-module';
+import { AuthError, AuthModule } from './auth-module';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
 
