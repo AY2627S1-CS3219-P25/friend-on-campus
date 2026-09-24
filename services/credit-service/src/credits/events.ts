@@ -1,18 +1,15 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Validated credit event contracts and translated them into transactional credit commands.
+ * Scope: Reused shared credit event contracts and translated validated messages into transactional credit commands.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import { createHash } from 'node:crypto';
-import type { OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
+import type { OrderCancelledEvent, OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
 import type { CreditCommand, CreditService } from './service';
 import { InvalidCreditEvent } from './errors';
 
-// Temporary local contract until common-dtos gains cancellation.
-// See docs/services/credit-service-integration-contract.md.
-export type OrderCancelledEvent = Omit<OrderExpiredEvent, 'eventType'> & { eventType: 'order.cancelled' };
 export type CreditEvent = UserRegisteredEvent | OrderCompletedEvent | OrderExpiredEvent | OrderCancelledEvent;
 export const creditRoutingKeys = ['user.registered', 'order.completed', 'order.cancelled', 'order.expired'] as const;
 

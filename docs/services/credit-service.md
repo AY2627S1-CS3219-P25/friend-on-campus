@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Documented JWT-protected wallet/ledger reads, verification configuration and authentication tests.
+Scope: Documented JWT authentication and use of the shared order cancellation event contract.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -88,7 +88,7 @@ Compatibility: first read/reserve/courier settlement still creates an unknown wa
 
 Processed event ID and payload fingerprint are committed with all credit changes. Reusing an ID with a different validated payload conflicts. Different IDs for the same grant/order operation are also protected by persistent business state. Concurrent work uses serializable transactions with up to ten attempts for serialization/uniqueness contention; exhausted infrastructure failures pass to the bounded message retry policy.
 
-Cancellation uses a temporary local type in `src/credits/events.ts` until future shared DTO work adds `OrderCancelledEvent`.
+Cancellation uses the shared `OrderCancelledEvent` contract from `packages/common-dtos`.
 
 ## Configuration and delivery
 

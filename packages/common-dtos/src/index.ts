@@ -306,13 +306,21 @@ export interface OrderExpiredEvent extends BaseEvent {
   rewardCredits: number;
 }
 
+export interface OrderCancelledEvent extends BaseEvent {
+  eventType: 'order.cancelled';
+  orderId: string;
+  requesterId: string;
+  rewardCredits: number;
+}
+
 export type CampusErrandEvent =
   | UserRegisteredEvent
   | OrderCreatedEvent
   | OrderAcceptedEvent
   | OrderInTransitEvent
   | OrderCompletedEvent
-  | OrderExpiredEvent;
+  | OrderExpiredEvent
+  | OrderCancelledEvent;
 
 // ==========================================
 // 6. Generic API Response Wrapper

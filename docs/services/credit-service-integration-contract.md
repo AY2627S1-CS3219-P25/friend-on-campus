@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Specified future User and Order Service integration with the implemented Credit Service contracts.
+Scope: Specified future service integration and recorded the shared order cancellation event contract.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -126,7 +126,7 @@ Routing key: `order.expired`. This refunds an existing reservation, returning th
 
 Routing key: `order.cancelled`. Refund behavior matches expiry. The different order IDs above describe separate example reservations; reserve each before publishing its terminal event.
 
-`OrderCancelledEvent` must be added to `packages/common-dtos` and its event union in the future shared-contract work. Credit Service currently uses a clearly marked temporary local type in `src/credits/events.ts`, with exactly these fields. Replace that type with the shared import when available.
+`OrderCancelledEvent` is defined in `packages/common-dtos` and included in `CampusErrandEvent`. Order Service must reuse that shared type when it implements cancellation publication.
 
 ### Replay and conflict behavior
 
