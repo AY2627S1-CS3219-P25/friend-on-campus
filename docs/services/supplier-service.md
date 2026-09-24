@@ -10,6 +10,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the author-approved Ed25519 access-token verification migration.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-24
+Scope: Updated documentation to reflect that table definitions and migrations are managed exclusively by Prisma in supplier-service, resolving conflict 15.
+Author review: (to be completed by author after review)
+-->
 
 # supplier-service
 
@@ -58,7 +64,7 @@ Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplie
 
 ## Data
 
-Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_location`, `category`, `description?`, `building?`, `floor?`, `latitude?`, `longitude?`, `starting_time?`, `closing_time?`, `image_url?`, `is_active` default true, `created_at`, `updated_at`. Defined in both `schema.prisma` (+ migration) and the init SQL, where `id` is `UUID` while Prisma declares `String`; the init SQL also inserts 5 sample rows (`SUP-001`…`SUP-005`).
+Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_location`, `category`, `description?`, `building?`, `floor?`, `latitude?`, `longitude?`, `starting_time?`, `closing_time?`, `image_url?`, `is_active` default true, `created_at`, `updated_at`. Defined in `schema.prisma` (+ migration). The table is managed independently by Prisma migrations and seeded via `src/database/seed.ts` (21 rows from `data/csv/supplier-seed-data.csv`).
 
 ## Behaviour as built
 
@@ -73,7 +79,7 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 
 ## Differences from the documents
 
-`../requirements/conflicts.md` rows 10 (guest reads), 11 (`PATCH` + `version` + 409 contract), 15 (duplicated table definitions). Also observable against D2 plan App. B–C: duplicate name + campus location should be rejected with 409; unsupported sort/filter values should return 400; list shape there is `{ items, page, pageSize, totalItems }`.
+`../requirements/conflicts.md` rows 10 (guest reads), 11 (`PATCH` + `version` + 409 contract), 15 (duplicated table definitions - resolved). Also observable against D2 plan App. B–C: duplicate name + campus location should be rejected with 409; unsupported sort/filter values should return 400; list shape there is `{ items, page, pageSize, totalItems }`.
 
 ## Tests
 
