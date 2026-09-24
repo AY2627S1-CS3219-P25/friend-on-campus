@@ -22,6 +22,12 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-24
+Scope: Appended the Database-per-Service schema ownership and migration refactoring record below.
+Author review: (to be completed by author after review)
+-->
 
 # AI Usage Log
 
@@ -945,3 +951,35 @@ Verified: `npx tsc --noEmit` passes with no errors in `apps/admin-portal`; rebui
 - `apps/student-app/src/App.tsx` — checkbox `<span>` text changed from "Remember me?" to "Keep me logged in".
 
 Verified: `npx tsc --noEmit` passes with no errors in both `apps/admin-portal` and `apps/student-app`; rebuilt and restarted both containers.
+## 2026-09-24 (afternoon) — Enforce Database-per-Service schema ownership & migrations
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/database-per-service-migrations
+
+**Prompt (summarised):**
+User asked whether `01-init-databases.sql` should be creating tables across all services given the database-per-service pattern, explored production vs development database provisioning, and directed the agent to fix the architectural issue. Refactored `01-init-databases.sql` to strictly provision logical databases (`user_db`, `supplier_db`, `order_db`, `credit_db`) without table DDLs or seed data. Delegated table migrations and seeding to `user-service` and `supplier-service` on container startup via `prisma migrate deploy` and `seed.ts`. Preserved `order-service` and `credit-service` DDLs into their respective local service database directories for future Milestone D3 persistence. Updated architecture documentation and resolved conflict #15 in `docs/requirements/conflicts.md`.
+
+**Usage scenario:**
+Refactoring, boilerplate/config generation, and documentation improvements (allowed use). Implemented the author-approved design to align the codebase with the Database-per-Service architectural pattern and resolve dual-source-of-truth schema drift.
+
+**Files changed / created:**
+- `docker/postgres-init/01-init-databases.sql` — stripped all table DDLs, indexes, and seed inserts; kept only `CREATE DATABASE` statements for the 4 logical databases.
+- `services/user-service/Dockerfile` — updated `CMD` to run `npx prisma migrate deploy` and `npx tsx src/database/seed.ts` before starting the service.
+- `services/supplier-service/Dockerfile` — copied `data/csv` into container and updated `CMD` to run `npx prisma migrate deploy` and `npx tsx src/database/seed.ts` before starting the service.
+- `services/order-service/src/database/schema.sql` — created; archived `orders` table DDL within the service's domain boundary.
+- `services/credit-service/src/database/schema.sql` — created; archived `credit_wallets` and `credit_transactions` table DDLs within the service's domain boundary.
+- `docs/requirements/conflicts.md` — recorded resolution for conflict #15.
+- `docs/architecture/overview.md` — updated database initialization description and marked conflict #15 resolved.
+- `docs/services/supplier-service.md` — updated data persistence documentation and marked conflict #15 resolved.
+- `docs/services/user-service.md` — updated persistence section to state that migrations are run by the service.
+- `scripts/test-d2-e2e.ts` — fixed `decodeJwtPayload` typo to `decodeJwtClaims`.
+- `ai/usage-log.md` — this entry.
+
+Verified:
+- Created local `.env` with Ed25519 development keys.
+- Executed `docker compose down -v` to reset data volume.
+- Booted `postgres`, `user-service`, and `supplier-service` via `docker compose up --build -d`.
+- Verified container logs: both services applied Prisma migrations and executed database seeding on boot.
+- Verified PostgreSQL: `user_db` has 3 seeded users, `supplier_db` has 21 seeded suppliers, `order_db` and `credit_db` have zero relations.
+- Executed `npm run test:d2`: 40/44 tests passed (all registration, authentication, token claims, user profile immutability, supplier querying, and cross-service RBAC passed).

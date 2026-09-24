@@ -3,6 +3,12 @@
 # Scope: Implemented the User Service container build with workspace dependencies, Prisma generation, and a production start command.
 # Author review: <to be completed by ngkhengyang>
 
+# AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-09-24
+# Scope: Updated startup command to deploy Prisma migrations and seed development accounts on container boot.
+# Author review: (to be completed by author after review)
+# AI-generated (edited by yanhwee)
+
 FROM node:20-alpine
 
 WORKDIR /app
@@ -25,4 +31,4 @@ RUN npx prisma generate --schema src/database/prisma/schema.prisma
 
 EXPOSE 8001
 
-CMD ["npx", "tsx", "src/index.ts"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema src/database/prisma/schema.prisma && npx tsx src/database/seed.ts && npx tsx src/index.ts"]

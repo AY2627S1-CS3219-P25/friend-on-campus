@@ -20,6 +20,13 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-24
+ * Scope: Fixed function reference from decodeJwtPayload to decodeJwtClaims in student JWT claims assertions.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
@@ -222,7 +229,7 @@ async function runTests() {
     assert(studentLoginData.data?.user?.userRole === 'STUDENT', 'Registered user has role STUDENT');
     const studentToken = studentLoginData.data?.accessToken;
     const studentUserId = studentLoginData.data?.user?.userId;
-    const studentClaims = decodeJwtPayload(studentToken);
+    const studentClaims = decodeJwtClaims(studentToken);
     assert(studentClaims.sub === studentUserId, 'Access token uses the standard sub claim');
     assert(typeof studentClaims.sid === 'string', 'Access token includes the standard sid claim');
     assert(typeof studentClaims.iat === 'number', 'Access token includes the standard iat claim');
