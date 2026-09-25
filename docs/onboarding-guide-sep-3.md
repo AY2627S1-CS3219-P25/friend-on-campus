@@ -566,7 +566,7 @@ services:
     environment:
       - PORT=8003
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/order_db
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
       - CREDIT_SERVICE_URL=http://credit-service:8004
     depends_on:
       postgres:
@@ -633,7 +633,7 @@ services:
 ```
 * **`rabbitmq:3.13-management-alpine`**: The `management` flavor includes the web dashboard on port `15672`.
 * **Port `5672`**: For Node.js `amqplib` connections.
-* **Port `15672`**: For your browser at `http://localhost:15672` (`guest`/`guest`).
+* **Port `15672`**: For your browser at `http://localhost:15672` (`campus_admin`/`campus-admin-dev` in local development).
 
 ---
 
@@ -686,7 +686,7 @@ With **RabbitMQ (Message Broker)**, communication is decoupled:
    * Publishes **`order.completed`**.
    * `credit-service` consumes `order.completed` and atomically releases escrow credits to the courier's wallet!
 
-You can inspect all queues visually at **[http://localhost:15672](http://localhost:15672)** (Login: `guest` / `guest`).
+You can inspect all queues visually at **[http://localhost:15672](http://localhost:15672)** (local development login: `campus_admin` / `campus-admin-dev`).
 
 ---
 
@@ -707,7 +707,7 @@ user-service Container ──► connects to "postgres:5432" (Docker internal DN
 Our backend microservices are written with smart fallbacks:
 ```typescript
 const DB_URL = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/order_db';
-const RABBIT_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+const RABBIT_URL = process.env.RABBITMQ_URL || 'amqp://order_service:order-service-dev@localhost:5672/campus';
 ```
 * **Local Mac Dev**: It automatically connects to `localhost:5432`.
 * **Docker Containers**: Docker injects `postgres:5432`, overriding the fallback.
