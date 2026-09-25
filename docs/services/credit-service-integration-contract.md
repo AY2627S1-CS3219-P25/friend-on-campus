@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Specified future service integration, shared cancellation events, recovery and RabbitMQ identities.
+Tool: Codex (model: GPT-6), date: 2026-09-25
+Scope: Documented broker-provisioned shared exchanges and publisher handling before queue bindings exist.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -9,7 +9,7 @@ Author review: <to be completed by huangjiaxi1111>
 
 ## RabbitMQ publishing contract
 
-- AMQP 0-9-1; durable **topic** exchange `campus.events` in the broker's default `/` virtual host.
+- AMQP 0-9-1; durable **topic** exchange `campus.events` in the `campus` virtual host.
 - UTF-8 JSON, `contentType: application/json`, persistent delivery (`deliveryMode: 2`).
 - Routing key equals JSON `eventType`; use `eventId` as AMQP `messageId` as well.
 - All IDs are UUID strings (case normalized by Credit Service).
@@ -17,7 +17,8 @@ Author review: <to be completed by huangjiaxi1111>
 - Amounts are integer credits in `1..2147483647`. Zero, fractions and numeric strings are rejected.
 - Generate `eventId` once when recording the event. Publication retries must keep the same ID **and payload**, including timestamp.
 - Publish using a confirm channel; retain/retry unconfirmed publications. Use `mandatory: true` and handle `basic.return` so an unroutable publication is not treated as delivered. A confirm reports broker acceptance, not completion of credit processing.
-- Credit Service declares its queue and bindings on startup. Provision/start it before publishing initial events; the durable exchange alone does not retain unrouted messages.
+- Broker boot provisions `campus.events` (topic) and `campus.events.dlx` (direct) from `docker/rabbitmq/definitions.json`; both are durable. Publishers do not declare them or need configure permission.
+- Credit Service declares its queue and bindings on startup. Provision/start it before publishing initial events, or retain and retry returned publications until bindings exist; predeclaring the durable exchange alone does not retain unrouted messages.
 - Do not set expiration on credit events. Do not supply the internal `x-credit-*` headers.
 - Local development uses the `campus` virtual host and the service-specific accounts imported from `docker/rabbitmq/definitions.json`. User Service may publish only `user.registered`; Order Service may publish only documented `order.*` keys; Credit Service may consume only its bound event keys and manage only its queue/retry/dead-letter resources. Use separately provisioned secrets outside local development and never log connection URLs.
 

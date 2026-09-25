@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Documented JWT authentication, shared cancellation events, recovery and dedicated RabbitMQ permissions.
+Tool: Codex (model: GPT-6), date: 2026-09-25
+Scope: Documented broker-provisioned shared exchanges and remaining queue/binding readiness requirements.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -112,6 +112,8 @@ All configuration is owned by `src/config.ts`; see the service's `.env.example`.
 | `CREDIT_RETRY_LIMIT` | `5` retries after the initial attempt |
 
 Topology is durable and declaration is repeatable for matching settings. A broker object with the same name but incompatible settings causes startup failure; the service never deletes shared topology to repair it. Both the main and retry consumer use prefetch 1 and manual acknowledgement.
+
+Broker startup imports the durable `campus.events` topic exchange and `campus.events.dlx` direct exchange in the `campus` virtual host before any Credit Service consumer is needed. Credit Service's matching exchange declarations remain idempotent. Publisher accounts do not need configure permission. Credit Service still declares its queues and bindings: until those exist, publications may be unroutable and publishers must handle mandatory returns. Existing brokers load the updated definitions on their next restart; no volume reset is needed.
 
 Compose imports `docker/rabbitmq/definitions.json` at broker startup. Credit Service's `credit_service` account can configure and consume only its exchanges and queues, bind only the four supported keys from `campus.events`, and publish only to its retry/dead-letter paths and the default exchange used for retry forwarding. Development credentials are committed for local use; provision distinct secret credentials with equivalent permissions outside local development. The management dashboard uses `campus_admin` / `campus-admin-dev`.
 
