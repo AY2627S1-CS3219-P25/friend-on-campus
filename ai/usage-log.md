@@ -1019,3 +1019,20 @@ Verified:
 - `ai/usage-log.md` — this entry and updated disclosure.
 
 **Verification:** RabbitMQ imported all dedicated accounts and permissions. Live checks confirmed Order Service can publish `order.created` but cannot publish `user.registered`, Credit Service cannot create another service's queue, and the isolated test account can manage only `credit-test.*` resources. Credit Service connected as `credit_service` on `campus`, reported ready, and its full RabbitMQ integration suite passed. Relevant service typechecks and `git diff --check` passed. The root typecheck still failed only on the existing User Service generated Prisma `status` errors. Test database and queues were cleaned up; changes remain uncommitted.
+
+## 2026-09-25 16:06 SGT — Correct Credit Service deployment documentation
+
+**Tool:** Codex (model: GPT-5), date: 2026-09-25
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Verify and apply three PR review fixes covering legacy Prisma baselining, the RabbitMQ virtual host, and stale Credit Service summaries.
+
+**Usage scenario:** Debugging and documentation correction. Verified the review findings against the implementation, documented the existing schema and migration preconditions, and corrected stale repository facts without changing application behavior.
+
+**Files changed:**
+- `services/credit-service/src/database/prisma/migrations/20260924050000_existing_credit_tables/migration.sql` — replaced the misleading `IF NOT EXISTS` compatibility claim with the actual empty-database or verified-baseline precondition.
+- `docs/services/credit-service.md` — documented Prisma `P3005`, the one-time legacy baseline procedure, and the current five-table SQL reference.
+- `.claude/agents/backend.md` — updated Credit Service authentication, HTTP, RabbitMQ and idempotency facts.
+- `docs/services/credit-service-integration-contract.md` — verified the current branch already identifies the RabbitMQ virtual host as `campus`; no further edit was needed.
+- `ai/usage-log.md` — recorded this review-driven correction.

@@ -17,8 +17,8 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Updated credit-service layout and persistence facts after the Prisma replacement.
+Tool: Codex (model: GPT-5), date: 2026-09-25
+Scope: Updated Credit Service layout, persistence, authentication, messaging and idempotency facts.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -72,7 +72,7 @@ The detail is in `docs/services/<name>.md` — read the page for every service y
 - **user-service :8001** — real. It issues Ed25519 access tokens and opaque refresh sessions; access-token claims or verification settings affect downstream services.
 - **supplier-service :8002** — real. Entry is `src/backend/server.ts`; Prisma schema and migrations under `src/database/prisma/`.
 - **order-service :8003** — in-memory mock that trusts a client-supplied `x-user-id` header; its tables exist only in the init SQL.
-- **credit-service :8004** — Prisma-backed wallets and ledger matching the init SQL; transactional escrow operations. Still trusts caller-supplied UUIDs: authentication and idempotency remain pending. See its service page for baseline/deploy setup.
+- **credit-service :8004** — real (Prisma, `credit_db`). JWT-protected wallet/ledger reads; reserve over unauthenticated HTTP with service-to-service authorization pending; settle/refund via RabbitMQ with persistent event and order idempotency. See its service page for baseline/deploy setup.
 - **notification-service :8005** — mock `ws` server that re-broadcasts to everyone; not connected to RabbitMQ.
 
 When your change makes a service page wrong, list the corrections in your report so the main session can update it.

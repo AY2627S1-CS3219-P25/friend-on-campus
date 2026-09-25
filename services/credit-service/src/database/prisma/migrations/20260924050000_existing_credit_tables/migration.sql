@@ -1,10 +1,11 @@
 -- AI Assistance Disclosure:
--- Tool: Codex (model: GPT-6), date: 2026-09-24
--- Scope: Copied the existing credit initialization SQL into an initial migration.
+-- Tool: Codex (model: GPT-5), date: 2026-09-25
+-- Scope: Copied the initial schema and clarified empty-database or verified-baseline deployment.
 -- Author review: <to be completed by huangjiaxi1111>
 -- AI-generated (edited by huangjiaxi1111)
--- IF NOT EXISTS supports databases already initialized by Docker's identical SQL.
--- Existing tables must match that SQL; this migration does not repair schema drift.
+-- Requires an empty credit_db, or a verified baseline recorded with:
+-- prisma migrate resolve --schema src/database/prisma/schema.prisma --applied 20260924050000_existing_credit_tables
+-- IF NOT EXISTS does not bypass Prisma P3005 for a non-empty, unbaselined database.
 
 CREATE TABLE IF NOT EXISTS credit_wallets (
     user_id UUID PRIMARY KEY,
