@@ -56,10 +56,10 @@ All five tables start empty. Wallets, grants, escrows and ledger entries are cre
 | `GET /api/credits/wallet` | Bearer access token; returns the authenticated user's wallet, lazily initializing 100 credits if missing |
 | `GET /api/credits/ledger` | Bearer access token; returns the authenticated user's ledger, newest first |
 | `POST /api/credits/escrow/reserve` | `{orderId, requesterId, amount}`; reserves once per order |
-| `POST /api/credits/escrow/settle` | `{orderId, requesterId, courierId, amount}`; settles the full matching reservation once |
-| `POST /api/credits/escrow/refund` | `{orderId, requesterId, amount}`; refunds the full matching reservation once |
 
-Success response shapes remain `{success:true,data,...}`; settle returns `{requesterWallet,courierWallet}`, reserve/refund return a wallet. UUIDs are normalized to lowercase. Amounts must be positive PostgreSQL integers. Invalid input and insufficient available funds return 400; reservation/terminal/grant conflicts return 409. Unexpected failures return generic 500 errors.
+Success response shapes remain `{success:true,data,...}`; reserve returns a wallet. UUIDs are normalized to lowercase. Amounts must be positive PostgreSQL integers. Invalid input and insufficient available funds return 400; reservation/terminal/grant conflicts return 409. Unexpected failures return generic 500 errors.
+
+Settlement and refunds are triggered by RabbitMQ events. The former `POST /api/credits/escrow/settle` and `POST /api/credits/escrow/refund` routes are removed and return 404. Their transactional service functions remain available to the event handler.
 
 Identical operations do not repeat balance changes, including concurrent requests. Reusing an order with a different requester, amount or settlement courier conflicts. Settlement and refund are mutually exclusive. Partial settlement/refund is no longer supported. Replays return current balances rather than saved historical responses; an identical reserve replay never reopens a terminal escrow.
 
@@ -78,7 +78,7 @@ curl http://localhost:8004/api/credits/ledger \
 
 Obtain `ACCESS_TOKEN` through User Service login. Missing Bearer tokens return `401 MISSING_TOKEN`; expired tokens return `401 TOKEN_EXPIRED`; invalid signatures or claims return `401 INVALID_TOKEN`. Failures preserve the shared `{success:false,error,code}` response. Rejected requests never invoke credit rules or create wallets/grants. Refresh remains the frontend/User Service responsibility; logout prevents refresh but an existing access token remains valid until expiry.
 
-`/health` and `/ready` remain public. Service-to-service authentication is deferred: reserve, settle and refund still accept body identifiers without caller authentication. RabbitMQ delivery behavior is unchanged. User JWT authentication on reads does not protect those mutation endpoints.
+`/health` and `/ready` remain public. Service-to-service authentication is deferred: reserve still accepts body identifiers without caller authentication. User JWT authentication on reads does not protect reservation.
 
 ## Registration and messages
 
@@ -155,7 +155,7 @@ npm run test:migration --workspace=@campus-errand/credit-service
 npm run typecheck
 ```
 
-Tests require real PostgreSQL; messaging tests additionally require RabbitMQ and local HTTP listening. HTTP tests cover valid student/admin tokens, missing/malformed/expired tokens, wrong signing keys, issuer/audience and invalid claims; spoofed identity headers/query parameters cannot change ownership or create another user's wallet. They also preserve validation, lifecycle, persistence, concurrent balance mutation and real constraint-failure rollback coverage. Messaging tests cover duplicate IDs/business operations, conflicts, malformed contracts, concurrent consumers, confirmed mandatory returns, retries/DLQ, rollback, readiness, retry restart, and a child process killed after commit before acknowledgement. Migration tests use an empty random schema inside the test database and check that all five tables are created empty and that SQL uniqueness and balance/state constraints are enforced.
+Tests require real PostgreSQL; messaging tests additionally require RabbitMQ and local HTTP listening. HTTP tests cover valid student/admin tokens, missing/malformed/expired tokens, wrong signing keys, issuer/audience and invalid claims; spoofed identity headers/query parameters cannot change ownership or create another user's wallet. They verify removed settlement/refund routes return 404 without changing balances, escrow or ledger entries, with and without a user token. The PostgreSQL suite retains service-level lifecycle, persistence, concurrent balance mutation and real constraint-failure rollback coverage. Messaging tests cover duplicate IDs/business operations, conflicts, malformed contracts, concurrent consumers, confirmed mandatory returns, retries/DLQ, rollback, readiness, retry restart, and a child process killed after commit before acknowledgement. Migration tests use an empty random schema inside the test database and check that all five tables are created empty and that SQL uniqueness and balance/state constraints are enforced.
 
 Test records, queues, exchanges and schemas use isolated identifiers and are cleaned up. The tests do not delete databases or shared volumes. The person creating a temporary database is responsible for removing it afterward.
 

@@ -148,7 +148,7 @@ Routing key: `order.cancelled`. Refund behavior matches expiry. The different or
 - Cancellation after expiry (or vice versa) with identical reservation details: already refunded, no additional effect.
 - Missing reservation or mismatched amount/requester: permanent conflict; do not send a terminal event before reservation confirmation.
 
-HTTP settle/refund and RabbitMQ events share the same escrow state, so they cannot independently apply a transition twice. HTTP endpoints remain available for existing callers but should not become a second uncontrolled writer of order outcomes.
+Order Service reserves through HTTP and requests settlement/refund through the lifecycle events above.
 
 ### Publication reliability still pending
 

@@ -43,20 +43,10 @@ export function createCreditRouter(credits: CreditService, authenticate: Request
     const userId = uuid((res.locals.auth as AuthenticatedPrincipal).userId, 'Token userId');
     res.json({ success: true, data: await credits.getLedger(userId) });
   }));
-  // Service-to-service authentication is deferred; these still trust the body identifiers.
+  // Service-to-service authentication is deferred; reservation still trusts the body identifiers.
   router.post('/escrow/reserve', asyncRoute(async (req, res) => {
     const data = await credits.reserve(escrowRequest(req.body));
     res.json({ success: true, data, message: 'Escrow reserved successfully' });
-  }));
-  router.post('/escrow/settle', asyncRoute(async (req, res) => {
-    const body = escrowRequest(req.body);
-    const courierId = uuid(req.body.courierId, 'courierId');
-    const data = await credits.settle({ ...body, courierId });
-    res.json({ success: true, data, message: 'Credits atomically settled to courier' });
-  }));
-  router.post('/escrow/refund', asyncRoute(async (req, res) => {
-    const data = await credits.refund(escrowRequest(req.body));
-    res.json({ success: true, data, message: 'Escrow refunded to available balance' });
   }));
   const handleCreditError: ErrorRequestHandler = (error, _req, res, next) => {
     if (error instanceof CreditError) {
