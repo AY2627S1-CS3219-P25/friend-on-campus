@@ -20,6 +20,12 @@ Author review: <to be completed by Reallyeasy1>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-24
+Scope: Section 6 linked-issue rule now describes the Claude PR review's Linked-issues check; the separate pr-linked-issue.yml workflow was removed.
+Author review: <to be completed by Reallyeasy1>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated repo map and database schema management notes to reflect single-source-of-truth Prisma migration ownership per service.
 Author review: (to be completed by author after review)
@@ -150,7 +156,7 @@ Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if 
 - Team repo: `AY2627S1-CS3219-P25/nus-campus-errand`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/nus-campus-errand`** to `gh issue` / `gh pr` commands.
 - Branches: `main` (releases), `dev` (integration), `milestone-d2` (D2 demo baseline), feature branches off `dev`.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
-- **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this, and the `PR links an issue` workflow (`.github/workflows/pr-linked-issue.yml`) fails any PR whose body has none. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first (the check fails a PR with none).
+- **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this. The `Claude PR review` workflow (`.github/workflows/claude-pr-review.yml`) checks it on every push: it reads the linked issues, compares their acceptance criteria with the diff, searches open issues for related work the PR does not link, and reports all of this in a **Linked issues** section of its summary comment with `Closes #<n>` lines to paste. It does not fail the PR or edit its body; the author decides which issues a PR closes. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
 - Never commit, push, merge, force-push, or open/close issues and PRs yourself.
 
 ## 7. Source documents
