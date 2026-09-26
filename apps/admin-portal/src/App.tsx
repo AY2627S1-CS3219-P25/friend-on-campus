@@ -58,10 +58,30 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
  * Scope: Added a Status column (Active/Disabled badge) and a red "Disable" / green "Reinstate" button to the Users table (desktop) and card (mobile), calling the new admin-only PATCH /api/users/:id/admin endpoint via a new toggleUserStatus() handler (mirrors the existing supplier toggleStatus()). Added a togglingUserIds Set to disable a row's button while its request is in flight, preventing double-click races; the button's label/color is derived solely from the server's returned user object, never flipped optimistically, so it can't drift out of sync with the account's real state.
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: handleLogout now calls the real POST /api/auth/logout through the gateway (confirmed already implemented and unauthenticated — it revokes the session via the refresh_token cookie already set at login) before clearing local session state, instead of only clearing client-side state. Added isLoggingOut state; both Log Out buttons (sidebar footer, mobile drawer) show a spinning RefreshCw icon and "Logging out…" label while the request is in flight, and are disabled to prevent double-clicks. Local state is always cleared in a finally block regardless of whether the network call succeeds, so a logout can't get stuck if the server is unreachable.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Mirrored the student app's "Remember me" + silent session-restore feature into the admin login gate. Added a "Keep me logged in" checkbox to the login form, sent as keepLoggedIn in the /api/auth/login request (selects the backend's 30-day persistent session window instead of the standard 1-day one). Added a silent session-restore effect on app load: calls POST /api/auth/refresh (browser auto-attaches the refresh_token cookie); on success it decodes the restored token's role and only auto-authenticates if it's ADMIN (falls through silently to the login page otherwise, matching how a non-admin password login is already handled), on failure it falls through to the login page. A brief spinner screen covers this check. handleLogout now also resets rememberMe and returns activeNav to its default ('suppliers').
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
+ * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
+ * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchUsers, supplier create/update/delete/toggle and toggleUserStatus now go through authFetch; getAuthHeaders removed. The public GET /api/suppliers is unchanged.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by yanhwee)
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Building2,
   Plus,
@@ -140,6 +160,9 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,7 +243,7 @@ export default function App() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword, keepLoggedIn: rememberMe }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -250,12 +273,29 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  // Drop the client-side session without touching the server. Used by Log Out and by authFetch
+  // when a refresh fails: that 401 may be a lost rotation race, and the cookie may by then belong
+  // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
+  const clearLocalSession = () => {
     setIsAuthenticated(false);
     setAuthToken('');
     setLoginEmail('');
     setLoginPassword('');
     setLoginError(null);
+    setRememberMe(false);
+    setActiveNav('suppliers');
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      // Network failure logging out server-side shouldn't block clearing the local session below.
+    } finally {
+      clearLocalSession();
+      setIsLoggingOut(false);
+    }
   };
 
   const fetchSuppliers = async () => {
@@ -348,12 +388,60 @@ export default function App() {
     fetchSuppliers();
   }, []);
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
+  // AI-generated (edited by Reallyeasy1)
+  // Get a new access token from the refresh_token cookie (the browser attaches it). Shared by the
+  // mount-time session restore and the 401 retry in authFetch. Concurrent callers share one in-flight
+  // request so a burst of 401s cannot race the server-side refresh-token rotation.
+  const refreshInFlight = useRef<Promise<string | null> | null>(null);
+  const refreshAccessToken = (): Promise<string | null> => {
+    if (!refreshInFlight.current) {
+      refreshInFlight.current = (async () => {
+        try {
+          const res = await fetch('/api/auth/refresh', { method: 'POST' });
+          const data = await res.json();
+          if (!res.ok || !data.success) return null;
+          const token: string = data.data.accessToken;
+          setAuthToken(token);
+          return token;
+        } catch {
+          // Network failure: treated the same as "no session to restore".
+          return null;
+        } finally {
+          refreshInFlight.current = null;
+        }
+      })();
     }
-    return headers;
+    return refreshInFlight.current;
+  };
+
+  // Silently try to restore a session from the refresh_token cookie on load, so a page
+  // refresh doesn't always force the admin back to the login page. A failure (e.g. 401) just
+  // means there's no valid session to restore, expected for a first visit or an expired cookie.
+  useEffect(() => {
+    refreshAccessToken()
+      .then((token) => {
+        // Non-admin restored session: fall through silently to the login page,
+        // same as a non-admin's password login today (no error, no auto-logout).
+        if (token && decodeJwtRole(token) === 'ADMIN') {
+          setCurrentRole('ADMIN');
+          setIsAuthenticated(true);
+        }
+      })
+      .finally(() => setIsCheckingSession(false));
+  }, []);
+
+  // Authenticated fetch: attaches the bearer token and, when the access token has expired
+  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
+  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
+  const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
+    const send = (token: string) =>
+      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+    const res = await send(authToken);
+    if (res.status !== 401) return res;
+    const token = await refreshAccessToken();
+    if (token) return send(token);
+    clearLocalSession();
+    return res;
   };
 
   // Fetch all users for the Users Directory (Admin-only), via the API Gateway
@@ -361,7 +449,7 @@ export default function App() {
     setIsLoadingUsers(true);
     setErrorUsers(null);
     try {
-      const res = await fetch('/api/users?limit=100', { headers: getAuthHeaders() });
+      const res = await authFetch('/api/users?limit=100');
       if (!res.ok) {
         throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
       }
@@ -407,9 +495,8 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const res = await fetch('/api/suppliers', {
+      const res = await authFetch('/api/suppliers', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify(newSupplier),
       });
       const data = await res.json();
@@ -473,9 +560,8 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const res = await fetch(`/api/suppliers/${editingSupplier.id}`, {
+      const res = await authFetch(`/api/suppliers/${editingSupplier.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
         body: JSON.stringify(editFormData),
       });
       const data = await res.json();
@@ -503,9 +589,8 @@ export default function App() {
     setActionAlert(null);
     try {
       const url = `/api/suppliers/${deletingSupplier.id}${isPermanentDelete ? '?permanent=true' : ''}`;
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -540,9 +625,8 @@ export default function App() {
   const toggleStatus = async (id: string) => {
     setActionAlert(null);
     try {
-      const res = await fetch(`/api/suppliers/${id}/toggle`, {
+      const res = await authFetch(`/api/suppliers/${id}/toggle`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -569,9 +653,8 @@ export default function App() {
     setTogglingUserIds((prev) => new Set(prev).add(userId));
     setActionAlert(null);
     try {
-      const res = await fetch(`/api/users/${userId}/admin`, {
+      const res = await authFetch(`/api/users/${userId}/admin`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -737,6 +820,14 @@ export default function App() {
     return { admins, students };
   }, [users]);
 
+  if (isCheckingSession) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-100">
+        <RefreshCw className="w-6 h-6 text-slate-600 animate-spin" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-100">
@@ -782,6 +873,17 @@ export default function App() {
               />
             </div>
           </div>
+
+          <label className="flex items-center space-x-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={isLoggingIn}
+              className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+            <span>Keep me logged in</span>
+          </label>
 
           <button
             type="submit"
@@ -871,10 +973,15 @@ export default function App() {
           </div>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Log Out</span>
+            {isLoggingOut ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5" />
+            )}
+            <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
           </button>
         </div>
       </aside>
@@ -983,10 +1090,15 @@ export default function App() {
             <div className="pt-2 border-t border-slate-800">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition"
+                disabled={isLoggingOut}
+                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
               >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log Out</span>
+                {isLoggingOut ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
               </button>
             </div>
           </div>
