@@ -999,3 +999,20 @@ Verified:
 - `.github/workflows/claude-pr-review.yml` — Linked-issues section in the prompt, `gh issue view` / `gh issue list` allowed, summary comment must include the section; disclosure header appended.
 - `CLAUDE.md` — section 6 linked-issue rule now describes the Claude review check instead of the deleted workflow; disclosure header appended.
 - `ai/usage-log.md` — this entry.
+
+## 2026-09-26 14:05 SGT — PR #89 review follow-up: refresh-and-retry on 401 in both apps
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** admin_dashboard (PR #89, jagdeepsh's branch)
+
+**Prompt (summarised):** Attend to the code review on PR #89, then merge it.
+
+**Usage scenario:** Implementation code on a teammate's branch, on Reallyeasy1's instruction. The automated review's one finding (Low, `apps/student-app/src/App.tsx:273`): the session restore ran only on mount, so a tab open longer than the 15-minute access-token lifetime lost every authenticated call until a reload; same gap in the admin portal. Verified the contract first in `services/user-service/src/auth/auth-routes.ts` (refresh returns `{ accessToken, accessTokenExpiresInSeconds }` and rotates the cookie) before changing the clients. Fix, identical in both apps: a `refreshAccessToken()` helper with one shared in-flight promise (concurrent 401s cannot race the refresh-token rotation, and the React StrictMode double mount now issues one refresh instead of two), and an `authFetch()` wrapper that attaches the bearer token, refreshes once and retries on 401, and logs out if the refresh also fails. Every `/api/users/*` and admin supplier write goes through it; `getAuthHeaders` deleted. The public `GET /api/suppliers` reads are untouched. Merged `origin/main` (post PR #90) into the branch first, no conflicts; that also drops the old `pr-linked-issue.yml` whose stale failing run was on the previous head. PR body gained a Linked issues section with `Refs #3` rather than `Closes #3`, because #3 stays open for the F1.2.5 gap per the author's 2026-09-23 status comment.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — `refreshAccessToken`, `authFetch`; `fetchProfile` and `handleUpdateProfile` use it; `getAuthHeaders` removed; `useRef` import; disclosure header.
+- `apps/admin-portal/src/App.tsx` — same helpers; `fetchUsers`, supplier create/update/delete/toggle and `toggleUserStatus` use `authFetch`; `getAuthHeaders` removed; `useRef` import; disclosure header.
+- `ai/usage-log.md` — this entry.
+
+Verified: `npm run typecheck` passes for `@campus-errand/student-app` and `@campus-errand/admin-portal` in a scratch worktree with a fresh `npm ci`. Not run: a live browser test of the expiry path (the Docker stack is not up on this machine), so the 401 → refresh → retry branch is verified by reading, not by execution.

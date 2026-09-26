@@ -73,10 +73,15 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
  * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
+ * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it logs out. fetchUsers, supplier create/update/delete/toggle and toggleUserStatus now go through authFetch; getAuthHeaders removed. The public GET /api/suppliers is unchanged.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by yanhwee)
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Building2,
   Plus,
@@ -376,40 +381,60 @@ export default function App() {
     fetchSuppliers();
   }, []);
 
-  // Silently try to restore a session from the refresh_token cookie on load, so a page
-  // refresh doesn't always force the admin back to the login page.
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const res = await fetch('/api/auth/refresh', { method: 'POST' });
-        const data = await res.json();
-        if (res.ok && data.success) {
+  // AI-generated (edited by Reallyeasy1)
+  // Get a new access token from the refresh_token cookie (the browser attaches it). Shared by the
+  // mount-time session restore and the 401 retry in authFetch. Concurrent callers share one in-flight
+  // request so a burst of 401s cannot race the server-side refresh-token rotation.
+  const refreshInFlight = useRef<Promise<string | null> | null>(null);
+  const refreshAccessToken = (): Promise<string | null> => {
+    if (!refreshInFlight.current) {
+      refreshInFlight.current = (async () => {
+        try {
+          const res = await fetch('/api/auth/refresh', { method: 'POST' });
+          const data = await res.json();
+          if (!res.ok || !data.success) return null;
           const token: string = data.data.accessToken;
-          if (decodeJwtRole(token) === 'ADMIN') {
-            setAuthToken(token);
-            setCurrentRole('ADMIN');
-            setIsAuthenticated(true);
-          }
-          // Non-admin restored session: fall through silently to the login page,
-          // same as a non-admin's password login today (no error, no auto-logout).
+          setAuthToken(token);
+          return token;
+        } catch {
+          // Network failure: treated the same as "no session to restore".
+          return null;
+        } finally {
+          refreshInFlight.current = null;
         }
-        // A failure here (e.g. 401) just means there's no valid session to restore —
-        // expected for a first-ever visit or an expired cookie, not an error to surface.
-      } catch (err) {
-        // Network failure — same silent fallback to the login page.
-      } finally {
-        setIsCheckingSession(false);
-      }
-    };
-    checkSession();
+      })();
+    }
+    return refreshInFlight.current;
+  };
+
+  // Silently try to restore a session from the refresh_token cookie on load, so a page
+  // refresh doesn't always force the admin back to the login page. A failure (e.g. 401) just
+  // means there's no valid session to restore, expected for a first visit or an expired cookie.
+  useEffect(() => {
+    refreshAccessToken()
+      .then((token) => {
+        // Non-admin restored session: fall through silently to the login page,
+        // same as a non-admin's password login today (no error, no auto-logout).
+        if (token && decodeJwtRole(token) === 'ADMIN') {
+          setCurrentRole('ADMIN');
+          setIsAuthenticated(true);
+        }
+      })
+      .finally(() => setIsCheckingSession(false));
   }, []);
 
-  const getAuthHeaders = (): Record<string, string> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
-    return headers;
+  // Authenticated fetch: attaches the bearer token and, when the access token has expired
+  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
+  // refresh fails too the session is gone, so log out instead of leaving a dead token in place.
+  const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
+    const send = (token: string) =>
+      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+    const res = await send(authToken);
+    if (res.status !== 401) return res;
+    const token = await refreshAccessToken();
+    if (token) return send(token);
+    await handleLogout();
+    return res;
   };
 
   // Fetch all users for the Users Directory (Admin-only), via the API Gateway
@@ -417,7 +442,7 @@ export default function App() {
     setIsLoadingUsers(true);
     setErrorUsers(null);
     try {
-      const res = await fetch('/api/users?limit=100', { headers: getAuthHeaders() });
+      const res = await authFetch('/api/users?limit=100');
       if (!res.ok) {
         throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
       }
@@ -463,9 +488,8 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const res = await fetch('/api/suppliers', {
+      const res = await authFetch('/api/suppliers', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify(newSupplier),
       });
       const data = await res.json();
@@ -529,9 +553,8 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const res = await fetch(`/api/suppliers/${editingSupplier.id}`, {
+      const res = await authFetch(`/api/suppliers/${editingSupplier.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
         body: JSON.stringify(editFormData),
       });
       const data = await res.json();
@@ -559,9 +582,8 @@ export default function App() {
     setActionAlert(null);
     try {
       const url = `/api/suppliers/${deletingSupplier.id}${isPermanentDelete ? '?permanent=true' : ''}`;
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -596,9 +618,8 @@ export default function App() {
   const toggleStatus = async (id: string) => {
     setActionAlert(null);
     try {
-      const res = await fetch(`/api/suppliers/${id}/toggle`, {
+      const res = await authFetch(`/api/suppliers/${id}/toggle`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -625,9 +646,8 @@ export default function App() {
     setTogglingUserIds((prev) => new Set(prev).add(userId));
     setActionAlert(null);
     try {
-      const res = await fetch(`/api/users/${userId}/admin`, {
+      const res = await authFetch(`/api/users/${userId}/admin`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.success) {
