@@ -1016,3 +1016,5 @@ Verified:
 - `ai/usage-log.md` — this entry.
 
 Verified: `npm run typecheck` passes for `@campus-errand/student-app` and `@campus-errand/admin-portal` in a scratch worktree with a fresh `npm ci`. Not run: a live browser test of the expiry path (the Docker stack is not up on this machine), so the 401 → refresh → retry branch is verified by reading, not by execution.
+
+Follow-up (same prompt): the review run on 744a5dd raised one Low finding, confirmed against `auth-module.ts` (a replayed refresh token is rejected without revoking the session, but `logout` revokes whatever cookie arrives): calling `handleLogout()` from the failed-refresh path could revoke another tab's freshly rotated session. Fixed in both apps by extracting `clearLocalSession()` from the logout handler's cleanup and calling that from `authFetch` instead of the server logout. Typecheck re-run, passes in both apps.

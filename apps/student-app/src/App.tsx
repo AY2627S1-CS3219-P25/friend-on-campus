@@ -50,7 +50,7 @@
  *
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
- * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it logs out. fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
+ * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by yanhwee)
@@ -309,7 +309,7 @@ export default function App() {
 
   // Authenticated fetch: attaches the bearer token and, when the access token has expired
   // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so log out instead of leaving a dead token in place.
+  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
     const send = (token: string) =>
       fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
@@ -317,7 +317,7 @@ export default function App() {
     if (res.status !== 401) return res;
     const token = await refreshAccessToken();
     if (token) return send(token);
-    await handleLogout();
+    clearLocalSession();
     return res;
   };
 
@@ -380,6 +380,20 @@ export default function App() {
     }
   };
 
+  // Drop the client-side session without touching the server. Used by Log Out and by authFetch
+  // when a refresh fails: that 401 may be a lost rotation race, and the cookie may by then belong
+  // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
+  const clearLocalSession = () => {
+    setIsAuthenticated(false);
+    setAuthToken('');
+    setLoginEmail('');
+    setLoginPassword('');
+    setLoginError(null);
+    setRememberMe(false);
+    setProfile(null);
+    setActiveTab('feed');
+  };
+
   // Log out: revoke the session server-side, then clear client-side auth state regardless of outcome.
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -388,14 +402,7 @@ export default function App() {
     } catch (err) {
       // Network failure logging out server-side shouldn't block clearing the local session below.
     } finally {
-      setIsAuthenticated(false);
-      setAuthToken('');
-      setLoginEmail('');
-      setLoginPassword('');
-      setLoginError(null);
-      setRememberMe(false);
-      setProfile(null);
-      setActiveTab('feed');
+      clearLocalSession();
       setIsLoggingOut(false);
     }
   };
