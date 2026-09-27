@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Tested fresh database initialization and persistent credit constraints from the migrations.
+ * Tool: Codex (model: GPT-6), date: 2026-09-27
+ * Scope: Tested fresh database initialization and persistent credit constraints from the single migration.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -21,9 +21,7 @@ async function main() {
   await client.query(`CREATE SCHEMA "${schema}"`);
   try {
     await client.query(`SET search_path TO "${schema}"`);
-    for (const name of ['20260924050000_existing_credit_tables', '20260924100000_credit_messaging']) {
-      await client.query(await readFile(join(migrations, name, 'migration.sql'), 'utf8'));
-    }
+    await client.query(await readFile(join(migrations, '20260924050000_init', 'migration.sql'), 'utf8'));
     const tables = ['credit_wallets', 'credit_transactions', 'credit_grants', 'credit_escrows', 'processed_credit_events'];
     const created = (await client.query('SELECT tablename FROM pg_tables WHERE schemaname=$1 ORDER BY tablename', [schema])).rows.map(row => row.tablename);
     assert.deepEqual(created, [...tables].sort());
@@ -44,7 +42,7 @@ async function main() {
     await client.query('INSERT INTO processed_credit_events (event_id, event_type, fingerprint) VALUES ($1,$2,$3)', [eventId, 'user.registered', 'a'.repeat(64)]);
     await assert.rejects(client.query('INSERT INTO processed_credit_events (event_id, event_type, fingerprint) VALUES ($1,$2,$3)', [eventId, 'user.registered', 'a'.repeat(64)]), { code: '23505' });
     await assert.rejects(client.query('INSERT INTO credit_wallets (user_id, available_credits) VALUES ($1,-1)', [userId]), { code: '23514' });
-    console.log('PASS: fresh migrations create five empty tables and enforce grant/event/order uniqueness, positive grants, valid escrow states and nonnegative balances');
+    console.log('PASS: the fresh migration creates five empty tables and enforces grant/event/order uniqueness, positive grants, valid escrow states and nonnegative balances');
   } finally {
     try {
       await client.query('ROLLBACK');

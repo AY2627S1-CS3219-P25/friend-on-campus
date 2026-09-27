@@ -1036,3 +1036,22 @@ Verified:
 - `.claude/agents/backend.md` — updated Credit Service authentication, HTTP, RabbitMQ and idempotency facts.
 - `docs/services/credit-service-integration-contract.md` — verified the current branch already identifies the RabbitMQ virtual host as `campus`; no further edit was needed.
 - `ai/usage-log.md` — recorded this review-driven correction.
+
+## 2026-09-27 17:29 SGT — Consolidate Credit Service database migration
+
+**Tool:** Codex (models: GPT-5, GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Review the unsafe legacy baseline path and, assuming a fresh deployment, consolidate Credit Service into one database migration.
+
+**Usage scenario:** Migration correction. Removed legacy baselining, combined the complete five-table schema into one fresh migration, and verified Docker's Prisma deployment path against a temporary test database.
+
+**Files changed:**
+- `services/credit-service/src/database/prisma/migrations/20260924050000_init/migration.sql` — creates all five Credit Service tables in one transaction.
+- `services/credit-service/src/database/prisma/migrations/20260924050000_existing_credit_tables/migration.sql` and `20260924100000_credit_messaging/migration.sql` — removed after consolidation.
+- `services/credit-service/tests/migration.integration.test.ts` — updated to validate the single migration.
+- `docs/services/credit-service.md` and `.claude/agents/backend.md` — documented fresh-database deployment and removed legacy baseline guidance.
+- `ai/usage-log.md` — updated this existing entry.
+
+**Verification:** Prisma reported one migration and deployed it successfully; the migration integration test, Credit Service typecheck, and `git diff --check` passed. Root typecheck remained blocked by unrelated stale User Service Prisma types.

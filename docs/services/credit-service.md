@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-5), date: 2026-09-25
-Scope: Documented broker-provisioned exchanges, legacy database baselining and current schema references.
+Tool: Codex (model: GPT-6), date: 2026-09-27
+Scope: Documented the single fresh-database Credit Service migration and current schema references.
 Author review: <to be completed by huangjiaxi1111>
 -->
 
@@ -28,34 +28,23 @@ npm run dev:credit
 
 If port 8004 is occupied, set `PORT=8014` for the local process. Compose parses the full project; if it requests JWT keys, use the existing repository key-generation setup. PostgreSQL and RabbitMQ must both be available before startup completes. A missing or malformed public key prevents startup before connections are opened. Credit Service requires only the public key, never `JWT_PRIVATE_KEY`.
 
-For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migrations and starts the consumer and HTTP server. Compose supplies PostgreSQL/RabbitMQ addresses and the shared JWT public key, issuer and audience. Docker startup runs `db:deploy` before starting Node. Fresh and already migrated databases need no volume reset; databases populated by the old Docker init SQL require the one-time migration baseline described below.
+For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migration and starts the consumer and HTTP server. Compose supplies PostgreSQL/RabbitMQ addresses and the shared JWT public key, issuer and audience. Docker startup runs `db:deploy` before starting Node. The migration expects a fresh `credit_db`.
 
 ## Fresh database initialization
 
-Start with an empty `credit_db` and run `db:deploy`. Both migrations run in order:
-
-1. `20260924050000_existing_credit_tables` creates wallets and ledger entries. Its existing filename is retained; it also initializes a fresh database.
-2. `20260924100000_credit_messaging` creates the grant, escrow and processed-event tables.
+Start with an empty `credit_db` and run `db:deploy`. The single `20260924050000_init` migration creates the complete Credit Service schema and all five tables.
 
 | Table | Purpose |
 |---|---|
+| `credit_wallets` | Current available, reserved and earned balances per user |
+| `credit_transactions` | Immutable credit ledger entries |
 | `credit_grants` | One immutable initial allocation amount per user |
 | `credit_escrows` | One requester/amount and lifecycle per order; `RESERVED`, `SETTLED` or `REFUNDED` |
 | `processed_credit_events` | Event ID, type and hash of the validated payload |
 
 All five tables start empty. Wallets, grants, escrows and ledger entries are created through normal application operations. There is no legacy-data backfill or reconciliation. This setup targets fresh databases rather than upgrading existing credit records.
 
-An older persistent volume may already contain `credit_wallets` and `credit_transactions` from the former Docker init SQL but have no `_prisma_migrations` table. Prisma stops with `P3005` before executing this migration; the migration's `IF NOT EXISTS` clauses do not bypass that check. For disposable local data, recreate the volume with `docker compose down -v` and then start the stack again. This deletes every database in that Compose volume.
-
-To retain an older `credit_db`, first verify that those two tables exactly match `20260924050000_existing_credit_tables/migration.sql`. Then, from `services/credit-service`, record only that migration as already applied and deploy the remaining migration:
-
-```bash
-npx prisma migrate resolve --schema src/database/prisma/schema.prisma \
-  --applied 20260924050000_existing_credit_tables
-npm run db:deploy
-```
-
-Do not baseline a database whose schema has not been verified; `migrate resolve` records migration history without repairing schema drift.
+Databases created with the former Docker init SQL or either earlier Credit Service migration layout are not supported by this fresh-start migration. For disposable local data, recreate the volume with `docker compose down -v` and then start the stack again. This deletes every database in that Compose volume. Retaining legacy data requires a separately designed and approved data migration.
 
 `src/database/schema.sql` is a non-deployment reference containing all five current tables. The Prisma schema and versioned migrations are authoritative for the running service.
 
