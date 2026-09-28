@@ -14,6 +14,17 @@
 # expanding to an empty string and crashing two containers; CORS_ORIGIN passed through to user-service.
 # Author review: <to be completed by ngkhengyang>
 
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
+# Scope: Added healthchecks to student-app, admin-portal, supplier-service, order-service, credit-service, and
+# notification-service, and switched api-gateway's depends_on conditions for all of them from service_started to
+# service_healthy. Previously nginx (api-gateway) could start and resolve its upstream hostnames to IP addresses
+# before those containers had actually finished starting, caching stale/wrong IPs for the rest of its lifetime
+# (only a full gateway restart re-resolved them) — service_started only waits for the container process to be
+# launched, not for it to actually be reachable. service_healthy makes the gateway wait for a real response from
+# each service first, so this race can no longer happen on a normal `docker compose down -v && up --build`.
+# Author review: (to be completed by author after review)
+
 services:
   # ----------------------------------------------------
   # Ingress API Gateway & Reverse Proxy (Nginx)
@@ -27,19 +38,19 @@ services:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       student-app:
-        condition: service_started
+        condition: service_healthy
       admin-portal:
-        condition: service_started
+        condition: service_healthy
       user-service:
         condition: service_healthy
       supplier-service:
-        condition: service_started
+        condition: service_healthy
       order-service:
-        condition: service_started
+        condition: service_healthy
       credit-service:
-        condition: service_started
+        condition: service_healthy
       notification-service:
-        condition: service_started
+        condition: service_healthy
 
   # ----------------------------------------------------
   # Frontend Applications (Vite + React)
@@ -53,6 +64,21 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_BASE_URL=/api
+      - SUPPLIER_SERVICE_URL=http://supplier-service:8002
+      - USER_SERVICE_URL=http://user-service:8001
+      - GATEWAY_URL=http://api-gateway:80
+      - NOTIFICATION_SERVICE_URL=ws://notification-service:8005
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:5173/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   admin-portal:
     build:
@@ -64,6 +90,17 @@ services:
     environment:
       - SUPPLIER_SERVICE_URL=http://supplier-service:8002
       - USER_SERVICE_URL=http://user-service:8001
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:5174/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   # ----------------------------------------------------
   # Backend Microservices (Node + tsx)
@@ -119,6 +156,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   order-service:
     build:
@@ -137,6 +185,17 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8003/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   credit-service:
     build:
@@ -154,6 +213,17 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8004/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   notification-service:
     build:
@@ -168,6 +238,17 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8005/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   # ----------------------------------------------------
   # Infrastructure: PostgreSQL & RabbitMQ

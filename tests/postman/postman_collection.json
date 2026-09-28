@@ -1,0 +1,2112 @@
+{
+  "info": {
+    "_postman_id": "campus-errand-user-supplier-api-tests",
+    "name": "Campus Errand - User & Supplier Service API Tests",
+    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 - Setup & Auth Lifecycle",
+      "item": [
+        {
+          "name": "1.1 Login as Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"keepLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Access token present', function () {",
+                  "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('adminAccessToken', jsonData.data.accessToken);",
+                  "pm.test('Role is ADMIN', function () {",
+                  "    pm.expect(jsonData.data.user.userRole).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 Logout (as Admin)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/logout",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 Login as Student (alice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"keepLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Access token present', function () {",
+                  "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('studentAccessToken', jsonData.data.accessToken);",
+                  "pm.test('Role is STUDENT', function () {",
+                  "    pm.expect(jsonData.data.user.userRole).to.eql('STUDENT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 Logout (as Student)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/logout",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 Refresh - No Valid Session (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/refresh",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"this-token-does-not-exist-and-the-cookie-was-just-cleared-by-logout\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_SESSION', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_SESSION');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 - User Service: Registration & Login",
+      "item": [
+        {
+          "name": "2.1 Register - Success (new test user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now();",
+                  "pm.environment.set('testUsername', 'pmtest_' + suffix);",
+                  "pm.environment.set('testEmail', 'pmtest_' + suffix + '@u.nus.edu');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('User id present', function () {",
+                  "    pm.expect(jsonData.data.user.userId).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testUserId', jsonData.data.user.userId);",
+                  "pm.test('Role is forced to STUDENT server-side (register never accepts a client-supplied role)', function () {",
+                  "    pm.expect(jsonData.data.user.userRole).to.eql('STUDENT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 Register - Duplicate Email (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dupe_email_test_{{$timestamp}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is DUPLICATE_EMAIL', function () {",
+                  "    pm.expect(jsonData.code).to.eql('DUPLICATE_EMAIL');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 Register - Duplicate Username (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"email\": \"unique_{{$timestamp}}@u.nus.edu\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is DUPLICATE_USERNAME', function () {",
+                  "    pm.expect(jsonData.code).to.eql('DUPLICATE_USERNAME');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 Register - Password Too Short (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"shortpw_{{$timestamp}}\",\n  \"email\": \"shortpw_{{$timestamp}}@u.nus.edu\",\n  \"password\": \"short1!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_INPUT', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_INPUT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 Register - Invalid Email Format (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"bademail_{{$timestamp}}\",\n  \"email\": \"not-an-email\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_INPUT', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_INPUT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.6 Login - Test User Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"keepLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Access token present', function () {",
+                  "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testUserAccessToken', jsonData.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.7 Login - Wrong Password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"TotallyWrongPassword999!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_CREDENTIALS', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_CREDENTIALS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.8 Login - Unknown Email (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"does-not-exist_{{$timestamp}}@u.nus.edu\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_CREDENTIALS', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_CREDENTIALS');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - User Service: Profile & Admin Management",
+      "item": [
+        {
+          "name": "3.1 GET /me - Success (test user)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Email matches the test user', function () {",
+                  "    pm.expect(jsonData.data.user.email).to.eql(pm.environment.get('testEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.2 GET /me - No Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.3 PATCH /me - Update Username Success",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testUsername}}_renamed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Username was updated', function () {",
+                  "    pm.expect(jsonData.data.user.username).to.eql(pm.environment.get('testUsername') + '_renamed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.4 PATCH /me - Forbidden Field (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"should-not-be-allowed@u.nus.edu\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_INPUT', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_INPUT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.5 PATCH /me - Duplicate Username (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is DUPLICATE_USERNAME', function () {",
+                  "    pm.expect(jsonData.code).to.eql('DUPLICATE_USERNAME');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.6 PUT /me/password - Success",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me/password",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{testPassword}}\",\n  \"newPassword\": \"NewPostmanTest456!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.environment.set('testPassword', 'NewPostmanTest456!');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.7 PUT /me/password - Wrong Current Password (401)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/me/password",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"DefinitelyNotTheCurrentPassword!\",\n  \"newPassword\": \"AnotherNewPassword789!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is INVALID_CURRENT_PASSWORD', function () {",
+                  "    pm.expect(jsonData.code).to.eql('INVALID_CURRENT_PASSWORD');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.8 GET /api/users (list) - Success (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Users array present', function () {",
+                  "    pm.expect(jsonData.data.users).to.be.a('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.9 GET /api/users (list) - Forbidden (Student)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is ADMIN_REQUIRED', function () {",
+                  "    pm.expect(jsonData.code).to.eql('ADMIN_REQUIRED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.10 GET /api/users (list) - No Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.11 PATCH /:id/admin - Deactivate Test User (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/admin",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "admin"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is now false (deactivated)', function () {",
+                  "    pm.expect(jsonData.data.user.status).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.12 PATCH /:id/admin - Forbidden (Student)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/admin",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "admin"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is ADMIN_REQUIRED', function () {",
+                  "    pm.expect(jsonData.code).to.eql('ADMIN_REQUIRED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.13 PATCH /:id/admin - Reactivate Test User (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/admin",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "admin"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is now true (reactivated)', function () {",
+                  "    pm.expect(jsonData.data.user.status).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.14 PATCH /:id/admin - Unknown UUID (404)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/00000000-0000-4000-8000-000000000000/admin",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "00000000-0000-4000-8000-000000000000",
+                "admin"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is USER_NOT_FOUND', function () {",
+                  "    pm.expect(jsonData.code).to.eql('USER_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.15 PATCH /:id/admin - Malformed UUID (500, documented quirk)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/not-a-uuid/admin",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "not-a-uuid",
+                "admin"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 500 (Prisma throws a raw error for a non-UUID id, not caught as USER_NOT_FOUND)', function () {",
+                  "    pm.response.to.have.status(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.16 POST /:id/promote - Admin (501 not implemented)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/promote",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "promote"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 501', function () {",
+                  "    pm.response.to.have.status(501);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is NOT_IMPLEMENTED', function () {",
+                  "    pm.expect(jsonData.code).to.eql('NOT_IMPLEMENTED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.17 POST /:id/promote - Forbidden (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/promote",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "promote"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is ADMIN_REQUIRED', function () {",
+                  "    pm.expect(jsonData.code).to.eql('ADMIN_REQUIRED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Supplier Service: Public Reads",
+      "item": [
+        {
+          "name": "4.1 GET /api/suppliers - Success (public, no auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Suppliers array present', function () {",
+                  "    pm.expect(jsonData.data.suppliers).to.be.a('array');",
+                  "});",
+                  "if (jsonData.data.suppliers.length > 0) {",
+                  "    pm.environment.set('seedSupplierId', jsonData.data.suppliers[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.2 GET /api/suppliers/:id - Success (public, no auth)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{seedSupplierId}}",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{seedSupplierId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Returned supplier id matches', function () {",
+                  "    pm.expect(jsonData.data.id).to.eql(pm.environment.get('seedSupplierId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4.3 GET /api/suppliers/:id - Unknown ID (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 - Supplier Service: Admin CRUD",
+      "item": [
+        {
+          "name": "5.1 POST /api/suppliers - Success (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Supplier id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testSupplierId', jsonData.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.2 POST /api/suppliers - Forbidden (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.3 POST /api/suppliers - No Token (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.4 POST /api/suppliers - Missing Required Fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Missing name/campusZone/exactLocation/category\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.5 PUT /api/suppliers/:id - Success (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated by the Postman test collection.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Description was updated', function () {",
+                  "    pm.expect(jsonData.data.description).to.eql('Updated by the Postman test collection.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.6 PUT /api/suppliers/:id - Forbidden (Student)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Should not be allowed.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.7 PATCH /api/suppliers/:id/toggle - Deactivate (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}/toggle",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}",
+                "toggle"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('isActive is now false', function () {",
+                  "    pm.expect(jsonData.data.isActive).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.8 PATCH /api/suppliers/:id/toggle - Forbidden (Student)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}/toggle",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}",
+                "toggle"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.9 PATCH /api/suppliers/:id/toggle - Reactivate (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}/toggle",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}",
+                "toggle"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('isActive is now true', function () {",
+                  "    pm.expect(jsonData.data.isActive).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.10 DELETE /api/suppliers/:id - Forbidden (Student)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.11 DELETE /api/suppliers/:id?permanent=true - Success (Admin, cleanup)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId}}?permanent=true",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId}}"
+              ],
+              "query": [
+                {
+                  "key": "permanent",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
