@@ -1228,3 +1228,22 @@ Address follow-up PR review findings on PR #95:
 - `npm run typecheck`: Passed with 0 errors across 9 workspaces.
 - `npm run test:d2`: Passed 51/51 tests.
 - Rebuilt containers and verified via curl: unauthenticated requests to `/api/users/me` receive clean JSON 401 responses, and invalid login attempts properly pass upstream 401 error payloads (`INVALID_CREDENTIALS`).
+
+## 2026-09-29 — PR #95 Review Hardening: Align token precedence to prefer Bearer header over session cookie
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+
+**Prompt (summarised):** Address review finding on PR #95 regarding credential precedence:
+1. Unified Credential Precedence: In `services/user-service/src/auth/auth-routes.ts`, update `/verify`, `/refresh`, and `/logout` to inspect `readBearerToken(req.header('authorization'))` before falling back to `readCookie(req, SESSION_COOKIE_NAME)`. This matches the shared middleware precedence in `packages/auth/src/index.ts`.
+2. Multi-App / Multi-Tab Session Isolation: Resolves credential collision when both `admin-portal` and `student-app` are active on the same origin (`http://localhost`), ensuring explicit client-sent Bearer tokens take precedence over ambient cookies.
+
+**Files changed:**
+- `services/user-service/src/auth/auth-routes.ts` — Updated `/verify`, `/refresh`, and `/logout` to prioritize Bearer token before cookie.
+- `ai/usage-log.md` — Appended this implementation log.
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 51/51 tests.
+- Verified in Docker via curl: when sending a request with an `admin` Bearer token and an `alice` (student) cookie simultaneously, `/api/users` correctly recognizes the admin identity (`200 OK`) and does not demote to student (`403 Forbidden`).
+

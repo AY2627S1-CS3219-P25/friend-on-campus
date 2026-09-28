@@ -94,8 +94,8 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
     '/verify',
     asyncRoute(async (req, res) => {
       const sessionToken =
-        readCookie(req, SESSION_COOKIE_NAME) ??
-        readBearerToken(req.header('authorization'));
+        readBearerToken(req.header('authorization')) ??
+        readCookie(req, SESSION_COOKIE_NAME);
 
       if (!sessionToken) {
         res.status(401).json({
@@ -183,8 +183,8 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
     '/refresh',
     asyncRoute(async (req, res) => {
       const sessionToken =
-        readCookie(req, SESSION_COOKIE_NAME) ??
         readBearerToken(req.header('authorization')) ??
+        readCookie(req, SESSION_COOKIE_NAME) ??
         req.body?.refreshToken ??
         readCookie(req, REFRESH_COOKIE_NAME);
       const result = await auth.refresh(sessionToken);
@@ -212,8 +212,8 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
     '/logout',
     asyncRoute(async (req, res) => {
       const token =
-        readCookie(req, SESSION_COOKIE_NAME) ??
         readBearerToken(req.header('authorization')) ??
+        readCookie(req, SESSION_COOKIE_NAME) ??
         readCookie(req, REFRESH_COOKIE_NAME) ??
         req.body?.refreshToken;
       if (token) {
