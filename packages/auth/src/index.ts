@@ -6,6 +6,7 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
+import { timingSafeEqual } from 'node:crypto';
 import { jwtVerify } from 'jose';
 import type { RequestHandler, Response } from 'express';
 import type { UserRole } from '@campus-errand/common-dtos';
@@ -82,6 +83,13 @@ export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler 
     throw new Error('GATEWAY_KEY must be configured and at least 16 characters');
   }
 
+  const expectedKeyBuffer = Buffer.from(expectedGatewayKey);
+  const isGatewayRequest = (key: string | undefined): boolean => {
+    if (!key) return false;
+    const actual = Buffer.from(key);
+    return actual.length === expectedKeyBuffer.length && timingSafeEqual(actual, expectedKeyBuffer);
+  };
+
   return async (req, res, next) => {
     // 1. Fast Path: NGINX Gateway Offloaded headers
     // Only trust identity headers when verified and forwarded by the API gateway
@@ -90,7 +98,7 @@ export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler 
     const gatewayUserRole = req.header('x-user-role') as UserRole | undefined;
 
     if (
-      gatewayKey === expectedGatewayKey &&
+      isGatewayRequest(gatewayKey) &&
       gatewayUserId &&
       (gatewayUserRole === 'STUDENT' || gatewayUserRole === 'ADMIN')
     ) {

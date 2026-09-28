@@ -48,6 +48,13 @@ http {
         listen 80;
         server_name localhost;
 
+        # Standardized JSON error response for gateway auth failures
+        error_page 401 = @auth_failed;
+        location @auth_failed {
+            default_type application/json;
+            return 401 '{"success":false,"error":"Authentication is required","code":"MISSING_TOKEN"}';
+        }
+
         # ----------------------------------------------------
         # Internal Auth Verification Subrequest (Gateway Offload)
         # ----------------------------------------------------

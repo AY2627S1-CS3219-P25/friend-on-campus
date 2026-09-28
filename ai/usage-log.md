@@ -1210,8 +1210,21 @@ Address follow-up PR review findings on PR #95:
 - `npm run test:d2`: Passed 51/51 tests.
 - Rebuilt and restarted `user-service` and `api-gateway` in Docker. Verified `curl` login, session cookie verification (`200 OK`), and spoofed header rejection (`401 Unauthorized`).
 
+## 2026-09-28 — PR #95 Review Hardening: Constant-time gateway key comparison and gateway 401 JSON error responses
 
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
 
+**Prompt (summarised):** Address two review findings on PR #95:
+1. Constant-time Gateway Key Comparison: In `packages/auth/src/index.ts`, replace `===` check for `x-gateway-key` with `crypto.timingSafeEqual` over buffers to prevent timing side-channel attacks against the internal identity-header bypass.
+2. Gateway JSON 401 Error Page: In `gateway/nginx.conf.template`, configure `error_page 401 = @auth_failed` mapping to a named location that returns `Content-Type: application/json` with `{ success: false, error: "Authentication is required", code: "MISSING_TOKEN" }`. This prevents NGINX from returning default HTML 401 pages when `auth_request` fails, ensuring frontend `res.json()` callers do not encounter JSON parse errors.
 
+**Files changed:**
+- `packages/auth/src/index.ts` — Implemented `isGatewayRequest` using `Buffer.from` and `timingSafeEqual`.
+- `gateway/nginx.conf.template` — Added `error_page 401 = @auth_failed;` and `@auth_failed` named location.
+- `ai/usage-log.md` — Appended this implementation log.
 
-
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 51/51 tests.
+- Rebuilt containers and verified via curl: unauthenticated requests to `/api/users/me` receive clean JSON 401 responses, and invalid login attempts properly pass upstream 401 error payloads (`INVALID_CREDENTIALS`).
