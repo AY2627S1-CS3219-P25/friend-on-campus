@@ -102,10 +102,10 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | Method & path | Auth | Result |
 |---|---|---|
 | `POST /api/auth/register` | none | Creates a `username`/`email`/`password` account; does not create a session. |
-| `POST /api/auth/login` | none | Returns access token and user; sets `session` cookie (Path=/) and `refresh_token` cookie (Path=/api/auth). |
-| `GET /api/auth/verify` | `session` cookie or Bearer | Gateway verification subrequest; returns `200` with `X-Auth-User-Id`, `X-Auth-User-Role`, and `X-Auth-User-Email` headers, or `401`. |
-| `POST /api/auth/refresh` | refresh/session cookie or body | Rotates refresh token and returns access token; refreshes `session` cookie. |
-| `POST /api/auth/logout` | refresh cookie or body | Revokes that refresh session and clears `session` and `refresh_token` cookies. |
+| `POST /api/auth/login` | none | Returns session token and user; sets `session` cookie (Path=/). |
+| `GET /api/auth/verify` | `session` cookie or Bearer | Gateway verification subrequest; returns `200` with `X-Auth-User-Id`, `X-Auth-User-Role`, `X-Auth-User-Email`, and `X-Auth-Session-Id` headers, or `401`. |
+| `POST /api/auth/refresh` | `session` cookie or body | Re-issues and extends stateless `session` cookie. |
+| `POST /api/auth/logout` | none | Clears `session` cookie. |
 | `GET /api/users/me` | Bearer token or Gateway header | Returns authenticated profile. |
 | `PATCH /api/users/me` | Bearer token or Gateway header | Updates username only; email is immutable. |
 | `PUT /api/users/me/password` | Bearer token or Gateway header | Verifies current password and changes password. |

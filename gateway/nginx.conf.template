@@ -74,6 +74,7 @@ http {
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
         }
 
         # Protected user endpoints (me, update, admin placeholders)
@@ -82,11 +83,13 @@ http {
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
             proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
 
             proxy_pass http://user_service_upstream/api/users/;
             proxy_set_header Host $host;
@@ -99,11 +102,13 @@ http {
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
             proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
 
             proxy_pass http://user_service_upstream/api/users;
             proxy_set_header Host $host;
@@ -123,6 +128,7 @@ http {
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
         }
 
         location /api/suppliers {
@@ -134,6 +140,7 @@ http {
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
         }
 
         # ----------------------------------------------------
@@ -144,11 +151,13 @@ http {
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
             proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
 
             proxy_pass http://order_service_upstream/api/orders/;
             proxy_set_header Host $host;
@@ -161,11 +170,13 @@ http {
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
             proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
 
             proxy_pass http://order_service_upstream/api/orders;
             proxy_set_header Host $host;
@@ -181,11 +192,13 @@ http {
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
             proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
 
             proxy_pass http://credit_service_upstream/api/credits/;
             proxy_set_header Host $host;
@@ -207,6 +220,7 @@ http {
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
             proxy_read_timeout 86400s;
             proxy_send_timeout 86400s;
         }
@@ -224,6 +238,7 @@ http {
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
         }
 
         # ----------------------------------------------------
@@ -239,6 +254,7 @@ http {
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
         }
     }
 }

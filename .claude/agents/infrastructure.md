@@ -1,6 +1,6 @@
 ---
 name: infrastructure
-description: Infrastructure workstream - Dockerfiles, docker-compose.yml, gateway/nginx.conf, .env.example, root npm scripts, .github CI files, and debugging of container startup, networking, proxy and environment problems (logs are noisy, so this keeps them out of the main session). Give it the symptom or the decided change.
+description: Infrastructure workstream - Dockerfiles, docker-compose.yml, gateway/nginx.conf.template, .env.example, root npm scripts, .github CI files, and debugging of container startup, networking, proxy and environment problems (logs are noisy, so this keeps them out of the main session). Give it the symptom or the decided change.
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
@@ -41,7 +41,7 @@ Directory, from your seat:
 
 ```
 docker-compose.yml                  gateway, student-app, admin-portal, 5 services, postgres:16-alpine, rabbitmq:3.13-management; volumes postgres_data, rabbitmq_data
-gateway/nginx.conf                  upstreams + location blocks for every public route
+gateway/nginx.conf.template         upstreams + location blocks (rendered by nginx:alpine envsubst entrypoint with NGINX_ENVSUBST_FILTER=GATEWAY_KEY)
 apps/*/Dockerfile, services/*/Dockerfile   node:20-alpine, workspace install, tsx / vite dev server
 docker/postgres-init/               init SQL (backend owns the table definitions; you own that it gets mounted and run)
 .env.example, .dockerignore, package.json (root scripts), tsconfig.base.json
@@ -56,7 +56,7 @@ Debugging and glue config are yours. Decisions are not: anything about CI beyond
 
 ## Your files
 
-`**/Dockerfile`, `docker-compose.yml`, `.dockerignore`, `gateway/nginx.conf`, `.env.example`, root `package.json` scripts, `.github/**`. Table definitions in `docker/postgres-init/*.sql` belong to `backend` (they must match the Prisma schemas). Do not edit service or app source — report what `backend` / `frontend` must change.
+`**/Dockerfile`, `docker-compose.yml`, `.dockerignore`, `gateway/nginx.conf.template`, `.env.example`, root `package.json` scripts, `.github/**`. Table definitions in `docker/postgres-init/*.sql` belong to `backend` (they must match the Prisma schemas). Do not edit service or app source — report what `backend` / `frontend` must change.
 
 ## Facts that save time
 

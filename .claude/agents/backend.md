@@ -52,7 +52,7 @@ You implement decisions; you do not make them. If the task text does not state t
 
 - You own database work too: a table is defined twice (raw SQL in `docker/postgres-init/01-init-databases.sql`, which Postgres runs only on first boot of an empty volume, and the service's `schema.prisma`). Apply a decided column change to **both**, add a migration where a `migrations/` folder exists, and report that `docker compose down -v` is needed (it wipes local data — never run it yourself).
 - Layout: `src/database/{client.ts, <name>Repository.ts, seed.ts, prisma/schema.prisma}`; routes call the repository, never Prisma directly; import the client from `../database/client`, never a root `@prisma/client`.
-- Use the shared `@campus-errand/auth` verifier for the author-approved Ed25519 cross-service access-token contract; keep its public-key, issuer, and audience configuration aligned with User Service.
+- Use the shared `@campus-errand/auth` verifier for gateway header offloading (`x-gateway-key`) and fallback symmetric session verification (`SESSION_SECRET`); keep its configuration aligned with User Service.
 - `packages/common-dtos` is the contract with every service and both apps; after touching it run typecheck across all workspaces and list the consumers affected.
 - Money-like state (credit): balance change + ledger row in one DB transaction; never write back a balance computed in JS from an earlier read; validate amounts as positive integers at the route.
 - Do not edit `apps/**`, Dockerfiles, compose or nginx — report what `frontend` / `infrastructure` must change.
@@ -62,7 +62,7 @@ You implement decisions; you do not make them. If the task text does not state t
 
 The detail is in `docs/services/<name>.md` — read the page for every service you touch before editing. In one line each (2026-09-21):
 
-- **user-service :8001** — real. It issues Ed25519 access tokens and opaque refresh sessions; access-token claims or verification settings affect downstream services.
+- **user-service :8001** — real. It issues stateless HMAC-SHA256 session tokens (HttpOnly cookie or Bearer) verified via gateway subrequest `/internal/auth/verify`; claims or verification settings affect downstream services.
 - **supplier-service :8002** — real. Entry is `src/backend/server.ts`. The only service with a Prisma `migrations/` folder.
 - **order-service :8003**, **credit-service :8004** — in-memory mocks that trust a client-supplied `x-user-id` header; their tables exist only in the init SQL. Do not carry the header-identity pattern into real code.
 - **notification-service :8005** — mock `ws` server that re-broadcasts to everyone; not connected to RabbitMQ.

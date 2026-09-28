@@ -1185,10 +1185,31 @@ Address follow-up PR review findings on PR #95:
 - `scripts/test-d2-e2e.ts` — Injected dynamic `GATEWAY_KEY` into test environment and offloaded header assertions.
 - `docs/services/user-service.md` & `docs/services/supplier-service.md` — Updated configuration tables.
 
+## 2026-09-28 — PR #95 Review Polish: Remove dead nginx.conf, repoint configs to template, X-Session-Id propagation, and doc alignment
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+
+**Prompt (summarised):** Address final automated PR review finding and documentation drift on PR #95:
+1. Dead File Cleanup: Remove stale `gateway/nginx.conf` (which contained hardcoded keys) now that Compose mounts `gateway/nginx.conf.template`.
+2. Repoint References: Update all pointers in `CLAUDE.md`, `.claude/agents/*.md`, and `docs/` to reference `gateway/nginx.conf.template` and note `envsubst` rendering.
+3. Propagate `X-Session-Id`: In `user-service/src/auth/auth-routes.ts`, set `X-Auth-Session-Id` header from `principal.sessionId` on `/verify`. In `gateway/nginx.conf.template`, capture `auth_request_set $auth_session_id $upstream_http_x_auth_session_id` and pass `proxy_set_header X-Session-Id $auth_session_id` on protected routes, while explicitly stripping `X-Session-Id ""` on public routes.
+4. Docs & Example Alignment: Update `services/user-service/.env.example` TTL defaults and add character guidance for keys (avoiding `"`, `\`, `$`). Resolve row 8 in `docs/requirements/conflicts.md` and clean up stale Ed25519 references in `README.md`, `docs/architecture/overview.md`, `.claude/agents/backend.md`, and `docs/services/user-service.md`.
+
+**Files changed:**
+- `gateway/nginx.conf` — Deleted stale file.
+- `gateway/nginx.conf.template` — Added `X-Session-Id` forwarding on protected routes and stripping on public routes.
+- `services/user-service/src/auth/auth-routes.ts` — Injected `X-Auth-Session-Id` header on `/api/auth/verify`.
+- `services/user-service/.env.example` & `.env.example` — Added key character guidance; aligned `SESSION_TTL=1d`.
+- `CLAUDE.md` & `.claude/agents/{infrastructure,frontend,reviewer,backend}.md` — Repointed config paths to `gateway/nginx.conf.template` and updated backend facts.
+- `README.md`, `docs/architecture/overview.md`, `docs/onboarding-guide-sep-3.md`, `docs/services/user-service.md`, `docs/requirements/conflicts.md` — Updated documentation, resolved conflict row 8, and replaced stale Ed25519 references.
+- `ai/usage-log.md` — Appended this implementation log.
+
 **Verification:**
 - `npm run typecheck`: Passed with 0 errors across 9 workspaces.
 - `npm run test:d2`: Passed 51/51 tests.
-- Verified Docker Compose container builds, healthy startup, and authenticated cookie subrequests via NGINX.
+- Rebuilt and restarted `user-service` and `api-gateway` in Docker. Verified `curl` login, session cookie verification (`200 OK`), and spoofed header rejection (`401 Unauthorized`).
+
 
 
 

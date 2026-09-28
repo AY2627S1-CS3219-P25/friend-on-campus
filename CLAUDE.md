@@ -113,7 +113,7 @@ services/notification-service  :8005  in-memory mock (ws)         single src/ind
 apps/student-app               :5173  one src/App.tsx (~730 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
-gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
+gateway/nginx.conf.template    :80    /api/* -> services, /ws/ -> notifications, /admin/, / (envsubst template)
 docker/postgres-init/*.sql            creates the 4 databases (tables managed per-service by migrations)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images

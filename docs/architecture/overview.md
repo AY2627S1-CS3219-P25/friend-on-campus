@@ -41,7 +41,7 @@ Friend of Campus / NUS CampusErrand is a peer-to-peer errand platform for NUS st
 ```
 
 - **Microservices, one database per service**, in an npm-workspaces monorepo. The four currently provisioned service databases live in one PostgreSQL 16 server as separate databases; cross-service user/supplier/order IDs are logical references, never foreign keys. [README; D2 plan §4, App. B; `docker-compose.yml`]
-- **Single entry point**: nginx on :80 routes `/api/auth`, `/api/users`, `/api/suppliers`, `/api/orders`, `/api/credits`, `/ws/`, `/admin/` and `/`. Services must also work when called directly with the UI stopped. [`gateway/nginx.conf`; D2 plan §5]
+- **Single entry point**: nginx on :80 routes `/api/auth`, `/api/users`, `/api/suppliers`, `/api/orders`, `/api/credits`, `/ws/`, `/admin/` and `/`. Services must also work when called directly with the UI stopped. [`gateway/nginx.conf.template`; D2 plan §5]
 - **Synchronous REST** between clients and services, and from order-service to credit-service for reservation (`CREDIT_SERVICE_URL`). An errand becomes `OPEN` only after the reservation is confirmed; a lost response is retried with the same operation ID rather than treated as failure. [`docker-compose.yml`; D2 plan App. D; D1 F3.1, F4.3]
 - **Asynchronous event choreography over RabbitMQ** for everything after that: order lifecycle events (`order.created`, `order.accepted`, `order.completed`, `order.cancelled`, `order.expired`, plus picked-up/delivered) carry order ID, user IDs and timestamp; credit-service settles or releases in response; notification-service turns them into WebSocket pushes. [D1 F3.5.5, F3.6.1, F4.6, F5, §5.4 "M6"]
 - **Idempotent credit operations**: duplicate requests or redelivered events must cause zero duplicate balance changes, including after a crash and recovery. [D1 F4.0, Credit N3.1.1]
@@ -58,14 +58,14 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 
 | Service | Owns (intended) | Built today |
 |---|---|---|
-| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable; deferred ADMIN user-management routes return `501`. No event is published. |
-| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. Reads are unauthenticated; no `version` column. |
+| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, stateless symmetric HMAC-SHA256 session cookies, and NGINX gateway authentication offloading (`auth_request`). Email is immutable; deferred ADMIN user-management routes return `501`. No event is published. |
+| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` gateway header offloading and fallback symmetric token verification for admin-only writes. Reads are unauthenticated; no `version` column. |
 | **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
 | **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Mock: in-memory wallet and ledger, same header identity. `credit_wallets` / `credit_transactions` exist in the init SQL only. |
 | **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
 | **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; fetches the live supplier directory (with a hardcoded fallback list) and opens `/ws/`; makes no calls to the order or credit APIs yet. |
 | **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login + full supplier CRUD against the real APIs. |
-| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Built as described; routing only. |
+| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf.template`] | Built as described; routing and auth offloading via envsubst template. |
 
 ## 4. Directory layout
 
@@ -82,7 +82,7 @@ nus-campus-errand/
 │   └── notification-service/   src/index.ts            (mock)
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile
 ├── packages/common-dtos/       src/index.ts — shared user/auth DTOs, OrderStatus, event types, ApiResponse<T>
-├── gateway/nginx.conf          ingress routing
+├── gateway/nginx.conf.template ingress routing template (rendered via envsubst)
 ├── docker/postgres-init/       01-init-databases.sql — creates the 4 databases (tables managed per-service by migrations)
 ├── docker-compose.yml          gateway, 2 apps, 5 services, postgres:16, rabbitmq:3.13-management
 ├── scripts/test-d2-e2e.ts      D2 end-to-end suite (npm run test:d2)

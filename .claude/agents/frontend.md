@@ -32,7 +32,7 @@ apps/student-app/    src/App.tsx (~730 lines, whole UI), src/main.tsx, src/index
 apps/admin-portal/   src/App.tsx (~1650 lines, whole UI), same shape; vite.config.ts proxy targets come from env vars
 packages/common-dtos/src/index.ts   the types you import (read-only for you)
 services/*/src/                     read the real routes here before calling an endpoint (read-only for you)
-gateway/nginx.conf                  /admin/ → admin-portal, / → student-app, /api/* → services, /ws/ → notifications (read-only for you)
+gateway/nginx.conf.template         /admin/ → admin-portal, / → student-app, /api/* → services, /ws/ → notifications (read-only for you)
 ```
 
 Screen intent lives in D1 §4 (wireframes, mobile and desktop) and the D2 plan §9; both are linked from `docs/requirements/README.md`.

@@ -33,7 +33,7 @@ services/*/src/              code under review; user- and supplier-service are r
 apps/*/src/App.tsx           UI under review
 packages/common-dtos/        the contract both sides must match
 docker/postgres-init/*.sql vs services/*/src/database/prisma/schema.prisma    duplicated table definitions to compare
-gateway/nginx.conf, apps/*/vite.config.ts, docker-compose.yml                 routing and env to compare against the code
+gateway/nginx.conf.template, apps/*/vite.config.ts, docker-compose.yml        routing and env to compare against the code
 docs/evidence/<milestone>/   where the author records results (you report; you do not edit docs)
 ai/usage-log.md              checked in AI-policy mode
 ```

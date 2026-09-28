@@ -69,7 +69,7 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 | Milestone | Scope & Deliverables | Status |
 | :--- | :--- | :---: |
 | **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
-| **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
+| **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Stateless HMAC-SHA256 session cookies, NGINX auth offloading, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
 | **D3** | **Order Service (M1) & Credit Service (M4)** (Escrow, State Machine) | ⏳ Upcoming |
 | **D4** | **Notification Service (M5)** (RabbitMQ event choreography & WebSockets) | ⏳ Upcoming |
 
@@ -140,10 +140,10 @@ npm run dev:admin       # Port 5174 (Admin Web Portal)
 ## 🧪 Testing & Verification
 
 ### Automated Milestone D2 End-to-End Suite
-Generates a test-only Ed25519 key pair and verifies account registration followed by
+Generates dynamic test session secrets and verifies account registration followed by
 separate login, immutable email, deferred administration authorization, supplier querying,
-and cross-service ADMIN RBAC enforcement. It requires PostgreSQL with the User and Supplier
-Service seed data present; it does not use the `.env` JWT key pair.
+gateway auth offloading, and cross-service ADMIN RBAC enforcement. It requires PostgreSQL with the User and Supplier
+Service seed data present; it does not rely on the `.env` configuration.
 
 ```bash
 npm run test:d2
@@ -185,7 +185,7 @@ friend-on-campus/
 ├── packages/
 │   └── common-dtos/             # Shared TypeScript schemas, DTOs & event types
 ├── scripts/
-│   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
+│   └── test-d2-e2e.ts           # Milestone D2 contract suite
 ├── data/
 │   └── csv/                     # NUS campus supplier seed datasets
 ├── docker/

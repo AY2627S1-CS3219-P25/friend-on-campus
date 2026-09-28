@@ -12,7 +12,7 @@
 3. [TypeScript & Configuration Demystified](#3-typescript--configuration-demystified)
 4. [Backend Stack: Node.js, Express & Plain `tsx`](#4-backend-stack-nodejs-express--plain-tsx)
 5. [Frontend Stack: Vite, React & Tailwind CSS](#5-frontend-stack-vite-react--tailwind-css)
-6. [Deep Dive: Nginx API Gateway & Configuration (`gateway/nginx.conf`)](#6-deep-dive-nginx-api-gateway--configuration-gatewaynginxconf)
+6. [Deep Dive: Nginx API Gateway & Configuration (`gateway/nginx.conf.template`)](#6-deep-dive-nginx-api-gateway--configuration-gatewaynginxconftemplate)
 7. [Deep Dive: PostgreSQL & Database-per-Service (`docker/postgres-init/01-init-databases.sql`)](#7-deep-dive-postgresql--database-per-service-dockerpostgres-init01-init-databasessql)
 8. [Comprehensive Deep Dive: Docker & Container Orchestration (`Dockerfile` & `docker-compose.yml`)](#8-comprehensive-deep-dive-docker--container-orchestration-dockerfile--docker-composeyml)
 9. [Event Bus: Asynchronous Choreography with RabbitMQ](#9-event-bus-asynchronous-choreography-with-rabbitmq)
@@ -195,7 +195,7 @@ We customized NUS official brand colors in [`apps/student-app/tailwind.config.js
 
 ---
 
-## 6. Deep Dive: Nginx API Gateway & Configuration (`gateway/nginx.conf`)
+## 6. Deep Dive: Nginx API Gateway & Configuration (`gateway/nginx.conf.template`)
 
 ### What is Nginx?
 **Nginx** (pronounced "Engine-X") is a high-performance web server, reverse proxy, and load balancer. In our architecture, it acts as the single security guard and traffic router standing between the outside world and our 5 microservices.
@@ -215,7 +215,7 @@ This creates 3 major problems:
 
 ---
 
-### Line-by-Line Breakdown of [`gateway/nginx.conf`](../gateway/nginx.conf)
+### Line-by-Line Breakdown of [`gateway/nginx.conf.template`](../gateway/nginx.conf.template)
 
 Let's understand every block in our Nginx config file:
 
@@ -512,7 +512,11 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./gateway/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+    environment:
+      - GATEWAY_KEY=${GATEWAY_KEY:?Set GATEWAY_KEY in .env}
+      - NGINX_ENVSUBST_FILTER=GATEWAY_KEY
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
     depends_on:
       - student-app
       - admin-portal
@@ -526,7 +530,7 @@ services:
 * **`image: nginx:alpine`**: Instead of writing a custom Dockerfile, we pull the official, ultra-lightweight Nginx image from Docker Hub.
 * **`container_name: campuserrand-gateway`**: Gives a human-readable name in `docker ps` instead of an auto-generated random hash.
 * **`ports: ["80:80"]`**: Maps port 80 on your Mac (`localhost`) to port 80 inside the container.
-* **`volumes: ./gateway/nginx.conf:...:ro`**: A **Bind Mount** that mounts our local configuration file into Nginx in read-only mode (`:ro`).
+* **`volumes: ./gateway/nginx.conf.template:...:ro`**: A **Bind Mount** that mounts our configuration template into `/etc/nginx/templates/`, where NGINX Alpine's `20-envsubst-on-templates.sh` dynamically renders `/etc/nginx/nginx.conf` substituting `${GATEWAY_KEY}`.
 * **`depends_on:`**: Lists all 7 downstream applications so Nginx doesn't start until they are launched.
 
 ---
@@ -659,7 +663,7 @@ volumes:
 | `docker compose down -v` | Stops containers **and deletes all database volumes** | When you want to completely wipe and reset database |
 | `docker compose ps` | Lists all containers and their health status | To verify if all services are `healthy` |
 | `docker compose logs -f order-service` | Follows live logs of a specific service | When debugging an API error |
-| `docker compose restart api-gateway` | Restarts only the gateway | After editing `gateway/nginx.conf` |
+| `docker compose restart api-gateway` | Restarts only the gateway | After editing `gateway/nginx.conf.template` |
 
 ---
 
