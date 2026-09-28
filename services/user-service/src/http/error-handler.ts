@@ -19,6 +19,14 @@
  * Scope: Mapped the new FORBIDDEN UserErrorCode (thrown by the DELETE /api/users/:id self-or-admin check) to 403.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Mapped the new SELF_ACTION_FORBIDDEN code (PATCH /:id/toggle-role rejecting an admin targeting their
+ * own id) to 403. Removed the NOT_IMPLEMENTED mapping — the route that used to throw it (the old /:id/promote
+ * stub) no longer exists.
+ * Author review: (to be completed by author after review)
+ */
 import { ErrorRequestHandler } from 'express';
 import { AuthError, AuthErrorCode } from '../auth/auth-module';
 import { logError } from '../utils/logger';
@@ -37,8 +45,8 @@ const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   DUPLICATE_USERNAME: 409,
   INVALID_CURRENT_PASSWORD: 401,
   USER_NOT_FOUND: 404,
-  NOT_IMPLEMENTED: 501,
   FORBIDDEN: 403,
+  SELF_ACTION_FORBIDDEN: 403,
 };
 
 interface HttpClientError {

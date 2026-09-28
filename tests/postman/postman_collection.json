@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "campus-errand-user-supplier-api-tests",
     "name": "Campus Errand - User & Supplier Service API Tests",
-    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch \u2014 user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)",
+    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch \u2014 user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 2):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: 3.11-3.15 renamed from PATCH /:id/admin to PATCH /:id/toggle-status (backend route renamed, same behavior). Replaced 3.16-3.17 (the old POST /:id/promote 501-stub requests) with 3.16-3.21, covering the newly-implemented PATCH /:id/toggle-role: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round trip on the test user. The trailing DELETE requests renumbered from 3.18-3.22 to 3.22-3.26 accordingly. 1.1 Login as Admin now also captures adminUserId, needed for the self-targeting test.\nAuthor review: (to be completed by author after review)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -57,6 +57,7 @@
                   "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
                   "});",
                   "pm.environment.set('adminAccessToken', jsonData.data.accessToken);",
+                  "pm.environment.set('adminUserId', jsonData.data.user.userId);",
                   "pm.test('Role is ADMIN', function () {",
                   "    pm.expect(jsonData.data.user.userRole).to.eql('ADMIN');",
                   "});"
@@ -1160,7 +1161,7 @@
           ]
         },
         {
-          "name": "3.11 PATCH /:id/admin - Deactivate Test User (Admin)",
+          "name": "3.11 PATCH /:id/toggle-status - Deactivate Test User (Admin)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1170,7 +1171,7 @@
               }
             ],
             "url": {
-              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/admin",
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-status",
               "host": [
                 "{{userServiceUrl}}"
               ],
@@ -1178,7 +1179,7 @@
                 "api",
                 "users",
                 "{{testUserId}}",
-                "admin"
+                "toggle-status"
               ]
             }
           },
@@ -1204,7 +1205,7 @@
           ]
         },
         {
-          "name": "3.12 PATCH /:id/admin - Forbidden (Student)",
+          "name": "3.12 PATCH /:id/toggle-status - Forbidden (Student)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1214,7 +1215,7 @@
               }
             ],
             "url": {
-              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/admin",
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-status",
               "host": [
                 "{{userServiceUrl}}"
               ],
@@ -1222,7 +1223,7 @@
                 "api",
                 "users",
                 "{{testUserId}}",
-                "admin"
+                "toggle-status"
               ]
             }
           },
@@ -1248,7 +1249,7 @@
           ]
         },
         {
-          "name": "3.13 PATCH /:id/admin - Reactivate Test User (Admin)",
+          "name": "3.13 PATCH /:id/toggle-status - Reactivate Test User (Admin)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1258,7 +1259,7 @@
               }
             ],
             "url": {
-              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/admin",
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-status",
               "host": [
                 "{{userServiceUrl}}"
               ],
@@ -1266,7 +1267,7 @@
                 "api",
                 "users",
                 "{{testUserId}}",
-                "admin"
+                "toggle-status"
               ]
             }
           },
@@ -1292,7 +1293,7 @@
           ]
         },
         {
-          "name": "3.14 PATCH /:id/admin - Unknown UUID (404)",
+          "name": "3.14 PATCH /:id/toggle-status - Unknown UUID (404)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1302,7 +1303,7 @@
               }
             ],
             "url": {
-              "raw": "{{userServiceUrl}}/api/users/00000000-0000-4000-8000-000000000000/admin",
+              "raw": "{{userServiceUrl}}/api/users/00000000-0000-4000-8000-000000000000/toggle-status",
               "host": [
                 "{{userServiceUrl}}"
               ],
@@ -1310,7 +1311,7 @@
                 "api",
                 "users",
                 "00000000-0000-4000-8000-000000000000",
-                "admin"
+                "toggle-status"
               ]
             }
           },
@@ -1336,7 +1337,7 @@
           ]
         },
         {
-          "name": "3.15 PATCH /:id/admin - Malformed UUID (500, documented quirk)",
+          "name": "3.15 PATCH /:id/toggle-status - Malformed UUID (500, documented quirk)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1346,7 +1347,7 @@
               }
             ],
             "url": {
-              "raw": "{{userServiceUrl}}/api/users/not-a-uuid/admin",
+              "raw": "{{userServiceUrl}}/api/users/not-a-uuid/toggle-status",
               "host": [
                 "{{userServiceUrl}}"
               ],
@@ -1354,7 +1355,7 @@
                 "api",
                 "users",
                 "not-a-uuid",
-                "admin"
+                "toggle-status"
               ]
             }
           },
@@ -1374,53 +1375,9 @@
           ]
         },
         {
-          "name": "3.16 POST /:id/promote - Admin (501 not implemented)",
+          "name": "3.16 PATCH /:id/toggle-role - Forbidden (Student)",
           "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminAccessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/promote",
-              "host": [
-                "{{userServiceUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "{{testUserId}}",
-                "promote"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 501', function () {",
-                  "    pm.response.to.have.status(501);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();",
-                  "",
-                  "pm.test('Error code is NOT_IMPLEMENTED', function () {",
-                  "    pm.expect(jsonData.code).to.eql('NOT_IMPLEMENTED');",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "3.17 POST /:id/promote - Forbidden (Student)",
-          "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [
               {
                 "key": "Authorization",
@@ -1428,7 +1385,7 @@
               }
             ],
             "url": {
-              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/promote",
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-role",
               "host": [
                 "{{userServiceUrl}}"
               ],
@@ -1436,7 +1393,7 @@
                 "api",
                 "users",
                 "{{testUserId}}",
-                "promote"
+                "toggle-role"
               ]
             }
           },
@@ -1462,7 +1419,222 @@
           ]
         },
         {
-          "name": "3.18 DELETE /:id - Forbidden (different student)",
+          "name": "3.17 PATCH /:id/toggle-role - No Token (401)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-role",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "toggle-role"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.18 PATCH /:id/toggle-role - Unknown UUID (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/00000000-0000-4000-8000-000000000000/toggle-role",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "00000000-0000-4000-8000-000000000000",
+                "toggle-role"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is USER_NOT_FOUND', function () {",
+                  "    pm.expect(jsonData.code).to.eql('USER_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.19 PATCH /:id/toggle-role - Self Forbidden (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{adminUserId}}/toggle-role",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{adminUserId}}",
+                "toggle-role"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is SELF_ACTION_FORBIDDEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('SELF_ACTION_FORBIDDEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.20 PATCH /:id/toggle-role - Promote Test User (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-role",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "toggle-role"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Role is now ADMIN', function () {",
+                  "    pm.expect(jsonData.data.user.userRole).to.eql('ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.21 PATCH /:id/toggle-role - Demote Test User Back (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}/toggle-role",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}",
+                "toggle-role"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Role is now STUDENT', function () {",
+                  "    pm.expect(jsonData.data.user.userRole).to.eql('STUDENT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.22 DELETE /:id - Forbidden (different student)",
           "request": {
             "method": "DELETE",
             "header": [
@@ -1505,7 +1677,7 @@
           ]
         },
         {
-          "name": "3.19 DELETE /:id - No Token (401)",
+          "name": "3.23 DELETE /:id - No Token (401)",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -1543,7 +1715,7 @@
           ]
         },
         {
-          "name": "3.20 DELETE /:id - Unknown UUID (Admin)",
+          "name": "3.24 DELETE /:id - Unknown UUID (Admin)",
           "request": {
             "method": "DELETE",
             "header": [
@@ -1586,7 +1758,7 @@
           ]
         },
         {
-          "name": "3.21 DELETE /:id - Success (Self)",
+          "name": "3.25 DELETE /:id - Success (Self)",
           "request": {
             "method": "DELETE",
             "header": [
@@ -1623,7 +1795,7 @@
           ]
         },
         {
-          "name": "3.22 DELETE /:id - Already Deleted (404)",
+          "name": "3.26 DELETE /:id - Already Deleted (404)",
           "request": {
             "method": "DELETE",
             "header": [

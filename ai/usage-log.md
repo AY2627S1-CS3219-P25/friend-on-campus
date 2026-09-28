@@ -1104,3 +1104,86 @@ Verified: `npm run typecheck` passes for both `@campus-errand/student-app` and `
 - `apps/admin-portal/src/App.tsx` — fixed a pre-existing mobile-nav parity gap found during exploration: the sub-768px hamburger drawer was missing the "Audit & Disputes" item present in the desktop sidebar, making that section unreachable on mobile. Added the missing nav button, matching the drawer's existing 3 siblings' style and click-handler pattern. No other change — the app's existing desktop-by-default + `md:`-gated mobile layout (sidebar/drawer, table/card-list) already matched the target design.
 
 Verified: `npm run typecheck` passes across all workspaces (re-run independently after both agents reported success). Not done: an in-browser visual check at the ~768px boundary and a full click-through of every tab/section at both breakpoints — no browser-automation tool was available in this session; this is the author's recommended next step before merging.
+
+## 2026-09-28 (later) — Rename /admin to /toggle-status; implement /toggle-role (promote/demote)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Two changes to user-service, scoped to user-service files plus admin-portal's caller: (1) rename `PATCH /api/users/:id/admin` to `.../toggle-status` (same behavior, clearer name — the old name implied it touched the ADMIN role, which it never did) and update admin-portal's `toggleUserStatus()` to call the new path; (2) implement the `POST /:id/promote` endpoint (previously a permanent 501 stub), renamed `PATCH /:id/toggle-role`: admin-only, flips a target user between STUDENT and ADMIN, an admin may not target their own id, and a non-admin cannot call it at all. Also asked me to check nothing else in the repo references the old `/admin` path.
+
+**Usage scenario:** Implementation of an author-specified design (allowed use) — the route names, the toggle semantics (promote/demote via one flip), and both authorization rules (admin-only, no self-targeting) were all given directly by the author. Investigated first: grepped the whole repo for the old `/admin` path and for `promote` — confirmed the only other references were `tests/postman/postman_collection.json` (5 requests) and `scripts/test-d2-e2e.ts` (asserts the old stub returns `501`), both explicitly out of the scope the author gave for this round; flagged both to the author as now-stale rather than silently leaving them or silently fixing them out of scope.
+
+**Files changed:**
+- `services/user-service/src/users/user-routes.ts` — renamed the route `PATCH /:id/admin` → `PATCH /:id/toggle-status` (handler unchanged). Replaced `POST /:id/promote` (the `notImplemented` 501 stub) with `PATCH /:id/toggle-role`: `requireAdmin`-gated, throws `UserError('SELF_ACTION_FORBIDDEN', ...)` if `req.params.id === authenticatedUserId(res)`, otherwise calls the new `toggleUserRole`. Removed the now-fully-dead `throwNotImplemented`/`notImplemented` helpers.
+- `services/user-service/src/users/user-module.ts` — added `toggleUserRole(targetUserId)` (same shape as `toggleUserStatus`: call the repository, throw `USER_NOT_FOUND` if nothing was found). Added `SELF_ACTION_FORBIDDEN` to `UserErrorCode`; removed `NOT_IMPLEMENTED` (nothing throws it anymore).
+- `services/user-service/src/persistence/user-repository.ts` — added `toggleRole(userId)`: find-then-flip-then-update, identical shape to `toggleStatus`, flipping `role` between `'ADMIN'` and `'STUDENT'` instead of `status`.
+- `services/user-service/src/http/error-handler.ts` — mapped `SELF_ACTION_FORBIDDEN` to 403; removed the now-unused `NOT_IMPLEMENTED: 501` mapping.
+- `apps/admin-portal/src/App.tsx` — `toggleUserStatus()` now calls `PATCH /api/users/${userId}/toggle-status` instead of `.../admin`. No other change; no new toggle-role UI was added, since the author's stated scope for the admin-portal side was specifically "call toggle status instead of admin."
+
+Verified: `npm run typecheck` passes for both `@campus-errand/user-service` and `@campus-errand/admin-portal`; rebuilt and restarted both containers. Live-tested every case with curl: the old `/admin` and `/promote` paths both now correctly 404 (no route matches); the renamed `/toggle-status` works identically to before; `/toggle-role` — a student gets `403 ADMIN_REQUIRED` even on their own id, an admin promotes a student to ADMIN (`200`, `userRole: "ADMIN"`) and can demote them straight back (`200`, `userRole: "STUDENT"`), an admin targeting their own id gets `403 SELF_ACTION_FORBIDDEN`, and no token gets `401 MISSING_TOKEN`. Confirmed admin-portal's served container source now references `toggle-status`, not `admin`.
+
+**Flagged to the author (not fixed, out of this round's scope):** `tests/postman/postman_collection.json` requests 3.11–3.17 and `scripts/test-d2-e2e.ts`'s two `/promote` assertions now reference dead paths / assert stale behavior and will fail if run as-is.
+
+## 2026-09-28 (later) — Update both test suites for /toggle-status and /toggle-role
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Update the Postman collection and `scripts/test-d2-e2e.ts` (asked what this script was — explained: a standalone `npm run test:d2` runner that spawns its own throwaway copies of user-service/supplier-service and fires real `fetch()` assertions at them, separate from the Postman collection, named after the course's "Milestone D2") to match the previous round's `/admin` → `/toggle-status` rename and the new `/toggle-role` endpoint, with proper edge-case coverage for all its error codes.
+
+**Usage scenario:** Implementation of an author-specified follow-up (allowed use) — the rename target and the endpoint's authorization rules were already established in the prior round; this round is test coverage for that existing design. One thing surfaced during investigation that went beyond the literal ask: `scripts/test-d2-e2e.ts`'s Scenario 4 had two assertions that were already stale *before* this change (`GET /api/users` asserted `501` when it's returned a real `200` for a while; a `GET /api/users/:id` check asserted `501` for a route that was never implemented at all, so it actually 404s). Fixing only the promote/toggle-role lines would have left `npm run test:d2` still failing in the same scenario for unrelated reasons, so I fixed the whole scenario coherently and flagged this explicitly rather than silently doing extra work.
+
+**Files changed:**
+- `tests/postman/postman_environment.json` — added `adminUserId`, captured by the "Login as Admin" request, needed to test an admin targeting their own id.
+- `tests/postman/postman_collection.json` — 3.11–3.15 renamed `PATCH /:id/admin` → `PATCH /:id/toggle-status` (URL and title; behavior/assertions unchanged). Replaced the two old `/:id/promote` 501-stub requests (3.16–3.17) with six new requests covering `/:id/toggle-role`: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round-trip on the test user (ending back at STUDENT). The trailing DELETE requests renumbered from 3.18–3.22 to 3.22–3.26. Folder 3 now has 26 requests (was 22).
+- `scripts/test-d2-e2e.ts` — rewrote Scenario 4 (renamed from "Deferred Administration Endpoint Authorization" to "User Listing, Status & Role Administration," since nothing there is deferred anymore): fixed the user-listing assertion to expect the real `200`/array response; removed the `GET /api/users/:id` check entirely (no such route exists); added forbidden-for-student checks on both `toggle-status` and `toggle-role`; added an admin round-tripping a target user's status (true→false→true) and role (STUDENT→ADMIN→STUDENT) with assertions on the actual returned value each time, not just the status code; added the admin-cannot-target-self check for `toggle-role` (`403 SELF_ACTION_FORBIDDEN`); added an unknown-UUID `404 USER_NOT_FOUND` check. Left the malformed-cookie `/api/auth/refresh` check at the end untouched.
+
+Verified: both JSON files re-parse as valid JSON; `npx tsc --noEmit` (using the repo's base compiler options) on the `.ts` script reports no errors. Ran both suites for real against the live stack: temporarily stopped the `user-service`/`supplier-service` containers (freeing ports 8001/8002, per this script's own documented requirement) and ran `npm run test:d2` — **55/55 assertions passed**, including every new/changed Scenario 4 check; restarted both containers afterward (same containers, `stop`/`start` not `recreate`, so no IP-cache risk from the gateway issue diagnosed earlier this session). Then ran the Postman collection for real via `postman collection run tests/postman/postman_collection.json -e tests/postman/postman_environment.json` — **53/53 requests, 96/96 assertions passed**, zero failures, including all six new 3.16–3.21 toggle-role requests individually confirmed.
+
+## 2026-09-29 — Upgrade/Downgrade role-toggle button for admin-portal Users page
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add an Upgrade/Downgrade button to each user row on the Users page, beside Disable — green "Upgrade" for a current student, red "Downgrade" for a current admin — calling the existing `PATCH /api/users/:id/toggle-role` (through the gateway to user-service). Clicking it opens a confirmation popup (same "are you sure" pattern as Delete: a required checkbox, then a colored confirm button showing a loading spinner while the call is in flight); on success the row's displayed role/button updates, on failure an error shows in a div box, including the case where an admin tries to downgrade themselves.
+
+**Usage scenario:** Implementation of an author-specified design (allowed use), reusing the already-implemented and already-verified `toggle-role` endpoint from an earlier round. One design call I flagged in the approved plan rather than assuming silently: unlike Delete (which the author explicitly asked to end in a dedicated success popup), this request only asked for the row's UI to update on success and an error box on failure — so the confirmation modal simply closes on success (row re-renders with its new role in place, same silent-update convention `toggleUserStatus` already uses) rather than showing a separate "Role Changed" popup; author can ask for one if they'd rather have it. The self-targeting case needed no new client-side logic — the backend's existing `SELF_ACTION_FORBIDDEN` error message ("Admins cannot change their own role") is displayed via the same inline error box used for every other failure.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `togglingRoleUser`/`toggleRoleConfirmed`/`isTogglingRole`/`toggleRoleError` state; `handleToggleUserRole()` calling `authFetch(\`/api/users/${togglingRoleUser.userId}/toggle-role\`, { method: 'PATCH' })`, updating the matching row in `users` from the server's returned user on success (no refetch, mirrors `toggleUserStatus`). Added the Upgrade/Downgrade row button (beside Disable/Reinstate, before the delete icon) in both the desktop table and mobile card, colored green/red by the row's current role. Added a confirmation modal modeled on the existing Delete User modal (same backdrop/card/checkbox/spinner shape, colored emerald for upgrade / rose for downgrade, using the already-imported `ShieldCheck` icon), with an inline error box that naturally surfaces the self-targeting rejection.
+
+Verified: `npm run typecheck --workspace=@campus-errand/admin-portal` passes; rebuilt and restarted the `admin-portal` container, confirmed healthy, and grepped its served source to confirm the new modal text ("Upgrade to Admin", "Downgrade to Student", the confirmation checkbox copy) is actually shipped. Live-tested the exact request/response shapes the new handler consumes with curl: an admin targeting their own id returns `{"error":"Admins cannot change their own role","code":"SELF_ACTION_FORBIDDEN"}` (403) — exactly the message the inline error box will show; promoting a real student returns `{"data":{"user":{...,"userRole":"ADMIN"}}}` (200) — exactly the shape the row-update logic reads. Not done: an in-browser click-through of the actual modal/button — no browser-automation tool was available in this session; that's the author's manual follow-up per the approved plan's verification section.
+
+## 2026-09-29 (later) — Client-side self-downgrade guard for the role toggle
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add the "admin cannot change their own role" check on the frontend too, ahead of the API call — so an admin targeting themselves sees the error instantly, with no wasted network round-trip, instead of relying solely on the backend's existing rejection.
+
+**Usage scenario:** Implementation of an author-specified optimization (allowed use) — a pure UX/efficiency addition; the actual authorization boundary remains the backend's existing `SELF_ACTION_FORBIDDEN` check, unchanged and untouched.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `decodeJwtUserId()` (reads the JWT's `sub` claim, same pattern as the existing `decodeJwtRole`) and a `currentAdminUserId` state, set from the access token at login and at session-restore, cleared on logout (in `clearLocalSession`). `handleToggleUserRole()` now checks `togglingRoleUser.userId === currentAdminUserId` first and, if true, sets the exact same error text the backend returns ("Admins cannot change their own role") without calling `authFetch` at all.
+
+Verified: `npm run typecheck --workspace=@campus-errand/admin-portal` passes; rebuilt and restarted the `admin-portal` container, confirmed healthy, grepped its served source to confirm `decodeJwtUserId`/`currentAdminUserId` are actually shipped. Confirmed live via curl + manual JWT decode that the token's `sub` claim exactly equals the login response's `user.userId` (the same identity the backend itself uses for its own self-check), so the client-side comparison is checking the right thing. Not done: an in-browser click-through confirming the instant (no-network-tab-activity) rejection — no browser-automation tool was available in this session.
+
+## 2026-09-29 (later) — Revert the client-side self-downgrade guard
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Undo just the previous prompt's client-side self-targeting check — go back to relying solely on the backend's existing `SELF_ACTION_FORBIDDEN` rejection, surfaced via the confirmation modal's error box. Keep everything else from the round before that (the Upgrade/Downgrade button, confirmation modal, and the `toggle-role` API call itself) exactly as it is.
+
+**Usage scenario:** Reverting a specific prior change on explicit author instruction (allowed use) — no new logic, a pure removal.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — removed `decodeJwtUserId()`, the `currentAdminUserId` state (including its three call sites: login, session-restore, `clearLocalSession`), and `handleToggleUserRole`'s early-return self-check. The handler now goes straight to `authFetch` exactly as it did in the round before the client-side guard was added; self-downgrade is caught only by the backend, same as every other error case in this modal.
+
+Verified: `npm run typecheck --workspace=@campus-errand/admin-portal` passes; rebuilt and restarted the `admin-portal` container, confirmed healthy; grepped the served source and confirmed `decodeJwtUserId`/`currentAdminUserId` no longer appear anywhere (0 matches), while the Upgrade/Downgrade feature's own text ("Upgrade to Admin", "Downgrade to Student") is still present and unaffected. Re-tested self-targeting `PATCH /api/users/:id/toggle-role` live with curl: still correctly returns `403 SELF_ACTION_FORBIDDEN` — behavior unchanged from the backend's perspective, only the now-removed client-side shortcut is gone.

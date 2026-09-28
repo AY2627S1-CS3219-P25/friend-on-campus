@@ -22,6 +22,18 @@
  * since "does the URL's :id match the caller's own id" is specific to this one route.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Renamed PATCH /:id/admin to PATCH /:id/toggle-status (same behavior — flips the status boolean —
+ * just a clearer name, since "/admin" read as if it changed the ADMIN role, which it never did). Replaced the
+ * POST /:id/promote 501 stub with a real PATCH /:id/toggle-role: admin-only (requireAdmin), flips the caller's
+ * target between STUDENT and ADMIN, and explicitly rejects an admin targeting their own id (UserError
+ * SELF_ACTION_FORBIDDEN) so an admin can never demote themselves. Removed the now-fully-dead
+ * throwNotImplemented/notImplemented helpers and the NOT_IMPLEMENTED error code, since nothing uses them
+ * anymore.
+ * Author review: (to be completed by author after review)
+ */
 import {
   NextFunction,
   Request,
@@ -104,19 +116,6 @@ export function createUserRouter(
     }),
   );
 
-  function throwNotImplemented(): never {
-    throw new UserError('NOT_IMPLEMENTED', 'User management is not implemented');
-  }
-
-  // AI-generated (edited by ngkhengyang)
-  const notImplemented = (_req: Request, res: Response) => {
-    res.status(501).json({
-      success: false,
-      error: 'User administration is not implemented yet',
-      code: 'NOT_IMPLEMENTED',
-    });
-  };
-
   router.get(
     '/',
     requireAdmin,
@@ -125,12 +124,22 @@ export function createUserRouter(
       res.json({ success: true, data: { users: allUsers } });
     }),
   );
-  router.post('/:id/promote', requireAdmin, notImplemented);
   router.patch(
-    '/:id/admin',
+    '/:id/toggle-status',
     requireAdmin,
     asyncRoute(async (req, res) => {
       const user = await users.toggleUserStatus(req.params.id);
+      res.json({ success: true, data: { user } });
+    }),
+  );
+  router.patch(
+    '/:id/toggle-role',
+    requireAdmin,
+    asyncRoute(async (req, res) => {
+      if (req.params.id === authenticatedUserId(res)) {
+        throw new UserError('SELF_ACTION_FORBIDDEN', 'Admins cannot change their own role');
+      }
+      const user = await users.toggleUserRole(req.params.id);
       res.json({ success: true, data: { user } });
     }),
   );

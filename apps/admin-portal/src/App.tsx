@@ -92,8 +92,50 @@
  *
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: toggleUserStatus() now calls PATCH /api/users/:id/toggle-status instead of the old .../admin path
+ * (backend route renamed to stop implying it changes the ADMIN role, which it never did — it only ever flips
+ * the status boolean).
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Fixed a mobile-nav parity bug — added the missing "Audit & Disputes" item to the sub-768px hamburger drawer nav so it matches the desktop sidebar's 4 sections.
  * Author review: [left for the human author to fill in]
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Added an Upgrade/Downgrade role-toggle button to each user row (desktop table + mobile card), right
+ * beside Disable/Reinstate — green "Upgrade" for a STUDENT, red "Downgrade" for an ADMIN. Opens a confirmation
+ * modal modeled on the existing Delete User modal (same backdrop/card/checkbox/spinner shape, colored per
+ * action) calling the existing PATCH /api/users/:id/toggle-role via authFetch. On success the row updates in
+ * place from the server's returned user (no popup, no refetch, same silent-update convention as
+ * toggleUserStatus); on failure the error shows inline in the still-open modal, which also naturally surfaces
+ * the backend's "Admins cannot change their own role" message if the admin targets their own row — no
+ * client-side self-id check needed, the backend already enforces and reports it.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Added a client-side self-targeting check to handleToggleUserRole, ahead of the previous round's
+ * backend-only enforcement — added a new decodeJwtUserId() helper (reads the JWT's `sub` claim, same pattern as
+ * the existing decodeJwtRole) and a currentAdminUserId state, set at login and on session-restore, cleared on
+ * logout. If the row being toggled matches the logged-in admin's own id, the exact same error message the
+ * backend would return ("Admins cannot change their own role") is shown instantly, with no API call made — a
+ * pure UX optimization to avoid a wasted round-trip for an action that was already guaranteed to fail; the
+ * backend's own SELF_ACTION_FORBIDDEN check remains the actual enforcement and is unchanged.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Reverted the client-side self-targeting check above (author-requested) — removed decodeJwtUserId(),
+ * currentAdminUserId state, and handleToggleUserRole's early-return short-circuit. Self-downgrade is once again
+ * caught only by the backend's SELF_ACTION_FORBIDDEN check, surfaced via the confirmation modal's existing
+ * inline error box exactly as it was before this round. Everything else from the previous round (the
+ * Upgrade/Downgrade button, confirmation modal, and handleToggleUserRole's API call itself) is unchanged.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -243,6 +285,12 @@ export default function App() {
   const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [deleteUserError, setDeleteUserError] = useState<string | null>(null);
   const [deletedUserSuccess, setDeletedUserSuccess] = useState<string | null>(null);
+
+  // Upgrade/Downgrade User Role Modal state
+  const [togglingRoleUser, setTogglingRoleUser] = useState<UserDTO | null>(null);
+  const [toggleRoleConfirmed, setToggleRoleConfirmed] = useState(false);
+  const [isTogglingRole, setIsTogglingRole] = useState(false);
+  const [toggleRoleError, setToggleRoleError] = useState<string | null>(null);
 
   const [searchQueryUsers, setSearchQueryUsers] = useState('');
   const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
@@ -671,12 +719,12 @@ export default function App() {
     }
   };
 
-  // 6. Toggle User Status (Admin-only, via PATCH /api/users/:id/admin)
+  // 6. Toggle User Status (Admin-only, via PATCH /api/users/:id/toggle-status)
   const toggleUserStatus = async (userId: string) => {
     setTogglingUserIds((prev) => new Set(prev).add(userId));
     setActionAlert(null);
     try {
-      const res = await authFetch(`/api/users/${userId}/admin`, {
+      const res = await authFetch(`/api/users/${userId}/toggle-status`, {
         method: 'PATCH',
       });
       const data = await res.json();
@@ -724,6 +772,29 @@ export default function App() {
       setDeleteUserError(err.message || 'Failed to delete user');
     } finally {
       setIsDeletingUser(false);
+    }
+  };
+
+  // 8. Upgrade/Downgrade User Role (Admin-only, via PATCH /api/users/:id/toggle-role)
+  const handleToggleUserRole = async () => {
+    if (!togglingRoleUser) return;
+    setIsTogglingRole(true);
+    setToggleRoleError(null);
+    try {
+      const res = await authFetch(`/api/users/${togglingRoleUser.userId}/toggle-role`, { method: 'PATCH' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updatedUser: UserDTO = data.data.user;
+        setUsers((prev) => prev.map((u) => (u.userId === updatedUser.userId ? updatedUser : u)));
+        setTogglingRoleUser(null);
+        setToggleRoleConfirmed(false);
+      } else {
+        setToggleRoleError(data.error || `HTTP ${res.status}: Failed to update user role`);
+      }
+    } catch (err: any) {
+      setToggleRoleError(err.message || 'Failed to update user role');
+    } finally {
+      setIsTogglingRole(false);
     }
   };
 
@@ -1661,6 +1732,18 @@ export default function App() {
                         </button>
                         <button
                           onClick={() => {
+                            setTogglingRoleUser(u);
+                            setToggleRoleConfirmed(false);
+                            setToggleRoleError(null);
+                          }}
+                          className={`text-xs font-bold px-2.5 py-1 rounded transition ${
+                            u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {u.userRole === 'ADMIN' ? 'Downgrade' : 'Upgrade'}
+                        </button>
+                        <button
+                          onClick={() => {
                             setDeletingUser(u);
                             setDeleteUserConfirmed(false);
                             setDeleteUserError(null);
@@ -1761,6 +1844,18 @@ export default function App() {
                             }`}
                           >
                             {togglingUserIds.has(u.userId) ? '...' : u.status ? 'Disable' : 'Reinstate'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTogglingRoleUser(u);
+                              setToggleRoleConfirmed(false);
+                              setToggleRoleError(null);
+                            }}
+                            className={`text-xs font-bold px-2.5 py-1 rounded transition ${
+                              u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {u.userRole === 'ADMIN' ? 'Downgrade' : 'Upgrade'}
                           </button>
                           <button
                             onClick={() => {
@@ -2560,6 +2655,105 @@ export default function App() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade/Downgrade User Role Confirmation Modal */}
+      {togglingRoleUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div
+              className={`flex items-center space-x-3 ${
+                togglingRoleUser.userRole === 'ADMIN' ? 'text-rose-600' : 'text-emerald-600'
+              }`}
+            >
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  togglingRoleUser.userRole === 'ADMIN' ? 'bg-rose-50' : 'bg-emerald-50'
+                }`}
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">
+                  {togglingRoleUser.userRole === 'ADMIN' ? 'Downgrade to Student' : 'Upgrade to Admin'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {togglingRoleUser.userRole === 'ADMIN'
+                    ? 'This account will lose Administrator access.'
+                    : 'This account will gain full Administrator access.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-900">{togglingRoleUser.username}</div>
+              <div className="text-slate-500">{togglingRoleUser.email}</div>
+            </div>
+
+            {toggleRoleError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
+                {toggleRoleError}
+              </div>
+            )}
+
+            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={toggleRoleConfirmed}
+                onChange={(e) => setToggleRoleConfirmed(e.target.checked)}
+                disabled={isTogglingRole}
+                className={`rounded mt-0.5 ${
+                  togglingRoleUser.userRole === 'ADMIN'
+                    ? 'text-rose-600 focus:ring-rose-500'
+                    : 'text-emerald-600 focus:ring-emerald-500'
+                }`}
+              />
+              <span>
+                Yes, I am sure I want to{' '}
+                {togglingRoleUser.userRole === 'ADMIN'
+                  ? 'downgrade this admin to a student'
+                  : 'upgrade this student to an admin'}
+                .
+              </span>
+            </label>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isTogglingRole}
+                onClick={() => {
+                  setTogglingRoleUser(null);
+                  setToggleRoleConfirmed(false);
+                  setToggleRoleError(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!toggleRoleConfirmed || isTogglingRole}
+                onClick={handleToggleUserRole}
+                className={`flex items-center justify-center space-x-2 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow ${
+                  togglingRoleUser.userRole === 'ADMIN'
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {isTogglingRole && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>
+                  {isTogglingRole
+                    ? togglingRoleUser.userRole === 'ADMIN'
+                      ? 'Downgrading…'
+                      : 'Upgrading…'
+                    : togglingRoleUser.userRole === 'ADMIN'
+                      ? 'Downgrade'
+                      : 'Upgrade'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

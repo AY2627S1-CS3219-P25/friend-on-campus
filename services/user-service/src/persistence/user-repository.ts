@@ -18,6 +18,13 @@
  * Scope: Added deleteById() for the new DELETE /api/users/:id endpoint (self-or-admin account deletion).
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added toggleRole() (flips STUDENT<->ADMIN) for the new PATCH /:id/toggle-role endpoint, same
+ * find-then-flip-then-update shape as toggleStatus.
+ * Author review: (to be completed by author after review)
+ */
 import { PrismaClient, User as PrismaUser } from '../database/generated/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
@@ -45,6 +52,7 @@ export interface UserRepository {
     newPasswordHash: string,
   ): Promise<boolean>;
   toggleStatus(userId: string): Promise<UserRecord | null>;
+  toggleRole(userId: string): Promise<UserRecord | null>;
   deleteById(userId: string): Promise<boolean>;
 }
 
@@ -102,6 +110,20 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
       const updated = await prisma.user.update({
         where: { id: userId },
         data: { status: !existing.status },
+      });
+
+      return toUserRecord(updated);
+    },
+
+    async toggleRole(userId) {
+      const existing = await prisma.user.findUnique({ where: { id: userId } });
+      if (!existing) {
+        return null;
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: { role: existing.role === 'ADMIN' ? 'STUDENT' : 'ADMIN' },
       });
 
       return toUserRecord(updated);
