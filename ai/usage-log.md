@@ -24,6 +24,12 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Appended the Stateless Session State with Symmetric Token Encoding and NGINX Gateway Offloading implementation record below.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Appended the Database-per-Service schema ownership and migration refactoring record below.
 Author review: (to be completed by author after review)
@@ -1018,3 +1024,93 @@ Verified:
 Verified: `npm run typecheck` passes for `@campus-errand/student-app` and `@campus-errand/admin-portal` in a scratch worktree with a fresh `npm ci`. Not run: a live browser test of the expiry path (the Docker stack is not up on this machine), so the 401 → refresh → retry branch is verified by reading, not by execution.
 
 Follow-up (same prompt): the review run on 744a5dd raised one Low finding, confirmed against `auth-module.ts` (a replayed refresh token is rejected without revoking the session, but `logout` revokes whatever cookie arrives): calling `handleLogout()` from the failed-refresh path could revoke another tab's freshly rotated session. Fixed in both apps by extracting `clearLocalSession()` from the logout handler's cleanup and calling that from `authFetch` instead of the server logout. Typecheck re-run, passes in both apps.
+
+## 2026-09-28 20:30 SGT — Stateless session state with symmetric token encoding & NGINX gateway offloading
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):**
+Transition authentication in User Service and the API gateway to use NGINX gateway authentication offloading (`auth_request`) with symmetric session encoding (`SESSION_SECRET`). Set up stateless session cookies on `Path=/`, add a `GET /api/auth/verify` endpoint in User Service, propagate authenticated user identity headers (`X-User-Id`, `X-User-Role`, `X-User-Email`) downstream from NGINX, and ensure `@campus-errand/auth` can accept gateway-forwarded headers while preserving direct token verification for local integration tests.
+
+**Usage scenario:** Architecture refactoring and security simplification (allowed use). The author chose symmetric HMAC-SHA256 (`SESSION_SECRET`) for single auth-service simplicity, eliminating the need to generate asymmetric Ed25519 keypairs for local docker runs, while offloading auth checks to NGINX via `auth_request`.
+
+**Files changed:**
+- `packages/auth/src/index.ts` — Updated `authMiddleware` to check for gateway offloaded headers (`X-User-Id`, `X-User-Role`), populate `res.locals.auth` without redundant crypto verification, and support symmetric HMAC-SHA256 (`HS256`) along with asymmetric EdDSA (`options.secretKey ?? process.env.SESSION_SECRET`). Also added cookie extraction for `session` cookie.
+- `services/user-service/src/config.ts` — Added `sessionSecret` resolution with fallback cascade (`SESSION_SECRET` -> `JWT_SECRET` -> `JWT_PRIVATE_KEY` -> default dev secret); made asymmetric Ed25519 keys optional.
+- `services/user-service/src/auth/tokens.ts` — Added symmetric HMAC-SHA256 (`HS256`) token generation and verification method (`verifyToken`), maintaining RFC 7519 standard claims (`sub`, `sid`, `role`, `email`, `iat`, `exp`, `iss`, `aud`).
+- `services/user-service/src/auth/auth-module.ts` — Added `verify(token)` method to `AuthModule` interface and included `email` claim when issuing access tokens.
+- `services/user-service/src/auth/auth-routes.ts` — Added `GET /api/auth/verify` endpoint for NGINX `auth_request` subrequests (setting `X-Auth-User-Id`, `X-Auth-User-Role`, `X-Auth-User-Email` response headers), set `session` cookie on `Path=/` (15m TTL) on login and refresh, and cleared `session` cookie on logout.
+- `services/user-service/src/users/user-routes.ts` — Restored `GET /api/users/:id` returning 501 Not Implemented placeholder.
+- `services/user-service/src/index.ts` — Passed `sessionSecret` into `createTokenManager` and `authMiddleware`.
+- `services/supplier-service/src/backend/server.ts` — Passed `process.env.SESSION_SECRET` to `authMiddleware`.
+- `gateway/nginx.conf` — Added `/internal/auth/verify` location with `internal; proxy_pass http://user_service_upstream/api/auth/verify;` and configured `auth_request` on protected routes (`/api/users/`, `/api/orders/`, `/api/credits/`), setting `X-User-Id`, `X-User-Role`, `X-User-Email` headers downstream.
+- `docker-compose.yml` & `.env.example` — Added default `SESSION_SECRET` and removed blocking missing-key validation so containers start out-of-the-box.
+- `scripts/test-d2-e2e.ts` — Added `SESSION_SECRET` to test environment, added test assertions verifying `GET /api/auth/verify` and downstream header offloading, and updated `supplierProcess` environment.
+- `docs/services/user-service.md` — Updated configuration table, API table, and session architecture documentation.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- Executed `npm run typecheck`: Passed across all 9 workspaces with zero errors.
+- Executed `npm run test:d2`: 50/50 tests passed (100% pass rate across all 6 scenarios).
+
+## 2026-09-28 20:45 SGT — Full purge of legacy asymmetric Ed25519 authentication
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):**
+Perform a full purge of the old asymmetric Ed25519 authentication mechanism across the repository: remove `scripts/generate-jwt-keys.mjs` and its npm script, eliminate Ed25519 key reading and verification logic from `@campus-errand/auth` and `user-service`, remove `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` references from configuration files and documentation, and align all services strictly around symmetric `SESSION_SECRET` and NGINX gateway authentication offloading.
+
+**Usage scenario:** Codebase simplification and dead code removal (allowed use). The author approved completely removing the legacy asymmetric signing pathways in favor of the single symmetric session secret architecture.
+
+**Files changed / removed:**
+- `scripts/generate-jwt-keys.mjs` — Deleted obsolete key generation script.
+- `package.json` — Removed `generate:jwt-keys` npm script.
+- `packages/auth/src/index.ts` — Purged Ed25519 public key parsing, asymmetric verification imports (`createPublicKey`, `verify`), and simplified `authMiddleware` to symmetric HMAC-SHA256 (`HS256`) and gateway header verification.
+- `services/user-service/src/config.ts` — Removed `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` configuration variables and helper functions.
+- `services/user-service/src/auth/tokens.ts` — Purged Ed25519 signing (`sign`) and verification; simplified `TokenManager` to pure symmetric `HS256` token issuance.
+- `services/user-service/src/index.ts` — Removed asymmetric key wiring to `createTokenManager` and `authMiddleware`.
+- `services/user-service/.env.example` — Replaced `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` with `SESSION_SECRET`.
+- `services/supplier-service/src/backend/server.ts` — Removed `JWT_PUBLIC_KEY` parameter from `authMiddleware`.
+- `docker-compose.yml` & `.env.example` & `.env` — Removed `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` environment definitions.
+- `scripts/test-d2-e2e.ts` — Removed `generateKeyPairSync('ed25519')` and asymmetric key passing in test environment.
+- `docs/services/supplier-service.md`, `docs/services/user-service.md`, `services/user-service/docs/auth-setup.md`, `services/user-service/docs/authentication-for-services.md` — Updated documentation to remove all references to Ed25519 keys and reflect the pure symmetric session secret architecture.
+- `CLAUDE.md` & `.claude/agents/infrastructure.md` — Updated team guide and infrastructure agent instructions.
+- `ai/usage-log.md` — Appended this purge log entry.
+
+**Verification:**
+- Executed `npm run typecheck`: Passed across all 9 workspaces with zero errors.
+- Executed `npm run test:d2`: 50/50 tests passed (100% pass rate).
+- Verified zero remaining references to asymmetric keys in active code via `git grep`.
+
+## 2026-09-28 21:30 SGT — Transition to True Single Stateless Session Cookie Architecture
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):**
+Transition authentication from the dual-token hybrid model (`session` 15-min cookie + `refresh_token` cookie backed by database `sessions` table) to a true single stateless session cookie (`session`), eliminating the `refresh_token` cookie and stopping writes/queries to the PostgreSQL `sessions` table. Set default session TTL to 24 hours (`1d`, configurable via `SESSION_TTL`), supporting 30 days for persistent logins.
+
+**Usage scenario:** Authentication architecture simplification and stateless refactoring (allowed use). The author approved eliminating database-backed refresh tokens in favor of a single stateless session cookie validated via the NGINX gateway.
+
+**Files changed:**
+- `services/user-service/src/config.ts` — Updated default session TTL from 15m to 24 hours (`1d`) via `SESSION_TTL` / `JWT_ACCESS_TOKEN_TTL`.
+- `services/user-service/src/auth/tokens.ts` — Updated `issueAccessToken` to accept an optional `lifetimeSeconds` parameter.
+- `services/user-service/src/auth/auth-module.ts` — Refactored `login()`, `refresh()`, and `logout()` to be 100% stateless; eliminated calls to `createSession()`, `rotateSession()`, and `revokeSession()`; session validity is verified in-memory.
+- `services/user-service/src/persistence/auth-repository.ts` — Added `findById(id)` method for stateless user active-status verification.
+- `services/user-service/src/auth/auth-routes.ts` — Updated `/login` and `/refresh` routes to issue only the `session` cookie (`Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`) and clear legacy `refresh_token` cookies.
+- `docker-compose.yml`, `.env`, `.env.example` — Added `SESSION_TTL=1d` and updated defaults.
+- `PR.md` — Updated pull request description and changelog.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- Executed `npm run typecheck`: Passed across all 9 workspaces with zero errors.
+- Executed `npm run test:d2`: 50/50 tests passed (100% pass rate across all 6 scenarios).
+- Rebuilt Docker container `campuserrand-user-service` and tested live login, gateway authentication, session refresh, and logout via `curl`.
+- Verified that database `sessions` table row count remained unchanged (0 writes) during logins.
+
+

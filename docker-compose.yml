@@ -1,4 +1,10 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-09-28
+# Scope: Configured SESSION_SECRET for user-service and supplier-service enabling symmetric stateless session cookies and gateway authentication offloading.
+# Author review: (to be completed by author after review)
+# AI-generated (edited by yanhwee)
+
+# AI Assistance Disclosure:
 # Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 # Scope: Consolidated User Service onto the shared PostgreSQL Compose deployment.
 # Author review: <to be completed by ngkhengyang>
@@ -79,11 +85,11 @@ services:
     environment:
       PORT: 8001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/user_db
-      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
-      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-campuserrand-session-secret-key-32-chars-minimum}
       JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-friend-on-campus-services}
-      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-15m}
+      SESSION_TTL: ${SESSION_TTL:-1d}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL:-1d}
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
       JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
@@ -112,8 +118,8 @@ services:
     environment:
       - PORT=8002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/supplier_db
-      # AI-generated (edited by ngkhengyang)
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      # AI-generated (edited by yanhwee)
+      - SESSION_SECRET=${SESSION_SECRET:-dev-campuserrand-session-secret-key-32-chars-minimum}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:

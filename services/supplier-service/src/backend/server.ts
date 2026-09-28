@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Purged asymmetric JWT_PUBLIC_KEY; configured Supplier Service auth middleware to use SESSION_SECRET and gateway header offloading.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
  * Scope: Generated Express server entry point that mounts the supplier routes (replaces src/index.ts).
  * Author review: (to be completed by author after review)
@@ -20,20 +27,10 @@ import { createSupplierRouter } from './supplierRoutes';
 
 dotenv.config();
 
-// AI-generated (edited by ngkhengyang)
-function requiredEnvironmentVariable(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} must be configured`);
-  }
-
-  return value;
-}
-
 const app = express();
 const PORT = process.env.PORT || 8002;
 const authenticateToken = authMiddleware({
-  publicKey: requiredEnvironmentVariable('JWT_PUBLIC_KEY'),
+  secretKey: process.env.SESSION_SECRET,
   issuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',
   audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
 });

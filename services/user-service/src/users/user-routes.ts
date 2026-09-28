@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Restored GET /api/users/:id endpoint returning structured 501 Not Implemented response.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented authenticated profile routes and structured 501 ADMIN user-management placeholders for the User Service.
  * Author review: <to be completed by ngkhengyang>
@@ -96,7 +103,12 @@ export function createUserRouter(
       res.json({ success: true, data: { users: allUsers } });
     }),
   );
-  router.post('/:id/promote', requireAdmin, notImplemented);
+  router.get('/:id', requireAdmin, (_req, _res) => {
+    throwNotImplemented();
+  });
+  router.post('/:id/promote', requireAdmin, (_req, _res) => {
+    throwNotImplemented();
+  });
   router.patch(
     '/:id/admin',
     requireAdmin,

@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Configured sessionSecret for createTokenManager and authMiddleware to enable symmetric session token issuance and verification.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented User Service startup, dependency wiring, middleware initialization, and route registration.
  * Author review: <to be completed by ngkhengyang>
@@ -27,7 +34,7 @@ const database = createDatabase(prisma);
 const repository = createAuthRepository(prisma);
 const userRepository = createUserRepository(prisma);
 const tokens = createTokenManager({
-  accessTokenPrivateKey: config.accessTokenPrivateKey,
+  sessionSecret: config.sessionSecret,
   accessTokenLifetimeSeconds: config.accessTokenLifetimeSeconds,
   accessTokenIssuer: config.accessTokenIssuer,
   accessTokenAudience: config.accessTokenAudience,
@@ -42,7 +49,7 @@ const auth = createAuthModule({
 });
 const users = createUserModule({ repository: userRepository });
 const requireAuthentication = authMiddleware({
-  publicKey: config.accessTokenPublicKey,
+  secretKey: config.sessionSecret,
   issuer: config.accessTokenIssuer,
   audience: config.accessTokenAudience,
 });

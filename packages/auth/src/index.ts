@@ -1,18 +1,14 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Switched access-token verification to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud)
- * and made this package consume the shared JWTPayload type from common-dtos instead of a local duplicate. The
- * verification logic (Ed25519 signature, header, issuer/audience, expiry, clock skew) is unchanged from the PR author's version.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Fully purged asymmetric Ed25519 authentication. Simplified shared middleware to use symmetric HMAC-SHA256 (HS256)
+ * session verification and NGINX gateway header offloading.
+ * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by ngkhengyang)
-import { createPublicKey, verify } from 'node:crypto';
-import type { KeyObject } from 'node:crypto';
+// AI-generated (edited by yanhwee)
+import { createHmac } from 'node:crypto';
 import type { RequestHandler, Response } from 'express';
 import type { JWTPayload, UserRole } from '@campus-errand/common-dtos';
-
-const JWT_HEADER = Object.freeze({ alg: 'EdDSA', typ: 'JWT' });
 
 export type { UserRole };
 
@@ -20,12 +16,13 @@ export interface AuthenticatedPrincipal {
   userId: string;
   sessionId: string;
   role: UserRole;
+  email?: string;
 }
 
 export interface AuthMiddlewareOptions {
-  publicKey: string;
-  issuer: string;
-  audience: string;
+  secretKey?: string;
+  issuer?: string;
+  audience?: string;
 }
 
 type AuthenticationErrorCode =
@@ -63,27 +60,13 @@ function isJwtPayload(value: unknown): value is JWTPayload {
   );
 }
 
-function readPublicKey(encodedKey: string): KeyObject {
-  if (encodedKey.length !== 59 || !/^[A-Za-z0-9_-]+$/.test(encodedKey)) {
-    throw new Error('JWT public key must be a 59-character Base64URL string');
-  }
-
-  const key = createPublicKey({
-    key: Buffer.from(encodedKey, 'base64url'),
-    format: 'der',
-    type: 'spki',
-  });
-  if (key.asymmetricKeyType !== 'ed25519') {
-    throw new Error('JWT public key must be an Ed25519 key');
-  }
-
-  return key;
-}
-
 function verifyAccessToken(
   accessToken: string,
-  publicKey: KeyObject,
-  options: AuthMiddlewareOptions,
+  options: {
+    secretKey: string;
+    issuer: string;
+    audience: string;
+  },
 ): AuthenticatedPrincipal {
   try {
     const parts = accessToken.split('.');
@@ -93,13 +76,15 @@ function verifyAccessToken(
 
     const [headerPart, claimsPart, signaturePart] = parts;
     const header = parseJsonPart<{ alg?: string; typ?: string }>(headerPart);
-    if (header.alg !== JWT_HEADER.alg || header.typ !== JWT_HEADER.typ) {
+    if (header.typ !== 'JWT' || header.alg !== 'HS256') {
       throw new AuthenticationError('INVALID_TOKEN');
     }
 
     const unsignedToken = `${headerPart}.${claimsPart}`;
-    const signature = Buffer.from(signaturePart, 'base64url');
-    if (!verify(null, Buffer.from(unsignedToken), publicKey, signature)) {
+    const expectedSig = createHmac('sha256', options.secretKey)
+      .update(unsignedToken)
+      .digest('base64url');
+    if (signaturePart !== expectedSig) {
       throw new AuthenticationError('INVALID_TOKEN');
     }
 
@@ -124,6 +109,7 @@ function verifyAccessToken(
       userId: claims.sub,
       sessionId: claims.sid,
       role: claims.role,
+      email: (claims as Record<string, any>).email,
     };
   } catch (error) {
     if (error instanceof AuthenticationError) {
@@ -147,18 +133,69 @@ function readBearerToken(authorization: string | undefined): string | undefined 
   return authorization?.match(/^Bearer\s+(\S+)$/i)?.[1];
 }
 
-export function authMiddleware(options: AuthMiddlewareOptions): RequestHandler {
-  const publicKey = readPublicKey(options.publicKey);
+function readCookie(req: { headers: { cookie?: string } }, name: string): string | undefined {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) {
+    return undefined;
+  }
+
+  for (const cookie of cookieHeader.split(';')) {
+    const separatorIndex = cookie.indexOf('=');
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const cookieName = cookie.slice(0, separatorIndex).trim();
+    if (cookieName === name) {
+      try {
+        return decodeURIComponent(cookie.slice(separatorIndex + 1).trim());
+      } catch {
+        return undefined;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler {
+  const issuer = options?.issuer ?? process.env.JWT_ISSUER ?? 'friend-on-campus-user-service';
+  const audience = options?.audience ?? process.env.JWT_AUDIENCE ?? 'friend-on-campus-services';
+  const secretKey =
+    options?.secretKey ??
+    process.env.SESSION_SECRET ??
+    process.env.JWT_SECRET ??
+    'dev-campuserrand-session-secret-key-32-chars-minimum';
 
   return (req, res, next) => {
-    const accessToken = readBearerToken(req.header('authorization'));
+    // 1. Check for NGINX Gateway Offloaded headers
+    const gatewayUserId = req.header('x-user-id');
+    const gatewayUserRole = req.header('x-user-role') as UserRole | undefined;
+    if (gatewayUserId && (gatewayUserRole === 'STUDENT' || gatewayUserRole === 'ADMIN')) {
+      res.locals.auth = {
+        userId: gatewayUserId,
+        sessionId: req.header('x-session-id') ?? '',
+        role: gatewayUserRole,
+      };
+      return next();
+    }
+
+    // 2. Direct request fallback: Bearer token or session cookie
+    const accessToken =
+      readBearerToken(req.header('authorization')) ??
+      readCookie(req, 'session');
+
     if (!accessToken) {
       sendError(res, 401, 'MISSING_TOKEN', 'Authentication is required');
       return;
     }
 
     try {
-      res.locals.auth = verifyAccessToken(accessToken, publicKey, options);
+      res.locals.auth = verifyAccessToken(accessToken, {
+        secretKey,
+        issuer,
+        audience,
+      });
       next();
     } catch (error) {
       if (error instanceof AuthenticationError && error.code === 'TOKEN_EXPIRED') {
@@ -171,16 +208,30 @@ export function authMiddleware(options: AuthMiddlewareOptions): RequestHandler {
   };
 }
 
-export const requireAdmin: RequestHandler = (_req, res, next) => {
+export function requireAdmin(
+  _req: Parameters<RequestHandler>[0],
+  res: Parameters<RequestHandler>[1],
+  next: Parameters<RequestHandler>[2],
+): void {
   const principal = res.locals.auth as AuthenticatedPrincipal | undefined;
   if (!principal) {
     sendError(res, 401, 'MISSING_TOKEN', 'Authentication is required');
     return;
   }
+
   if (principal.role !== 'ADMIN') {
-    sendError(res, 403, 'ADMIN_REQUIRED', 'Administrator access is required');
+    sendError(res, 403, 'ADMIN_REQUIRED', 'Admin privileges are required');
     return;
   }
 
   next();
-};
+}
+
+export function authenticatedUserId(res: Response): string {
+  const principal = res.locals.auth as AuthenticatedPrincipal | undefined;
+  if (!principal) {
+    throw new Error('Expected authenticated principal in res.locals.auth');
+  }
+
+  return principal.userId;
+}

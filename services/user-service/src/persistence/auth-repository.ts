@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Added findById to AuthRepository for stateless user status checks.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation.
  * Author review: <to be completed by ngkhengyang>
@@ -49,6 +56,7 @@ export interface CreateSessionRecord {
 export interface AuthRepository {
   createUser(input: CreateUserRecord): Promise<UserRecord>;
   findUserByEmail(email: string): Promise<UserRecord | null>;
+  findById(id: string): Promise<UserRecord | null>;
   cleanupExpiredSessions(now: Date): Promise<void>;
   createSession(input: CreateSessionRecord): Promise<SessionUserRecord>;
   rotateSession(
@@ -109,6 +117,13 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
         LIMIT 1
       `;
       return rows.length === 1 ? toUserRecord(rows[0]) : null;
+    },
+
+    async findById(id) {
+      const row = await prisma.user.findUnique({
+        where: { id },
+      });
+      return row ? toUserRecord(row) : null;
     },
 
     async cleanupExpiredSessions(now) {

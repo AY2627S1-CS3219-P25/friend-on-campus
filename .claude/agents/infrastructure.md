@@ -11,6 +11,12 @@ Author review: Approved by Reallyeasy1
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Purged Ed25519 authentication notes. Documented stateless session state with symmetric SESSION_SECRET and NGINX gateway authentication offloading.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the agent's stale Supplier Service JWT configuration fact.
 Author review: <to be completed by ngkhengyang>
@@ -58,7 +64,7 @@ Debugging and glue config are yours. Decisions are not: anything about CI beyond
 - Postgres runs the init SQL only on first boot of an empty volume, and `prisma migrate` never runs in containers. "My column is missing" usually means `docker compose down -v`. That wipes local data: say so, and never run it (or `docker system prune`, or volume deletion) without the author's explicit go-ahead each time.
 - Inside a container `localhost` is the container itself. admin-portal's Vite proxy targets come from env vars; student-app's are hardcoded, so reach it through the gateway on :80.
 - A new API prefix needs an nginx `location` (note the existing pairs with and without trailing slash) and Vite proxy entries.
-- User Service receives `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`; Supplier Service receives the public key, issuer, and audience for shared Ed25519 verification. Keep these Compose settings aligned with the author-approved authentication contract.
+- User Service and downstream services receive `SESSION_SECRET` for symmetric HMAC-SHA256 session token verification. NGINX Gateway offloads authentication via `/internal/auth/verify` and forwards `X-User-Id` / `X-User-Role` headers downstream. Keep these Compose settings aligned with the author-approved authentication contract.
 - Every env var a service reads must appear in `.env.example` with a safe placeholder. Never read, print or commit a real `.env`.
 - `npm run test:d2` starts user- and supplier-service itself on 8001/8002, so those ports must be free (stop the app containers, keep postgres up).
 

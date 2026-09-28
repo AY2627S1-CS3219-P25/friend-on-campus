@@ -12,6 +12,12 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Purged asymmetric Ed25519 documentation and updated configuration to reflect symmetric SESSION_SECRET and NGINX gateway header offloading.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated documentation to reflect that table definitions and migrations are managed exclusively by Prisma in supplier-service, resolving conflict 15.
 Author review: (to be completed by author after review)
@@ -40,16 +46,15 @@ npm run dev:supplier
 |---|---|---|
 | `PORT` | listen port | `8002` |
 | `DATABASE_URL` | Prisma connection | none — required |
-| `JWT_PUBLIC_KEY` | Ed25519 access-token verification | required |
+| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token verification for direct requests | `dev-campuserrand-session-secret-key-32-chars-minimum` |
 | `JWT_ISSUER` | required access-token issuer claim | `friend-on-campus-user-service` |
 | `JWT_AUDIENCE` | required access-token audience claim | `friend-on-campus-services` |
 
-`docker-compose.yml` passes the public key, issuer, and audience to this container; it
-does not receive the User Service private signing key.
+When requests arrive via NGINX API Gateway, NGINX verifies the session with `user-service` and injects verified `X-User-Id` and `X-User-Role` headers downstream. For direct microservice calls (e.g. in test suites), `@campus-errand/auth` verifies the symmetric session token with `SESSION_SECRET`.
 
 ## Files
 
-Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/`.
+Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured symmetric verifier, gateway header offloading, and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/`.
 
 ## API (mounted at `/api/suppliers`)
 

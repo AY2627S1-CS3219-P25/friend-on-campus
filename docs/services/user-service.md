@@ -36,6 +36,12 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Updated documentation to reflect symmetric session token issuance (SESSION_SECRET), NGINX gateway authentication offloading via GET /api/auth/verify, and downstream X-User-Id/X-User-Role header propagation.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated persistence documentation to reflect that user-service owns its Prisma migrations on container boot rather than relying on shared init SQL.
 Author review: (to be completed by author after review)
@@ -70,8 +76,7 @@ the shared `postgres` hostname on port `5432`.
 |---|---|---|
 | `PORT` | HTTP listen port | `8001` |
 | `DATABASE_URL` | Prisma connection | local `user_db` URL above |
-| `JWT_PRIVATE_KEY` | Ed25519 access-token signing | required |
-| `JWT_PUBLIC_KEY` | local access-token verification | required |
+| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token signing & verification | `dev-campuserrand-session-secret-key-32-chars-minimum` |
 | `JWT_ISSUER` | access-token issuer claim | `friend-on-campus-user-service` |
 | `JWT_AUDIENCE` | access-token audience claim | `friend-on-campus-services` |
 | `JWT_ACCESS_TOKEN_TTL` | access-token lifetime | `15m` |
@@ -96,25 +101,26 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | Method & path | Auth | Result |
 |---|---|---|
 | `POST /api/auth/register` | none | Creates a `username`/`email`/`password` account; does not create a session. |
-| `POST /api/auth/login` | none | Returns access token and user; sets refresh-token cookie. |
-| `POST /api/auth/refresh` | refresh cookie or body | Rotates refresh token and returns access token. |
-| `POST /api/auth/logout` | refresh cookie or body | Revokes that refresh session and clears the cookie. |
-| `GET /api/users/me` | Bearer token | Returns authenticated profile. |
-| `PATCH /api/users/me` | Bearer token | Updates username only; email is immutable. |
-| `PUT /api/users/me/password` | Bearer token | Verifies current password and changes password. |
-| `GET /api/users` | ADMIN Bearer token | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
-| `GET /api/users/:id` | ADMIN Bearer token | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
-| `POST /api/users/:id/promote` | ADMIN Bearer token | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
+| `POST /api/auth/login` | none | Returns access token and user; sets `session` cookie (Path=/) and `refresh_token` cookie (Path=/api/auth). |
+| `GET /api/auth/verify` | `session` cookie or Bearer | Gateway verification subrequest; returns `200` with `X-Auth-User-Id`, `X-Auth-User-Role`, and `X-Auth-User-Email` headers, or `401`. |
+| `POST /api/auth/refresh` | refresh/session cookie or body | Rotates refresh token and returns access token; refreshes `session` cookie. |
+| `POST /api/auth/logout` | refresh cookie or body | Revokes that refresh session and clears `session` and `refresh_token` cookies. |
+| `GET /api/users/me` | Bearer token or Gateway header | Returns authenticated profile. |
+| `PATCH /api/users/me` | Bearer token or Gateway header | Updates username only; email is immutable. |
+| `PUT /api/users/me/password` | Bearer token or Gateway header | Verifies current password and changes password. |
+| `GET /api/users` | ADMIN Bearer token or Gateway header | Returns list of all registered users (or `501 Not Implemented` in deferred mock mode). |
+| `GET /api/users/:id` | ADMIN Bearer token or Gateway header | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
+| `POST /api/users/:id/promote` | ADMIN Bearer token or Gateway header | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
+| `PATCH /api/users/:id/admin` | ADMIN Bearer token or Gateway header | Toggles active status of target user. |
 
 The endpoint-level request and response examples are in
 [`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md).
 
 ## Authentication and sessions
 
-Access tokens use Ed25519 and carry the RFC 7519 registered claims `sub` (user id),
-`sid` (session id), `role`, `iat`, `exp`, `iss`, and `aud`. Refresh tokens are opaque and only their
-hashes are persisted. Logout prevents refresh-token use; access tokens already issued
-remain valid until their configured expiry.
+Sessions use symmetric HMAC-SHA256 (HS256) stateless session tokens placed into an `HttpOnly`, `SameSite=Lax`, `Path=/` cookie named `session`. When requests pass through the NGINX API Gateway, NGINX executes an internal subrequest to `GET /api/auth/verify`. Upon verification, NGINX injects `X-User-Id`, `X-User-Role`, and `X-User-Email` upstream headers into downstream microservices (e.g. `supplier-service`, `order-service`).
+
+Downstream services consuming `@campus-errand/auth` inspect these gateway headers directly, bypassing cryptographic verification while retaining dual-mode direct token verification for local integration tests.
 
 ## Development seed accounts
 

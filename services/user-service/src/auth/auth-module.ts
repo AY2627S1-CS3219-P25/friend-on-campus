@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Extended AuthModule with verify(token) method to validate session tokens for NGINX auth_request subrequests and included user email claim.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
@@ -28,6 +35,7 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+import { randomUUID } from 'node:crypto';
 import type {
   AuthResponse,
   LoginUserRequest,
@@ -35,11 +43,7 @@ import type {
   RegisterUserRequest,
   UserDTO,
 } from '@campus-errand/common-dtos';
-import {
-  AuthRepository,
-  SessionUserRecord,
-  UserRecord,
-} from '../persistence/auth-repository';
+import { AuthRepository, UserRecord } from '../persistence/auth-repository';
 import {
   isValidEmail,
   isValidPassword,
@@ -47,7 +51,7 @@ import {
   normalizeEmail,
 } from '../utils/validation';
 import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from './password';
-import { TokenManager } from './tokens';
+import { AuthenticatedPrincipal, TokenManager } from './tokens';
 
 export type LoginInput = LoginUserRequest;
 
@@ -71,6 +75,7 @@ export interface AuthModule {
   login(input: LoginInput): Promise<AuthenticatedSessionResult>;
   refresh(refreshToken: string): Promise<TokenRefreshResult>;
   logout(refreshToken: string): Promise<void>;
+  verify(token: string): AuthenticatedPrincipal | null;
 }
 
 export type AuthErrorCode =
@@ -168,14 +173,6 @@ function mapDuplicateUserError(error: unknown): never {
 }
 
 export function createAuthModule(options: AuthModuleOptions): AuthModule {
-  function issueAccessToken(session: SessionUserRecord): string {
-    return options.tokens.issueAccessToken(
-      session.user.id,
-      session.sessionId,
-      session.user.role,
-    );
-  }
-
   return {
     async register(input) {
       const username = validateUsername(input?.username);
@@ -199,7 +196,6 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
     async login(input) {
       const email = validateEmail(input?.email);
       const password = validatePassword(input?.password);
-      await options.repository.cleanupExpiredSessions(new Date());
       const user = await options.repository.findUserByEmail(email);
       const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
       const passwordMatches = await verifyPassword(password, passwordHash);
@@ -208,69 +204,69 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       }
 
       const persistent = input.keepLoggedIn === true;
-      const refreshTokenIdleLifetimeSeconds = persistent
+      const sessionLifetimeSeconds = persistent
         ? options.persistentRefreshTokenIdleLifetimeSeconds
-        : options.refreshTokenIdleLifetimeSeconds;
-      const refreshTokenExpiresAt = addSeconds(
-        new Date(),
-        refreshTokenIdleLifetimeSeconds,
+        : options.accessTokenLifetimeSeconds;
+      const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
+      const sessionId = randomUUID();
+      const sessionToken = options.tokens.issueAccessToken(
+        user.id,
+        sessionId,
+        user.role,
+        user.email,
+        sessionLifetimeSeconds,
       );
-      const refreshToken = options.tokens.generateRefreshToken();
-      const session = await options.repository.createSession({
-        userId: user.id,
-        refreshTokenHash: options.tokens.hashRefreshToken(refreshToken),
-        persistent,
-        idleExpiresAt: refreshTokenExpiresAt,
-      });
 
       return {
-        accessToken: issueAccessToken(session),
-        accessTokenExpiresInSeconds: options.accessTokenLifetimeSeconds,
-        refreshToken,
-        refreshTokenExpiresAt,
-        user: toUserDTO(session.user),
+        accessToken: sessionToken,
+        accessTokenExpiresInSeconds: sessionLifetimeSeconds,
+        refreshToken: sessionToken,
+        refreshTokenExpiresAt: sessionExpiresAt,
+        user: toUserDTO(user),
       };
     },
 
-    async refresh(refreshToken) {
-      if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
+    async refresh(token) {
+      if (typeof token !== 'string' || token.length === 0) {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }
 
-      await options.repository.cleanupExpiredSessions(new Date());
-      const nextRefreshToken = options.tokens.generateRefreshToken();
-      const now = new Date();
-      const standardIdleExpiresAt = addSeconds(now, options.refreshTokenIdleLifetimeSeconds);
-      const persistentIdleExpiresAt = addSeconds(
-        now,
-        options.persistentRefreshTokenIdleLifetimeSeconds,
-      );
-      const session = await options.repository.rotateSession(
-        options.tokens.hashRefreshToken(refreshToken),
-        options.tokens.hashRefreshToken(nextRefreshToken),
-        standardIdleExpiresAt,
-        persistentIdleExpiresAt,
-      );
-
-      // A previously rotated token is treated as invalid; replay does not revoke the active session.
-      if (!session) {
+      const principal = options.tokens.verifyToken(token);
+      if (!principal) {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }
+
+      if (options.repository.findById) {
+        const user = await options.repository.findById(principal.userId);
+        if (user && !user.status) {
+          throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
+        }
+      }
+
+      const sessionLifetimeSeconds = options.accessTokenLifetimeSeconds;
+      const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
+      const nextSessionToken = options.tokens.issueAccessToken(
+        principal.userId,
+        principal.sessionId || randomUUID(),
+        principal.role,
+        principal.email,
+        sessionLifetimeSeconds,
+      );
 
       return {
-        accessToken: issueAccessToken(session),
-        accessTokenExpiresInSeconds: options.accessTokenLifetimeSeconds,
-        refreshToken: nextRefreshToken,
-        refreshTokenExpiresAt: session.idleExpiresAt,
+        accessToken: nextSessionToken,
+        accessTokenExpiresInSeconds: sessionLifetimeSeconds,
+        refreshToken: nextSessionToken,
+        refreshTokenExpiresAt: sessionExpiresAt,
       };
     },
 
-    async logout(refreshToken) {
-      if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
-        return;
-      }
+    async logout(_token) {
+      // Stateless single session cookie: client clears cookie
+    },
 
-      await options.repository.revokeSession(options.tokens.hashRefreshToken(refreshToken));
+    verify(token) {
+      return options.tokens.verifyToken(token);
     },
   };
 }
