@@ -23,6 +23,7 @@ export interface AuthMiddlewareOptions {
   secretKey?: string;
   issuer?: string;
   audience?: string;
+  gatewayKey?: string;
 }
 
 function sendError(
@@ -69,15 +70,17 @@ export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler 
   const secretKey =
     options?.secretKey ??
     process.env.SESSION_SECRET ??
-    process.env.JWT_SECRET ??
-    'dev-campuserrand-session-secret-key-32-chars-minimum';
+    process.env.JWT_SECRET;
 
-  if (process.env.NODE_ENV === 'production' && secretKey.length < 32) {
-    throw new Error('SESSION_SECRET must be at least 32 characters in production');
+  if (!secretKey || secretKey.length < 32) {
+    throw new Error('SESSION_SECRET must be configured and at least 32 characters');
   }
 
   const encodedSecret = new TextEncoder().encode(secretKey);
-  const expectedGatewayKey = process.env.GATEWAY_KEY ?? 'campuserrand-gateway-internal-auth';
+  const expectedGatewayKey = options?.gatewayKey ?? process.env.GATEWAY_KEY;
+  if (!expectedGatewayKey || expectedGatewayKey.length < 16) {
+    throw new Error('GATEWAY_KEY must be configured and at least 16 characters');
+  }
 
   return async (req, res, next) => {
     // 1. Fast Path: NGINX Gateway Offloaded headers

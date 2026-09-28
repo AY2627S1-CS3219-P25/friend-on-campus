@@ -50,6 +50,7 @@ const auth = createAuthModule({
 const users = createUserModule({ repository: userRepository });
 const requireAuthentication = authMiddleware({
   secretKey: config.sessionSecret,
+  gatewayKey: config.gatewayKey,
   issuer: config.accessTokenIssuer,
   audience: config.accessTokenAudience,
 });

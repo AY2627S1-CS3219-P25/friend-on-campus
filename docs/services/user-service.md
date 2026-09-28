@@ -76,12 +76,13 @@ the shared `postgres` hostname on port `5432`.
 |---|---|---|
 | `PORT` | HTTP listen port | `8001` |
 | `DATABASE_URL` | Prisma connection | local `user_db` URL above |
-| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token signing & verification | `dev-campuserrand-session-secret-key-32-chars-minimum` |
+| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token signing & verification | **Required** (no default; min 32 chars) |
+| `GATEWAY_KEY` | Internal gateway verification key for trusted header forwarding | **Required** (no default; min 16 chars) |
 | `JWT_ISSUER` | access-token issuer claim | `friend-on-campus-user-service` |
 | `JWT_AUDIENCE` | access-token audience claim | `friend-on-campus-services` |
-| `JWT_ACCESS_TOKEN_TTL` | access-token lifetime | `15m` |
-| `JWT_REFRESH_TOKEN_TTL` | ordinary refresh-session idle lifetime | `1d` |
-| `JWT_PERSISTENT_REFRESH_TOKEN_TTL` | keep-logged-in idle lifetime | `30d` |
+| `JWT_ACCESS_TOKEN_TTL` | access-token lifetime | `1d` |
+| `JWT_REFRESH_TOKEN_TTL` | ordinary session lifetime | `1d` |
+| `JWT_PERSISTENT_REFRESH_TOKEN_TTL` | keep-logged-in session lifetime | `30d` |
 | `CORS_ORIGIN` | credentialed browser origin | `http://localhost:5173` |
 
 ## Persistence

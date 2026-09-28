@@ -46,7 +46,8 @@ npm run dev:supplier
 |---|---|---|
 | `PORT` | listen port | `8002` |
 | `DATABASE_URL` | Prisma connection | none — required |
-| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token verification for direct requests | `dev-campuserrand-session-secret-key-32-chars-minimum` |
+| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token verification for direct requests | **Required** (no default; min 32 chars) |
+| `GATEWAY_KEY` | Internal gateway verification key for trusted header forwarding | **Required** (no default; min 16 chars) |
 | `JWT_ISSUER` | required access-token issuer claim | `friend-on-campus-user-service` |
 | `JWT_AUDIENCE` | required access-token audience claim | `friend-on-campus-services` |
 
@@ -79,8 +80,8 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 - `supplierCode` is generated as `SUP-NNN` from the row count when not supplied, with a timestamp-based fallback if that code exists.
 - `DELETE` soft-deletes (sets `isActive=false`) unless `?permanent=true`, which removes the row. Nothing checks order-service for references.
 - No duplicate check on name + campus location; no `version` column, so concurrent edits are last-write-wins; `category` is not validated against `SupplierCategory`.
-- Access tokens are verified locally with Ed25519 against the configured public key,
-  issuer, and audience; this service never calls User Service.
+- Access tokens are verified locally with HMAC-SHA256 (via `@campus-errand/auth`) against the configured symmetric session secret,
+  issuer, and audience, or forwarded via verified gateway headers; this service never calls User Service.
 
 ## Differences from the documents
 

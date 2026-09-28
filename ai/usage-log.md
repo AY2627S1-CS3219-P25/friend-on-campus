@@ -1160,6 +1160,37 @@ Address code review feedback from Claude PR review bot on PR #95:
 - Executed `npm run test:d2`: 51/51 tests passed.
 - Tested curl requests against live NGINX gateway and microservice ports to verify spoofing rejection (401).
 
+## 2026-09-28 22:50 SGT — Secret Hardening, Dynamic Gateway Key & Loopback Port Isolation
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/stateless-single-session-cookie
+
+**Prompt (summarised):**
+Address follow-up PR review findings on PR #95:
+1. Dynamic `GATEWAY_KEY`: Remove hardcoded internal gateway constant from NGINX configuration and code. Pass `GATEWAY_KEY` through Docker Compose via `gateway/nginx.conf.template` using NGINX Alpine's native `envsubst` template processor (`NGINX_ENVSUBST_FILTER=GATEWAY_KEY`).
+2. Secret Enforcement: In `packages/auth` and `user-service/src/config.ts`, strictly require `SESSION_SECRET` (>= 32 chars) and `GATEWAY_KEY` (>= 16 chars) across all environments without fallback defaults.
+3. Example Secrets: Clear default secret literals in `.env.example` and `services/user-service/.env.example` and provide `openssl rand` generation hints.
+4. Direct Port Isolation: Bind all service and infrastructure ports (`8001`-`8005`, `5173`, `5174`, `5432`, `5672`, `15672`) to loopback interface `127.0.0.1` in `docker-compose.yml` so only the API gateway (`80:80`) is exposed externally.
+5. Documentation: Update environment variable reference tables in `docs/services/user-service.md` and `docs/services/supplier-service.md` marking `SESSION_SECRET` and `GATEWAY_KEY` as required.
+
+**Files changed:**
+- `gateway/nginx.conf.template` — Added template substituting `${GATEWAY_KEY}` into NGINX proxy headers.
+- `docker-compose.yml` — Configured `GATEWAY_KEY` env and template mount for `api-gateway`; bound internal ports to `127.0.0.1`; passed `GATEWAY_KEY` to `user-service` and `supplier-service`.
+- `packages/auth/src/index.ts` — Removed string defaults for `SESSION_SECRET` and `GATEWAY_KEY`; enforced non-empty validation.
+- `services/user-service/src/config.ts` — Removed default fallback for `SESSION_SECRET` and added required `readGatewayKey`.
+- `services/user-service/src/index.ts` — Passed `gatewayKey` to `authMiddleware`.
+- `services/supplier-service/src/backend/server.ts` — Passed `gatewayKey` to `authMiddleware`.
+- `.env.example` & `services/user-service/.env.example` — Blanked secrets with `openssl rand` generation instructions.
+- `scripts/test-d2-e2e.ts` — Injected dynamic `GATEWAY_KEY` into test environment and offloaded header assertions.
+- `docs/services/user-service.md` & `docs/services/supplier-service.md` — Updated configuration tables.
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 51/51 tests.
+- Verified Docker Compose container builds, healthy startup, and authenticated cookie subrequests via NGINX.
+
+
 
 
 

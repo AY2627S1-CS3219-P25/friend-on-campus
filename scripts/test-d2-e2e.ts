@@ -50,6 +50,7 @@ let supplierProcess: ChildProcess | null = null;
 function createTestJwtEnvironment(): Record<string, string> {
   return {
     SESSION_SECRET: 'test-session-secret-at-least-32-chars-long!',
+    GATEWAY_KEY: process.env.GATEWAY_KEY || 'test-internal-gateway-key-32-chars-long!',
     JWT_ISSUER: 'friend-on-campus-user-service',
     JWT_AUDIENCE: 'friend-on-campus-services',
   };
@@ -298,7 +299,7 @@ async function runTests() {
       headers: {
         'x-user-id': studentUserId,
         'x-user-role': 'STUDENT',
-        'x-gateway-key': 'campuserrand-gateway-internal-auth',
+        'x-gateway-key': testJwtEnvironment.GATEWAY_KEY,
       },
     });
     assert(gatewayMeRes.status === 200, 'GET /api/users/me accepts verified gateway offloaded headers');
