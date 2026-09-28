@@ -1113,4 +1113,25 @@ Transition authentication from the dual-token hybrid model (`session` 15-min coo
 - Rebuilt Docker container `campuserrand-user-service` and tested live login, gateway authentication, session refresh, and logout via `curl`.
 - Verified that database `sessions` table row count remained unchanged (0 writes) during logins.
 
+## 2026-09-28 22:00 SGT — Adopt 'jose' in @campus-errand/auth
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/stateless-single-session-cookie
+
+**Prompt (summarised):**
+Replace the hand-rolled crypto and JWT decoding functions in `packages/auth/src/index.ts` with the industry-standard `jose` library (`jwtVerify`), ensuring constant-time cryptographic verification and standards-compliant claim validation while maintaining NGINX gateway header offloading.
+
+**Usage scenario:** Library adoption and cryptographic reliability improvement (allowed use). The author approved adopting `jose` to replace custom crypto code.
+
+**Files changed:**
+- `packages/auth/package.json` — Added `jose` dependency (`^6.2.12`).
+- `package-lock.json` — Updated package lock.
+- `packages/auth/src/index.ts` — Replaced ~120 lines of hand-rolled base64url and HMAC logic with `jwtVerify()` from `jose`.
+
+**Verification:**
+- Executed `npm run typecheck`: Passed cleanly across all 9 workspaces.
+- Executed `npm run test:d2`: 50/50 tests passed.
+
+
 

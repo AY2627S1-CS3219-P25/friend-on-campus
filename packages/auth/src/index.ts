@@ -1,14 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-28
- * Scope: Fully purged asymmetric Ed25519 authentication. Simplified shared middleware to use symmetric HMAC-SHA256 (HS256)
- * session verification and NGINX gateway header offloading.
+ * Scope: Refactored shared auth middleware to use industry-standard 'jose' for constant-time cryptographic verification
+ * alongside NGINX gateway header offloading.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import { createHmac } from 'node:crypto';
+import { jwtVerify } from 'jose';
 import type { RequestHandler, Response } from 'express';
-import type { JWTPayload, UserRole } from '@campus-errand/common-dtos';
+import type { UserRole } from '@campus-errand/common-dtos';
 
 export type { UserRole };
 
@@ -25,105 +25,10 @@ export interface AuthMiddlewareOptions {
   audience?: string;
 }
 
-type AuthenticationErrorCode =
-  | 'MISSING_TOKEN'
-  | 'TOKEN_EXPIRED'
-  | 'INVALID_TOKEN';
-
-class AuthenticationError extends Error {
-  constructor(public readonly code: AuthenticationErrorCode) {
-    super(code);
-    this.name = 'AuthenticationError';
-  }
-}
-
-function parseJsonPart<T>(part: string): T {
-  return JSON.parse(Buffer.from(part, 'base64url').toString('utf8')) as T;
-}
-
-function isJwtPayload(value: unknown): value is JWTPayload {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-
-  const claims = value as Partial<JWTPayload>;
-  return (
-    typeof claims.sub === 'string' &&
-    claims.sub.length > 0 &&
-    typeof claims.sid === 'string' &&
-    claims.sid.length > 0 &&
-    (claims.role === 'STUDENT' || claims.role === 'ADMIN') &&
-    Number.isInteger(claims.iat) &&
-    Number.isInteger(claims.exp) &&
-    typeof claims.iss === 'string' &&
-    typeof claims.aud === 'string'
-  );
-}
-
-function verifyAccessToken(
-  accessToken: string,
-  options: {
-    secretKey: string;
-    issuer: string;
-    audience: string;
-  },
-): AuthenticatedPrincipal {
-  try {
-    const parts = accessToken.split('.');
-    if (parts.length !== 3 || parts.some((part) => part.length === 0)) {
-      throw new AuthenticationError('INVALID_TOKEN');
-    }
-
-    const [headerPart, claimsPart, signaturePart] = parts;
-    const header = parseJsonPart<{ alg?: string; typ?: string }>(headerPart);
-    if (header.typ !== 'JWT' || header.alg !== 'HS256') {
-      throw new AuthenticationError('INVALID_TOKEN');
-    }
-
-    const unsignedToken = `${headerPart}.${claimsPart}`;
-    const expectedSig = createHmac('sha256', options.secretKey)
-      .update(unsignedToken)
-      .digest('base64url');
-    if (signaturePart !== expectedSig) {
-      throw new AuthenticationError('INVALID_TOKEN');
-    }
-
-    const claims = parseJsonPart<unknown>(claimsPart);
-    if (
-      !isJwtPayload(claims) ||
-      claims.iss !== options.issuer ||
-      claims.aud !== options.audience
-    ) {
-      throw new AuthenticationError('INVALID_TOKEN');
-    }
-
-    const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
-    if (claims.exp <= currentUnixTimeSeconds) {
-      throw new AuthenticationError('TOKEN_EXPIRED');
-    }
-    if (claims.iat > currentUnixTimeSeconds + 60) {
-      throw new AuthenticationError('INVALID_TOKEN');
-    }
-
-    return {
-      userId: claims.sub,
-      sessionId: claims.sid,
-      role: claims.role,
-      email: (claims as Record<string, any>).email,
-    };
-  } catch (error) {
-    if (error instanceof AuthenticationError) {
-      throw error;
-    }
-
-    throw new AuthenticationError('INVALID_TOKEN');
-  }
-}
-
 function sendError(
   res: Response,
   status: 401 | 403,
-  code: AuthenticationErrorCode | 'ADMIN_REQUIRED',
+  code: 'MISSING_TOKEN' | 'TOKEN_EXPIRED' | 'INVALID_TOKEN' | 'ADMIN_REQUIRED',
   message: string,
 ): void {
   res.status(status).json({ success: false, error: message, code });
@@ -167,8 +72,10 @@ export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler 
     process.env.JWT_SECRET ??
     'dev-campuserrand-session-secret-key-32-chars-minimum';
 
-  return (req, res, next) => {
-    // 1. Check for NGINX Gateway Offloaded headers
+  const encodedSecret = new TextEncoder().encode(secretKey);
+
+  return async (req, res, next) => {
+    // 1. Fast Path: NGINX Gateway Offloaded headers
     const gatewayUserId = req.header('x-user-id');
     const gatewayUserRole = req.header('x-user-role') as UserRole | undefined;
     if (gatewayUserId && (gatewayUserRole === 'STUDENT' || gatewayUserRole === 'ADMIN')) {
@@ -180,25 +87,35 @@ export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler 
       return next();
     }
 
-    // 2. Direct request fallback: Bearer token or session cookie
-    const accessToken =
-      readBearerToken(req.header('authorization')) ??
-      readCookie(req, 'session');
-
-    if (!accessToken) {
+    // 2. Direct Fallback Path (jose verification)
+    const token = readBearerToken(req.header('authorization')) ?? readCookie(req, 'session');
+    if (!token) {
       sendError(res, 401, 'MISSING_TOKEN', 'Authentication is required');
       return;
     }
 
     try {
-      res.locals.auth = verifyAccessToken(accessToken, {
-        secretKey,
+      const { payload } = await jwtVerify(token, encodedSecret, {
         issuer,
         audience,
+        algorithms: ['HS256'],
       });
+
+      const role = payload.role as UserRole;
+      if (typeof payload.sub !== 'string' || (role !== 'STUDENT' && role !== 'ADMIN')) {
+        sendError(res, 401, 'INVALID_TOKEN', 'Invalid access token');
+        return;
+      }
+
+      res.locals.auth = {
+        userId: payload.sub,
+        sessionId: (payload.sid as string) ?? '',
+        role,
+        email: payload.email as string | undefined,
+      };
       next();
-    } catch (error) {
-      if (error instanceof AuthenticationError && error.code === 'TOKEN_EXPIRED') {
+    } catch (err: any) {
+      if (err?.code === 'ERR_JWT_EXPIRED') {
         sendError(res, 401, 'TOKEN_EXPIRED', 'Access token has expired');
         return;
       }
@@ -220,18 +137,9 @@ export function requireAdmin(
   }
 
   if (principal.role !== 'ADMIN') {
-    sendError(res, 403, 'ADMIN_REQUIRED', 'Admin privileges are required');
+    sendError(res, 403, 'ADMIN_REQUIRED', 'Administrator access required');
     return;
   }
 
   next();
-}
-
-export function authenticatedUserId(res: Response): string {
-  const principal = res.locals.auth as AuthenticatedPrincipal | undefined;
-  if (!principal) {
-    throw new Error('Expected authenticated principal in res.locals.auth');
-  }
-
-  return principal.userId;
 }

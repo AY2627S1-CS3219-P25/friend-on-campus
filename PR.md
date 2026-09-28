@@ -173,7 +173,7 @@ Closes #49
 
 - **Shared Auth Package (`packages/auth`):**
   - Updated `authMiddleware` to inspect incoming gateway headers (`X-User-Id`, `X-User-Role`, `X-User-Email`) and populate `res.locals.auth` without redundant cryptographic re-verification.
-  - Retained fallback direct symmetric token validation against `SESSION_SECRET` (from `Authorization: Bearer` or `Cookie: session`) for local test suites.
+  - Adopted industry-standard `jose` library (`jwtVerify`) for constant-time, RFC 7519-compliant fallback verification on standalone tests and mixed routes, eliminating ~120 lines of hand-rolled base64 and crypto math.
 
 - **Full Ed25519 Key Purge:**
   - Deleted `scripts/generate-jwt-keys.mjs` and removed `"generate:jwt-keys"` from `package.json`.
