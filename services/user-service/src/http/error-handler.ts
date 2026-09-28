@@ -13,6 +13,12 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Mapped the new FORBIDDEN UserErrorCode (thrown by the DELETE /api/users/:id self-or-admin check) to 403.
+ * Author review: (to be completed by author after review)
+ */
 import { ErrorRequestHandler } from 'express';
 import { AuthError, AuthErrorCode } from '../auth/auth-module';
 import { logError } from '../utils/logger';
@@ -32,6 +38,7 @@ const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   INVALID_CURRENT_PASSWORD: 401,
   USER_NOT_FOUND: 404,
   NOT_IMPLEMENTED: 501,
+  FORBIDDEN: 403,
 };
 
 interface HttpClientError {

@@ -1036,3 +1036,38 @@ Follow-up (same prompt): the review run on 744a5dd raised one Low finding, confi
 - `tests/postman/postman_collection.json` (new) — 44 requests across 5 folders: (1) Setup & Auth Lifecycle — login/logout as admin and as student (alice), plus a refresh-with-no-session negative case right after the cookie is cleared by logout; (2) User Service: Registration & Login — register success plus duplicate-email/duplicate-username/weak-password/bad-email negatives, then log in as the new test user; (3) User Service: Profile & Admin Management — GET/PATCH /me, PUT /me/password, GET /api/users (list, admin-only), PATCH /:id/admin deactivate/reactivate with the student-forbidden negative, POST /:id/promote (still a 501 stub) with its own forbidden negative, plus two documented-quirk assertions (unknown UUID → 404, syntactically invalid UUID → 500 because Prisma throws before the route's own not-found handling); (4) Supplier Service: Public Reads — list/get/unknown-id, capturing a real seeded supplier id dynamically since supplier UUIDs aren't fixed; (5) Supplier Service: Admin CRUD — create/update/toggle-deactivate/toggle-reactivate/delete on a throwaway supplier the collection creates itself, each paired with a student-forbidden negative, ending with a real `DELETE ?permanent=true` cleanup (supplier-service does have a delete endpoint, unlike user-service). Every request has a `pm.test` assertion on status code and, where relevant, the response's `success`/`code`/data fields; requests that hand off a value to later requests (`adminAccessToken`, `testUserId`, `testSupplierId`, etc.) write it via `pm.environment.set(...)` in their test script. Disclosure is embedded in `info.description` (visible in the Postman GUI) since JSON can't hold a comment block.
 
 Verified: both files parse as valid JSON (`python3 -m json.load`); folder/request counts match the approved plan (5 folders, 44 requests: 5+8+17+3+11); spot-checked a representative request's structure (method, headers, URL, body, test script) renders correctly. Not run: an actual Postman Collection Runner execution against the live stack — that's the author's next step, per their own plan ("I will run in postman GUI to test to see if it works").
+
+## 2026-09-28 (later) — Fix 3 test-script syntax errors surfaced by the first Postman run
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Author ran the collection for the first time via `postman collection run`; all 44 requests succeeded against the live services, but 3 of 44 test-scripts threw `SyntaxError: Unexpected token '{'`. Asked me to investigate and fix.
+
+**Usage scenario:** Debugging assistance (allowed use) — root cause was my own generation mistake, not a bug in the services being tested.
+
+**Root cause:** three assertions compared a response field against a *previously-saved* dynamic value using `{{variableName}}` mustache syntax directly inside the JavaScript test script (`pm.expect(x).to.eql({{testEmail}})`). Mustache substitution only happens in the "template" parts of a request (URL, headers, body) — Postman does not pre-process it inside test-script `exec` code, so the sandbox saw literal `{{testEmail}}`, which isn't valid JavaScript (`{` followed by `{` is a syntax error), hence the failure on all 3.
+
+**Files changed:**
+- `tests/postman/postman_collection.json` — replaced the 3 broken lines with the correct in-script way to read a saved variable, `pm.environment.get('varName')`: in "3.1 GET /me - Success", "3.3 PATCH /me - Update Username Success", and "4.2 GET /api/suppliers/:id - Success".
+
+Verified: file re-parses as valid JSON; the fixed lines were diffed against the reported failing request names to confirm exact match (no unrelated lines touched).
+
+## 2026-09-28 (later) — Add DELETE /api/users/:id (self-or-admin account deletion)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add a new user-service endpoint to delete a user account, backed by the same user-service DB as every other user-service route. Authorization must allow only the ADMIN role or the specific logged-in student deleting their own account — never any authenticated student deleting someone else's. Author explicitly scoped this to user-service files plus this log only, and asked first for the file list before implementing (approved plan, then asked to proceed).
+
+**Usage scenario:** Implementation of an author-specified design (allowed use) — the endpoint, its authorization rule, and the file scope were all given directly by the author; I investigated the existing routes → module → repository → error-handler pattern this service already uses and implemented the new endpoint the same way, and confirmed via a live read of `gateway/nginx.conf` that its `location /api/users/` block already proxies every HTTP method (including DELETE) with no change needed there.
+
+**Files changed:**
+- `services/user-service/src/persistence/user-repository.ts` — added `deleteById(userId): Promise<boolean>` (Prisma `deleteMany` + count check, same not-found-safe pattern as `updateProfile`/`updatePassword`).
+- `services/user-service/src/users/user-module.ts` — added `deleteUser(targetUserId): Promise<void>`, throwing `UserError('USER_NOT_FOUND', ...)` if the row didn't exist; added the new `'FORBIDDEN'` `UserErrorCode`.
+- `services/user-service/src/users/user-routes.ts` — added `DELETE /:id` behind a new local `requireSelfOrAdmin` middleware (reads `res.locals.auth`, allows through if `role === 'ADMIN'` or `auth.userId === req.params.id`, else throws `UserError('FORBIDDEN', 'You can only delete your own account')`). Deliberately kept local to this file rather than added to the shared `@campus-errand/auth` package, since "does the URL's `:id` match the caller's own id" is specific to this one route. Success response is `204 No Content`, matching this service's existing `PUT /me/password` precedent for a mutation with nothing to return.
+- `services/user-service/src/http/error-handler.ts` — mapped the new `FORBIDDEN` code to HTTP 403 in `USER_ERROR_STATUS`.
+
+Verified: `npm run typecheck` passes across all workspaces; rebuilt and restarted the `user-service` container; live-tested every path with curl — a student deleting another student's account correctly gets `403 FORBIDDEN`; a student deleting their own account gets `204` and the row plus its sessions (via the existing `ON DELETE CASCADE` FK) are actually gone from Postgres; no token gets `401 MISSING_TOKEN`; an admin can delete any account (`204`); deleting an already-deleted id correctly returns `404 USER_NOT_FOUND`; also confirmed the same self-delete flow works unchanged through the gateway on `localhost:80`, confirming `gateway/nginx.conf` genuinely needed no edit.

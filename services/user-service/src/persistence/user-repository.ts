@@ -12,6 +12,12 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added deleteById() for the new DELETE /api/users/:id endpoint (self-or-admin account deletion).
+ * Author review: (to be completed by author after review)
+ */
 import { PrismaClient, User as PrismaUser } from '../database/generated/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
@@ -39,6 +45,7 @@ export interface UserRepository {
     newPasswordHash: string,
   ): Promise<boolean>;
   toggleStatus(userId: string): Promise<UserRecord | null>;
+  deleteById(userId: string): Promise<boolean>;
 }
 
 function toUserRecord(row: PrismaUser): UserRecord {
@@ -98,6 +105,11 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
       });
 
       return toUserRecord(updated);
+    },
+
+    async deleteById(userId) {
+      const deleted = await prisma.user.deleteMany({ where: { id: userId } });
+      return deleted.count === 1;
     },
   };
 }
