@@ -76,6 +76,7 @@ export interface AuthModule {
   refresh(refreshToken: string): Promise<TokenRefreshResult>;
   logout(refreshToken: string): Promise<void>;
   verify(token: string): AuthenticatedPrincipal | null;
+  checkUserStatus(userId: string): Promise<boolean>;
 }
 
 export type AuthErrorCode =
@@ -215,6 +216,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         user.role,
         user.email,
         sessionLifetimeSeconds,
+        persistent,
       );
 
       return {
@@ -238,12 +240,15 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
 
       if (options.repository.findById) {
         const user = await options.repository.findById(principal.userId);
-        if (user && !user.status) {
-          throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
+        if (!user || !user.status) {
+          throw new AuthError('INVALID_SESSION', 'Account is deactivated or does not exist');
         }
       }
 
-      const sessionLifetimeSeconds = options.accessTokenLifetimeSeconds;
+      const isPersistent = Boolean(principal.persistent);
+      const sessionLifetimeSeconds = isPersistent
+        ? options.persistentRefreshTokenIdleLifetimeSeconds
+        : options.accessTokenLifetimeSeconds;
       const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
       const nextSessionToken = options.tokens.issueAccessToken(
         principal.userId,
@@ -251,6 +256,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         principal.role,
         principal.email,
         sessionLifetimeSeconds,
+        isPersistent,
       );
 
       return {
@@ -267,6 +273,14 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
 
     verify(token) {
       return options.tokens.verifyToken(token);
+    },
+
+    async checkUserStatus(userId: string): Promise<boolean> {
+      if (!options.repository.findById) {
+        return true;
+      }
+      const user = await options.repository.findById(userId);
+      return Boolean(user && user.status);
     },
   };
 }

@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-28
  * Scope: Fully purged asymmetric Ed25519 signing. TokenManager operates exclusively with symmetric HMAC-SHA256 (HS256)
- * session secret encoding for stateless session tokens.
+ * session secret encoding with constant-time timingSafeEqual verification and persistent-session claim tracking.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
@@ -10,6 +10,7 @@ import {
   createHash,
   createHmac,
   randomBytes,
+  timingSafeEqual,
 } from 'node:crypto';
 import type { JWTPayload } from '@campus-errand/common-dtos';
 import { UserRole } from '../persistence/auth-repository';
@@ -21,6 +22,7 @@ export interface AuthenticatedPrincipal {
   sessionId: string;
   role: UserRole;
   email?: string;
+  persistent?: boolean;
 }
 
 export interface TokenManager {
@@ -30,6 +32,7 @@ export interface TokenManager {
     role: UserRole,
     email?: string,
     lifetimeSeconds?: number,
+    persistent?: boolean,
   ): string;
   verifyToken(token: string): AuthenticatedPrincipal | null;
   generateRefreshToken(): string;
@@ -55,14 +58,15 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
   const sessionSecret = options.sessionSecret;
 
   return {
-    issueAccessToken(userId, sessionId, role, email, lifetimeSeconds) {
+    issueAccessToken(userId, sessionId, role, email, lifetimeSeconds, persistent) {
       const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
       const lifetime = lifetimeSeconds ?? options.accessTokenLifetimeSeconds;
-      const claims: JWTPayload & { email?: string } = {
+      const claims: JWTPayload & { email?: string; persistent?: boolean } = {
         sub: userId,
         sid: sessionId,
         role,
         ...(email ? { email } : {}),
+        ...(persistent ? { persistent: true } : {}),
         iat: currentUnixTimeSeconds,
         exp: currentUnixTimeSeconds + lifetime,
         iss: options.accessTokenIssuer,
@@ -92,8 +96,9 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
         const unsignedToken = `${headerPart}.${claimsPart}`;
         const expectedSig = createHmac('sha256', sessionSecret)
           .update(unsignedToken)
-          .digest('base64url');
-        if (signaturePart !== expectedSig) {
+          .digest();
+        const actualSig = Buffer.from(signaturePart, 'base64url');
+        if (actualSig.length !== expectedSig.length || !timingSafeEqual(actualSig, expectedSig)) {
           return null;
         }
 
@@ -120,6 +125,7 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
           sessionId: claims.sid ?? '',
           role: claims.role,
           email: claims.email,
+          persistent: Boolean(claims.persistent),
         };
       } catch {
         return null;

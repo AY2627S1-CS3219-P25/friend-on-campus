@@ -116,6 +116,16 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
         return;
       }
 
+      const isActive = await auth.checkUserStatus(principal.userId);
+      if (!isActive) {
+        res.status(401).json({
+          success: false,
+          error: 'User account is deactivated or deleted',
+          code: 'INVALID_SESSION',
+        });
+        return;
+      }
+
       res.setHeader('X-Auth-User-Id', principal.userId);
       res.setHeader('X-Auth-User-Role', principal.role);
       if (principal.email) {

@@ -39,11 +39,14 @@ export interface AppConfig {
 }
 
 function readSessionSecret(): string {
-  return (
-    process.env.SESSION_SECRET ??
-    process.env.JWT_SECRET ??
-    'dev-campuserrand-session-secret-key-32-chars-minimum'
-  );
+  const secret = process.env.SESSION_SECRET ?? process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET must be set and at least 32 characters in production');
+    }
+    return secret || 'dev-campuserrand-session-secret-key-32-chars-minimum';
+  }
+  return secret;
 }
 
 function readDurationSeconds(value: string | undefined, fallback: string): number {

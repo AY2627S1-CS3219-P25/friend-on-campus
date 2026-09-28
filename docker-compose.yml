@@ -85,7 +85,7 @@ services:
     environment:
       PORT: 8001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/user_db
-      SESSION_SECRET: ${SESSION_SECRET:-dev-campuserrand-session-secret-key-32-chars-minimum}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
       JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-friend-on-campus-services}
       SESSION_TTL: ${SESSION_TTL:-1d}
@@ -119,7 +119,7 @@ services:
       - PORT=8002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/supplier_db
       # AI-generated (edited by yanhwee)
-      - SESSION_SECRET=${SESSION_SECRET:-dev-campuserrand-session-secret-key-32-chars-minimum}
+      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:

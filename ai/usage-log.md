@@ -1127,11 +1127,39 @@ Replace the hand-rolled crypto and JWT decoding functions in `packages/auth/src/
 **Files changed:**
 - `packages/auth/package.json` — Added `jose` dependency (`^6.2.12`).
 - `package-lock.json` — Updated package lock.
-- `packages/auth/src/index.ts` — Replaced ~120 lines of hand-rolled base64url and HMAC logic with `jwtVerify()` from `jose`.
+## 2026-09-28 22:30 SGT — Security Hardening and PR Review Findings Remediation
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/stateless-single-session-cookie
+
+**Prompt (summarised):**
+Address code review feedback from Claude PR review bot on PR #95:
+1. Critical: Prevent gateway header spoofing by injecting internal gateway key (`X-Gateway-Key`) on verified routes and stripping identity headers on unauthenticated routes (`/api/suppliers`, `/api/auth`, `/`, `/admin/`, `/ws/`). Update `authMiddleware` to only trust forwarded identity headers if verified with the internal gateway key.
+2. High: Guard `SESSION_SECRET` in `docker-compose.yml` with `:?Set SESSION_SECRET in .env` and enforce a minimum 32-character secret in production in `user-service/src/config.ts`.
+3. Medium: Preserve 30-day session lifetime across token refreshes by tracking `persistent: true` on claims when `keepLoggedIn: true` is requested.
+4. Low: Reject deactivated and deleted users on token refresh and at `/internal/auth/verify`.
+5. Low: Use `crypto.timingSafeEqual` in `tokens.ts` for constant-time HMAC comparison.
+6. Low: Strictly assert `adminList.status === 200` in `test-d2-e2e.ts` and add tests asserting spoofed headers without gateway key return 401.
+
+**Usage scenario:** Security hardening, bug fixing, and test refinement based on peer code review.
+
+**Files changed:**
+- `gateway/nginx.conf` — Added `X-Gateway-Key` injection on protected routes; stripped `X-Gateway-Key` and `X-User-*` on public/unauthenticated routes.
+- `packages/auth/src/index.ts` — Verified `x-gateway-key` header before trusting downstream identity headers. Enforced minimum secret length in production.
+- `docker-compose.yml` — Required `SESSION_SECRET` with `${SESSION_SECRET:?Set SESSION_SECRET in .env}`.
+- `services/user-service/src/config.ts` — Added production length validation for `SESSION_SECRET`.
+- `services/user-service/src/auth/tokens.ts` — Used `timingSafeEqual` for HMAC signature validation and added `persistent` claim tracking.
+- `services/user-service/src/auth/auth-module.ts` — Preserved 30-day session lifetime on refresh for persistent sessions; rejected deactivated/deleted users on refresh; added `checkUserStatus`.
+- `services/user-service/src/auth/auth-routes.ts` — Checked active user status during gateway subrequest verification (`/api/auth/verify`).
+- `scripts/test-d2-e2e.ts` — Added assertions verifying spoofed headers return 401, valid gateway headers return 200, persistent sessions preserve 30-day lifetime on refresh, and admin user list returns 200 strictly.
+- `ai/usage-log.md` — Appended this implementation record.
 
 **Verification:**
-- Executed `npm run typecheck`: Passed cleanly across all 9 workspaces.
-- Executed `npm run test:d2`: 50/50 tests passed.
+- Executed `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- Executed `npm run test:d2`: 51/51 tests passed.
+- Tested curl requests against live NGINX gateway and microservice ports to verify spoofing rejection (401).
+
 
 
 

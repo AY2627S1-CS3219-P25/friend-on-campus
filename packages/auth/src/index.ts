@@ -72,13 +72,25 @@ export function authMiddleware(options?: AuthMiddlewareOptions): RequestHandler 
     process.env.JWT_SECRET ??
     'dev-campuserrand-session-secret-key-32-chars-minimum';
 
+  if (process.env.NODE_ENV === 'production' && secretKey.length < 32) {
+    throw new Error('SESSION_SECRET must be at least 32 characters in production');
+  }
+
   const encodedSecret = new TextEncoder().encode(secretKey);
+  const expectedGatewayKey = process.env.GATEWAY_KEY ?? 'campuserrand-gateway-internal-auth';
 
   return async (req, res, next) => {
     // 1. Fast Path: NGINX Gateway Offloaded headers
+    // Only trust identity headers when verified and forwarded by the API gateway
+    const gatewayKey = req.header('x-gateway-key');
     const gatewayUserId = req.header('x-user-id');
     const gatewayUserRole = req.header('x-user-role') as UserRole | undefined;
-    if (gatewayUserId && (gatewayUserRole === 'STUDENT' || gatewayUserRole === 'ADMIN')) {
+
+    if (
+      gatewayKey === expectedGatewayKey &&
+      gatewayUserId &&
+      (gatewayUserRole === 'STUDENT' || gatewayUserRole === 'ADMIN')
+    ) {
       res.locals.auth = {
         userId: gatewayUserId,
         sessionId: req.header('x-session-id') ?? '',

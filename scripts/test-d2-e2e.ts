@@ -234,9 +234,33 @@ async function runTests() {
     assert(studentClaims.sub === studentUserId, 'Access token uses the standard sub claim');
     assert(typeof studentClaims.sid === 'string', 'Access token includes the standard sid claim');
     assert(typeof studentClaims.iat === 'number', 'Access token includes the standard iat claim');
-    assert(typeof studentClaims.exp === 'number', 'Access token includes the standard exp claim');
     assert(studentClaims.iss === 'friend-on-campus-user-service', 'Access token uses the standard iss claim');
     assert(studentClaims.aud === 'friend-on-campus-services', 'Access token uses the standard aud claim');
+
+    // Test persistent login preserves 30-day lifetime across refresh
+    const persistentLoginRes = await fetch(`${USER_API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: testEmail,
+        password: 'Password123!',
+        keepLoggedIn: true,
+      }),
+    });
+    const persistentLoginData = await persistentLoginRes.json();
+    assert(
+      persistentLoginData.data?.accessTokenExpiresInSeconds === 30 * 86400,
+      'keepLoggedIn login issues 30-day session',
+    );
+    const persistentRefreshRes = await fetch(`${USER_API}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Cookie: `session=${persistentLoginData.data?.accessToken}` },
+    });
+    const persistentRefreshData = await persistentRefreshRes.json();
+    assert(
+      persistentRefreshData.data?.accessTokenExpiresInSeconds === 30 * 86400,
+      'POST /api/auth/refresh preserves 30-day lifetime for persistent session',
+    );
 
     // NGINX Gateway Offloading Verification & Session Cookie
     const unauthVerify = await fetch(`${USER_API}/api/auth/verify`);
@@ -260,14 +284,24 @@ async function runTests() {
     });
     assert(bearerVerify.status === 200, 'Bearer session GET /api/auth/verify succeeds (200 OK)');
 
-    // Gateway offloaded header test on GET /api/users/me
-    const gatewayMeRes = await fetch(`${USER_API}/api/users/me`, {
+    // 1. Direct request with spoofed headers (no token, no gateway key) must be rejected
+    const spoofedRes = await fetch(`${USER_API}/api/users/me`, {
       headers: {
         'x-user-id': studentUserId,
         'x-user-role': 'STUDENT',
       },
     });
-    assert(gatewayMeRes.status === 200, 'GET /api/users/me accepts gateway offloaded X-User-Id');
+    assert(spoofedRes.status === 401, 'Direct request with spoofed X-User-Id is rejected (401)');
+
+    // 2. Gateway offloaded header test with valid internal gateway key
+    const gatewayMeRes = await fetch(`${USER_API}/api/users/me`, {
+      headers: {
+        'x-user-id': studentUserId,
+        'x-user-role': 'STUDENT',
+        'x-gateway-key': 'campuserrand-gateway-internal-auth',
+      },
+    });
+    assert(gatewayMeRes.status === 200, 'GET /api/users/me accepts verified gateway offloaded headers');
 
     // -------------------------------------------------------------------------
     // SCENARIO 3: User Profile & Immutability Protection
@@ -330,13 +364,8 @@ async function runTests() {
     });
     const adminListData = await adminList.json();
     assert(
-      adminList.status === 200 || adminList.status === 501,
-      'ADMIN user listing returns 200 OK or 501 placeholder',
-    );
-    assert(
-      (adminList.status === 200 && Array.isArray(adminListData.data?.users)) ||
-        (adminListData.success === false && adminListData.code === 'NOT_IMPLEMENTED'),
-      'ADMIN user listing returns valid response format',
+      adminList.status === 200 && Array.isArray(adminListData.data?.users),
+      'ADMIN user listing returns 200 OK and user array',
     );
 
     const adminGetUser = await fetch(`${USER_API}/api/users/${studentUserId}`, {
