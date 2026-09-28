@@ -78,6 +78,22 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
  * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchUsers, supplier create/update/delete/toggle and toggleUserStatus now go through authFetch; getAuthHeaders removed. The public GET /api/suppliers is unchanged.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added a delete (Trash2) button beside each user row's Disable/Reinstate button on the Users page
+ * (desktop table and mobile card), mirroring the existing Delete Supplier button/modal pattern but simplified:
+ * a single "I understand this is irreversible" checkbox gates a red confirm button (no soft/permanent-delete
+ * toggle, since user deletion via DELETE /api/users/:id is always a hard delete). Calls authFetch the same way
+ * toggleUserStatus does. On success the deleted user is filtered out of local state (no refetch, same pattern as
+ * handleDeleteSupplier) and a dismissible "Account Deleted" success modal names the deleted username; closing it
+ * returns to the dashboard. On failure the error is shown inline in the confirmation modal itself.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Fixed a mobile-nav parity bug — added the missing "Audit & Disputes" item to the sub-768px hamburger drawer nav so it matches the desktop sidebar's 4 sections.
+ * Author review: [left for the human author to fill in]
  */
 // AI-generated (edited by yanhwee)
 
@@ -220,6 +236,13 @@ export default function App() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
   const [togglingUserIds, setTogglingUserIds] = useState<Set<string>>(new Set());
+
+  // Delete User Modal state
+  const [deletingUser, setDeletingUser] = useState<UserDTO | null>(null);
+  const [deleteUserConfirmed, setDeleteUserConfirmed] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [deleteUserError, setDeleteUserError] = useState<string | null>(null);
+  const [deletedUserSuccess, setDeletedUserSuccess] = useState<string | null>(null);
 
   const [searchQueryUsers, setSearchQueryUsers] = useState('');
   const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
@@ -681,6 +704,29 @@ export default function App() {
     }
   };
 
+  // 7. Delete User (Admin, via DELETE /api/users/:id)
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setIsDeletingUser(true);
+    setDeleteUserError(null);
+    try {
+      const res = await authFetch(`/api/users/${deletingUser.userId}`, { method: 'DELETE' });
+      if (res.status === 204) {
+        setUsers((prev) => prev.filter((u) => u.userId !== deletingUser.userId));
+        setDeletedUserSuccess(deletingUser.username);
+        setDeletingUser(null);
+        setDeleteUserConfirmed(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setDeleteUserError(data.error || `HTTP ${res.status}: Failed to delete user`);
+      }
+    } catch (err: any) {
+      setDeleteUserError(err.message || 'Failed to delete user');
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
   // Sorting handler
   const handleSort = (field: keyof SupplierDTO) => {
     if (sortField === field) {
@@ -1086,6 +1132,15 @@ export default function App() {
               }`}
             >
               Microservice Health
+            </button>
+            {/* AI-generated (edited by jagdeepsh) */}
+            <button
+              onClick={() => { setActiveNav('audit'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+                activeNav === 'audit' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Audit & Disputes
             </button>
             <div className="pt-2 border-t border-slate-800">
               <button
@@ -1594,15 +1649,28 @@ export default function App() {
                       >
                         {u.status ? 'Active' : 'Disabled'}
                       </span>
-                      <button
-                        disabled={togglingUserIds.has(u.userId)}
-                        onClick={() => toggleUserStatus(u.userId)}
-                        className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                          u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                      >
-                        {togglingUserIds.has(u.userId) ? 'Working…' : u.status ? 'Disable' : 'Reinstate'}
-                      </button>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          disabled={togglingUserIds.has(u.userId)}
+                          onClick={() => toggleUserStatus(u.userId)}
+                          className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                            u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {togglingUserIds.has(u.userId) ? 'Working…' : u.status ? 'Disable' : 'Reinstate'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingUser(u);
+                            setDeleteUserConfirmed(false);
+                            setDeleteUserError(null);
+                          }}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1684,7 +1752,7 @@ export default function App() {
                             </span>
                           )}
                         </td>
-                        <td className="p-3.5 text-right">
+                        <td className="p-3.5 text-right space-x-1">
                           <button
                             disabled={togglingUserIds.has(u.userId)}
                             onClick={() => toggleUserStatus(u.userId)}
@@ -1693,6 +1761,17 @@ export default function App() {
                             }`}
                           >
                             {togglingUserIds.has(u.userId) ? '...' : u.status ? 'Disable' : 'Reinstate'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletingUser(u);
+                              setDeleteUserConfirmed(false);
+                              setDeleteUserError(null);
+                            }}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            title="Delete user"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 inline" />
                           </button>
                         </td>
                       </tr>
@@ -2397,6 +2476,90 @@ export default function App() {
                 {isSubmitting ? 'Deleting...' : isPermanentDelete ? 'Permanently Delete' : 'Deactivate Supplier'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Delete User Account</h3>
+                <p className="text-xs text-slate-500">This action is permanent and cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-900">{deletingUser.username}</div>
+              <div className="text-slate-500">{deletingUser.email}</div>
+            </div>
+
+            {deleteUserError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
+                {deleteUserError}
+              </div>
+            )}
+
+            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteUserConfirmed}
+                onChange={(e) => setDeleteUserConfirmed(e.target.checked)}
+                disabled={isDeletingUser}
+                className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
+              />
+              <span>I understand this action is irreversible and this account will be permanently deleted.</span>
+            </label>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={() => {
+                  setDeletingUser(null);
+                  setDeleteUserConfirmed(false);
+                  setDeleteUserError(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!deleteUserConfirmed || isDeletingUser}
+                onClick={handleDeleteUser}
+                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+              >
+                {isDeletingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isDeletingUser ? 'Deleting…' : 'Delete Account'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Success Modal */}
+      {deletedUserSuccess && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
+              <p className="text-xs text-slate-500 mt-1">"{deletedUserSuccess}"'s account has been permanently deleted.</p>
+            </div>
+            <button
+              onClick={() => setDeletedUserSuccess(null)}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

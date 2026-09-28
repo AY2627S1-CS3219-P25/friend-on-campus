@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "campus-errand-user-supplier-api-tests",
     "name": "Campus Errand - User & Supplier Service API Tests",
-    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).",
+    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch \u2014 user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1455,6 +1455,210 @@
                   "",
                   "pm.test('Error code is ADMIN_REQUIRED', function () {",
                   "    pm.expect(jsonData.code).to.eql('ADMIN_REQUIRED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.18 DELETE /:id - Forbidden (different student)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is FORBIDDEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('FORBIDDEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.19 DELETE /:id - No Token (401)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.20 DELETE /:id - Unknown UUID (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is USER_NOT_FOUND', function () {",
+                  "    pm.expect(jsonData.code).to.eql('USER_NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.21 DELETE /:id - Success (Self)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testUserAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3.22 DELETE /:id - Already Deleted (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/users/{{testUserId}}",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{testUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is USER_NOT_FOUND', function () {",
+                  "    pm.expect(jsonData.code).to.eql('USER_NOT_FOUND');",
                   "});"
                 ]
               }
