@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: replaced the `PATCH /:id/admin` and `POST /:id/promote` sections with `toggle-status`, `toggle-role` and `DELETE /:id`, as implemented in `user-routes.ts`. Describes existing behaviour only.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the User Service authentication and immutable-email profile API contract with shared response fields.
 Author review: <to be completed by ngkhengyang>
@@ -23,7 +29,8 @@ Author review: <to be completed by ngkhengyang>
 # User Service API Reference
 
 The User Service manages account registration, authentication sessions, a user's
-own profile, and administrator access to the user list and account status. Unless
+own profile, account deletion, and administrator access to the user list, account
+status and roles. Unless
 stated otherwise, request and response bodies use JSON. The same contract in OpenAPI
 form is [`docs/api/user-service.yaml`](../../../docs/api/user-service.yaml).
 
@@ -43,8 +50,9 @@ form is [`docs/api/user-service.yaml`](../../../docs/api/user-service.yaml).
   - [`PUT /api/users/me/password`](#put-apiusersmepassword)
 - [Administration endpoints](#administration-endpoints)
   - [`GET /api/users`](#get-apiusers)
-  - [`PATCH /api/users/:id/admin`](#patch-apiusersidadmin)
-  - [`POST /api/users/:id/promote`](#post-apiusersidpromote)
+  - [`PATCH /api/users/:id/toggle-status`](#patch-apiusersidtoggle-status)
+  - [`PATCH /api/users/:id/toggle-role`](#patch-apiusersidtoggle-role)
+  - [`DELETE /api/users/:id`](#delete-apiusersid)
 - [Authentication](#authentication)
 - [Common error responses](#common-error-responses)
 
@@ -446,7 +454,8 @@ In addition to the [authentication errors](#authentication-error-responses):
 
 ## Administration endpoints
 
-All endpoints in this section require an access token whose `role` claim is `ADMIN`.
+All endpoints in this section require an access token whose `role` claim is `ADMIN`,
+except `DELETE /api/users/:id`, which also accepts a caller deleting their own account.
 
 ### `GET /api/users`
 
@@ -490,12 +499,13 @@ Status: `200 OK`
 }
 ```
 
-### `PATCH /api/users/:id/admin`
+### `PATCH /api/users/:id/toggle-status`
 
 Flips the `status` of the account with the given ID: `true` (active) becomes `false`
 (disabled) and the reverse. The route does not compare the target with the caller and
 does not count the remaining `ADMIN` accounts. `status` is stored and returned; login,
-refresh and access-token verification do not read it.
+refresh and access-token verification do not read it. This route was named
+`PATCH /api/users/:id/admin` before.
 
 #### Request
 
@@ -533,22 +543,51 @@ In addition to the [authentication errors](#authentication-error-responses):
 | `404` | `USER_NOT_FOUND` | No account has that UUID. |
 | `500` | — | `:id` is not a UUID; the generic server-error body is returned. |
 
-### `POST /api/users/:id/promote`
+### `PATCH /api/users/:id/toggle-role`
 
-Placeholder. The route returns `501 Not Implemented`; the supplied user ID is not read
-or acted upon.
+Flips the role of the account with the given ID between `STUDENT` and `ADMIN`. The
+caller's own ID is refused. The route does not count the remaining `ADMIN` accounts.
+It replaces the former `POST /api/users/:id/promote` placeholder.
+
+#### Request
+
+```http
+Authorization: Bearer <access-token>
+```
+
+No request body. `:id` is the target user's UUID.
+
+#### Success response
+
+Status: `200 OK`
 
 ```json
 {
-  "success": false,
-  "error": "User administration is not implemented yet",
-  "code": "NOT_IMPLEMENTED"
+  "success": true,
+  "data": {
+    "user": {
+      "userId": "7d0c2f6e-2f5b-4c0e-9d53-6a1b8e0c4a21",
+      "username": "bob",
+      "email": "bob@u.nus.edu",
+      "userRole": "ADMIN",
+      "status": true
+    }
+  }
 }
 ```
 
+#### Error responses
+
+In addition to the [authentication errors](#authentication-error-responses):
+
+| Status | Code | Meaning |
+|---:|---|---|
+| `403` | `SELF_ACTION_FORBIDDEN` | `:id` is the caller's own ID. |
+| `404` | `USER_NOT_FOUND` | No account has that UUID. |
+
 There is no `GET /api/users/:id` route; it returns the `404` "Route not found" body.
 
-For all administration routes, missing or invalid authentication returns the applicable
+For the administration routes above, missing or invalid authentication returns the applicable
 `401` authentication response and a non-`ADMIN` authenticated caller receives:
 
 ```json
@@ -558,6 +597,33 @@ For all administration routes, missing or invalid authentication returns the app
   "code": "ADMIN_REQUIRED"
 }
 ```
+
+### `DELETE /api/users/:id`
+
+Deletes the account with the given ID and, by cascade, its sessions. Any authenticated
+caller may delete their own account; an `ADMIN` may delete any account, including their
+own. The route does not count the remaining `ADMIN` accounts.
+
+#### Request
+
+```http
+Authorization: Bearer <access-token>
+```
+
+No request body. `:id` is the target user's UUID.
+
+#### Success response
+
+Status: `204 No Content`
+
+#### Error responses
+
+In addition to the [authentication errors](#authentication-error-responses):
+
+| Status | Code | Meaning |
+|---:|---|---|
+| `403` | `FORBIDDEN` | A non-`ADMIN` caller sent another user's ID. |
+| `404` | `USER_NOT_FOUND` | No account has that UUID. |
 
 ## Authentication
 

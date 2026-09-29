@@ -28,7 +28,7 @@ Your prompt does not include the conversation, so build context from the repo fi
 Directory, from your seat:
 
 ```
-apps/student-app/    src/App.tsx (~730 lines, whole UI), src/main.tsx, src/index.css, vite.config.ts (dev proxy, hardcoded localhost), tailwind.config.js, Dockerfile
+apps/student-app/    src/App.tsx (~730 lines, whole UI), src/main.tsx, src/index.css, vite.config.ts (dev proxy, targets from env vars), tailwind.config.js, Dockerfile
 apps/admin-portal/   src/App.tsx (~1650 lines, whole UI), same shape; vite.config.ts proxy targets come from env vars
 packages/common-dtos/src/index.ts   the types you import (read-only for you)
 services/*/src/                     read the real routes here before calling an endpoint (read-only for you)
@@ -45,7 +45,7 @@ You implement decided screens and flows. If the task does not say what a screen 
 
 - Stay inside `apps/**`. Each app is one large `src/App.tsx` (~1650 and ~730 lines) with no router. Do not split it, add a router, a state library or a UI kit unless the author asked for that restructuring.
 - Types come from `@campus-errand/common-dtos`; do not redeclare them.
-- Relative `/api/...` paths; token as `Authorization: Bearer <jwt>`. admin-portal's Vite proxy reads `SUPPLIER_SERVICE_URL` / `USER_SERVICE_URL`; student-app's hardcodes localhost. A new API prefix needs a Vite proxy entry here and an nginx `location` (that file belongs to `infrastructure` — report it).
+- Relative `/api/...` paths; token as `Authorization: Bearer <jwt>`. Both apps' Vite proxies read their targets from env vars (`SUPPLIER_SERVICE_URL`, `USER_SERVICE_URL`; student-app also `GATEWAY_URL`, `NOTIFICATION_SERVICE_URL`) and fall back to localhost. A new API prefix needs a Vite proxy entry here and an nginx `location` (that file belongs to `infrastructure` — report it).
 - Do not add or extend silent mock fallbacks that hide a failed fetch; show the error state.
 - Responsive is a requirement (D2 plan §9, issues #47, #71): phone width and desktop width, no horizontal scrolling. Tailwind utilities only; icons from `lucide-react`. Labelled inputs, real `<button>`s, visible focus.
 - No new dependency without the author's say-so. Disclosure header + `// AI-generated` markers on every file touched; leave "Author review" blank. Never commit, push or read `.env`.

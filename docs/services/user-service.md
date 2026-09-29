@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: replaced `PATCH /:id/admin` and `POST /:id/promote` with `toggle-status`, `toggle-role` and `DELETE /:id` in the API table, the roles table and the behaviour notes, as implemented in `user-routes.ts`. Existing behaviour only.
+Author review: <to be completed by the service owner>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this page from services/user-service source, docker-compose.yml, the init SQL and D1 / D2-plan text. Descriptive only.
 Author review: <to be completed by the service owner>
@@ -56,8 +62,8 @@ Author review: <to be completed by the service owner>
 ## Responsibilities
 
 The service owns account registration, login sessions, refresh-token rotation, logout,
-an authenticated user's profile and password, and the ADMIN-only user list and account
-status toggle. Other services verify issued access tokens locally with `@campus-errand/auth`.
+an authenticated user's profile and password, account deletion (own account, or any account
+for an ADMIN), and the ADMIN-only user list, account status toggle and role toggle. Other services verify issued access tokens locally with `@campus-errand/auth`.
 
 ## Run
 
@@ -113,10 +119,12 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | `PATCH /api/users/me` | Bearer token | Updates username only; any other field in the body (`role`, `status`, `userId`, `email`) → 400 `INVALID_INPUT`. Taken username → 409 `DUPLICATE_USERNAME`. |
 | `PUT /api/users/me/password` | Bearer token | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
 | `GET /api/users` | ADMIN Bearer token | 200 `{ users: [{ userId, username, email, userRole, status }] }`. |
-| `PATCH /api/users/:id/admin` | ADMIN Bearer token | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `POST /api/users/:id/promote` | ADMIN Bearer token | Deferred placeholder; returns a structured `501` with code `NOT_IMPLEMENTED`. |
+| `PATCH /api/users/:id/toggle-status` | ADMIN Bearer token | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `DELETE /api/users/:id` | Bearer token; own id, or ADMIN for any id | Deletes the account and, by cascade, its sessions; 204; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
 
-There is no `GET /api/users/:id` route (404 "Route not found").
+There is no `GET /api/users/:id` route (404 "Route not found"). `PATCH /api/users/:id/admin` and
+`POST /api/users/:id/promote` no longer exist; the two toggle routes above replaced them.
 
 The endpoint-level request and response examples are in
 [`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md);
@@ -127,20 +135,24 @@ the OpenAPI form is [`../api/user-service.yaml`](../api/user-service.yaml). Sche
 ## Roles as enforced
 
 What the code allows today, from `user-routes.ts`, `supplierRoutes.ts` and the D2 UAT (`../evidence/d2/d2-checklist.md`).
-Denials: no/invalid/expired token → 401 `MISSING_TOKEN` / `INVALID_TOKEN` / `TOKEN_EXPIRED`; wrong role → 403 `ADMIN_REQUIRED`.
+Denials: no/invalid/expired token → 401 `MISSING_TOKEN` / `INVALID_TOKEN` / `TOKEN_EXPIRED`; wrong role → 403 `ADMIN_REQUIRED`;
+another user's account on `DELETE` → 403 `FORBIDDEN`; own id on `toggle-role` → 403 `SELF_ACTION_FORBIDDEN`.
 
 | Action | Guest (no token) | `STUDENT` | `ADMIN` |
 |---|---|---|---|
 | Register, log in, refresh, log out (`/api/auth/*`) | yes | yes | yes |
 | Read / edit own profile, change own password (`/api/users/me*`) | 401 | yes | yes |
 | List users (`GET /api/users`) | 401 | 403 | yes |
-| Enable / disable an account (`PATCH /api/users/:id/admin`) | 401 | 403 | yes |
-| Promote a user (`POST /api/users/:id/promote`) | 401 | 403 | 501 |
+| Enable / disable an account (`PATCH /api/users/:id/toggle-status`) | 401 | 403 | yes |
+| Promote or demote a user (`PATCH /api/users/:id/toggle-role`) | 401 | 403 | yes, except own id (403) |
+| Delete own account (`DELETE /api/users/:id`) | 401 | yes | yes |
+| Delete another user's account (`DELETE /api/users/:id`) | 401 | 403 | yes |
 | List, search, read suppliers (`GET /api/suppliers`, `/:id`) | yes | yes | yes |
 | Create, edit, toggle, delete suppliers | 401 | 403 | yes |
 | Log in to the admin portal UI | — | refused by the portal's login gate | yes |
 
-New registrations always get `STUDENT`. The only `ADMIN` account is the seeded one.
+New registrations always get `STUDENT`. After a fresh seed the only `ADMIN` is the seeded account; an `ADMIN` can make
+another user an `ADMIN` with `toggle-role`. The seed puts the three seed accounts' roles back on every container boot.
 
 ## Authentication and sessions
 
@@ -161,11 +173,14 @@ password to the values above. The seed does not write `status`.
 
 ## Behaviour as built
 
-Observed on `main` @ f0ee632 (UAT check IDs in brackets, see `../evidence/d2/d2-checklist.md`).
+Items with a UAT check ID in brackets were observed on `main` @ f0ee632 (see `../evidence/d2/d2-checklist.md`);
+the items about `toggle-role` and `DELETE` are read from the code and have not been run in a UAT.
 
 - `status` is stored and returned but not read by login, refresh or the auth middleware: a disabled account still logs in [A6], and its existing access token and refresh session keep working [A11].
-- `PATCH /api/users/:id/admin` does not compare the target with the caller or count remaining admins: the seeded admin can disable its own account, including when it is the only `ADMIN` [A8].
-- A non-UUID `:id` on that route returns 500 `Internal server error` [A10].
+- `PATCH /api/users/:id/toggle-role` refuses the caller's own id (compared in lower case) and does not count remaining admins.
+- `DELETE /api/users/:id` does not count remaining admins and does not refuse an `ADMIN` deleting their own account.
+- `PATCH /api/users/:id/toggle-status` (formerly `/admin`) does not compare the target with the caller or count remaining admins: the seeded admin can disable its own account, including when it is the only `ADMIN` [A8].
+- A non-UUID `:id` on `toggle-status` returns 500 `Internal server error` [A10].
 - Refresh rotation: a replayed (already rotated) refresh cookie gets 401 `INVALID_SESSION`; the current cookie keeps working [L7, L8].
 - Refresh cookie: `HttpOnly`, `Path=/api/auth`, about 1 day, or about 30 days with `keepLoggedIn: true` [L2, L5].
 - No password or password hash appears in any response [R3, P3].
@@ -173,5 +188,6 @@ Observed on `main` @ f0ee632 (UAT check IDs in brackets, see `../evidence/d2/d2-
 
 ## Tests
 
-- `npm run test:d2` — 40/44 on f0ee632. The 4 failures are assertions that expect `GET /api/users` and `GET /api/users/:id` to return `501`.
-- `node scripts/uat/uat-d2-api.mjs` — 63 API checks against a running stack; results in `../evidence/d2/`.
+- `npm run test:d2` — Scenario 4 covers the user list, `toggle-status` and `toggle-role`. The last recorded run (40/44, on f0ee632) predates that rewrite.
+- `tests/postman/` — Postman collection and environment for this service and Supplier Service, run against ports 8001 / 8002.
+- `node scripts/uat/uat-d2-api.mjs` — 63 API checks against a running stack; the recorded results in `../evidence/d2/` are from f0ee632.

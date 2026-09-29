@@ -78,6 +78,77 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
  * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchUsers, supplier create/update/delete/toggle and toggleUserStatus now go through authFetch; getAuthHeaders removed. The public GET /api/suppliers is unchanged.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added a delete (Trash2) button beside each user row's Disable/Reinstate button on the Users page
+ * (desktop table and mobile card), mirroring the existing Delete Supplier button/modal pattern but simplified:
+ * a single "I understand this is irreversible" checkbox gates a red confirm button (no soft/permanent-delete
+ * toggle, since user deletion via DELETE /api/users/:id is always a hard delete). Calls authFetch the same way
+ * toggleUserStatus does. On success the deleted user is filtered out of local state (no refetch, same pattern as
+ * handleDeleteSupplier) and a dismissible "Account Deleted" success modal names the deleted username; closing it
+ * returns to the dashboard. On failure the error is shown inline in the confirmation modal itself.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: toggleUserStatus() now calls PATCH /api/users/:id/toggle-status instead of the old .../admin path
+ * (backend route renamed to stop implying it changes the ADMIN role, which it never did — it only ever flips
+ * the status boolean).
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Fixed a mobile-nav parity bug — added the missing "Audit & Disputes" item to the sub-768px hamburger drawer nav so it matches the desktop sidebar's 4 sections.
+ * Author review: [left for the human author to fill in]
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Added an Upgrade/Downgrade role-toggle button to each user row (desktop table + mobile card), right
+ * beside Disable/Reinstate — green "Upgrade" for a STUDENT, red "Downgrade" for an ADMIN. Opens a confirmation
+ * modal modeled on the existing Delete User modal (same backdrop/card/checkbox/spinner shape, colored per
+ * action) calling the existing PATCH /api/users/:id/toggle-role via authFetch. On success the row updates in
+ * place from the server's returned user (no popup, no refetch, same silent-update convention as
+ * toggleUserStatus); on failure the error shows inline in the still-open modal, which also naturally surfaces
+ * the backend's "Admins cannot change their own role" message if the admin targets their own row — no
+ * client-side self-id check needed, the backend already enforces and reports it.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Added a client-side self-targeting check to handleToggleUserRole, ahead of the previous round's
+ * backend-only enforcement — added a new decodeJwtUserId() helper (reads the JWT's `sub` claim, same pattern as
+ * the existing decodeJwtRole) and a currentAdminUserId state, set at login and on session-restore, cleared on
+ * logout. If the row being toggled matches the logged-in admin's own id, the exact same error message the
+ * backend would return ("Admins cannot change their own role") is shown instantly, with no API call made — a
+ * pure UX optimization to avoid a wasted round-trip for an action that was already guaranteed to fail; the
+ * backend's own SELF_ACTION_FORBIDDEN check remains the actual enforcement and is unchanged.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Reverted the client-side self-targeting check above (author-requested) — removed decodeJwtUserId(),
+ * currentAdminUserId state, and handleToggleUserRole's early-return short-circuit. Self-downgrade is once again
+ * caught only by the backend's SELF_ACTION_FORBIDDEN check, surfaced via the confirmation modal's existing
+ * inline error box exactly as it was before this round. Everything else from the previous round (the
+ * Upgrade/Downgrade button, confirmation modal, and handleToggleUserRole's API call itself) is unchanged.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Add/Edit Supplier modals: Building and Floor are now required (red asterisk, validateSupplierForm
+ * check, no API call sent until both are filled), matching the new backend uniqueness rule on
+ * (name, category, building, floor). Added a new legend line under each modal's existing "Fields marked with *"
+ * text warning that duplicate suppliers of the same category/location are rejected. When POST/PUT /api/suppliers
+ * returns 409 with a `duplicate` object, it's now captured into new addDuplicateConflict/editDuplicateConflict
+ * state and shown as its own inline box inside the modal (not the top-level actionAlert banner, which would be
+ * hidden behind the modal's backdrop while it's open) naming the specific conflicting supplier's
+ * name/category/building/floor. Reset at every existing open/cancel/close touchpoint for both modals.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 
@@ -143,6 +214,14 @@ function decodeJwtRole(token: string): string | null {
 // Demo tokens for live mentor evaluation
 type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
 
+// The conflicting record returned by POST/PUT /api/suppliers on a 409 (same name/category/building/floor).
+interface SupplierLocationConflict {
+  name: string;
+  category: string;
+  building: string;
+  floor: string;
+}
+
 export default function App() {
   const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit' | 'users'>('suppliers');
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
@@ -197,11 +276,13 @@ export default function App() {
     closingTime: '2000hrs',
   });
   const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
+  const [addDuplicateConflict, setAddDuplicateConflict] = useState<SupplierLocationConflict | null>(null);
 
   // Edit Supplier Modal state
   const [editingSupplier, setEditingSupplier] = useState<SupplierDTO | null>(null);
   const [editFormData, setEditFormData] = useState<UpdateSupplierRequest>({});
   const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
+  const [editDuplicateConflict, setEditDuplicateConflict] = useState<SupplierLocationConflict | null>(null);
 
   // Delete Supplier Modal state
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierDTO | null>(null);
@@ -220,6 +301,19 @@ export default function App() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
   const [togglingUserIds, setTogglingUserIds] = useState<Set<string>>(new Set());
+
+  // Delete User Modal state
+  const [deletingUser, setDeletingUser] = useState<UserDTO | null>(null);
+  const [deleteUserConfirmed, setDeleteUserConfirmed] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [deleteUserError, setDeleteUserError] = useState<string | null>(null);
+  const [deletedUserSuccess, setDeletedUserSuccess] = useState<string | null>(null);
+
+  // Upgrade/Downgrade User Role Modal state
+  const [togglingRoleUser, setTogglingRoleUser] = useState<UserDTO | null>(null);
+  const [toggleRoleConfirmed, setToggleRoleConfirmed] = useState(false);
+  const [isTogglingRole, setIsTogglingRole] = useState(false);
+  const [toggleRoleError, setToggleRoleError] = useState<string | null>(null);
 
   const [searchQueryUsers, setSearchQueryUsers] = useState('');
   const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
@@ -474,12 +568,16 @@ export default function App() {
     campusZone?: string;
     category?: string;
     exactLocation?: string;
+    building?: string;
+    floor?: string;
   }) => {
     const errors: Record<string, string> = {};
     if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
     if (!data.campusZone?.trim()) errors.campusZone = 'Campus Zone is required.';
     if (!data.category?.trim()) errors.category = 'Category is required.';
     if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
+    if (!data.building?.trim()) errors.building = 'Building is required.';
+    if (!data.floor?.trim()) errors.floor = 'Floor is required.';
     return errors;
   };
 
@@ -492,6 +590,7 @@ export default function App() {
       return;
     }
     setAddFormErrors({});
+    setAddDuplicateConflict(null);
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -517,6 +616,7 @@ export default function App() {
           closingTime: '2000hrs',
         });
       } else {
+        if (data.duplicate) setAddDuplicateConflict(data.duplicate);
         setActionAlert({
           type: 'error',
           message: data.message || data.error || `HTTP ${res.status}: Failed to create supplier`,
@@ -545,6 +645,7 @@ export default function App() {
       isActive: supplier.isActive,
     });
     setEditFormErrors({});
+    setEditDuplicateConflict(null);
   };
 
   // 3. Save Edit Supplier Handler
@@ -557,6 +658,7 @@ export default function App() {
       return;
     }
     setEditFormErrors({});
+    setEditDuplicateConflict(null);
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -570,6 +672,7 @@ export default function App() {
         setEditingSupplier(null);
         setActionAlert({ type: 'success', message: `Supplier "${data.data.name}" updated successfully.` });
       } else {
+        if (data.duplicate) setEditDuplicateConflict(data.duplicate);
         setActionAlert({
           type: 'error',
           message: data.message || data.error || `HTTP ${res.status}: Failed to update supplier`,
@@ -648,12 +751,12 @@ export default function App() {
     }
   };
 
-  // 6. Toggle User Status (Admin-only, via PATCH /api/users/:id/admin)
+  // 6. Toggle User Status (Admin-only, via PATCH /api/users/:id/toggle-status)
   const toggleUserStatus = async (userId: string) => {
     setTogglingUserIds((prev) => new Set(prev).add(userId));
     setActionAlert(null);
     try {
-      const res = await authFetch(`/api/users/${userId}/admin`, {
+      const res = await authFetch(`/api/users/${userId}/toggle-status`, {
         method: 'PATCH',
       });
       const data = await res.json();
@@ -678,6 +781,52 @@ export default function App() {
         next.delete(userId);
         return next;
       });
+    }
+  };
+
+  // 7. Delete User (Admin, via DELETE /api/users/:id)
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setIsDeletingUser(true);
+    setDeleteUserError(null);
+    try {
+      const res = await authFetch(`/api/users/${deletingUser.userId}`, { method: 'DELETE' });
+      if (res.status === 204) {
+        setUsers((prev) => prev.filter((u) => u.userId !== deletingUser.userId));
+        setDeletedUserSuccess(deletingUser.username);
+        setDeletingUser(null);
+        setDeleteUserConfirmed(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setDeleteUserError(data.error || `HTTP ${res.status}: Failed to delete user`);
+      }
+    } catch (err: any) {
+      setDeleteUserError(err.message || 'Failed to delete user');
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
+  // 8. Upgrade/Downgrade User Role (Admin-only, via PATCH /api/users/:id/toggle-role)
+  const handleToggleUserRole = async () => {
+    if (!togglingRoleUser) return;
+    setIsTogglingRole(true);
+    setToggleRoleError(null);
+    try {
+      const res = await authFetch(`/api/users/${togglingRoleUser.userId}/toggle-role`, { method: 'PATCH' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updatedUser: UserDTO = data.data.user;
+        setUsers((prev) => prev.map((u) => (u.userId === updatedUser.userId ? updatedUser : u)));
+        setTogglingRoleUser(null);
+        setToggleRoleConfirmed(false);
+      } else {
+        setToggleRoleError(data.error || `HTTP ${res.status}: Failed to update user role`);
+      }
+    } catch (err: any) {
+      setToggleRoleError(err.message || 'Failed to update user role');
+    } finally {
+      setIsTogglingRole(false);
     }
   };
 
@@ -1044,6 +1193,7 @@ export default function App() {
               <button
                 onClick={() => {
                   setAddFormErrors({});
+                  setAddDuplicateConflict(null);
                   setIsAddOpen(true);
                 }}
                 className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
@@ -1086,6 +1236,15 @@ export default function App() {
               }`}
             >
               Microservice Health
+            </button>
+            {/* AI-generated (edited by jagdeepsh) */}
+            <button
+              onClick={() => { setActiveNav('audit'); setMobileMenuOpen(false); }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+                activeNav === 'audit' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Audit & Disputes
             </button>
             <div className="pt-2 border-t border-slate-800">
               <button
@@ -1594,15 +1753,40 @@ export default function App() {
                       >
                         {u.status ? 'Active' : 'Disabled'}
                       </span>
-                      <button
-                        disabled={togglingUserIds.has(u.userId)}
-                        onClick={() => toggleUserStatus(u.userId)}
-                        className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                          u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                      >
-                        {togglingUserIds.has(u.userId) ? 'Working…' : u.status ? 'Disable' : 'Reinstate'}
-                      </button>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          disabled={togglingUserIds.has(u.userId)}
+                          onClick={() => toggleUserStatus(u.userId)}
+                          className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                            u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {togglingUserIds.has(u.userId) ? 'Working…' : u.status ? 'Disable' : 'Reinstate'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setTogglingRoleUser(u);
+                            setToggleRoleConfirmed(false);
+                            setToggleRoleError(null);
+                          }}
+                          className={`text-xs font-bold px-2.5 py-1 rounded transition ${
+                            u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {u.userRole === 'ADMIN' ? 'Downgrade' : 'Upgrade'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingUser(u);
+                            setDeleteUserConfirmed(false);
+                            setDeleteUserError(null);
+                          }}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                          title="Delete user"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1684,7 +1868,7 @@ export default function App() {
                             </span>
                           )}
                         </td>
-                        <td className="p-3.5 text-right">
+                        <td className="p-3.5 text-right space-x-1">
                           <button
                             disabled={togglingUserIds.has(u.userId)}
                             onClick={() => toggleUserStatus(u.userId)}
@@ -1693,6 +1877,29 @@ export default function App() {
                             }`}
                           >
                             {togglingUserIds.has(u.userId) ? '...' : u.status ? 'Disable' : 'Reinstate'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTogglingRoleUser(u);
+                              setToggleRoleConfirmed(false);
+                              setToggleRoleError(null);
+                            }}
+                            className={`text-xs font-bold px-2.5 py-1 rounded transition ${
+                              u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {u.userRole === 'ADMIN' ? 'Downgrade' : 'Upgrade'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletingUser(u);
+                              setDeleteUserConfirmed(false);
+                              setDeleteUserError(null);
+                            }}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            title="Delete user"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 inline" />
                           </button>
                         </td>
                       </tr>
@@ -1967,6 +2174,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setAddFormErrors({});
+                  setAddDuplicateConflict(null);
                   setIsAddOpen(false);
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -1978,6 +2186,22 @@ export default function App() {
             <p className="text-[11px] text-slate-400">
               Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
             </p>
+            <p className="text-[11px] text-slate-400">
+              Admins are not allowed to create duplicate suppliers of the same category and location.
+            </p>
+
+            {addDuplicateConflict && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-1">
+                <p className="font-bold">Duplicate supplier found</p>
+                <p>An existing supplier already occupies this exact spot:</p>
+                <ul className="list-disc list-inside">
+                  <li>Name: {addDuplicateConflict.name}</li>
+                  <li>Category: {addDuplicateConflict.category}</li>
+                  <li>Building: {addDuplicateConflict.building}</li>
+                  <li>Floor: {addDuplicateConflict.floor}</li>
+                </ul>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2067,7 +2291,10 @@ export default function App() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Building</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Building <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.building && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.building}</p>}
                 <input
                   type="text"
                   placeholder="e.g. COM3"
@@ -2078,7 +2305,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Floor</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Floor <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.floor && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.floor}</p>}
                 <input
                   type="text"
                   placeholder="e.g. 1"
@@ -2129,6 +2359,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setAddFormErrors({});
+                  setAddDuplicateConflict(null);
                   setIsAddOpen(false);
                 }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -2165,6 +2396,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setEditFormErrors({});
+                  setEditDuplicateConflict(null);
                   setEditingSupplier(null);
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -2176,6 +2408,22 @@ export default function App() {
             <p className="text-[11px] text-slate-400">
               Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
             </p>
+            <p className="text-[11px] text-slate-400">
+              Admins are not allowed to create duplicate suppliers of the same category and location.
+            </p>
+
+            {editDuplicateConflict && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-1">
+                <p className="font-bold">Duplicate supplier found</p>
+                <p>An existing supplier already occupies this exact spot:</p>
+                <ul className="list-disc list-inside">
+                  <li>Name: {editDuplicateConflict.name}</li>
+                  <li>Category: {editDuplicateConflict.category}</li>
+                  <li>Building: {editDuplicateConflict.building}</li>
+                  <li>Floor: {editDuplicateConflict.floor}</li>
+                </ul>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2265,7 +2513,10 @@ export default function App() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Building</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Building <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.building && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.building}</p>}
                 <input
                   type="text"
                   value={editFormData.building || ''}
@@ -2275,7 +2526,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Floor</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Floor <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.floor && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.floor}</p>}
                 <input
                   type="text"
                   value={editFormData.floor || ''}
@@ -2322,6 +2576,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setEditFormErrors({});
+                  setEditDuplicateConflict(null);
                   setEditingSupplier(null);
                 }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -2395,6 +2650,189 @@ export default function App() {
                 className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
               >
                 {isSubmitting ? 'Deleting...' : isPermanentDelete ? 'Permanently Delete' : 'Deactivate Supplier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Delete User Account</h3>
+                <p className="text-xs text-slate-500">This action is permanent and cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-900">{deletingUser.username}</div>
+              <div className="text-slate-500">{deletingUser.email}</div>
+            </div>
+
+            {deleteUserError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
+                {deleteUserError}
+              </div>
+            )}
+
+            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteUserConfirmed}
+                onChange={(e) => setDeleteUserConfirmed(e.target.checked)}
+                disabled={isDeletingUser}
+                className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
+              />
+              <span>I understand this action is irreversible and this account will be permanently deleted.</span>
+            </label>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={() => {
+                  setDeletingUser(null);
+                  setDeleteUserConfirmed(false);
+                  setDeleteUserError(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!deleteUserConfirmed || isDeletingUser}
+                onClick={handleDeleteUser}
+                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+              >
+                {isDeletingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isDeletingUser ? 'Deleting…' : 'Delete Account'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Success Modal */}
+      {deletedUserSuccess && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
+              <p className="text-xs text-slate-500 mt-1">"{deletedUserSuccess}"'s account has been permanently deleted.</p>
+            </div>
+            <button
+              onClick={() => setDeletedUserSuccess(null)}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade/Downgrade User Role Confirmation Modal */}
+      {togglingRoleUser && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div
+              className={`flex items-center space-x-3 ${
+                togglingRoleUser.userRole === 'ADMIN' ? 'text-rose-600' : 'text-emerald-600'
+              }`}
+            >
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  togglingRoleUser.userRole === 'ADMIN' ? 'bg-rose-50' : 'bg-emerald-50'
+                }`}
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">
+                  {togglingRoleUser.userRole === 'ADMIN' ? 'Downgrade to Student' : 'Upgrade to Admin'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {togglingRoleUser.userRole === 'ADMIN'
+                    ? 'This account will lose Administrator access.'
+                    : 'This account will gain full Administrator access.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="font-bold text-slate-900">{togglingRoleUser.username}</div>
+              <div className="text-slate-500">{togglingRoleUser.email}</div>
+            </div>
+
+            {toggleRoleError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
+                {toggleRoleError}
+              </div>
+            )}
+
+            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={toggleRoleConfirmed}
+                onChange={(e) => setToggleRoleConfirmed(e.target.checked)}
+                disabled={isTogglingRole}
+                className={`rounded mt-0.5 ${
+                  togglingRoleUser.userRole === 'ADMIN'
+                    ? 'text-rose-600 focus:ring-rose-500'
+                    : 'text-emerald-600 focus:ring-emerald-500'
+                }`}
+              />
+              <span>
+                Yes, I am sure I want to{' '}
+                {togglingRoleUser.userRole === 'ADMIN'
+                  ? 'downgrade this admin to a student'
+                  : 'upgrade this student to an admin'}
+                .
+              </span>
+            </label>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isTogglingRole}
+                onClick={() => {
+                  setTogglingRoleUser(null);
+                  setToggleRoleConfirmed(false);
+                  setToggleRoleError(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!toggleRoleConfirmed || isTogglingRole}
+                onClick={handleToggleUserRole}
+                className={`flex items-center justify-center space-x-2 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow ${
+                  togglingRoleUser.userRole === 'ADMIN'
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {isTogglingRole && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>
+                  {isTogglingRole
+                    ? togglingRoleUser.userRole === 'ADMIN'
+                      ? 'Downgrading…'
+                      : 'Upgrading…'
+                    : togglingRoleUser.userRole === 'ADMIN'
+                      ? 'Downgrade'
+                      : 'Upgrade'}
+                </span>
               </button>
             </div>
           </div>

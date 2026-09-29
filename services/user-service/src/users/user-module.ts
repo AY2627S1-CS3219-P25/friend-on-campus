@@ -12,6 +12,23 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added deleteUser() and the FORBIDDEN error code for the new DELETE /api/users/:id endpoint. Role/self
+ * authorization for this route is enforced at the route layer (requireSelfOrAdmin in user-routes.ts), not here —
+ * this method trusts that check has already passed, same as toggleUserStatus trusts requireAdmin.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added toggleUserRole() (flips STUDENT<->ADMIN, backing the new PATCH /:id/toggle-role) and the
+ * SELF_ACTION_FORBIDDEN error code (an admin may not change their own role — enforced at the route layer, same
+ * split as toggleUserStatus/deleteUser). Removed the NOT_IMPLEMENTED error code — nothing throws it anymore
+ * now that the old promote stub is gone.
+ * Author review: (to be completed by author after review)
+ */
 import type {
   ChangePasswordRequest,
   UpdateUserProfileRequest,
@@ -31,6 +48,8 @@ export interface UserModule {
   updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
   changePassword(userId: string, input: ChangePasswordRequest): Promise<void>;
   toggleUserStatus(targetUserId: string): Promise<UserDTO>;
+  toggleUserRole(targetUserId: string): Promise<UserDTO>;
+  deleteUser(targetUserId: string): Promise<void>;
 }
 
 export type UserErrorCode =
@@ -38,7 +57,8 @@ export type UserErrorCode =
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
-  | 'NOT_IMPLEMENTED';
+  | 'FORBIDDEN'
+  | 'SELF_ACTION_FORBIDDEN';
 
 export class UserError extends Error {
   constructor(
@@ -179,6 +199,22 @@ export function createUserModule(options: UserModuleOptions): UserModule {
       }
 
       return toUserDTO(user);
+    },
+
+    async toggleUserRole(targetUserId) {
+      const user = await options.repository.toggleRole(targetUserId);
+      if (!user) {
+        throw new UserError('USER_NOT_FOUND', 'User not found');
+      }
+
+      return toUserDTO(user);
+    },
+
+    async deleteUser(targetUserId) {
+      const deleted = await options.repository.deleteById(targetUserId);
+      if (!deleted) {
+        throw new UserError('USER_NOT_FOUND', 'User not found');
+      }
     },
   };
 }

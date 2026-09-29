@@ -27,6 +27,28 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Rewrote Scenario 4 (renamed from "Deferred Administration Endpoint Authorization" — nothing there is
+ * deferred anymore). Fixed two assertions that were already stale before this change (found during
+ * investigation, unrelated to the rename): the user list has returned a real 200 for a while, not 501; and the
+ * GET /api/users/:id check was asserting 501 for a route that was never implemented at all (no route matches
+ * it, so it 404s). Replaced the old promote-returns-501 checks with real coverage of PATCH /:id/toggle-status
+ * and PATCH /:id/toggle-role (both endpoints renamed/implemented this session): forbidden-for-student on both,
+ * an admin round-tripping a target's status and role in both directions (asserting the value actually flips
+ * each way, not just the status code), an admin blocked from targeting their own id for toggle-role, and an
+ * unknown-UUID 404.
+ * Author review: (to be completed by author after review)
+ */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+ * Scope: PR #93 review fix: Scenario 6 sends the now-required building and floor when the admin creates the
+ * test supplier, and asserts that a create without them is rejected with 400. The test supplier's name
+ * carries the random test code, so a row left by an aborted run cannot trip the uniqueness rule.
+ * Author review: (to be completed by author after review)
+ */
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
@@ -277,57 +299,93 @@ async function runTests() {
     assert(updateData.data?.user?.username === `${testUsername}-updated`, 'Username updates successfully');
 
     // -------------------------------------------------------------------------
-    // SCENARIO 4: Deferred Administration Endpoint Authorization
+    // SCENARIO 4: User Listing, Status & Role Administration
     // -------------------------------------------------------------------------
-    console.log('\n--- Scenario 4: Deferred Administration Endpoint Authorization ---');
+    console.log('\n--- Scenario 4: User Listing, Status & Role Administration ---');
 
     const unauthenticatedList = await fetch(`${USER_API}/api/users`);
     assert(unauthenticatedList.status === 401, 'Unauthenticated user-management request is rejected (401)');
-
-    const studentPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
-      },
-    });
-    assert(studentPromote.status === 403, 'Student cannot access user-management routes (403)');
 
     const adminList = await fetch(`${USER_API}/api/users`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     });
     const adminListData = await adminList.json();
-    assert(adminList.status === 501, 'ADMIN user listing placeholder returns 501 Not Implemented');
-    assert(
-      adminListData.success === false &&
-        adminListData.code === 'NOT_IMPLEMENTED' &&
-        adminListData.error === 'User management is not implemented',
-      'ADMIN user listing placeholder returns a structured error',
-    );
+    assert(adminList.status === 200, 'ADMIN user listing succeeds (200 OK)');
+    assert(Array.isArray(adminListData.data?.users), 'User listing returns an array of users');
 
-    const adminGetUser = await fetch(`${USER_API}/api/users/${studentUserId}`, {
+    // Student cannot reach either admin-only management route, even on their own id.
+    const studentToggleStatus = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${studentToken}` },
+    });
+    const studentToggleStatusData = await studentToggleStatus.json();
+    assert(studentToggleStatus.status === 403, 'Student cannot call toggle-status, even on themselves (403)');
+    assert(studentToggleStatusData.code === 'ADMIN_REQUIRED', 'toggle-status forbidden response has code ADMIN_REQUIRED');
+
+    const studentToggleRole = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${studentToken}` },
+    });
+    const studentToggleRoleData = await studentToggleRole.json();
+    assert(studentToggleRole.status === 403, 'Student cannot call toggle-role, even on themselves (403)');
+    assert(studentToggleRoleData.code === 'ADMIN_REQUIRED', 'toggle-role forbidden response has code ADMIN_REQUIRED');
+
+    // Admin toggles the test student's active status off, then back on — asserting the boolean
+    // actually flips each way, not just that the call succeeds.
+    const adminDeactivate = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
+      method: 'PATCH',
       headers: { Authorization: `Bearer ${adminToken}` },
     });
-    const adminGetUserData = await adminGetUser.json();
-    assert(adminGetUser.status === 501, 'ADMIN user lookup placeholder returns 501 Not Implemented');
-    assert(
-      adminGetUserData.success === false && adminGetUserData.code === 'NOT_IMPLEMENTED',
-      'ADMIN user lookup placeholder returns a structured error',
-    );
+    const adminDeactivateData = await adminDeactivate.json();
+    assert(adminDeactivate.status === 200, 'Admin toggle-status (deactivate) succeeds (200 OK)');
+    assert(adminDeactivateData.data?.user?.status === false, 'Target user status flips to false (deactivated)');
 
-    const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
-      },
+    const adminReactivate = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const adminReactivateData = await adminReactivate.json();
+    assert(adminReactivate.status === 200, 'Admin toggle-status (reactivate) succeeds (200 OK)');
+    assert(adminReactivateData.data?.user?.status === true, 'Target user status flips back to true (active)');
+
+    // Admin toggles the test student's role STUDENT -> ADMIN -> STUDENT, same round-trip idea.
+    const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
     });
     const adminPromoteData = await adminPromote.json();
-    assert(adminPromote.status === 501, 'ADMIN promotion placeholder returns 501 Not Implemented');
+    assert(adminPromote.status === 200, 'Admin toggle-role (promote) succeeds (200 OK)');
+    assert(adminPromoteData.data?.user?.userRole === 'ADMIN', 'Target user role flips to ADMIN');
+
+    const adminDemote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const adminDemoteData = await adminDemote.json();
+    assert(adminDemote.status === 200, 'Admin toggle-role (demote) succeeds (200 OK)');
+    assert(adminDemoteData.data?.user?.userRole === 'STUDENT', 'Target user role flips back to STUDENT');
+
+    // An admin may never change their own role.
+    const adminSelfToggleRole = await fetch(`${USER_API}/api/users/${adminLoginData.data?.user?.userId}/toggle-role`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const adminSelfToggleRoleData = await adminSelfToggleRole.json();
+    assert(adminSelfToggleRole.status === 403, 'Admin cannot toggle-role on their own id (403)');
     assert(
-      adminPromoteData.success === false && adminPromoteData.code === 'NOT_IMPLEMENTED',
-      'ADMIN promotion placeholder returns a structured error',
+      adminSelfToggleRoleData.code === 'SELF_ACTION_FORBIDDEN',
+      'Self-targeting toggle-role response has code SELF_ACTION_FORBIDDEN',
     );
+
+    // Both admin routes 404 cleanly on an unknown (but well-formed) UUID.
+    const unknownUserId = '00000000-0000-4000-8000-000000000000';
+    const adminToggleRoleUnknown = await fetch(`${USER_API}/api/users/${unknownUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const adminToggleRoleUnknownData = await adminToggleRoleUnknown.json();
+    assert(adminToggleRoleUnknown.status === 404, 'toggle-role on an unknown UUID returns 404');
+    assert(adminToggleRoleUnknownData.code === 'USER_NOT_FOUND', 'Unknown-UUID toggle-role response has code USER_NOT_FOUND');
 
     const malformedCookie = await fetch(`${USER_API}/api/auth/refresh`, {
       method: 'POST',
@@ -387,6 +445,23 @@ async function runTests() {
     });
     assert(studentCreate.status === 403, 'Student token POST /api/suppliers rejected (403 Forbidden)');
 
+    // AI-generated (edited by jagdeepsh)
+    // 2b. Admin create without building/floor -> 400 Bad Request
+    const adminCreateNoBuilding = await fetch(`${SUPPLIER_API}/api/suppliers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        name: 'No Building Cafe',
+        campusZone: 'COM3',
+        exactLocation: 'COM3 Level 1 Terrace',
+        category: 'Beverages',
+      }),
+    });
+    assert(adminCreateNoBuilding.status === 400, 'Admin POST /api/suppliers without building/floor is rejected (400 Bad Request)');
+
     // 3. Admin token write attempt -> 201 Created
     const testSupplierCode = `TEST-${Math.floor(100 + Math.random() * 900)}`;
     const adminCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
@@ -397,10 +472,12 @@ async function runTests() {
       },
       body: JSON.stringify({
         supplierCode: testSupplierCode,
-        name: 'Verified Admin Test Cafe',
+        name: `Verified Admin Test Cafe ${testSupplierCode}`,
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 1 Terrace',
         category: 'Beverages',
+        building: 'COM3',
+        floor: '1',
         description: 'End-to-end integration test spot',
         startingTime: '0900hrs',
         closingTime: '2100hrs',
@@ -418,14 +495,14 @@ async function runTests() {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: 'Verified Admin Test Cafe (Updated)',
+        name: `Verified Admin Test Cafe ${testSupplierCode} (Updated)`,
         floor: '2',
       }),
     });
     const updateSupplierData = await adminUpdate.json();
     assert(adminUpdate.status === 200, 'Admin token PUT /api/suppliers/:id updates location (200 OK)');
     assert(
-      updateSupplierData.data?.name === 'Verified Admin Test Cafe (Updated)',
+      updateSupplierData.data?.name === `Verified Admin Test Cafe ${testSupplierCode} (Updated)`,
       'Supplier name updated correctly'
     );
 
