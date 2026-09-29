@@ -1115,3 +1115,17 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 
 **Files changed:**
 - `.gitignore` — three ignore rules.
+
+## 2026-09-29 14:07 SGT — PR #92 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Resolve the code review on PR #92 and merge it.
+
+**Usage scenario:** Debugging assistance and documentation improvements. Two of the three review findings were fixed in the UAT drivers. The `.gitignore` finding was not changed: which folders stay local is the author's decision. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `scripts/uat/uat-d2-api.mjs` — R3 detail reads `userRole`; header comment states the real output path.
+- `scripts/uat/uat-d2-ui.mjs` — results file goes to the temp folder or `UAT_OUT`; header comment corrected.
