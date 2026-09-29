@@ -201,17 +201,19 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
   router.post(
     '/refresh',
     asyncRoute(async (req, res) => {
-      const roleHint =
+      const role =
         typeof req.query.role === 'string'
           ? req.query.role.toUpperCase()
           : undefined;
 
       const sessionToken =
-        (roleHint === 'ADMIN' ? readCookie(req, ADMIN_COOKIE_NAME) : undefined) ??
-        (roleHint === 'STUDENT' ? readCookie(req, STUDENT_COOKIE_NAME) : undefined) ??
-        readCookie(req, STUDENT_COOKIE_NAME) ??
-        readCookie(req, ADMIN_COOKIE_NAME) ??
-        req.body?.refreshToken;
+        role === 'ADMIN'
+          ? readCookie(req, ADMIN_COOKIE_NAME)
+          : role === 'STUDENT'
+            ? readCookie(req, STUDENT_COOKIE_NAME)
+            : readCookie(req, STUDENT_COOKIE_NAME) ??
+              readCookie(req, ADMIN_COOKIE_NAME) ??
+              req.body?.refreshToken;
       const result = await auth.refresh(sessionToken);
 
       const cookieOpts = {
@@ -240,17 +242,19 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
   router.post(
     '/logout',
     asyncRoute(async (req, res) => {
-      const roleHint =
+      const role =
         typeof req.query.role === 'string'
           ? req.query.role.toUpperCase()
           : undefined;
 
       const token =
-        (roleHint === 'ADMIN' ? readCookie(req, ADMIN_COOKIE_NAME) : undefined) ??
-        (roleHint === 'STUDENT' ? readCookie(req, STUDENT_COOKIE_NAME) : undefined) ??
-        readCookie(req, STUDENT_COOKIE_NAME) ??
-        readCookie(req, ADMIN_COOKIE_NAME) ??
-        req.body?.refreshToken;
+        role === 'ADMIN'
+          ? readCookie(req, ADMIN_COOKIE_NAME)
+          : role === 'STUDENT'
+            ? readCookie(req, STUDENT_COOKIE_NAME)
+            : readCookie(req, STUDENT_COOKIE_NAME) ??
+              readCookie(req, ADMIN_COOKIE_NAME) ??
+              req.body?.refreshToken;
 
       if (token) {
         try {
@@ -260,22 +264,16 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         }
       }
 
-      // Persona-specific logout: only clear the cookie of the calling persona
-      if (roleHint === 'ADMIN') {
+      // Persona-specific logout: clear only the designated cookie if role specified, or both if unspecified
+      if (role === 'ADMIN') {
         res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-      } else if (roleHint === 'STUDENT') {
+      } else if (role === 'STUDENT') {
         res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
       } else {
-        const principal = token ? await auth.verify(token) : null;
-        if (principal?.role === 'ADMIN') {
-          res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-        } else if (principal?.role === 'STUDENT') {
-          res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-        } else {
-          res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-          res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-        }
+        res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+        res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
       }
+
       res.status(204).send();
     }),
   );

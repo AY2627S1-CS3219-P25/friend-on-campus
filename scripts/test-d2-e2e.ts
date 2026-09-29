@@ -389,17 +389,12 @@ async function runTests() {
     assert(updateData.data?.user?.username === `${testUsername}-updated`, 'Username updates successfully');
 
     // -------------------------------------------------------------------------
-    // SCENARIO 4: Deferred Administration Endpoint Authorization
+    // SCENARIO 4: User Listing, Status & Role Administration
     // -------------------------------------------------------------------------
-    console.log('\n--- Scenario 4: Deferred Administration Endpoint Authorization ---');
+    console.log('\n--- Scenario 4: User Listing, Status & Role Administration ---');
 
-    const unauthenticatedList = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`);
+    const unauthenticatedList = await fetch(`${USER_API}/api/users`);
     assert(unauthenticatedList.status === 401, 'Unauthenticated user-management request is rejected (401)');
-
-    const studentPromote = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
-      headers: { Cookie: `student_session=${studentToken}` },
-    });
-    assert(studentPromote.status === 403, 'Student cannot access user-management routes (403)');
 
     const adminList = await fetch(`${USER_API}/api/users`, {
       headers: {
@@ -408,38 +403,105 @@ async function runTests() {
       },
     });
     const adminListData = await adminList.json();
-    assert(
-      adminList.status === 200 && Array.isArray(adminListData.data?.users),
-      'ADMIN user listing returns 200 OK and user array',
-    );
+    assert(adminList.status === 200, 'ADMIN user listing succeeds (200 OK)');
+    assert(Array.isArray(adminListData.data?.users), 'User listing returns an array of users');
 
-    const adminGetUser = await fetch(`${USER_API}/api/users/${studentUserId}`, {
+    // Student cannot reach either admin-only management route, even on their own id.
+    const studentToggleStatus = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
+      method: 'PATCH',
+      headers: {
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
+      },
+    });
+    const studentToggleStatusData = await studentToggleStatus.json();
+    assert(studentToggleStatus.status === 403, 'Student cannot call toggle-status, even on themselves (403)');
+    assert(studentToggleStatusData.code === 'ADMIN_REQUIRED', 'toggle-status forbidden response has code ADMIN_REQUIRED');
+
+    const studentToggleRole = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: {
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
+      },
+    });
+    const studentToggleRoleData = await studentToggleRole.json();
+    assert(studentToggleRole.status === 403, 'Student cannot call toggle-role, even on themselves (403)');
+    assert(studentToggleRoleData.code === 'ADMIN_REQUIRED', 'toggle-role forbidden response has code ADMIN_REQUIRED');
+
+    // Admin toggles the test student's active status off, then back on
+    const adminDeactivate = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
+      method: 'PATCH',
       headers: {
         'X-User-Id': adminUserId,
         'X-User-Role': 'ADMIN',
       },
     });
-    const adminGetUserData = await adminGetUser.json();
-    assert(adminGetUser.status === 501, 'ADMIN user lookup placeholder returns 501 Not Implemented');
-    assert(
-      adminGetUserData.success === false && adminGetUserData.code === 'NOT_IMPLEMENTED',
-      'ADMIN user lookup placeholder returns a structured error',
-    );
+    const adminDeactivateData = await adminDeactivate.json();
+    assert(adminDeactivate.status === 200, 'Admin toggle-status (deactivate) succeeds (200 OK)');
+    assert(adminDeactivateData.data?.user?.status === false, 'Target user status flips to false (deactivated)');
 
-    const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
-      method: 'POST',
+    const adminReactivate = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
+      method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
+    });
+    const adminReactivateData = await adminReactivate.json();
+    assert(adminReactivate.status === 200, 'Admin toggle-status (reactivate) succeeds (200 OK)');
+    assert(adminReactivateData.data?.user?.status === true, 'Target user status flips back to true (active)');
+
+    // Admin toggles the test student's role STUDENT -> ADMIN -> STUDENT
+    const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: {
         'X-User-Id': adminUserId,
         'X-User-Role': 'ADMIN',
       },
     });
     const adminPromoteData = await adminPromote.json();
-    assert(adminPromote.status === 501, 'ADMIN promotion placeholder returns 501 Not Implemented');
+    assert(adminPromote.status === 200, 'Admin toggle-role (promote) succeeds (200 OK)');
+    assert(adminPromoteData.data?.user?.userRole === 'ADMIN', 'Target user role flips to ADMIN');
+
+    const adminDemote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
+    });
+    const adminDemoteData = await adminDemote.json();
+    assert(adminDemote.status === 200, 'Admin toggle-role (demote) succeeds (200 OK)');
+    assert(adminDemoteData.data?.user?.userRole === 'STUDENT', 'Target user role flips back to STUDENT');
+
+    // An admin may never change their own role.
+    const adminSelfToggleRole = await fetch(`${USER_API}/api/users/${adminLoginData.data?.user?.userId}/toggle-role`, {
+      method: 'PATCH',
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
+    });
+    const adminSelfToggleRoleData = await adminSelfToggleRole.json();
+    assert(adminSelfToggleRole.status === 403, 'Admin cannot toggle-role on their own id (403)');
     assert(
-      adminPromoteData.success === false && adminPromoteData.code === 'NOT_IMPLEMENTED',
-      'ADMIN promotion placeholder returns a structured error',
+      adminSelfToggleRoleData.code === 'SELF_ACTION_FORBIDDEN',
+      'Self-targeting toggle-role response has code SELF_ACTION_FORBIDDEN',
     );
+
+    // Both admin routes 404 cleanly on an unknown UUID.
+    const unknownUserId = '00000000-0000-4000-8000-000000000000';
+    const adminToggleRoleUnknown = await fetch(`${USER_API}/api/users/${unknownUserId}/toggle-role`, {
+      method: 'PATCH',
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
+    });
+    const adminToggleRoleUnknownData = await adminToggleRoleUnknown.json();
+    assert(adminToggleRoleUnknown.status === 404, 'toggle-role on an unknown UUID returns 404');
+    assert(adminToggleRoleUnknownData.code === 'USER_NOT_FOUND', 'Unknown-UUID toggle-role response has code USER_NOT_FOUND');
 
     const malformedCookie = await fetch(`${USER_API}/api/auth/refresh`, {
       method: 'POST',
@@ -470,15 +532,56 @@ async function runTests() {
     // -------------------------------------------------------------------------
     console.log('\n--- Scenario 6: Cross-Service RBAC Enforcement (Student vs Admin) ---');
 
-    // 1. Unauthenticated write attempt -> 401 Unauthorized via gateway verification
-    const unauthCreate = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`);
+    // 1. Unauthenticated write attempt -> 401 Unauthorized via supplier-service guard
+    const unauthCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Rogue Store',
+        campusZone: 'UTown',
+        exactLocation: 'UTown Plaza',
+        category: 'Food',
+        building: 'UTown',
+        floor: '1',
+      }),
+    });
     assert(unauthCreate.status === 401, 'Unauthenticated POST /api/suppliers rejected (401 Unauthorized)');
 
-    // 2. Student token write attempt -> 403 Forbidden via gateway verification
-    const studentCreate = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
-      headers: { Cookie: `student_session=${studentToken}` },
+    // 2. Student token write attempt -> 403 Forbidden via supplier-service guard
+    const studentCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
+      },
+      body: JSON.stringify({
+        name: 'Student Unauthorized Shop',
+        campusZone: 'COM3',
+        exactLocation: 'COM3 Level 2',
+        category: 'Beverages',
+        building: 'COM3',
+        floor: '2',
+      }),
     });
     assert(studentCreate.status === 403, 'Student token POST /api/suppliers rejected (403 Forbidden)');
+
+    // 2b. Admin create without building/floor -> 400 Bad Request
+    const adminCreateNoBuilding = await fetch(`${SUPPLIER_API}/api/suppliers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
+      body: JSON.stringify({
+        name: `No Building Cafe ${Date.now()}`,
+        campusZone: 'COM3',
+        exactLocation: 'COM3 Level 1 Terrace',
+        category: 'Beverages',
+      }),
+    });
+    assert(adminCreateNoBuilding.status === 400, 'Admin POST /api/suppliers without building/floor is rejected (400 Bad Request)');
 
     // 3. Admin token write attempt -> 201 Created
     const testSupplierCode = `TEST-${Math.floor(100 + Math.random() * 900)}`;
@@ -515,14 +618,14 @@ async function runTests() {
         'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({
-        name: 'Verified Admin Test Cafe (Updated)',
+        name: `Verified Admin Test Cafe (Updated) ${testSupplierCode}`,
         floor: '2',
       }),
     });
     const updateSupplierData = await adminUpdate.json();
     assert(adminUpdate.status === 200, 'Admin token PUT /api/suppliers/:id updates location (200 OK)');
     assert(
-      updateSupplierData.data?.name === 'Verified Admin Test Cafe (Updated)',
+      updateSupplierData.data?.name === `Verified Admin Test Cafe (Updated) ${testSupplierCode}`,
       'Supplier name updated correctly'
     );
 

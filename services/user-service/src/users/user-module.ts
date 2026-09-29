@@ -42,9 +42,9 @@ export type UserErrorCode =
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
+  | 'ADMIN_REQUIRED'
   | 'FORBIDDEN'
-  | 'SELF_ACTION_FORBIDDEN'
-  | 'NOT_IMPLEMENTED';
+  | 'SELF_ACTION_FORBIDDEN';
 
 export class UserError extends Error {
   constructor(

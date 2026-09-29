@@ -35,7 +35,7 @@ function authenticatedUser(req: Request): SessionUser {
 function requireAdmin(req: Request): void {
   const user = authenticatedUser(req);
   if (user.role !== 'ADMIN') {
-    throw new UserError('FORBIDDEN', 'Administrator access required');
+    throw new UserError('ADMIN_REQUIRED', 'Administrator access required');
   }
 }
 
@@ -80,10 +80,6 @@ export function createUserRouter(users: UserModule): Router {
     }),
   );
 
-  function throwNotImplemented(): never {
-    throw new UserError('NOT_IMPLEMENTED', 'User management is not implemented');
-  }
-
   // Admin endpoints (guarded by NGINX gateway perimeter at /api/users)
   router.get(
     '/',
@@ -94,24 +90,14 @@ export function createUserRouter(users: UserModule): Router {
     }),
   );
 
-  router.get('/:id', (req, _res) => {
-    requireAdmin(req);
-    throwNotImplemented();
-  });
-
-  router.post('/:id/promote', (req, _res) => {
-    requireAdmin(req);
-    throwNotImplemented();
-  });
-
-  const handleToggleStatus = asyncRoute(async (req, res) => {
-    requireAdmin(req);
-    const user = await users.toggleUserStatus(req.params.id);
-    res.json({ success: true, data: { user } });
-  });
-
-  router.patch('/:id/toggle-status', handleToggleStatus);
-  router.patch('/:id/admin', handleToggleStatus);
+  router.patch(
+    '/:id/toggle-status',
+    asyncRoute(async (req, res) => {
+      requireAdmin(req);
+      const user = await users.toggleUserStatus(req.params.id);
+      res.json({ success: true, data: { user } });
+    }),
+  );
 
   router.patch(
     '/:id/toggle-role',
