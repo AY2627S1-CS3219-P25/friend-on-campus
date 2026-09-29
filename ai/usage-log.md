@@ -1430,3 +1430,23 @@ Address follow-up PR review findings on PR #95:
 - Rebuilt containers and verified decoded JWT payload on live logins (`sub`, `role`, `iat`, `exp`, `iss`, `aud` with zero `sid` / `email` claims).
 - Live Gateway RBAC verified: public 200, unauthorized 401, student 403, admin 201/200.
 
+## 2026-09-29 — Cleanup of Dead Session Methods in `auth-repository.ts`
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Delete dead database session code in `auth-repository.ts`.
+- Removed legacy unused methods: `createSession`, `rotateSession`, `revokeSession`, `cleanupExpiredSessions`, and `deleteExpiredSessions`.
+- Removed legacy unused types: `SessionUserRecord`, `CreateSessionRecord`, and `SessionWithUser`.
+- `AuthRepository` now strictly defines user lookup and registration (`createUser`, `findUserByEmail`, `findById`).
+
+**Files changed:**
+- `services/user-service/src/persistence/auth-repository.ts`
+- `ai/usage-log.md`
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+
+
