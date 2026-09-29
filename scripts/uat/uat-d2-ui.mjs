@@ -1,15 +1,17 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-28
-// Scope: 2026-09-28: fixed the ADMIN_URL default (it referenced itself). Wrote this D2 UAT driver: 29 browser-level checks with Playwright (admin portal desktop + mobile: login gate, search, filter, sort, pagination, details, add/edit/delete, Users page; student app mobile + desktop: login, session restore, Spots directory, search, Post, Profile, logout) and the docs/evidence/d2/screenshots capture.
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-28, 2026-09-29
+// Scope: 2026-09-29: results file now goes to the temp folder (or UAT_OUT), like the API driver; header comment corrected. 2026-09-28: fixed the ADMIN_URL default (it referenced itself). Wrote this D2 UAT driver: 29 browser-level checks with Playwright (admin portal desktop + mobile: login gate, search, filter, sort, pagination, details, add/edit/delete, Users page; student app mobile + desktop: login, session restore, Spots directory, search, Post, Profile, logout) and the docs/evidence/d2/screenshots capture.
 // Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by Reallyeasy1)
 // Run: npm i --no-save playwright@1.63.0 && npx playwright install chromium && node scripts/uat/uat-d2-ui.mjs
 // (playwright is deliberately not a repo dependency; --no-save keeps package.json unchanged)
-// D2 UAT — browser level (Playwright, headless Chromium) through the nginx gateway.
-// Admin portal at /admin/, student app at /. Screenshots go to the repo's
-// docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png; results to uat-ui-results.json.
+// D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
+// gateway at /, admin portal on its own port (ADMIN_URL, default http://localhost:5174/).
+// Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;
+// results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -352,4 +354,6 @@ const browser = await chromium.launch();
 await browser.close();
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} UI checks passed; screenshots in ${SHOTS}`);
-writeFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'uat-ui-results.json'), JSON.stringify(results, null, 2));
+const out = process.env.UAT_OUT ?? path.join(tmpdir(), 'uat-d2-ui-results.json');
+writeFileSync(out, JSON.stringify(results, null, 2));
+console.log(`results written to ${out}`);

@@ -1196,3 +1196,30 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 
 **Files changed:**
 - none besides this entry.
+
+## 2026-09-29 14:07 SGT — PR #92 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Resolve the code review on PR #92 and merge it.
+
+**Usage scenario:** Debugging assistance and documentation improvements. Two of the three review findings were fixed in the UAT drivers. The `.gitignore` finding was not changed: which folders stay local is the author's decision. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `scripts/uat/uat-d2-api.mjs` — R3 detail reads `userRole`; header comment states the real output path.
+- `scripts/uat/uat-d2-ui.mjs` — results file goes to the temp folder or `UAT_OUT`; header comment corrected.
+
+## 2026-09-29 14:14 SGT — PR #92 merged; PR #94 brought up to date with main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Resolve the code review on PRs #92 and #94 and merge them; do not merge PR #93 yet.
+
+**Usage scenario:** Debugging assistance and configuration. A second review pass on PR #92 found a missing `tmpdir` import in the browser driver (fixed in f984922), after which #92 was merged. PR #94 was retargeted to main and main was merged into it; the only conflict was this log, resolved by keeping the entries of both sides. PR #93 was not touched. Merges were made at the author's explicit request.
+
+**Files changed:**
+- `ai/usage-log.md` — merge resolution and this entry.

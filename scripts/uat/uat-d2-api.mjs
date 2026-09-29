@@ -1,12 +1,13 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
-// Scope: Wrote this D2 UAT driver: 63 API-level checks (auth, sessions, profile, admin user management, supplier directory queries, supplier CRUD + RBAC) against the gateway and the supplier service directly. See docs/evidence/d2/d2-checklist.md for the run results.
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-29
+// Scope: 2026-09-29: R3 detail reads userRole; header comment states the real output path. Wrote this D2 UAT driver: 63 API-level checks (auth, sessions, profile, admin user management, supplier directory queries, supplier CRUD + RBAC) against the gateway and the supplier service directly. See docs/evidence/d2/d2-checklist.md for the run results.
 // Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by Reallyeasy1)
 // Run: node scripts/uat/uat-d2-api.mjs   (stack up: docker compose up --build -d; no npm deps)
 // D2 UAT — API level, through the nginx gateway (http://localhost) and directly to
 // the supplier service (http://localhost:8002) to show it works without the UI/gateway.
-// Prints one line per check and writes uat-api-results.json next to this file.
+// Prints one line per check and writes uat-d2-api-results.json to the OS temp folder,
+// or to the path in UAT_OUT.
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -63,7 +64,7 @@ const newUser = { username: `uat_${stamp}`, email: `uat_${stamp}@u.nus.edu`, pas
   const short = await call(`${GW}/api/auth/register`, { method: 'POST', body: { username: 'shortpw', email: `s_${stamp}@u.nus.edu`, password: 'short' } });
   record('R2', 'auth', 'register rejects short password', short.status === 400, `HTTP ${short.status} ${code(short)}`);
   const ok = await call(`${GW}/api/auth/register`, { method: 'POST', body: newUser });
-  record('R3', 'auth', 'register valid account -> 201, no password in response', ok.status === 201 && ok.json?.data?.user && !JSON.stringify(ok.json).includes(PW), `HTTP ${ok.status} role=${ok.json?.data?.user?.role}`);
+  record('R3', 'auth', 'register valid account -> 201, no password in response', ok.status === 201 && ok.json?.data?.user && !JSON.stringify(ok.json).includes(PW), `HTTP ${ok.status} role=${ok.json?.data?.user?.userRole}`);
   const dup = await call(`${GW}/api/auth/register`, { method: 'POST', body: newUser });
   record('R4', 'auth', 'register duplicate email -> 409', dup.status === 409, `HTTP ${dup.status} ${code(dup)}`);
   const dupCase = await call(`${GW}/api/auth/register`, { method: 'POST', body: { ...newUser, username: newUser.username + 'b', email: newUser.email.toUpperCase() } });
