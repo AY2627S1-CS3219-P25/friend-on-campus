@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: `building` and `floor` are required, the 409 duplicate rule and its index, the 400 on blank fields in `PUT`, and the second migration, as implemented in `supplierRoutes.ts`, `schema.prisma` and the migration SQL. Existing behaviour only.
+Author review: <to be completed by the service owner>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this page from services/supplier-service source, docker-compose.yml, the init SQL and D1 / D2-plan text. Descriptive only.
 Author review: <to be completed by the service owner>
@@ -56,7 +62,7 @@ does not receive the User Service private signing key.
 
 ## Files
 
-Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/`.
+Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
 
 ## API (mounted at `/api/suppliers`)
 
@@ -64,8 +70,8 @@ Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplie
 |---|---|---|---|---|
 | `GET /` | **none** | query: `campusZone, category, search, isActive, sortBy, sortOrder, page, limit` | 200 `{ suppliers, total, page, limit, totalPages }` | 500 |
 | `GET /:id` | **none** | `:id` is the UUID or a `supplierCode` | 200 supplier | 404 |
-| `POST /` | Bearer + `ADMIN` | `CreateSupplierRequest`; required `name, campusZone, exactLocation, category` | 201 supplier | 400 missing fields; 401; 403 |
-| `PUT /:id` | Bearer + `ADMIN` | `UpdateSupplierRequest` (any subset, incl. `isActive`) | 200 supplier | 401; 403; 404 |
+| `POST /` | Bearer + `ADMIN` | `CreateSupplierRequest`; required `name, campusZone, exactLocation, category, building, floor` | 201 supplier | 400 missing fields; 401; 403; 409 duplicate |
+| `PUT /:id` | Bearer + `ADMIN` | `UpdateSupplierRequest` (any subset, incl. `isActive`) | 200 supplier | 400 blank `name`, `category`, `building` or `floor`; 401; 403; 404; 409 duplicate |
 | `PATCH /:id/toggle` | Bearer + `ADMIN` | — | 200 supplier with `isActive` flipped | 401; 403; 404 |
 | `DELETE /:id[?permanent=true]` | Bearer + `ADMIN` | — | 200 message | 401; 403; 404 |
 
@@ -75,7 +81,7 @@ OpenAPI form: [`../api/supplier-service.yaml`](../api/supplier-service.yaml).
 
 Diagram: [`../diagrams/supplier-schema.md`](../diagrams/supplier-schema.md).
 
-Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_location`, `category`, `description?`, `building?`, `floor?`, `latitude?`, `longitude?`, `starting_time?`, `closing_time?`, `image_url?`, `is_active` default true, `created_at`, `updated_at`. Defined in `schema.prisma` (+ migration). The table is managed independently by Prisma migrations and seeded via `src/database/seed.ts` (21 rows from `data/csv/supplier-seed-data.csv`).
+Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_location`, `category`, `description?`, `building`, `floor`, `latitude?`, `longitude?`, `starting_time?`, `closing_time?`, `image_url?`, `is_active` default true, `created_at`, `updated_at`. Unique expression index `suppliers_location_case_insensitive_uq` on `LOWER(name), LOWER(category), LOWER(building), LOWER(floor)`, created in the migration SQL. Defined in `schema.prisma` (+ migrations). The table is managed independently by Prisma migrations and seeded via `src/database/seed.ts` (21 rows from `data/csv/supplier-seed-data.csv`).
 
 ## Behaviour as built
 
@@ -87,13 +93,15 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 - Pagination applies only when `page` or `limit` is sent (default limit 10, max 100); otherwise the whole list is returned as one page.
 - `supplierCode` is generated as `SUP-NNN` from the row count when not supplied, with a timestamp-based fallback if that code exists.
 - `DELETE` soft-deletes (sets `isActive=false`) unless `?permanent=true`, which removes the row. Nothing checks order-service for references.
-- No duplicate check on name + campus location; no `version` column, so concurrent edits are last-write-wins; `category` is not validated against `SupplierCategory`.
+- Duplicate check on create and update: a supplier whose `name`, `category`, `building` and `floor` match another one (trimmed, case-insensitive) is rejected with 409 and a `duplicate` object holding those four fields of the existing record. A unique-index violation that gets past that check is also answered with 409.
+- The migration `20260929134701_add_location_uniqueness` sets `building` and `floor` to `NOT NULL` without a backfill. On a database volume that already holds a supplier with no building or floor, `prisma migrate deploy` fails and the service does not start; `docker compose down -v` recreates the volume.
+- No `version` column, so concurrent edits are last-write-wins; `category` is not validated against `SupplierCategory`.
 - Access tokens are verified locally with Ed25519 against the configured public key,
   issuer, and audience; this service never calls User Service.
 
 ## Differences from the documents
 
-`../requirements/conflicts.md` rows 10 (guest reads), 11 (`PATCH` + `version` + 409 contract), 15 (duplicated table definitions - resolved). Also observable against D2 plan App. B–C: duplicate name + campus location should be rejected with 409; unsupported sort/filter values should return 400; list shape there is `{ items, page, pageSize, totalItems }`.
+`../requirements/conflicts.md` rows 10 (guest reads), 11 (`PATCH` + `version` + 409 contract), 15 (duplicated table definitions - resolved). Also observable against D2 plan App. B–C: the plan's duplicate rule is name + campus location, the code's is name + category + building + floor; unsupported sort/filter values should return 400; list shape there is `{ items, page, pageSize, totalItems }`.
 
 ## Tests
 

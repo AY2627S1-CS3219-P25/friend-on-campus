@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: role promotion, account deletion, the renamed status route and the supplier duplicate rule, as implemented on the `admin_dashboard` branch. Facts only; every "Team's answer" slot is unchanged.
+Author review: <to be completed by Reallyeasy1>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Laid out the questions from the CS3219 D2 instructions PDF (Part 1 points 1-6, Part 2 points 1-5) and, under each,
 collected the as-built facts and demo pointers already recorded in docs/services, docs/diagrams, docs/api and
@@ -12,7 +18,7 @@ Author review: <to be completed by Reallyeasy1>
 
 One section per question in the D2 instructions. Each has three parts:
 
-- **Facts** — what the code does on `main` @ f0ee632, with the UAT check ID in brackets.
+- **Facts** — what the code does, with the UAT check ID in brackets. Check IDs refer to the run on `main` @ f0ee632; facts about `toggle-role`, account deletion and the supplier duplicate rule (added in PR #93) are read from the code.
 - **Show** — the diagram, file, command or screenshot to put on screen.
 - **Team's answer** — empty. The "why" is written by the team (course AI policy; see [`README.md`](./README.md) "Who may write what").
 
@@ -25,7 +31,7 @@ Sources: [`services/user-service.md`](./services/user-service.md), [`services/su
 | Service | PDF points met | Level |
 |---|---|---|
 | Supplier Service | 1-5 | near-complete (written database justification still missing) |
-| User Service | 1-5, part of 6 | significant progress (points 1-4) plus profile management |
+| User Service | 1-5, part of 6 | significant progress (points 1-4) plus profile management and role promotion |
 
 ## Demo set-up
 
@@ -55,7 +61,7 @@ After restarting a single service, restart `api-gateway` too, or `/api/*` return
 
 **Facts**
 - Two roles in code: `STUDENT` and `ADMIN` (`UserRole` in `packages/common-dtos`, column `users.role`).
-- Registration always creates a `STUDENT` [R3]. The only `ADMIN` is the seeded account.
+- Registration always creates a `STUDENT` [R3]. After a fresh seed the only `ADMIN` is the seeded account; an `ADMIN` can change another user's role.
 - A request without a token is treated as a guest. Guest is not a stored role.
 
 **Author's statement** (verbatim, [`decisions/0003-roles.md`](./decisions/0003-roles.md))
@@ -81,8 +87,10 @@ After restarting a single service, restart `api-gateway` too, or `/api/*` return
 | Register, log in, refresh, log out | User Service `/api/auth/*` | yes | yes | yes |
 | Read / edit own profile, change own password | User Service `/api/users/me*` | 401 | yes | yes |
 | List users | User Service `GET /api/users` | 401 | 403 | yes |
-| Enable / disable an account | User Service `PATCH /api/users/:id/admin` | 401 | 403 | yes |
-| Promote a user | User Service `POST /api/users/:id/promote` | 401 | 403 | 501 |
+| Enable / disable an account | User Service `PATCH /api/users/:id/toggle-status` | 401 | 403 | yes |
+| Promote or demote a user | User Service `PATCH /api/users/:id/toggle-role` | 401 | 403 | yes, except own id (403) |
+| Delete own account | User Service `DELETE /api/users/:id` | 401 | yes | yes |
+| Delete another user's account | User Service `DELETE /api/users/:id` | 401 | 403 | yes |
 | List, search, read suppliers | Supplier Service `GET /api/suppliers`, `/:id` | yes | yes | yes |
 | Create, edit, toggle, delete suppliers | Supplier Service writes | 401 | 403 | yes |
 | Log in to the admin portal | `apps/admin-portal` | — | refused by the login gate | yes |
@@ -240,14 +248,14 @@ Use the trailing slash on `/api/users/` through the gateway; without it nginx an
 
 ## 6. Role lifecycle and administration
 
-This is the point where the User Service is incomplete (conflicts row 18).
+Promotion is implemented; the last-administrator cases are not guarded (conflicts row 18).
 
 ### 6a. How is the first administrator created?
 
 **Facts**
 - `services/user-service/src/database/seed.ts` creates or updates `admin` (`admin@nus.edu.sg`, `ADMIN`, `Password123!`).
 - The container start command runs migrations, then the seed, then the service, so every boot resets the three seed accounts' username, role and password. The seed does not write `status`.
-- No API call can create an `ADMIN`.
+- Registration cannot create an `ADMIN`. An existing `ADMIN` can promote another user (6b).
 
 **Author's statement** (verbatim, [`decisions/0004-first-administrator.md`](./decisions/0004-first-administrator.md))
 > As for admin story, well we wanted to have an admin that everyone can log in to and is reproducible across different machines so we try and keep this consistent
@@ -259,8 +267,10 @@ This is the point where the User Service is incomplete (conflicts row 18).
 ### 6b. How does a user get promoted?
 
 **Facts**
-- `POST /api/users/:id/promote` exists, is `ADMIN`-only, and returns 501 `NOT_IMPLEMENTED` [A3].
-- There is no promotion workflow. Today a role changes only through the seed or a direct database edit.
+- `PATCH /api/users/:id/toggle-role` is `ADMIN`-only and flips the target between `STUDENT` and `ADMIN`; the same call demotes [A3].
+- The admin portal's Users page calls it, so a promotion needs no developer.
+- The new role is in the target's access token from their next login or refresh.
+- The seed puts the three seed accounts' roles back on every container boot.
 
 **Team's answer** — the intended workflow.
 
@@ -270,8 +280,8 @@ This is the point where the User Service is incomplete (conflicts row 18).
 
 | Case in the PDF | What happens today |
 |---|---|
-| An administrator revokes their own privileges | There is no demote or delete route. An admin can disable their own account through `PATCH /api/users/:id/admin` [A8]. |
-| The only administrator deletes or demotes their account | No last-admin check. The seeded admin disabled itself while being the only `ADMIN` [A8]. Because `status` is not enforced, the account could still log in [A6]. |
+| An administrator revokes their own privileges | Changing their own role is refused: 403 `SELF_ACTION_FORBIDDEN`. Disabling their own account through `toggle-status` is allowed [A8]. Deleting their own account through `DELETE /api/users/:id` is allowed. |
+| The only administrator deletes or demotes their account | Demoting is refused by the own-id rule above. Deleting is allowed; no route counts the remaining admins, so the system can be left with no `ADMIN` until the next seed. The seeded admin also disabled itself while being the only `ADMIN` [A8]; because `status` is not enforced, the account could still log in [A6]. |
 | Non-UUID id on the status route | 500 instead of 404 [A10]. |
 
 **Team's answer** — intended behaviour for each case.
@@ -288,9 +298,9 @@ This is the point where the User Service is incomplete (conflicts row 18).
 
 **Facts**
 - PostgreSQL 16 through Prisma, database `supplier_db`, separate from `user_db`.
-- Every supplier has the same fixed set of columns; seven of them are nullable. There are no free-form or nested fields.
-- Migration `20260919090038_init`; seeded with 21 rows from `data/csv/supplier-seed-data.csv` on container start.
-- Indexes: primary key and the unique index on `supplier_code`. No others.
+- Every supplier has the same fixed set of columns; five of them are nullable. There are no free-form or nested fields.
+- Migrations `20260919090038_init` and `20260929134701_add_location_uniqueness`; seeded with 21 rows from `data/csv/supplier-seed-data.csv` on container start.
+- Indexes: primary key, the unique index on `supplier_code`, and a unique index on the lower-cased `name`, `category`, `building` and `floor`.
 
 **Author's statement** — the same as Part 1 §2a ([`decisions/0001-database-choice.md`](./decisions/0001-database-choice.md)).
 
@@ -310,7 +320,8 @@ This is the point where the User Service is incomplete (conflicts row 18).
 | `campus_zone` | text | |
 | `exact_location` | text | |
 | `category` | text | not validated against `SupplierCategory` |
-| `description`, `building`, `floor` | text, nullable | |
+| `building`, `floor` | text | required; with `name` and `category` they must be unique, ignoring case |
+| `description` | text, nullable | |
 | `latitude`, `longitude` | float, nullable | |
 | `starting_time`, `closing_time` | text, nullable | |
 | `image_url` | text, nullable | |
@@ -373,6 +384,7 @@ Filters combine with AND. Full contract: [`api/supplier-service.yaml`](./api/sup
 | Step | Call | Expected |
 |---|---|---|
 | Create, fields missing | `POST /api/suppliers` | 400 [W3] |
+| Create, same name, category, building and floor as an existing supplier | `POST /api/suppliers` | 409 with a `duplicate` object |
 | Create | `POST /api/suppliers` | 201, `SUP-022` [W4] |
 | Read back | `GET /api/suppliers/<id>` | 200 [W5] |
 | Update | `PUT /api/suppliers/<id>` | 200 [W7] |

@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+# Scope: PR #93: replaced /api/users/{id}/admin and /api/users/{id}/promote with toggle-status, toggle-role and DELETE /api/users/{id}, transcribed from user-routes.ts.
+# Author review: <to be completed by the service owner>
+# AI Assistance Disclosure:
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 # Scope: Transcribed the routes that exist in services/user-service/src (app.ts, auth-routes.ts, user-routes.ts,
 #   error-handler.ts) and the types in packages/common-dtos on `main` @ f0ee632 into OpenAPI. Describes the API as
@@ -236,7 +240,7 @@ paths:
                         items: { $ref: "#/components/schemas/User" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/AdminRequired" }
-  /api/users/{id}/admin:
+  /api/users/{id}/toggle-status:
     patch:
       tags: [admin]
       summary: Flip a user's status (enable / disable)
@@ -260,21 +264,49 @@ paths:
           content:
             application/json:
               example: { success: false, error: Internal server error, errorId: 1c5ccf08-a628-4595-9cb9-bbc78ce8543b }
-  /api/users/{id}/promote:
-    post:
+  /api/users/{id}/toggle-role:
+    patch:
       tags: [admin]
-      summary: Placeholder; not implemented
+      summary: Flip a user's role between STUDENT and ADMIN
+      description: >
+        No request body. The caller's own id is refused. The number of remaining ADMIN accounts is not counted.
       security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "403": { $ref: "#/components/responses/AdminRequired" }
-        "501":
-          description: NOT_IMPLEMENTED; the id is not read
+        "200":
+          description: The user with userRole flipped
           content:
             application/json:
-              example: { success: false, error: User administration is not implemented yet, code: NOT_IMPLEMENTED }
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403":
+          description: ADMIN_REQUIRED for a non-ADMIN caller; SELF_ACTION_FORBIDDEN when id is the caller's own id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: Admins cannot change their own role, code: SELF_ACTION_FORBIDDEN }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+  /api/users/{id}:
+    delete:
+      tags: [profile, admin]
+      summary: Delete an account (own account, or any account for an ADMIN)
+      description: >
+        No request body. The account's sessions are deleted by cascade. An ADMIN may delete their own account; the
+        number of remaining ADMIN accounts is not counted.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Account deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403":
+          description: FORBIDDEN; a non-ADMIN caller sent another user's id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: You can only delete your own account, code: FORBIDDEN }
+        "404": { $ref: "#/components/responses/UserNotFound" }
 components:
   securitySchemes:
     bearerAuth:

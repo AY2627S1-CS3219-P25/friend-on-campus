@@ -1428,3 +1428,21 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 
 **Files changed:**
 - `ai/usage-log.md` — merge resolution and this entry.
+
+## 2026-09-29 14:34 SGT — PR #93 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Resolve the code review on PR #93 and merge it.
+
+**Usage scenario:** Debugging assistance, test updates and documentation improvements. Fixed the defects the review reported in code the branch author had already designed, updated the tests and the as-built documents for the routes and rules this branch introduces, and merged main into the branch. Not done, left to the authors: whether an ADMIN may delete their own or the last ADMIN account, whether the migration backfills old rows, and the usage-log entry for the branch author's own AI use on 2026-09-27. `npm run typecheck` passes on all workspaces. `npm run test:d2`, the UAT drivers and the Postman collection were not run: Docker is not running on this machine. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `services/user-service/src/users/user-routes.ts` — self checks compare the id in lower case.
+- `services/supplier-service/src/backend/supplierRoutes.ts` — trimmed duplicate check, 409 on a unique-index violation, 400 on blank fields in PUT.
+- `scripts/test-d2-e2e.ts`, `scripts/uat/uat-d2-api.mjs` — building and floor in the create body, renamed user routes, toggle-role check.
+- `tests/postman/postman_collection.json` — request 3.15 accepts 400, 404 or 500 (JSON file, disclosure is in its description field).
+- `docs/services/user-service.md`, `docs/services/supplier-service.md`, `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml`, `docs/diagrams/supplier-schema.md`, `docs/d2-question-guide.md`, `services/user-service/docs/api-reference.md` — routes and rules as built on this branch.
+- `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.

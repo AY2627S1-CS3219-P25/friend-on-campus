@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: the Vite dev proxy note in section 4 now says student-app reads its proxy targets from env vars.
+Author review: <to be completed by Reallyeasy1>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Restructured this file into sections and added repo map, commands, gh/branch notes and
 the usage-log format. The AI-usage policy wording in section 1 is the team's original text, unchanged.
@@ -122,7 +128,7 @@ Things that are easy to get wrong:
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
-- Vite dev proxies: admin-portal reads `SUPPLIER_SERVICE_URL` / `USER_SERVICE_URL`; student-app still hardcodes `localhost` targets, which does not work from inside its container (go through the gateway on :80 instead).
+- Vite dev proxies: admin-portal reads `SUPPLIER_SERVICE_URL` / `USER_SERVICE_URL`; student-app reads `SUPPLIER_SERVICE_URL`, `USER_SERVICE_URL`, `GATEWAY_URL` and `NOTIFICATION_SERVICE_URL`. Both fall back to `localhost`; `docker-compose.yml` sets the variables to the service names.
 - Dockerfiles copy only the root `package.json`, `packages/` and the service's own folder, then `npm install`. A new npm dependency in that service's `package.json` needs no Dockerfile edit; a new shared folder, a native/system package, or a new env var does (Dockerfile and/or `docker-compose.yml`). `.dockerignore` excludes `*.md`.
 
 ## 5. Commands
