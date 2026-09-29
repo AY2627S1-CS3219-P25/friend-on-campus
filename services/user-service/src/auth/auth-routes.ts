@@ -108,13 +108,7 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
             ? (readCookie(req, STUDENT_COOKIE_NAME) ?? readCookie(req, ADMIN_COOKIE_NAME))
             : (readCookie(req, STUDENT_COOKIE_NAME) ?? readCookie(req, ADMIN_COOKIE_NAME));
 
-      const isOptional = req.query.optional === 'true';
-
       if (!sessionToken) {
-        if (isOptional) {
-          res.status(200).json({ success: true, data: { authenticated: false } });
-          return;
-        }
         res.status(401).json({
           success: false,
           error: 'Authentication is required',
@@ -125,10 +119,6 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
 
       const principal = auth.verify(sessionToken);
       if (!principal) {
-        if (isOptional) {
-          res.status(200).json({ success: true, data: { authenticated: false } });
-          return;
-        }
         res.status(401).json({
           success: false,
           error: 'Invalid or expired session',

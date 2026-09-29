@@ -287,9 +287,6 @@ async function runTests() {
       'GET /api/auth/verify returns matching X-Auth-User-Role header',
     );
 
-    const optionalVerifyNoCookie = await fetch(`${USER_API}/api/auth/verify?optional=true`);
-    assert(optionalVerifyNoCookie.status === 200, 'Optional verify GET /api/auth/verify?optional=true succeeds (200 OK)');
-
     // Dual-Cookie & Gateway-Level Role Enforcement Tests
     const studentCookieVerify = await fetch(`${USER_API}/api/auth/verify`, {
       headers: { Cookie: `student_session=${studentToken}` },

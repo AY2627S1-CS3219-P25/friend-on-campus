@@ -1325,4 +1325,34 @@ Address follow-up PR review findings on PR #95:
   - Admin access to `/api/users` succeeds (200 OK) with `admin_session`.
   - Student access to `/api/users` rejected (403 `ADMIN_REQUIRED`) with `student_session`.
 
+## 2026-09-29 — Enforce Gateway-Level Method-Based RBAC and Remove `?optional=true`
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Centralize all access control and role gating at NGINX for mixed-permission endpoints (`/api/suppliers`):
+1. In NGINX, distinguish read operations (`GET`, `HEAD`, `OPTIONS`) from write operations (`POST`, `PUT`, `PATCH`, `DELETE`) using `error_page 418 = @supplier_write`.
+2. Public reads bypass authentication completely with zero subrequest overhead.
+3. Write operations trigger `auth_request /internal/auth/verify-admin`, blocking unauthorized guests (401) and students (403) directly at the gateway ingress.
+4. Eliminate `?optional=true` and `/internal/auth/verify-optional` from both `user-service` and NGINX configuration.
+5. Enable `recursive_error_pages on;` in NGINX so internal redirects properly render JSON auth failure error pages (`@auth_failed`, `@auth_forbidden`).
+
+**Files changed:**
+- `gateway/nginx.conf.template` — Added `recursive_error_pages on;`, removed `/internal/auth/verify-optional`, routed `location /api/suppliers` writes via `error_page 418 = @supplier_write` with `auth_request /internal/auth/verify-admin`.
+- `services/user-service/src/auth/auth-routes.ts` — Removed `isOptional` handling from `GET /verify`.
+- `scripts/test-d2-e2e.ts` — Removed optional verify test assertion; verified 61/61 tests pass.
+- `ai/usage-log.md` — Appended this implementation record.
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+- Verified live behavior via `curl`:
+  - `GET /api/suppliers` (guest) $\rightarrow$ 200 OK (public read).
+  - `POST /api/suppliers` (unauthenticated) $\rightarrow$ 401 `MISSING_TOKEN` JSON returned directly from NGINX.
+  - `POST /api/suppliers` (student) $\rightarrow$ 403 `ADMIN_REQUIRED` JSON returned directly from NGINX without hitting `supplier-service`.
+  - `DELETE /api/suppliers/:id` (student) $\rightarrow$ 403 `ADMIN_REQUIRED` JSON returned directly from NGINX.
+  - `POST /api/suppliers` (admin) $\rightarrow$ 201 Created from `supplier-service`.
+
+
 

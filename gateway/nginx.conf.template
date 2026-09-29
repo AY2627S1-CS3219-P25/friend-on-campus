@@ -47,6 +47,7 @@ http {
     server {
         listen 80;
         server_name localhost;
+        recursive_error_pages on;
 
         # Standardized JSON error response for gateway auth failures
         error_page 401 = @auth_failed;
@@ -86,15 +87,6 @@ http {
         location = /internal/auth/verify-student {
             internal;
             proxy_pass http://user_service_upstream/api/auth/verify?role=STUDENT;
-            proxy_pass_request_body off;
-            proxy_set_header Content-Length "";
-            proxy_set_header X-Original-URI $request_uri;
-            proxy_set_header Cookie $http_cookie;
-        }
-
-        location = /internal/auth/verify-optional {
-            internal;
-            proxy_pass http://user_service_upstream/api/auth/verify?optional=true;
             proxy_pass_request_body off;
             proxy_set_header Content-Length "";
             proxy_set_header X-Original-URI $request_uri;
@@ -157,17 +149,18 @@ http {
         # ----------------------------------------------------
         # 2. Supplier Service (M3)
         # ----------------------------------------------------
+        # Public read operations (GET, HEAD, OPTIONS) bypass authentication.
+        # Write operations (POST, PUT, PATCH, DELETE) require ADMIN authorization at the gateway.
         location /api/suppliers/ {
-            auth_request /internal/auth/verify-optional;
-            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
-            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
-            auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
-            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
+            error_page 418 = @supplier_write;
+            if ($request_method !~ ^(GET|HEAD|OPTIONS)$) {
+                return 418;
+            }
 
-            proxy_set_header X-User-Id $auth_user_id;
-            proxy_set_header X-User-Role $auth_user_role;
-            proxy_set_header X-User-Email $auth_user_email;
-            proxy_set_header X-Session-Id $auth_session_id;
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+            proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
 
             proxy_pass http://supplier_service_upstream/api/suppliers/;
             proxy_set_header Host $host;
@@ -176,7 +169,24 @@ http {
         }
 
         location /api/suppliers {
-            auth_request /internal/auth/verify-optional;
+            error_page 418 = @supplier_write;
+            if ($request_method !~ ^(GET|HEAD|OPTIONS)$) {
+                return 418;
+            }
+
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+            proxy_set_header X-User-Email "";
+            proxy_set_header X-Session-Id "";
+
+            proxy_pass http://supplier_service_upstream/api/suppliers;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location @supplier_write {
+            auth_request /internal/auth/verify-admin;
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
@@ -187,7 +197,7 @@ http {
             proxy_set_header X-User-Email $auth_user_email;
             proxy_set_header X-Session-Id $auth_session_id;
 
-            proxy_pass http://supplier_service_upstream/api/suppliers;
+            proxy_pass http://supplier_service_upstream;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
