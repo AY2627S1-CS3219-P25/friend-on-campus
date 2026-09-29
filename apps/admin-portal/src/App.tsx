@@ -137,6 +137,19 @@
  * Upgrade/Downgrade button, confirmation modal, and handleToggleUserRole's API call itself) is unchanged.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Add/Edit Supplier modals: Building and Floor are now required (red asterisk, validateSupplierForm
+ * check, no API call sent until both are filled), matching the new backend uniqueness rule on
+ * (name, category, building, floor). Added a new legend line under each modal's existing "Fields marked with *"
+ * text warning that duplicate suppliers of the same category/location are rejected. When POST/PUT /api/suppliers
+ * returns 409 with a `duplicate` object, it's now captured into new addDuplicateConflict/editDuplicateConflict
+ * state and shown as its own inline box inside the modal (not the top-level actionAlert banner, which would be
+ * hidden behind the modal's backdrop while it's open) naming the specific conflicting supplier's
+ * name/category/building/floor. Reset at every existing open/cancel/close touchpoint for both modals.
+ * Author review: (to be completed by author after review)
+ */
 // AI-generated (edited by yanhwee)
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -201,6 +214,14 @@ function decodeJwtRole(token: string): string | null {
 // Demo tokens for live mentor evaluation
 type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
 
+// The conflicting record returned by POST/PUT /api/suppliers on a 409 (same name/category/building/floor).
+interface SupplierLocationConflict {
+  name: string;
+  category: string;
+  building: string;
+  floor: string;
+}
+
 export default function App() {
   const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit' | 'users'>('suppliers');
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
@@ -255,11 +276,13 @@ export default function App() {
     closingTime: '2000hrs',
   });
   const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
+  const [addDuplicateConflict, setAddDuplicateConflict] = useState<SupplierLocationConflict | null>(null);
 
   // Edit Supplier Modal state
   const [editingSupplier, setEditingSupplier] = useState<SupplierDTO | null>(null);
   const [editFormData, setEditFormData] = useState<UpdateSupplierRequest>({});
   const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
+  const [editDuplicateConflict, setEditDuplicateConflict] = useState<SupplierLocationConflict | null>(null);
 
   // Delete Supplier Modal state
   const [deletingSupplier, setDeletingSupplier] = useState<SupplierDTO | null>(null);
@@ -545,12 +568,16 @@ export default function App() {
     campusZone?: string;
     category?: string;
     exactLocation?: string;
+    building?: string;
+    floor?: string;
   }) => {
     const errors: Record<string, string> = {};
     if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
     if (!data.campusZone?.trim()) errors.campusZone = 'Campus Zone is required.';
     if (!data.category?.trim()) errors.category = 'Category is required.';
     if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
+    if (!data.building?.trim()) errors.building = 'Building is required.';
+    if (!data.floor?.trim()) errors.floor = 'Floor is required.';
     return errors;
   };
 
@@ -563,6 +590,7 @@ export default function App() {
       return;
     }
     setAddFormErrors({});
+    setAddDuplicateConflict(null);
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -588,6 +616,7 @@ export default function App() {
           closingTime: '2000hrs',
         });
       } else {
+        if (data.duplicate) setAddDuplicateConflict(data.duplicate);
         setActionAlert({
           type: 'error',
           message: data.message || data.error || `HTTP ${res.status}: Failed to create supplier`,
@@ -616,6 +645,7 @@ export default function App() {
       isActive: supplier.isActive,
     });
     setEditFormErrors({});
+    setEditDuplicateConflict(null);
   };
 
   // 3. Save Edit Supplier Handler
@@ -628,6 +658,7 @@ export default function App() {
       return;
     }
     setEditFormErrors({});
+    setEditDuplicateConflict(null);
     setIsSubmitting(true);
     setActionAlert(null);
     try {
@@ -641,6 +672,7 @@ export default function App() {
         setEditingSupplier(null);
         setActionAlert({ type: 'success', message: `Supplier "${data.data.name}" updated successfully.` });
       } else {
+        if (data.duplicate) setEditDuplicateConflict(data.duplicate);
         setActionAlert({
           type: 'error',
           message: data.message || data.error || `HTTP ${res.status}: Failed to update supplier`,
@@ -1161,6 +1193,7 @@ export default function App() {
               <button
                 onClick={() => {
                   setAddFormErrors({});
+                  setAddDuplicateConflict(null);
                   setIsAddOpen(true);
                 }}
                 className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
@@ -2141,6 +2174,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setAddFormErrors({});
+                  setAddDuplicateConflict(null);
                   setIsAddOpen(false);
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -2152,6 +2186,22 @@ export default function App() {
             <p className="text-[11px] text-slate-400">
               Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
             </p>
+            <p className="text-[11px] text-slate-400">
+              Admins are not allowed to create duplicate suppliers of the same category and location.
+            </p>
+
+            {addDuplicateConflict && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-1">
+                <p className="font-bold">Duplicate supplier found</p>
+                <p>An existing supplier already occupies this exact spot:</p>
+                <ul className="list-disc list-inside">
+                  <li>Name: {addDuplicateConflict.name}</li>
+                  <li>Category: {addDuplicateConflict.category}</li>
+                  <li>Building: {addDuplicateConflict.building}</li>
+                  <li>Floor: {addDuplicateConflict.floor}</li>
+                </ul>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2241,7 +2291,10 @@ export default function App() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Building</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Building <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.building && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.building}</p>}
                 <input
                   type="text"
                   placeholder="e.g. COM3"
@@ -2252,7 +2305,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Floor</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Floor <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.floor && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.floor}</p>}
                 <input
                   type="text"
                   placeholder="e.g. 1"
@@ -2303,6 +2359,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setAddFormErrors({});
+                  setAddDuplicateConflict(null);
                   setIsAddOpen(false);
                 }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -2339,6 +2396,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setEditFormErrors({});
+                  setEditDuplicateConflict(null);
                   setEditingSupplier(null);
                 }}
                 className="text-slate-400 hover:text-slate-600"
@@ -2350,6 +2408,22 @@ export default function App() {
             <p className="text-[11px] text-slate-400">
               Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
             </p>
+            <p className="text-[11px] text-slate-400">
+              Admins are not allowed to create duplicate suppliers of the same category and location.
+            </p>
+
+            {editDuplicateConflict && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-1">
+                <p className="font-bold">Duplicate supplier found</p>
+                <p>An existing supplier already occupies this exact spot:</p>
+                <ul className="list-disc list-inside">
+                  <li>Name: {editDuplicateConflict.name}</li>
+                  <li>Category: {editDuplicateConflict.category}</li>
+                  <li>Building: {editDuplicateConflict.building}</li>
+                  <li>Floor: {editDuplicateConflict.floor}</li>
+                </ul>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2439,7 +2513,10 @@ export default function App() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Building</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Building <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.building && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.building}</p>}
                 <input
                   type="text"
                   value={editFormData.building || ''}
@@ -2449,7 +2526,10 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Floor</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Floor <span className="text-rose-600">*</span>
+                </label>
+                {editFormErrors.floor && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.floor}</p>}
                 <input
                   type="text"
                   value={editFormData.floor || ''}
@@ -2496,6 +2576,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setEditFormErrors({});
+                  setEditDuplicateConflict(null);
                   setEditingSupplier(null);
                 }}
                 className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"

@@ -11,6 +11,16 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: createSupplier and updateSupplier now check findDuplicateLocation() before writing, rejecting with
+ * 409 and a `duplicate` object (name/category/building/floor of the conflicting record) if one is found.
+ * updateSupplier merges the already-fetched `existing` row with the incoming partial body to get the
+ * *effective* post-update values before checking, since PUT allows partial updates, and excludes its own id
+ * so a no-op/unrelated update isn't flagged as duplicating itself.
+ * Author review: (to be completed by author after review)
+ */
 
 import { Router, Request, RequestHandler, Response } from 'express';
 import * as supplierRepository from '../database/supplierRepository';
@@ -78,10 +88,24 @@ export async function createSupplier(req: Request, res: Response) {
   try {
     const body: CreateSupplierRequest = req.body;
 
-    if (!body.name || !body.campusZone || !body.exactLocation || !body.category) {
+    if (!body.name || !body.campusZone || !body.exactLocation || !body.category || !body.building || !body.floor) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields. Required: name, campusZone, exactLocation, category',
+        error: 'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor',
+      });
+    }
+
+    const duplicate = await supplierRepository.findDuplicateLocation(body.name, body.category, body.building, body.floor);
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        error: 'A supplier already exists with this name, category, and location.',
+        duplicate: {
+          name: duplicate.name,
+          category: duplicate.category,
+          building: duplicate.building,
+          floor: duplicate.floor,
+        },
       });
     }
 
@@ -106,6 +130,32 @@ export async function updateSupplier(req: Request, res: Response) {
     const existing = await supplierRepository.getSupplierById(id);
     if (!existing) {
       return res.status(404).json({ success: false, error: `Supplier '${id}' not found` });
+    }
+
+    const effective = {
+      name: body.name ?? existing.name,
+      category: body.category ?? existing.category,
+      building: body.building ?? existing.building,
+      floor: body.floor ?? existing.floor,
+    };
+    const duplicate = await supplierRepository.findDuplicateLocation(
+      effective.name,
+      effective.category,
+      effective.building,
+      effective.floor,
+      id,
+    );
+    if (duplicate) {
+      return res.status(409).json({
+        success: false,
+        error: 'A supplier already exists with this name, category, and location.',
+        duplicate: {
+          name: duplicate.name,
+          category: duplicate.category,
+          building: duplicate.building,
+          floor: duplicate.floor,
+        },
+      });
     }
 
     const updated = await supplierRepository.updateSupplier(id, body);

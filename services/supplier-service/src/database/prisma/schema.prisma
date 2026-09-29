@@ -10,6 +10,13 @@
 // pass it explicitly to the Prisma CLI, e.g.:
 //   npx prisma generate     --schema src/database/prisma/schema.prisma
 //   npx prisma migrate dev  --schema src/database/prisma/schema.prisma --name init
+//
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+// Scope: building/floor changed from optional to required. (name, category, building, floor) is now
+// case-insensitively unique via a raw SQL expression index in migrations/ — Prisma cannot declare LOWER() in
+// a @@unique, so it is deliberately not declared here (same reasoning as user-service's username/email).
+// Author review: (to be completed by author after review)
 
 generator client {
   provider = "prisma-client-js"
@@ -31,8 +38,8 @@ model Supplier {
   exactLocation String   @map("exact_location")
   category      String
   description   String?
-  building      String?
-  floor         String?
+  building      String
+  floor         String
   latitude      Float?
   longitude     Float?
   startingTime  String?  @map("starting_time")

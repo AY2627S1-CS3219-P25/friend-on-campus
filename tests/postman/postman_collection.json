@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "campus-errand-user-supplier-api-tests",
     "name": "Campus Errand - User & Supplier Service API Tests",
-    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch \u2014 user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 2):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: 3.11-3.15 renamed from PATCH /:id/admin to PATCH /:id/toggle-status (backend route renamed, same behavior). Replaced 3.16-3.17 (the old POST /:id/promote 501-stub requests) with 3.16-3.21, covering the newly-implemented PATCH /:id/toggle-role: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round trip on the test user. The trailing DELETE requests renumbered from 3.18-3.22 to 3.22-3.26 accordingly. 1.1 Login as Admin now also captures adminUserId, needed for the self-targeting test.\nAuthor review: (to be completed by author after review)",
+    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch \u2014 user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 2):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: 3.11-3.15 renamed from PATCH /:id/admin to PATCH /:id/toggle-status (backend route renamed, same behavior). Replaced 3.16-3.17 (the old POST /:id/promote 501-stub requests) with 3.16-3.21, covering the newly-implemented PATCH /:id/toggle-role: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round trip on the test user. The trailing DELETE requests renumbered from 3.18-3.22 to 3.22-3.26 accordingly. 1.1 Login as Admin now also captures adminUserId, needed for the self-targeting test.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 3):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-29\nScope: Rebuilt Folder 5 to add duplicate-location coverage for the new (name, category, building, floor) uniqueness rule, and fixed a regression: 5.1's create-supplier body never included building/floor after they became required, so it had been failing with 400 (and cascading failures through the rest of the folder via the never-captured testSupplierId) since that change shipped. Added 5.2 (create a case-varied duplicate of 5.1's supplier, expect 409 with the duplicate object echoing the original) and 5.8 (create a second throwaway supplier in 5.6, then attempt to update it into a duplicate of the first, expect 409) \u2014 the update path needed its own separate throwaway target since it's checking a different code path (merging the existing row with a partial update) than create's. The second supplier is cleaned up in 5.15, same statelessness philosophy as every other throwaway resource in this collection.\nAuthor review: (to be completed by author after review)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1983,7 +1983,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\"\n}",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2014,105 +2014,7 @@
           ]
         },
         {
-          "name": "5.2 POST /api/suppliers - Forbidden (Student)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{studentAccessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{supplierServiceUrl}}/api/suppliers",
-              "host": [
-                "{{supplierServiceUrl}}"
-              ],
-              "path": [
-                "api",
-                "suppliers"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 403', function () {",
-                  "    pm.response.to.have.status(403);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "5.3 POST /api/suppliers - No Token (401)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{supplierServiceUrl}}/api/suppliers",
-              "host": [
-                "{{supplierServiceUrl}}"
-              ],
-              "path": [
-                "api",
-                "suppliers"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 401', function () {",
-                  "    pm.response.to.have.status(401);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "5.4 POST /api/suppliers - Missing Required Fields (400)",
+          "name": "5.2 POST /api/suppliers - Duplicate Location (409)",
           "request": {
             "method": "POST",
             "header": [
@@ -2137,7 +2039,159 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"description\": \"Missing name/campusZone/exactLocation/category\"\n}",
+              "raw": "{\n  \"name\": \"POSTMAN TEST SUPPLIER\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"A completely different description text\",\n  \"category\": \"food\",\n  \"building\": \"com3\",\n  \"floor\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Duplicate object echoes the original supplier', function () {",
+                  "    pm.expect(jsonData.duplicate.name).to.eql('Postman Test Supplier');",
+                  "    pm.expect(jsonData.duplicate.category).to.eql('Food');",
+                  "    pm.expect(jsonData.duplicate.building).to.eql('COM3');",
+                  "    pm.expect(jsonData.duplicate.floor).to.eql('1');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.3 POST /api/suppliers - Forbidden (Student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.4 POST /api/suppliers - No Token (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.5 POST /api/suppliers - Missing Required Fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Missing name/campusZone/exactLocation/category/building/floor\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2154,16 +2208,70 @@
                 "exec": [
                   "pm.test('Status code is 400', function () {",
                   "    pm.response.to.have.status(400);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "5.5 PUT /api/suppliers/:id - Success (Admin)",
+          "name": "5.6 POST /api/suppliers - Success (Admin, second supplier)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Second Supplier\",\n  \"campusZone\": \"UTown\",\n  \"exactLocation\": \"UTown Plaza, near the test bench\",\n  \"category\": \"Beverages\",\n  \"description\": \"A second throwaway supplier, used only to test updating into a duplicate.\",\n  \"building\": \"Stephen Riady Centre\",\n  \"floor\": \"2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Second supplier id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testSupplierId2', jsonData.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.7 PUT /api/suppliers/:id - Success (Admin)",
           "request": {
             "method": "PUT",
             "header": [
@@ -2219,7 +2327,66 @@
           ]
         },
         {
-          "name": "5.6 PUT /api/suppliers/:id - Forbidden (Student)",
+          "name": "5.8 PUT /api/suppliers/:id - Duplicate Location (409)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId2}}",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId2}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"postman test supplier\",\n  \"category\": \"FOOD\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Duplicate object echoes the first supplier', function () {",
+                  "    pm.expect(jsonData.duplicate.name).to.eql('Postman Test Supplier');",
+                  "    pm.expect(jsonData.duplicate.category).to.eql('Food');",
+                  "    pm.expect(jsonData.duplicate.building).to.eql('COM3');",
+                  "    pm.expect(jsonData.duplicate.floor).to.eql('1');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.9 PUT /api/suppliers/:id - Forbidden (Student)",
           "request": {
             "method": "PUT",
             "header": [
@@ -2262,16 +2429,14 @@
                 "exec": [
                   "pm.test('Status code is 403', function () {",
                   "    pm.response.to.have.status(403);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "5.7 PATCH /api/suppliers/:id/toggle - Deactivate (Admin)",
+          "name": "5.10 PATCH /api/suppliers/:id/toggle - Deactivate (Admin)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2315,7 +2480,7 @@
           ]
         },
         {
-          "name": "5.8 PATCH /api/suppliers/:id/toggle - Forbidden (Student)",
+          "name": "5.11 PATCH /api/suppliers/:id/toggle - Forbidden (Student)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2346,16 +2511,14 @@
                 "exec": [
                   "pm.test('Status code is 403', function () {",
                   "    pm.response.to.have.status(403);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "5.9 PATCH /api/suppliers/:id/toggle - Reactivate (Admin)",
+          "name": "5.12 PATCH /api/suppliers/:id/toggle - Reactivate (Admin)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2399,7 +2562,7 @@
           ]
         },
         {
-          "name": "5.10 DELETE /api/suppliers/:id - Forbidden (Student)",
+          "name": "5.13 DELETE /api/suppliers/:id - Forbidden (Student)",
           "request": {
             "method": "DELETE",
             "header": [
@@ -2429,16 +2592,14 @@
                 "exec": [
                   "pm.test('Status code is 403', function () {",
                   "    pm.response.to.have.status(403);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "5.11 DELETE /api/suppliers/:id?permanent=true - Success (Admin, cleanup)",
+          "name": "5.14 DELETE /api/suppliers/:id?permanent=true - Success (Admin, cleanup)",
           "request": {
             "method": "DELETE",
             "header": [
@@ -2474,9 +2635,50 @@
                 "exec": [
                   "pm.test('Status code is 200', function () {",
                   "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const jsonData = pm.response.json();"
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5.15 DELETE /api/suppliers/:id?permanent=true - Success (Admin, cleanup second supplier)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierId2}}?permanent=true",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierId2}}"
+              ],
+              "query": [
+                {
+                  "key": "permanent",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
                 ]
               }
             }
