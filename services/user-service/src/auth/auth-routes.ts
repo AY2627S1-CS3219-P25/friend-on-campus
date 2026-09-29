@@ -151,10 +151,6 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
 
       res.setHeader('X-Auth-User-Id', principal.userId);
       res.setHeader('X-Auth-User-Role', principal.role);
-      res.setHeader('X-Auth-Session-Id', principal.sessionId);
-      if (principal.email) {
-        res.setHeader('X-Auth-User-Email', principal.email);
-      }
       res.status(200).send();
     }),
   );

@@ -215,13 +215,12 @@ async function runTests() {
     const adminClaims = adminToken ? decodeJwtClaims(adminToken) : {};
     assert(
       adminClaims.sub === adminLoginData.data?.user?.userId &&
-        typeof adminClaims.sid === 'string' &&
         adminClaims.role === 'ADMIN' &&
         typeof adminClaims.iat === 'number' &&
         typeof adminClaims.exp === 'number' &&
         adminClaims.iss === testJwtEnvironment.JWT_ISSUER &&
         adminClaims.aud === testJwtEnvironment.JWT_AUDIENCE,
-      'Access token carries standard JWT claims (sub, sid, role, iat, exp, iss, aud)',
+      'Access token carries standard JWT claims (sub, role, iat, exp, iss, aud)',
     );
 
     // Login the account registered above; registration itself must not authenticate it.
@@ -240,7 +239,7 @@ async function runTests() {
     const studentUserId = studentLoginData.data?.user?.userId;
     const studentClaims = decodeJwtClaims(studentToken);
     assert(studentClaims.sub === studentUserId, 'Access token uses the standard sub claim');
-    assert(typeof studentClaims.sid === 'string', 'Access token includes the standard sid claim');
+    assert(studentClaims.role === 'STUDENT', 'Access token includes the standard role claim');
     assert(typeof studentClaims.iat === 'number', 'Access token includes the standard iat claim');
     assert(studentClaims.iss === 'friend-on-campus-user-service', 'Access token uses the standard iss claim');
     assert(studentClaims.aud === 'friend-on-campus-services', 'Access token uses the standard aud claim');

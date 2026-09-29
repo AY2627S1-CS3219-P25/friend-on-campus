@@ -209,12 +209,9 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         ? options.persistentRefreshTokenIdleLifetimeSeconds
         : options.accessTokenLifetimeSeconds;
       const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
-      const sessionId = randomUUID();
       const sessionToken = options.tokens.issueAccessToken(
         user.id,
-        sessionId,
         user.role,
-        user.email,
         sessionLifetimeSeconds,
         persistent,
       );
@@ -252,9 +249,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
       const nextSessionToken = options.tokens.issueAccessToken(
         principal.userId,
-        principal.sessionId || randomUUID(),
         principal.role,
-        principal.email,
         sessionLifetimeSeconds,
         isPersistent,
       );

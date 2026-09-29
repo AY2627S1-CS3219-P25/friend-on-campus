@@ -19,18 +19,14 @@ const HS256_HEADER = Object.freeze({ alg: 'HS256', typ: 'JWT' });
 
 export interface AuthenticatedPrincipal {
   userId: string;
-  sessionId: string;
   role: UserRole;
-  email?: string;
   persistent?: boolean;
 }
 
 export interface TokenManager {
   issueAccessToken(
     userId: string,
-    sessionId: string,
     role: UserRole,
-    email?: string,
     lifetimeSeconds?: number,
     persistent?: boolean,
   ): string;
@@ -58,14 +54,12 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
   const sessionSecret = options.sessionSecret;
 
   return {
-    issueAccessToken(userId, sessionId, role, email, lifetimeSeconds, persistent) {
+    issueAccessToken(userId, role, lifetimeSeconds, persistent) {
       const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
       const lifetime = lifetimeSeconds ?? options.accessTokenLifetimeSeconds;
-      const claims: JWTPayload & { email?: string; persistent?: boolean } = {
+      const claims: JWTPayload & { persistent?: boolean } = {
         sub: userId,
-        sid: sessionId,
         role,
-        ...(email ? { email } : {}),
         ...(persistent ? { persistent: true } : {}),
         iat: currentUnixTimeSeconds,
         exp: currentUnixTimeSeconds + lifetime,
@@ -122,9 +116,7 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
 
         return {
           userId: claims.sub,
-          sessionId: claims.sid ?? '',
           role: claims.role,
-          email: claims.email,
           persistent: Boolean(claims.persistent),
         };
       } catch {

@@ -1393,3 +1393,40 @@ Address follow-up PR review findings on PR #95:
   - `GET /api/users` (guest) $\rightarrow$ 401 `MISSING_TOKEN` from NGINX.
   - `GET /api/users` (student cookie) $\rightarrow$ 403 `ADMIN_REQUIRED` from NGINX.
   - `GET /api/users` (admin cookie) $\rightarrow$ 200 OK from `user-service`.
+
+## 2026-09-29 — Complete Removal of `sessionId` and `email` from Tokens, Gateway Headers, and Session Context
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Remove both `sessionId` and `email` across the authentication system, gateway forwarding, and downstream session context:
+1. In `packages/common-dtos`: Removed `sid` from `JWTPayload` (`sub`, `role`, `iat`, `exp`, `iss`, `aud`).
+2. In `packages/auth`: Removed `SESSION_ID` and `USER_EMAIL` from `SESSION_HEADERS`. Simplified `SessionUser` to `{ userId: string; role: UserRole; }`. Removed `getSessionUserId` so callers exclusively use `getSessionUser`.
+3. In `services/user-service`:
+   - `tokens.ts`: Removed `sessionId` and `email` from `AuthenticatedPrincipal` and `TokenManager.issueAccessToken`.
+   - `auth-module.ts`: Simplified `login` and `refresh` to issue tokens without `sessionId` or `email`.
+   - `auth-routes.ts`: `GET /api/auth/verify` now only sets `X-Auth-User-Id` and `X-Auth-User-Role`.
+4. In `gateway/nginx.conf.template`:
+   - Stripped all forwarding and stripping directives for `X-User-Email` and `X-Session-Id`.
+   - Gateway solely forwards and strips `X-User-Id` and `X-User-Role`.
+5. In `scripts/test-d2-e2e.ts`:
+   - Aligned Scenario 2 JWT claims tests to assert standard minimal claims (`sub`, `role`, `iat`, `exp`, `iss`, `aud`) without checking for `sid`.
+   - All 61/61 integration tests pass (100%).
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts`
+- `packages/auth/src/index.ts`
+- `gateway/nginx.conf.template`
+- `services/user-service/src/auth/tokens.ts`
+- `services/user-service/src/auth/auth-module.ts`
+- `services/user-service/src/auth/auth-routes.ts`
+- `scripts/test-d2-e2e.ts`
+- `ai/usage-log.md`
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+- Rebuilt containers and verified decoded JWT payload on live logins (`sub`, `role`, `iat`, `exp`, `iss`, `aud` with zero `sid` / `email` claims).
+- Live Gateway RBAC verified: public 200, unauthorized 401, student 403, admin 201/200.
+
