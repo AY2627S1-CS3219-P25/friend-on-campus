@@ -8,7 +8,7 @@ Author review: <to be completed by Reallyeasy1>
 <!--
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
-Scope: Extended the evidence entry (checklist, screenshots, UAT drivers). Index text only.
+Scope: Extended the evidence entry (checklist, screenshots, UAT drivers). Added the d2-question-guide.md entry. Index text only.
 Author review: <to be completed by Reallyeasy1>
 -->
 
@@ -23,7 +23,8 @@ Author review: <to be completed by Reallyeasy1>
 5. [`evidence/d2/`](./evidence/d2/README.md) — acceptance-check results for the D2 demo, [`d2-checklist.md`](./evidence/d2/d2-checklist.md) (the D2 instructions point by point, with status), and `screenshots/` at desktop and mobile widths. Produced by `scripts/uat/uat-d2-api.mjs` and `scripts/uat/uat-d2-ui.mjs`.
 6. [`diagrams/`](./diagrams/) — Mermaid sources, as built: [`component.md`](./diagrams/component.md), [`user-schema.md`](./diagrams/user-schema.md), [`supplier-schema.md`](./diagrams/supplier-schema.md), [`auth-sequence.md`](./diagrams/auth-sequence.md) (login, then an allowed / denied supplier action). GitHub renders them; export images only for slides.
 7. [`api/`](./api/) — OpenAPI 3.0 transcriptions of the routes that exist: [`user-service.yaml`](./api/user-service.yaml), [`supplier-service.yaml`](./api/supplier-service.yaml).
-8. [`onboarding-guide-sep-3.md`](./onboarding-guide-sep-3.md) — beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces), written 3 Sep from the starter template; for current service behaviour prefer `services/`.
+8. [`d2-question-guide.md`](./d2-question-guide.md) — the D2 instructions question by question: as-built facts, what to show, and empty slots for the team's "why" answers.
+9. [`onboarding-guide-sep-3.md`](./onboarding-guide-sep-3.md) — beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces), written 3 Sep from the starter template; for current service behaviour prefer `services/`.
 
 AI tooling (Claude Code set-up, plugins, agents, hooks) is documented next to its config: [`../.claude/README.md`](../.claude/README.md) and [`../.claude/PLUGINS.md`](../.claude/PLUGINS.md).
 
