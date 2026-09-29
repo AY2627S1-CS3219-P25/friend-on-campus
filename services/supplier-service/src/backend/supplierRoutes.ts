@@ -26,7 +26,8 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
  * Scope: PR #93 review fixes: the duplicate check uses trimmed values (the repository stores trimmed values),
  * a unique-index violation (Prisma P2002) is answered with 409 instead of 500, and updateSupplier returns 400
- * when name, category, building or floor is sent empty.
+ * when name, category, building or floor is sent empty. createSupplier treats whitespace-only required
+ * fields as missing.
  * Author review: (to be completed by author after review)
  */
 
@@ -104,7 +105,9 @@ export async function createSupplier(req: Request, res: Response) {
   try {
     const body: CreateSupplierRequest = req.body;
 
-    if (!body.name || !body.campusZone || !body.exactLocation || !body.category || !body.building || !body.floor) {
+    // Whitespace-only counts as missing, the same as in updateSupplier.
+    const required = ['name', 'campusZone', 'exactLocation', 'category', 'building', 'floor'] as const;
+    if (required.some((key) => !String(body[key] ?? '').trim())) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor',

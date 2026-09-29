@@ -1446,3 +1446,4 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `tests/postman/postman_collection.json` — request 3.15 accepts 400, 404 or 500 (JSON file, disclosure is in its description field).
 - `docs/services/user-service.md`, `docs/services/supplier-service.md`, `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml`, `docs/diagrams/supplier-schema.md`, `docs/d2-question-guide.md`, `services/user-service/docs/api-reference.md` — routes and rules as built on this branch.
 - `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
+- Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.

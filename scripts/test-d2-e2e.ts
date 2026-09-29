@@ -45,7 +45,8 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
  * Scope: PR #93 review fix: Scenario 6 sends the now-required building and floor when the admin creates the
- * test supplier, and asserts that a create without them is rejected with 400.
+ * test supplier, and asserts that a create without them is rejected with 400. The test supplier's name
+ * carries the random test code, so a row left by an aborted run cannot trip the uniqueness rule.
  * Author review: (to be completed by author after review)
  */
 
@@ -471,7 +472,7 @@ async function runTests() {
       },
       body: JSON.stringify({
         supplierCode: testSupplierCode,
-        name: 'Verified Admin Test Cafe',
+        name: `Verified Admin Test Cafe ${testSupplierCode}`,
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 1 Terrace',
         category: 'Beverages',
@@ -494,14 +495,14 @@ async function runTests() {
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        name: 'Verified Admin Test Cafe (Updated)',
+        name: `Verified Admin Test Cafe ${testSupplierCode} (Updated)`,
         floor: '2',
       }),
     });
     const updateSupplierData = await adminUpdate.json();
     assert(adminUpdate.status === 200, 'Admin token PUT /api/suppliers/:id updates location (200 OK)');
     assert(
-      updateSupplierData.data?.name === 'Verified Admin Test Cafe (Updated)',
+      updateSupplierData.data?.name === `Verified Admin Test Cafe ${testSupplierCode} (Updated)`,
       'Supplier name updated correctly'
     );
 
