@@ -59,16 +59,12 @@ npm run dev:supplier
 |---|---|---|
 | `PORT` | listen port | `8002` |
 | `DATABASE_URL` | Prisma connection | none — required |
-| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token verification for direct requests | **Required** (no default; min 32 chars) |
-| `GATEWAY_KEY` | Internal gateway verification key for trusted header forwarding | **Required** (no default; min 16 chars) |
-| `JWT_ISSUER` | required access-token issuer claim | `friend-on-campus-user-service` |
-| `JWT_AUDIENCE` | required access-token audience claim | `friend-on-campus-services` |
 
-When requests arrive via NGINX API Gateway, NGINX verifies the session with `user-service` and injects verified `X-User-Id` and `X-User-Role` headers downstream. For direct microservice calls (e.g. in test suites), `@campus-errand/auth` verifies the symmetric session token with `SESSION_SECRET`.
+When requests arrive via NGINX API Gateway, NGINX verifies the session with `user-service` and injects verified `X-User-Id` and `X-User-Role` headers downstream. Backend routes enforce `requireAdmin` based on `X-User-Role: ADMIN`.
 
 ## Files
 
-Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured symmetric verifier and `requireAdmin` / `getSessionUser`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
+Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (`getSessionUser`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
 
 ## API (mounted at `/api/suppliers`)
 
@@ -76,10 +72,10 @@ Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplie
 |---|---|---|---|---|
 | `GET /` | **none** | query: `campusZone, category, search, isActive, sortBy, sortOrder, page, limit` | 200 `{ suppliers, total, page, limit, totalPages }` | 500 |
 | `GET /:id` | **none** | `:id` is the UUID or a `supplierCode` | 200 supplier | 404 |
-| `POST /` | Bearer + `ADMIN` | `CreateSupplierRequest`; required `name, campusZone, exactLocation, category, building, floor` | 201 supplier | 400 missing fields; 401; 403; 409 duplicate |
-| `PUT /:id` | Bearer + `ADMIN` | `UpdateSupplierRequest` (any subset, incl. `isActive`) | 200 supplier | 400 blank `name`, `category`, `building` or `floor`; 401; 403; 404; 409 duplicate |
-| `PATCH /:id/toggle` | Bearer + `ADMIN` | — | 200 supplier with `isActive` flipped | 401; 403; 404 |
-| `DELETE /:id[?permanent=true]` | Bearer + `ADMIN` | — | 200 message | 401; 403; 404 |
+| `POST /` | `X-User-Role: ADMIN` | `CreateSupplierRequest`; required `name, campusZone, exactLocation, category, building, floor` | 201 supplier | 400 missing fields; 401; 403; 409 duplicate |
+| `PUT /:id` | `X-User-Role: ADMIN` | `UpdateSupplierRequest` (any subset, incl. `isActive`) | 200 supplier | 400 blank `name`, `category`, `building` or `floor`; 401; 403; 404; 409 duplicate |
+| `PATCH /:id/toggle` | `X-User-Role: ADMIN` | — | 200 supplier with `isActive` flipped | 401; 403; 404 |
+| `DELETE /:id[?permanent=true]` | `X-User-Role: ADMIN` | — | 200 message | 401; 403; 404 |
 
 OpenAPI form: [`../api/supplier-service.yaml`](../api/supplier-service.yaml).
 

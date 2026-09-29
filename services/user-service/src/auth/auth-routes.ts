@@ -1,40 +1,17 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-29
- * Scope: Implemented dual-cookie management (student_session and admin_session), role-based GET /verify?role= query parameter, and gateway coarse-grained RBAC.
+ * Scope: Stateless single session cookie (session), role-based GET /verify?role= query parameter, and gateway coarse-grained RBAC.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-09-28
- * Scope: Implemented symmetric session cookie management (Path=/), GET /verify endpoint for NGINX auth_request subrequests, and response header injection (X-Auth-User-Id, X-Auth-User-Role).
- * Author review: (to be completed by author after review)
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service authentication HTTP routes with typed responses and safe malformed-cookie handling.
- * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: A malformed (non-URI-encoded) refresh cookie is now treated as absent (401 INVALID_SESSION) instead of
- * throwing URIError into the 500 handler.
- * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
 import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
 import { AuthError, AuthModule } from './auth-module';
 
 import { UserModule } from '../users/user-module';
 
-const STUDENT_COOKIE_NAME = 'student_session';
-const ADMIN_COOKIE_NAME = 'admin_session';
+const SESSION_COOKIE_NAME = 'session';
 
 export interface AuthRouteOptions {
   auth: AuthModule;
@@ -75,7 +52,6 @@ function readCookie(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-
 function sessionCookieOptions(secure: boolean): CookieOptions {
   return {
     httpOnly: true,
@@ -99,11 +75,7 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
           : undefined;
 
       const sessionToken =
-        requiredRole === 'ADMIN'
-          ? (readCookie(req, ADMIN_COOKIE_NAME) ?? readCookie(req, STUDENT_COOKIE_NAME))
-          : requiredRole === 'STUDENT'
-            ? (readCookie(req, STUDENT_COOKIE_NAME) ?? readCookie(req, ADMIN_COOKIE_NAME))
-            : (readCookie(req, STUDENT_COOKIE_NAME) ?? readCookie(req, ADMIN_COOKIE_NAME));
+        readCookie(req, SESSION_COOKIE_NAME) ?? req.body?.refreshToken;
 
       if (!sessionToken) {
         res.status(401).json({
@@ -179,12 +151,7 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         maxAge: result.accessTokenExpiresInSeconds * 1000,
       };
 
-      // Set persona-specific session cookie
-      if (result.user.userRole === 'ADMIN') {
-        res.cookie(ADMIN_COOKIE_NAME, result.accessToken, cookieOpts);
-      } else {
-        res.cookie(STUDENT_COOKIE_NAME, result.accessToken, cookieOpts);
-      }
+      res.cookie(SESSION_COOKIE_NAME, result.accessToken, cookieOpts);
 
       const response: AuthResponse = {
         accessToken: result.accessToken,
@@ -201,19 +168,8 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
   router.post(
     '/refresh',
     asyncRoute(async (req, res) => {
-      const role =
-        typeof req.query.role === 'string'
-          ? req.query.role.toUpperCase()
-          : undefined;
-
       const sessionToken =
-        role === 'ADMIN'
-          ? readCookie(req, ADMIN_COOKIE_NAME)
-          : role === 'STUDENT'
-            ? readCookie(req, STUDENT_COOKIE_NAME)
-            : readCookie(req, STUDENT_COOKIE_NAME) ??
-              readCookie(req, ADMIN_COOKIE_NAME) ??
-              req.body?.refreshToken;
+        readCookie(req, SESSION_COOKIE_NAME) ?? req.body?.refreshToken;
       const result = await auth.refresh(sessionToken);
 
       const cookieOpts = {
@@ -221,12 +177,7 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         maxAge: result.accessTokenExpiresInSeconds * 1000,
       };
 
-      const principal = await auth.verify(result.accessToken);
-      if (principal?.role === 'ADMIN') {
-        res.cookie(ADMIN_COOKIE_NAME, result.accessToken, cookieOpts);
-      } else {
-        res.cookie(STUDENT_COOKIE_NAME, result.accessToken, cookieOpts);
-      }
+      res.cookie(SESSION_COOKIE_NAME, result.accessToken, cookieOpts);
 
       const response: RefreshTokenResponse = {
         accessToken: result.accessToken,
@@ -242,19 +193,8 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
   router.post(
     '/logout',
     asyncRoute(async (req, res) => {
-      const role =
-        typeof req.query.role === 'string'
-          ? req.query.role.toUpperCase()
-          : undefined;
-
       const token =
-        role === 'ADMIN'
-          ? readCookie(req, ADMIN_COOKIE_NAME)
-          : role === 'STUDENT'
-            ? readCookie(req, STUDENT_COOKIE_NAME)
-            : readCookie(req, STUDENT_COOKIE_NAME) ??
-              readCookie(req, ADMIN_COOKIE_NAME) ??
-              req.body?.refreshToken;
+        readCookie(req, SESSION_COOKIE_NAME) ?? req.body?.refreshToken;
 
       if (token) {
         try {
@@ -264,16 +204,7 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         }
       }
 
-      // Persona-specific logout: clear only the designated cookie if role specified, or both if unspecified
-      if (role === 'ADMIN') {
-        res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-      } else if (role === 'STUDENT') {
-        res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-      } else {
-        res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-        res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-      }
-
+      res.clearCookie(SESSION_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
       res.status(204).send();
     }),
   );

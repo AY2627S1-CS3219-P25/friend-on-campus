@@ -305,7 +305,7 @@ export default function App() {
     if (!refreshInFlight.current) {
       refreshInFlight.current = (async () => {
         try {
-          const res = await fetch('/api/auth/refresh?role=STUDENT', { method: 'POST' });
+          const res = await fetch('/api/auth/refresh', { method: 'POST' });
           const data = await res.json();
           if (!res.ok || !data.success) return null;
           const token: string = data.data.accessToken;
@@ -443,7 +443,7 @@ export default function App() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await fetch('/api/auth/logout?role=STUDENT', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       // Network failure logging out server-side shouldn't block clearing the local session below.
     } finally {

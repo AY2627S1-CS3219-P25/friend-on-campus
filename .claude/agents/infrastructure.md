@@ -41,7 +41,7 @@ Directory, from your seat:
 
 ```
 docker-compose.yml                  gateway, student-app, admin-portal, 5 services, postgres:16-alpine, rabbitmq:3.13-management; volumes postgres_data, rabbitmq_data
-gateway/nginx.conf.template         upstreams + location blocks (rendered by nginx:alpine envsubst entrypoint with NGINX_ENVSUBST_FILTER=GATEWAY_KEY)
+gateway/nginx.conf.template         upstreams + location blocks (rendered by nginx:alpine template entrypoint)
 apps/*/Dockerfile, services/*/Dockerfile   node:20-alpine, workspace install, tsx / vite dev server
 docker/postgres-init/               init SQL (backend owns the table definitions; you own that it gets mounted and run)
 .env.example, .dockerignore, package.json (root scripts), tsconfig.base.json

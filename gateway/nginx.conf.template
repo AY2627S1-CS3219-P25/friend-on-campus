@@ -84,15 +84,6 @@ http {
             proxy_set_header Cookie $http_cookie;
         }
 
-        location = /internal/auth/verify-student {
-            internal;
-            proxy_pass http://user_service_upstream/api/auth/verify?role=STUDENT;
-            proxy_pass_request_body off;
-            proxy_set_header Content-Length "";
-            proxy_set_header X-Original-URI $request_uri;
-            proxy_set_header Cookie $http_cookie;
-        }
-
         # ----------------------------------------------------
         # 1. User & Authentication Service (M2)
         # ----------------------------------------------------

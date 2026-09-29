@@ -100,10 +100,9 @@ the shared `postgres` hostname on port `5432`.
 
 ## Persistence
 
-`src/database/prisma/schema.prisma` defines `User` and `Session`.
+`src/database/prisma/schema.prisma` defines `User` (and an unused legacy `Session` schema model). Session state is stateless JWT and does not write to the database.
 
 - `users`: UUID, username, email, password hash (scrypt), `STUDENT`/`ADMIN` role (default `STUDENT`), `status` boolean (default `true`), and timestamps.
-- `sessions.user_id` references `users.id` with `ON DELETE CASCADE`; index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
 - Migrations: `20260922170000_initial_user_service`, `20260923150000_add_user_status`.
 - Usernames and emails are unique case-insensitively through PostgreSQL indexes.
 - `src/database/prisma/migrations/` is the service migration source, deployed automatically on container startup or via `npm run db:migrate`. The tables are owned exclusively by User Service and are no longer created in the shared postgres-init script.
@@ -115,10 +114,10 @@ The Prisma repository is `src/persistence/user-repository.ts`; no runtime `pg` p
 | Method & path | Auth | Result |
 |---|---|---|
 | `POST /api/auth/register` | none | Creates a `username`/`email`/`password` account; does not create a session. |
-| `POST /api/auth/login` | none | Returns session token and user; sets `student_session` or `admin_session` cookie (Path=/). |
-| `GET /api/auth/verify` | session cookie (`student_session` / `admin_session`) | Gateway verification subrequest; returns `200` with `X-Auth-User-Id` and `X-Auth-User-Role` headers, or `401`. Query `role=ADMIN` checks for admin privilege (returns `403` if student). |
-| `POST /api/auth/refresh` | session cookie (`role` query hint) | Re-issues and extends stateless session cookie for the targeted persona. |
-| `POST /api/auth/logout` | session cookie (`role` query hint) | Clears appropriate session cookie (`student_session`, `admin_session`, or both). |
+| `POST /api/auth/login` | none | Returns session token and user; sets `session` cookie (Path=/). |
+| `GET /api/auth/verify` | session cookie (`session`) | Gateway verification subrequest; returns `200` with `X-Auth-User-Id` and `X-Auth-User-Role` headers, or `401`. Query `role=ADMIN` checks for admin privilege (returns `403` if student). |
+| `POST /api/auth/refresh` | session cookie (`session`) | Re-issues and extends stateless `session` cookie. |
+| `POST /api/auth/logout` | session cookie (`session`) | Clears `session` cookie. |
 | `GET /api/users/me` | Gateway perimeter header (`X-User-Id`) | Returns authenticated profile. |
 | `PATCH /api/users/me` | Gateway perimeter header (`X-User-Id`) | Updates username only; any other field in the body (`role`, `status`, `userId`, `email`) → 400 `INVALID_INPUT`. Taken username → 409 `DUPLICATE_USERNAME`. |
 | `PUT /api/users/me/password` | Gateway perimeter header (`X-User-Id`) | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
@@ -157,9 +156,9 @@ another user an `ADMIN` with `toggle-role`. The seed puts the three seed account
 
 ## Authentication and sessions
 
-Sessions use symmetric HMAC-SHA256 (HS256) stateless session tokens placed into an `HttpOnly`, `SameSite=Lax`, `Path=/` cookie named `session`. When requests pass through the NGINX API Gateway, NGINX executes an internal subrequest to `GET /api/auth/verify`. Upon verification, NGINX injects `X-User-Id`, `X-User-Role`, and `X-User-Email` upstream headers into downstream microservices (e.g. `supplier-service`, `order-service`).
+Sessions use symmetric HMAC-SHA256 (HS256) stateless session tokens placed into `HttpOnly`, `SameSite=Lax`, `Path=/` cookies named `session`. When requests pass through the NGINX API Gateway, NGINX executes an internal subrequest to `GET /api/auth/verify`. Upon verification, NGINX injects `X-User-Id` and `X-User-Role` upstream headers into downstream microservices (e.g. `supplier-service`, `order-service`).
 
-Downstream services consuming `@campus-errand/auth` inspect these gateway headers directly, bypassing cryptographic verification while retaining dual-mode direct token verification for local integration tests.
+Downstream services consuming `@campus-errand/auth` inspect these gateway headers directly via `getSessionUser`.
 
 ## Development seed accounts
 

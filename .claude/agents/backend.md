@@ -52,7 +52,7 @@ You implement decisions; you do not make them. If the task text does not state t
 
 - You own database work too: a table is defined twice (raw SQL in `docker/postgres-init/01-init-databases.sql`, which Postgres runs only on first boot of an empty volume, and the service's `schema.prisma`). Apply a decided column change to **both**, add a migration where a `migrations/` folder exists, and report that `docker compose down -v` is needed (it wipes local data — never run it yourself).
 - Layout: `src/database/{client.ts, <name>Repository.ts, seed.ts, prisma/schema.prisma}`; routes call the repository, never Prisma directly; import the client from `../database/client`, never a root `@prisma/client`.
-- Use the shared `@campus-errand/auth` verifier for gateway header offloading (`x-gateway-key`) and fallback symmetric session verification (`SESSION_SECRET`); keep its configuration aligned with User Service.
+- Use the shared `@campus-errand/auth` verifier for perimeter header identity extraction (`getSessionUser`); keep its configuration aligned with User Service.
 - `packages/common-dtos` is the contract with every service and both apps; after touching it run typecheck across all workspaces and list the consumers affected.
 - Money-like state (credit): balance change + ledger row in one DB transaction; never write back a balance computed in JS from an earlier read; validate amounts as positive integers at the route.
 - Do not edit `apps/**`, Dockerfiles, compose or nginx — report what `frontend` / `infrastructure` must change.

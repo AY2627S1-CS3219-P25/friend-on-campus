@@ -514,8 +514,7 @@ services:
     volumes:
       - ./gateway/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
     environment:
-      - GATEWAY_KEY=${GATEWAY_KEY:?Set GATEWAY_KEY in .env}
-      - NGINX_ENVSUBST_FILTER=GATEWAY_KEY
+      - NGINX_ENVSUBST_FILTER=NO_VARS
       - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
     depends_on:
       - student-app
@@ -530,7 +529,7 @@ services:
 * **`image: nginx:alpine`**: Instead of writing a custom Dockerfile, we pull the official, ultra-lightweight Nginx image from Docker Hub.
 * **`container_name: campuserrand-gateway`**: Gives a human-readable name in `docker ps` instead of an auto-generated random hash.
 * **`ports: ["80:80"]`**: Maps port 80 on your Mac (`localhost`) to port 80 inside the container.
-* **`volumes: ./gateway/nginx.conf.template:...:ro`**: A **Bind Mount** that mounts our configuration template into `/etc/nginx/templates/`, where NGINX Alpine's `20-envsubst-on-templates.sh` dynamically renders `/etc/nginx/nginx.conf` substituting `${GATEWAY_KEY}`.
+* **`volumes: ./gateway/nginx.conf.template:...:ro`**: A **Bind Mount** that mounts our configuration template into `/etc/nginx/templates/`, where NGINX Alpine automatically instantiates `/etc/nginx/nginx.conf`.
 * **`depends_on:`**: Lists all 7 downstream applications so Nginx doesn't start until they are launched.
 
 ---
