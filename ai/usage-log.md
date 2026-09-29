@@ -1170,3 +1170,29 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 
 **Files changed:**
 - none beyond this entry; the commit contains the files from the two entries above and the decision records.
+
+## 2026-09-28 21:21 SGT — Seed account lookup; Word copy of the D2 question guide
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Two prompts: give the test account names and password; create a Word document from docs/d2-question-guide.md.
+
+**Usage scenario:** Learning support (facts read from the seed script and service page) and formatting. The Word file is a pandoc conversion of the guide with no change to its content; the disclosure header is kept as visible text and the "Team's answer" slots are still empty.
+
+**Files changed:**
+- none in the repository besides this entry. Output written outside the repo: `../d2-question-guide.docx`.
+
+## 2026-09-29 12:12 SGT — Checked main for changes before a docs update
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Pull from main, then update the diagrams and documentation accordingly.
+
+**Usage scenario:** Documentation upkeep. Fetched the remote: `origin/main` is still f0ee632, the commit the diagrams and service pages already describe, so nothing was merged and no document was changed. PRs #91, #93 and #95 are open and not on main.
+
+**Files changed:**
+- none besides this entry.
