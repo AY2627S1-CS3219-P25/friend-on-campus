@@ -46,11 +46,3 @@ export function getSessionUser(req: Request): SessionUser | null {
   }
   return null;
 }
-
-/**
- * Quick helper to extract just the userId from the session headers.
- * Returns null if not present.
- */
-export function getSessionUserId(req: Request): string | null {
-  return req.header(SESSION_HEADERS.USER_ID) || null;
-}

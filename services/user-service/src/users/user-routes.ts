@@ -27,7 +27,7 @@ import {
   Response,
   Router,
 } from 'express';
-import { getSessionUserId } from '@campus-errand/auth';
+import { getSessionUser } from '@campus-errand/auth';
 import { AuthError } from '../auth/auth-module';
 import { UserError, UserModule } from './user-module';
 
@@ -40,12 +40,12 @@ function asyncRoute(
 }
 
 function authenticatedUserId(req: Request): string {
-  const userId = getSessionUserId(req);
-  if (!userId) {
+  const session = getSessionUser(req);
+  if (!session) {
     throw new AuthError('INVALID_SESSION', 'Authentication is required');
   }
 
-  return userId;
+  return session.userId;
 }
 
 export function createUserRouter(users: UserModule): Router {
