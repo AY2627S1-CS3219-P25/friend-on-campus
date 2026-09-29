@@ -11,6 +11,7 @@
 // results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
 import { chromium } from 'playwright';
 import { writeFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
