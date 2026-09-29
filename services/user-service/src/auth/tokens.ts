@@ -7,7 +7,7 @@
 // AI-generated (edited by yanhwee)
 import { SignJWT, jwtVerify } from 'jose';
 import { createHash, randomBytes } from 'node:crypto';
-import { UserRole } from '../persistence/auth-repository';
+import { UserRole } from '../persistence/user-repository';
 
 export interface AuthenticatedPrincipal {
   userId: string;

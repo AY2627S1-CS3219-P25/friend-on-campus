@@ -22,14 +22,12 @@ import { createAuthModule } from './auth/auth-module';
 import { createTokenManager } from './auth/tokens';
 import { config } from './config';
 import { prisma } from './database/client';
-import { createAuthRepository } from './persistence/auth-repository';
 import { createDatabase } from './persistence/database';
 import { createUserRepository } from './persistence/user-repository';
 import { logError } from './utils/logger';
 import { createUserModule } from './users/user-module';
 
 const database = createDatabase(prisma);
-const repository = createAuthRepository(prisma);
 const userRepository = createUserRepository(prisma);
 const tokens = createTokenManager({
   sessionSecret: config.sessionSecret,
@@ -38,7 +36,7 @@ const tokens = createTokenManager({
   accessTokenAudience: config.accessTokenAudience,
 });
 const auth = createAuthModule({
-  repository,
+  repository: userRepository,
   tokens,
   accessTokenLifetimeSeconds: config.accessTokenLifetimeSeconds,
   refreshTokenIdleLifetimeSeconds: config.refreshTokenIdleLifetimeSeconds,

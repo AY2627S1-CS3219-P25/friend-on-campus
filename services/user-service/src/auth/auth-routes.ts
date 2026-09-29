@@ -31,10 +31,14 @@ import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router 
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
 import { AuthError, AuthModule } from './auth-module';
 
+import { UserModule } from '../users/user-module';
+
 const STUDENT_COOKIE_NAME = 'student_session';
 const ADMIN_COOKIE_NAME = 'admin_session';
 
 export interface AuthRouteOptions {
+  auth: AuthModule;
+  users: UserModule;
   secureCookies: boolean;
 }
 
@@ -89,7 +93,8 @@ function sessionCookieOptions(secure: boolean): CookieOptions {
   };
 }
 
-export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): Router {
+export function createAuthRouter(options: AuthRouteOptions): Router {
+  const { auth, users } = options;
   const router = Router();
 
   // NGINX auth_request verification subrequest
@@ -158,7 +163,7 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
   router.post(
     '/register',
     asyncRoute(async (req, res) => {
-      const user = await auth.register(req.body);
+      const user = await users.register(req.body);
       res.status(201).json({
         success: true,
         data: {

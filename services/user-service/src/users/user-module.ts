@@ -1,19 +1,13 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Centralized all user account lifecycle logic (registration, profile management, password updates, status toggling) in UserModule.
+ * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented username-only profile updates and shared user and password DTO handling.
- * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by yanhwee)
 import type {
   ChangePasswordRequest,
+  RegisterUserRequest,
   UpdateUserProfileRequest,
   UserDTO,
 } from '@campus-errand/common-dtos';
@@ -23,9 +17,15 @@ import {
   UserRepository,
   UpdateUserRecord,
 } from '../persistence/user-repository';
-import { isValidPassword, isValidUsername } from '../utils/validation';
+import {
+  isValidEmail,
+  isValidPassword,
+  isValidUsername,
+  normalizeEmail,
+} from '../utils/validation';
 
 export interface UserModule {
+  register(input: RegisterUserRequest): Promise<UserDTO>;
   getOwnProfile(userId: string): Promise<UserDTO>;
   listUsers(): Promise<UserDTO[]>;
   updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
@@ -35,6 +35,7 @@ export interface UserModule {
 
 export type UserErrorCode =
   | 'INVALID_INPUT'
+  | 'DUPLICATE_EMAIL'
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
@@ -74,6 +75,27 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function validateEmail(email: unknown): string {
+  if (!isValidEmail(email)) {
+    throw new UserError('INVALID_INPUT', 'A valid email address is required');
+  }
+  return normalizeEmail(email);
+}
+
+function validatePassword(password: unknown): string {
+  if (!isValidPassword(password)) {
+    throw new UserError('INVALID_INPUT', 'Password must be between 8 and 24 characters');
+  }
+  return password;
+}
+
+function validateUsername(username: unknown): string {
+  if (!isValidUsername(username)) {
+    throw new UserError('INVALID_INPUT', 'Username must be between 1 and 50 characters');
+  }
+  return username.trim();
+}
+
 function validateProfileUpdate(input: unknown): UpdateUserRecord {
   if (!isObject(input)) {
     throw new UserError('INVALID_INPUT', 'A profile update is required');
@@ -97,6 +119,10 @@ function mapDuplicateUserError(error: unknown): never {
   const isUsernameConflict =
     databaseError.constraint === 'users_username_case_insensitive_uq' ||
     (databaseError.code === 'P2002' && prismaTarget.includes('username'));
+  const isEmailConflict =
+    databaseError.constraint === 'users_email_case_insensitive_uq' ||
+    (databaseError.code === 'P2002' && prismaTarget.includes('email'));
+
   if (databaseError.code !== '23505' && databaseError.code !== 'P2002') {
     throw error;
   }
@@ -105,11 +131,35 @@ function mapDuplicateUserError(error: unknown): never {
     throw new UserError('DUPLICATE_USERNAME', 'Username is already in use');
   }
 
+  if (isEmailConflict) {
+    throw new UserError('DUPLICATE_EMAIL', 'Email address is already in use');
+  }
+
   throw error;
 }
 
 export function createUserModule(options: UserModuleOptions): UserModule {
   return {
+    async register(input) {
+      const username = validateUsername(input?.username);
+      const email = validateEmail(input?.email);
+      const password = validatePassword(input?.password);
+
+      const passwordHash = await hashPassword(password);
+
+      try {
+        const user = await options.repository.createUser({
+          username,
+          email,
+          passwordHash,
+          role: 'STUDENT',
+        });
+        return toUserDTO(user);
+      } catch (error) {
+        mapDuplicateUserError(error);
+      }
+    },
+
     async getOwnProfile(userId) {
       const user = await options.repository.findById(userId);
       if (!user) {

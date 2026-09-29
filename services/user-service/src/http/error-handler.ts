@@ -20,14 +20,13 @@ import { UserError, UserErrorCode } from '../users/user-module';
 
 const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
   INVALID_INPUT: 400,
-  DUPLICATE_EMAIL: 409,
-  DUPLICATE_USERNAME: 409,
   INVALID_CREDENTIALS: 401,
   INVALID_SESSION: 401,
 };
 
 const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   INVALID_INPUT: 400,
+  DUPLICATE_EMAIL: 409,
   DUPLICATE_USERNAME: 409,
   INVALID_CURRENT_PASSWORD: 401,
   USER_NOT_FOUND: 404,

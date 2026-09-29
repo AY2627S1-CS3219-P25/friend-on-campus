@@ -1,17 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented Prisma-backed persistence operations for user profiles and password changes.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Unified UserRepository consolidating all user queries and credential operations (createUser, findByEmail, findById, listAll, updateProfile, updatePassword, toggleStatus).
+ * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Enforced immutable email addresses in the User Service profile persistence path.
- * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by yanhwee)
 import { PrismaClient, User as PrismaUser } from '../database/generated/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
@@ -25,11 +18,20 @@ export interface UserRecord {
   status: boolean;
 }
 
+export interface CreateUserRecord {
+  username: string;
+  email: string;
+  passwordHash: string;
+  role?: UserRole;
+}
+
 export interface UpdateUserRecord {
   username: string;
 }
 
 export interface UserRepository {
+  createUser(input: CreateUserRecord): Promise<UserRecord>;
+  findByEmail(email: string): Promise<UserRecord | null>;
   findById(userId: string): Promise<UserRecord | null>;
   listAll(): Promise<UserRecord[]>;
   updateProfile(userId: string, input: UpdateUserRecord): Promise<UserRecord | null>;
@@ -54,6 +56,31 @@ function toUserRecord(row: PrismaUser): UserRecord {
 
 export function createUserRepository(prisma: PrismaClient): UserRepository {
   return {
+    async createUser(input) {
+      const user = await prisma.user.create({
+        data: {
+          username: input.username,
+          email: input.email,
+          passwordHash: input.passwordHash,
+          role: input.role ?? 'STUDENT',
+        },
+      });
+
+      return toUserRecord(user);
+    },
+
+    async findByEmail(email) {
+      // Matches the users_email_case_insensitive_uq expression index (LOWER(email))
+      const rows = await prisma.$queryRaw<PrismaUser[]>`
+        SELECT id, username, email, password_hash AS "passwordHash", role, status,
+               created_at AS "createdAt", updated_at AS "updatedAt"
+        FROM users
+        WHERE LOWER(email) = LOWER(${email})
+        LIMIT 1
+      `;
+      return rows.length === 1 ? toUserRecord(rows[0]) : null;
+    },
+
     async findById(userId) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       return user ? toUserRecord(user) : null;

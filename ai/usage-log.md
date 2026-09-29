@@ -1482,5 +1482,44 @@ Address follow-up PR review findings on PR #95:
   - `POST /api/auth/login` issues valid HS256 JWT cookie via `jose`.
   - `GET /api/users/me` verified by NGINX gateway subrequest and returns authenticated profile.
 
+## 2026-09-29 — Reorganized User Service Domain Logic & Unified Persistence
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Reorganize User Service to separate pure authentication from user domain logic and eliminate duplicate repositories.
+1. Unified persistence in `services/user-service/src/persistence/user-repository.ts`:
+   - Absorbed `createUser` and `findByEmail` (with case-insensitive index query).
+   - Deleted redundant `auth-repository.ts`.
+2. Moved user account lifecycle logic to `services/user-service/src/users/user-module.ts`:
+   - Moved `register` (username, email, password validation, password hashing, duplicate error handling) into `UserModule`.
+   - Updated `error-handler.ts` to map `DUPLICATE_EMAIL` in `USER_ERROR_STATUS`.
+3. Streamlined `services/user-service/src/auth/auth-module.ts`:
+   - Focused strictly on session authentication: `login`, `refresh`, `logout`, `verify`, and `checkUserStatus`.
+4. Updated wiring in `app.ts` and `index.ts`:
+   - Injected single `userRepository` into both modules.
+   - Connected `POST /api/auth/register` to `users.register`.
+
+**Files changed:**
+- `services/user-service/src/persistence/user-repository.ts`
+- `services/user-service/src/persistence/auth-repository.ts` (deleted)
+- `services/user-service/src/users/user-module.ts`
+- `services/user-service/src/auth/auth-module.ts`
+- `services/user-service/src/auth/auth-routes.ts`
+- `services/user-service/src/auth/tokens.ts`
+- `services/user-service/src/http/error-handler.ts`
+- `services/user-service/src/app.ts`
+- `services/user-service/src/index.ts`
+- `ai/usage-log.md`
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+- Rebuilt Docker containers and verified live:
+  - `POST /api/auth/register` successfully creates account and returns 201 with UserDTO.
+  - `POST /api/auth/login` authenticates newly created account and issues JWT cookie.
+
+
 
 

@@ -52,7 +52,11 @@ export function createApp(dependencies: AppDependencies) {
 
   app.use(
     '/api/auth',
-    createAuthRouter(dependencies.auth, { secureCookies: dependencies.secureCookies }),
+    createAuthRouter({
+      auth: dependencies.auth,
+      users: dependencies.users,
+      secureCookies: dependencies.secureCookies,
+    }),
   );
   app.use(
     '/api/users',
