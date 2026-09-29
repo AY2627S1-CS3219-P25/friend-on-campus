@@ -34,6 +34,13 @@
  * anymore.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+ * Scope: PR #93 review fix: the self checks in requireSelfOrAdmin and PATCH /:id/toggle-role lower-case the
+ * URL id before comparing it with the token's user id, because Postgres matches uuid values in any letter case.
+ * Author review: (to be completed by author after review)
+ */
 import {
   NextFunction,
   Request,
@@ -75,7 +82,8 @@ function requireSelfOrAdmin(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  if (authenticatedUser.role === 'ADMIN' || authenticatedUser.userId === req.params.id) {
+  // AI-generated (edited by jagdeepsh)
+  if (authenticatedUser.role === 'ADMIN' || authenticatedUser.userId === req.params.id.toLowerCase()) {
     next();
     return;
   }
@@ -136,7 +144,8 @@ export function createUserRouter(
     '/:id/toggle-role',
     requireAdmin,
     asyncRoute(async (req, res) => {
-      if (req.params.id === authenticatedUserId(res)) {
+      // AI-generated (edited by jagdeepsh)
+      if (req.params.id.toLowerCase() === authenticatedUserId(res)) {
         throw new UserError('SELF_ACTION_FORBIDDEN', 'Admins cannot change their own role');
       }
       const user = await users.toggleUserRole(req.params.id);

@@ -41,6 +41,13 @@
  * unknown-UUID 404.
  * Author review: (to be completed by author after review)
  */
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+ * Scope: PR #93 review fix: Scenario 6 sends the now-required building and floor when the admin creates the
+ * test supplier, and asserts that a create without them is rejected with 400.
+ * Author review: (to be completed by author after review)
+ */
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
@@ -437,6 +444,23 @@ async function runTests() {
     });
     assert(studentCreate.status === 403, 'Student token POST /api/suppliers rejected (403 Forbidden)');
 
+    // AI-generated (edited by jagdeepsh)
+    // 2b. Admin create without building/floor -> 400 Bad Request
+    const adminCreateNoBuilding = await fetch(`${SUPPLIER_API}/api/suppliers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        name: 'No Building Cafe',
+        campusZone: 'COM3',
+        exactLocation: 'COM3 Level 1 Terrace',
+        category: 'Beverages',
+      }),
+    });
+    assert(adminCreateNoBuilding.status === 400, 'Admin POST /api/suppliers without building/floor is rejected (400 Bad Request)');
+
     // 3. Admin token write attempt -> 201 Created
     const testSupplierCode = `TEST-${Math.floor(100 + Math.random() * 900)}`;
     const adminCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
@@ -451,6 +475,8 @@ async function runTests() {
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 1 Terrace',
         category: 'Beverages',
+        building: 'COM3',
+        floor: '1',
         description: 'End-to-end integration test spot',
         startingTime: '0900hrs',
         closingTime: '2100hrs',

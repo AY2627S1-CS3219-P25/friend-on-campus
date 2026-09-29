@@ -1,6 +1,6 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-29
-// Scope: 2026-09-29: R3 detail reads userRole; header comment states the real output path. Wrote this D2 UAT driver: 63 API-level checks (auth, sessions, profile, admin user management, supplier directory queries, supplier CRUD + RBAC) against the gateway and the supplier service directly. See docs/evidence/d2/d2-checklist.md for the run results.
+// Scope: 2026-09-29 (PR #93): admin checks call the renamed PATCH /:id/toggle-status, A3 exercises PATCH /:id/toggle-role, and the supplier create body sends building and floor. 2026-09-29: R3 detail reads userRole; header comment states the real output path. Wrote this D2 UAT driver: 63 API-level checks (auth, sessions, profile, admin user management, supplier directory queries, supplier CRUD + RBAC) against the gateway and the supplier service directly. See docs/evidence/d2/d2-checklist.md for the run results.
 // Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by Reallyeasy1)
 // Run: node scripts/uat/uat-d2-api.mjs   (stack up: docker compose up --build -d; no npm deps)
@@ -143,34 +143,36 @@ let bobId, adminId;
   bobId = users.find((x) => x.email === 'bob@u.nus.edu')?.userId;
   adminId = users.find((x) => x.email === 'admin@nus.edu.sg')?.userId;
   record('A2', 'rbac', 'GET /users as ADMIN -> 200 list of users', list.status === 200 && users.length >= 3, `HTTP ${list.status}, ${users.length} users, fields=${Object.keys(users[0] ?? {}).join(',')}`);
-  const promote = await call(`${GW}/api/users/${bobId}/promote`, { method: 'POST', token: admin });
-  record('A3', 'rbac', 'POST /users/:id/promote (promotion workflow)', promote.status === 200, `HTTP ${promote.status} ${code(promote)} (501 = deferred placeholder)`);
-  const tStudent = await call(`${GW}/api/users/${bobId}/admin`, { method: 'PATCH', token: student });
-  record('A4', 'rbac', 'PATCH /users/:id/admin as STUDENT -> 403', tStudent.status === 403, `HTTP ${tStudent.status} ${code(tStudent)}`);
-  const disable = await call(`${GW}/api/users/${bobId}/admin`, { method: 'PATCH', token: admin });
+  const promote = await call(`${GW}/api/users/${bobId}/toggle-role`, { method: 'PATCH', token: admin });
+  const demote = await call(`${GW}/api/users/${bobId}/toggle-role`, { method: 'PATCH', token: admin });
+  const selfRole = await call(`${GW}/api/users/${adminId}/toggle-role`, { method: 'PATCH', token: admin });
+  record('A3', 'rbac', 'PATCH /users/:id/toggle-role promotes, demotes, and refuses a self-target', promote.json?.data?.user?.userRole === 'ADMIN' && demote.json?.data?.user?.userRole === 'STUDENT' && selfRole.status === 403, `promote ${promote.status} ${promote.json?.data?.user?.userRole}, demote ${demote.status} ${demote.json?.data?.user?.userRole}, self ${selfRole.status} ${code(selfRole)}`);
+  const tStudent = await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: student });
+  record('A4', 'rbac', 'PATCH /users/:id/toggle-status as STUDENT -> 403', tStudent.status === 403, `HTTP ${tStudent.status} ${code(tStudent)}`);
+  const disable = await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: admin });
   record('A5', 'rbac', 'ADMIN disables bob (status -> false)', disable.status === 200 && disable.json?.data?.user?.status === false, `HTTP ${disable.status} status=${disable.json?.data?.user?.status}`);
   const bobLogin = await login('bob@u.nus.edu', PW);
   record('A6', 'rbac', 'disabled account cannot log in', bobLogin.status === 401 || bobLogin.status === 403, `HTTP ${bobLogin.status} ${code(bobLogin)}`);
-  const bobTokenBefore = (await (async () => { const r = await call(`${GW}/api/users/${bobId}/admin`, { method: 'PATCH', token: admin }); return r; })());
+  const bobTokenBefore = (await (async () => { const r = await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: admin }); return r; })());
   record('A7', 'rbac', 'ADMIN re-enables bob (status -> true)', bobTokenBefore.status === 200 && bobTokenBefore.json?.data?.user?.status === true, `HTTP ${bobTokenBefore.status}`);
-  const self = await call(`${GW}/api/users/${adminId}/admin`, { method: 'PATCH', token: admin });
+  const self = await call(`${GW}/api/users/${adminId}/toggle-status`, { method: 'PATCH', token: admin });
   const selfState = self.json?.data?.user?.status;
   record('A8', 'rbac', 'edge case: only admin disabling their own account is refused', self.status >= 400, `HTTP ${self.status} ${code(self)} status=${selfState}`);
   if (self.status === 200 && selfState === false) {
     // put the seeded admin back so the rest of the UAT (and the demo) still works
-    const fix = await call(`${GW}/api/users/${adminId}/admin`, { method: 'PATCH', token: admin });
+    const fix = await call(`${GW}/api/users/${adminId}/toggle-status`, { method: 'PATCH', token: admin });
     record('A8b', 'rbac', 'restored the admin account after the self-disable test', fix.json?.data?.user?.status === true, `HTTP ${fix.status}`);
   }
-  const unknown = await call(`${GW}/api/users/00000000-0000-0000-0000-000000000000/admin`, { method: 'PATCH', token: admin });
-  record('A9', 'rbac', 'PATCH /users/:id/admin unknown id -> 404', unknown.status === 404, `HTTP ${unknown.status} ${code(unknown)}`);
-  const notUuid = await call(`${GW}/api/users/not-a-uuid/admin`, { method: 'PATCH', token: admin });
-  record('A10', 'rbac', 'PATCH /users/:id/admin with a non-UUID id -> 4xx, not 500', notUuid.status >= 400 && notUuid.status < 500, `HTTP ${notUuid.status} ${code(notUuid)}`);
+  const unknown = await call(`${GW}/api/users/00000000-0000-0000-0000-000000000000/toggle-status`, { method: 'PATCH', token: admin });
+  record('A9', 'rbac', 'PATCH /users/:id/toggle-status unknown id -> 404', unknown.status === 404, `HTTP ${unknown.status} ${code(unknown)}`);
+  const notUuid = await call(`${GW}/api/users/not-a-uuid/toggle-status`, { method: 'PATCH', token: admin });
+  record('A10', 'rbac', 'PATCH /users/:id/toggle-status with a non-UUID id -> 4xx, not 500', notUuid.status >= 400 && notUuid.status < 500, `HTTP ${notUuid.status} ${code(notUuid)}`);
   const bobTokenRes = await login('bob@u.nus.edu', PW);
   const bobToken = bobTokenRes.json?.data?.accessToken;
-  await call(`${GW}/api/users/${bobId}/admin`, { method: 'PATCH', token: admin }); // disable
+  await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: admin }); // disable
   const bobMeWhileDisabled = await call(`${GW}/api/users/me`, { token: bobToken });
   const bobRefreshWhileDisabled = await call(`${GW}/api/auth/refresh`, { method: 'POST', cookie: bobTokenRes.cookieValue });
-  await call(`${GW}/api/users/${bobId}/admin`, { method: 'PATCH', token: admin }); // re-enable
+  await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: admin }); // re-enable
   record('A11', 'rbac', 'disabling an account cuts off its existing token/session', bobMeWhileDisabled.status === 401 && bobRefreshWhileDisabled.status === 401, `GET /me ${bobMeWhileDisabled.status}, refresh ${bobRefreshWhileDisabled.status}`);
 }
 
@@ -211,7 +213,7 @@ let firstSupplier;
 
 // ---------------------------------------------------------------- supplier writes (RBAC + CRUD)
 {
-  const body = { name: `UAT Cafe ${stamp}`, campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', description: 'created by D2 UAT' };
+  const body = { name: `UAT Cafe ${stamp}`, campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', building: 'COM3', floor: '1', description: 'created by D2 UAT' };
   const anon = await call(`${GW}/api/suppliers`, { method: 'POST', body });
   record('W1', 'rbac', 'POST /suppliers without token -> 401', anon.status === 401, `HTTP ${anon.status} ${code(anon)}`);
   const stu = await call(`${GW}/api/suppliers`, { method: 'POST', token: student, body });

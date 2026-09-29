@@ -1337,7 +1337,7 @@
           ]
         },
         {
-          "name": "3.15 PATCH /:id/toggle-status - Malformed UUID (500, documented quirk)",
+          "name": "3.15 PATCH /:id/toggle-status - Malformed UUID (400/404 intended, 500 today)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1366,8 +1366,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 500 (Prisma throws a raw error for a non-UUID id, not caught as USER_NOT_FOUND)', function () {",
-                  "    pm.response.to.have.status(500);",
+                  "// 500 is the current defect (Prisma rejects the non-UUID id); 400 or 404 is the intended behaviour.",
+                  "pm.test('Status code is 400, 404 or 500 for a malformed id', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 404, 500]);",
                   "});"
                 ]
               }
