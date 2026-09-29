@@ -30,8 +30,7 @@ services:
     ports:
       - "80:80"
     environment:
-      - GATEWAY_KEY=${GATEWAY_KEY:?Set GATEWAY_KEY in .env}
-      - NGINX_ENVSUBST_FILTER=GATEWAY_KEY
+      - NGINX_ENVSUBST_FILTER=NO_VARS
       - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
     volumes:
       - ./gateway/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
@@ -90,7 +89,6 @@ services:
       PORT: 8001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/user_db
       SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
-      GATEWAY_KEY: ${GATEWAY_KEY:?Set GATEWAY_KEY in .env}
       JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-friend-on-campus-services}
       SESSION_TTL: ${SESSION_TTL:-1d}
@@ -123,11 +121,6 @@ services:
     environment:
       - PORT=8002
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/supplier_db
-      # AI-generated (edited by yanhwee)
-      - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env}
-      - GATEWAY_KEY=${GATEWAY_KEY:?Set GATEWAY_KEY in .env}
-      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
-      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:
       postgres:
         condition: service_healthy

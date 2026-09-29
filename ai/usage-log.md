@@ -1288,3 +1288,41 @@ Address follow-up PR review findings on PR #95:
   - Student logout clears only `student_session` and preserves `admin_session`.
   - Admin logout clears only `admin_session` and preserves `student_session`.
 
+## 2026-09-29 — Adopt Security Perimeter Architecture: Remove Bearer Tokens, Strip Gateway Key Cruft, and Streamline Downstream Microservices
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Transition the architecture completely to the security perimeter model:
+1. Remove all `Authorization: Bearer <token>` handling across frontend clients and backend services; rely entirely on HTTP-only session cookies (`student_session` / `admin_session`) at the gateway ingress.
+2. Eliminate `X-Gateway-Key` and `GATEWAY_KEY` configuration across all downstream services, NGINX templates, and Docker Compose definitions. The NGINX API Gateway forms the trusted outer perimeter, stripping any client-supplied `X-User-*` headers at ingress and injecting authentic identity headers downstream upon successful verification.
+3. Remove downstream direct JWT fallback verification logic. Downstream services (`supplier-service`, etc.) act as plain internal REST services reading trusted headers (`X-User-Id`, `X-User-Role`) populated by the perimeter middleware.
+4. Support public and mixed-access endpoints (`/api/suppliers`) via optional gateway authentication (`/internal/auth/verify-optional`), passing through unauthenticated requests while injecting identity headers when valid session cookies are present.
+5. Modernize the end-to-end integration test runner (`scripts/test-d2-e2e.ts`) to verify downstream internal microservice contracts directly using perimeter-injected headers.
+
+**Files changed:**
+- `packages/auth/src/index.ts` — Completely removed `jose`, crypto utilities, cookie parsers, and Bearer token decoders. Streamlined to lightweight middleware (~50 lines) reading `req.header('x-user-id')` and `req.header('x-user-role')`.
+- `services/supplier-service/src/backend/server.ts` — Updated `authMiddleware()` to zero-argument call; eliminated cryptographic and JWT configuration dependencies.
+- `services/user-service/src/index.ts` — Updated `authMiddleware()` for user profile and internal routes.
+- `services/user-service/src/config.ts` — Removed `gatewayKey` and `readGatewayKey()`.
+- `services/user-service/src/auth/auth-routes.ts` — Removed `readBearerToken()`. Added support for `GET /api/auth/verify?optional=true` returning 200 OK with unauthenticated status for public routes.
+- `gateway/nginx.conf.template` — Added `/internal/auth/verify-optional` subrequest handler. Routed `/api/suppliers` through `auth_request /internal/auth/verify-optional`. Stripped client `X-User-*` headers at ingress across all routes. Removed all `X-Gateway-Key` and `Authorization` forwarding headers.
+- `docker-compose.yml` — Removed `GATEWAY_KEY` from `api-gateway`, `user-service`, and `supplier-service`. Removed unnecessary JWT environment variables from `supplier-service`.
+- `apps/student-app/src/App.tsx` — Purged `authToken` state and Bearer token headers; authenticated requests rely exclusively on HTTP-only cookies.
+- `apps/admin-portal/src/App.tsx` — Purged `authToken` state and Bearer token headers; authenticated requests rely exclusively on HTTP-only cookies.
+- `scripts/test-d2-e2e.ts` — Updated E2E scenarios to test downstream services via perimeter identity headers directly and verify optional gateway auth.
+- `ai/usage-log.md` — Appended this implementation record.
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 62/62 tests (100%).
+- Rebuilt Docker containers (`api-gateway`, `user-service`, `supplier-service`, `student-app`, `admin-portal`) and verified live behavior via `curl`:
+  - `GET /api/suppliers` succeeds for unauthenticated public clients (200 OK, 21 locations returned).
+  - `POST /api/suppliers` rejected without credentials (401 `MISSING_TOKEN`).
+  - `POST /api/suppliers` with `student_session` cookie rejected (403 `ADMIN_REQUIRED`).
+  - `POST /api/suppliers` with `admin_session` cookie succeeds (201 Created).
+  - Admin access to `/api/users` succeeds (200 OK) with `admin_session`.
+  - Student access to `/api/users` rejected (403 `ADMIN_REQUIRED`) with `student_session`.
+
+

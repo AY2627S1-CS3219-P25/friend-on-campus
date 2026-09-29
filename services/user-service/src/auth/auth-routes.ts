@@ -71,10 +71,6 @@ function readCookie(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-function readBearerToken(authorization: string | undefined): string | undefined {
-  return authorization?.match(/^Bearer\s+(\S+)$/i)?.[1];
-}
-
 function cookieOptions(secure: boolean): CookieOptions {
   return {
     httpOnly: true,
@@ -105,24 +101,20 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
           ? req.query.role.toUpperCase()
           : undefined;
 
-      let sessionToken = readBearerToken(req.header('authorization'));
-      if (!sessionToken) {
-        if (requiredRole === 'ADMIN') {
-          sessionToken =
-            readCookie(req, ADMIN_COOKIE_NAME) ??
-            readCookie(req, STUDENT_COOKIE_NAME);
-        } else if (requiredRole === 'STUDENT') {
-          sessionToken =
-            readCookie(req, STUDENT_COOKIE_NAME) ??
-            readCookie(req, ADMIN_COOKIE_NAME);
-        } else {
-          sessionToken =
-            readCookie(req, STUDENT_COOKIE_NAME) ??
-            readCookie(req, ADMIN_COOKIE_NAME);
-        }
-      }
+      const sessionToken =
+        requiredRole === 'ADMIN'
+          ? (readCookie(req, ADMIN_COOKIE_NAME) ?? readCookie(req, STUDENT_COOKIE_NAME))
+          : requiredRole === 'STUDENT'
+            ? (readCookie(req, STUDENT_COOKIE_NAME) ?? readCookie(req, ADMIN_COOKIE_NAME))
+            : (readCookie(req, STUDENT_COOKIE_NAME) ?? readCookie(req, ADMIN_COOKIE_NAME));
+
+      const isOptional = req.query.optional === 'true';
 
       if (!sessionToken) {
+        if (isOptional) {
+          res.status(200).json({ success: true, data: { authenticated: false } });
+          return;
+        }
         res.status(401).json({
           success: false,
           error: 'Authentication is required',
@@ -133,6 +125,10 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
 
       const principal = auth.verify(sessionToken);
       if (!principal) {
+        if (isOptional) {
+          res.status(200).json({ success: true, data: { authenticated: false } });
+          return;
+        }
         res.status(401).json({
           success: false,
           error: 'Invalid or expired session',
@@ -228,7 +224,6 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
           : undefined;
 
       const sessionToken =
-        readBearerToken(req.header('authorization')) ??
         (roleHint === 'ADMIN' ? readCookie(req, ADMIN_COOKIE_NAME) : undefined) ??
         (roleHint === 'STUDENT' ? readCookie(req, STUDENT_COOKIE_NAME) : undefined) ??
         readCookie(req, STUDENT_COOKIE_NAME) ??
@@ -268,7 +263,6 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
           : undefined;
 
       const token =
-        readBearerToken(req.header('authorization')) ??
         (roleHint === 'ADMIN' ? readCookie(req, ADMIN_COOKIE_NAME) : undefined) ??
         (roleHint === 'STUDENT' ? readCookie(req, STUDENT_COOKIE_NAME) : undefined) ??
         readCookie(req, STUDENT_COOKIE_NAME) ??

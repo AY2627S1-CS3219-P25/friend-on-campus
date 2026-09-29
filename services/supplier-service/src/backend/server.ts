@@ -29,12 +29,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8002;
-const authenticateToken = authMiddleware({
-  secretKey: process.env.SESSION_SECRET,
-  gatewayKey: process.env.GATEWAY_KEY,
-  issuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',
-  audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
-});
+const authenticateToken = authMiddleware();
 
 app.use(cors());
 app.use(express.json());

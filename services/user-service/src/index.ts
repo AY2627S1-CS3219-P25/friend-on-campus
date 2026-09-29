@@ -48,12 +48,7 @@ const auth = createAuthModule({
     config.persistentRefreshTokenIdleLifetimeSeconds,
 });
 const users = createUserModule({ repository: userRepository });
-const requireAuthentication = authMiddleware({
-  secretKey: config.sessionSecret,
-  gatewayKey: config.gatewayKey,
-  issuer: config.accessTokenIssuer,
-  audience: config.accessTokenAudience,
-});
+const requireAuthentication = authMiddleware();
 const app = createApp({
   auth,
   users,

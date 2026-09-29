@@ -82,7 +82,6 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [authToken, setAuthToken] = useState('');
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
 
   const [loginEmail, setLoginEmail] = useState('');
@@ -210,7 +209,6 @@ export default function App() {
         });
         return;
       }
-      setAuthToken(result.accessToken);
       setIsAuthenticated(true);
     } catch (err: any) {
       setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
@@ -266,7 +264,6 @@ export default function App() {
         setAuthView('login');
         return;
       }
-      setAuthToken(login.accessToken);
       setIsAuthenticated(true);
     } catch (err: any) {
       setSignupError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the registration server.' });
@@ -288,7 +285,6 @@ export default function App() {
           const data = await res.json();
           if (!res.ok || !data.success) return null;
           const token: string = data.data.accessToken;
-          setAuthToken(token);
           return token;
         } catch {
           // Network failure: treated the same as "no session to restore".
@@ -312,16 +308,15 @@ export default function App() {
       .finally(() => setIsCheckingSession(false));
   }, []);
 
-  // Authenticated fetch: attaches the bearer token and, when the access token has expired
-  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
+  // Authenticated fetch: relies on the HTTP-only student_session cookie. When the session expires
+  // (401), refreshes the session once and retries. If refresh fails, drops local session.
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
-      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-    const res = await send(authToken);
+    const send = () =>
+      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
+    const res = await send();
     if (res.status !== 401) return res;
     const token = await refreshAccessToken();
-    if (token) return send(token);
+    if (token) return send();
     clearLocalSession();
     return res;
   };
@@ -390,7 +385,6 @@ export default function App() {
   // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
   const clearLocalSession = () => {
     setIsAuthenticated(false);
-    setAuthToken('');
     setLoginEmail('');
     setLoginPassword('');
     setLoginError(null);
@@ -416,9 +410,7 @@ export default function App() {
   const fetchLiveSuppliers = async () => {
     setIsSuppliersLoading(true);
     try {
-      const res = await fetch('/api/suppliers', {
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
-      });
+      const res = await fetch('/api/suppliers');
       if (res.ok) {
         const json = await res.json();
         const items = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];

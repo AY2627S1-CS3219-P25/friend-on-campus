@@ -157,7 +157,6 @@ export default function App() {
 
   // Demo Auth Role Switcher state
   const [currentRole, setCurrentRole] = useState<DemoRole>('ADMIN');
-  const [authToken, setAuthToken] = useState<string>('');
 
   // Admin Login Gate state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -267,7 +266,6 @@ export default function App() {
         });
         return;
       }
-      setAuthToken(token);
       setCurrentRole('ADMIN');
       setIsAuthenticated(true);
       setLoginPassword('');
@@ -283,7 +281,6 @@ export default function App() {
   // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
   const clearLocalSession = () => {
     setIsAuthenticated(false);
-    setAuthToken('');
     setLoginEmail('');
     setLoginPassword('');
     setLoginError(null);
@@ -406,7 +403,6 @@ export default function App() {
           const data = await res.json();
           if (!res.ok || !data.success) return null;
           const token: string = data.data.accessToken;
-          setAuthToken(token);
           return token;
         } catch {
           // Network failure: treated the same as "no session to restore".
@@ -435,16 +431,15 @@ export default function App() {
       .finally(() => setIsCheckingSession(false));
   }, []);
 
-  // Authenticated fetch: attaches the bearer token and, when the access token has expired
-  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
+  // Authenticated fetch: relies on the HTTP-only admin_session cookie. When the session expires
+  // (401), refreshes the session once and retries. If refresh fails, drops local session.
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
-      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-    const res = await send(authToken);
+    const send = () =>
+      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
+    const res = await send();
     if (res.status !== 401) return res;
     const token = await refreshAccessToken();
-    if (token) return send(token);
+    if (token) return send();
     clearLocalSession();
     return res;
   };

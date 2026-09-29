@@ -57,7 +57,6 @@ let supplierProcess: ChildProcess | null = null;
 function createTestJwtEnvironment(): Record<string, string> {
   return {
     SESSION_SECRET: 'test-session-secret-at-least-32-chars-long!',
-    GATEWAY_KEY: process.env.GATEWAY_KEY || 'test-internal-gateway-key-32-chars-long!',
     JWT_ISSUER: 'friend-on-campus-user-service',
     JWT_AUDIENCE: 'friend-on-campus-services',
   };
@@ -212,6 +211,7 @@ async function runTests() {
     assert(adminLoginRes.status === 200, 'Admin login with valid credentials succeeds (200 OK)');
     assert(adminLoginData.data?.user?.userRole === 'ADMIN', 'Admin user has role ADMIN');
     const adminToken = adminLoginData.data?.accessToken;
+    const adminUserId = adminLoginData.data?.user?.userId;
     const adminClaims = adminToken ? decodeJwtClaims(adminToken) : {};
     assert(
       adminClaims.sub === adminLoginData.data?.user?.userId &&
@@ -287,10 +287,8 @@ async function runTests() {
       'GET /api/auth/verify returns matching X-Auth-User-Role header',
     );
 
-    const bearerVerify = await fetch(`${USER_API}/api/auth/verify`, {
-      headers: { Authorization: `Bearer ${studentToken}` },
-    });
-    assert(bearerVerify.status === 200, 'Bearer session GET /api/auth/verify succeeds (200 OK)');
+    const optionalVerifyNoCookie = await fetch(`${USER_API}/api/auth/verify?optional=true`);
+    assert(optionalVerifyNoCookie.status === 200, 'Optional verify GET /api/auth/verify?optional=true succeeds (200 OK)');
 
     // Dual-Cookie & Gateway-Level Role Enforcement Tests
     const studentCookieVerify = await fetch(`${USER_API}/api/auth/verify`, {
@@ -337,24 +335,18 @@ async function runTests() {
     assert(adminLogoutSetCookie.includes('admin_session=;'), 'Admin logout clears admin_session cookie');
     assert(!adminLogoutSetCookie.includes('student_session=;'), 'Admin logout preserves student_session cookie');
 
-    // 1. Direct request with spoofed headers (no token, no gateway key) must be rejected
-    const spoofedRes = await fetch(`${USER_API}/api/users/me`, {
-      headers: {
-        'x-user-id': studentUserId,
-        'x-user-role': 'STUDENT',
-      },
-    });
-    assert(spoofedRes.status === 401, 'Direct request with spoofed X-User-Id is rejected (401)');
+    // 1. Direct request without identity headers must be rejected (401)
+    const unauthMeRes = await fetch(`${USER_API}/api/users/me`);
+    assert(unauthMeRes.status === 401, 'Request without X-User-Id is rejected (401 MISSING_TOKEN)');
 
-    // 2. Gateway offloaded header test with valid internal gateway key
+    // 2. Gateway offloaded header test (perimeter model)
     const gatewayMeRes = await fetch(`${USER_API}/api/users/me`, {
       headers: {
         'x-user-id': studentUserId,
         'x-user-role': 'STUDENT',
-        'x-gateway-key': testJwtEnvironment.GATEWAY_KEY,
       },
     });
-    assert(gatewayMeRes.status === 200, 'GET /api/users/me accepts verified gateway offloaded headers');
+    assert(gatewayMeRes.status === 200, 'GET /api/users/me accepts gateway offloaded identity headers');
 
     // -------------------------------------------------------------------------
     // SCENARIO 3: User Profile & Immutability Protection
@@ -363,7 +355,10 @@ async function runTests() {
 
     // GET /api/users/me
     const meRes = await fetch(`${USER_API}/api/users/me`, {
-      headers: { Authorization: `Bearer ${studentToken}` },
+      headers: {
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
+      },
     });
     const meData = await meRes.json();
     assert(meRes.status === 200, 'GET /api/users/me returns authenticated student profile');
@@ -374,7 +369,8 @@ async function runTests() {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
       },
       body: JSON.stringify({
         username: `${testUsername}-updated`,
@@ -387,7 +383,8 @@ async function runTests() {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
       },
       body: JSON.stringify({ username: `${testUsername}-updated` }),
     });
@@ -407,13 +404,17 @@ async function runTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
       },
     });
     assert(studentPromote.status === 403, 'Student cannot access user-management routes (403)');
 
     const adminList = await fetch(`${USER_API}/api/users`, {
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
     });
     const adminListData = await adminList.json();
     assert(
@@ -422,7 +423,10 @@ async function runTests() {
     );
 
     const adminGetUser = await fetch(`${USER_API}/api/users/${studentUserId}`, {
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
     });
     const adminGetUserData = await adminGetUser.json();
     assert(adminGetUser.status === 501, 'ADMIN user lookup placeholder returns 501 Not Implemented');
@@ -435,7 +439,8 @@ async function runTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
       },
     });
     const adminPromoteData = await adminPromote.json();
@@ -492,7 +497,8 @@ async function runTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
+        'X-User-Id': studentUserId,
+        'X-User-Role': 'STUDENT',
       },
       body: JSON.stringify({
         name: 'Student Unauthorized Shop',
@@ -509,7 +515,8 @@ async function runTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({
         supplierCode: testSupplierCode,
@@ -531,7 +538,8 @@ async function runTests() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({
         name: 'Verified Admin Test Cafe (Updated)',
@@ -548,7 +556,10 @@ async function runTests() {
     // 5. Admin toggles active status -> 200 OK
     const adminToggle = await fetch(`${SUPPLIER_API}/api/suppliers/${createdSupplierId}/toggle`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
     });
     const toggleData = await adminToggle.json();
     assert(adminToggle.status === 200, 'Admin token PATCH /api/suppliers/:id/toggle succeeds (200 OK)');
@@ -557,7 +568,10 @@ async function runTests() {
     // 6. Admin soft deletes supplier
     const adminSoftDelete = await fetch(`${SUPPLIER_API}/api/suppliers/${createdSupplierId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: {
+        'X-User-Id': adminUserId,
+        'X-User-Role': 'ADMIN',
+      },
     });
     assert(adminSoftDelete.status === 200, 'Admin token DELETE /api/suppliers/:id soft deletes record');
 
@@ -566,7 +580,10 @@ async function runTests() {
       `${SUPPLIER_API}/api/suppliers/${createdSupplierId}?permanent=true`,
       {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: {
+          'X-User-Id': adminUserId,
+          'X-User-Role': 'ADMIN',
+        },
       }
     );
     assert(adminHardDelete.status === 200, 'Admin token DELETE ?permanent=true cleans up test record');

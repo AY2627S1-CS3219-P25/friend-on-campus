@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
-# Tool: Google Antigravity Agent, date: 2026-09-28
-# Scope: Configured NGINX auth_request subrequest (/internal/auth/verify) for user-service gateway authentication offloading and downstream identity header injection (X-User-Id, X-User-Role, X-User-Email). Added X-Gateway-Key injection and explicit stripping of X-User-* headers on unauthenticated routes to prevent spoofing.
+# Tool: Google Antigravity Agent, date: 2026-09-29
+# Scope: Configured security perimeter model with NGINX auth_request subrequests (/internal/auth/verify, /internal/auth/verify-student, /internal/auth/verify-admin, /internal/auth/verify-optional) for authentication offloading and downstream identity header injection (X-User-Id, X-User-Role, X-User-Email, X-Session-Id). Strips client-supplied identity headers at the ingress boundary.
 # Author review: (to be completed by author after review)
 # AI-generated (edited by yanhwee)
 
@@ -72,7 +72,6 @@ http {
             proxy_set_header Content-Length "";
             proxy_set_header X-Original-URI $request_uri;
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header Authorization $http_authorization;
         }
 
         location = /internal/auth/verify-admin {
@@ -82,7 +81,6 @@ http {
             proxy_set_header Content-Length "";
             proxy_set_header X-Original-URI $request_uri;
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header Authorization $http_authorization;
         }
 
         location = /internal/auth/verify-student {
@@ -92,7 +90,15 @@ http {
             proxy_set_header Content-Length "";
             proxy_set_header X-Original-URI $request_uri;
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header Authorization $http_authorization;
+        }
+
+        location = /internal/auth/verify-optional {
+            internal;
+            proxy_pass http://user_service_upstream/api/auth/verify?optional=true;
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+            proxy_set_header X-Original-URI $request_uri;
+            proxy_set_header Cookie $http_cookie;
         }
 
         # ----------------------------------------------------
@@ -104,7 +110,6 @@ http {
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Gateway-Key "";
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
@@ -119,7 +124,6 @@ http {
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
             auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
-            proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
@@ -139,7 +143,6 @@ http {
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
             auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
-            proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
@@ -155,27 +158,39 @@ http {
         # 2. Supplier Service (M3)
         # ----------------------------------------------------
         location /api/suppliers/ {
+            auth_request /internal/auth/verify-optional;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+            auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+            proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
+
             proxy_pass http://supplier_service_upstream/api/suppliers/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Gateway-Key "";
-            proxy_set_header X-User-Id "";
-            proxy_set_header X-User-Role "";
-            proxy_set_header X-User-Email "";
-            proxy_set_header X-Session-Id "";
         }
 
         location /api/suppliers {
+            auth_request /internal/auth/verify-optional;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+            auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
+            auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+            proxy_set_header X-User-Email $auth_user_email;
+            proxy_set_header X-Session-Id $auth_session_id;
+
             proxy_pass http://supplier_service_upstream/api/suppliers;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Gateway-Key "";
-            proxy_set_header X-User-Id "";
-            proxy_set_header X-User-Role "";
-            proxy_set_header X-User-Email "";
-            proxy_set_header X-Session-Id "";
         }
 
         # ----------------------------------------------------
@@ -188,7 +203,6 @@ http {
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
             auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
-            proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
@@ -207,7 +221,6 @@ http {
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
             auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
-            proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
@@ -229,7 +242,6 @@ http {
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
             auth_request_set $auth_session_id $upstream_http_x_auth_session_id;
 
-            proxy_set_header X-Gateway-Key "${GATEWAY_KEY}";
             proxy_set_header X-User-Id $auth_user_id;
             proxy_set_header X-User-Role $auth_user_role;
             proxy_set_header X-User-Email $auth_user_email;
@@ -251,7 +263,6 @@ http {
             proxy_set_header Connection "upgrade";
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Gateway-Key "";
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
@@ -269,7 +280,6 @@ http {
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
             proxy_set_header Host $host;
-            proxy_set_header X-Gateway-Key "";
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";
@@ -285,7 +295,6 @@ http {
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
             proxy_set_header Host $host;
-            proxy_set_header X-Gateway-Key "";
             proxy_set_header X-User-Id "";
             proxy_set_header X-User-Role "";
             proxy_set_header X-User-Email "";

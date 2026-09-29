@@ -29,7 +29,6 @@ export interface AppConfig {
   port: number;
   databaseUrl: string;
   sessionSecret: string;
-  gatewayKey: string;
   accessTokenLifetimeSeconds: number;
   refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
@@ -45,14 +44,6 @@ function readSessionSecret(): string {
     throw new Error('SESSION_SECRET must be configured and at least 32 characters');
   }
   return secret;
-}
-
-function readGatewayKey(): string {
-  const key = process.env.GATEWAY_KEY;
-  if (!key || key.length < 16) {
-    throw new Error('GATEWAY_KEY must be configured and at least 16 characters');
-  }
-  return key;
 }
 
 function readDurationSeconds(value: string | undefined, fallback: string): number {
@@ -83,7 +74,6 @@ export const config: AppConfig = Object.freeze({
   port: readPort(process.env.PORT),
   databaseUrl: process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
   sessionSecret: readSessionSecret(),
-  gatewayKey: readGatewayKey(),
   accessTokenLifetimeSeconds: readDurationSeconds(
     process.env.SESSION_TTL ?? process.env.JWT_ACCESS_TOKEN_TTL,
     '1d',
