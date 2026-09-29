@@ -5,8 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
-    "@campus-errand/common-dtos": "*",
-    "jose": "^6.2.12"
+    "@campus-errand/common-dtos": "*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

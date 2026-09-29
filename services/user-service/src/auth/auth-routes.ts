@@ -96,8 +96,8 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         return;
       }
 
-      const isActive = await auth.checkUserStatus(principal.userId);
-      if (!isActive) {
+      const user = await auth.getActiveUser(principal.userId);
+      if (!user) {
         res.status(401).json({
           success: false,
           error: 'User account is deactivated or deleted',
@@ -106,7 +106,7 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         return;
       }
 
-      if (requiredRole && principal.role !== requiredRole) {
+      if (requiredRole && user.role !== requiredRole) {
         res.status(403).json({
           success: false,
           error:
@@ -118,8 +118,8 @@ export function createAuthRouter(options: AuthRouteOptions): Router {
         return;
       }
 
-      res.setHeader('X-Auth-User-Id', principal.userId);
-      res.setHeader('X-Auth-User-Role', principal.role);
+      res.setHeader('X-Auth-User-Id', user.id);
+      res.setHeader('X-Auth-User-Role', user.role);
       res.status(200).send();
     }),
   );

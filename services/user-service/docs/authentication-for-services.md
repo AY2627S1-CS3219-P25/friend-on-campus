@@ -17,10 +17,10 @@ Use this document when adding authentication to a backend HTTP route.
 
 ## Ownership and Architecture
 
-- **NGINX Gateway Offloading:** All external requests enter through the NGINX API Gateway. For protected endpoints, NGINX executes an internal subrequest to `user-service` (`GET /api/auth/verify`) using the `session` cookie or bearer token. On success, NGINX injects trusted identity headers (`X-User-Id`, `X-User-Role`, `X-User-Email`) downstream.
-- **Direct Verification (Local/Testing):** For requests hitting microservices directly without NGINX, `@campus-errand/auth` verifies tokens signed symmetrically with `SESSION_SECRET` (HMAC-SHA256).
-- **User Service:** Owns login, logout, session verification, password hashing, and user profile persistence.
-- **Resource Ownership:** Each resource-owning service decides authorization beyond the platform `ADMIN` role, such as order ownership or wallet access.
+- **NGINX Gateway Offloading:** All external requests enter through the NGINX API Gateway. For protected endpoints, NGINX executes an internal subrequest to `user-service` (`GET /api/auth/verify`) using the `session` cookie. On success, NGINX strips external client `X-User-*` headers and injects verified perimeter identity headers (`X-User-Id`, `X-User-Role`) downstream.
+- **User Service:** Owns login, logout, session verification (`/api/auth/verify`), password hashing, and user persistence. It alone signs and verifies HMAC-SHA256 session tokens with `SESSION_SECRET`.
+- **Downstream Services:** Trust the injected perimeter identity headers (`X-User-Id`, `X-User-Role`) via `@campus-errand/auth`'s `getSessionUser(req)` utility.
+- **Resource Ownership:** Each resource-owning service decides domain authorization beyond the platform `ADMIN` role, such as order ownership or wallet access.
 
 ## Setup
 
@@ -28,14 +28,6 @@ Add the shared package to the service's `package.json`:
 
 ```json
 "@campus-errand/auth": "*"
-```
-
-Configure the service with the shared session secret:
-
-```env
-SESSION_SECRET=<copy from root .env>
-JWT_ISSUER=friend-on-campus-user-service
-JWT_AUDIENCE=friend-on-campus-services
 ```
 
 ## Access-token payload

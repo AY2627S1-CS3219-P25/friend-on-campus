@@ -1982,3 +1982,20 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
 - Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.
 
+## 2026-09-29 22:30 SGT — PR #97 review findings: dynamic role reflection & perimeter docs
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/gateway-auth-session-management
+
+**Prompt (summarised):** Address Claude Bot review findings on PR #97: reflect role promotions/demotions immediately in /verify and refresh, remove unused dependencies, update stale service docs claiming HMAC token verification in downstream services, and add verification tests.
+
+**Usage scenario:** Code review fixes, test suite extensions, and documentation refinement.
+
+**Files changed:**
+- `services/user-service/src/auth/auth-routes.ts` — `/verify` queries the active user and uses `user.role` from the database instead of the frozen JWT role claim.
+- `services/user-service/src/auth/auth-module.ts` — added `getActiveUser` and updated `refresh()` to mint refreshed tokens with `user.role` from the database.
+- `packages/auth/package.json` — removed unused `jose` dependency.
+- `services/user-service/docs/authentication-for-services.md` & `docs/services/supplier-service.md` & `.claude/agents/infrastructure.md` — updated architecture documentation to reflect that downstream microservices trust perimeter headers injected by NGINX.
+- `scripts/test-d2-e2e.ts` — added Scenario 4 assertion verifying that user demotion immediately causes `GET /api/auth/verify?role=ADMIN` with their existing session cookie to fail with 403 `ADMIN_REQUIRED`, and `refresh()` to re-mint a `STUDENT` token. Added Scenario 7 verifying NGINX gateway header stripping and `@supplier_write` RBAC enforcement.
+

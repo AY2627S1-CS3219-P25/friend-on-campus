@@ -416,6 +416,18 @@ async function runTests() {
     assert(adminPromote.status === 200, 'Admin toggle-role (promote) succeeds (200 OK)');
     assert(adminPromoteData.data?.user?.userRole === 'ADMIN', 'Target user role flips to ADMIN');
 
+    // While promoted, user logs in and gets an active session cookie
+    const promotedLogin = await fetch(`${USER_API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'Password123!' }),
+    });
+    const promotedLoginCookie = promotedLogin.headers.get('set-cookie')?.split(';')[0];
+    const verifyPromoted = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: promotedLoginCookie },
+    });
+    assert(verifyPromoted.status === 200, 'Promoted user verify?role=ADMIN succeeds (200 OK)');
+
     const adminDemote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
       method: 'PATCH',
       headers: authHeaders(adminUserId, 'ADMIN'),
@@ -423,6 +435,24 @@ async function runTests() {
     const adminDemoteData = await adminDemote.json();
     assert(adminDemote.status === 200, 'Admin toggle-role (demote) succeeds (200 OK)');
     assert(adminDemoteData.data?.user?.userRole === 'STUDENT', 'Target user role flips back to STUDENT');
+
+    // Immediately after demotion, their pre-demotion cookie MUST be rejected by verify?role=ADMIN
+    const verifyDemoted = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: promotedLoginCookie },
+    });
+    const verifyDemotedData = await verifyDemoted.json();
+    assert(verifyDemoted.status === 403, 'Demoted user verify?role=ADMIN immediately returns 403 Forbidden');
+    assert(verifyDemotedData.code === 'ADMIN_REQUIRED', 'Demoted user rejection has code ADMIN_REQUIRED');
+
+    // Refreshing their session with that cookie MUST re-mint a token with STUDENT role, not ADMIN
+    const demotedRefresh = await fetch(`${USER_API}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Cookie: promotedLoginCookie },
+    });
+    const demotedRefreshData = await demotedRefresh.json();
+    assert(demotedRefresh.status === 200, 'Demoted user session refresh succeeds');
+    const demotedPayload = JSON.parse(Buffer.from(demotedRefreshData.data?.accessToken.split('.')[1], 'base64').toString());
+    assert(demotedPayload.role === 'STUDENT', 'Refreshed token has updated STUDENT role from database');
 
     // An admin may never change their own role.
     const adminSelfToggleRole = await fetch(`${USER_API}/api/users/${adminLoginData.data?.user?.userId}/toggle-role`, {
@@ -581,6 +611,99 @@ async function runTests() {
       }
     );
     assert(adminHardDelete.status === 200, 'Admin token DELETE ?permanent=true cleans up test record');
+
+    // --- Scenario 7: Ingress Gateway Perimeter & Header Sanitization (Optional) ---
+    if (process.env.GATEWAY_URL) {
+      console.log('\n--- Scenario 7: Ingress Gateway Perimeter & Header Sanitization ---');
+      const gw = process.env.GATEWAY_URL.replace(/\/$/, '');
+
+      // 1. Unauthenticated request to protected endpoint returns 401 JSON
+      const unauthGw = await fetch(`${gw}/api/users/me`);
+      assert(unauthGw.status === 401, 'Gateway unauthenticated request returns 401');
+      const unauthGwData = await unauthGw.json();
+      assert(unauthGwData.code === 'MISSING_TOKEN', 'Gateway 401 returns JSON with code MISSING_TOKEN');
+
+      // 2. Client-spoofed X-User-Role is stripped at ingress
+      const spoofedGw = await fetch(`${gw}/api/users/me`, {
+        headers: {
+          'X-User-Id': studentUserId,
+          'X-User-Role': 'ADMIN',
+        },
+      });
+      assert(spoofedGw.status === 401, 'Gateway rejects spoofed X-User-* headers without session cookie');
+
+      // 3. Login through gateway to get session cookie
+      const gwLogin = await fetch(`${gw}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: testEmail, password: 'Password123!' }),
+      });
+      const gwCookie = gwLogin.headers.get('set-cookie')?.split(';')[0];
+      assert(Boolean(gwCookie), 'Gateway login returns session cookie');
+
+      // 4. Authenticated request with session cookie succeeds through gateway
+      const authGw = await fetch(`${gw}/api/users/me`, {
+        headers: { Cookie: gwCookie! },
+      });
+      assert(authGw.status === 200, 'Gateway routes authenticated student session to user-service');
+
+      // 5. Student session attempting admin supplier write through gateway returns 403 JSON
+      const studentGwWrite = await fetch(`${gw}/api/suppliers`, {
+        method: 'POST',
+        headers: {
+          Cookie: gwCookie!,
+          'Content-Type': 'application/json',
+          'X-User-Role': 'ADMIN', // attempt to spoof ADMIN role
+        },
+        body: JSON.stringify({
+          name: 'Spoofed Supplier',
+          campusZone: 'UTown',
+          exactLocation: 'Level 1',
+          category: 'Food',
+          building: 'Fine Foods',
+          floor: '1',
+        }),
+      });
+      assert(studentGwWrite.status === 403, 'Gateway rejects student supplier write even with spoofed ADMIN header (403)');
+      const studentGwWriteData = await studentGwWrite.json();
+      assert(
+        studentGwWriteData.code === 'ADMIN_REQUIRED' || studentGwWriteData.code === 'FORBIDDEN',
+        'Gateway 403 returns JSON with forbidden code'
+      );
+
+      // 6. Admin session write through gateway succeeds
+      const gwAdminLogin = await fetch(`${gw}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'admin@nus.edu.sg', password: 'Password123!' }),
+      });
+      const gwAdminCookie = gwAdminLogin.headers.get('set-cookie')?.split(';')[0];
+      assert(Boolean(gwAdminCookie), 'Gateway admin login returns session cookie');
+
+      const adminGwWrite = await fetch(`${gw}/api/suppliers`, {
+        method: 'POST',
+        headers: {
+          Cookie: gwAdminCookie!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `Gateway Created Supplier ${Date.now()}`,
+          campusZone: 'UTown',
+          exactLocation: 'Level 1',
+          category: 'Food',
+          building: 'Fine Foods',
+          floor: '1',
+        }),
+      });
+      assert(adminGwWrite.status === 201, 'Gateway permits authenticated admin supplier write (201 Created)');
+      const adminGwWriteData = await adminGwWrite.json();
+      if (adminGwWriteData.data?.id) {
+        await fetch(`${gw}/api/suppliers/${adminGwWriteData.data.id}?permanent=true`, {
+          method: 'DELETE',
+          headers: { Cookie: gwAdminCookie! },
+        });
+      }
+    }
   } catch (err: any) {
     console.error('Unexpected test error:', err);
   } finally {

@@ -64,7 +64,7 @@ Debugging and glue config are yours. Decisions are not: anything about CI beyond
 - Postgres runs the init SQL only on first boot of an empty volume, and `prisma migrate` never runs in containers. "My column is missing" usually means `docker compose down -v`. That wipes local data: say so, and never run it (or `docker system prune`, or volume deletion) without the author's explicit go-ahead each time.
 - Inside a container `localhost` is the container itself. Both apps' Vite proxy targets come from env vars set in `docker-compose.yml`.
 - A new API prefix needs an nginx `location` (note the existing pairs with and without trailing slash) and Vite proxy entries.
-- User Service and downstream services receive `SESSION_SECRET` for symmetric HMAC-SHA256 session token verification. NGINX Gateway offloads authentication via `/internal/auth/verify` and forwards `X-User-Id` / `X-User-Role` headers downstream. Keep these Compose settings aligned with the author-approved authentication contract.
+- User Service receives `SESSION_SECRET` for symmetric HMAC-SHA256 session token signing and verification. NGINX Gateway offloads authentication via `/internal/auth/verify` and forwards verified `X-User-Id` / `X-User-Role` headers downstream to microservices. Keep these Compose settings aligned with the author-approved authentication contract.
 - Every env var a service reads must appear in `.env.example` with a safe placeholder. Never read, print or commit a real `.env`.
 - `npm run test:d2` starts user- and supplier-service itself on 8001/8002, so those ports must be free (stop the app containers, keep postgres up).
 

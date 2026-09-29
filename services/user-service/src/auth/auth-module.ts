@@ -36,6 +36,7 @@ export interface AuthModule {
   refresh(refreshToken: string): Promise<TokenRefreshResult>;
   logout(refreshToken: string): Promise<void>;
   verify(token: string): Promise<AuthenticatedPrincipal | null>;
+  getActiveUser(userId: string): Promise<UserRecord | null>;
   checkUserStatus(userId: string): Promise<boolean>;
 }
 
@@ -136,8 +137,8 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         : options.accessTokenLifetimeSeconds;
       const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
       const nextSessionToken = await options.tokens.issueAccessToken(
-        principal.userId,
-        principal.role,
+        user.id,
+        user.role,
         sessionLifetimeSeconds,
         isPersistent,
       );
@@ -156,6 +157,11 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
 
     verify(token) {
       return options.tokens.verifyToken(token);
+    },
+
+    async getActiveUser(userId: string): Promise<UserRecord | null> {
+      const user = await options.repository.findById(userId);
+      return user && user.status ? user : null;
     },
 
     async checkUserStatus(userId: string): Promise<boolean> {

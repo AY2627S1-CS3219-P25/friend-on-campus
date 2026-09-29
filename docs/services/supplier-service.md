@@ -90,7 +90,7 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 - `campusZone` and `category` filters are case-insensitive equality; `search` is a case-insensitive "contains" over `name`, `exactLocation`, `building`, `description`, `supplierCode`; a whitespace-only `search` is ignored. Filters combine with AND.
 - `sortBy` accepts `name, campusZone, category, createdAt, supplierCode`; anything else silently falls back to `name`. `sortOrder` is `desc` only if exactly `desc`.
 - `sortBy=name` is case-sensitive as returned by the database: ascending, `he by He Brews` comes after `TOMORO COFFEE` (UAT S8).
-- Denials on write routes: no token → 401 `MISSING_TOKEN`, bad signature → 401 `INVALID_TOKEN`, `STUDENT` → 403 `ADMIN_REQUIRED` (UAT W1, W2, W12).
+- Denials on write routes: missing identity headers → 401 `MISSING_TOKEN`, `STUDENT` → 403 `ADMIN_REQUIRED` (UAT W1, W2, W12).
 - The container start command runs `prisma migrate deploy`, the seed, then the server. On a fresh volume the seed reports `created=21`; on later boots `created=0 updated=21`, which puts the 21 CSV rows' fields back to the CSV values. Rows created through the API are not touched.
 - Pagination applies only when `page` or `limit` is sent (default limit 10, max 100); otherwise the whole list is returned as one page.
 - `supplierCode` is generated as `SUP-NNN` from the row count when not supplied, with a timestamp-based fallback if that code exists.
