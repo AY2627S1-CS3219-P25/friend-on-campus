@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Implemented dual-cookie management (student_session and admin_session), role-based GET /verify?role= query parameter, and gateway coarse-grained RBAC.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-28
  * Scope: Implemented symmetric session cookie management (Path=/), GET /verify endpoint for NGINX auth_request subrequests, and response header injection (X-Auth-User-Id, X-Auth-User-Role).
  * Author review: (to be completed by author after review)
@@ -24,8 +31,8 @@ import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router 
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
 import { AuthError, AuthModule } from './auth-module';
 
-const SESSION_COOKIE_NAME = 'session';
-const REFRESH_COOKIE_NAME = 'refresh_token';
+const STUDENT_COOKIE_NAME = 'student_session';
+const ADMIN_COOKIE_NAME = 'admin_session';
 
 export interface AuthRouteOptions {
   secureCookies: boolean;
@@ -93,9 +100,27 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
   router.get(
     '/verify',
     asyncRoute(async (req, res) => {
-      const sessionToken =
-        readBearerToken(req.header('authorization')) ??
-        readCookie(req, SESSION_COOKIE_NAME);
+      const requiredRole =
+        typeof req.query.role === 'string'
+          ? req.query.role.toUpperCase()
+          : undefined;
+
+      let sessionToken = readBearerToken(req.header('authorization'));
+      if (!sessionToken) {
+        if (requiredRole === 'ADMIN') {
+          sessionToken =
+            readCookie(req, ADMIN_COOKIE_NAME) ??
+            readCookie(req, STUDENT_COOKIE_NAME);
+        } else if (requiredRole === 'STUDENT') {
+          sessionToken =
+            readCookie(req, STUDENT_COOKIE_NAME) ??
+            readCookie(req, ADMIN_COOKIE_NAME);
+        } else {
+          sessionToken =
+            readCookie(req, STUDENT_COOKIE_NAME) ??
+            readCookie(req, ADMIN_COOKIE_NAME);
+        }
+      }
 
       if (!sessionToken) {
         res.status(401).json({
@@ -122,6 +147,18 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
           success: false,
           error: 'User account is deactivated or deleted',
           code: 'INVALID_SESSION',
+        });
+        return;
+      }
+
+      if (requiredRole && principal.role !== requiredRole) {
+        res.status(403).json({
+          success: false,
+          error:
+            requiredRole === 'ADMIN'
+              ? 'Administrator access required'
+              : 'Unauthorized role',
+          code: requiredRole === 'ADMIN' ? 'ADMIN_REQUIRED' : 'FORBIDDEN',
         });
         return;
       }
@@ -158,14 +195,17 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
         keepLoggedIn: req.body?.keepLoggedIn === true,
       });
 
-      // Set single symmetric session cookie for NGINX gateway and browser
-      res.cookie(SESSION_COOKIE_NAME, result.accessToken, {
+      const cookieOpts = {
         ...sessionCookieOptions(options.secureCookies),
         maxAge: result.accessTokenExpiresInSeconds * 1000,
-      });
+      };
 
-      // Clear legacy refresh cookie if present
-      res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions(options.secureCookies));
+      // Set persona-specific session cookie
+      if (result.user.userRole === 'ADMIN') {
+        res.cookie(ADMIN_COOKIE_NAME, result.accessToken, cookieOpts);
+      } else {
+        res.cookie(STUDENT_COOKIE_NAME, result.accessToken, cookieOpts);
+      }
 
       const response: AuthResponse = {
         accessToken: result.accessToken,
@@ -182,20 +222,31 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
   router.post(
     '/refresh',
     asyncRoute(async (req, res) => {
+      const roleHint =
+        typeof req.query.role === 'string'
+          ? req.query.role.toUpperCase()
+          : undefined;
+
       const sessionToken =
         readBearerToken(req.header('authorization')) ??
-        readCookie(req, SESSION_COOKIE_NAME) ??
-        req.body?.refreshToken ??
-        readCookie(req, REFRESH_COOKIE_NAME);
+        (roleHint === 'ADMIN' ? readCookie(req, ADMIN_COOKIE_NAME) : undefined) ??
+        (roleHint === 'STUDENT' ? readCookie(req, STUDENT_COOKIE_NAME) : undefined) ??
+        readCookie(req, STUDENT_COOKIE_NAME) ??
+        readCookie(req, ADMIN_COOKIE_NAME) ??
+        req.body?.refreshToken;
       const result = await auth.refresh(sessionToken);
 
-      // Extend single session cookie
-      res.cookie(SESSION_COOKIE_NAME, result.accessToken, {
+      const cookieOpts = {
         ...sessionCookieOptions(options.secureCookies),
         maxAge: result.accessTokenExpiresInSeconds * 1000,
-      });
+      };
 
-      res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions(options.secureCookies));
+      const principal = auth.verify(result.accessToken);
+      if (principal?.role === 'ADMIN') {
+        res.cookie(ADMIN_COOKIE_NAME, result.accessToken, cookieOpts);
+      } else {
+        res.cookie(STUDENT_COOKIE_NAME, result.accessToken, cookieOpts);
+      }
 
       const response: RefreshTokenResponse = {
         accessToken: result.accessToken,
@@ -211,11 +262,19 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
   router.post(
     '/logout',
     asyncRoute(async (req, res) => {
+      const roleHint =
+        typeof req.query.role === 'string'
+          ? req.query.role.toUpperCase()
+          : undefined;
+
       const token =
         readBearerToken(req.header('authorization')) ??
-        readCookie(req, SESSION_COOKIE_NAME) ??
-        readCookie(req, REFRESH_COOKIE_NAME) ??
+        (roleHint === 'ADMIN' ? readCookie(req, ADMIN_COOKIE_NAME) : undefined) ??
+        (roleHint === 'STUDENT' ? readCookie(req, STUDENT_COOKIE_NAME) : undefined) ??
+        readCookie(req, STUDENT_COOKIE_NAME) ??
+        readCookie(req, ADMIN_COOKIE_NAME) ??
         req.body?.refreshToken;
+
       if (token) {
         try {
           await auth.logout(token);
@@ -223,8 +282,23 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
           // Ignore error if session already cleared
         }
       }
-      res.clearCookie(SESSION_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
-      res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions(options.secureCookies));
+
+      // Persona-specific logout: only clear the cookie of the calling persona
+      if (roleHint === 'ADMIN') {
+        res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+      } else if (roleHint === 'STUDENT') {
+        res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+      } else {
+        const principal = token ? auth.verify(token) : null;
+        if (principal?.role === 'ADMIN') {
+          res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+        } else if (principal?.role === 'STUDENT') {
+          res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+        } else {
+          res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+          res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
+        }
+      }
       res.status(204).send();
     }),
   );

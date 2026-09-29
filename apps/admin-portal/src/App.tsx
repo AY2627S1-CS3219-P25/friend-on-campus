@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Targeted admin session cookie refresh via /api/auth/refresh?role=ADMIN to support concurrent multi-persona cookies.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented Milestone D2 Admin Portal with Edit/Delete/Details modals, table sorting, pagination, mobile layout per Screen 6 wireframe, and demo RBAC switcher.
  * Author review: (to be completed by author after review)
@@ -289,7 +294,7 @@ export default function App() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout?role=ADMIN', { method: 'POST' });
     } catch (err) {
       // Network failure logging out server-side shouldn't block clearing the local session below.
     } finally {
@@ -397,7 +402,7 @@ export default function App() {
     if (!refreshInFlight.current) {
       refreshInFlight.current = (async () => {
         try {
-          const res = await fetch('/api/auth/refresh', { method: 'POST' });
+          const res = await fetch('/api/auth/refresh?role=ADMIN', { method: 'POST' });
           const data = await res.json();
           if (!res.ok || !data.success) return null;
           const token: string = data.data.accessToken;

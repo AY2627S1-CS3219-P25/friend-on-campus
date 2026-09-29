@@ -1247,3 +1247,44 @@ Address follow-up PR review findings on PR #95:
 - `npm run test:d2`: Passed 51/51 tests.
 - Verified in Docker via curl: when sending a request with an `admin` Bearer token and an `alice` (student) cookie simultaneously, `/api/users` correctly recognizes the admin identity (`200 OK`) and does not demote to student (`403 Forbidden`).
 
+## 2026-09-29 — Implement Dual Persona Cookies (student_session / admin_session) and Gateway-Level Role Enforcement
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Implement clean dual named cookies (`student_session` and `admin_session`), gateway-level coarse-grained role enforcement, and completely independent persona logouts:
+1. Dual Persona Cookies & Code Simplification:
+   - On login, set `student_session` for students and `admin_session` for administrators. Removed all legacy `session` and `refresh_token` cookie backwards-compatibility cruft for maximal code simplicity.
+   - In `/refresh`, support optional `?role=STUDENT` and `?role=ADMIN` query parameters to target the correct persona session cookie.
+2. Completely Isolated Persona Logouts:
+   - In `apps/student-app/src/App.tsx`, logout calls `POST /api/auth/logout?role=STUDENT`.
+   - In `apps/admin-portal/src/App.tsx`, logout calls `POST /api/auth/logout?role=ADMIN`.
+   - In `user-service` `/logout`, only the cookie matching the requesting persona is revoked and cleared. A student logging out leaves the admin session untouched in other tabs, and an admin logging out leaves the student session untouched.
+3. Gateway-Level Coarse-Grained Role Enforcement:
+   - In `gateway/nginx.conf.template`, configure `/internal/auth/verify-admin` subrequest passing `?role=ADMIN` and `/internal/auth/verify-student` passing `?role=STUDENT`.
+   - Protect admin user directory (`/api/users`) using `auth_request /internal/auth/verify-admin`.
+   - Add `error_page 403 = @auth_forbidden` returning standard JSON error (`{"success":false,"error":"Administrator access required","code":"ADMIN_REQUIRED"}`).
+4. Automated Test Suite Expansion:
+   - Added automated tests to `scripts/test-d2-e2e.ts` verifying dual cookie issuance, role-constrained verification endpoints, 403 rejection for mismatched roles, and independent persona logouts.
+
+**Files changed:**
+- `gateway/nginx.conf.template` — Added `/internal/auth/verify-admin`, `/internal/auth/verify-student`, `error_page 403` JSON handler, and protected `/api/users` with admin verification.
+- `services/user-service/src/auth/auth-routes.ts` — Implemented `student_session` and `admin_session` cookies, `?role=` query parameter role checking on `/verify`, targeted refresh, and isolated role logouts.
+- `apps/student-app/src/App.tsx` — Targeted `/api/auth/refresh?role=STUDENT` and `/api/auth/logout?role=STUDENT`.
+- `apps/admin-portal/src/App.tsx` — Targeted `/api/auth/refresh?role=ADMIN` and `/api/auth/logout?role=ADMIN`.
+- `scripts/test-d2-e2e.ts` — Added automated tests for dual-cookie verification, role gating, and isolated persona logouts.
+- `ai/usage-log.md` — Appended this implementation record.
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 62/62 tests (100%).
+- Rebuilt Docker containers and verified live behavior via `curl`:
+  - Student login issues `student_session` cookie.
+  - Admin login issues `admin_session` cookie.
+  - Student requesting `/api/users` is rejected with `403 Forbidden` (`ADMIN_REQUIRED`) directly at the NGINX gateway.
+  - Admin requesting `/api/users` succeeds with `200 OK`.
+  - Both cookies coexist without collision on `http://localhost`.
+  - Student logout clears only `student_session` and preserves `admin_session`.
+  - Admin logout clears only `admin_session` and preserves `student_session`.
+

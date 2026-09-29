@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Extended integration test suite to validate dual session cookies (student_session and admin_session) and role-specific gateway verification (GET /api/auth/verify?role=).
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-28
  * Scope: Extended integration test suite to validate NGINX gateway verification endpoint (GET /api/auth/verify) and gateway header offloading.
  * Author review: (to be completed by author after review)
@@ -253,9 +260,9 @@ async function runTests() {
       persistentLoginData.data?.accessTokenExpiresInSeconds === 30 * 86400,
       'keepLoggedIn login issues 30-day session',
     );
-    const persistentRefreshRes = await fetch(`${USER_API}/api/auth/refresh`, {
+    const persistentRefreshRes = await fetch(`${USER_API}/api/auth/refresh?role=STUDENT`, {
       method: 'POST',
-      headers: { Cookie: `session=${persistentLoginData.data?.accessToken}` },
+      headers: { Cookie: `student_session=${persistentLoginData.data?.accessToken}` },
     });
     const persistentRefreshData = await persistentRefreshRes.json();
     assert(
@@ -268,9 +275,9 @@ async function runTests() {
     assert(unauthVerify.status === 401, 'Unauthenticated GET /api/auth/verify returns 401');
 
     const cookieVerify = await fetch(`${USER_API}/api/auth/verify`, {
-      headers: { Cookie: `session=${studentToken}` },
+      headers: { Cookie: `student_session=${studentToken}` },
     });
-    assert(cookieVerify.status === 200, 'Cookie session GET /api/auth/verify succeeds (200 OK)');
+    assert(cookieVerify.status === 200, 'Student cookie session GET /api/auth/verify succeeds (200 OK)');
     assert(
       cookieVerify.headers.get('x-auth-user-id') === studentUserId,
       'GET /api/auth/verify returns matching X-Auth-User-Id header',
@@ -284,6 +291,51 @@ async function runTests() {
       headers: { Authorization: `Bearer ${studentToken}` },
     });
     assert(bearerVerify.status === 200, 'Bearer session GET /api/auth/verify succeeds (200 OK)');
+
+    // Dual-Cookie & Gateway-Level Role Enforcement Tests
+    const studentCookieVerify = await fetch(`${USER_API}/api/auth/verify`, {
+      headers: { Cookie: `student_session=${studentToken}` },
+    });
+    assert(studentCookieVerify.status === 200, 'Dual-cookie student_session GET /api/auth/verify succeeds (200 OK)');
+
+    const adminCookieVerify = await fetch(`${USER_API}/api/auth/verify`, {
+      headers: { Cookie: `admin_session=${adminToken}` },
+    });
+    assert(adminCookieVerify.status === 200, 'Dual-cookie admin_session GET /api/auth/verify succeeds (200 OK)');
+
+    const studentToAdminRoute = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: `student_session=${studentToken}` },
+    });
+    assert(studentToAdminRoute.status === 403, 'Student cookie rejected by verify?role=ADMIN (403 Forbidden)');
+
+    const adminToAdminRoute = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: `admin_session=${adminToken}` },
+    });
+    assert(adminToAdminRoute.status === 200, 'Admin cookie accepted by verify?role=ADMIN (200 OK)');
+
+    const adminToStudentRoute = await fetch(`${USER_API}/api/auth/verify?role=STUDENT`, {
+      headers: { Cookie: `admin_session=${adminToken}` },
+    });
+    assert(adminToStudentRoute.status === 403, 'Admin cookie rejected by verify?role=STUDENT (403 Forbidden)');
+
+    // Persona-Specific Isolated Logout Tests
+    const studentLogoutRes = await fetch(`${USER_API}/api/auth/logout?role=STUDENT`, {
+      method: 'POST',
+      headers: { Cookie: `student_session=${studentToken}; admin_session=${adminToken}` },
+    });
+    assert(studentLogoutRes.status === 204, 'Student logout returns 204 No Content');
+    const studentLogoutSetCookie = studentLogoutRes.headers.get('set-cookie') ?? '';
+    assert(studentLogoutSetCookie.includes('student_session=;'), 'Student logout clears student_session cookie');
+    assert(!studentLogoutSetCookie.includes('admin_session=;'), 'Student logout preserves admin_session cookie');
+
+    const adminLogoutRes = await fetch(`${USER_API}/api/auth/logout?role=ADMIN`, {
+      method: 'POST',
+      headers: { Cookie: `student_session=${studentToken}; admin_session=${adminToken}` },
+    });
+    assert(adminLogoutRes.status === 204, 'Admin logout returns 204 No Content');
+    const adminLogoutSetCookie = adminLogoutRes.headers.get('set-cookie') ?? '';
+    assert(adminLogoutSetCookie.includes('admin_session=;'), 'Admin logout clears admin_session cookie');
+    assert(!adminLogoutSetCookie.includes('student_session=;'), 'Admin logout preserves student_session cookie');
 
     // 1. Direct request with spoofed headers (no token, no gateway key) must be rejected
     const spoofedRes = await fetch(`${USER_API}/api/users/me`, {

@@ -55,12 +55,39 @@ http {
             return 401 '{"success":false,"error":"Authentication is required","code":"MISSING_TOKEN"}';
         }
 
+        # Standardized JSON error response for gateway role forbidden errors
+        error_page 403 = @auth_forbidden;
+        location @auth_forbidden {
+            default_type application/json;
+            return 403 '{"success":false,"error":"Administrator access required","code":"ADMIN_REQUIRED"}';
+        }
+
         # ----------------------------------------------------
-        # Internal Auth Verification Subrequest (Gateway Offload)
+        # Internal Auth Verification Subrequests (Gateway Offload)
         # ----------------------------------------------------
         location = /internal/auth/verify {
             internal;
             proxy_pass http://user_service_upstream/api/auth/verify;
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+            proxy_set_header X-Original-URI $request_uri;
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header Authorization $http_authorization;
+        }
+
+        location = /internal/auth/verify-admin {
+            internal;
+            proxy_pass http://user_service_upstream/api/auth/verify?role=ADMIN;
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+            proxy_set_header X-Original-URI $request_uri;
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header Authorization $http_authorization;
+        }
+
+        location = /internal/auth/verify-student {
+            internal;
+            proxy_pass http://user_service_upstream/api/auth/verify?role=STUDENT;
             proxy_pass_request_body off;
             proxy_set_header Content-Length "";
             proxy_set_header X-Original-URI $request_uri;
@@ -84,8 +111,8 @@ http {
             proxy_set_header X-Session-Id "";
         }
 
-        # Protected user endpoints (me, update, admin placeholders)
-        location /api/users/ {
+        # Protected user endpoints: current user profile (/api/users/me)
+        location /api/users/me {
             auth_request /internal/auth/verify;
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
@@ -98,14 +125,15 @@ http {
             proxy_set_header X-User-Email $auth_user_email;
             proxy_set_header X-Session-Id $auth_session_id;
 
-            proxy_pass http://user_service_upstream/api/users/;
+            proxy_pass http://user_service_upstream/api/users/me;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         }
 
+        # Protected user endpoints: Admin User Directory & User Management (/api/users)
         location /api/users {
-            auth_request /internal/auth/verify;
+            auth_request /internal/auth/verify-admin;
             auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
             auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
             auth_request_set $auth_user_email $upstream_http_x_auth_user_email;
