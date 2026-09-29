@@ -19,7 +19,6 @@
  */
 // AI-generated (edited by jagdeepsh)
 // AI-generated (edited by ngkhengyang)
-import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -29,7 +28,6 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8002;
-const authenticateToken = authMiddleware();
 
 app.use(cors());
 app.use(express.json());
@@ -39,7 +37,7 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ service: 'supplier-service', status: 'UP', port: PORT, timestamp: new Date() });
 });
 
-app.use('/api/suppliers', createSupplierRouter(authenticateToken, requireAdmin));
+app.use('/api/suppliers', createSupplierRouter());
 
 app.listen(PORT, () => {
   console.log(`🚀 [Supplier Service] running on port ${PORT} with tsx`);

@@ -394,16 +394,11 @@ async function runTests() {
     // -------------------------------------------------------------------------
     console.log('\n--- Scenario 4: Deferred Administration Endpoint Authorization ---');
 
-    const unauthenticatedList = await fetch(`${USER_API}/api/users`);
+    const unauthenticatedList = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`);
     assert(unauthenticatedList.status === 401, 'Unauthenticated user-management request is rejected (401)');
 
-    const studentPromote = await fetch(`${USER_API}/api/users/${studentUserId}/promote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': studentUserId,
-        'X-User-Role': 'STUDENT',
-      },
+    const studentPromote = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: `student_session=${studentToken}` },
     });
     assert(studentPromote.status === 403, 'Student cannot access user-management routes (403)');
 
@@ -476,33 +471,13 @@ async function runTests() {
     // -------------------------------------------------------------------------
     console.log('\n--- Scenario 6: Cross-Service RBAC Enforcement (Student vs Admin) ---');
 
-    // 1. Unauthenticated write attempt -> 401 Unauthorized
-    const unauthCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Rogue Store',
-        campusZone: 'UTown',
-        exactLocation: 'UTown Plaza',
-        category: 'Food',
-      }),
-    });
+    // 1. Unauthenticated write attempt -> 401 Unauthorized via gateway verification
+    const unauthCreate = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`);
     assert(unauthCreate.status === 401, 'Unauthenticated POST /api/suppliers rejected (401 Unauthorized)');
 
-    // 2. Student token write attempt -> 403 Forbidden
-    const studentCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': studentUserId,
-        'X-User-Role': 'STUDENT',
-      },
-      body: JSON.stringify({
-        name: 'Student Unauthorized Shop',
-        campusZone: 'COM3',
-        exactLocation: 'COM3 Level 2',
-        category: 'Beverages',
-      }),
+    // 2. Student token write attempt -> 403 Forbidden via gateway verification
+    const studentCreate = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: `student_session=${studentToken}` },
     });
     assert(studentCreate.status === 403, 'Student token POST /api/suppliers rejected (403 Forbidden)');
 

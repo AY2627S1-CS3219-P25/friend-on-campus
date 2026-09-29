@@ -27,6 +27,7 @@ import {
   Response,
   Router,
 } from 'express';
+import { getSessionUserId } from '@campus-errand/auth';
 import { AuthError } from '../auth/auth-module';
 import { UserError, UserModule } from './user-module';
 
@@ -38,30 +39,22 @@ function asyncRoute(
   };
 }
 
-function authenticatedUserId(res: Response): string {
-  const authenticatedUser = res.locals.auth as
-    | { userId?: unknown }
-    | undefined;
-  if (typeof authenticatedUser?.userId !== 'string') {
+function authenticatedUserId(req: Request): string {
+  const userId = getSessionUserId(req);
+  if (!userId) {
     throw new AuthError('INVALID_SESSION', 'Authentication is required');
   }
 
-  return authenticatedUser.userId;
+  return userId;
 }
 
-export function createUserRouter(
-  users: UserModule,
-  requireAuthentication: RequestHandler,
-  requireAdmin: RequestHandler,
-): Router {
+export function createUserRouter(users: UserModule): Router {
   const router = Router();
-
-  router.use(requireAuthentication);
 
   router.get(
     '/me',
-    asyncRoute(async (_req, res) => {
-      const user = await users.getOwnProfile(authenticatedUserId(res));
+    asyncRoute(async (req, res) => {
+      const user = await users.getOwnProfile(authenticatedUserId(req));
       res.json({ success: true, data: { user } });
     }),
   );
@@ -69,7 +62,7 @@ export function createUserRouter(
   router.patch(
     '/me',
     asyncRoute(async (req, res) => {
-      const user = await users.updateOwnProfile(authenticatedUserId(res), req.body);
+      const user = await users.updateOwnProfile(authenticatedUserId(req), req.body);
       res.json({ success: true, data: { user } });
     }),
   );
@@ -77,7 +70,7 @@ export function createUserRouter(
   router.put(
     '/me/password',
     asyncRoute(async (req, res) => {
-      await users.changePassword(authenticatedUserId(res), req.body);
+      await users.changePassword(authenticatedUserId(req), req.body);
       res.status(204).send();
     }),
   );
@@ -95,23 +88,22 @@ export function createUserRouter(
     });
   };
 
+  // Admin endpoints (guarded by NGINX gateway perimeter at /api/users)
   router.get(
     '/',
-    requireAdmin,
     asyncRoute(async (_req, res) => {
       const allUsers = await users.listUsers();
       res.json({ success: true, data: { users: allUsers } });
     }),
   );
-  router.get('/:id', requireAdmin, (_req, _res) => {
+  router.get('/:id', (_req, _res) => {
     throwNotImplemented();
   });
-  router.post('/:id/promote', requireAdmin, (_req, _res) => {
+  router.post('/:id/promote', (_req, _res) => {
     throwNotImplemented();
   });
   router.patch(
     '/:id/admin',
-    requireAdmin,
     asyncRoute(async (req, res) => {
       const user = await users.toggleUserStatus(req.params.id);
       res.json({ success: true, data: { user } });

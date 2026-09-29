@@ -17,8 +17,6 @@
  * Scope: Integrated ADMIN authorization middleware into the User Service route pipeline.
  * Author review: <to be completed by ngkhengyang>
  */
-// AI-generated (edited by ngkhengyang)
-import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import { createApp } from './app';
 import { createAuthModule } from './auth/auth-module';
 import { createTokenManager } from './auth/tokens';
@@ -48,12 +46,9 @@ const auth = createAuthModule({
     config.persistentRefreshTokenIdleLifetimeSeconds,
 });
 const users = createUserModule({ repository: userRepository });
-const requireAuthentication = authMiddleware();
 const app = createApp({
   auth,
   users,
-  requireAuthentication,
-  requireAdmin,
   database,
   corsOrigin: config.corsOrigin,
   secureCookies: config.secureCookies,

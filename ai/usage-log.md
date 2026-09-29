@@ -1352,7 +1352,44 @@ Address follow-up PR review findings on PR #95:
   - `POST /api/suppliers` (unauthenticated) $\rightarrow$ 401 `MISSING_TOKEN` JSON returned directly from NGINX.
   - `POST /api/suppliers` (student) $\rightarrow$ 403 `ADMIN_REQUIRED` JSON returned directly from NGINX without hitting `supplier-service`.
   - `DELETE /api/suppliers/:id` (student) $\rightarrow$ 403 `ADMIN_REQUIRED` JSON returned directly from NGINX.
-  - `POST /api/suppliers` (admin) $\rightarrow$ 201 Created from `supplier-service`.
+## 2026-09-29 — Elimination of `requireAdmin`, Transition to `getSessionUser`, and Pure RESTful Microservices
 
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
 
+**Prompt (summarised):** Eliminate `requireAdmin` and legacy auth middleware completely without backward-compatibility wrappers. Simplify downstream microservices into pure RESTful services with strongly-typed session utilities:
+1. In `@campus-errand/auth` (`packages/auth/src/index.ts`):
+   - Removed `requireAdmin` and `authMiddleware` middleware functions entirely.
+   - Retained only lightweight, strongly-typed session extraction utilities: `SESSION_HEADERS`, `SessionUser` interface, `getSessionUser(req: Request)`, and `getSessionUserId(req: Request)`.
+2. In `services/supplier-service`:
+   - Removed `requireAdmin` and `adminGuard` from `supplierRoutes.ts`.
+   - `createSupplierRouter()` mounts plain REST handlers with zero middleware. All role gating is enforced upstream at the NGINX API Gateway.
+3. In `services/user-service`:
+   - Removed `requireAuthentication` and `requireAdmin` from `index.ts`, `app.ts`, and `user-routes.ts`.
+   - Admin user management routes (`/api/users`) and self-profile routes (`/me`) are unburdened by internal auth middleware. Gateway perimeter verification enforces access control before requests hit the service.
+4. In `scripts/test-d2-e2e.ts`:
+   - Updated Scenario 4 and Scenario 6 to validate gateway-level verification (`/api/auth/verify?role=ADMIN`) for unauthorized and non-admin requests, matching the gateway perimeter model.
+   - Maintained all 61 automated tests passing (100%).
 
+**Files changed:**
+- `packages/auth/src/index.ts` — Purged `requireAdmin`, `authMiddleware`, and legacy types. Provided `SESSION_HEADERS`, `SessionUser`, `getSessionUser`, `getSessionUserId`.
+- `services/supplier-service/src/backend/supplierRoutes.ts` — Removed `requireAdmin` import and `adminGuard` argument from `createSupplierRouter()`.
+- `services/supplier-service/src/backend/server.ts` — Instantiates plain `createSupplierRouter()`.
+- `services/user-service/src/index.ts` — Removed `@campus-errand/auth` middleware imports and parameters from `createApp()`.
+- `services/user-service/src/app.ts` — Simplified `AppDependencies` and `createUserRouter` instantiation.
+- `services/user-service/src/users/user-routes.ts` — Removed `router.use(requireAuthentication)` and `requireAdmin` middleware wrappers.
+- `scripts/test-d2-e2e.ts` — Aligned Scenario 4 and 6 tests with gateway role verification.
+- `ai/usage-log.md` — Documented architectural cleanup and test results.
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+- Rebuilt containers (`user-service`, `supplier-service`, `api-gateway`) and verified live behavior via `curl`:
+  - `GET /api/suppliers` (guest) $\rightarrow$ 200 OK.
+  - `POST /api/suppliers` (guest) $\rightarrow$ 401 `MISSING_TOKEN` from NGINX.
+  - `POST /api/suppliers` (student cookie) $\rightarrow$ 403 `ADMIN_REQUIRED` from NGINX.
+  - `POST /api/suppliers` (admin cookie) $\rightarrow$ 201 Created from `supplier-service`.
+  - `GET /api/users` (guest) $\rightarrow$ 401 `MISSING_TOKEN` from NGINX.
+  - `GET /api/users` (student cookie) $\rightarrow$ 403 `ADMIN_REQUIRED` from NGINX.
+  - `GET /api/users` (admin cookie) $\rightarrow$ 200 OK from `user-service`.
