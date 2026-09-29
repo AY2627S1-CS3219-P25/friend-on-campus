@@ -79,14 +79,6 @@ export function createUserRouter(users: UserModule): Router {
     throw new UserError('NOT_IMPLEMENTED', 'User management is not implemented');
   }
 
-  // AI-generated (edited by ngkhengyang)
-  const notImplemented = (_req: Request, res: Response) => {
-    res.status(501).json({
-      success: false,
-      error: 'User administration is not implemented yet',
-      code: 'NOT_IMPLEMENTED',
-    });
-  };
 
   // Admin endpoints (guarded by NGINX gateway perimeter at /api/users)
   router.get(

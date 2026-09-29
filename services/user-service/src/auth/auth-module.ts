@@ -58,7 +58,6 @@ export interface AuthModuleOptions {
   repository: UserRepository;
   tokens: TokenManager;
   accessTokenLifetimeSeconds: number;
-  refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
 }
 

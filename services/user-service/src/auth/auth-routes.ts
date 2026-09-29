@@ -75,14 +75,6 @@ function readCookie(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-function cookieOptions(secure: boolean): CookieOptions {
-  return {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/api/auth',
-  };
-}
 
 function sessionCookieOptions(secure: boolean): CookieOptions {
   return {

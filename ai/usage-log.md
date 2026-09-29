@@ -1520,6 +1520,36 @@ Address follow-up PR review findings on PR #95:
   - `POST /api/auth/register` successfully creates account and returns 201 with UserDTO.
   - `POST /api/auth/login` authenticates newly created account and issues JWT cookie.
 
+## 2026-09-29 — Purge of Dead Code Across User Service
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Clean up all dead code across `user-service`.
+1. Purged dead refresh token generator and hash methods (`generateRefreshToken`, `hashRefreshToken`) and removed unused `node:crypto` imports in `tokens.ts`.
+2. Removed unused `cookieOptions(path: '/api/auth')` function from `auth-routes.ts`.
+3. Removed unused `refreshTokenIdleLifetimeSeconds` configuration and option from `config.ts`, `index.ts`, and `auth-module.ts`.
+4. Removed dead `notImplemented` handler in `user-routes.ts`.
+5. Cleaned up obsolete session-table join in `database.ts` database readiness check (`SELECT 1 FROM users LIMIT 1`).
+
+**Files changed:**
+- `services/user-service/src/auth/tokens.ts`
+- `services/user-service/src/auth/auth-routes.ts`
+- `services/user-service/src/auth/auth-module.ts`
+- `services/user-service/src/config.ts`
+- `services/user-service/src/index.ts`
+- `services/user-service/src/users/user-routes.ts`
+- `services/user-service/src/persistence/database.ts`
+- `ai/usage-log.md`
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+- Rebuilt Docker containers and verified live:
+  - System healthy and login functional.
+
+
 
 
 

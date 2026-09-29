@@ -39,7 +39,6 @@ const auth = createAuthModule({
   repository: userRepository,
   tokens,
   accessTokenLifetimeSeconds: config.accessTokenLifetimeSeconds,
-  refreshTokenIdleLifetimeSeconds: config.refreshTokenIdleLifetimeSeconds,
   persistentRefreshTokenIdleLifetimeSeconds:
     config.persistentRefreshTokenIdleLifetimeSeconds,
 });

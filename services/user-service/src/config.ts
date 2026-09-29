@@ -30,7 +30,6 @@ export interface AppConfig {
   databaseUrl: string;
   sessionSecret: string;
   accessTokenLifetimeSeconds: number;
-  refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
   accessTokenIssuer: string;
   accessTokenAudience: string;
@@ -76,10 +75,6 @@ export const config: AppConfig = Object.freeze({
   sessionSecret: readSessionSecret(),
   accessTokenLifetimeSeconds: readDurationSeconds(
     process.env.SESSION_TTL ?? process.env.JWT_ACCESS_TOKEN_TTL,
-    '1d',
-  ),
-  refreshTokenIdleLifetimeSeconds: readDurationSeconds(
-    process.env.JWT_REFRESH_TOKEN_TTL,
     '1d',
   ),
   persistentRefreshTokenIdleLifetimeSeconds: readDurationSeconds(

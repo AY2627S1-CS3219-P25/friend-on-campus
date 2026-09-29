@@ -1,12 +1,11 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-29
- * Scope: TokenManager implemented with `jose` library for standard RFC 7519 JWT signing and verification.
+ * Scope: TokenManager implemented with `jose` library for standard RFC 7519 JWT signing and verification; purged dead refresh token generator and hash methods.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 import { SignJWT, jwtVerify } from 'jose';
-import { createHash, randomBytes } from 'node:crypto';
 import { UserRole } from '../persistence/user-repository';
 
 export interface AuthenticatedPrincipal {
@@ -23,8 +22,6 @@ export interface TokenManager {
     persistent?: boolean,
   ): Promise<string>;
   verifyToken(token: string): Promise<AuthenticatedPrincipal | null>;
-  generateRefreshToken(): string;
-  hashRefreshToken(refreshToken: string): string;
 }
 
 export interface TokenManagerOptions {
@@ -79,14 +76,6 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
       } catch {
         return null;
       }
-    },
-
-    generateRefreshToken() {
-      return randomBytes(32).toString('base64url');
-    },
-
-    hashRefreshToken(refreshToken) {
-      return createHash('sha256').update(refreshToken).digest('hex');
     },
   };
 }
