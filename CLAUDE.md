@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Purged Ed25519 authentication notes. Documented stateless session state with symmetric SESSION_SECRET and NGINX gateway authentication offloading.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: the Vite dev proxy note in section 4 now says student-app reads its proxy targets from env vars.
 Author review: <to be completed by Reallyeasy1>
@@ -113,7 +119,7 @@ services/notification-service  :8005  in-memory mock (ws)         single src/ind
 apps/student-app               :5173  one src/App.tsx (~730 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
-gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
+gateway/nginx.conf.template    :80    /api/* -> services, /ws/ -> notifications, /admin/, / (envsubst template)
 docker/postgres-init/*.sql            creates the 4 databases (tables managed per-service by migrations)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
@@ -123,7 +129,7 @@ docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code c
 Things that are easy to get wrong:
 
 - **Table schemas are managed per-service via Prisma migrations.** Tables are no longer created in `docker/postgres-init/*.sql` (which only provisions the empty logical databases). Each service deploys its own migrations on startup (`npx prisma migrate deploy`) or via `npm run db:migrate --workspace=@campus-errand/<service>`. Schema changes belong strictly in each service's `schema.prisma` and `prisma/migrations/`. When starting a fresh Postgres volume with `docker compose down -v`, each service runs its migrations and seeds upon container boot.
-- **Access tokens use Ed25519 in `Authorization: Bearer …`**. User Service signs them with `JWT_PRIVATE_KEY`; Supplier Service verifies them with the shared `@campus-errand/auth` package and `JWT_PUBLIC_KEY`, issuer, and audience. Refresh tokens are opaque and remain in an HttpOnly cookie. Keep these service settings aligned when the author approves an authentication-contract change.
+- **Stateless session state uses symmetric HMAC-SHA256 tokens (`SESSION_SECRET`) and NGINX gateway authentication offloading (`auth_request`).** User Service issues session tokens in an HttpOnly cookie (`session`, `Path=/`); NGINX verifies requests via `/internal/auth/verify` and forwards verified `X-User-Id` and `X-User-Role` headers to downstream microservices. Downstream services inspect these identity headers directly via `@campus-errand/auth` (`getSessionUser`).
 - **Prisma clients are per service**, generated into `src/database/generated/` (git-ignored). Import from `../database/client`, never from a root `@prisma/client`. Every Prisma CLI call needs `--schema src/database/prisma/schema.prisma` (the npm scripts already pass it).
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
@@ -145,7 +151,7 @@ npm run test:d2                               # D2 end-to-end suite — see note
 docker exec -it campuserrand-postgres psql -U postgres
 ```
 
-`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening.
+`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening. With the Docker Compose stack running, you can optionally run `GATEWAY_URL=http://localhost npm run test:d2` to additionally execute Scenario 7 (verifying NGINX gateway header stripping and RBAC routing).
 
 **Set-up:** new machine or new teammate → `.claude/README.md` (prerequisites, plugins, checks, troubleshooting).
 

@@ -1,0 +1,289 @@
+# AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-09-29
+# Scope: Configured security perimeter model with NGINX auth_request subrequests (/internal/auth/verify, /internal/auth/verify-student, /internal/auth/verify-admin) for authentication offloading and downstream identity header injection (X-User-Id, X-User-Role). Strips client-supplied identity headers at the ingress boundary.
+# Author review: (to be completed by author after review)
+# AI-generated (edited by yanhwee)
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+
+    # Upstream Microservice Definitions
+    upstream student_app_upstream {
+        server student-app:5173;
+    }
+
+    upstream admin_portal_upstream {
+        server admin-portal:5174;
+    }
+
+    upstream user_service_upstream {
+        server user-service:8001;
+    }
+
+    upstream supplier_service_upstream {
+        server supplier-service:8002;
+    }
+
+    upstream order_service_upstream {
+        server order-service:8003;
+    }
+
+    upstream credit_service_upstream {
+        server credit-service:8004;
+    }
+
+    upstream notification_service_upstream {
+        server notification-service:8005;
+    }
+
+    # API Gateway Server (Port 80)
+    server {
+        listen 80;
+        server_name localhost;
+        recursive_error_pages on;
+
+        # Standardized JSON error response for gateway auth failures
+        error_page 401 = @auth_failed;
+        location @auth_failed {
+            default_type application/json;
+            return 401 '{"success":false,"error":"Authentication is required","code":"MISSING_TOKEN"}';
+        }
+
+        # Standardized JSON error response for gateway role forbidden errors
+        error_page 403 = @auth_forbidden;
+        location @auth_forbidden {
+            default_type application/json;
+            return 403 '{"success":false,"error":"Administrator access required","code":"ADMIN_REQUIRED"}';
+        }
+
+        # ----------------------------------------------------
+        # Internal Auth Verification Subrequests (Gateway Offload)
+        # ----------------------------------------------------
+        location = /internal/auth/verify {
+            internal;
+            proxy_pass http://user_service_upstream/api/auth/verify;
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+            proxy_set_header X-Original-URI $request_uri;
+            proxy_set_header Cookie $http_cookie;
+        }
+
+        location = /internal/auth/verify-admin {
+            internal;
+            proxy_pass http://user_service_upstream/api/auth/verify?role=ADMIN;
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+            proxy_set_header X-Original-URI $request_uri;
+            proxy_set_header Cookie $http_cookie;
+        }
+
+        # ----------------------------------------------------
+        # 1. User & Authentication Service (M2)
+        # ----------------------------------------------------
+        # Public auth endpoints (register, login, refresh, logout)
+        location /api/auth/ {
+            proxy_pass http://user_service_upstream/api/auth/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+        }
+
+        # Protected user endpoints: current user profile (/api/users/me)
+        location /api/users/me {
+            auth_request /internal/auth/verify;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://user_service_upstream/api/users/me;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # Protected user endpoints: Admin User Directory & User Management (/api/users)
+        # DELETE allows self-deletion by students or any deletion by admin (enforced at service level).
+        location /api/users {
+            error_page 418 = @user_delete;
+            if ($request_method = DELETE) {
+                return 418;
+            }
+
+            auth_request /internal/auth/verify-admin;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://user_service_upstream/api/users;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location @user_delete {
+            auth_request /internal/auth/verify;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://user_service_upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # ----------------------------------------------------
+        # 2. Supplier Service (M3)
+        # ----------------------------------------------------
+        # Public read operations (GET, HEAD, OPTIONS) bypass authentication.
+        # Write operations (POST, PUT, PATCH, DELETE) require ADMIN authorization at the gateway.
+        location /api/suppliers/ {
+            error_page 418 = @supplier_write;
+            if ($request_method !~ ^(GET|HEAD|OPTIONS)$) {
+                return 418;
+            }
+
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+
+            proxy_pass http://supplier_service_upstream/api/suppliers/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location /api/suppliers {
+            error_page 418 = @supplier_write;
+            if ($request_method !~ ^(GET|HEAD|OPTIONS)$) {
+                return 418;
+            }
+
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+
+            proxy_pass http://supplier_service_upstream/api/suppliers;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location @supplier_write {
+            auth_request /internal/auth/verify-admin;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://supplier_service_upstream;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # ----------------------------------------------------
+        # 3. Order Service (M4)
+        # ----------------------------------------------------
+        location /api/orders/ {
+            auth_request /internal/auth/verify;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://order_service_upstream/api/orders/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location /api/orders {
+            auth_request /internal/auth/verify;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://order_service_upstream/api/orders;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # ----------------------------------------------------
+        # 4. Credit & Escrow Service (M5)
+        # ----------------------------------------------------
+        location /api/credits/ {
+            auth_request /internal/auth/verify;
+            auth_request_set $auth_user_id $upstream_http_x_auth_user_id;
+            auth_request_set $auth_user_role $upstream_http_x_auth_user_role;
+
+            proxy_set_header X-User-Id $auth_user_id;
+            proxy_set_header X-User-Role $auth_user_role;
+
+            proxy_pass http://credit_service_upstream/api/credits/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # ----------------------------------------------------
+        # 5. Live WebSockets & Notifications (M6 / N1)
+        # ----------------------------------------------------
+        location /ws/ {
+            proxy_pass http://notification_service_upstream/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+            proxy_read_timeout 86400s;
+            proxy_send_timeout 86400s;
+        }
+
+        # ----------------------------------------------------
+        # 6. Admin Portal
+        # ----------------------------------------------------
+        location /admin/ {
+            proxy_pass http://admin_portal_upstream/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+        }
+
+        # ----------------------------------------------------
+        # 7. Student Mobile Web App (Default Ingress)
+        # ----------------------------------------------------
+        location / {
+            proxy_pass http://student_app_upstream;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-User-Id "";
+            proxy_set_header X-User-Role "";
+        }
+    }
+}

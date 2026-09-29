@@ -18,6 +18,12 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Purged asymmetric Ed25519 documentation and updated configuration to reflect symmetric SESSION_SECRET and NGINX gateway header offloading.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated documentation to reflect that table definitions and migrations are managed exclusively by Prisma in supplier-service, resolving conflict 15.
 Author review: (to be completed by author after review)
@@ -53,16 +59,12 @@ npm run dev:supplier
 |---|---|---|
 | `PORT` | listen port | `8002` |
 | `DATABASE_URL` | Prisma connection | none — required |
-| `JWT_PUBLIC_KEY` | Ed25519 access-token verification | required |
-| `JWT_ISSUER` | required access-token issuer claim | `friend-on-campus-user-service` |
-| `JWT_AUDIENCE` | required access-token audience claim | `friend-on-campus-services` |
 
-`docker-compose.yml` passes the public key, issuer, and audience to this container; it
-does not receive the User Service private signing key.
+When requests arrive via NGINX API Gateway, NGINX verifies the session with `user-service` and injects verified `X-User-Id` and `X-User-Role` headers downstream. Backend routes enforce `requireAdmin` based on `X-User-Role: ADMIN`.
 
 ## Files
 
-Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
+Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (`getSessionUser`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
 
 ## API (mounted at `/api/suppliers`)
 
@@ -70,10 +72,10 @@ Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplie
 |---|---|---|---|---|
 | `GET /` | **none** | query: `campusZone, category, search, isActive, sortBy, sortOrder, page, limit` | 200 `{ suppliers, total, page, limit, totalPages }` | 500 |
 | `GET /:id` | **none** | `:id` is the UUID or a `supplierCode` | 200 supplier | 404 |
-| `POST /` | Bearer + `ADMIN` | `CreateSupplierRequest`; required `name, campusZone, exactLocation, category, building, floor` | 201 supplier | 400 missing fields; 401; 403; 409 duplicate |
-| `PUT /:id` | Bearer + `ADMIN` | `UpdateSupplierRequest` (any subset, incl. `isActive`) | 200 supplier | 400 blank `name`, `category`, `building` or `floor`; 401; 403; 404; 409 duplicate |
-| `PATCH /:id/toggle` | Bearer + `ADMIN` | — | 200 supplier with `isActive` flipped | 401; 403; 404 |
-| `DELETE /:id[?permanent=true]` | Bearer + `ADMIN` | — | 200 message | 401; 403; 404 |
+| `POST /` | `X-User-Role: ADMIN` | `CreateSupplierRequest`; required `name, campusZone, exactLocation, category, building, floor` | 201 supplier | 400 missing fields; 401; 403; 409 duplicate |
+| `PUT /:id` | `X-User-Role: ADMIN` | `UpdateSupplierRequest` (any subset, incl. `isActive`) | 200 supplier | 400 blank `name`, `category`, `building` or `floor`; 401; 403; 404; 409 duplicate |
+| `PATCH /:id/toggle` | `X-User-Role: ADMIN` | — | 200 supplier with `isActive` flipped | 401; 403; 404 |
+| `DELETE /:id[?permanent=true]` | `X-User-Role: ADMIN` | — | 200 message | 401; 403; 404 |
 
 OpenAPI form: [`../api/supplier-service.yaml`](../api/supplier-service.yaml).
 
@@ -88,7 +90,7 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 - `campusZone` and `category` filters are case-insensitive equality; `search` is a case-insensitive "contains" over `name`, `exactLocation`, `building`, `description`, `supplierCode`; a whitespace-only `search` is ignored. Filters combine with AND.
 - `sortBy` accepts `name, campusZone, category, createdAt, supplierCode`; anything else silently falls back to `name`. `sortOrder` is `desc` only if exactly `desc`.
 - `sortBy=name` is case-sensitive as returned by the database: ascending, `he by He Brews` comes after `TOMORO COFFEE` (UAT S8).
-- Denials on write routes: no token → 401 `MISSING_TOKEN`, bad signature → 401 `INVALID_TOKEN`, `STUDENT` → 403 `ADMIN_REQUIRED` (UAT W1, W2, W12).
+- Denials on write routes: missing identity headers → 401 `MISSING_TOKEN`, `STUDENT` → 403 `ADMIN_REQUIRED` (UAT W1, W2, W12).
 - The container start command runs `prisma migrate deploy`, the seed, then the server. On a fresh volume the seed reports `created=21`; on later boots `created=0 updated=21`, which puts the 21 CSV rows' fields back to the CSV values. Rows created through the API are not touched.
 - Pagination applies only when `page` or `limit` is sent (default limit 10, max 100); otherwise the whole list is returned as one page.
 - `supplierCode` is generated as `SUP-NNN` from the row count when not supplied, with a timestamp-based fallback if that code exists.
@@ -96,8 +98,8 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 - Duplicate check on create and update: a supplier whose `name`, `category`, `building` and `floor` match another one (trimmed, case-insensitive) is rejected with 409 and a `duplicate` object holding those four fields of the existing record. A unique-index violation that gets past that check is also answered with 409.
 - The migration `20260929134701_add_location_uniqueness` sets `building` and `floor` to `NOT NULL` without a backfill. On a database volume that already holds a supplier with no building or floor, `prisma migrate deploy` fails and the service does not start; `docker compose down -v` recreates the volume.
 - No `version` column, so concurrent edits are last-write-wins; `category` is not validated against `SupplierCategory`.
-- Access tokens are verified locally with Ed25519 against the configured public key,
-  issuer, and audience; this service never calls User Service.
+- Access tokens are verified locally with HMAC-SHA256 (via `@campus-errand/auth`) against the configured symmetric session secret,
+  issuer, and audience, or forwarded via verified gateway headers; this service never calls User Service.
 
 ## Differences from the documents
 

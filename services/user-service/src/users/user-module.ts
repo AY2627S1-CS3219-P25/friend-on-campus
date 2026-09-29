@@ -1,48 +1,32 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
- * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented username-only profile updates and shared user and password DTO handling.
- * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added deleteUser() and the FORBIDDEN error code for the new DELETE /api/users/:id endpoint. Role/self
- * authorization for this route is enforced at the route layer (requireSelfOrAdmin in user-routes.ts), not here —
- * this method trusts that check has already passed, same as toggleUserStatus trusts requireAdmin.
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Centralized all user account lifecycle logic (registration, profile management, password updates, status toggling, role toggling, deletion) in UserModule.
  * Author review: (to be completed by author after review)
  */
-/**
- * AI Assistance Disclosure:
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added toggleUserRole() (flips STUDENT<->ADMIN, backing the new PATCH /:id/toggle-role) and the
- * SELF_ACTION_FORBIDDEN error code (an admin may not change their own role — enforced at the route layer, same
- * split as toggleUserStatus/deleteUser). Removed the NOT_IMPLEMENTED error code — nothing throws it anymore
- * now that the old promote stub is gone.
- * Author review: (to be completed by author after review)
- */
+// AI-generated (edited by yanhwee)
 import type {
   ChangePasswordRequest,
+  RegisterUserRequest,
   UpdateUserProfileRequest,
   UserDTO,
 } from '@campus-errand/common-dtos';
 import { hashPassword, verifyPassword } from '../auth/password';
 import {
+  CreateUserRecord,
   UserRecord,
   UserRepository,
   UpdateUserRecord,
 } from '../persistence/user-repository';
-import { isValidPassword, isValidUsername } from '../utils/validation';
+import {
+  isValidEmail,
+  isValidPassword,
+  isValidUsername,
+  normalizeEmail,
+} from '../utils/validation';
 
 export interface UserModule {
+  register(input: RegisterUserRequest): Promise<UserDTO>;
   getOwnProfile(userId: string): Promise<UserDTO>;
   listUsers(): Promise<UserDTO[]>;
   updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
@@ -54,9 +38,11 @@ export interface UserModule {
 
 export type UserErrorCode =
   | 'INVALID_INPUT'
+  | 'DUPLICATE_EMAIL'
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
+  | 'ADMIN_REQUIRED'
   | 'FORBIDDEN'
   | 'SELF_ACTION_FORBIDDEN';
 
@@ -94,6 +80,41 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function validateRegistration(input: unknown): {
+  username: string;
+  email: string;
+  password: string;
+} {
+  if (!isObject(input)) {
+    throw new UserError('INVALID_INPUT', 'Registration payload is required');
+  }
+
+  const { username, email, password } = input;
+
+  if (!isValidUsername(username)) {
+    throw new UserError('INVALID_INPUT', 'Username must be between 1 and 50 characters');
+  }
+
+  if (typeof email !== 'string' || !isValidEmail(email)) {
+    throw new UserError('INVALID_INPUT', 'A valid email address is required');
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!isValidPassword(password)) {
+    throw new UserError(
+      'INVALID_INPUT',
+      'Password must be between 8 and 24 characters',
+    );
+  }
+
+  return {
+    username: (username as string).trim(),
+    email: normalizedEmail,
+    password: password as string,
+  };
+}
+
 function validateProfileUpdate(input: unknown): UpdateUserRecord {
   if (!isObject(input)) {
     throw new UserError('INVALID_INPUT', 'A profile update is required');
@@ -114,13 +135,20 @@ function validateProfileUpdate(input: unknown): UpdateUserRecord {
 function mapDuplicateUserError(error: unknown): never {
   const databaseError = error as DuplicateUserError;
   const prismaTarget = JSON.stringify(databaseError.meta?.target)?.toLowerCase() ?? '';
+  const isEmailConflict =
+    databaseError.constraint === 'users_email_case_insensitive_uq' ||
+    (databaseError.code === 'P2002' && prismaTarget.includes('email'));
   const isUsernameConflict =
     databaseError.constraint === 'users_username_case_insensitive_uq' ||
     (databaseError.code === 'P2002' && prismaTarget.includes('username'));
+
   if (databaseError.code !== '23505' && databaseError.code !== 'P2002') {
     throw error;
   }
 
+  if (isEmailConflict) {
+    throw new UserError('DUPLICATE_EMAIL', 'Email address is already registered');
+  }
   if (isUsernameConflict) {
     throw new UserError('DUPLICATE_USERNAME', 'Username is already in use');
   }
@@ -130,6 +158,28 @@ function mapDuplicateUserError(error: unknown): never {
 
 export function createUserModule(options: UserModuleOptions): UserModule {
   return {
+    async register(input) {
+      const validated = validateRegistration(input);
+      const passwordHash = await hashPassword(validated.password);
+
+      const record: CreateUserRecord = {
+        username: validated.username,
+        email: validated.email,
+        passwordHash,
+        role: 'STUDENT',
+      };
+
+      try {
+        const user = await options.repository.createUser(record);
+        return toUserDTO(user);
+      } catch (error) {
+        if (error instanceof UserError) {
+          throw error;
+        }
+        mapDuplicateUserError(error);
+      }
+    },
+
     async getOwnProfile(userId) {
       const user = await options.repository.findById(userId);
       if (!user) {

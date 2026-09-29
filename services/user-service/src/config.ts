@@ -1,10 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service environment loading and runtime configuration for the database, JWT, CORS, and service settings.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Fully purged asymmetric JWT keys from configuration. Service uses symmetric SESSION_SECRET exclusively.
+ * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by yanhwee)
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -28,10 +28,8 @@ function readPort(value: string | undefined): number {
 export interface AppConfig {
   port: number;
   databaseUrl: string;
-  accessTokenPrivateKey: string;
-  accessTokenPublicKey: string;
+  sessionSecret: string;
   accessTokenLifetimeSeconds: number;
-  refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
   accessTokenIssuer: string;
   accessTokenAudience: string;
@@ -39,13 +37,12 @@ export interface AppConfig {
   secureCookies: boolean;
 }
 
-function readRequiredKey(name: 'JWT_PRIVATE_KEY' | 'JWT_PUBLIC_KEY'): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is required`);
+function readSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET ?? process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('SESSION_SECRET must be configured and at least 32 characters');
   }
-
-  return value;
+  return secret;
 }
 
 function readDurationSeconds(value: string | undefined, fallback: string): number {
@@ -75,15 +72,13 @@ const nodeEnvironment = process.env.NODE_ENV ?? 'development';
 export const config: AppConfig = Object.freeze({
   port: readPort(process.env.PORT),
   databaseUrl: process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
-  accessTokenPrivateKey: readRequiredKey('JWT_PRIVATE_KEY'),
-  accessTokenPublicKey: readRequiredKey('JWT_PUBLIC_KEY'),
-  accessTokenLifetimeSeconds: readDurationSeconds(process.env.JWT_ACCESS_TOKEN_TTL, '15m'),
-  refreshTokenIdleLifetimeSeconds: readDurationSeconds(
-    process.env.JWT_REFRESH_TOKEN_TTL,
+  sessionSecret: readSessionSecret(),
+  accessTokenLifetimeSeconds: readDurationSeconds(
+    process.env.SESSION_TTL ?? process.env.JWT_ACCESS_TOKEN_TTL,
     '1d',
   ),
   persistentRefreshTokenIdleLifetimeSeconds: readDurationSeconds(
-    process.env.JWT_PERSISTENT_REFRESH_TOKEN_TTL,
+    process.env.PERSISTENT_SESSION_TTL ?? process.env.JWT_PERSISTENT_REFRESH_TOKEN_TTL,
     '30d',
   ),
   accessTokenIssuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',

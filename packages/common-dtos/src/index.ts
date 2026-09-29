@@ -80,11 +80,10 @@ export interface RefreshTokenResponse {
 
 /**
  * Access-token claims (RFC 7519 registered names so standard JWT libraries enforce exp/iss/aud).
- * sub = user id, sid = login session id.
+ * sub = user id.
  */
 export interface JWTPayload {
   sub: string;
-  sid: string;
   role: UserRole;
   iat: number;
   exp: number;

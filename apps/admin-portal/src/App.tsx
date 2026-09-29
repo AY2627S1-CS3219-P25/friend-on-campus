@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Targeted admin session cookie refresh via /api/auth/refresh?role=ADMIN to support concurrent multi-persona cookies.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented Milestone D2 Admin Portal with Edit/Delete/Details modals, table sorting, pagination, mobile layout per Screen 6 wireframe, and demo RBAC switcher.
  * Author review: (to be completed by author after review)
@@ -231,7 +236,6 @@ export default function App() {
 
   // Demo Auth Role Switcher state
   const [currentRole, setCurrentRole] = useState<DemoRole>('ADMIN');
-  const [authToken, setAuthToken] = useState<string>('');
 
   // Admin Login Gate state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -242,6 +246,7 @@ export default function App() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+  const [studentSessionDetected, setStudentSessionDetected] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -356,7 +361,6 @@ export default function App() {
         });
         return;
       }
-      setAuthToken(token);
       setCurrentRole('ADMIN');
       setIsAuthenticated(true);
       setLoginPassword('');
@@ -372,12 +376,12 @@ export default function App() {
   // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
   const clearLocalSession = () => {
     setIsAuthenticated(false);
-    setAuthToken('');
     setLoginEmail('');
     setLoginPassword('');
     setLoginError(null);
     setRememberMe(false);
     setActiveNav('suppliers');
+    setStudentSessionDetected(false);
   };
 
   const handleLogout = async () => {
@@ -495,7 +499,6 @@ export default function App() {
           const data = await res.json();
           if (!res.ok || !data.success) return null;
           const token: string = data.data.accessToken;
-          setAuthToken(token);
           return token;
         } catch {
           // Network failure: treated the same as "no session to restore".
@@ -508,32 +511,31 @@ export default function App() {
     return refreshInFlight.current;
   };
 
-  // Silently try to restore a session from the refresh_token cookie on load, so a page
-  // refresh doesn't always force the admin back to the login page. A failure (e.g. 401) just
-  // means there's no valid session to restore, expected for a first visit or an expired cookie.
+  // Silently try to restore a session from the session cookie on load, so a page
+  // refresh doesn't always force the admin back to the login page.
   useEffect(() => {
     refreshAccessToken()
       .then((token) => {
-        // Non-admin restored session: fall through silently to the login page,
-        // same as a non-admin's password login today (no error, no auto-logout).
         if (token && decodeJwtRole(token) === 'ADMIN') {
           setCurrentRole('ADMIN');
           setIsAuthenticated(true);
+          setStudentSessionDetected(false);
+        } else if (token && decodeJwtRole(token) === 'STUDENT') {
+          setStudentSessionDetected(true);
         }
       })
       .finally(() => setIsCheckingSession(false));
   }, []);
 
-  // Authenticated fetch: attaches the bearer token and, when the access token has expired
-  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
+  // Authenticated fetch: relies on the HTTP-only admin_session cookie. When the session expires
+  // (401), refreshes the session once and retries. If refresh fails, drops local session.
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
-      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-    const res = await send(authToken);
+    const send = () =>
+      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) } });
+    const res = await send();
     if (res.status !== 401) return res;
     const token = await refreshAccessToken();
-    if (token) return send(token);
+    if (token) return send();
     clearLocalSession();
     return res;
   };
@@ -988,6 +990,36 @@ export default function App() {
             <h1 className="text-lg font-bold text-slate-900">Admin Log In</h1>
             <p className="text-xs text-slate-500">NUS CampusErrand Admin Control Portal</p>
           </div>
+
+          {studentSessionDetected && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 font-bold text-amber-800">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>Student Account Active</span>
+              </div>
+              <p className="text-slate-600">
+                You are currently signed in with a Student account. Please sign out of your student account first to log in as an administrator.
+              </p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Signing out...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign Out of Student Account</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           {loginError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">

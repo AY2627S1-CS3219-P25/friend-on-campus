@@ -31,7 +31,8 @@
  * Author review: (to be completed by author after review)
  */
 
-import { Router, Request, RequestHandler, Response } from 'express';
+import { Router, Request, Response, RequestHandler } from 'express';
+import { getSessionUser } from '@campus-errand/auth';
 import * as supplierRepository from '../database/supplierRepository';
 import {
   CreateSupplierRequest,
@@ -253,22 +254,38 @@ export async function deleteSupplier(req: Request, res: Response) {
   }
 }
 
+const requireAdmin: RequestHandler = (req, res, next) => {
+  const user = getSessionUser(req);
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+      code: 'MISSING_TOKEN',
+    });
+  }
+  if (user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      error: 'Administrator access required',
+      code: 'ADMIN_REQUIRED',
+    });
+  }
+  next();
+};
+
 // AI-generated (edited by ngkhengyang)
-export function createSupplierRouter(
-  authenticateToken: RequestHandler,
-  requireAdmin: RequestHandler,
-): Router {
+export function createSupplierRouter(): Router {
   const router = Router();
 
   // Public / Student Read Access
   router.get('/', getSuppliers);
   router.get('/:id', getSupplier);
 
-  // Admin-Only Mutation Access
-  router.post('/', authenticateToken, requireAdmin, createSupplier);
-  router.put('/:id', authenticateToken, requireAdmin, updateSupplier);
-  router.patch('/:id/toggle', authenticateToken, requireAdmin, toggleSupplier);
-  router.delete('/:id', authenticateToken, requireAdmin, deleteSupplier);
+  // Admin-Only Mutation Access (Enforced by NGINX gateway perimeter + in-service defence-in-depth)
+  router.post('/', requireAdmin, createSupplier);
+  router.put('/:id', requireAdmin, updateSupplier);
+  router.patch('/:id/toggle', requireAdmin, toggleSupplier);
+  router.delete('/:id', requireAdmin, deleteSupplier);
 
   return router;
 }

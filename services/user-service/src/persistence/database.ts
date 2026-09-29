@@ -20,21 +20,7 @@ export function createDatabase(prisma: PrismaClient): Database {
 
     async isReady() {
       try {
-        await prisma.$queryRawUnsafe(`
-          SELECT
-            u.id,
-            u.username,
-            u.email,
-            u.password_hash,
-            u.role,
-            s.id,
-            s.refresh_token_hash,
-            s.persistent,
-            s.idle_expires_at
-          FROM users u
-          LEFT JOIN sessions s ON FALSE
-          LIMIT 0
-        `);
+        await prisma.$queryRawUnsafe('SELECT 1 FROM users LIMIT 1');
         return true;
       } catch (error) {
         logError('database_readiness_check_failed', error);

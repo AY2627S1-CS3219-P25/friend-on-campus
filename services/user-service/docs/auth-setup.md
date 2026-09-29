@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Purged Ed25519 key generation instructions. Updated auth setup documentation to reflect symmetric SESSION_SECRET configuration and NGINX gateway authentication offloading.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented User Service authentication setup, Ed25519 key configuration, and shared PostgreSQL startup.
 Author review: <to be completed by ngkhengyang>
@@ -34,27 +40,27 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
    Copy-Item .env.example .env
    ```
 
-2. Generate the local JWT key pair and copy it to your clipboard:
+2. The stack uses a symmetric `SESSION_SECRET` (HMAC-SHA256, signed using the `jose` library).
+   - **For Development**: `.env.example` provides a pre-configured 32+ character development secret.
+   - **Generating a New Secret**:
+     ```sh
+     # Generate a cryptographically random 256-bit (64-character) hex key:
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+     # or using OpenSSL:
+     openssl rand -hex 32
+     ```
+   - **For Production**:
+     - **NEVER generate the secret at container startup**: Generating a key in memory on boot means every container restart logs out all users, and running multiple replicas breaks cross-container authentication.
+     - **Store in a Secrets Vault**: Persist the secret in a secret manager (e.g., AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault, Kubernetes Secrets) and inject it into the container environment as `SESSION_SECRET`.
+     - **Length Requirement**: Must be at least 32 characters long.
 
-   ```sh
-   npm run generate:jwt-keys
-   ```
-
-3. Paste the copied lines into root `.env` under the Auth / JWT section.
-
-   If the clipboard command is unavailable on your system, print the values instead:
-
-   ```sh
-   npm run generate:jwt-keys -- --print
-   ```
-
-4. Start the stack:
+3. Start the stack:
 
    ```sh
    docker compose up --build
    ```
 
-5. Check that the User Service is ready:
+4. Check that the User Service is ready:
 
    ```sh
    # macOS and Linux
@@ -92,7 +98,7 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
    Copy-Item .env.example .env
    ```
 
-4. Copy `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` from root `.env` into `services/user-service/.env`.
+4. Verify `SESSION_SECRET` in `services/user-service/.env` matches root `.env`.
 
 5. Start the User Service:
 
@@ -129,12 +135,12 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
 2. Add these values to that service's Compose environment or local `.env` file:
 
    ```env
-   JWT_PUBLIC_KEY=<copy from root .env>
+   SESSION_SECRET=<copy from root .env>
    JWT_ISSUER=friend-on-campus-user-service
    JWT_AUDIENCE=friend-on-campus-services
    ```
 
-3. Follow [Authentication for Backend Services](./authentication-for-services.md) when adding authentication to its routes.
+3. When requests arrive through NGINX API Gateway, NGINX verifies the session via `auth_request` and forwards `X-User-Id` / `X-User-Role` headers to your service. Follow [Authentication for Backend Services](./authentication-for-services.md) when adding authentication to its routes.
 
 ## Check that authentication works
 

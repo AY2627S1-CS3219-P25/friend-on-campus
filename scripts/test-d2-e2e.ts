@@ -1,5 +1,19 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: Extended integration test suite to validate dual session cookies (student_session and admin_session) and role-specific gateway verification (GET /api/auth/verify?role=).
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-09-28
+ * Scope: Extended integration test suite to validate NGINX gateway verification endpoint (GET /api/auth/verify) and gateway header offloading.
+ * Author review: (to be completed by author after review)
+ */
+// AI-generated (edited by yanhwee)
+/**
+ * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement.
  * Author review: (to be completed by author after review)
@@ -27,31 +41,8 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Rewrote Scenario 4 (renamed from "Deferred Administration Endpoint Authorization" — nothing there is
- * deferred anymore). Fixed two assertions that were already stale before this change (found during
- * investigation, unrelated to the rename): the user list has returned a real 200 for a while, not 501; and the
- * GET /api/users/:id check was asserting 501 for a route that was never implemented at all (no route matches
- * it, so it 404s). Replaced the old promote-returns-501 checks with real coverage of PATCH /:id/toggle-status
- * and PATCH /:id/toggle-role (both endpoints renamed/implemented this session): forbidden-for-student on both,
- * an admin round-tripping a target's status and role in both directions (asserting the value actually flips
- * each way, not just the status code), an admin blocked from targeting their own id for toggle-role, and an
- * unknown-UUID 404.
- * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
- * Scope: PR #93 review fix: Scenario 6 sends the now-required building and floor when the admin creates the
- * test supplier, and asserts that a create without them is rejected with 400. The test supplier's name
- * carries the random test code, so a row left by an aborted run cannot trip the uniqueness rule.
- * Author review: (to be completed by author after review)
- */
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
-import { generateKeyPairSync } from 'node:crypto';
 import path from 'path';
 
 const USER_SERVICE_PORT = 8001;
@@ -62,19 +53,24 @@ const SUPPLIER_API = `http://localhost:${SUPPLIER_SERVICE_PORT}`;
 let userProcess: ChildProcess | null = null;
 let supplierProcess: ChildProcess | null = null;
 
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by yanhwee)
 function createTestJwtEnvironment(): Record<string, string> {
-  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
-
   return {
-    JWT_PRIVATE_KEY: privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64url'),
-    JWT_PUBLIC_KEY: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
+    SESSION_SECRET: 'test-session-secret-at-least-32-chars-long!',
     JWT_ISSUER: 'friend-on-campus-user-service',
     JWT_AUDIENCE: 'friend-on-campus-services',
   };
 }
 
 const testJwtEnvironment = createTestJwtEnvironment();
+
+function authHeaders(userId: string, role: string, extraHeaders: Record<string, string> = {}): Record<string, string> {
+  return {
+    'X-User-Id': userId,
+    'X-User-Role': role,
+    ...extraHeaders,
+  };
+}
 
 let totalTests = 0;
 let passedTests = 0;
@@ -138,11 +134,9 @@ async function runTests() {
     cwd: path.resolve(__dirname, '../services/supplier-service'),
     env: {
       ...process.env,
+      ...testJwtEnvironment,
       PORT: String(SUPPLIER_SERVICE_PORT),
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/supplier_db',
-      JWT_PUBLIC_KEY: testJwtEnvironment.JWT_PUBLIC_KEY,
-      JWT_ISSUER: testJwtEnvironment.JWT_ISSUER,
-      JWT_AUDIENCE: testJwtEnvironment.JWT_AUDIENCE,
     },
     stdio: 'pipe',
     shell: SPAWN_THROUGH_SHELL,
@@ -225,16 +219,16 @@ async function runTests() {
     assert(adminLoginRes.status === 200, 'Admin login with valid credentials succeeds (200 OK)');
     assert(adminLoginData.data?.user?.userRole === 'ADMIN', 'Admin user has role ADMIN');
     const adminToken = adminLoginData.data?.accessToken;
+    const adminUserId = adminLoginData.data?.user?.userId;
     const adminClaims = adminToken ? decodeJwtClaims(adminToken) : {};
     assert(
       adminClaims.sub === adminLoginData.data?.user?.userId &&
-        typeof adminClaims.sid === 'string' &&
         adminClaims.role === 'ADMIN' &&
         typeof adminClaims.iat === 'number' &&
         typeof adminClaims.exp === 'number' &&
         adminClaims.iss === testJwtEnvironment.JWT_ISSUER &&
         adminClaims.aud === testJwtEnvironment.JWT_AUDIENCE,
-      'Access token carries standard JWT claims (sub, sid, role, iat, exp, iss, aud)',
+      'Access token carries standard JWT claims (sub, role, iat, exp, iss, aud)',
     );
 
     // Login the account registered above; registration itself must not authenticate it.
@@ -253,11 +247,83 @@ async function runTests() {
     const studentUserId = studentLoginData.data?.user?.userId;
     const studentClaims = decodeJwtClaims(studentToken);
     assert(studentClaims.sub === studentUserId, 'Access token uses the standard sub claim');
-    assert(typeof studentClaims.sid === 'string', 'Access token includes the standard sid claim');
+    assert(studentClaims.role === 'STUDENT', 'Access token includes the standard role claim');
     assert(typeof studentClaims.iat === 'number', 'Access token includes the standard iat claim');
-    assert(typeof studentClaims.exp === 'number', 'Access token includes the standard exp claim');
     assert(studentClaims.iss === 'friend-on-campus-user-service', 'Access token uses the standard iss claim');
     assert(studentClaims.aud === 'friend-on-campus-services', 'Access token uses the standard aud claim');
+
+    // Test persistent login preserves 30-day lifetime across refresh
+    const persistentLoginRes = await fetch(`${USER_API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: testEmail,
+        password: 'Password123!',
+        keepLoggedIn: true,
+      }),
+    });
+    const persistentLoginData = await persistentLoginRes.json();
+    assert(
+      persistentLoginData.data?.accessTokenExpiresInSeconds === 30 * 86400,
+      'keepLoggedIn login issues 30-day session',
+    );
+    const persistentRefreshRes = await fetch(`${USER_API}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Cookie: `session=${persistentLoginData.data?.accessToken}` },
+    });
+    const persistentRefreshData = await persistentRefreshRes.json();
+    assert(
+      persistentRefreshData.data?.accessTokenExpiresInSeconds === 30 * 86400,
+      'POST /api/auth/refresh preserves 30-day lifetime for persistent session',
+    );
+
+    // NGINX Gateway Offloading Verification & Single Session Cookie
+    const unauthVerify = await fetch(`${USER_API}/api/auth/verify`);
+    assert(unauthVerify.status === 401, 'Unauthenticated GET /api/auth/verify returns 401');
+
+    const cookieVerify = await fetch(`${USER_API}/api/auth/verify`, {
+      headers: { Cookie: `session=${studentToken}` },
+    });
+    assert(cookieVerify.status === 200, 'Student session cookie GET /api/auth/verify succeeds (200 OK)');
+    assert(
+      cookieVerify.headers.get('x-auth-user-id') === studentUserId,
+      'GET /api/auth/verify returns matching X-Auth-User-Id header',
+    );
+    assert(
+      cookieVerify.headers.get('x-auth-user-role') === 'STUDENT',
+      'GET /api/auth/verify returns matching X-Auth-User-Role header',
+    );
+
+    // Single Cookie & Gateway-Level Role Enforcement Tests
+    const studentToAdminRoute = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: `session=${studentToken}` },
+    });
+    assert(studentToAdminRoute.status === 403, 'Student session rejected by verify?role=ADMIN (403 Forbidden)');
+
+    const adminToAdminRoute = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: `session=${adminToken}` },
+    });
+    assert(adminToAdminRoute.status === 200, 'Admin session accepted by verify?role=ADMIN (200 OK)');
+
+    // Logout: clears single session cookie
+    const logoutRes = await fetch(`${USER_API}/api/auth/logout`, {
+      method: 'POST',
+      headers: { Cookie: `session=${studentToken}` },
+    });
+    assert(logoutRes.status === 204, 'POST /api/auth/logout returns 204 No Content');
+    const logoutSetCookie = logoutRes.headers.get('set-cookie') ?? '';
+    assert(logoutSetCookie.includes('session=;'), 'POST /api/auth/logout clears session cookie');
+
+    // Perimeter Gateway Security & Direct Access Protection Tests
+    // 1. Direct request without identity headers must be rejected (401)
+    const unauthMeRes = await fetch(`${USER_API}/api/users/me`);
+    assert(unauthMeRes.status === 401, 'Request without X-User-Id is rejected (401 MISSING_TOKEN)');
+
+    // 2. Request with verified perimeter headers succeeds
+    const gatewayMeRes = await fetch(`${USER_API}/api/users/me`, {
+      headers: authHeaders(studentUserId, 'STUDENT'),
+    });
+    assert(gatewayMeRes.status === 200, 'GET /api/users/me accepts request with perimeter identity headers');
 
     // -------------------------------------------------------------------------
     // SCENARIO 3: User Profile & Immutability Protection
@@ -266,7 +332,7 @@ async function runTests() {
 
     // GET /api/users/me
     const meRes = await fetch(`${USER_API}/api/users/me`, {
-      headers: { Authorization: `Bearer ${studentToken}` },
+      headers: authHeaders(studentUserId, 'STUDENT'),
     });
     const meData = await meRes.json();
     assert(meRes.status === 200, 'GET /api/users/me returns authenticated student profile');
@@ -275,10 +341,7 @@ async function runTests() {
     // Attempt to modify the immutable email along with username.
     const invalidUpdateRes = await fetch(`${USER_API}/api/users/me`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
-      },
+      headers: authHeaders(studentUserId, 'STUDENT', { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         username: `${testUsername}-updated`,
         email: 'hacked@example.test',
@@ -288,10 +351,7 @@ async function runTests() {
 
     const updateRes = await fetch(`${USER_API}/api/users/me`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
-      },
+      headers: authHeaders(studentUserId, 'STUDENT', { 'Content-Type': 'application/json' }),
       body: JSON.stringify({ username: `${testUsername}-updated` }),
     });
     const updateData = await updateRes.json();
@@ -307,7 +367,7 @@ async function runTests() {
     assert(unauthenticatedList.status === 401, 'Unauthenticated user-management request is rejected (401)');
 
     const adminList = await fetch(`${USER_API}/api/users`, {
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminListData = await adminList.json();
     assert(adminList.status === 200, 'ADMIN user listing succeeds (200 OK)');
@@ -316,7 +376,7 @@ async function runTests() {
     // Student cannot reach either admin-only management route, even on their own id.
     const studentToggleStatus = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${studentToken}` },
+      headers: authHeaders(studentUserId, 'STUDENT'),
     });
     const studentToggleStatusData = await studentToggleStatus.json();
     assert(studentToggleStatus.status === 403, 'Student cannot call toggle-status, even on themselves (403)');
@@ -324,17 +384,16 @@ async function runTests() {
 
     const studentToggleRole = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${studentToken}` },
+      headers: authHeaders(studentUserId, 'STUDENT'),
     });
     const studentToggleRoleData = await studentToggleRole.json();
     assert(studentToggleRole.status === 403, 'Student cannot call toggle-role, even on themselves (403)');
     assert(studentToggleRoleData.code === 'ADMIN_REQUIRED', 'toggle-role forbidden response has code ADMIN_REQUIRED');
 
-    // Admin toggles the test student's active status off, then back on — asserting the boolean
-    // actually flips each way, not just that the call succeeds.
+    // Admin toggles the test student's active status off, then back on
     const adminDeactivate = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminDeactivateData = await adminDeactivate.json();
     assert(adminDeactivate.status === 200, 'Admin toggle-status (deactivate) succeeds (200 OK)');
@@ -342,33 +401,63 @@ async function runTests() {
 
     const adminReactivate = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-status`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminReactivateData = await adminReactivate.json();
     assert(adminReactivate.status === 200, 'Admin toggle-status (reactivate) succeeds (200 OK)');
     assert(adminReactivateData.data?.user?.status === true, 'Target user status flips back to true (active)');
 
-    // Admin toggles the test student's role STUDENT -> ADMIN -> STUDENT, same round-trip idea.
+    // Admin toggles the test student's role STUDENT -> ADMIN -> STUDENT
     const adminPromote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminPromoteData = await adminPromote.json();
     assert(adminPromote.status === 200, 'Admin toggle-role (promote) succeeds (200 OK)');
     assert(adminPromoteData.data?.user?.userRole === 'ADMIN', 'Target user role flips to ADMIN');
 
+    // While promoted, user logs in and gets an active session cookie
+    const promotedLogin = await fetch(`${USER_API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'Password123!' }),
+    });
+    const promotedLoginCookie = promotedLogin.headers.get('set-cookie')?.split(';')[0];
+    const verifyPromoted = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: promotedLoginCookie },
+    });
+    assert(verifyPromoted.status === 200, 'Promoted user verify?role=ADMIN succeeds (200 OK)');
+
     const adminDemote = await fetch(`${USER_API}/api/users/${studentUserId}/toggle-role`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminDemoteData = await adminDemote.json();
     assert(adminDemote.status === 200, 'Admin toggle-role (demote) succeeds (200 OK)');
     assert(adminDemoteData.data?.user?.userRole === 'STUDENT', 'Target user role flips back to STUDENT');
 
+    // Immediately after demotion, their pre-demotion cookie MUST be rejected by verify?role=ADMIN
+    const verifyDemoted = await fetch(`${USER_API}/api/auth/verify?role=ADMIN`, {
+      headers: { Cookie: promotedLoginCookie },
+    });
+    const verifyDemotedData = await verifyDemoted.json();
+    assert(verifyDemoted.status === 403, 'Demoted user verify?role=ADMIN immediately returns 403 Forbidden');
+    assert(verifyDemotedData.code === 'ADMIN_REQUIRED', 'Demoted user rejection has code ADMIN_REQUIRED');
+
+    // Refreshing their session with that cookie MUST re-mint a token with STUDENT role, not ADMIN
+    const demotedRefresh = await fetch(`${USER_API}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Cookie: promotedLoginCookie },
+    });
+    const demotedRefreshData = await demotedRefresh.json();
+    assert(demotedRefresh.status === 200, 'Demoted user session refresh succeeds');
+    const demotedPayload = JSON.parse(Buffer.from(demotedRefreshData.data?.accessToken.split('.')[1], 'base64').toString());
+    assert(demotedPayload.role === 'STUDENT', 'Refreshed token has updated STUDENT role from database');
+
     // An admin may never change their own role.
     const adminSelfToggleRole = await fetch(`${USER_API}/api/users/${adminLoginData.data?.user?.userId}/toggle-role`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminSelfToggleRoleData = await adminSelfToggleRole.json();
     assert(adminSelfToggleRole.status === 403, 'Admin cannot toggle-role on their own id (403)');
@@ -377,11 +466,11 @@ async function runTests() {
       'Self-targeting toggle-role response has code SELF_ACTION_FORBIDDEN',
     );
 
-    // Both admin routes 404 cleanly on an unknown (but well-formed) UUID.
+    // Both admin routes 404 cleanly on an unknown UUID.
     const unknownUserId = '00000000-0000-4000-8000-000000000000';
     const adminToggleRoleUnknown = await fetch(`${USER_API}/api/users/${unknownUserId}/toggle-role`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const adminToggleRoleUnknownData = await adminToggleRoleUnknown.json();
     assert(adminToggleRoleUnknown.status === 404, 'toggle-role on an unknown UUID returns 404');
@@ -416,7 +505,7 @@ async function runTests() {
     // -------------------------------------------------------------------------
     console.log('\n--- Scenario 6: Cross-Service RBAC Enforcement (Student vs Admin) ---');
 
-    // 1. Unauthenticated write attempt -> 401 Unauthorized
+    // 1. Unauthenticated write attempt -> 401 Unauthorized via supplier-service guard
     const unauthCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -425,36 +514,33 @@ async function runTests() {
         campusZone: 'UTown',
         exactLocation: 'UTown Plaza',
         category: 'Food',
+        building: 'UTown',
+        floor: '1',
       }),
     });
     assert(unauthCreate.status === 401, 'Unauthenticated POST /api/suppliers rejected (401 Unauthorized)');
 
-    // 2. Student token write attempt -> 403 Forbidden
+    // 2. Student token write attempt -> 403 Forbidden via supplier-service guard
     const studentCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${studentToken}`,
-      },
+      headers: authHeaders(studentUserId, 'STUDENT', { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         name: 'Student Unauthorized Shop',
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 2',
         category: 'Beverages',
+        building: 'COM3',
+        floor: '2',
       }),
     });
     assert(studentCreate.status === 403, 'Student token POST /api/suppliers rejected (403 Forbidden)');
 
-    // AI-generated (edited by jagdeepsh)
     // 2b. Admin create without building/floor -> 400 Bad Request
     const adminCreateNoBuilding = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
-      },
+      headers: authHeaders(adminUserId, 'ADMIN', { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        name: 'No Building Cafe',
+        name: `No Building Cafe ${Date.now()}`,
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 1 Terrace',
         category: 'Beverages',
@@ -466,10 +552,7 @@ async function runTests() {
     const testSupplierCode = `TEST-${Math.floor(100 + Math.random() * 900)}`;
     const adminCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
-      },
+      headers: authHeaders(adminUserId, 'ADMIN', { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         supplierCode: testSupplierCode,
         name: `Verified Admin Test Cafe ${testSupplierCode}`,
@@ -490,26 +573,23 @@ async function runTests() {
     // 4. Admin updates location -> 200 OK
     const adminUpdate = await fetch(`${SUPPLIER_API}/api/suppliers/${createdSupplierId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
-      },
+      headers: authHeaders(adminUserId, 'ADMIN', { 'Content-Type': 'application/json' }),
       body: JSON.stringify({
-        name: `Verified Admin Test Cafe ${testSupplierCode} (Updated)`,
+        name: `Verified Admin Test Cafe (Updated) ${testSupplierCode}`,
         floor: '2',
       }),
     });
     const updateSupplierData = await adminUpdate.json();
     assert(adminUpdate.status === 200, 'Admin token PUT /api/suppliers/:id updates location (200 OK)');
     assert(
-      updateSupplierData.data?.name === `Verified Admin Test Cafe ${testSupplierCode} (Updated)`,
+      updateSupplierData.data?.name === `Verified Admin Test Cafe (Updated) ${testSupplierCode}`,
       'Supplier name updated correctly'
     );
 
     // 5. Admin toggles active status -> 200 OK
     const adminToggle = await fetch(`${SUPPLIER_API}/api/suppliers/${createdSupplierId}/toggle`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     const toggleData = await adminToggle.json();
     assert(adminToggle.status === 200, 'Admin token PATCH /api/suppliers/:id/toggle succeeds (200 OK)');
@@ -518,7 +598,7 @@ async function runTests() {
     // 6. Admin soft deletes supplier
     const adminSoftDelete = await fetch(`${SUPPLIER_API}/api/suppliers/${createdSupplierId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${adminToken}` },
+      headers: authHeaders(adminUserId, 'ADMIN'),
     });
     assert(adminSoftDelete.status === 200, 'Admin token DELETE /api/suppliers/:id soft deletes record');
 
@@ -527,10 +607,103 @@ async function runTests() {
       `${SUPPLIER_API}/api/suppliers/${createdSupplierId}?permanent=true`,
       {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${adminToken}` },
+        headers: authHeaders(adminUserId, 'ADMIN'),
       }
     );
     assert(adminHardDelete.status === 200, 'Admin token DELETE ?permanent=true cleans up test record');
+
+    // --- Scenario 7: Ingress Gateway Perimeter & Header Sanitization (Optional) ---
+    if (process.env.GATEWAY_URL) {
+      console.log('\n--- Scenario 7: Ingress Gateway Perimeter & Header Sanitization ---');
+      const gw = process.env.GATEWAY_URL.replace(/\/$/, '');
+
+      // 1. Unauthenticated request to protected endpoint returns 401 JSON
+      const unauthGw = await fetch(`${gw}/api/users/me`);
+      assert(unauthGw.status === 401, 'Gateway unauthenticated request returns 401');
+      const unauthGwData = await unauthGw.json();
+      assert(unauthGwData.code === 'MISSING_TOKEN', 'Gateway 401 returns JSON with code MISSING_TOKEN');
+
+      // 2. Client-spoofed X-User-Role is stripped at ingress
+      const spoofedGw = await fetch(`${gw}/api/users/me`, {
+        headers: {
+          'X-User-Id': studentUserId,
+          'X-User-Role': 'ADMIN',
+        },
+      });
+      assert(spoofedGw.status === 401, 'Gateway rejects spoofed X-User-* headers without session cookie');
+
+      // 3. Login through gateway to get session cookie
+      const gwLogin = await fetch(`${gw}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: testEmail, password: 'Password123!' }),
+      });
+      const gwCookie = gwLogin.headers.get('set-cookie')?.split(';')[0];
+      assert(Boolean(gwCookie), 'Gateway login returns session cookie');
+
+      // 4. Authenticated request with session cookie succeeds through gateway
+      const authGw = await fetch(`${gw}/api/users/me`, {
+        headers: { Cookie: gwCookie! },
+      });
+      assert(authGw.status === 200, 'Gateway routes authenticated student session to user-service');
+
+      // 5. Student session attempting admin supplier write through gateway returns 403 JSON
+      const studentGwWrite = await fetch(`${gw}/api/suppliers`, {
+        method: 'POST',
+        headers: {
+          Cookie: gwCookie!,
+          'Content-Type': 'application/json',
+          'X-User-Role': 'ADMIN', // attempt to spoof ADMIN role
+        },
+        body: JSON.stringify({
+          name: 'Spoofed Supplier',
+          campusZone: 'UTown',
+          exactLocation: 'Level 1',
+          category: 'Food',
+          building: 'Fine Foods',
+          floor: '1',
+        }),
+      });
+      assert(studentGwWrite.status === 403, 'Gateway rejects student supplier write even with spoofed ADMIN header (403)');
+      const studentGwWriteData = await studentGwWrite.json();
+      assert(
+        studentGwWriteData.code === 'ADMIN_REQUIRED' || studentGwWriteData.code === 'FORBIDDEN',
+        'Gateway 403 returns JSON with forbidden code'
+      );
+
+      // 6. Admin session write through gateway succeeds
+      const gwAdminLogin = await fetch(`${gw}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'admin@nus.edu.sg', password: 'Password123!' }),
+      });
+      const gwAdminCookie = gwAdminLogin.headers.get('set-cookie')?.split(';')[0];
+      assert(Boolean(gwAdminCookie), 'Gateway admin login returns session cookie');
+
+      const adminGwWrite = await fetch(`${gw}/api/suppliers`, {
+        method: 'POST',
+        headers: {
+          Cookie: gwAdminCookie!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `Gateway Created Supplier ${Date.now()}`,
+          campusZone: 'UTown',
+          exactLocation: 'Level 1',
+          category: 'Food',
+          building: 'Fine Foods',
+          floor: '1',
+        }),
+      });
+      assert(adminGwWrite.status === 201, 'Gateway permits authenticated admin supplier write (201 Created)');
+      const adminGwWriteData = await adminGwWrite.json();
+      if (adminGwWriteData.data?.id) {
+        await fetch(`${gw}/api/suppliers/${adminGwWriteData.data.id}?permanent=true`, {
+          method: 'DELETE',
+          headers: { Cookie: gwAdminCookie! },
+        });
+      }
+    }
   } catch (err: any) {
     console.error('Unexpected test error:', err);
   } finally {

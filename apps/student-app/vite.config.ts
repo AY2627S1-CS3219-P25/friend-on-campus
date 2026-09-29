@@ -24,18 +24,6 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-      '/api/suppliers': {
-        target: supplierTarget,
-        changeOrigin: true,
-      },
-      '/api/auth': {
-        target: userTarget,
-        changeOrigin: true,
-      },
-      '/api/users': {
-        target: userTarget,
-        changeOrigin: true,
-      },
       '/api': {
         target: gatewayTarget,
         changeOrigin: true,

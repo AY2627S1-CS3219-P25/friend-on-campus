@@ -38,7 +38,7 @@ Facts as of 2026-09-23 (current workspace). Nothing here is a recommendation. Wh
 
 | # | Conflict | Sources | Resolution |
 |---|---|---|---|
-| 8 | Session method: D2 plan sketches an opaque session token in an HttpOnly cookie with a validation endpoint; the code issues an Ed25519 access token sent as `Authorization: Bearer`, uses an opaque refresh-token cookie, and verifies access tokens locally | D2 plan §8, App. B2 vs `services/user-service/src/auth/`, `packages/auth/`, README | |
+| 8 | Session method: D2 plan sketches an opaque session token in an HttpOnly cookie with a validation endpoint; the code issues an Ed25519 access token sent as `Authorization: Bearer`, uses an opaque refresh-token cookie, and verifies access tokens locally | D2 plan §8, App. B2 vs `services/user-service/src/auth/`, `packages/auth/`, README | Resolved (PR #95): Adopted stateless symmetric HMAC-SHA256 session tokens stored in HttpOnly cookies with NGINX gateway authentication offloading (`auth_request` to `/internal/auth/verify`), harmonizing cookie sessions with gateway-level verification. |
 | 9 | Role names: D2 plan uses `USER` / `ADMIN`; code and DB default use `STUDENT` / `ADMIN` | D2 plan §4 vs `packages/common-dtos` `UserRole`, init SQL | |
 | 10 | Guest access to the supplier list: D2 plan permission matrix says No; `GET /api/suppliers` and `GET /api/suppliers/:id` have no auth middleware | D2 plan App. B vs `supplierRoutes.ts` | |
 | 11 | Supplier edit API: D2 plan proposes `PATCH /api/suppliers/{id}` with a `version` field and 409 on stale edits; code has `PUT /:id` and `PATCH /:id/toggle`, and the supplier table has no `version` column | D2 plan App. C / B3 vs `supplierRoutes.ts`, `schema.prisma` | |

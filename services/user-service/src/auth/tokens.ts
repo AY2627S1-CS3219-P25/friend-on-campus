@@ -1,85 +1,81 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Access tokens now carry the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud) typed by the
- * shared JWTPayload from common-dtos, replacing the local claim interface. Signing, refresh-token generation and hashing
- * are unchanged from the PR author's version.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Google Antigravity Agent, date: 2026-09-29
+ * Scope: TokenManager implemented with `jose` library for standard RFC 7519 JWT signing and verification; purged dead refresh token generator and hash methods.
+ * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by ngkhengyang)
-import {
-  createHash,
-  createPrivateKey,
-  randomBytes,
-  sign,
-} from 'node:crypto';
-import type { KeyObject } from 'node:crypto';
-import type { JWTPayload } from '@campus-errand/common-dtos';
-import { UserRole } from '../persistence/auth-repository';
+// AI-generated (edited by yanhwee)
+import { SignJWT, jwtVerify } from 'jose';
+import { UserRole } from '../persistence/user-repository';
 
-const JWT_HEADER = Object.freeze({ alg: 'EdDSA', typ: 'JWT' });
+export interface AuthenticatedPrincipal {
+  userId: string;
+  role: UserRole;
+  persistent?: boolean;
+}
 
 export interface TokenManager {
-  issueAccessToken(userId: string, sessionId: string, role: UserRole): string;
-  generateRefreshToken(): string;
-  hashRefreshToken(refreshToken: string): string;
+  issueAccessToken(
+    userId: string,
+    role: UserRole,
+    lifetimeSeconds?: number,
+    persistent?: boolean,
+  ): Promise<string>;
+  verifyToken(token: string): Promise<AuthenticatedPrincipal | null>;
 }
 
 export interface TokenManagerOptions {
-  accessTokenPrivateKey: string;
+  sessionSecret: string;
   accessTokenLifetimeSeconds: number;
   accessTokenIssuer: string;
   accessTokenAudience: string;
 }
 
-function encodeJson(value: object): string {
-  return Buffer.from(JSON.stringify(value)).toString('base64url');
-}
-
-function readPrivateKey(encodedKey: string): KeyObject {
-  if (encodedKey.length !== 64 || !/^[A-Za-z0-9_-]+$/.test(encodedKey)) {
-    throw new Error('JWT private key must be a 64-character Base64URL string');
-  }
-
-  const key = createPrivateKey({
-    key: Buffer.from(encodedKey, 'base64url'),
-    format: 'der',
-    type: 'pkcs8',
-  });
-  if (key.asymmetricKeyType !== 'ed25519') {
-    throw new Error('JWT private key must be an Ed25519 key');
-  }
-
-  return key;
-}
-
 export function createTokenManager(options: TokenManagerOptions): TokenManager {
-  const privateKey = readPrivateKey(options.accessTokenPrivateKey);
+  const secretKey = new TextEncoder().encode(options.sessionSecret);
 
   return {
-    issueAccessToken(userId, sessionId, role) {
-      const currentUnixTimeSeconds = Math.floor(Date.now() / 1000);
-      const claims: JWTPayload = {
-        sub: userId,
-        sid: sessionId,
+    async issueAccessToken(userId, role, lifetimeSeconds, persistent) {
+      const lifetime = lifetimeSeconds ?? options.accessTokenLifetimeSeconds;
+      const currentUnixTime = Math.floor(Date.now() / 1000);
+
+      const jwt = new SignJWT({
         role,
-        iat: currentUnixTimeSeconds,
-        exp: currentUnixTimeSeconds + options.accessTokenLifetimeSeconds,
-        iss: options.accessTokenIssuer,
-        aud: options.accessTokenAudience,
-      };
-      const unsignedToken = `${encodeJson(JWT_HEADER)}.${encodeJson(claims)}`;
-      const signature = sign(null, Buffer.from(unsignedToken), privateKey);
+        ...(persistent ? { persistent: true } : {}),
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject(userId)
+        .setIssuer(options.accessTokenIssuer)
+        .setAudience(options.accessTokenAudience)
+        .setIssuedAt(currentUnixTime)
+        .setExpirationTime(currentUnixTime + lifetime);
 
-      return `${unsignedToken}.${signature.toString('base64url')}`;
+      return await jwt.sign(secretKey);
     },
 
-    generateRefreshToken() {
-      return randomBytes(32).toString('base64url');
-    },
+    async verifyToken(token: string): Promise<AuthenticatedPrincipal | null> {
+      try {
+        const { payload } = await jwtVerify(token, secretKey, {
+          issuer: options.accessTokenIssuer,
+          audience: options.accessTokenAudience,
+          algorithms: ['HS256'],
+        });
 
-    hashRefreshToken(refreshToken) {
-      return createHash('sha256').update(refreshToken).digest('hex');
+        if (
+          typeof payload.sub !== 'string' ||
+          (payload.role !== 'STUDENT' && payload.role !== 'ADMIN')
+        ) {
+          return null;
+        }
+
+        return {
+          userId: payload.sub,
+          role: payload.role as UserRole,
+          persistent: Boolean(payload.persistent),
+        };
+      } catch {
+        return null;
+      }
     },
   };
 }

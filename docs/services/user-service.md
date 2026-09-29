@@ -42,6 +42,12 @@ Author review: <to be completed by ngkhengyang>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-28
+Scope: Updated documentation to reflect symmetric session token issuance (SESSION_SECRET), NGINX gateway authentication offloading via GET /api/auth/verify, and downstream X-User-Id/X-User-Role header propagation.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated persistence documentation to reflect that user-service owns its Prisma migrations on container boot rather than relying on shared init SQL.
 Author review: (to be completed by author after review)
@@ -84,47 +90,41 @@ the shared `postgres` hostname on port `5432`.
 |---|---|---|
 | `PORT` | HTTP listen port | `8001` |
 | `DATABASE_URL` | Prisma connection | local `user_db` URL above |
-| `JWT_PRIVATE_KEY` | Ed25519 access-token signing | required |
-| `JWT_PUBLIC_KEY` | local access-token verification | required |
+| `SESSION_SECRET` | Symmetric HMAC-SHA256 session token signing & verification | **Required** (no default; min 32 chars) |
 | `JWT_ISSUER` | access-token issuer claim | `friend-on-campus-user-service` |
 | `JWT_AUDIENCE` | access-token audience claim | `friend-on-campus-services` |
-| `JWT_ACCESS_TOKEN_TTL` | access-token lifetime | `15m` |
-| `JWT_REFRESH_TOKEN_TTL` | ordinary refresh-session idle lifetime | `1d` |
-| `JWT_PERSISTENT_REFRESH_TOKEN_TTL` | keep-logged-in idle lifetime | `30d` |
+| `JWT_ACCESS_TOKEN_TTL` | access-token lifetime | `1d` |
+| `JWT_REFRESH_TOKEN_TTL` | ordinary session lifetime | `1d` |
+| `JWT_PERSISTENT_REFRESH_TOKEN_TTL` | keep-logged-in session lifetime | `30d` |
 | `CORS_ORIGIN` | credentialed browser origin | `http://localhost:5173` |
 
 ## Persistence
 
-`src/database/prisma/schema.prisma` defines `User` and `Session`.
+`src/database/prisma/schema.prisma` defines `User` (and an unused legacy `Session` schema model). Session state is stateless JWT and does not write to the database.
 
 - `users`: UUID, username, email, password hash (scrypt), `STUDENT`/`ADMIN` role (default `STUDENT`), `status` boolean (default `true`), and timestamps.
-- `sessions.user_id` references `users.id` with `ON DELETE CASCADE`; index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
 - Migrations: `20260922170000_initial_user_service`, `20260923150000_add_user_status`.
-- `sessions`: UUID, user reference, refresh-token hash, persistence flag, timestamps, and idle expiry.
 - Usernames and emails are unique case-insensitively through PostgreSQL indexes.
 - `src/database/prisma/migrations/` is the service migration source, deployed automatically on container startup or via `npm run db:migrate`. The tables are owned exclusively by User Service and are no longer created in the shared postgres-init script.
 
-The Prisma repositories are `src/persistence/auth-repository.ts` and
-`src/persistence/user-repository.ts`; no runtime `pg` pool is used.
+The Prisma repository is `src/persistence/user-repository.ts`; no runtime `pg` pool is used.
 
 ## API
 
 | Method & path | Auth | Result |
 |---|---|---|
 | `POST /api/auth/register` | none | Creates a `username`/`email`/`password` account; does not create a session. |
-| `POST /api/auth/login` | none | Returns access token and user; sets refresh-token cookie. |
-| `POST /api/auth/refresh` | refresh cookie or body | Rotates refresh token and returns access token. |
-| `POST /api/auth/logout` | refresh cookie or body | Revokes that refresh session and clears the cookie. |
-| `GET /api/users/me` | Bearer token | Returns authenticated profile. |
-| `PATCH /api/users/me` | Bearer token | Updates username only; any other field in the body (`role`, `status`, `userId`, `email`) → 400 `INVALID_INPUT`. Taken username → 409 `DUPLICATE_USERNAME`. |
-| `PUT /api/users/me/password` | Bearer token | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
-| `GET /api/users` | ADMIN Bearer token | 200 `{ users: [{ userId, username, email, userRole, status }] }`. |
-| `PATCH /api/users/:id/toggle-status` | ADMIN Bearer token | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `DELETE /api/users/:id` | Bearer token; own id, or ADMIN for any id | Deletes the account and, by cascade, its sessions; 204; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
-
-There is no `GET /api/users/:id` route (404 "Route not found"). `PATCH /api/users/:id/admin` and
-`POST /api/users/:id/promote` no longer exist; the two toggle routes above replaced them.
+| `POST /api/auth/login` | none | Returns session token and user; sets `session` cookie (Path=/). |
+| `GET /api/auth/verify` | session cookie (`session`) | Gateway verification subrequest; returns `200` with `X-Auth-User-Id` and `X-Auth-User-Role` headers, or `401`. Query `role=ADMIN` checks for admin privilege (returns `403` if student). |
+| `POST /api/auth/refresh` | session cookie (`session`) | Re-issues and extends stateless `session` cookie. |
+| `POST /api/auth/logout` | session cookie (`session`) | Clears `session` cookie. |
+| `GET /api/users/me` | Gateway perimeter header (`X-User-Id`) | Returns authenticated profile. |
+| `PATCH /api/users/me` | Gateway perimeter header (`X-User-Id`) | Updates username only; any other field in the body (`role`, `status`, `userId`, `email`) → 400 `INVALID_INPUT`. Taken username → 409 `DUPLICATE_USERNAME`. |
+| `PUT /api/users/me/password` | Gateway perimeter header (`X-User-Id`) | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
+| `GET /api/users` | Gateway perimeter header (`X-User-Role: ADMIN`) | 200 `{ users: [{ userId, username, email, userRole, status }] }`. |
+| `PATCH /api/users/:id/toggle-status` | Gateway perimeter header (`X-User-Role: ADMIN`) | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `PATCH /api/users/:id/toggle-role` | Gateway perimeter header (`X-User-Role: ADMIN`) | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `DELETE /api/users/:id` | Gateway perimeter header; own id, or ADMIN for any id | Deletes the account; 204; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
 
 The endpoint-level request and response examples are in
 [`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md);
@@ -156,10 +156,9 @@ another user an `ADMIN` with `toggle-role`. The seed puts the three seed account
 
 ## Authentication and sessions
 
-Access tokens use Ed25519 and carry the RFC 7519 registered claims `sub` (user id),
-`sid` (session id), `role`, `iat`, `exp`, `iss`, and `aud`. Refresh tokens are opaque and only their
-hashes are persisted. Logout prevents refresh-token use; access tokens already issued
-remain valid until their configured expiry.
+Sessions use symmetric HMAC-SHA256 (HS256) stateless session tokens placed into `HttpOnly`, `SameSite=Lax`, `Path=/` cookies named `session`. When requests pass through the NGINX API Gateway, NGINX executes an internal subrequest to `GET /api/auth/verify`. Upon verification, NGINX injects `X-User-Id` and `X-User-Role` upstream headers into downstream microservices (e.g. `supplier-service`, `order-service`).
+
+Downstream services consuming `@campus-errand/auth` inspect these gateway headers directly via `getSessionUser`.
 
 ## Development seed accounts
 

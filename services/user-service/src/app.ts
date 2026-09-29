@@ -18,8 +18,6 @@ import { UserModule } from './users/user-module';
 export interface AppDependencies {
   auth: AuthModule;
   users: UserModule;
-  requireAuthentication: RequestHandler;
-  requireAdmin: RequestHandler;
   database: Database;
   corsOrigin: string;
   secureCookies: boolean;
@@ -54,15 +52,15 @@ export function createApp(dependencies: AppDependencies) {
 
   app.use(
     '/api/auth',
-    createAuthRouter(dependencies.auth, { secureCookies: dependencies.secureCookies }),
+    createAuthRouter({
+      auth: dependencies.auth,
+      users: dependencies.users,
+      secureCookies: dependencies.secureCookies,
+    }),
   );
   app.use(
     '/api/users',
-    createUserRouter(
-      dependencies.users,
-      dependencies.requireAuthentication,
-      dependencies.requireAdmin,
-    ),
+    createUserRouter(dependencies.users),
   );
 
   app.use((_req: Request, res: Response) => {
