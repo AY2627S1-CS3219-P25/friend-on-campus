@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-29
- * Scope: Centralized all user account lifecycle logic (registration, profile management, password updates, status toggling) in UserModule.
+ * Scope: Centralized all user account lifecycle logic (registration, profile management, password updates, status toggling, role toggling, deletion) in UserModule.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
@@ -13,6 +13,7 @@ import type {
 } from '@campus-errand/common-dtos';
 import { hashPassword, verifyPassword } from '../auth/password';
 import {
+  CreateUserRecord,
   UserRecord,
   UserRepository,
   UpdateUserRecord,
@@ -31,6 +32,8 @@ export interface UserModule {
   updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
   changePassword(userId: string, input: ChangePasswordRequest): Promise<void>;
   toggleUserStatus(targetUserId: string): Promise<UserDTO>;
+  toggleUserRole(targetUserId: string): Promise<UserDTO>;
+  deleteUser(targetUserId: string): Promise<void>;
 }
 
 export type UserErrorCode =
@@ -39,6 +42,8 @@ export type UserErrorCode =
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
+  | 'FORBIDDEN'
+  | 'SELF_ACTION_FORBIDDEN'
   | 'NOT_IMPLEMENTED';
 
 export class UserError extends Error {
@@ -75,25 +80,39 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function validateEmail(email: unknown): string {
-  if (!isValidEmail(email)) {
-    throw new UserError('INVALID_INPUT', 'A valid email address is required');
+function validateRegistration(input: unknown): {
+  username: string;
+  email: string;
+  password: string;
+} {
+  if (!isObject(input)) {
+    throw new UserError('INVALID_INPUT', 'Registration payload is required');
   }
-  return normalizeEmail(email);
-}
 
-function validatePassword(password: unknown): string {
-  if (!isValidPassword(password)) {
-    throw new UserError('INVALID_INPUT', 'Password must be between 8 and 24 characters');
-  }
-  return password;
-}
+  const { username, email, password } = input;
 
-function validateUsername(username: unknown): string {
   if (!isValidUsername(username)) {
     throw new UserError('INVALID_INPUT', 'Username must be between 1 and 50 characters');
   }
-  return username.trim();
+
+  if (typeof email !== 'string' || !isValidEmail(email)) {
+    throw new UserError('INVALID_INPUT', 'A valid email address is required');
+  }
+
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!isValidPassword(password)) {
+    throw new UserError(
+      'INVALID_INPUT',
+      'Password must be between 8 and 24 characters',
+    );
+  }
+
+  return {
+    username: (username as string).trim(),
+    email: normalizedEmail,
+    password: password as string,
+  };
 }
 
 function validateProfileUpdate(input: unknown): UpdateUserRecord {
@@ -116,23 +135,22 @@ function validateProfileUpdate(input: unknown): UpdateUserRecord {
 function mapDuplicateUserError(error: unknown): never {
   const databaseError = error as DuplicateUserError;
   const prismaTarget = JSON.stringify(databaseError.meta?.target)?.toLowerCase() ?? '';
-  const isUsernameConflict =
-    databaseError.constraint === 'users_username_case_insensitive_uq' ||
-    (databaseError.code === 'P2002' && prismaTarget.includes('username'));
   const isEmailConflict =
     databaseError.constraint === 'users_email_case_insensitive_uq' ||
     (databaseError.code === 'P2002' && prismaTarget.includes('email'));
+  const isUsernameConflict =
+    databaseError.constraint === 'users_username_case_insensitive_uq' ||
+    (databaseError.code === 'P2002' && prismaTarget.includes('username'));
 
   if (databaseError.code !== '23505' && databaseError.code !== 'P2002') {
     throw error;
   }
 
+  if (isEmailConflict) {
+    throw new UserError('DUPLICATE_EMAIL', 'Email address is already registered');
+  }
   if (isUsernameConflict) {
     throw new UserError('DUPLICATE_USERNAME', 'Username is already in use');
-  }
-
-  if (isEmailConflict) {
-    throw new UserError('DUPLICATE_EMAIL', 'Email address is already in use');
   }
 
   throw error;
@@ -141,21 +159,23 @@ function mapDuplicateUserError(error: unknown): never {
 export function createUserModule(options: UserModuleOptions): UserModule {
   return {
     async register(input) {
-      const username = validateUsername(input?.username);
-      const email = validateEmail(input?.email);
-      const password = validatePassword(input?.password);
+      const validated = validateRegistration(input);
+      const passwordHash = await hashPassword(validated.password);
 
-      const passwordHash = await hashPassword(password);
+      const record: CreateUserRecord = {
+        username: validated.username,
+        email: validated.email,
+        passwordHash,
+        role: 'STUDENT',
+      };
 
       try {
-        const user = await options.repository.createUser({
-          username,
-          email,
-          passwordHash,
-          role: 'STUDENT',
-        });
+        const user = await options.repository.createUser(record);
         return toUserDTO(user);
       } catch (error) {
+        if (error instanceof UserError) {
+          throw error;
+        }
         mapDuplicateUserError(error);
       }
     },
@@ -229,6 +249,22 @@ export function createUserModule(options: UserModuleOptions): UserModule {
       }
 
       return toUserDTO(user);
+    },
+
+    async toggleUserRole(targetUserId) {
+      const user = await options.repository.toggleRole(targetUserId);
+      if (!user) {
+        throw new UserError('USER_NOT_FOUND', 'User not found');
+      }
+
+      return toUserDTO(user);
+    },
+
+    async deleteUser(targetUserId) {
+      const deleted = await options.repository.deleteById(targetUserId);
+      if (!deleted) {
+        throw new UserError('USER_NOT_FOUND', 'User not found');
+      }
     },
   };
 }

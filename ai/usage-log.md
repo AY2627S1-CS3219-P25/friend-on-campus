@@ -1553,3 +1553,432 @@ Address follow-up PR review findings on PR #95:
 
 
 
+## 2026-09-28 — Postman API test collection for user-service and supplier-service
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Author wants to test every user-service and supplier-service API endpoint through Postman, with proper authentication/authorization checks, independent of the app UIs — true-positive and true-negative cases for correct vs wrong authorization, hitting the two services' published ports directly (no gateway). Must-have cases: login/logout as both admin and a regular user, admin deactivate/reactivate a user with the true-negative (student attempting the same, expecting an access-denied error code), the same for a supplier, plus the rest of each service's CRUD. Stateless approach requested since there's no test DB yet: any test involving editing/deleting a specific record must first create that record itself (register a throwaway test user; as admin, create a throwaway test supplier), then operate on and finally delete/deactivate what it created, rather than touching real seeded rows. This is the author's own test-architecture and design decision (allowed use: I investigated the actual route/auth/error-code behavior and implemented the design given, I did not choose the test strategy).
+
+**Investigation performed first (read-only, via an Explore subagent):** catalogued every route in both services by reading `auth-routes.ts`/`auth-module.ts`/`user-routes.ts`/`user-module.ts`, the shared `@campus-errand/auth` middleware (exact 401 vs 403 codes: `MISSING_TOKEN`/`TOKEN_EXPIRED`/`INVALID_TOKEN` vs `ADMIN_REQUIRED`), `supplierRoutes.ts`, and `common-dtos` for the request/response shapes — confirmed live-code facts the author asked me to verify: `POST /api/auth/register` hardcodes `role: 'STUDENT'` server-side regardless of request body (cannot self-register as ADMIN); both services publish their ports directly in `docker-compose.yml` (8001/8002) so Postman can bypass the gateway entirely, confirming the author's own instinct; user-service has no delete-user endpoint at all (only a status-toggle), which the author was told and explicitly decided the test user should just remain active at the end of the run rather than be deleted or deactivated as a substitute.
+
+**Usage scenario:** Implementation/boilerplate generation of a design the author specified (allowed use) — no architecture or schema decisions made by me; the "create-then-operate-then-cleanup" stateless test strategy, folder ordering, and the "leave test user active, no cleanup" decision were the author's, given directly or via a clarifying question I asked before implementing.
+
+**Files changed:**
+- `tests/postman/postman_environment.json` (new) — base URLs for both services, seeded admin/student credentials, and empty placeholder variables (`adminAccessToken`, `studentAccessToken`, `testUserId`, `testUserAccessToken`, `testSupplierId`, `seedSupplierId`, etc.) that the collection's test scripts populate as it runs. Cannot hold a comment header (JSON) — disclosure is embedded as an `_disclosure` field instead.
+- `tests/postman/postman_collection.json` (new) — 44 requests across 5 folders: (1) Setup & Auth Lifecycle — login/logout as admin and as student (alice), plus a refresh-with-no-session negative case right after the cookie is cleared by logout; (2) User Service: Registration & Login — register success plus duplicate-email/duplicate-username/weak-password/bad-email negatives, then log in as the new test user; (3) User Service: Profile & Admin Management — GET/PATCH /me, PUT /me/password, GET /api/users (list, admin-only), PATCH /:id/admin deactivate/reactivate with the student-forbidden negative, POST /:id/promote (still a 501 stub) with its own forbidden negative, plus two documented-quirk assertions (unknown UUID → 404, syntactically invalid UUID → 500 because Prisma throws before the route's own not-found handling); (4) Supplier Service: Public Reads — list/get/unknown-id, capturing a real seeded supplier id dynamically since supplier UUIDs aren't fixed; (5) Supplier Service: Admin CRUD — create/update/toggle-deactivate/toggle-reactivate/delete on a throwaway supplier the collection creates itself, each paired with a student-forbidden negative, ending with a real `DELETE ?permanent=true` cleanup (supplier-service does have a delete endpoint, unlike user-service). Every request has a `pm.test` assertion on status code and, where relevant, the response's `success`/`code`/data fields; requests that hand off a value to later requests (`adminAccessToken`, `testUserId`, `testSupplierId`, etc.) write it via `pm.environment.set(...)` in their test script. Disclosure is embedded in `info.description` (visible in the Postman GUI) since JSON can't hold a comment block.
+
+Verified: both files parse as valid JSON (`python3 -m json.load`); folder/request counts match the approved plan (5 folders, 44 requests: 5+8+17+3+11); spot-checked a representative request's structure (method, headers, URL, body, test script) renders correctly. Not run: an actual Postman Collection Runner execution against the live stack — that's the author's next step, per their own plan ("I will run in postman GUI to test to see if it works").
+
+## 2026-09-28 (later) — Fix 3 test-script syntax errors surfaced by the first Postman run
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Author ran the collection for the first time via `postman collection run`; all 44 requests succeeded against the live services, but 3 of 44 test-scripts threw `SyntaxError: Unexpected token '{'`. Asked me to investigate and fix.
+
+**Usage scenario:** Debugging assistance (allowed use) — root cause was my own generation mistake, not a bug in the services being tested.
+
+**Root cause:** three assertions compared a response field against a *previously-saved* dynamic value using `{{variableName}}` mustache syntax directly inside the JavaScript test script (`pm.expect(x).to.eql({{testEmail}})`). Mustache substitution only happens in the "template" parts of a request (URL, headers, body) — Postman does not pre-process it inside test-script `exec` code, so the sandbox saw literal `{{testEmail}}`, which isn't valid JavaScript (`{` followed by `{` is a syntax error), hence the failure on all 3.
+
+**Files changed:**
+- `tests/postman/postman_collection.json` — replaced the 3 broken lines with the correct in-script way to read a saved variable, `pm.environment.get('varName')`: in "3.1 GET /me - Success", "3.3 PATCH /me - Update Username Success", and "4.2 GET /api/suppliers/:id - Success".
+
+Verified: file re-parses as valid JSON; the fixed lines were diffed against the reported failing request names to confirm exact match (no unrelated lines touched).
+
+## 2026-09-28 (later) — Add DELETE /api/users/:id (self-or-admin account deletion)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add a new user-service endpoint to delete a user account, backed by the same user-service DB as every other user-service route. Authorization must allow only the ADMIN role or the specific logged-in student deleting their own account — never any authenticated student deleting someone else's. Author explicitly scoped this to user-service files plus this log only, and asked first for the file list before implementing (approved plan, then asked to proceed).
+
+**Usage scenario:** Implementation of an author-specified design (allowed use) — the endpoint, its authorization rule, and the file scope were all given directly by the author; I investigated the existing routes → module → repository → error-handler pattern this service already uses and implemented the new endpoint the same way, and confirmed via a live read of `gateway/nginx.conf` that its `location /api/users/` block already proxies every HTTP method (including DELETE) with no change needed there.
+
+**Files changed:**
+- `services/user-service/src/persistence/user-repository.ts` — added `deleteById(userId): Promise<boolean>` (Prisma `deleteMany` + count check, same not-found-safe pattern as `updateProfile`/`updatePassword`).
+- `services/user-service/src/users/user-module.ts` — added `deleteUser(targetUserId): Promise<void>`, throwing `UserError('USER_NOT_FOUND', ...)` if the row didn't exist; added the new `'FORBIDDEN'` `UserErrorCode`.
+- `services/user-service/src/users/user-routes.ts` — added `DELETE /:id` behind a new local `requireSelfOrAdmin` middleware (reads `res.locals.auth`, allows through if `role === 'ADMIN'` or `auth.userId === req.params.id`, else throws `UserError('FORBIDDEN', 'You can only delete your own account')`). Deliberately kept local to this file rather than added to the shared `@campus-errand/auth` package, since "does the URL's `:id` match the caller's own id" is specific to this one route. Success response is `204 No Content`, matching this service's existing `PUT /me/password` precedent for a mutation with nothing to return.
+- `services/user-service/src/http/error-handler.ts` — mapped the new `FORBIDDEN` code to HTTP 403 in `USER_ERROR_STATUS`.
+
+Verified: `npm run typecheck` passes across all workspaces; rebuilt and restarted the `user-service` container; live-tested every path with curl — a student deleting another student's account correctly gets `403 FORBIDDEN`; a student deleting their own account gets `204` and the row plus its sessions (via the existing `ON DELETE CASCADE` FK) are actually gone from Postgres; no token gets `401 MISSING_TOKEN`; an admin can delete any account (`204`); deleting an already-deleted id correctly returns `404 USER_NOT_FOUND`; also confirmed the same self-delete flow works unchanged through the gateway on `localhost:80`, confirming `gateway/nginx.conf` genuinely needed no edit.
+
+## 2026-09-28 (later) — Delete Account UI (student-app + admin-portal) and Postman DELETE coverage
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Wire the DELETE /api/users/:id endpoint (added earlier this session) into both frontends. student-app: a red "Delete Account" button below Log Out on the Profile page, opening a confirmation popup (irreversibility warning, a required checkbox, a red confirm button that shows a loading spinner while calling the API), an inline error on failure, and a success popup whose dismissal returns to the login page. admin-portal: a trash-can delete button beside each user row's Disable/Reinstate button (both desktop and mobile), same confirmation-popup pattern but without a soft/permanent-delete toggle (user deletion is always hard), and a dismissible success popup the admin closes to keep using the dashboard. tests/postman/: extend the existing test-user lifecycle with true-positive and true-negative coverage of the new endpoint, finishing by actually deleting the test user (closing the one gap flagged when the collection was first built).
+
+**Usage scenario:** Implementation of an author-specified design (allowed use). Investigated first via 3 parallel read-only Explore agents (one per file/area) before writing any code: confirmed student-app has no existing modal/overlay pattern (built new, matched to its existing rose-error-box/RefreshCw-spinner conventions); confirmed admin-portal already has a near-identical "Delete Supplier" modal and `Trash2` row button to mirror; confirmed the exact current state of Postman folder 3 and its test-script conventions before appending to it. All UI copy, confirmation-flow shape, and button placement were specified directly by the author; I chose only the concrete state-variable names/JSX structure needed to implement that shape, following each file's own existing conventions (e.g. reusing `authFetch`, `handleDeleteSupplier`'s local-state-filter pattern, and each file's existing icon imports where already present).
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — new state (`showDeleteAccountModal`, `deleteAccountConfirmed`, `isDeletingAccount`, `deleteAccountError`, `deleteAccountSuccess`); `handleDeleteAccount()` calling `authFetch(\`/api/users/${profile.userId}\`, { method: 'DELETE' })`; a red "Delete Account" button under Log Out; a new confirmation modal (warning, inline error box, required checkbox, spinner-while-deleting confirm button) and a new success modal whose "Return to Login" button calls the existing `clearLocalSession()`. Added `CheckCircle` to the `lucide-react` import list (the warning icon reuses the already-imported `AlertCircle`).
+- `apps/admin-portal/src/App.tsx` — new state (`deletingUser`, `deleteUserConfirmed`, `isDeletingUser`, `deleteUserError`, `deletedUserSuccess`); `handleDeleteUser()` calling `authFetch(\`/api/users/${deletingUser.userId}\`, { method: 'DELETE' })`, filtering the deleted user out of local `users` state on success (no refetch, mirrors `handleDeleteSupplier`); a `Trash2` button beside Disable/Reinstate in both the desktop table row and mobile card; a confirmation modal styled identically to the existing "Delete Supplier" modal (single checkbox, no soft/permanent toggle) with an inline error box on failure; a success modal naming the deleted username, dismissed via a "Close" button. No new icon imports needed (`Trash2`/`CheckCircle` already imported).
+- `tests/postman/postman_collection.json` — appended 5 requests to the end of folder 3 ("User Service: Profile & Admin Management"), continuing its existing numbering/style: 3.18 a different student (alice) is forbidden from deleting the test user (`403 FORBIDDEN`); 3.19 no token (`401 MISSING_TOKEN`); 3.20 admin deletes an unknown UUID (`404 USER_NOT_FOUND`); 3.21 the test user deletes themselves (`204`, the real cleanup); 3.22 admin retries deleting the now-gone id (`404 USER_NOT_FOUND`, confirms idempotent-not-found behavior). No new environment variables needed. Also appended an addendum to the collection's `info.description` documenting this addition (JSON can't hold a comment header).
+
+Verified: `npm run typecheck` passes for both `@campus-errand/student-app` and `@campus-errand/admin-portal`; rebuilt and restarted both containers, confirmed healthy, and grepped each container's served source to confirm the new markup ("Delete Account" / "Delete User Account") is actually present in what's being served. `postman_collection.json` re-parses as valid JSON; folder 3's item count is now 22 (was 17), confirmed by re-reading the file after the edit. Not done: an actual in-browser click-through of either new modal, or a live Postman Collection Runner execution of the 5 new requests — no browser-automation tool was available in this session; both are the author's natural next step.
+
+## 2026-09-28 22:51 SGT — Responsive desktop/mobile breakpoints for student-app and admin-portal
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Author observed student-app always renders as a phone-card layout even on a full desktop window, while admin-portal is desktop-only. Requested: both apps render a full desktop view by default; both snap to a phone-friendly layout (same buttons/features, just rearranged) below a phone-typical breakpoint, and back to desktop above it. Explicitly scoped to reading first (plan mode) then editing only each app's `src/App.tsx`.
+
+**Usage scenario:** Specific style writing / UI implementation of an author-specified design (allowed use). Planned in plan mode first: two read-only Explore agents surveyed both apps' current layout, then I asked the author to choose the desktop nav pattern for student-app (top nav bar vs. left sidebar — they chose top nav bar) since student-app had no desktop layout to reuse. Breakpoint choice (Tailwind's default `md`, 768px) and grid-column counts for card lists were left to me as implementation detail, matching admin-portal's own existing `md:` convention. Delegated the two independent, non-overlapping file edits to parallel `frontend` agents per the repo's agent-team rules.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — added a `md:` (768px)-gated desktop layout alongside the existing mobile one: root wrapper releases its `max-w-md`/shadow phone-card look at `md:` in favour of a wide `md:max-w-6xl` container; a new top nav bar (`hidden md:flex`, same 5 tabs/icons/handlers as the existing bottom nav) added to the header; existing bottom nav gated `md:hidden`; feed/spots/tasks card lists become `md:grid` (2-3 columns) instead of a single stacked column at desktop width; `<main>`'s mobile-nav-clearance padding relaxes at `md:`. No business logic, state shape, or API calls changed.
+- `apps/admin-portal/src/App.tsx` — fixed a pre-existing mobile-nav parity gap found during exploration: the sub-768px hamburger drawer was missing the "Audit & Disputes" item present in the desktop sidebar, making that section unreachable on mobile. Added the missing nav button, matching the drawer's existing 3 siblings' style and click-handler pattern. No other change — the app's existing desktop-by-default + `md:`-gated mobile layout (sidebar/drawer, table/card-list) already matched the target design.
+
+Verified: `npm run typecheck` passes across all workspaces (re-run independently after both agents reported success). Not done: an in-browser visual check at the ~768px boundary and a full click-through of every tab/section at both breakpoints — no browser-automation tool was available in this session; this is the author's recommended next step before merging.
+
+## 2026-09-28 (later) — Rename /admin to /toggle-status; implement /toggle-role (promote/demote)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Two changes to user-service, scoped to user-service files plus admin-portal's caller: (1) rename `PATCH /api/users/:id/admin` to `.../toggle-status` (same behavior, clearer name — the old name implied it touched the ADMIN role, which it never did) and update admin-portal's `toggleUserStatus()` to call the new path; (2) implement the `POST /:id/promote` endpoint (previously a permanent 501 stub), renamed `PATCH /:id/toggle-role`: admin-only, flips a target user between STUDENT and ADMIN, an admin may not target their own id, and a non-admin cannot call it at all. Also asked me to check nothing else in the repo references the old `/admin` path.
+
+**Usage scenario:** Implementation of an author-specified design (allowed use) — the route names, the toggle semantics (promote/demote via one flip), and both authorization rules (admin-only, no self-targeting) were all given directly by the author. Investigated first: grepped the whole repo for the old `/admin` path and for `promote` — confirmed the only other references were `tests/postman/postman_collection.json` (5 requests) and `scripts/test-d2-e2e.ts` (asserts the old stub returns `501`), both explicitly out of the scope the author gave for this round; flagged both to the author as now-stale rather than silently leaving them or silently fixing them out of scope.
+
+**Files changed:**
+- `services/user-service/src/users/user-routes.ts` — renamed the route `PATCH /:id/admin` → `PATCH /:id/toggle-status` (handler unchanged). Replaced `POST /:id/promote` (the `notImplemented` 501 stub) with `PATCH /:id/toggle-role`: `requireAdmin`-gated, throws `UserError('SELF_ACTION_FORBIDDEN', ...)` if `req.params.id === authenticatedUserId(res)`, otherwise calls the new `toggleUserRole`. Removed the now-fully-dead `throwNotImplemented`/`notImplemented` helpers.
+- `services/user-service/src/users/user-module.ts` — added `toggleUserRole(targetUserId)` (same shape as `toggleUserStatus`: call the repository, throw `USER_NOT_FOUND` if nothing was found). Added `SELF_ACTION_FORBIDDEN` to `UserErrorCode`; removed `NOT_IMPLEMENTED` (nothing throws it anymore).
+- `services/user-service/src/persistence/user-repository.ts` — added `toggleRole(userId)`: find-then-flip-then-update, identical shape to `toggleStatus`, flipping `role` between `'ADMIN'` and `'STUDENT'` instead of `status`.
+- `services/user-service/src/http/error-handler.ts` — mapped `SELF_ACTION_FORBIDDEN` to 403; removed the now-unused `NOT_IMPLEMENTED: 501` mapping.
+- `apps/admin-portal/src/App.tsx` — `toggleUserStatus()` now calls `PATCH /api/users/${userId}/toggle-status` instead of `.../admin`. No other change; no new toggle-role UI was added, since the author's stated scope for the admin-portal side was specifically "call toggle status instead of admin."
+
+Verified: `npm run typecheck` passes for both `@campus-errand/user-service` and `@campus-errand/admin-portal`; rebuilt and restarted both containers. Live-tested every case with curl: the old `/admin` and `/promote` paths both now correctly 404 (no route matches); the renamed `/toggle-status` works identically to before; `/toggle-role` — a student gets `403 ADMIN_REQUIRED` even on their own id, an admin promotes a student to ADMIN (`200`, `userRole: "ADMIN"`) and can demote them straight back (`200`, `userRole: "STUDENT"`), an admin targeting their own id gets `403 SELF_ACTION_FORBIDDEN`, and no token gets `401 MISSING_TOKEN`. Confirmed admin-portal's served container source now references `toggle-status`, not `admin`.
+
+**Flagged to the author (not fixed, out of this round's scope):** `tests/postman/postman_collection.json` requests 3.11–3.17 and `scripts/test-d2-e2e.ts`'s two `/promote` assertions now reference dead paths / assert stale behavior and will fail if run as-is.
+
+## 2026-09-28 (later) — Update both test suites for /toggle-status and /toggle-role
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Update the Postman collection and `scripts/test-d2-e2e.ts` (asked what this script was — explained: a standalone `npm run test:d2` runner that spawns its own throwaway copies of user-service/supplier-service and fires real `fetch()` assertions at them, separate from the Postman collection, named after the course's "Milestone D2") to match the previous round's `/admin` → `/toggle-status` rename and the new `/toggle-role` endpoint, with proper edge-case coverage for all its error codes.
+
+**Usage scenario:** Implementation of an author-specified follow-up (allowed use) — the rename target and the endpoint's authorization rules were already established in the prior round; this round is test coverage for that existing design. One thing surfaced during investigation that went beyond the literal ask: `scripts/test-d2-e2e.ts`'s Scenario 4 had two assertions that were already stale *before* this change (`GET /api/users` asserted `501` when it's returned a real `200` for a while; a `GET /api/users/:id` check asserted `501` for a route that was never implemented at all, so it actually 404s). Fixing only the promote/toggle-role lines would have left `npm run test:d2` still failing in the same scenario for unrelated reasons, so I fixed the whole scenario coherently and flagged this explicitly rather than silently doing extra work.
+
+**Files changed:**
+- `tests/postman/postman_environment.json` — added `adminUserId`, captured by the "Login as Admin" request, needed to test an admin targeting their own id.
+- `tests/postman/postman_collection.json` — 3.11–3.15 renamed `PATCH /:id/admin` → `PATCH /:id/toggle-status` (URL and title; behavior/assertions unchanged). Replaced the two old `/:id/promote` 501-stub requests (3.16–3.17) with six new requests covering `/:id/toggle-role`: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round-trip on the test user (ending back at STUDENT). The trailing DELETE requests renumbered from 3.18–3.22 to 3.22–3.26. Folder 3 now has 26 requests (was 22).
+- `scripts/test-d2-e2e.ts` — rewrote Scenario 4 (renamed from "Deferred Administration Endpoint Authorization" to "User Listing, Status & Role Administration," since nothing there is deferred anymore): fixed the user-listing assertion to expect the real `200`/array response; removed the `GET /api/users/:id` check entirely (no such route exists); added forbidden-for-student checks on both `toggle-status` and `toggle-role`; added an admin round-tripping a target user's status (true→false→true) and role (STUDENT→ADMIN→STUDENT) with assertions on the actual returned value each time, not just the status code; added the admin-cannot-target-self check for `toggle-role` (`403 SELF_ACTION_FORBIDDEN`); added an unknown-UUID `404 USER_NOT_FOUND` check. Left the malformed-cookie `/api/auth/refresh` check at the end untouched.
+
+Verified: both JSON files re-parse as valid JSON; `npx tsc --noEmit` (using the repo's base compiler options) on the `.ts` script reports no errors. Ran both suites for real against the live stack: temporarily stopped the `user-service`/`supplier-service` containers (freeing ports 8001/8002, per this script's own documented requirement) and ran `npm run test:d2` — **55/55 assertions passed**, including every new/changed Scenario 4 check; restarted both containers afterward (same containers, `stop`/`start` not `recreate`, so no IP-cache risk from the gateway issue diagnosed earlier this session). Then ran the Postman collection for real via `postman collection run tests/postman/postman_collection.json -e tests/postman/postman_environment.json` — **53/53 requests, 96/96 assertions passed**, zero failures, including all six new 3.16–3.21 toggle-role requests individually confirmed.
+
+## 2026-09-29 — Upgrade/Downgrade role-toggle button for admin-portal Users page
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add an Upgrade/Downgrade button to each user row on the Users page, beside Disable — green "Upgrade" for a current student, red "Downgrade" for a current admin — calling the existing `PATCH /api/users/:id/toggle-role` (through the gateway to user-service). Clicking it opens a confirmation popup (same "are you sure" pattern as Delete: a required checkbox, then a colored confirm button showing a loading spinner while the call is in flight); on success the row's displayed role/button updates, on failure an error shows in a div box, including the case where an admin tries to downgrade themselves.
+
+**Usage scenario:** Implementation of an author-specified design (allowed use), reusing the already-implemented and already-verified `toggle-role` endpoint from an earlier round. One design call I flagged in the approved plan rather than assuming silently: unlike Delete (which the author explicitly asked to end in a dedicated success popup), this request only asked for the row's UI to update on success and an error box on failure — so the confirmation modal simply closes on success (row re-renders with its new role in place, same silent-update convention `toggleUserStatus` already uses) rather than showing a separate "Role Changed" popup; author can ask for one if they'd rather have it. The self-targeting case needed no new client-side logic — the backend's existing `SELF_ACTION_FORBIDDEN` error message ("Admins cannot change their own role") is displayed via the same inline error box used for every other failure.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `togglingRoleUser`/`toggleRoleConfirmed`/`isTogglingRole`/`toggleRoleError` state; `handleToggleUserRole()` calling `authFetch(\`/api/users/${togglingRoleUser.userId}/toggle-role\`, { method: 'PATCH' })`, updating the matching row in `users` from the server's returned user on success (no refetch, mirrors `toggleUserStatus`). Added the Upgrade/Downgrade row button (beside Disable/Reinstate, before the delete icon) in both the desktop table and mobile card, colored green/red by the row's current role. Added a confirmation modal modeled on the existing Delete User modal (same backdrop/card/checkbox/spinner shape, colored emerald for upgrade / rose for downgrade, using the already-imported `ShieldCheck` icon), with an inline error box that naturally surfaces the self-targeting rejection.
+
+Verified: `npm run typecheck --workspace=@campus-errand/admin-portal` passes; rebuilt and restarted the `admin-portal` container, confirmed healthy, and grepped its served source to confirm the new modal text ("Upgrade to Admin", "Downgrade to Student", the confirmation checkbox copy) is actually shipped. Live-tested the exact request/response shapes the new handler consumes with curl: an admin targeting their own id returns `{"error":"Admins cannot change their own role","code":"SELF_ACTION_FORBIDDEN"}` (403) — exactly the message the inline error box will show; promoting a real student returns `{"data":{"user":{...,"userRole":"ADMIN"}}}` (200) — exactly the shape the row-update logic reads. Not done: an in-browser click-through of the actual modal/button — no browser-automation tool was available in this session; that's the author's manual follow-up per the approved plan's verification section.
+
+## 2026-09-29 (later) — Client-side self-downgrade guard for the role toggle
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add the "admin cannot change their own role" check on the frontend too, ahead of the API call — so an admin targeting themselves sees the error instantly, with no wasted network round-trip, instead of relying solely on the backend's existing rejection.
+
+**Usage scenario:** Implementation of an author-specified optimization (allowed use) — a pure UX/efficiency addition; the actual authorization boundary remains the backend's existing `SELF_ACTION_FORBIDDEN` check, unchanged and untouched.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — added `decodeJwtUserId()` (reads the JWT's `sub` claim, same pattern as the existing `decodeJwtRole`) and a `currentAdminUserId` state, set from the access token at login and at session-restore, cleared on logout (in `clearLocalSession`). `handleToggleUserRole()` now checks `togglingRoleUser.userId === currentAdminUserId` first and, if true, sets the exact same error text the backend returns ("Admins cannot change their own role") without calling `authFetch` at all.
+
+Verified: `npm run typecheck --workspace=@campus-errand/admin-portal` passes; rebuilt and restarted the `admin-portal` container, confirmed healthy, grepped its served source to confirm `decodeJwtUserId`/`currentAdminUserId` are actually shipped. Confirmed live via curl + manual JWT decode that the token's `sub` claim exactly equals the login response's `user.userId` (the same identity the backend itself uses for its own self-check), so the client-side comparison is checking the right thing. Not done: an in-browser click-through confirming the instant (no-network-tab-activity) rejection — no browser-automation tool was available in this session.
+
+## 2026-09-29 (later) — Revert the client-side self-downgrade guard
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Undo just the previous prompt's client-side self-targeting check — go back to relying solely on the backend's existing `SELF_ACTION_FORBIDDEN` rejection, surfaced via the confirmation modal's error box. Keep everything else from the round before that (the Upgrade/Downgrade button, confirmation modal, and the `toggle-role` API call itself) exactly as it is.
+
+**Usage scenario:** Reverting a specific prior change on explicit author instruction (allowed use) — no new logic, a pure removal.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — removed `decodeJwtUserId()`, the `currentAdminUserId` state (including its three call sites: login, session-restore, `clearLocalSession`), and `handleToggleUserRole`'s early-return self-check. The handler now goes straight to `authFetch` exactly as it did in the round before the client-side guard was added; self-downgrade is caught only by the backend, same as every other error case in this modal.
+
+Verified: `npm run typecheck --workspace=@campus-errand/admin-portal` passes; rebuilt and restarted the `admin-portal` container, confirmed healthy; grepped the served source and confirmed `decodeJwtUserId`/`currentAdminUserId` no longer appear anywhere (0 matches), while the Upgrade/Downgrade feature's own text ("Upgrade to Admin", "Downgrade to Student") is still present and unaffected. Re-tested self-targeting `PATCH /api/users/:id/toggle-role` live with curl: still correctly returns `403 SELF_ACTION_FORBIDDEN` — behavior unchanged from the backend's perspective, only the now-removed client-side shortcut is gone.
+
+## 2026-09-29 (later) — Supplier location-uniqueness constraint (name, category, building, floor)
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Enforce a case-insensitive uniqueness rule across (name, category, building, floor) for suppliers, at the DB schema level, in the create/update API endpoints (with the conflicting record's details returned so the admin can be shown exactly which existing supplier collides), and in the admin-portal Add/Edit Supplier forms (building/floor become required fields, a warning line about the duplicate rule, and an inline display of the returned conflict).
+
+**Usage scenario:** Implementation of an author-specified design, arrived at through several rounds of investigation-then-clarification-then-plan-approval (allowed use) — the exact column combination, case-insensitivity, the two-layer DB-index-plus-app-check approach, and the later addition of returning/displaying the specific conflicting record were all discussed and confirmed with the author turn-by-turn before implementing. Investigated first and corrected two of the author's assumptions before starting: confirmed no such uniqueness check exists anywhere in the current code (DB, repository, routes, or frontend validation) despite the author's recollection that it had been decided before; and confirmed `CreateSupplierRequest` lives in the shared `packages/common-dtos` package, not supplier-service or admin-portal as the author guessed, so it needed a small change too.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `CreateSupplierRequest.building`/`.floor` changed from optional to required.
+- `services/supplier-service/src/database/prisma/schema.prisma` — `building`/`floor` changed from `String?` to `String`; documented (comment, mirroring user-service's existing pattern) that the case-insensitive uniqueness lives in a raw SQL expression index, not a Prisma `@@unique`.
+- `services/supplier-service/src/database/prisma/migrations/20260929134701_add_location_uniqueness/migration.sql` (new) — `ALTER COLUMN ... SET NOT NULL` for building/floor, plus `CREATE UNIQUE INDEX suppliers_location_case_insensitive_uq ON suppliers (LOWER(name), LOWER(category), LOWER(building), LOWER(floor))`. A genuinely new, second migration file, additive alongside the existing `20260919090038_init` — not a rewrite of it.
+- `services/supplier-service/src/database/supplierRepository.ts` — added `findDuplicateLocation(name, category, building, floor, excludeId?)` using Prisma's native `mode: 'insensitive'` string filter; fixed `createSupplier`'s `building`/`floor` assignment (`data.building?.trim() || null` → `data.building.trim()`) now that they're required, non-nullable fields.
+- `services/supplier-service/src/database/seed.ts` — added a `requireField()` helper; `building`/`floor` now use it instead of `emptyToNull()`, so the seed script fails loudly with a clear error if a future CSV edit ever omits either, instead of silently trying to seed a null the database would reject. No disclosure header existed on this file before; added one.
+- `services/supplier-service/src/backend/supplierRoutes.ts` — `createSupplier`'s required-fields check now also covers `building`/`floor`; both `createSupplier` and `updateSupplier` call `findDuplicateLocation` before writing and return `409` with a `duplicate: { name, category, building, floor }` object when one is found. `updateSupplier` merges the already-fetched `existing` row with the incoming partial body to get the *effective* post-update values (since PUT allows partial updates) before checking, excluding its own id so it isn't flagged against itself.
+- `apps/admin-portal/src/App.tsx` — `validateSupplierForm` gained required checks for `building`/`floor`; both Add/Edit Supplier modals gained a red asterisk + inline error on those two fields, a new legend line under the existing "Fields marked with *" text, and new `addDuplicateConflict`/`editDuplicateConflict` state populated from the `409` response's `duplicate` field and rendered as an inline rose box inside the modal (not the top-level `actionAlert` banner, which would be hidden behind the modal's backdrop while it's open) — reset at every existing modal open/cancel/close touchpoint.
+
+Verified: `npm run typecheck` passes clean across every workspace in the monorepo (not just the touched ones, since the `common-dtos` change is a shared-contract change). Rebuilt `supplier-service` and `admin-portal` (no `docker compose down -v`, confirmed unnecessary beforehand and again after — `_prisma_migrations` now has 2 rows, `\d suppliers` shows `building`/`floor` as `NOT NULL` and the new unique index present, seed re-ran cleanly against all 21 existing rows with 0 failures). Live-tested with curl end-to-end: creating `Starbucks`/`Food`/`COM3`/`1` then attempting `STARBUCKS`/`FOOD`/`com3`/`1` correctly returns `409` with the exact original record echoed back in `duplicate`; updating a second, different supplier into that same combination is also correctly rejected `409`; updating that same second supplier with only an unrelated field changed (its own name/category/building/floor unchanged) succeeds `200`, confirming the `excludeId` exclusion works and a no-op update doesn't get flagged as duplicating itself. Grepped the rebuilt `admin-portal` container's served source and confirmed the new legend line and "Duplicate supplier found" box text are actually shipped. Not done: an in-browser click-through of the actual forms — no browser-automation tool was available in this session.
+
+## 2026-09-29 (later) — Postman coverage for supplier duplicate-location rejection
+
+**Tool:** Claude Code (model: Claude Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Add Postman test cases for creating and updating duplicate suppliers (same name, category, building, floor), checking the correct responses come back.
+
+**Usage scenario:** Test coverage for an already-implemented, already-curl-verified feature (allowed use). Investigated first by actually running the existing collection before touching anything, per this session's established practice — found a real regression unrelated to the literal ask: folder 5's own "Create Success" request had never been updated when `building`/`floor` became required fields in the previous round, so it had been failing with `400` (cascading into every request depending on `testSupplierId`) since that change shipped. Fixed as a necessary prerequisite, flagged clearly rather than silently folded in.
+
+**Files changed:**
+- `tests/postman/postman_environment.json` — added `testSupplierId2`, a second throwaway supplier needed to test the *update* path's duplicate check (create's and update's duplicate checks are different code paths — update merges the existing row with a partial body — so create's own throwaway supplier isn't a sufficient target to prove update's check independently).
+- `tests/postman/postman_collection.json` — rebuilt folder 5 ("Supplier Service: Admin CRUD") end to end, 11 → 15 requests: fixed 5.1's body to include `building`/`floor`; added 5.2 (attempt to create a case-varied duplicate of 5.1's supplier, expect `409` with the `duplicate` object matching the original exactly); added 5.6 (create a second, genuinely different throwaway supplier, capturing `testSupplierId2`); added 5.8 (attempt to update the second supplier into a case-varied duplicate of the first, expect `409`); added 5.15 (permanently delete the second supplier, keeping the DB stateless per this collection's existing cleanup philosophy). Every other existing request preserved unchanged, just renumbered.
+
+Verified: both JSON files re-parse as valid JSON. Ran the full collection for real via `postman collection run` — **57/57 requests, 103/103 assertions passed, zero failures** (up from a previously-broken folder 5 that would have failed at request 1). Confirmed directly in Postgres afterward that both throwaway suppliers (`Postman Test Supplier`, `Postman Second Supplier`) were actually deleted, not just marked inactive.
+## 2026-09-26 17:10 SGT — D2 requirements checklist and localhost UAT of main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632; the uncommitted usage-log entries from `claude-config` are in `git stash` "claude-config: uncommitted ai/usage-log.md entries")
+
+**Prompt (summarised):** Pull main, build a checklist of the D2 requirements from the CS3219 D2 instructions PDF, mark what is done, then run UAT on localhost.
+
+**Usage scenario:** Requirements formatting (checklist from the PDF, facts only), debugging assistance and test writing (UAT drivers, evidence). No architecture or rationale written; the "why" answers the PDF asks for are left to the team, and the defects found are reported, not fixed. Stack: `docker compose up --build -d` from a fresh volume with a compose override (postgres `5440:5432`, rabbitmq `5673:5672` / `15673:15672`, because native PostgreSQL and RabbitMQ own the default ports on this machine) and a new git-ignored `.env` from `generate-jwt-keys`. Results: API driver 56/63 (the 7 failures are findings: nginx 301 on `/api/users`, promote 501, disabled account still logs in and keeps its session, admin can disable self/last admin, non-UUID id → 500, byte-order sort); browser driver 29/29 with the admin portal on `:5174` (via the gateway `/admin/` renders the student app — root-absolute Vite assets); `test:d2` 40/44 (4 stale 501 assertions). API also verified with both UI containers stopped, and data verified after `docker compose restart`. UAT accounts created during the run were deleted from `user_db` afterwards; the 21 suppliers and 3 seed users are untouched.
+
+**Files changed:**
+- `docs/evidence/d2/d2-checklist.md` — new: PDF points 1-6 / 1-5 with [x]/[~]/[ ] status, check IDs, and the cross-cutting findings.
+- `docs/evidence/d2/README.md` — results table filled in, reproduction steps.
+- `docs/evidence/d2/screenshots/*.png` — 29 desktop/mobile screenshots from the browser run (binary, no header).
+- `scripts/uat/uat-d2-api.mjs` — new UAT driver, 63 API checks, no dependencies.
+- `scripts/uat/uat-d2-ui.mjs` — new UAT driver, 29 Playwright checks (Playwright installed with `--no-save`, not added to package.json).
+- `.env` — created locally (git-ignored, not listed in the diff).
+
+Not changed: the compose override lives outside the repo (`docker-compose.override.yml` is not git-ignored here, so it was not added); paste this into one if needed:
+
+```yaml
+services:
+  postgres:
+    ports: !override
+      - "5440:5432"
+  rabbitmq:
+    ports: !override
+      - "5673:5672"
+      - "15673:15672"
+```
+
+Verified: the four runs above, `node --check` on both drivers. The stack was left running for the author's own UAT.
+
+## 2026-09-28 14:24 SGT — D2 checklist and localhost UAT re-run
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632)
+
+**Prompt (summarised):** Pull main, build a checklist of the D2 requirements from the CS3219 D2 instructions PDF, mark what is done, then run UAT on localhost.
+
+**Usage scenario:** Debugging assistance / test evidence. origin/main was already at the local commit, so the existing checklist was kept and the UAT was re-run against the docker compose stack: `uat-d2-api` 56/63, `uat-d2-ui` 29/29, `test:d2` 40/44, API reachable with the UI containers stopped. Results only; the role artifact, database justifications, the promotion workflow and the admin edge-case behaviour are left to the author.
+
+**Files changed:**
+- `docs/evidence/d2/d2-checklist.md` — re-run line and header date.
+- `docs/evidence/d2/README.md` — re-run line and header date.
+- `scripts/uat/uat-d2-ui.mjs` — fixed the `ADMIN_URL` default (it referenced itself and threw when the variable was unset).
+- `docs/evidence/d2/screenshots/*.png` — regenerated by the UI run (binary, no header).
+
+## 2026-09-28 14:34 SGT — Bring docs/ in step with the D2 UAT findings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632)
+
+**Prompt (summarised):** Based on the UAT session, update the docs/ directory and say what else should be added to it.
+
+**Usage scenario:** Documentation improvements, as-built facts only. Each change was checked against the code (`user-routes.ts`, `schema.prisma`, Dockerfiles, `gateway/nginx.conf`, `vite.config.ts`) and the UAT output. No rationale, decision or recommendation was written; the conflicts' Resolution column, the decision records and the "why" answers are left to the author.
+
+**Files changed:**
+- `docs/services/user-service.md` — `status` column and migrations, corrected API table, new "Roles as enforced", "Behaviour as built" and "Tests" sections, seed-on-boot note.
+- `docs/services/supplier-service.md` — name sort order, denial codes, seed-on-boot, UAT drivers under Tests.
+- `docs/architecture/overview.md` — "Built today" for user-service, student-app, admin-portal, gateway; `scripts/uat/` in the layout; conflict rows 18-21 listed.
+- `docs/requirements/conflicts.md` — rows 18-21 (Resolution empty).
+- `docs/README.md` — evidence entry extended.
+- `docs/onboarding-guide-sep-3.md` — troubleshooting: Windows port override, 502 after single-service restart, missing JWT keys.
+
+## 2026-09-28 14:46 SGT — Diagrams, OpenAPI files and User Service API reference
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632)
+
+**Prompt (summarised):** Generate docs/diagrams, docs/api and update api-reference.md. The author also stated the team's decisions (PostgreSQL, shared verification middleware, two roles, reproducible seeded admin) in the prompt.
+
+**Usage scenario:** Documentation improvements: transcription of the existing schema, routes and request flow. Nothing was designed or changed. The decisions and their reasons stated by the author were not written into any file; the decision records in `docs/decisions/` are left to the author. All 5 Mermaid blocks render and both OpenAPI files parse with every `$ref` resolving.
+
+**Files changed:**
+- `docs/diagrams/component.md`, `user-schema.md`, `supplier-schema.md`, `auth-sequence.md` — new, Mermaid, as built.
+- `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml` — new, OpenAPI 3.0.3 transcriptions of existing routes.
+- `services/user-service/docs/api-reference.md` — `status` in user objects, implemented admin routes, removed `GET /api/users/:id`, body-parser error codes.
+- `docs/README.md`, `docs/services/user-service.md`, `docs/services/supplier-service.md` — links to the new files.
+- `docs/requirements/conflicts.md`, `docs/architecture/overview.md` — row 21 marked resolved.
+
+## 2026-09-28 14:49 SGT — Ignore local-only docs, branch and push
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built (from main @ f0ee632)
+
+**Prompt (summarised):** Git-ignore docs/evidence/, docs/requirements/ and the onboarding guide, then create a new branch and push it to the remote.
+
+**Usage scenario:** Boilerplate / configuration. The commit and push were made at the author's explicit request. Files already tracked under the ignored paths were left tracked and their local edits were left out of the commit.
+
+**Files changed:**
+- `.gitignore` — three ignore rules.
+
+## 2026-09-28 15:16 SGT — PR #92 opened; Claude PR review failure diagnosed, turn limit raised
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Open a pull request to main, then find out why its CI check fails and raise the Claude review's turn limit above 1000.
+
+**Usage scenario:** Debugging assistance and configuration. PR #92 was opened at the author's request. Run 36389908313 failed because the review finished in 57 turns against `--max-turns 40`; the review itself was posted. The workflow edit is left uncommitted for the author.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — `--max-turns` 40 to 1500, comment and disclosure header.
+
+## 2026-09-28 16:04 SGT — Decision record files 0001-0004 created
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Update docs/decisions/.
+
+**Usage scenario:** Boilerplate generation and formatting. Four records were created from the template with title, date and Related links. Each holds the author's own statement from an earlier prompt, pasted word for word. The AI wrote no context, options, decision, rationale or consequences; those sections, Status and Deciders are left to the author. Also corrected the time in today's five earlier headings, which were UTC labelled as SGT.
+
+**Files changed:**
+- `docs/decisions/0001-database-choice.md`, `0002-token-verification.md`, `0003-roles.md`, `0004-first-administrator.md` — new.
+- `docs/decisions/README.md` — index rows.
+- `ai/usage-log.md` — heading times of today's entries.
+
+## 2026-09-28 20:19 SGT — D2 question guide
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Write the docs that help answer the questions in the CS3219 D2 instructions PDF.
+
+**Usage scenario:** Documentation and formatting. The guide lists each PDF question with the as-built facts, demo steps and links already recorded in docs/, and quotes the author's statements from decision records 0001-0004 word for word. Differences between those statements and the code are listed as observations. Every "why" answer (role rationale, database justification, authentication approach, first-administrator security, promotion workflow, edge-case behaviour) is left empty for the team.
+
+**Files changed:**
+- `docs/d2-question-guide.md` — new.
+- `docs/README.md` — index entry and disclosure scope.
+
+## 2026-09-28 20:23 SGT — PR for the D2 question guide and decision record files
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide (from docs/d2-as-built)
+
+**Prompt (summarised):** Make a pull request to the GitHub repo.
+
+**Usage scenario:** Boilerplate / configuration. Branch, commit, push and pull request were made at the author's explicit request. Left out of the commit: the workflow turn-limit edit, the git-ignored local docs (evidence, requirements, onboarding guide) and the generated UAT results file.
+
+**Files changed:**
+- none beyond this entry; the commit contains the files from the two entries above and the decision records.
+
+## 2026-09-28 21:21 SGT — Seed account lookup; Word copy of the D2 question guide
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Two prompts: give the test account names and password; create a Word document from docs/d2-question-guide.md.
+
+**Usage scenario:** Learning support (facts read from the seed script and service page) and formatting. The Word file is a pandoc conversion of the guide with no change to its content; the disclosure header is kept as visible text and the "Team's answer" slots are still empty.
+
+**Files changed:**
+- none in the repository besides this entry. Output written outside the repo: `../d2-question-guide.docx`.
+
+## 2026-09-29 12:12 SGT — Checked main for changes before a docs update
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Pull from main, then update the diagrams and documentation accordingly.
+
+**Usage scenario:** Documentation upkeep. Fetched the remote: `origin/main` is still f0ee632, the commit the diagrams and service pages already describe, so nothing was merged and no document was changed. PRs #91, #93 and #95 are open and not on main.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-29 14:07 SGT — PR #92 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Resolve the code review on PR #92 and merge it.
+
+**Usage scenario:** Debugging assistance and documentation improvements. Two of the three review findings were fixed in the UAT drivers. The `.gitignore` finding was not changed: which folders stay local is the author's decision. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `scripts/uat/uat-d2-api.mjs` — R3 detail reads `userRole`; header comment states the real output path.
+- `scripts/uat/uat-d2-ui.mjs` — results file goes to the temp folder or `UAT_OUT`; header comment corrected.
+
+## 2026-09-29 14:14 SGT — PR #92 merged; PR #94 brought up to date with main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Resolve the code review on PRs #92 and #94 and merge them; do not merge PR #93 yet.
+
+**Usage scenario:** Debugging assistance and configuration. A second review pass on PR #92 found a missing `tmpdir` import in the browser driver (fixed in f984922), after which #92 was merged. PR #94 was retargeted to main and main was merged into it; the only conflict was this log, resolved by keeping the entries of both sides. PR #93 was not touched. Merges were made at the author's explicit request.
+
+**Files changed:**
+- `ai/usage-log.md` — merge resolution and this entry.
+
+## 2026-09-29 14:34 SGT — PR #93 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Resolve the code review on PR #93 and merge it.
+
+**Usage scenario:** Debugging assistance, test updates and documentation improvements. Fixed the defects the review reported in code the branch author had already designed, updated the tests and the as-built documents for the routes and rules this branch introduces, and merged main into the branch. Not done, left to the authors: whether an ADMIN may delete their own or the last ADMIN account, whether the migration backfills old rows, and the usage-log entry for the branch author's own AI use on 2026-09-27. `npm run typecheck` passes on all workspaces. `npm run test:d2`, the UAT drivers and the Postman collection were not run: Docker is not running on this machine. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `services/user-service/src/users/user-routes.ts` — self checks compare the id in lower case.
+- `services/supplier-service/src/backend/supplierRoutes.ts` — trimmed duplicate check, 409 on a unique-index violation, 400 on blank fields in PUT.
+- `scripts/test-d2-e2e.ts`, `scripts/uat/uat-d2-api.mjs` — building and floor in the create body, renamed user routes, toggle-role check.
+- `tests/postman/postman_collection.json` — request 3.15 accepts 400, 404 or 500 (JSON file, disclosure is in its description field).
+- `docs/services/user-service.md`, `docs/services/supplier-service.md`, `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml`, `docs/diagrams/supplier-schema.md`, `docs/d2-question-guide.md`, `services/user-service/docs/api-reference.md` — routes and rules as built on this branch.
+- `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
+- Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.
+

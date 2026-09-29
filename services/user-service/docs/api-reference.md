@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: replaced the `PATCH /:id/admin` and `POST /:id/promote` sections with `toggle-status`, `toggle-role` and `DELETE /:id`, as implemented in `user-routes.ts`. Describes existing behaviour only.
+Author review: <to be completed by ngkhengyang>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the User Service authentication and immutable-email profile API contract with shared response fields.
 Author review: <to be completed by ngkhengyang>
@@ -10,11 +16,23 @@ Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the deferred ADMIN user-management endpoint placeholders, structured `501` responses, and refresh-token replay behavior.
 Author review: <to be completed by ngkhengyang>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+Scope: Brought the reference in step with the routes on `main` @ f0ee632: added `status` to every user object, replaced
+the "Deferred administration endpoints" section with the implemented `GET /api/users` and `PATCH /api/users/:id/admin`,
+removed `GET /api/users/:id` (no such route), kept `POST /api/users/:id/promote` as the remaining placeholder, and added
+the `INVALID_JSON` / `INVALID_REQUEST` codes. Describes existing behaviour only.
+Author review: <to be completed by ngkhengyang>
+-->
 
 # User Service API Reference
 
-The User Service manages account registration, authentication sessions, and a user's
-own profile. Unless stated otherwise, request and response bodies use JSON.
+The User Service manages account registration, authentication sessions, a user's
+own profile, account deletion, and administrator access to the user list, account
+status and roles. Unless
+stated otherwise, request and response bodies use JSON. The same contract in OpenAPI
+form is [`docs/api/user-service.yaml`](../../../docs/api/user-service.yaml).
 
 ## Contents
 
@@ -30,10 +48,11 @@ own profile. Unless stated otherwise, request and response bodies use JSON.
   - [`GET /api/users/me`](#get-apiusersme)
   - [`PATCH /api/users/me`](#patch-apiusersme)
   - [`PUT /api/users/me/password`](#put-apiusersmepassword)
-- [Deferred administration endpoints](#deferred-administration-endpoints)
+- [Administration endpoints](#administration-endpoints)
   - [`GET /api/users`](#get-apiusers)
-  - [`GET /api/users/:id`](#get-apiusersid)
-  - [`POST /api/users/:id/promote`](#post-apiusersidpromote)
+  - [`PATCH /api/users/:id/toggle-status`](#patch-apiusersidtoggle-status)
+  - [`PATCH /api/users/:id/toggle-role`](#patch-apiusersidtoggle-role)
+  - [`DELETE /api/users/:id`](#delete-apiusersid)
 - [Authentication](#authentication)
 - [Common error responses](#common-error-responses)
 
@@ -135,7 +154,8 @@ Status: `201 Created`
       "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
       "username": "alice",
       "email": "alice@u.nus.edu",
-      "userRole": "STUDENT"
+      "userRole": "STUDENT",
+      "status": true
     }
   }
 }
@@ -188,7 +208,8 @@ Status: `200 OK`
       "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
       "username": "alice",
       "email": "alice@u.nus.edu",
-      "userRole": "STUDENT"
+      "userRole": "STUDENT",
+      "status": true
     }
   }
 }
@@ -324,7 +345,8 @@ Status: `200 OK`
       "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
       "username": "alice",
       "email": "alice@u.nus.edu",
-      "userRole": "STUDENT"
+      "userRole": "STUDENT",
+      "status": true
     }
   }
 }
@@ -374,7 +396,8 @@ Status: `200 OK`
       "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
       "username": "alice-new",
       "email": "alice@u.nus.edu",
-      "userRole": "STUDENT"
+      "userRole": "STUDENT",
+      "status": true
     }
   }
 }
@@ -429,35 +452,142 @@ In addition to the [authentication errors](#authentication-error-responses):
 | `401` | `INVALID_CURRENT_PASSWORD` | The supplied current password is incorrect. |
 | `404` | `USER_NOT_FOUND` | The authenticated account no longer exists. |
 
-## Deferred administration endpoints
+## Administration endpoints
 
-The following routes are reserved for future User Service administration work. They
-authenticate the caller and require the `ADMIN` role, but do not read or mutate data
-in this iteration.
+All endpoints in this section require an access token whose `role` claim is `ADMIN`,
+except `DELETE /api/users/:id`, which also accepts a caller deleting their own account.
 
 ### `GET /api/users`
 
-Requires an `ADMIN` Bearer access token. The route returns `501 Not Implemented`:
+Returns every account, ordered by username. No query parameters are read and the
+result is not paginated. Through the nginx gateway, request `/api/users/` (with the
+trailing slash); `/api/users` is answered with a `301` redirect to it.
+
+#### Request
+
+```http
+Authorization: Bearer <access-token>
+```
+
+No request body.
+
+#### Success response
+
+Status: `200 OK`
 
 ```json
 {
-  "success": false,
-  "error": "User management is not implemented",
-  "code": "NOT_IMPLEMENTED"
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "userId": "0b6f1c1e-8f0a-4a57-9a55-0c7a1e1d2f10",
+        "username": "admin",
+        "email": "admin@nus.edu.sg",
+        "userRole": "ADMIN",
+        "status": true
+      },
+      {
+        "userId": "95a7644d-0748-410c-bb51-e30bb2f17561",
+        "username": "alice",
+        "email": "alice@u.nus.edu",
+        "userRole": "STUDENT",
+        "status": true
+      }
+    ]
+  }
 }
 ```
 
-### `GET /api/users/:id`
+### `PATCH /api/users/:id/toggle-status`
 
-Requires an `ADMIN` Bearer access token. The route returns the same structured
-`501 Not Implemented` response; the supplied user ID is not read or acted upon.
+Flips the `status` of the account with the given ID: `true` (active) becomes `false`
+(disabled) and the reverse. The route does not compare the target with the caller and
+does not count the remaining `ADMIN` accounts. `status` is stored and returned; login,
+refresh and access-token verification do not read it. This route was named
+`PATCH /api/users/:id/admin` before.
 
-### `POST /api/users/:id/promote`
+#### Request
 
-Requires an `ADMIN` Bearer access token. The route returns the structured `501 Not
-Implemented` response shown above; the supplied user ID is not read or acted upon.
+```http
+Authorization: Bearer <access-token>
+```
 
-For all deferred routes, missing or invalid authentication returns the applicable
+No request body. `:id` is the target user's UUID.
+
+#### Success response
+
+Status: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "userId": "7d0c2f6e-2f5b-4c0e-9d53-6a1b8e0c4a21",
+      "username": "bob",
+      "email": "bob@u.nus.edu",
+      "userRole": "STUDENT",
+      "status": false
+    }
+  }
+}
+```
+
+#### Error responses
+
+In addition to the [authentication errors](#authentication-error-responses):
+
+| Status | Code | Meaning |
+|---:|---|---|
+| `404` | `USER_NOT_FOUND` | No account has that UUID. |
+| `500` | — | `:id` is not a UUID; the generic server-error body is returned. |
+
+### `PATCH /api/users/:id/toggle-role`
+
+Flips the role of the account with the given ID between `STUDENT` and `ADMIN`. The
+caller's own ID is refused. The route does not count the remaining `ADMIN` accounts.
+It replaces the former `POST /api/users/:id/promote` placeholder.
+
+#### Request
+
+```http
+Authorization: Bearer <access-token>
+```
+
+No request body. `:id` is the target user's UUID.
+
+#### Success response
+
+Status: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "userId": "7d0c2f6e-2f5b-4c0e-9d53-6a1b8e0c4a21",
+      "username": "bob",
+      "email": "bob@u.nus.edu",
+      "userRole": "ADMIN",
+      "status": true
+    }
+  }
+}
+```
+
+#### Error responses
+
+In addition to the [authentication errors](#authentication-error-responses):
+
+| Status | Code | Meaning |
+|---:|---|---|
+| `403` | `SELF_ACTION_FORBIDDEN` | `:id` is the caller's own ID. |
+| `404` | `USER_NOT_FOUND` | No account has that UUID. |
+
+There is no `GET /api/users/:id` route; it returns the `404` "Route not found" body.
+
+For the administration routes above, missing or invalid authentication returns the applicable
 `401` authentication response and a non-`ADMIN` authenticated caller receives:
 
 ```json
@@ -467,6 +597,33 @@ For all deferred routes, missing or invalid authentication returns the applicabl
   "code": "ADMIN_REQUIRED"
 }
 ```
+
+### `DELETE /api/users/:id`
+
+Deletes the account with the given ID and, by cascade, its sessions. Any authenticated
+caller may delete their own account; an `ADMIN` may delete any account, including their
+own. The route does not count the remaining `ADMIN` accounts.
+
+#### Request
+
+```http
+Authorization: Bearer <access-token>
+```
+
+No request body. `:id` is the target user's UUID.
+
+#### Success response
+
+Status: `204 No Content`
+
+#### Error responses
+
+In addition to the [authentication errors](#authentication-error-responses):
+
+| Status | Code | Meaning |
+|---:|---|---|
+| `403` | `FORBIDDEN` | A non-`ADMIN` caller sent another user's ID. |
+| `404` | `USER_NOT_FOUND` | No account has that UUID. |
 
 ## Authentication
 
@@ -511,6 +668,10 @@ Handled validation, authentication, and account errors have this shape:
   "code": "DUPLICATE_USERNAME"
 }
 ```
+
+A body that is not valid JSON returns `400` with code `INVALID_JSON`; other request
+errors raised by the body parser (for example an oversized body) return their `4xx`
+status with code `INVALID_REQUEST`.
 
 Unexpected server failures return `500 Internal Server Error` without exposing the
 underlying error:

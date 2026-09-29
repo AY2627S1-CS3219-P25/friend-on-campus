@@ -29,6 +29,15 @@
  */
 // AI-generated (edited by ngkhengyang)
 /**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: CreateSupplierRequest.building/.floor changed from optional to required, so a caller creating a
+ * supplier can no longer omit them — needed for the new (name, category, building, floor) uniqueness
+ * constraint on suppliers to be meaningful (a null building/floor can't be compared for duplicates).
+ * UpdateSupplierRequest and SupplierDTO are unchanged (partial-update and read shapes stay flexible).
+ * Author review: (to be completed by author after review)
+ */
+/**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.
  */
@@ -123,8 +132,8 @@ export interface CreateSupplierRequest {
   exactLocation: string;
   category: SupplierCategory;
   description?: string;
-  building?: string;
-  floor?: string;
+  building: string;
+  floor: string;
   latitude?: number;
   longitude?: number;
   startingTime?: string;

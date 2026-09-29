@@ -491,10 +491,12 @@ async function runTests() {
       },
       body: JSON.stringify({
         supplierCode: testSupplierCode,
-        name: 'Verified Admin Test Cafe',
+        name: `Verified Admin Test Cafe ${testSupplierCode}`,
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 1 Terrace',
         category: 'Beverages',
+        building: 'COM3',
+        floor: '1',
         description: 'End-to-end integration test spot',
         startingTime: '0900hrs',
         closingTime: '2100hrs',

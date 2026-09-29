@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: replaced `PATCH /:id/admin` and `POST /:id/promote` with `toggle-status`, `toggle-role` and `DELETE /:id` in the API table, the roles table and the behaviour notes, as implemented in `user-routes.ts`. Existing behaviour only.
+Author review: <to be completed by the service owner>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this page from services/user-service source, docker-compose.yml, the init SQL and D1 / D2-plan text. Descriptive only.
 Author review: <to be completed by the service owner>
@@ -46,6 +52,14 @@ Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated persistence documentation to reflect that user-service owns its Prisma migrations on container boot rather than relying on shared init SQL.
 Author review: (to be completed by author after review)
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+Scope: Brought the page in step with `main` @ f0ee632 after the D2 UAT: `users.status` column and second migration, the
+implemented `GET /api/users` and `PATCH /api/users/:id/admin`, the removed `GET /api/users/:id`, and new sections
+"Roles as enforced", "Behaviour as built" and "Tests". Observed facts only, no recommendation.
+Author review: <to be completed by the service owner>
+-->
 
 # user-service
 
@@ -54,8 +68,8 @@ Author review: (to be completed by author after review)
 ## Responsibilities
 
 The service owns account registration, login sessions, refresh-token rotation, logout,
-and an authenticated user's profile and password. Other services verify issued access
-tokens locally with `@campus-errand/auth`.
+an authenticated user's profile and password, account deletion (own account, or any account
+for an ADMIN), and the ADMIN-only user list, account status toggle and role toggle. Other services verify issued access tokens locally with `@campus-errand/auth`.
 
 ## Run
 
@@ -89,7 +103,9 @@ the shared `postgres` hostname on port `5432`.
 
 `src/database/prisma/schema.prisma` defines `User` and `Session`.
 
-- `users`: UUID, username, email, password hash, `STUDENT`/`ADMIN` role, and timestamps.
+- `users`: UUID, username, email, password hash (scrypt), `STUDENT`/`ADMIN` role (default `STUDENT`), `status` boolean (default `true`), and timestamps.
+- `sessions.user_id` references `users.id` with `ON DELETE CASCADE`; index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
+- Migrations: `20260922170000_initial_user_service`, `20260923150000_add_user_status`.
 - `sessions`: UUID, user reference, refresh-token hash, persistence flag, timestamps, and idle expiry.
 - Usernames and emails are unique case-insensitively through PostgreSQL indexes.
 - `src/database/prisma/migrations/` is the service migration source, deployed automatically on container startup or via `npm run db:migrate`. The tables are owned exclusively by User Service and are no longer created in the shared postgres-init script.
@@ -102,20 +118,45 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | Method & path | Auth | Result |
 |---|---|---|
 | `POST /api/auth/register` | none | Creates a `username`/`email`/`password` account; does not create a session. |
-| `POST /api/auth/login` | none | Returns session token and user; sets `session` cookie (Path=/). |
-| `GET /api/auth/verify` | `session` cookie or Bearer | Gateway verification subrequest; returns `200` with `X-Auth-User-Id`, `X-Auth-User-Role`, `X-Auth-User-Email`, and `X-Auth-Session-Id` headers, or `401`. |
-| `POST /api/auth/refresh` | `session` cookie or body | Re-issues and extends stateless `session` cookie. |
-| `POST /api/auth/logout` | none | Clears `session` cookie. |
+| `POST /api/auth/login` | none | Returns session token and user; sets `student_session` or `admin_session` cookie (Path=/). |
+| `GET /api/auth/verify` | session cookie or Bearer | Gateway verification subrequest; returns `200` with `X-Auth-User-Id` and `X-Auth-User-Role` headers, or `401`. |
+| `POST /api/auth/refresh` | session cookie or body | Re-issues and extends stateless session cookie. |
+| `POST /api/auth/logout` | none | Clears appropriate session cookie. |
 | `GET /api/users/me` | Bearer token or Gateway header | Returns authenticated profile. |
-| `PATCH /api/users/me` | Bearer token or Gateway header | Updates username only; email is immutable. |
-| `PUT /api/users/me/password` | Bearer token or Gateway header | Verifies current password and changes password. |
-| `GET /api/users` | ADMIN Bearer token or Gateway header | Returns list of all registered users (or `501 Not Implemented` in deferred mock mode). |
-| `GET /api/users/:id` | ADMIN Bearer token or Gateway header | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
-| `POST /api/users/:id/promote` | ADMIN Bearer token or Gateway header | Deferred user-management placeholder; returns a structured `501 Not Implemented` response. |
-| `PATCH /api/users/:id/admin` | ADMIN Bearer token or Gateway header | Toggles active status of target user. |
+| `PATCH /api/users/me` | Bearer token or Gateway header | Updates username only; any other field in the body (`role`, `status`, `userId`, `email`) → 400 `INVALID_INPUT`. Taken username → 409 `DUPLICATE_USERNAME`. |
+| `PUT /api/users/me/password` | Bearer token or Gateway header | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
+| `GET /api/users` | ADMIN Bearer token or Gateway header | 200 `{ users: [{ userId, username, email, userRole, status }] }`. |
+| `PATCH /api/users/:id/toggle-status` | ADMIN Bearer token or Gateway header | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. (Also aliased as `PATCH /:id/admin`). |
+| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token or Gateway header | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. (Also aliased as `POST /:id/promote`). |
+| `DELETE /api/users/:id` | Bearer token or Gateway header; own id, or ADMIN for any id | Deletes the account; 204; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
 
 The endpoint-level request and response examples are in
-[`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md).
+[`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md);
+the OpenAPI form is [`../api/user-service.yaml`](../api/user-service.yaml). Schema diagram:
+[`../diagrams/user-schema.md`](../diagrams/user-schema.md); login and RBAC sequence:
+[`../diagrams/auth-sequence.md`](../diagrams/auth-sequence.md).
+
+## Roles as enforced
+
+What the code allows today, from `user-routes.ts`, `supplierRoutes.ts` and the D2 UAT (`../evidence/d2/d2-checklist.md`).
+Denials: no/invalid/expired token → 401 `MISSING_TOKEN` / `INVALID_TOKEN` / `TOKEN_EXPIRED`; wrong role → 403 `ADMIN_REQUIRED`;
+another user's account on `DELETE` → 403 `FORBIDDEN`; own id on `toggle-role` → 403 `SELF_ACTION_FORBIDDEN`.
+
+| Action | Guest (no token) | `STUDENT` | `ADMIN` |
+|---|---|---|---|
+| Register, log in, refresh, log out (`/api/auth/*`) | yes | yes | yes |
+| Read / edit own profile, change own password (`/api/users/me*`) | 401 | yes | yes |
+| List users (`GET /api/users`) | 401 | 403 | yes |
+| Enable / disable an account (`PATCH /api/users/:id/toggle-status`) | 401 | 403 | yes |
+| Promote or demote a user (`PATCH /api/users/:id/toggle-role`) | 401 | 403 | yes, except own id (403) |
+| Delete own account (`DELETE /api/users/:id`) | 401 | yes | yes |
+| Delete another user's account (`DELETE /api/users/:id`) | 401 | 403 | yes |
+| List, search, read suppliers (`GET /api/suppliers`, `/:id`) | yes | yes | yes |
+| Create, edit, toggle, delete suppliers | 401 | 403 | yes |
+| Log in to the admin portal UI | — | refused by the portal's login gate | yes |
+
+New registrations always get `STUDENT`. After a fresh seed the only `ADMIN` is the seeded account; an `ADMIN` can make
+another user an `ADMIN` with `toggle-role`. The seed puts the three seed accounts' roles back on every container boot.
 
 ## Authentication and sessions
 
@@ -126,5 +167,30 @@ Downstream services consuming `@campus-errand/auth` inspect these gateway header
 ## Development seed accounts
 
 `npm run db:seed --workspace=@campus-errand/user-service` creates or updates
-`alice`, `bob`, and `admin` with `Password123!`. Alice and Bob have the `STUDENT`
-role; Admin has `ADMIN`.
+`alice` (`alice@u.nus.edu`), `bob` (`bob@u.nus.edu`), and `admin` (`admin@nus.edu.sg`)
+with `Password123!`. Alice and Bob have the `STUDENT` role; Admin has `ADMIN`.
+
+The container start command runs `prisma migrate deploy`, then this seed, then the service
+(`Dockerfile` `CMD`), so every container boot resets those three accounts' username, role and
+password to the values above. The seed does not write `status`.
+
+## Behaviour as built
+
+Items with a UAT check ID in brackets were observed on `main` @ f0ee632 (see `../evidence/d2/d2-checklist.md`);
+the items about `toggle-role` and `DELETE` are read from the code and have not been run in a UAT.
+
+- `status` is stored and returned but not read by login, refresh or the auth middleware: a disabled account still logs in [A6], and its existing access token and refresh session keep working [A11].
+- `PATCH /api/users/:id/toggle-role` refuses the caller's own id (compared in lower case) and does not count remaining admins.
+- `DELETE /api/users/:id` does not count remaining admins and does not refuse an `ADMIN` deleting their own account.
+- `PATCH /api/users/:id/toggle-status` (formerly `/admin`) does not compare the target with the caller or count remaining admins: the seeded admin can disable its own account, including when it is the only `ADMIN` [A8].
+- A non-UUID `:id` on `toggle-status` returns 500 `Internal server error` [A10].
+- Refresh rotation: a replayed (already rotated) refresh cookie gets 401 `INVALID_SESSION`; the current cookie keeps working [L7, L8].
+- Refresh cookie: `HttpOnly`, `Path=/api/auth`, about 1 day, or about 30 days with `keepLoggedIn: true` [L2, L5].
+- No password or password hash appears in any response [R3, P3].
+- Through the gateway, `GET /api/users` without a trailing slash is answered by nginx with a 301 to `/api/users/` (only `/api/users/` has a `location` block in `gateway/nginx.conf`) [A0].
+
+## Tests
+
+- `npm run test:d2` — Scenario 4 covers the user list, `toggle-status` and `toggle-role`. The last recorded run (40/44, on f0ee632) predates that rewrite.
+- `tests/postman/` — Postman collection and environment for this service and Supplier Service, run against ports 8001 / 8002.
+- `node scripts/uat/uat-d2-api.mjs` — 63 API checks against a running stack; the recorded results in `../evidence/d2/` are from f0ee632.

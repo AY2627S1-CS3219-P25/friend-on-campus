@@ -57,6 +57,22 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
  * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added a "Delete Account" button (red, full-width) below Log Out on the Profile page. Opens a
+ * confirmation modal (warning text, inline error box on failure, a required "I understand this is
+ * irreversible" checkbox gating the red confirm button) that calls DELETE /api/users/:id (via authFetch, same
+ * 401-refresh-retry as every other authenticated call) for the logged-in user's own id. On success shows a
+ * separate "Account Deleted" success modal whose "Return to Login" button calls the existing clearLocalSession()
+ * and falls through to the login gate. No existing modal/overlay pattern existed in this file, so both modals
+ * are new, styled to match this file's existing rose-error-box and RefreshCw-spinner conventions.
+ * Author review: (to be completed by author after review)
+ *
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added a responsive desktop layout (top nav bar, wide multi-column content grids) gated on Tailwind's md: (768px) breakpoint, alongside the existing mobile phone-card layout.
+ * Author review: [left for the human author to fill in]
  */
 // AI-generated (edited by yanhwee)
 
@@ -74,6 +90,7 @@ import {
   Store,
   Search,
   RefreshCw,
+  CheckCircle,
 } from 'lucide-react';
 import { OrderDTO, CreditWalletDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 
@@ -112,6 +129,13 @@ export default function App() {
   const [editUsernameDraft, setEditUsernameDraft] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [updateProfileError, setUpdateProfileError] = useState<{ code: string; message: string } | null>(null);
+
+  // Delete Account state
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountConfirmed, setDeleteAccountConfirmed] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<{ code: string; message: string } | null>(null);
+  const [deleteAccountSuccess, setDeleteAccountSuccess] = useState(false);
 
   // Live Campus Suppliers State (M3)
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
@@ -377,6 +401,28 @@ export default function App() {
       setUpdateProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsUpdatingProfile(false);
+    }
+  };
+
+  // Permanently delete the logged-in user's own account (DELETE /api/users/:id)
+  const handleDeleteAccount = async () => {
+    if (!profile) return;
+    setIsDeletingAccount(true);
+    setDeleteAccountError(null);
+    try {
+      const res = await authFetch(`/api/users/${profile.userId}`, { method: 'DELETE' });
+      if (res.status === 204) {
+        setShowDeleteAccountModal(false);
+        setDeleteAccountConfirmed(false);
+        setDeleteAccountSuccess(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setDeleteAccountError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to delete account.' });
+      }
+    } catch (err: any) {
+      setDeleteAccountError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -757,9 +803,10 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 max-w-md mx-auto shadow-2xl relative font-sans">
+    // AI-generated (edited by jagdeepsh) - release the phone-card constraint at md: and up
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 max-w-md mx-auto shadow-2xl relative font-sans md:max-w-6xl md:mx-auto md:shadow-none">
       {/* Top Header */}
-      <header className="bg-nus-blue text-white p-4 sticky top-0 z-30 shadow-md">
+      <header className="bg-nus-blue text-white p-4 sticky top-0 z-30 shadow-md md:px-8 md:py-3">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="font-extrabold text-base tracking-tight flex items-center space-x-1.5">
@@ -770,6 +817,63 @@ export default function App() {
             </h1>
             <p className="text-[11px] text-blue-200">Dual-Role Peer Network • Milestone D2</p>
           </div>
+
+          {/* AI-generated (edited by jagdeepsh) - desktop top nav bar, replaces the bottom tab bar at md: and up */}
+          <nav className="hidden md:flex items-center space-x-1 bg-blue-900/40 rounded-full px-1.5 py-1 border border-blue-400/20">
+            <button
+              onClick={() => setActiveTab('feed')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                activeTab === 'feed' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
+              }`}
+            >
+              <Compass className="w-4 h-4" />
+              <span>Feed</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('post')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                activeTab === 'post' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
+              }`}
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Post</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('spots')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                activeTab === 'spots' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
+              }`}
+            >
+              <Store className="w-4 h-4" />
+              <span>Spots</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                activeTab === 'tasks' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Tasks</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('profile');
+                fetchProfile();
+              }}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+                activeTab === 'profile' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
+              }`}
+            >
+              <UserCircle className="w-4 h-4" />
+              <span>Profile</span>
+            </button>
+          </nav>
+
           <div className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">
             <Coins className="w-3.5 h-3.5 text-amber-300" />
             <span className="text-xs font-bold text-amber-300">{wallet.availableCredits} C</span>
@@ -802,7 +906,8 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 pb-24 overflow-y-auto">
+      {/* AI-generated (edited by jagdeepsh) - relax bottom padding at md: since the fixed bottom nav is hidden there */}
+      <main className="flex-1 p-4 pb-24 overflow-y-auto md:pb-6">
         {/* TAB 1: Errand Feed */}
         {activeTab === 'feed' && (
           <div className="space-y-4">
@@ -831,7 +936,8 @@ export default function App() {
             </div>
 
             {/* Errand Cards List */}
-            <div className="space-y-3">
+            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
+            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
               {filteredOrders.map((order) => (
                 <div
                   key={order.id}
@@ -1032,7 +1138,8 @@ export default function App() {
             )}
 
             {/* List of Verified Spots */}
-            <div className="space-y-3">
+            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
+            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
               {filteredSuppliers.map((s) => (
                 <div
                   key={s.id}
@@ -1091,7 +1198,8 @@ export default function App() {
         {activeTab === 'tasks' && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-slate-800">My Active Tasks</h2>
-            <div className="space-y-3">
+            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
+            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
               {orders
                 .filter((o) => o.courierId === wallet.userId || o.requesterId === wallet.userId)
                 .map((task) => (
@@ -1296,12 +1404,24 @@ export default function App() {
               {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
               <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
             </button>
+
+            <button
+              onClick={() => {
+                setShowDeleteAccountModal(true);
+                setDeleteAccountConfirmed(false);
+                setDeleteAccountError(null);
+              }}
+              className="w-full flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+            >
+              <span>Delete Account</span>
+            </button>
           </div>
         )}
       </main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 max-w-md w-full bg-white border-t border-slate-200 px-3 py-2 flex justify-around items-center z-40">
+      {/* AI-generated (edited by jagdeepsh) - hidden at md: and up, replaced by the top nav bar in the header */}
+      <nav className="fixed bottom-0 max-w-md w-full bg-white border-t border-slate-200 px-3 py-2 flex justify-around items-center z-40 md:hidden">
         <button
           onClick={() => setActiveTab('feed')}
           className={`flex flex-col items-center py-1 transition ${
@@ -1355,6 +1475,93 @@ export default function App() {
           <span className="text-[10px] mt-0.5">Profile</span>
         </button>
       </nav>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteAccountModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center space-x-3 text-rose-600">
+              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900">Delete Account</h3>
+                <p className="text-xs text-slate-500">This action is permanent</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Deleting your account will permanently remove your profile and cannot be undone. You will be logged out immediately.
+            </p>
+
+            {deleteAccountError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+                <p className="font-bold">{deleteAccountError.code}</p>
+                <p>{deleteAccountError.message}</p>
+              </div>
+            )}
+
+            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteAccountConfirmed}
+                onChange={(e) => setDeleteAccountConfirmed(e.target.checked)}
+                disabled={isDeletingAccount}
+                className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
+              />
+              <span>I understand this action is irreversible and my account will be permanently deleted.</span>
+            </label>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={() => {
+                  setShowDeleteAccountModal(false);
+                  setDeleteAccountConfirmed(false);
+                  setDeleteAccountError(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!deleteAccountConfirmed || isDeletingAccount}
+                onClick={handleDeleteAccount}
+                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+              >
+                {isDeletingAccount && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Success Modal */}
+      {deleteAccountSuccess && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
+              <p className="text-xs text-slate-500 mt-1">Your account has been permanently deleted.</p>
+            </div>
+            <button
+              onClick={() => {
+                setDeleteAccountSuccess(false);
+                clearLocalSession();
+              }}
+              className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+            >
+              Return to Login
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-29
- * Scope: Unified UserRepository consolidating all user queries and credential operations (createUser, findByEmail, findById, listAll, updateProfile, updatePassword, toggleStatus).
+ * Scope: Unified UserRepository consolidating all user queries, credentials operations, toggleRole, and deleteById.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
@@ -41,6 +41,8 @@ export interface UserRepository {
     newPasswordHash: string,
   ): Promise<boolean>;
   toggleStatus(userId: string): Promise<UserRecord | null>;
+  toggleRole(userId: string): Promise<UserRecord | null>;
+  deleteById(userId: string): Promise<boolean>;
 }
 
 function toUserRecord(row: PrismaUser): UserRecord {
@@ -57,7 +59,7 @@ function toUserRecord(row: PrismaUser): UserRecord {
 export function createUserRepository(prisma: PrismaClient): UserRepository {
   return {
     async createUser(input) {
-      const user = await prisma.user.create({
+      const created = await prisma.user.create({
         data: {
           username: input.username,
           email: input.email,
@@ -66,19 +68,20 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
         },
       });
 
-      return toUserRecord(user);
+      return toUserRecord(created);
     },
 
     async findByEmail(email) {
-      // Matches the users_email_case_insensitive_uq expression index (LOWER(email))
-      const rows = await prisma.$queryRaw<PrismaUser[]>`
+      const users = await prisma.$queryRaw<PrismaUser[]>`
         SELECT id, username, email, password_hash AS "passwordHash", role, status,
                created_at AS "createdAt", updated_at AS "updatedAt"
         FROM users
         WHERE LOWER(email) = LOWER(${email})
         LIMIT 1
       `;
-      return rows.length === 1 ? toUserRecord(rows[0]) : null;
+
+      const user = users[0];
+      return user ? toUserRecord(user) : null;
     },
 
     async findById(userId) {
@@ -125,6 +128,25 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
       });
 
       return toUserRecord(updated);
+    },
+
+    async toggleRole(userId) {
+      const existing = await prisma.user.findUnique({ where: { id: userId } });
+      if (!existing) {
+        return null;
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: { role: existing.role === 'ADMIN' ? 'STUDENT' : 'ADMIN' },
+      });
+
+      return toUserRecord(updated);
+    },
+
+    async deleteById(userId) {
+      const deleted = await prisma.user.deleteMany({ where: { id: userId } });
+      return deleted.count === 1;
     },
   };
 }
