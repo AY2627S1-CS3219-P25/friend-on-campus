@@ -1,0 +1,265 @@
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+# Scope: Transcribed the routes that exist in services/supplier-service/src/backend/supplierRoutes.ts and the types in
+#   packages/common-dtos on `main` @ f0ee632 into OpenAPI. Describes the API as built; designs nothing new.
+# Author review: <to be completed by the service owner>
+openapi: 3.0.3
+info:
+  title: Supplier Service API (as built)
+  version: "d2-f0ee632"
+  description: >
+    Verified supplier / pickup-location directory. Reads need no token; writes need an ADMIN access token issued
+    by the User Service, verified locally with the Ed25519 public key. Behaviour notes: docs/services/supplier-service.md.
+servers:
+  - url: http://localhost
+    description: through the nginx gateway
+  - url: http://localhost:8002
+    description: directly, without gateway or UI
+tags:
+  - name: directory
+    description: Read access, no authentication
+  - name: admin
+    description: Writes, ADMIN only
+paths:
+  /health:
+    get:
+      summary: Liveness (direct port only; the gateway does not route it)
+      servers:
+        - url: http://localhost:8002
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              example: { service: supplier-service, status: UP, port: 8002, timestamp: "2026-09-28T05:00:00.000Z" }
+  /api/suppliers:
+    get:
+      tags: [directory]
+      summary: List, search, filter, sort and paginate suppliers
+      parameters:
+        - { name: search, in: query, schema: { type: string }, description: "Case-insensitive contains over name, exactLocation, building, description, supplierCode. Whitespace-only is ignored." }
+        - { name: campusZone, in: query, schema: { type: string }, description: Case-insensitive equality }
+        - { name: category, in: query, schema: { type: string }, description: Case-insensitive equality }
+        - { name: isActive, in: query, schema: { type: string, enum: ["true", "false"] }, description: Any other value means no filter }
+        - name: sortBy
+          in: query
+          schema: { type: string, enum: [name, campusZone, category, createdAt, supplierCode], default: name }
+          description: Any other value falls back to name (no 400)
+        - { name: sortOrder, in: query, schema: { type: string, enum: [asc, desc], default: asc }, description: "desc only when exactly 'desc'" }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 }, description: Pagination applies only when page or limit is sent }
+        - { name: limit, in: query, schema: { type: integer, default: 10, maximum: 100 } }
+      responses:
+        "200":
+          description: Matching suppliers (empty list when nothing matches)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: "#/components/schemas/SupplierPage" }
+        "500": { $ref: "#/components/responses/ServerError" }
+    post:
+      tags: [admin]
+      summary: Create a supplier
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSupplierRequest" }
+            example: { name: UAT Cafe, campusZone: COM3, exactLocation: COM3 Level 1, category: Food }
+      responses:
+        "201":
+          description: Created; supplierCode is generated as SUP-NNN when not supplied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupplierResponse" }
+        "400":
+          description: One of name, campusZone, exactLocation, category is missing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "500": { $ref: "#/components/responses/ServerError" }
+  /api/suppliers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: Supplier id. GET also accepts a supplierCode (for example SUP-007); PUT and DELETE look up by id only.
+    get:
+      tags: [directory]
+      summary: Get one supplier by id or supplierCode
+      responses:
+        "200":
+          description: The supplier
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupplierResponse" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+    put:
+      tags: [admin]
+      summary: Update any subset of a supplier's fields
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateSupplierRequest" }
+      responses:
+        "200":
+          description: Updated supplier
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupplierResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+    delete:
+      tags: [admin]
+      summary: Soft delete (isActive=false), or remove the row with permanent=true
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: permanent, in: query, schema: { type: string, enum: ["true"] }, description: Only the exact value true removes the row }
+      responses:
+        "200":
+          description: Deleted or deactivated
+          content:
+            application/json:
+              example: { success: true, message: Supplier permanently deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+  /api/suppliers/{id}/toggle:
+    patch:
+      tags: [admin]
+      summary: Flip isActive
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Supplier with isActive flipped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupplierResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ServerError" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from POST /api/auth/login or /api/auth/refresh (EdDSA / Ed25519, 15 minutes)
+  responses:
+    Unauthenticated:
+      description: MISSING_TOKEN, INVALID_TOKEN or TOKEN_EXPIRED
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { success: false, error: Authentication is required, code: MISSING_TOKEN }
+    AdminRequired:
+      description: The token's role claim is not ADMIN
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { success: false, error: Administrator access is required, code: ADMIN_REQUIRED }
+    NotFound:
+      description: No supplier with that id (or code, on GET). No code field.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { success: false, error: "Supplier 'does-not-exist' not found" }
+    ServerError:
+      description: Unexpected failure; error carries the exception message. No code field.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string }
+        code: { type: string, description: Present only on responses produced by the auth middleware }
+    Supplier:
+      type: object
+      required: [id, supplierCode, name, campusZone, exactLocation, category, isActive, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        supplierCode: { type: string, example: SUP-007 }
+        name: { type: string, example: A Hot Hideout }
+        campusZone: { type: string, example: PGPR }
+        exactLocation: { type: string }
+        category: { type: string, description: "common-dtos SupplierCategory lists Beverages, Food, Printing, Parcels, Shopping, General; the service does not validate it" }
+        description: { type: string, nullable: true }
+        building: { type: string, nullable: true }
+        floor: { type: string, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        startingTime: { type: string, nullable: true }
+        closingTime: { type: string, nullable: true }
+        imageUrl: { type: string, nullable: true }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    SupplierResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data: { $ref: "#/components/schemas/Supplier" }
+        message: { type: string }
+    SupplierPage:
+      type: object
+      properties:
+        suppliers:
+          type: array
+          items: { $ref: "#/components/schemas/Supplier" }
+        total: { type: integer, example: 21 }
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 5 }
+        totalPages: { type: integer, example: 5 }
+    CreateSupplierRequest:
+      type: object
+      required: [name, campusZone, exactLocation, category]
+      properties:
+        supplierCode: { type: string }
+        name: { type: string }
+        campusZone: { type: string }
+        exactLocation: { type: string }
+        category: { type: string }
+        description: { type: string }
+        building: { type: string }
+        floor: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        startingTime: { type: string }
+        closingTime: { type: string }
+        imageUrl: { type: string }
+    UpdateSupplierRequest:
+      type: object
+      description: Any subset of the fields below
+      properties:
+        name: { type: string }
+        campusZone: { type: string }
+        exactLocation: { type: string }
+        category: { type: string }
+        description: { type: string }
+        building: { type: string }
+        floor: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        startingTime: { type: string }
+        closingTime: { type: string }
+        imageUrl: { type: string }
+        isActive: { type: boolean }
