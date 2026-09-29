@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-09-29
+Scope: Added Environment Configuration section detailing .env setup and SESSION_SECRET requirements.
+Author review: (to be completed by author after review)
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated D2 test and seed-account descriptions to match the author-approved User Service contracts.
 Author review: <to be completed by ngkhengyang>
@@ -72,6 +78,29 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 | **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Stateless HMAC-SHA256 session cookies, NGINX auth offloading, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
 | **D3** | **Order Service (M1) & Credit Service (M4)** (Escrow, State Machine) | ⏳ Upcoming |
 | **D4** | **Notification Service (M5)** (RabbitMQ event choreography & WebSockets) | ⏳ Upcoming |
+
+---
+
+## ⚙️ Environment Configuration
+
+Before starting the application stack, initialize your local `.env` configuration file from the template:
+
+```bash
+cp .env.example .env
+```
+
+### Essential Variables (`.env`)
+
+| Variable | Required | Description | Example / Recommended |
+| :--- | :---: | :--- | :--- |
+| `SESSION_SECRET` | **Yes** | Symmetric secret key (at least 32 characters) used by `user-service` to sign and verify HMAC-SHA256 session tokens. Docker Compose will halt on startup if this is missing. | Generate via `openssl rand -base64 48` |
+| `JWT_ISSUER` | No | JWT issuer claim (`iss`) | `friend-on-campus-user-service` |
+| `JWT_AUDIENCE` | No | JWT audience claim (`aud`) | `friend-on-campus-services` |
+| `SESSION_TTL` | No | Standard session token lifetime | `1d` |
+| `JWT_PERSISTENT_REFRESH_TOKEN_TTL` | No | Session lifetime when "Keep me logged in" is enabled | `30d` |
+| `CORS_ORIGIN` | No | Allowed frontend origin for direct API calls | `http://localhost:5173` |
+
+> **Note**: `.env` is git-ignored and must never be committed. Docker Compose automatically binds these variables to the `user-service` container.
 
 ---
 

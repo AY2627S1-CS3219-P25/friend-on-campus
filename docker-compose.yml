@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
 # Tool: Google Antigravity Agent, date: 2026-09-28
-# Scope: Configured SESSION_SECRET for user-service and supplier-service enabling symmetric stateless session cookies and gateway authentication offloading.
+# Scope: Configured SESSION_SECRET for user-service enabling symmetric stateless session cookies and gateway authentication offloading.
 # Author review: (to be completed by author after review)
 # AI-generated (edited by yanhwee)
 

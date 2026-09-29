@@ -151,7 +151,7 @@ npm run test:d2                               # D2 end-to-end suite — see note
 docker exec -it campuserrand-postgres psql -U postgres
 ```
 
-`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening.
+`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening. With the Docker Compose stack running, you can optionally run `GATEWAY_URL=http://localhost npm run test:d2` to additionally execute Scenario 7 (verifying NGINX gateway header stripping and RBAC routing).
 
 **Set-up:** new machine or new teammate → `.claude/README.md` (prerequisites, plugins, checks, troubleshooting).
 

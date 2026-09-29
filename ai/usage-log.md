@@ -1999,3 +1999,20 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/user-service/docs/authentication-for-services.md` & `docs/services/supplier-service.md` & `.claude/agents/infrastructure.md` — updated architecture documentation to reflect that downstream microservices trust perimeter headers injected by NGINX.
 - `scripts/test-d2-e2e.ts` — added Scenario 4 assertion verifying that user demotion immediately causes `GET /api/auth/verify?role=ADMIN` with their existing session cookie to fail with 403 `ADMIN_REQUIRED`, and `refresh()` to re-mint a `STUDENT` token. Added Scenario 7 verifying NGINX gateway header stripping and `@supplier_write` RBAC enforcement.
 
+## 2026-09-29 22:50 SGT — Environment documentation, lockfile sync & test notes
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/gateway-auth-session-management
+
+**Prompt (summarised):** Add Environment Configuration section to README documenting .env setup, SESSION_SECRET requirement, and token configuration. Regenerate package-lock.json to remove jose from packages/auth, and document GATEWAY_URL test suite trigger.
+
+**Usage scenario:** Documentation enhancement and dependency lockfile synchronization.
+
+**Files changed:**
+- `README.md` — Added Environment Configuration section detailing `.env` setup, `SESSION_SECRET` generation, and token configuration.
+- `package-lock.json` — Regenerated lockfile with `npm install` to remove stale `jose` dependency under `@campus-errand/auth`.
+- `CLAUDE.md` — Documented `GATEWAY_URL` trigger for Scenario 7 in `npm run test:d2` notes.
+- `.env.example` — Removed stale comment regarding NGINX templating substitution.
+- `docker-compose.yml` — Cleaned up disclosure header regarding service session secret configuration.
+
