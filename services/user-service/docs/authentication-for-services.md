@@ -40,14 +40,12 @@ JWT_AUDIENCE=friend-on-campus-services
 
 ## Access-token payload
 
-An access/session token issued by the User Service contains this payload:
+An access/session token issued by the User Service (using `jose`) contains this RFC 7519 payload:
 
 ```json
 {
   "sub": "a-user-id",
-  "sid": "a-session-id",
   "role": "STUDENT",
-  "email": "user@u.nus.edu",
   "iat": 1789870000,
   "exp": 1789870900,
   "iss": "friend-on-campus-user-service",
@@ -55,63 +53,42 @@ An access/session token issued by the User Service contains this payload:
 }
 ```
 
-The claim names are the RFC 7519 registered ones, so standard JWT libraries (`jsonwebtoken`, `jose`) also enforce expiry, issuer, and audience.
+Standard JWT libraries (such as `jose`) enforce expiry, issuer, audience, and the `HS256` signature.
 
 | Claim | Meaning |
 |---|---|
-| `sub` | ID of the authenticated user. Use this for ownership checks. |
-| `sid` | ID of the login session that issued the token. |
+| `sub` | ID of the authenticated user (UUID). Use this for resource ownership checks. |
 | `role` | Platform role: `STUDENT` or `ADMIN`. |
-| `email` | User email address. |
 | `iat` | Time the token was issued, as Unix time in seconds. |
 | `exp` | Time the token expires, as Unix time in seconds. |
-| `iss` | Service that issued the token. It must match the middleware configuration. |
-| `aud` | Services allowed to accept the token. It must match the middleware configuration. |
+| `iss` | Service that issued the token (`friend-on-campus-user-service`). |
+| `aud` | Services allowed to accept the token (`friend-on-campus-services`). |
 
-## Protect HTTP routes
+## Accessing User Identity in Microservices
 
-Create the authentication middleware once during startup:
+Behind the NGINX API Gateway perimeter, NGINX verifies the session token and forwards identity via internal headers:
+- `X-User-Id`
+- `X-User-Role`
+
+Microservices extract this identity using `getSessionUser(req)` from `@campus-errand/auth`:
 
 ```ts
-import { authMiddleware, requireAdmin } from '@campus-errand/auth';
+import { getSessionUser } from '@campus-errand/auth';
 
-const authenticate = authMiddleware({
-  secretKey: process.env.SESSION_SECRET,
-  issuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',
-  audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
+app.get('/api/orders/mine', (req, res) => {
+  const session = getSessionUser(req);
+  if (!session) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { userId, role } = session;
+  // Use userId for ownership checks (e.g. SELECT * FROM orders WHERE customer_id = userId)
 });
 ```
 
-Apply it before protected handlers:
-
-```ts
-app.get('/api/credits/wallet', authenticate, getWallet);
-app.post('/api/suppliers', authenticate, requireAdmin, createSupplier);
-```
-
-`requireAdmin` must run after `authenticate`.
-
-After authentication, use the verified identity:
-
-```ts
-const { userId, sessionId, role, email } = res.locals.auth;
-```
-
-`userId`, `sessionId`, `role`, and `email` are populated either from NGINX's forwarded gateway headers or by `@campus-errand/auth` verifying the session token directly.
-
-## Responses and refresh
-
-The middleware responds with:
-
-| Status | Code | Meaning |
-|---:|---|---|
-| `401` | `MISSING_TOKEN` | No session cookie or Bearer token was supplied |
-| `401` | `TOKEN_EXPIRED` | The access token expired |
-| `401` | `INVALID_TOKEN` | Signature, claims, issuer, or audience are invalid |
-| `403` | `ADMIN_REQUIRED` | The authenticated user is not an administrator |
-
-Token refresh is separate from this package. When the frontend receives `401 TOKEN_EXPIRED`, its shared request wrapper calls `POST /api/auth/refresh` and retries the original request once.
-
 ## Authorization rules
 
-Authentication establishes who is calling. The route must still enforce its own resource rules. Examples include checking that the authenticated user owns a wallet, requested an order, or is the assigned courier. `requireAdmin` only implements the platform-wide `ADMIN` role check.
+Authentication establishes who is calling (`userId` and `role`). The route must still enforce its own resource rules:
+- Platform role enforcement (e.g., `ADMIN` requirement on supplier mutations) is handled at the Gateway perimeter.
+- Domain ownership checks (e.g., checking that the authenticated `userId` owns the specific order, wallet, or errand) are handled in the service route handler using `session.userId`.
+

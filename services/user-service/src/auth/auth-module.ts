@@ -75,7 +75,7 @@ export interface AuthModule {
   login(input: LoginInput): Promise<AuthenticatedSessionResult>;
   refresh(refreshToken: string): Promise<TokenRefreshResult>;
   logout(refreshToken: string): Promise<void>;
-  verify(token: string): AuthenticatedPrincipal | null;
+  verify(token: string): Promise<AuthenticatedPrincipal | null>;
   checkUserStatus(userId: string): Promise<boolean>;
 }
 
@@ -209,7 +209,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         ? options.persistentRefreshTokenIdleLifetimeSeconds
         : options.accessTokenLifetimeSeconds;
       const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
-      const sessionToken = options.tokens.issueAccessToken(
+      const sessionToken = await options.tokens.issueAccessToken(
         user.id,
         user.role,
         sessionLifetimeSeconds,
@@ -230,7 +230,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }
 
-      const principal = options.tokens.verifyToken(token);
+      const principal = await options.tokens.verifyToken(token);
       if (!principal) {
         throw new AuthError('INVALID_SESSION', 'Invalid or expired session');
       }
@@ -247,7 +247,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
         ? options.persistentRefreshTokenIdleLifetimeSeconds
         : options.accessTokenLifetimeSeconds;
       const sessionExpiresAt = addSeconds(new Date(), sessionLifetimeSeconds);
-      const nextSessionToken = options.tokens.issueAccessToken(
+      const nextSessionToken = await options.tokens.issueAccessToken(
         principal.userId,
         principal.role,
         sessionLifetimeSeconds,

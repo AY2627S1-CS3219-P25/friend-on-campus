@@ -1449,4 +1449,38 @@ Address follow-up PR review findings on PR #95:
 - `npm run typecheck`: Passed with 0 errors across 9 workspaces.
 - `npm run test:d2`: Passed 61/61 tests (100%).
 
+## 2026-09-29 — Adopted `jose` for Standard RFC 7519 JWT Signing and Verification
+
+**Tool:** Google Antigravity Agent (model: gemini-3-pro)
+**Author:** yanhwee
+**Branch:** feat/dual-cookie-gateway-rbac
+
+**Prompt (summarised):** Adopt `jose` library for session token issuance and verification; update documentation for team on session key setup and production security.
+1. Installed `jose` in `@campus-errand/user-service`.
+2. Refactored `services/user-service/src/auth/tokens.ts`:
+   - Eliminated custom base64url and HMAC serialization boilerplate.
+   - Replaced with standard `SignJWT` and `jwtVerify` (pinned to algorithm `HS256`, standard claims `sub`, `role`, `iat`, `exp`, `iss`, `aud`).
+3. Refactored `auth-module.ts` and `auth-routes.ts` to asynchronously await `issueAccessToken` and `verify`.
+4. Updated documentation:
+   - `services/user-service/docs/auth-setup.md`: Added instructions for generating high-entropy 256-bit secrets (`node -e` / `openssl`) and production security rules (never generating at startup; injecting via secrets vault).
+   - `services/user-service/docs/authentication-for-services.md`: Updated access token claims reference and documented `getSessionUser(req)` from `@campus-errand/auth`.
+
+**Files changed:**
+- `services/user-service/package.json`
+- `package-lock.json`
+- `services/user-service/src/auth/tokens.ts`
+- `services/user-service/src/auth/auth-module.ts`
+- `services/user-service/src/auth/auth-routes.ts`
+- `services/user-service/docs/auth-setup.md`
+- `services/user-service/docs/authentication-for-services.md`
+- `ai/usage-log.md`
+
+**Verification:**
+- `npm run typecheck`: Passed with 0 errors across 9 workspaces.
+- `npm run test:d2`: Passed 61/61 tests (100%).
+- Rebuilt Docker containers and verified live:
+  - `POST /api/auth/login` issues valid HS256 JWT cookie via `jose`.
+  - `GET /api/users/me` verified by NGINX gateway subrequest and returns authenticated profile.
+
+
 

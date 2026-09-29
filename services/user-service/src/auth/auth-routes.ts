@@ -117,7 +117,7 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
         return;
       }
 
-      const principal = auth.verify(sessionToken);
+      const principal = await auth.verify(sessionToken);
       if (!principal) {
         res.status(401).json({
           success: false,
@@ -222,7 +222,7 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
         maxAge: result.accessTokenExpiresInSeconds * 1000,
       };
 
-      const principal = auth.verify(result.accessToken);
+      const principal = await auth.verify(result.accessToken);
       if (principal?.role === 'ADMIN') {
         res.cookie(ADMIN_COOKIE_NAME, result.accessToken, cookieOpts);
       } else {
@@ -269,7 +269,7 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
       } else if (roleHint === 'STUDENT') {
         res.clearCookie(STUDENT_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
       } else {
-        const principal = token ? auth.verify(token) : null;
+        const principal = token ? await auth.verify(token) : null;
         if (principal?.role === 'ADMIN') {
           res.clearCookie(ADMIN_COOKIE_NAME, sessionCookieOptions(options.secureCookies));
         } else if (principal?.role === 'STUDENT') {

@@ -40,7 +40,19 @@ Install Node.js, npm, and Docker Compose. Do not commit `.env` files.
    Copy-Item .env.example .env
    ```
 
-2. The stack uses a symmetric `SESSION_SECRET` configured in `.env.example` with a default dev key. No key generation scripts are required.
+2. The stack uses a symmetric `SESSION_SECRET` (HMAC-SHA256, signed using the `jose` library).
+   - **For Development**: `.env.example` provides a pre-configured 32+ character development secret.
+   - **Generating a New Secret**:
+     ```sh
+     # Generate a cryptographically random 256-bit (64-character) hex key:
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+     # or using OpenSSL:
+     openssl rand -hex 32
+     ```
+   - **For Production**:
+     - **NEVER generate the secret at container startup**: Generating a key in memory on boot means every container restart logs out all users, and running multiple replicas breaks cross-container authentication.
+     - **Store in a Secrets Vault**: Persist the secret in a secret manager (e.g., AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault, Kubernetes Secrets) and inject it into the container environment as `SESSION_SECRET`.
+     - **Length Requirement**: Must be at least 32 characters long.
 
 3. Start the stack:
 
