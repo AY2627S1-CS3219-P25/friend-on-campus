@@ -1503,3 +1503,95 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/diagrams/component.md`, `auth-sequence.md`, `user-schema.md`, `supplier-schema.md` — legends, links to the twins, re-pinned to fcd5371; Rendering section.
 - `docs/README.md` — diagrams entry.
 - `docs/architecture/overview.md` — "Built today" column for PR #93; `docs/api/*.yaml` — version string `d2-6dc22a6`. (Added after PR #98 was merged at the author's request.)
+
+## 2026-09-30 16:35 SGT — PRs #98 and #99 merged; wiki pages drafted
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; this entry is uncommitted)
+
+**Prompt (summarised):** Merge PR #98, update all documentation and diagrams, and draft GitHub wiki pages for the project.
+
+**Usage scenario:** Configuration and documentation. Merged #98 (review run was skipped because the PR edits the workflow file) and #99 (diagrams, overview, OpenAPI version) at the author's request; addressed the #99 review's legend finding. Drafted seven wiki pages from the repository docs (facts and links only) in `../wiki-draft/`; they cannot be pushed until the wiki is initialised in the browser. Mistake to record: `git add docs` in #99 also committed the author's local edits to `docs/requirements/conflicts.md` and `docs/onboarding-guide-sep-3.md`, which the author had chosen to keep out of the repository; reported to the author.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-09-30 16:49 SGT — Wiki pages pushed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** The wiki has its first page now; push the drafted pages.
+
+**Usage scenario:** Documentation. Pushed the seven drafted pages and the sidebar to the wiki repository at the author's request, replacing the placeholder Home page. Facts and links only.
+
+**Files changed:**
+- none in this repository besides this entry; wiki commit fce8bbd.
+
+## 2026-09-30 17:03 SGT — Nine detailed wiki pages added
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** Add more detailed documentation to the GitHub wiki.
+
+**Usage scenario:** Documentation. Nine pages transcribed from docs/services, docs/api, docs/diagrams, docker-compose.yml, the test suites, docs/decisions and the issue list; Home, sidebar and cross-links updated. Facts as built; the decision page quotes the authors word for word and adds no rationale. Pushed to the wiki at the author's request.
+
+**Files changed:**
+- none in this repository besides this entry; wiki commit on master.
+
+## 2026-09-30 17:40 SGT — Milestone D2 wiki page rebuilt around the D2 questions
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** On the Milestone D2 wiki page, compile the notes relevant to answering the D2 questions.
+
+**Usage scenario:** Documentation. Transcribed docs/d2-question-guide.md into the wiki page with absolute links, cross-links to the other wiki pages and visible "Team to answer" placeholders. Facts and quoted author statements only; no rationale written.
+
+**Files changed:**
+- none in this repository besides this entry; wiki commit on master.
+
+## 2026-09-30 17:52 SGT — Milestone D2 wiki page made the root of six D2 sub-pages
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** Organise the D2 deliverables so that the Milestone D2 wiki page is the root directory with all the contents under it.
+
+**Usage scenario:** Documentation. Split the question guide into Part 1 and Part 2 pages, gathered the demo steps into one Demo Script page, embedded the five diagrams, summarised the local evidence README, listed the decision records with the authors' verbatim statements, and rewrote the root page as an index with status and open items. Facts only; no rationale. Pushed to the wiki at the author's request.
+
+**Files changed:**
+- none in this repository besides this entry; wiki commit 2106234.
+
+## 2026-09-30 18:08 SGT — D2 wiki made presentation-ready
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** Make sure the D2 milestone docs are organised and easy to present tomorrow.
+
+**Usage scenario:** Documentation and formatting. Added a presentation runbook (checklist, running order that follows the D2 instructions, facts per segment, fallback), a copy-paste command sequence for the demo (bash syntax-checked; the node one-liners tested; not run against the stack because Docker is not running here), the rendered PlantUML images on the diagrams page, and the 31 UAT screenshots as a fallback gallery. Timings and order are a proposal for the team. No rationale written.
+
+**Files changed:**
+- none in this repository besides this entry; wiki commit on master.
+
+## 2026-09-30 18:27 SGT — Recorded statements placed in the D2 answer slots
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-guide-answers
+
+**Prompt (summarised):** The team's answers for the design decisions are my (the author's) statements.
+
+**Usage scenario:** Formatting. Copied the author's four statements, word for word and attributed, into the answer slots they cover on the wiki (Part 1, Part 2, Design Decisions, root, runbook) and in docs/d2-question-guide.md; replaced the remaining placeholders with visible text. No rationale written by the AI. Also carries the usage-log entries of 2026-09-30 that were still uncommitted.
+
+**Files changed:**
+- `docs/d2-question-guide.md` — answer slots, closing table, disclosure header.
+- `ai/usage-log.md` — entries.

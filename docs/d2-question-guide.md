@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Filled the five answer slots that have a recorded statement with that statement, quoted word for word and attributed (the author confirmed the statements are the team's answers). The remaining four slots are visible placeholders (the previous angle-bracket placeholder was dropped by GitHub's renderer). No rationale written by the AI.
+Author review: <to be completed by Reallyeasy1>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: role promotion, account deletion, the renamed status route and the supplier duplicate rule, as implemented on the `admin_dashboard` branch. Facts only; every "Team's answer" slot is unchanged.
 Author review: <to be completed by Reallyeasy1>
@@ -76,7 +82,11 @@ After restarting a single service, restart `api-gateway` too, or `/api/*` return
 
 **Team's answer**
 
-<to be written by the team>
+> For two roles, user have courier and requester, and admin is basically in charge of ensuring that the platforms run well, essentially keeping track of the transactions, orders, etc.
+>
+> — Reallyeasy1, 2026-09-28; confirmed as the team's answer 2026-09-30 (see the decision record linked above)
+
+Presenter note: the code has one `STUDENT` role for both courier and requester, and order tracking is not built; say so if asked.
 
 ### 1c. Each role's capabilities
 
@@ -114,7 +124,9 @@ Open: guests can read the supplier directory, while the D2 plan permission matri
 
 **Team's answer** — the PDF asks for the nature of the user data, expected query patterns and scalability requirements.
 
-<to be written by the team>
+> for database choice, we picked PostgreSQL as it is ACID and can support concurrency, other decisions include MongoDB, MySQL, SQlite.
+>
+> — Reallyeasy1, 2026-09-28; confirmed as the team's answer 2026-09-30 (see the decision record linked above)
 
 ### 2b. Concrete schema
 
@@ -154,7 +166,7 @@ Index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
 
 **Team's answer**
 
-<to be written by the team>
+_Team to answer — not yet written._
 
 ## 3. Authentication and authorization
 
@@ -191,7 +203,11 @@ Index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
 
 **Team's answer** — the PDF asks you to justify why this approach suits FoC.
 
-<to be written by the team>
+> As for token based auth, we decided to go with a common middleware for every service that they can use to verify whether they are admin or user and then also have the session auth by the api gateway, rather than make a call at the user service every time to reduce single point of failure.
+>
+> — Reallyeasy1, 2026-09-28; confirmed as the team's answer 2026-09-30 (see the decision record linked above)
+
+Presenter note: on `main` the gateway does not authenticate; each service verifies the token itself. The gateway model is PR #97, not merged.
 
 ### 3c. Live demonstration
 
@@ -244,7 +260,7 @@ Use the trailing slash on `/api/users/` through the gateway; without it nginx an
 
 **Team's answer**
 
-<to be written by the team>
+_Team to answer — not yet written._
 
 ## 6. Role lifecycle and administration
 
@@ -262,7 +278,9 @@ Promotion is implemented; the last-administrator cases are not guarded (conflict
 
 **Team's answer** — the PDF asks how the process is controlled and secured.
 
-<to be written by the team>
+> As for admin story, well we wanted to have an admin that everyone can log in to and is reproducible across different machines so we try and keep this consistent
+>
+> — Reallyeasy1, 2026-09-28; confirmed as the team's answer 2026-09-30 (see the decision record linked above)
 
 ### 6b. How does a user get promoted?
 
@@ -274,7 +292,7 @@ Promotion is implemented; the last-administrator cases are not guarded (conflict
 
 **Team's answer** — the intended workflow.
 
-<to be written by the team>
+_Team to answer — not yet written._
 
 ### 6c. Edge cases
 
@@ -286,7 +304,7 @@ Promotion is implemented; the last-administrator cases are not guarded (conflict
 
 **Team's answer** — intended behaviour for each case.
 
-<to be written by the team>
+_Team to answer — not yet written._
 
 ---
 
@@ -306,7 +324,9 @@ Promotion is implemented; the last-administrator cases are not guarded (conflict
 
 **Team's answer** — the PDF asks about structured vs flexible data, query patterns and scalability.
 
-<to be written by the team>
+> for database choice, we picked PostgreSQL as it is ACID and can support concurrency, other decisions include MongoDB, MySQL, SQlite.
+>
+> — Reallyeasy1, 2026-09-28; confirmed as the team's answer 2026-09-30 (see the decision record linked above)
 
 ### 1b. Concrete schema
 
@@ -437,11 +457,13 @@ Filters combine with AND. Full contract: [`api/supplier-service.yaml`](./api/sup
 
 # Still to be written by the team
 
+Reallyeasy1 confirmed on 2026-09-30 that the statements in decision records 0001–0004 are the team's answers; they are quoted above in 1b, 2a (both parts), 3b and 6a. Still without a statement:
+
 | Item | Where |
 |---|---|
-| Why these roles (1b) | this file, [`decisions/0003-roles.md`](./decisions/0003-roles.md) |
-| Database justification, both services (Part 1 §2a, Part 2 §1a) | this file, [`decisions/0001-database-choice.md`](./decisions/0001-database-choice.md) |
-| Why this authentication and authorization approach (3b) | this file, [`decisions/0002-token-verification.md`](./decisions/0002-token-verification.md) |
-| First administrator: control and security (6a) | this file, [`decisions/0004-first-administrator.md`](./decisions/0004-first-administrator.md) |
-| Promotion workflow and edge cases (6b, 6c) | this file |
-| Statement vs code differences in 1a and 3b | the two decision records above |
+| How credentials are stored securely (2c) | this file |
+| How profile fields are protected (5b) | this file |
+| Promotion workflow (6b) | this file |
+| Self-revoke and last-admin edge cases (6c) | this file |
+| Statement vs code differences in 1a and 3b | [`decisions/0002-token-verification.md`](./decisions/0002-token-verification.md), [`decisions/0003-roles.md`](./decisions/0003-roles.md) |
+| Context, Options, Rationale, Consequences of the four records | `docs/decisions/` |
