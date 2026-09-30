@@ -1,23 +1,18 @@
 <!--
 AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: replaced the `PATCH /:id/admin` and `POST /:id/promote` sections with `toggle-status`, `toggle-role` and `DELETE /:id`, as implemented in `user-routes.ts`. Describes existing behaviour only.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the User Service authentication and immutable-email profile API contract with shared response fields.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the deferred ADMIN user-management endpoint placeholders, structured `501` responses, and refresh-token replay behavior.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Brought the reference in step with the routes on `main` @ f0ee632: added `status` to every user object, replaced
 the "Deferred administration endpoints" section with the implemented `GET /api/users` and `PATCH /api/users/:id/admin`,
@@ -25,6 +20,10 @@ removed `GET /api/users/:id` (no such route), kept `POST /api/users/:id/promote`
 the `INVALID_JSON` / `INVALID_REQUEST` codes. Describes existing behaviour only.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
+
+
 
 # User Service API Reference
 

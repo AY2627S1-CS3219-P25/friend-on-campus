@@ -1,34 +1,32 @@
 <!--
 AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: `building` and `floor` are required, the 409 duplicate rule and its index, the 400 on blank fields in `PUT`, and the second migration, as implemented in `supplierRoutes.ts`, `schema.prisma` and the migration SQL. Existing behaviour only.
 Author review: <to be completed by the service owner>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this page from services/supplier-service source, docker-compose.yml, the init SQL and D1 / D2-plan text. Descriptive only.
 Author review: <to be completed by the service owner>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the author-approved Ed25519 access-token verification migration.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated documentation to reflect that table definitions and migrations are managed exclusively by Prisma in supplier-service, resolving conflict 15.
 Author review: (to be completed by author after review)
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Added facts observed in the D2 UAT on `main` @ f0ee632: name sort order, seed on container boot, denial codes,
 and the UAT drivers under Tests. Observed facts only.
 Author review: <to be completed by the service owner>
 -->
+
+
+
+
+
 
 # supplier-service
 

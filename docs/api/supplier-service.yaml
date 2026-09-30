@@ -2,11 +2,12 @@
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 # Scope: PR #93: building and floor are required, POST and PUT document the 409 duplicate response, PUT documents the 400 on blank fields. Transcribed from supplierRoutes.ts and common-dtos.
 # Author review: <to be completed by the service owner>
-# AI Assistance Disclosure:
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 # Scope: Transcribed the routes that exist in services/supplier-service/src/backend/supplierRoutes.ts and the types in
 #   packages/common-dtos on `main` @ f0ee632 into OpenAPI. Describes the API as built; designs nothing new.
 # Author review: <to be completed by the service owner>
+
 openapi: 3.0.3
 info:
   title: Supplier Service API (as built)

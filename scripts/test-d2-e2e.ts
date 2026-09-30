@@ -1,34 +1,24 @@
 /**
  * AI Assistance Disclosure:
+ * 
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Aligned D2 account, session, profile, structured administration-placeholder, and Supplier Service RBAC checks with the author-approved Ed25519 contracts.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Made the runner work on Windows (spawn through a shell so `npx` resolves; kill the process tree on
  * cleanup), raised the service readiness timeout from 8 s to 30 s (user-service cold-starts in ~10 s), and
  * added an assertion that the access token carries the standard claims (sub, sid, role, iat, exp, iss, aud).
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-24
  * Scope: Fixed function reference from decodeJwtPayload to decodeJwtClaims in student JWT claims assertions.
  * Author review: (to be completed by author after review)
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Rewrote Scenario 4 (renamed from "Deferred Administration Endpoint Authorization" — nothing there is
  * deferred anymore). Fixed two assertions that were already stale before this change (found during
@@ -40,15 +30,15 @@
  * each way, not just the status code), an admin blocked from targeting their own id for toggle-role, and an
  * unknown-UUID 404.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
  * Scope: PR #93 review fix: Scenario 6 sends the now-required building and floor when the admin creates the
  * test supplier, and asserts that a create without them is rejected with 400. The test supplier's name
  * carries the random test code, so a row left by an aborted run cannot trip the uniqueness rule.
  * Author review: (to be completed by author after review)
  */
+
+
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';

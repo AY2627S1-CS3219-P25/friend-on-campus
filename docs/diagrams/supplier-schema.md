@@ -3,13 +3,13 @@ AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: `building` and `floor` are required and the location uniqueness index was added. Transcribed from `schema.prisma` and the migration SQL.
 Author review: <to be completed by the service owner>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Transcribed services/supplier-service/src/database/prisma/schema.prisma into an ER diagram. No design change.
 Author review: <to be completed by the service owner>
 -->
+
+
 
 # Supplier Service schema — `supplier_db` (`main` @ f0ee632)
 

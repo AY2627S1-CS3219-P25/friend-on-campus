@@ -3,30 +3,23 @@
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Responsive shell, adaptive navigation, card grids, control sizing, and scrollable dialogs.
  * Author review: <to be completed by huangjiaxi1111>
- */
-// AI-generated (edited by huangjiaxi1111)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented Milestone D2 Admin Portal with Edit/Delete/Details modals, table sorting, pagination, mobile layout per Screen 6 wireframe, and demo RBAC switcher.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Removed redundant quick-category filter chips next to the Filter button; changed the Advanced Filter modal so category/zone chip selections are held as draft state and only applied to the supplier list when "Apply Filters" is clicked (previously filtered live on every chip click); reset now also clears pagination.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Fixed the "Permanent Hard Delete" checkbox in the Delete Supplier modal not resetting between delete attempts (now reset when opening the modal for a supplier and when cancelling). Added client-side RBAC gating so the "Add Location" button and per-row Deactivate/Edit/Delete controls (desktop table and mobile card views) only render for the ADMIN demo role; Student/Guest roles now only see the "view details" (Eye) icon.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
  * Scope: Aligned demo login requests and access-token handling with the approved User Service contract and seed credentials.
  * Author review: <to be completed by ngkhengyang>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Merge of dev into the user-service PR: the login gate now posts { email, password } and reads
  * data.data.accessToken (the User Service contract from PR #76); error boxes read the service's { error, code }
@@ -36,57 +29,46 @@
  * message until the endpoint exists (issue #70).
  * Author review: <to be completed by ngkhengyang>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a new admin-only "Users" directory page (sidebar nav, KPI cards, search, filter, sortable table/card list, pagination), fetching from GET /api/users through the existing API Gateway proxy path (no gateway/vite config changes needed, both already route /api/users to user-service). Read-only: no add/edit/delete controls. Search covers nusEmail/fullName/matricNumber/phoneNumber/telegramHandle case-insensitively; filters (role, min rating, min completed orders) follow the same draft-until-"Apply Filters" pattern as the Suppliers page.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a real login gate in front of the whole admin dashboard: a login page (NUS email + password) posts to /api/auth/login through the gateway, shows a loading spinner while in flight, decodes the returned JWT's role claim client-side and only proceeds into the dashboard if it is ADMIN (a valid Student login is explicitly rejected with a red error box showing the error code/message). Removed the mount-time auto-login and the "Demo RBAC Role" Admin/Student/Guest switcher (both sidebar and mobile drawer) since the login gate now guarantees only Admins reach the dashboard; replaced with a client-side-only "Log Out" button (no logout endpoint exists on the backend, and none is needed since the JWT is stateless). Removed the now-redundant isAdmin role checks that previously hid the Add Location/Deactivate/Edit/Delete buttons and the Users nav item — since only Admins can log in at all now, those controls render unconditionally.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added the missing Description textarea to the Add Supplier modal (previously only editable via a follow-up Edit). Added a shared validateSupplierForm() check (Name, Campus Zone, Category, Exact Pickup Spot Description) run client-side before either the create or update API call, with inline red error messages shown under each invalid field and no request sent until they're fixed. Turned the plain "*" required-field markers red in both modals and added a "fields marked with * are required" legend to each. Added the missing asterisk + required check on the Edit modal's "Exact Pickup Spot Description" field, which was previously the only one of the four core fields not marked required there, unlike the Add modal.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
  * Scope: Synced the Users directory page to the real, now-implemented UserDTO ({userId, username, email, userRole}) instead of the interim local AdminUserListItem placeholder — removed matric/rating/completed-orders/phone/Telegram/joined-date fields throughout (KPI cards, search predicate, filter modal, table columns, mobile card) since they no longer exist on the User model, and dropped the Min Rating / Min Completed Orders filter inputs along with their state. Search now checks username/email only; the Filter modal keeps only the Role chips. The login gate and student-app login/signup were already aligned to the new contract by teammates during the same merge, so no changes were needed there.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
  * Scope: Wired fetchUsers() to the now-implemented GET /api/users (removed the dead 501-stub special case, fixed response parsing from json.data.items to json.data.users). Added a visible "Loading users…" indicator inside the Users content area (previously only the small header refresh icon spun), and an empty-state message on the mobile card view to match the desktop table's existing one; both now wait for loading to finish before showing "No users found" so it doesn't flash mid-fetch.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
  * Scope: Added a Status column (Active/Disabled badge) and a red "Disable" / green "Reinstate" button to the Users table (desktop) and card (mobile), calling the new admin-only PATCH /api/users/:id/admin endpoint via a new toggleUserStatus() handler (mirrors the existing supplier toggleStatus()). Added a togglingUserIds Set to disable a row's button while its request is in flight, preventing double-click races; the button's label/color is derived solely from the server's returned user object, never flipped optimistically, so it can't drift out of sync with the account's real state.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: handleLogout now calls the real POST /api/auth/logout through the gateway (confirmed already implemented and unauthenticated — it revokes the session via the refresh_token cookie already set at login) before clearing local session state, instead of only clearing client-side state. Added isLoggingOut state; both Log Out buttons (sidebar footer, mobile drawer) show a spinning RefreshCw icon and "Logging out…" label while the request is in flight, and are disabled to prevent double-clicks. Local state is always cleared in a finally block regardless of whether the network call succeeds, so a logout can't get stuck if the server is unreachable.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Mirrored the student app's "Remember me" + silent session-restore feature into the admin login gate. Added a "Keep me logged in" checkbox to the login form, sent as keepLoggedIn in the /api/auth/login request (selects the backend's 30-day persistent session window instead of the standard 1-day one). Added a silent session-restore effect on app load: calls POST /api/auth/refresh (browser auto-attaches the refresh_token cookie); on success it decodes the restored token's role and only auto-authenticates if it's ADMIN (falls through silently to the login page otherwise, matching how a non-admin password login is already handled), on failure it falls through to the login page. A brief spinner screen covers this check. handleLogout now also resets rememberMe and returns activeNav to its default ('suppliers').
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
  * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchUsers, supplier create/update/delete/toggle and toggleUserStatus now go through authFetch; getAuthHeaders removed. The public GET /api/suppliers is unchanged.
  * Author review: <to be completed by Reallyeasy1>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added a delete (Trash2) button beside each user row's Disable/Reinstate button on the Users page
  * (desktop table and mobile card), mirroring the existing Delete Supplier button/modal pattern but simplified:
@@ -97,20 +79,16 @@
  * returns to the dashboard. On failure the error is shown inline in the confirmation modal itself.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: toggleUserStatus() now calls PATCH /api/users/:id/toggle-status instead of the old .../admin path
  * (backend route renamed to stop implying it changes the ADMIN role, which it never did — it only ever flips
  * the status boolean).
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Fixed a mobile-nav parity bug — added the missing "Audit & Disputes" item to the sub-768px hamburger drawer nav so it matches the desktop sidebar's 4 sections.
  * Author review: [left for the human author to fill in]
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: Added an Upgrade/Downgrade role-toggle button to each user row (desktop table + mobile card), right
  * beside Disable/Reinstate — green "Upgrade" for a STUDENT, red "Downgrade" for an ADMIN. Opens a confirmation
@@ -121,9 +99,7 @@
  * the backend's "Admins cannot change their own role" message if the admin targets their own row — no
  * client-side self-id check needed, the backend already enforces and reports it.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: Added a client-side self-targeting check to handleToggleUserRole, ahead of the previous round's
  * backend-only enforcement — added a new decodeJwtUserId() helper (reads the JWT's `sub` claim, same pattern as
@@ -133,9 +109,7 @@
  * pure UX optimization to avoid a wasted round-trip for an action that was already guaranteed to fail; the
  * backend's own SELF_ACTION_FORBIDDEN check remains the actual enforcement and is unchanged.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: Reverted the client-side self-targeting check above (author-requested) — removed decodeJwtUserId(),
  * currentAdminUserId state, and handleToggleUserRole's early-return short-circuit. Self-downgrade is once again
@@ -143,9 +117,7 @@
  * inline error box exactly as it was before this round. Everything else from the previous round (the
  * Upgrade/Downgrade button, confirmation modal, and handleToggleUserRole's API call itself) is unchanged.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: Add/Edit Supplier modals: Building and Floor are now required (red asterisk, validateSupplierForm
  * check, no API call sent until both are filled), matching the new backend uniqueness rule on
@@ -157,6 +129,13 @@
  * name/category/building/floor. Reset at every existing open/cancel/close touchpoint for both modals.
  * Author review: (to be completed by author after review)
  */
+
+// AI-generated (edited by huangjiaxi1111)
+
+
+
+
+
 // AI-generated (edited by yanhwee)
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';

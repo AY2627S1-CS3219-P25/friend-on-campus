@@ -1,3 +1,8 @@
+// AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-09-30
+// Scope: Serve admin pages and assets under /admin/ through the gateway.
+// Author review: <to be completed by huangjiaxi1111>
+// AI-generated (edited by huangjiaxi1111)
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -10,6 +15,7 @@ const supplierTarget = process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:800
 const userTarget = process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
 
 export default defineConfig({
+  base: '/admin/',
   plugins: [react()],
   server: {
     port: 5174,

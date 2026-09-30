@@ -4,13 +4,13 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this set-up guide from the configuration in this folder and from problems actually hit while
 setting it up on Windows (gh default repo, missing language server, missing node_modules, plugin start-up timeouts).
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the shared-DTO reference example after the author-approved authentication migration.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
 
 # Claude Code set-up guide for this repo
 

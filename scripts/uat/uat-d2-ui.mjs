@@ -1,12 +1,18 @@
 // AI Assistance Disclosure:
+//
+// Tool: Codex (model: GPT-6), date: 2026-09-30
+// Scope: Test the admin portal through the gateway and the student login's Admin Log In navigation and reload.
+// Author review: <to be completed by huangjiaxi1111>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-28, 2026-09-29
 // Scope: 2026-09-29: results file now goes to the temp folder (or UAT_OUT), like the API driver; header comment corrected. 2026-09-28: fixed the ADMIN_URL default (it referenced itself). Wrote this D2 UAT driver: 29 browser-level checks with Playwright (admin portal desktop + mobile: login gate, search, filter, sort, pagination, details, add/edit/delete, Users page; student app mobile + desktop: login, session restore, Spots directory, search, Post, Profile, logout) and the docs/evidence/d2/screenshots capture.
 // Author review: <to be completed by Reallyeasy1>
+
 // AI-generated (edited by Reallyeasy1)
 // Run: npm i --no-save playwright@1.63.0 && npx playwright install chromium && node scripts/uat/uat-d2-ui.mjs
 // (playwright is deliberately not a repo dependency; --no-save keeps package.json unchanged)
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
-// gateway at /, admin portal on its own port (ADMIN_URL, default http://localhost:5174/).
+// gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
 // Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;
 // results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
 import { chromium } from 'playwright';
@@ -16,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const GW = process.env.GW ?? 'http://localhost';
-const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:5174/'; // /admin/ via the gateway renders the student app
+const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
 const SHOTS = process.env.SHOTS ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../docs/evidence/d2/screenshots');
 const PW = 'Password123!';
 const DESKTOP = { width: 1440, height: 900 };
@@ -271,6 +277,16 @@ const browser = await chromium.launch();
     await page.goto(`${GW}/`);
     await page.getByRole('button', { name: 'Log In' }).waitFor();
     await shot(page, 'student-login-mobile');
+  });
+  await step('US1A', 'student login links to the admin login through the same origin', async () => {
+    await page.getByRole('link', { name: 'Admin Log In', exact: true }).click();
+    await page.getByRole('heading', { name: 'Admin Log In', exact: true }).waitFor();
+    if (new URL(page.url()).pathname !== '/admin/') throw new Error('admin base path was not preserved');
+    await page.reload();
+    await page.getByRole('heading', { name: 'Admin Log In', exact: true }).waitFor();
+    await shot(page, 'admin-login-from-student-mobile');
+    await page.goto(`${GW}/`);
+    await page.getByRole('button', { name: 'Log In', exact: true }).waitFor();
   });
   await step('US2', 'student (mobile): wrong password shows an error box', async () => {
     await page.locator('input[type=email]').fill('alice@u.nus.edu');

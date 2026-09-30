@@ -1,59 +1,53 @@
 <!--
 AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: replaced `PATCH /:id/admin` and `POST /:id/promote` with `toggle-status`, `toggle-role` and `DELETE /:id` in the API table, the roles table and the behaviour notes, as implemented in `user-routes.ts`. Existing behaviour only.
 Author review: <to be completed by the service owner>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this page from services/user-service source, docker-compose.yml, the init SQL and D1 / D2-plan text. Descriptive only.
 Author review: <to be completed by the service owner>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated the page to describe the author-approved Prisma account and session persistence implementation.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
 Scope: Updated the access-token claim names to the RFC 7519 registered names now emitted by the service.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated local and Compose database connection facts for the shared PostgreSQL deployment.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated profile and password endpoint facts for the immutable-email contract.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Documented the author-approved deferred ADMIN User Service endpoint placeholders, structured `501` responses, and interoperable JWT claims.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated persistence documentation to reflect that user-service owns its Prisma migrations on container boot rather than relying on shared init SQL.
 Author review: (to be completed by author after review)
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Brought the page in step with `main` @ f0ee632 after the D2 UAT: `users.status` column and second migration, the
 implemented `GET /api/users` and `PATCH /api/users/:id/admin`, the removed `GET /api/users/:id`, and new sections
 "Roles as enforced", "Behaviour as built" and "Tests". Observed facts only, no recommendation.
 Author review: <to be completed by the service owner>
 -->
+
+
+
+
+
+
+
+
+
 
 # user-service
 

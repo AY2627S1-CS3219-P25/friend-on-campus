@@ -1,9 +1,15 @@
-// AI Assistance Disclosure:
-// Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
-// Scope: Proxy targets now read from env vars (falling back to localhost for host-based dev), mirroring
-// the admin-portal fix — student-app runs in its own container where "localhost" refers to itself, not
-// the backend containers, so docker-compose.yml overrides these to the real service names.
-// Author review: (to be completed by author after review)
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
+ * Scope: Proxy targets now read from env vars (falling back to localhost for host-based dev), mirroring
+ * the admin-portal fix — student-app runs in its own container where "localhost" refers to itself, not
+ * the backend containers, so docker-compose.yml overrides these to the real service names.
+ * Author review: (to be completed by author after review)
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Forward admin navigation and assets during direct Vite development.
+ * Author review: <to be completed by huangjiaxi1111>
+ */
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -17,6 +23,7 @@ const supplierTarget = process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:800
 const userTarget = process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
 const gatewayTarget = process.env.GATEWAY_URL ?? 'http://localhost';
 const notificationTarget = process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
+const adminTarget = process.env.ADMIN_PORTAL_URL ?? 'http://localhost:5174';
 
 export default defineConfig({
   plugins: [react()],
@@ -24,6 +31,11 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
+      '/admin': {
+        target: adminTarget,
+        changeOrigin: true,
+        ws: true,
+      },
       '/api/suppliers': {
         target: supplierTarget,
         changeOrigin: true,

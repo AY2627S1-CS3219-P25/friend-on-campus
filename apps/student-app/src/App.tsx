@@ -1,27 +1,22 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive shell, adaptive navigation, card grids, control sizing, and scrollable dialogs.
+ * Scope: Responsive layouts and an Admin Log In link on the student login page.
  * Author review: <to be completed by huangjiaxi1111>
- */
-// AI-generated (edited by huangjiaxi1111)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Connected Student App to live Supplier Service API (/api/suppliers), added dynamic supplier dropdown in errand creation, and added campus supplier directory browsing tab.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a Log In / Sign Up gate in front of the whole app. Log In posts to /api/auth/login through the gateway with a loading-spinner button and a red error box (code + message) on failure. Sign Up posts to /api/auth/register with 7 fields (5 required, marked with a red asterisk), client-side validation before any API call (required fields filled, retype-password matches password, password 8-24 characters), and auto-logs the user in on success using the token returned by the register response. "Sign up"/"Log in" links toggle between the two forms in place. No role restriction (unlike the admin portal's login gate) — any successfully authenticated account is let in. The rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet data) is unchanged.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Fixed the "Spots" tab hiding suppliers an admin has deactivated. fetchLiveSuppliers now fetches all suppliers (dropped the ?isActive=true query param) instead of only active ones. The Post Errand pickup dropdown still only ever offers active suppliers (new `activeSuppliers` derived list), so unavailable ones can't be selected as a pickup point, but the Spots tab now shows every supplier — inactive ones rendered dimmed (bg-slate-50, opacity-60) with a red "Unavailable" badge and a disabled, unclickable "Pick for Errand" button.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Merge of dev into the user-service PR: Log In posts { email, password } and reads data.data.accessToken;
  * Sign Up now sends the User Service (PR #76) registration contract { username, email, password } (the full name,
@@ -30,37 +25,30 @@
  * Error boxes read the service's { error, code } shape.
  * Author review: <to be completed by ngkhengyang>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Renamed the bottom-nav "Wallet" tab to "Profile" (UserCircle icon), keeping all existing wallet content unchanged but shifted below a new "Profile Info" section. Added GET /api/users/me (lazy-loaded when the tab opens) displaying User ID/Username/Email/Role/Status, all disabled by default with a "Loading users..." indicator and red error box on failure; red asterisks on Username/Email only (the two NOT NULL+unique fields per 01-init-databases.sql, per the author's choice — Role/Status are also NOT NULL but read-only here). "Edit" enables only the Username input and is replaced by a stacked "Cancel"/"Update" pair; "Update" shows a spinner and calls PATCH /api/users/me, updating the field from the server's returned value on success or showing an inline error (e.g. duplicate username) otherwise; "Cancel" discards the draft and reverts to view mode.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Removed the User ID field from Profile Info (now just Username/Email/Role/Status). Role and Status now render as colored badge divs instead of disabled text inputs: Role is emerald for STUDENT / blue for ADMIN, Status is emerald for Active / rose for Disabled — same "transparent tint + colored border" badge style already used in the admin portal.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Added a "Remember me?" checkbox to the Log In form, sent as keepLoggedIn in the /api/auth/login request (defaults to false everywhere else, e.g. Sign Up's auto-login call is unaffected) — this selects the backend's existing 30-day persistent session window instead of the standard 1-day one, verified live via the sessions table. Added a silent session-restore check on app load: a new mount effect calls POST /api/auth/refresh (the browser attaches the refresh_token cookie automatically) before deciding whether to show the login page; on success it restores the access token and logs the user back in without any interaction, on a 401 it falls through silently to the login page (expected for a first visit or an expired session, not an error). A brief spinner screen covers this check so a still-logged-in user never sees a flash of the login form.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Added a "Log Out" button (blue, full-width) at the bottom of the Profile page's Profile Info section, below the Transaction Ledger. Calls POST /api/auth/logout through the gateway (revokes the session server-side via the refresh_token cookie, no request body/headers needed); client-side auth state (isAuthenticated, authToken, login form fields, rememberMe, profile, activeTab reset to 'feed') is cleared unconditionally in a finally block, so a network failure calling the server never leaves the user stuck logged-in locally. Shows a spinner + "Logging out…" while in flight. Verified live with curl/cookie jars: logout returns 204, the matching sessions row is deleted, the refresh_token cookie is cleared server-side, and a subsequent /api/auth/refresh call correctly returns 401 INVALID_SESSION.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
  * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
  * Author review: <to be completed by Reallyeasy1>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added a "Delete Account" button (red, full-width) below Log Out on the Profile page. Opens a
  * confirmation modal (warning text, inline error box on failure, a required "I understand this is
@@ -71,11 +59,11 @@
  * are new, styled to match this file's existing rose-error-box and RefreshCw-spinner conventions.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added a responsive desktop layout (top nav bar, wide multi-column content grids) gated on Tailwind's md: (768px) breakpoint, alongside the existing mobile phone-card layout.
  * Author review: [left for the human author to fill in]
  */
+
 // AI-generated (edited by yanhwee)
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -720,6 +708,14 @@ export default function App() {
                 </button>{' '}
                 with us
               </p>
+              <div className="border-t border-slate-200 pt-4">
+                <a
+                  href="/admin/"
+                  className="flex min-h-11 w-full items-center justify-center rounded-lg border border-nus-blue px-4 py-2.5 text-sm font-bold text-nus-blue transition hover:bg-blue-50"
+                >
+                  Admin Log In
+                </a>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleSignup} className="space-y-3">

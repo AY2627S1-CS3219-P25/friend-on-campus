@@ -1,15 +1,16 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
  * Scope: Generated Express server entry point that mounts the supplier routes (replaces src/index.ts).
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Configured the author-approved Ed25519 Supplier Service access-token verifier at startup.
  * Author review: <to be completed by ngkhengyang>
  */
+
+
 // AI-generated (edited by jagdeepsh)
 // AI-generated (edited by ngkhengyang)
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';

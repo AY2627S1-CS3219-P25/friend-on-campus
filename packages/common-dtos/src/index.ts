@@ -1,35 +1,24 @@
 /**
  * AI Assistance Disclosure:
+ * 
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Replaced legacy user and authentication DTOs with the author-approved account and session contract.
  * Author review: (to be completed by author after review)
- */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Added the author-approved refresh-token response DTO, standardized shared JWT claims, and structured API error codes.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: JWTPayload now uses the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud);
  * LoginUserRequest.keepLoggedIn made optional and UpdateUserProfileRequest.username made required to match
  * the User Service behaviour and API reference. Applied on the PR author's behalf after review round 2.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: CreateSupplierRequest.building/.floor changed from optional to required, so a caller creating a
  * supplier can no longer omit them — needed for the new (name, category, building, floor) uniqueness
@@ -37,6 +26,7 @@
  * UpdateSupplierRequest and SupplierDTO are unchanged (partial-update and read shapes stay flexible).
  * Author review: (to be completed by author after review)
  */
+
 /**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
  * Used across Frontend apps and Backend microservices.

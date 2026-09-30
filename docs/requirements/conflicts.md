@@ -4,19 +4,18 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Listed places where D1, the D2 plan, issue #1 and the code on milestone-d2 say different things.
 Observations only — the "Resolution" column is deliberately empty and is for the team to fill.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
 Scope: Corrected stale code references, removed the resolved legacy-registration-fields mismatch, and recorded the approved generic valid-email policy over the superseded NUS-only test behavior.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Recorded resolution for conflict 15: decoupled database table creation from 01-init-databases.sql into service-owned Prisma migrations.
 Author review: (to be completed by author after review)
 -->
+
+
+
 
 # Open conflicts between documents, issues and code
 
