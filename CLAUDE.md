@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Section 5: added `npm test` and the unit-test note (Node's built-in runner, no framework), and put `npm test` in the before-you-say-it-works rule.
+Author review: <to be completed by Reallyeasy1>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: the Vite dev proxy note in section 4 now says student-app reads its proxy targets from env vars.
 Author review: <to be completed by Reallyeasy1>
@@ -137,6 +143,7 @@ npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:stude
 npm run db:migrate --workspace=@campus-errand/<service>
 npm run db:seed    --workspace=@campus-errand/<service>
 npm run typecheck                             # all workspaces — run after every code change
+npm run test                                  # unit tests: user-service and supplier-service (node:test + tsx, no database)
 npm run test:d2                               # D2 end-to-end suite — see note below
 docker exec -it campuserrand-postgres psql -U postgres
 ```
@@ -149,9 +156,9 @@ docker exec -it campuserrand-postgres psql -U postgres
 
 **Code intelligence:** the `typescript-lsp` plugin is enabled for this project (`.claude/settings.json`). It needs the server on your PATH once per machine — `npm install -g typescript-language-server typescript` — and `npm install` in the repo so imports and the generated Prisma clients resolve. With it, prefer the `LSP` tool (go to definition, find references, hover) over grepping when tracing a type or function across workspaces, e.g. who uses a `common-dtos` type. It does not replace `npm run typecheck` before reporting.
 
-There is no lint script and no unit-test runner yet (tracked in issue #68). Do not add one unprompted.
+Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed): `services/<name>/test/*.test.ts`, run with `npm test` at the root or in the workspace. They need no database: user-service tests use in-memory repositories, supplier-service tests replace the Prisma client and the repository with `mock.module` (hence `--experimental-test-module-mocks` in its script). There is no lint script (tracked in issue #68). Do not add a test framework or linter unprompted.
 
-Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
+Before saying a change works: run `npm run typecheck` and `npm test`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
 
 ## 6. Git and GitHub
 

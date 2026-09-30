@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Tests section: added the unit-test suite.
+Author review: <to be completed by the service owner>
+-->
+<!--
+AI Assistance Disclosure:
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: replaced `PATCH /:id/admin` and `POST /:id/promote` with `toggle-status`, `toggle-role` and `DELETE /:id` in the API table, the roles table and the behaviour notes, as implemented in `user-routes.ts`. Existing behaviour only.
@@ -182,6 +188,7 @@ the items about `toggle-role` and `DELETE` are read from the code and have not b
 
 ## Tests
 
+- `npm test --workspace=@campus-errand/user-service` — 92 unit tests in `test/` (Node's built-in runner via `tsx`, no database): validation rules, scrypt hashing, token signing, the auth and user modules against in-memory repositories, and the assembled app over HTTP (cookies, token errors, RBAC, self-target rules, error bodies).
 - `npm run test:d2` — Scenario 4 covers the user list, `toggle-status` and `toggle-role`. The last recorded run (40/44, on f0ee632) predates that rewrite.
 - `tests/postman/` — Postman collection and environment for this service and Supplier Service, run against ports 8001 / 8002.
 - `node scripts/uat/uat-d2-api.mjs` — 63 API checks against a running stack; the recorded results in `../evidence/d2/` are from f0ee632.

@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Tests section: added the unit-test suite.
+Author review: <to be completed by the service owner>
+-->
+<!--
+AI Assistance Disclosure:
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: `building` and `floor` are required, the 409 duplicate rule and its index, the 400 on blank fields in `PUT`, and the second migration, as implemented in `supplierRoutes.ts`, `schema.prisma` and the migration SQL. Existing behaviour only.
@@ -102,6 +108,8 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 `../requirements/conflicts.md` rows 10 (guest reads), 11 (`PATCH` + `version` + 409 contract), 15 (duplicated table definitions - resolved). Also observable against D2 plan App. B–C: the plan's duplicate rule is name + campus location, the code's is name + category + building + floor; unsupported sort/filter values should return 400; list shape there is `{ items, page, pageSize, totalItems }`.
 
 ## Tests
+
+`npm test --workspace=@campus-errand/supplier-service` runs 47 unit tests in `test/` (Node's built-in runner via `tsx`, no database): the repository's query building, pagination and trimming with the Prisma client mocked, and the routes over HTTP with the repository mocked and the real token middleware (RBAC, required fields, the 409 duplicate rule, toggle, delete).
 
 `npm run test:d2` covers supplier queries and admin-vs-student access. It starts this service itself on 8002. Its supplier and cross-service blocks pass on f0ee632.
 
