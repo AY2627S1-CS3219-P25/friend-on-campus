@@ -7,6 +7,10 @@
 # Scope: Added the Linked-issues check to the review prompt (replaces the deleted
 # pr-linked-issue.yml workflow) and allowed the read-only gh issue commands it needs.
 # Author review: <to be completed by Reallyeasy1>
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+# Scope: Raised --max-turns from 40 to 1500 at the author's request and updated the comment beside it.
+# Author review: <to be completed by Reallyeasy1>
 #
 # Automated Claude Code review of pull requests.
 #
@@ -70,12 +74,15 @@ jobs:
           # Model: `best` resolves to the Fable model (Fable 5.1 on Claude Code
           # >= 2.1.257) when the subscription has access to it, otherwise to the
           # current Opus. Use `--model fable` to require Fable and fail otherwise.
-          # --max-turns bounds the work a single PR can cause.
+          # --max-turns is set high on purpose: the action fails the job when a
+          # review finishes above it, even if the review was posted (PR #92:
+          # 57 turns against a limit of 40). `timeout-minutes` above is what
+          # bounds the work a single PR can cause.
           # Review is read-only: no file-editing tools, and Bash is limited to
           # the listed read-only git/gh commands plus posting the review.
           claude_args: |
             --model best
-            --max-turns 40
+            --max-turns 1500
             --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr checks:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(git blame:*)"
             --disallowedTools "Edit,Write,NotebookEdit,WebSearch,WebFetch"
           prompt: |
