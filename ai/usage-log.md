@@ -1,5 +1,11 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Implemented responsive UI layouts.
+Author review: <to be completed by huangjiaxi1111>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
@@ -1447,3 +1453,19 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/services/user-service.md`, `docs/services/supplier-service.md`, `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml`, `docs/diagrams/supplier-schema.md`, `docs/d2-question-guide.md`, `services/user-service/docs/api-reference.md` — routes and rules as built on this branch.
 - `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
 - Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.
+
+## 2026-09-30 16:23 SGT — Implement responsive student and admin UI
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Fix frontend UI responsiveness across student-app and admin-portal: remove fixed shell width caps, adapt navigation for mobile/tablet/desktop, convert feeds to card grids, arrange profile and credits side-by-side on desktop, enlarge control touch targets, and make dialogs scroll within viewport height.
+
+**Usage scenario:** Frontend UI styling and responsive improvements based on author specifications. Implemented full-width layouts, breakpoint navigation, desktop two-column views, accessible control sizing, and dialog overflow handling. Added responsive browser regression checks. No architecture, schema, or API changes; no commits or pushes.
+
+**Validation:** Typecheck and production builds passed successfully.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx`, `apps/student-app/src/index.css` — responsive shell/navigation, grids, Post and Profile sections, typography, focus and dialog sizing.
+- `apps/admin-portal/src/App.tsx`, `apps/admin-portal/src/index.css` — tablet navigation, table/card breakpoints, wrapping controls, typography and scrollable dialogs.

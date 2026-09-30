@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Responsive shell, adaptive navigation, card grids, control sizing, and scrollable dialogs.
+ * Author review: <to be completed by huangjiaxi1111>
+ */
+// AI-generated (edited by huangjiaxi1111)
+/**
+ * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented Milestone D2 Admin Portal with Edit/Delete/Details modals, table sorting, pagination, mobile layout per Screen 6 wireframe, and demo RBAC switcher.
  * Author review: (to be completed by author after review)
@@ -986,11 +993,11 @@ export default function App() {
               A
             </div>
             <h1 className="text-lg font-bold text-slate-900">Admin Log In</h1>
-            <p className="text-xs text-slate-500">NUS CampusErrand Admin Control Portal</p>
+            <p className="text-sm text-slate-500">NUS CampusErrand Admin Control Portal</p>
           </div>
 
           {loginError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
               <p className="font-bold">{loginError.code}</p>
               <p>{loginError.message}</p>
             </div>
@@ -998,7 +1005,7 @@ export default function App() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
               <input
                 type="email"
                 required
@@ -1010,7 +1017,7 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
               <input
                 type="password"
                 required
@@ -1023,7 +1030,7 @@ export default function App() {
             </div>
           </div>
 
-          <label className="flex items-center space-x-2 text-xs text-slate-600">
+          <label className="flex items-center space-x-2 text-sm text-slate-600">
             <input
               type="checkbox"
               checked={rememberMe}
@@ -1048,16 +1055,16 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-100 text-slate-800 font-sans overflow-hidden">
+    <div className="admin-shell flex h-dvh w-full bg-slate-100 text-slate-800 font-sans overflow-hidden">
       {/* Desktop Left Sidebar */}
-      <aside className="hidden md:flex w-64 bg-slate-900 text-white flex-col shrink-0">
+      <aside className="hidden lg:flex w-64 bg-slate-900 text-white flex-col shrink-0 overflow-y-auto">
         <div className="p-5 border-b border-slate-800 flex items-center space-x-3">
           <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center font-black text-white text-xl">
             A
           </div>
           <div>
             <h1 className="font-bold text-sm tracking-wide">NUS CampusErrand</h1>
-            <p className="text-[11px] text-slate-400">Admin Control Portal</p>
+            <p className="text-xs text-slate-400">Admin Control Portal</p>
           </div>
         </div>
 
@@ -1118,12 +1125,12 @@ export default function App() {
         <div className="p-4 border-t border-slate-800 bg-slate-950/60">
           <div className="flex items-center space-x-2 mb-3">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-xs font-bold text-slate-300 truncate">{loginEmail || 'Admin'}</span>
+            <span className="text-sm font-bold text-slate-300 truncate">{loginEmail || 'Admin'}</span>
           </div>
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
+            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-sm font-bold py-2 rounded-lg transition disabled:opacity-60"
           >
             {isLoggingOut ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1138,11 +1145,13 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navbar */}
-        <header className="bg-white border-b border-slate-200 px-4 md:px-6 py-3.5 flex items-center justify-between shadow-sm shrink-0">
+        <header className="bg-white border-b border-slate-200 px-4 md:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-3 shadow-sm shrink-0">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-slate-600 hover:text-slate-900 p-1"
+              aria-label="Toggle navigation"
+              aria-expanded={mobileMenuOpen}
+              className="lg:hidden text-slate-600 hover:text-slate-900 p-2"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -1156,13 +1165,13 @@ export default function App() {
                   ? 'System Health & Services'
                   : 'Audit Log & Resolution'}
               </h2>
-              <p className="text-[11px] text-slate-500 hidden sm:block">
+              <p className="text-xs text-slate-500 hidden sm:block">
                 Milestone D2 Verified • PostgreSQL & Microservices Integration
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Active Session Badge */}
             <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg">
               <span
@@ -1174,9 +1183,10 @@ export default function App() {
                     : 'bg-rose-500'
                 }`}
               />
-              <span className="text-xs font-bold text-slate-700">
+              <span className="text-sm font-bold text-slate-700 hidden sm:inline">
                 {currentRole === 'ADMIN' ? 'Admin: admin@nus.edu.sg' : currentRole === 'STUDENT' ? 'Student: alice@u.nus.edu' : 'Guest'}
               </span>
+              <span className="text-sm font-bold text-slate-700 sm:hidden">{currentRole === 'ADMIN' ? 'Admin' : currentRole === 'STUDENT' ? 'Student' : 'Guest'}</span>
             </div>
 
             <button
@@ -1196,7 +1206,7 @@ export default function App() {
                   setAddDuplicateConflict(null);
                   setIsAddOpen(true);
                 }}
-                className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow transition"
+                className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-2 rounded-lg shadow transition"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add Location</span>
@@ -1208,10 +1218,10 @@ export default function App() {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-slate-900 text-white p-4 space-y-2 border-b border-slate-800">
+          <div className="lg:hidden bg-slate-900 text-white p-4 space-y-2 border-b border-slate-800">
             <button
               onClick={() => { setActiveNav('suppliers'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                 activeNav === 'suppliers' ? 'bg-blue-600 text-white' : 'text-slate-300'
               }`}
             >
@@ -1223,7 +1233,7 @@ export default function App() {
                 fetchUsers();
                 setMobileMenuOpen(false);
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                 activeNav === 'users' ? 'bg-blue-600 text-white' : 'text-slate-300'
               }`}
             >
@@ -1231,7 +1241,7 @@ export default function App() {
             </button>
             <button
               onClick={() => { setActiveNav('health'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                 activeNav === 'health' ? 'bg-blue-600 text-white' : 'text-slate-300'
               }`}
             >
@@ -1240,7 +1250,7 @@ export default function App() {
             {/* AI-generated (edited by jagdeepsh) */}
             <button
               onClick={() => { setActiveNav('audit'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
                 activeNav === 'audit' ? 'bg-blue-600 text-white' : 'text-slate-300'
               }`}
             >
@@ -1250,7 +1260,7 @@ export default function App() {
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-60"
+                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-sm font-bold py-2 rounded-lg transition disabled:opacity-60"
               >
                 {isLoggingOut ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1266,7 +1276,7 @@ export default function App() {
         {/* Action Alert Banner */}
         {actionAlert && (
           <div
-            className={`px-4 py-2.5 text-xs font-medium flex items-center justify-between border-b ${
+            className={`px-4 py-2.5 text-sm font-medium flex items-center justify-between border-b ${
               actionAlert.type === 'success'
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                 : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -1290,9 +1300,9 @@ export default function App() {
         )}
 
         {/* Scrollable Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
           {(activeNav === 'users' ? errorUsers : error) && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center space-x-2">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
               <span>{activeNav === 'users' ? errorUsers : error}</span>
             </div>
@@ -1303,27 +1313,27 @@ export default function App() {
               {/* Desktop KPI Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Total Suppliers</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Total Suppliers</span>
                   <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{suppliers.length}</p>
                 </div>
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Active Locations</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Active Locations</span>
                   <p className="text-xl md:text-2xl font-black text-emerald-600 mt-1">
                     {suppliers.filter((s) => s.isActive).length}
                   </p>
                 </div>
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Campus Zones</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Campus Zones</span>
                   <p className="text-xl md:text-2xl font-black text-blue-600 mt-1">{uniqueZones} Zones</p>
                 </div>
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Categories</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Categories</span>
                   <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{CATEGORIES.length} Types</p>
                 </div>
               </div>
 
               {/* Filters & Search Row */}
-              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                 <div className="relative flex-1 max-w-md flex items-center">
                   <Search className="w-4 h-4 absolute left-3 text-slate-400" />
                   <input
@@ -1334,7 +1344,7 @@ export default function App() {
                       setSearchQuery(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {searchQuery && (
                     <button
@@ -1346,14 +1356,14 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => {
                       setDraftSelectedCategories(selectedCategories);
                       setDraftSelectedZones(selectedZones);
                       setIsFilterModalOpen(true);
                     }}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border shrink-0 transition ${
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border shrink-0 transition ${
                       activeFilterCount > 0
                         ? 'bg-blue-50 border-blue-300 text-blue-700'
                         : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1362,7 +1372,7 @@ export default function App() {
                     <SlidersHorizontal className="w-3.5 h-3.5" />
                     <span>Filter</span>
                     {activeFilterCount > 0 && (
-                      <span className="ml-1 bg-blue-600 text-white rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center font-bold">
+                      <span className="ml-1 bg-blue-600 text-white rounded-full text-xs w-4 h-4 inline-flex items-center justify-center font-bold">
                         {activeFilterCount}
                       </span>
                     )}
@@ -1370,8 +1380,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Mobile Card List View (Visible only on < md screens matching Screen 6 wireframe) */}
-              <div className="block md:hidden space-y-3">
+              {/* Mobile Card List View (Visible below the desktop table breakpoint) */}
+              <div className="block xl:hidden space-y-3">
                 {paginatedSuppliers.map((s) => (
                   <div
                     key={s.id}
@@ -1379,14 +1389,14 @@ export default function App() {
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                        <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
                           {s.supplierCode}
                         </span>
                         <h3 className="font-bold text-sm text-slate-900 mt-1">{s.name}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">{s.exactLocation}</p>
+                        <p className="text-sm text-slate-500 mt-0.5">{s.exactLocation}</p>
                       </div>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                           s.isActive
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -1396,7 +1406,7 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
                       <span className="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded">
                         Zone: {s.campusZone}
                       </span>
@@ -1412,13 +1422,13 @@ export default function App() {
                     </div>
 
                     {s.description && (
-                      <p className="text-[11px] text-slate-400 italic line-clamp-2">{s.description}</p>
+                      <p className="text-xs text-slate-400 italic line-clamp-2">{s.description}</p>
                     )}
 
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                       <button
                         onClick={() => toggleStatus(s.id)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded transition ${
+                        className={`text-sm font-semibold px-2.5 py-1 rounded transition ${
                           s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
                         }`}
                       >
@@ -1456,9 +1466,9 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Desktop Data Table View (Visible only on >= md screens) */}
-              <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse text-xs">
+              {/* Desktop Data Table View (Visible when the desktop content area can accommodate a table) */}
+              <div className="hidden xl:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table className="w-full min-w-[1100px] text-left border-collapse text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
                       <th
@@ -1518,7 +1528,7 @@ export default function App() {
                         <td className="p-3.5">
                           <div className="font-semibold text-slate-900">{s.name}</div>
                           {s.description && (
-                            <div className="text-[11px] text-slate-400 truncate max-w-xs">{s.description}</div>
+                            <div className="text-xs text-slate-400 truncate max-w-xs">{s.description}</div>
                           )}
                         </td>
                         <td className="p-3.5">
@@ -1529,7 +1539,7 @@ export default function App() {
                         <td className="p-3.5 text-slate-600">
                           <div>{s.exactLocation}</div>
                           {s.building && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-xs text-slate-400">
                               {s.building} {s.floor ? `· L${s.floor}` : ''}
                             </span>
                           )}
@@ -1541,12 +1551,12 @@ export default function App() {
                         </td>
                         <td className="p-3.5 text-slate-600">
                           {s.startingTime && s.closingTime ? (
-                            <span className="inline-flex items-center space-x-1 font-mono text-[11px] text-slate-500">
+                            <span className="inline-flex items-center space-x-1 font-mono text-xs text-slate-500">
                               <Clock className="w-3 h-3 text-slate-400" />
                               <span>{s.startingTime} - {s.closingTime}</span>
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic text-[11px]">Unspecified</span>
+                            <span className="text-slate-400 italic text-xs">Unspecified</span>
                           )}
                         </td>
                         <td className="p-3.5">
@@ -1565,7 +1575,7 @@ export default function App() {
                         <td className="p-3.5 text-right space-x-1">
                           <button
                             onClick={() => toggleStatus(s.id)}
-                            className={`text-xs font-semibold px-2 py-1 rounded transition ${
+                            className={`text-sm font-semibold px-2 py-1 rounded transition ${
                               s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
                             }`}
                             title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
@@ -1611,7 +1621,7 @@ export default function App() {
               </div>
 
               {/* Unified Pagination Bar */}
-              <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span>
                   Showing {Math.min(filteredAndSorted.length, (currentPage - 1) * pageSize + 1)} to{' '}
                   {Math.min(filteredAndSorted.length, currentPage * pageSize)} of {filteredAndSorted.length} campus locations
@@ -1630,7 +1640,7 @@ export default function App() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                      className={`w-7 h-7 rounded-lg text-sm font-bold transition ${
                         currentPage === page
                           ? 'bg-slate-900 text-white'
                           : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1655,7 +1665,7 @@ export default function App() {
           {activeNav === 'users' && (
             <div className="space-y-4">
               {isLoadingUsers && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs flex items-center space-x-2">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center space-x-2">
                   <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
                   <span>Loading users…</span>
                 </div>
@@ -1664,21 +1674,21 @@ export default function App() {
               {/* Desktop KPI Stats Grid */}
               <div className="grid grid-cols-3 gap-3 md:gap-4">
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Total Users</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Total Users</span>
                   <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{users.length}</p>
                 </div>
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Admins</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Admins</span>
                   <p className="text-xl md:text-2xl font-black text-blue-600 mt-1">{userStats.admins}</p>
                 </div>
                 <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-[11px] md:text-xs text-slate-500 font-semibold">Students</span>
+                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Students</span>
                   <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{userStats.students}</p>
                 </div>
               </div>
 
               {/* Filters & Search Row */}
-              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                 <div className="relative flex-1 max-w-md flex items-center">
                   <Search className="w-4 h-4 absolute left-3 text-slate-400" />
                   <input
@@ -1689,7 +1699,7 @@ export default function App() {
                       setSearchQueryUsers(e.target.value);
                       setCurrentPageUsers(1);
                     }}
-                    className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {searchQueryUsers && (
                     <button
@@ -1701,13 +1711,13 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="flex items-center space-x-2 overflow-x-auto pb-1 md:pb-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => {
                       setDraftSelectedUserRoles(selectedUserRoles);
                       setIsUserFilterModalOpen(true);
                     }}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border shrink-0 transition ${
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border shrink-0 transition ${
                       activeUserFilterCount > 0
                         ? 'bg-blue-50 border-blue-300 text-blue-700'
                         : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -1716,7 +1726,7 @@ export default function App() {
                     <SlidersHorizontal className="w-3.5 h-3.5" />
                     <span>Filter</span>
                     {activeUserFilterCount > 0 && (
-                      <span className="ml-1 bg-blue-600 text-white rounded-full text-[10px] w-4 h-4 inline-flex items-center justify-center font-bold">
+                      <span className="ml-1 bg-blue-600 text-white rounded-full text-xs w-4 h-4 inline-flex items-center justify-center font-bold">
                         {activeUserFilterCount}
                       </span>
                     )}
@@ -1725,7 +1735,7 @@ export default function App() {
               </div>
 
               {/* Mobile Card List View */}
-              <div className="block md:hidden space-y-3">
+              <div className="block xl:hidden space-y-3">
                 {paginatedUsers.map((u) => (
                   <div
                     key={u.userId}
@@ -1734,10 +1744,10 @@ export default function App() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-bold text-sm text-slate-900">{u.username}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">{u.email}</p>
+                        <p className="text-sm text-slate-500 mt-0.5">{u.email}</p>
                       </div>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                           u.userRole === 'ADMIN'
                             ? 'bg-blue-50 text-blue-700 border border-blue-200'
                             : 'bg-slate-100 text-slate-700 border border-slate-200'
@@ -1749,7 +1759,7 @@ export default function App() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                       <span
-                        className={`text-[11px] font-semibold ${u.status ? 'text-emerald-600' : 'text-rose-500'}`}
+                        className={`text-xs font-semibold ${u.status ? 'text-emerald-600' : 'text-rose-500'}`}
                       >
                         {u.status ? 'Active' : 'Disabled'}
                       </span>
@@ -1757,7 +1767,7 @@ export default function App() {
                         <button
                           disabled={togglingUserIds.has(u.userId)}
                           onClick={() => toggleUserStatus(u.userId)}
-                          className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                          className={`text-sm font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
                             u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
                           }`}
                         >
@@ -1769,7 +1779,7 @@ export default function App() {
                             setToggleRoleConfirmed(false);
                             setToggleRoleError(null);
                           }}
-                          className={`text-xs font-bold px-2.5 py-1 rounded transition ${
+                          className={`text-sm font-bold px-2.5 py-1 rounded transition ${
                             u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
                           }`}
                         >
@@ -1791,15 +1801,15 @@ export default function App() {
                   </div>
                 ))}
                 {paginatedUsers.length === 0 && !isLoadingUsers && (
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-400 text-xs">
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
                     No users found matching your query.
                   </div>
                 )}
               </div>
 
               {/* Desktop Data Table View */}
-              <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse text-xs">
+              <div className="hidden xl:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table className="w-full min-w-[1100px] text-left border-collapse text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
                       <th
@@ -1872,7 +1882,7 @@ export default function App() {
                           <button
                             disabled={togglingUserIds.has(u.userId)}
                             onClick={() => toggleUserStatus(u.userId)}
-                            className={`text-xs font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                            className={`text-sm font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
                               u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
                             }`}
                           >
@@ -1884,7 +1894,7 @@ export default function App() {
                               setToggleRoleConfirmed(false);
                               setToggleRoleError(null);
                             }}
-                            className={`text-xs font-bold px-2.5 py-1 rounded transition ${
+                            className={`text-sm font-bold px-2.5 py-1 rounded transition ${
                               u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
                             }`}
                           >
@@ -1916,7 +1926,7 @@ export default function App() {
               </div>
 
               {/* Unified Pagination Bar */}
-              <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
                 <span>
                   Showing {Math.min(filteredAndSortedUsers.length, (currentPageUsers - 1) * pageSize + 1)} to{' '}
                   {Math.min(filteredAndSortedUsers.length, currentPageUsers * pageSize)} of{' '}
@@ -1936,7 +1946,7 @@ export default function App() {
                     <button
                       key={page}
                       onClick={() => setCurrentPageUsers(page)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                      className={`w-7 h-7 rounded-lg text-sm font-bold transition ${
                         currentPageUsers === page
                           ? 'bg-slate-900 text-white'
                           : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1973,10 +1983,10 @@ export default function App() {
                 >
                   <div>
                     <h3 className="font-bold text-sm text-slate-900">{svc.name}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Port: {svc.port} | Runtime: Node (tsx)</p>
-                    <p className="text-xs text-slate-400 font-mono mt-1">Storage: {svc.db}</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Port: {svc.port} | Runtime: Node (tsx)</p>
+                    <p className="text-sm text-slate-400 font-mono mt-1">Storage: {svc.db}</p>
                   </div>
-                  <span className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold border border-emerald-200">
+                  <span className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold border border-emerald-200">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>ONLINE</span>
                   </span>
@@ -1989,11 +1999,11 @@ export default function App() {
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
               <div>
                 <h3 className="font-bold text-base text-slate-900">Audit Trail & Dispute Resolution</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   Immutable ledger of supplier modifications, administrative status toggles, and errand activity.
                 </p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg text-xs font-mono text-slate-600 space-y-2">
+              <div className="p-4 bg-slate-50 rounded-lg text-sm font-mono text-slate-600 space-y-2">
                 <div className="text-emerald-700 font-bold">
                   [AUDIT LOG READY] All supplier status updates are persisted with timestamped audit records.
                 </div>
@@ -2010,7 +2020,7 @@ export default function App() {
 
       {/* Advanced Filter Modal */}
       {isFilterModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-base text-slate-900">Filter Campus Suppliers</h3>
@@ -2027,7 +2037,7 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Category / Type</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Category / Type</label>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((cat) => {
                   const active = draftSelectedCategories.includes(cat);
@@ -2036,7 +2046,7 @@ export default function App() {
                       key={cat}
                       type="button"
                       onClick={() => toggleFilterChip(draftSelectedCategories, cat, setDraftSelectedCategories)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
                         active
                           ? 'bg-blue-600 border-blue-600 text-white'
                           : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -2050,7 +2060,7 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Campus Zone</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Campus Zone</label>
               <div className="flex flex-wrap gap-2">
                 {CAMPUS_ZONES.map((zone) => {
                   const active = draftSelectedZones.includes(zone);
@@ -2059,7 +2069,7 @@ export default function App() {
                       key={zone}
                       type="button"
                       onClick={() => toggleFilterChip(draftSelectedZones, zone, setDraftSelectedZones)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
                         active
                           ? 'bg-blue-600 border-blue-600 text-white'
                           : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -2076,7 +2086,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={resetAdvancedFilters}
-                className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                className="text-sm font-bold text-slate-600 hover:text-slate-900"
               >
                 Reset All Filters
               </button>
@@ -2088,7 +2098,7 @@ export default function App() {
                   setIsFilterModalOpen(false);
                   setCurrentPage(1);
                 }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 Apply Filters
               </button>
@@ -2099,7 +2109,7 @@ export default function App() {
 
       {/* Users Filter Modal */}
       {isUserFilterModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-base text-slate-900">Filter Users</h3>
@@ -2115,7 +2125,7 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Role</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Role</label>
               <div className="flex flex-wrap gap-2">
                 {USER_ROLES.map((role) => {
                   const active = draftSelectedUserRoles.includes(role);
@@ -2124,7 +2134,7 @@ export default function App() {
                       key={role}
                       type="button"
                       onClick={() => toggleFilterChip(draftSelectedUserRoles, role, setDraftSelectedUserRoles)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
                         active
                           ? 'bg-blue-600 border-blue-600 text-white'
                           : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -2141,7 +2151,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={resetUserFilters}
-                className="text-xs font-bold text-slate-600 hover:text-slate-900"
+                className="text-sm font-bold text-slate-600 hover:text-slate-900"
               >
                 Reset All Filters
               </button>
@@ -2152,7 +2162,7 @@ export default function App() {
                   setIsUserFilterModalOpen(false);
                   setCurrentPageUsers(1);
                 }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 Apply Filters
               </button>
@@ -2163,10 +2173,10 @@ export default function App() {
 
       {/* Add Supplier Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <form
             onSubmit={handleCreateSupplier}
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+            className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="font-bold text-base text-slate-900">Add New Campus Supplier</h3>
@@ -2183,15 +2193,15 @@ export default function App() {
               </button>
             </div>
 
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400">
               Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
             </p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400">
               Admins are not allowed to create duplicate suppliers of the same category and location.
             </p>
 
             {addDuplicateConflict && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-1">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-1">
                 <p className="font-bold">Duplicate supplier found</p>
                 <p>An existing supplier already occupies this exact spot:</p>
                 <ul className="list-disc list-inside">
@@ -2204,10 +2214,10 @@ export default function App() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-1">
                 Store / Spot Name <span className="text-rose-600">*</span>
               </label>
-              {addFormErrors.name && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.name}</p>}
+              {addFormErrors.name && <p className="text-xs text-rose-600 mb-1">{addFormErrors.name}</p>}
               <input
                 type="text"
                 placeholder="e.g. LiHO Tea @ UTown"
@@ -2216,19 +2226,19 @@ export default function App() {
                   setNewSupplier({ ...newSupplier, name: e.target.value });
                   if (addFormErrors.name) setAddFormErrors({ ...addFormErrors, name: '' });
                 }}
-                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                   addFormErrors.name ? 'border-rose-400' : 'border-slate-300'
                 }`}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Campus Zone <span className="text-rose-600">*</span>
                 </label>
                 {addFormErrors.campusZone && (
-                  <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.campusZone}</p>
+                  <p className="text-xs text-rose-600 mb-1">{addFormErrors.campusZone}</p>
                 )}
                 <select
                   value={newSupplier.campusZone}
@@ -2236,7 +2246,7 @@ export default function App() {
                     setNewSupplier({ ...newSupplier, campusZone: e.target.value });
                     if (addFormErrors.campusZone) setAddFormErrors({ ...addFormErrors, campusZone: '' });
                   }}
-                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                     addFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
                   }`}
                 >
@@ -2247,17 +2257,17 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Category <span className="text-rose-600">*</span>
                 </label>
-                {addFormErrors.category && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.category}</p>}
+                {addFormErrors.category && <p className="text-xs text-rose-600 mb-1">{addFormErrors.category}</p>}
                 <select
                   value={newSupplier.category}
                   onChange={(e) => {
                     setNewSupplier({ ...newSupplier, category: e.target.value as SupplierCategory });
                     if (addFormErrors.category) setAddFormErrors({ ...addFormErrors, category: '' });
                   }}
-                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                     addFormErrors.category ? 'border-rose-400' : 'border-slate-300'
                   }`}
                 >
@@ -2269,11 +2279,11 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-1">
                 Exact Pickup Spot Description <span className="text-rose-600">*</span>
               </label>
               {addFormErrors.exactLocation && (
-                <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.exactLocation}</p>
+                <p className="text-xs text-rose-600 mb-1">{addFormErrors.exactLocation}</p>
               )}
               <input
                 type="text"
@@ -2283,74 +2293,74 @@ export default function App() {
                   setNewSupplier({ ...newSupplier, exactLocation: e.target.value });
                   if (addFormErrors.exactLocation) setAddFormErrors({ ...addFormErrors, exactLocation: '' });
                 }}
-                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                   addFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
                 }`}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Building <span className="text-rose-600">*</span>
                 </label>
-                {addFormErrors.building && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.building}</p>}
+                {addFormErrors.building && <p className="text-xs text-rose-600 mb-1">{addFormErrors.building}</p>}
                 <input
                   type="text"
                   placeholder="e.g. COM3"
                   value={newSupplier.building || ''}
                   onChange={(e) => setNewSupplier({ ...newSupplier, building: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Floor <span className="text-rose-600">*</span>
                 </label>
-                {addFormErrors.floor && <p className="text-[11px] text-rose-600 mb-1">{addFormErrors.floor}</p>}
+                {addFormErrors.floor && <p className="text-xs text-rose-600 mb-1">{addFormErrors.floor}</p>}
                 <input
                   type="text"
                   placeholder="e.g. 1"
                   value={newSupplier.floor || ''}
                   onChange={(e) => setNewSupplier({ ...newSupplier, floor: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Opening Time</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Opening Time</label>
                 <input
                   type="text"
                   placeholder="0800hrs"
                   value={newSupplier.startingTime || ''}
                   onChange={(e) => setNewSupplier({ ...newSupplier, startingTime: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Closing Time</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Closing Time</label>
                 <input
                   type="text"
                   placeholder="2000hrs"
                   value={newSupplier.closingTime || ''}
                   onChange={(e) => setNewSupplier({ ...newSupplier, closingTime: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
               <textarea
                 rows={4}
                 placeholder="e.g. Specialty coffee, pastries, and sandwiches"
                 value={newSupplier.description || ''}
                 onChange={(e) => setNewSupplier({ ...newSupplier, description: e.target.value })}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
 
@@ -2362,14 +2372,14 @@ export default function App() {
                   setAddDuplicateConflict(null);
                   setIsAddOpen(false);
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 {isSubmitting ? 'Saving...' : 'Save Location'}
               </button>
@@ -2380,15 +2390,15 @@ export default function App() {
 
       {/* Edit Supplier Modal */}
       {editingSupplier && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <form
             onSubmit={handleUpdateSupplier}
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4"
+            className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4"
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div>
                 <h3 className="font-bold text-base text-slate-900">Edit Campus Location</h3>
-                <span className="text-[10px] font-mono font-bold text-slate-400">
+                <span className="text-xs font-mono font-bold text-slate-400">
                   Code: {editingSupplier.supplierCode}
                 </span>
               </div>
@@ -2405,15 +2415,15 @@ export default function App() {
               </button>
             </div>
 
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400">
               Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
             </p>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-400">
               Admins are not allowed to create duplicate suppliers of the same category and location.
             </p>
 
             {editDuplicateConflict && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-1">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-1">
                 <p className="font-bold">Duplicate supplier found</p>
                 <p>An existing supplier already occupies this exact spot:</p>
                 <ul className="list-disc list-inside">
@@ -2426,10 +2436,10 @@ export default function App() {
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-1">
                 Store / Spot Name <span className="text-rose-600">*</span>
               </label>
-              {editFormErrors.name && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.name}</p>}
+              {editFormErrors.name && <p className="text-xs text-rose-600 mb-1">{editFormErrors.name}</p>}
               <input
                 type="text"
                 value={editFormData.name || ''}
@@ -2437,19 +2447,19 @@ export default function App() {
                   setEditFormData({ ...editFormData, name: e.target.value });
                   if (editFormErrors.name) setEditFormErrors({ ...editFormErrors, name: '' });
                 }}
-                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                   editFormErrors.name ? 'border-rose-400' : 'border-slate-300'
                 }`}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Campus Zone <span className="text-rose-600">*</span>
                 </label>
                 {editFormErrors.campusZone && (
-                  <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.campusZone}</p>
+                  <p className="text-xs text-rose-600 mb-1">{editFormErrors.campusZone}</p>
                 )}
                 <select
                   value={editFormData.campusZone}
@@ -2457,7 +2467,7 @@ export default function App() {
                     setEditFormData({ ...editFormData, campusZone: e.target.value });
                     if (editFormErrors.campusZone) setEditFormErrors({ ...editFormErrors, campusZone: '' });
                   }}
-                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                     editFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
                   }`}
                 >
@@ -2468,11 +2478,11 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Category <span className="text-rose-600">*</span>
                 </label>
                 {editFormErrors.category && (
-                  <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.category}</p>
+                  <p className="text-xs text-rose-600 mb-1">{editFormErrors.category}</p>
                 )}
                 <select
                   value={editFormData.category}
@@ -2480,7 +2490,7 @@ export default function App() {
                     setEditFormData({ ...editFormData, category: e.target.value as SupplierCategory });
                     if (editFormErrors.category) setEditFormErrors({ ...editFormErrors, category: '' });
                   }}
-                  className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                     editFormErrors.category ? 'border-rose-400' : 'border-slate-300'
                   }`}
                 >
@@ -2492,11 +2502,11 @@ export default function App() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-1">
                 Exact Pickup Spot Description <span className="text-rose-600">*</span>
               </label>
               {editFormErrors.exactLocation && (
-                <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.exactLocation}</p>
+                <p className="text-xs text-rose-600 mb-1">{editFormErrors.exactLocation}</p>
               )}
               <input
                 type="text"
@@ -2505,69 +2515,69 @@ export default function App() {
                   setEditFormData({ ...editFormData, exactLocation: e.target.value });
                   if (editFormErrors.exactLocation) setEditFormErrors({ ...editFormErrors, exactLocation: '' });
                 }}
-                className={`w-full text-xs p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
                   editFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
                 }`}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Building <span className="text-rose-600">*</span>
                 </label>
-                {editFormErrors.building && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.building}</p>}
+                {editFormErrors.building && <p className="text-xs text-rose-600 mb-1">{editFormErrors.building}</p>}
                 <input
                   type="text"
                   value={editFormData.building || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, building: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Floor <span className="text-rose-600">*</span>
                 </label>
-                {editFormErrors.floor && <p className="text-[11px] text-rose-600 mb-1">{editFormErrors.floor}</p>}
+                {editFormErrors.floor && <p className="text-xs text-rose-600 mb-1">{editFormErrors.floor}</p>}
                 <input
                   type="text"
                   value={editFormData.floor || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Opening Time</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Opening Time</label>
                 <input
                   type="text"
                   value={editFormData.startingTime || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, startingTime: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Closing Time</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Closing Time</label>
                 <input
                   type="text"
                   value={editFormData.closingTime || ''}
                   onChange={(e) => setEditFormData({ ...editFormData, closingTime: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+              <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
               <textarea
                 rows={4}
                 value={editFormData.description || ''}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                className="w-full text-xs p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full text-sm p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
 
@@ -2579,14 +2589,14 @@ export default function App() {
                   setEditDuplicateConflict(null);
                   setEditingSupplier(null);
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 {isSubmitting ? 'Updating...' : 'Save Changes'}
               </button>
@@ -2597,7 +2607,7 @@ export default function App() {
 
       {/* Delete Supplier Confirmation Modal */}
       {deletingSupplier && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center space-x-3 text-rose-600">
               <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
@@ -2605,18 +2615,18 @@ export default function App() {
               </div>
               <div>
                 <h3 className="font-bold text-base text-slate-900">Delete Campus Supplier</h3>
-                <p className="text-xs text-slate-500">Confirm removal of supplier location</p>
+                <p className="text-sm text-slate-500">Confirm removal of supplier location</p>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-sm space-y-1">
               <div className="font-bold text-slate-900">{deletingSupplier.name}</div>
               <div className="text-slate-500">{deletingSupplier.exactLocation} ({deletingSupplier.campusZone})</div>
-              <div className="font-mono text-[10px] text-slate-400">Code: {deletingSupplier.supplierCode}</div>
+              <div className="font-mono text-xs text-slate-400">Code: {deletingSupplier.supplierCode}</div>
             </div>
 
             <div className="space-y-2">
-              <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+              <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isPermanentDelete}
@@ -2625,7 +2635,7 @@ export default function App() {
                 />
                 <div>
                   <span className="font-bold text-slate-900">Permanent Hard Delete</span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Default is a soft-delete (marked inactive) to preserve student errand history. Checking this completely purges the record from the database.
                   </p>
                 </div>
@@ -2639,7 +2649,7 @@ export default function App() {
                   setDeletingSupplier(null);
                   setIsPermanentDelete(false);
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
@@ -2647,7 +2657,7 @@ export default function App() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleDeleteSupplier}
-                className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 {isSubmitting ? 'Deleting...' : isPermanentDelete ? 'Permanently Delete' : 'Deactivate Supplier'}
               </button>
@@ -2658,7 +2668,7 @@ export default function App() {
 
       {/* Delete User Confirmation Modal */}
       {deletingUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center space-x-3 text-rose-600">
               <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
@@ -2666,22 +2676,22 @@ export default function App() {
               </div>
               <div>
                 <h3 className="font-bold text-base text-slate-900">Delete User Account</h3>
-                <p className="text-xs text-slate-500">This action is permanent and cannot be undone</p>
+                <p className="text-sm text-slate-500">This action is permanent and cannot be undone</p>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-sm space-y-1">
               <div className="font-bold text-slate-900">{deletingUser.username}</div>
               <div className="text-slate-500">{deletingUser.email}</div>
             </div>
 
             {deleteUserError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">
                 {deleteUserError}
               </div>
             )}
 
-            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={deleteUserConfirmed}
@@ -2701,7 +2711,7 @@ export default function App() {
                   setDeleteUserConfirmed(false);
                   setDeleteUserError(null);
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
@@ -2709,7 +2719,7 @@ export default function App() {
                 type="button"
                 disabled={!deleteUserConfirmed || isDeletingUser}
                 onClick={handleDeleteUser}
-                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 {isDeletingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{isDeletingUser ? 'Deleting…' : 'Delete Account'}</span>
@@ -2721,14 +2731,14 @@ export default function App() {
 
       {/* Delete User Success Modal */}
       {deletedUserSuccess && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
             <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
               <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
-              <p className="text-xs text-slate-500 mt-1">"{deletedUserSuccess}"'s account has been permanently deleted.</p>
+              <p className="text-sm text-slate-500 mt-1">"{deletedUserSuccess}"'s account has been permanently deleted.</p>
             </div>
             <button
               onClick={() => setDeletedUserSuccess(null)}
@@ -2742,7 +2752,7 @@ export default function App() {
 
       {/* Upgrade/Downgrade User Role Confirmation Modal */}
       {togglingRoleUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div
               className={`flex items-center space-x-3 ${
@@ -2760,7 +2770,7 @@ export default function App() {
                 <h3 className="font-bold text-base text-slate-900">
                   {togglingRoleUser.userRole === 'ADMIN' ? 'Downgrade to Student' : 'Upgrade to Admin'}
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm text-slate-500">
                   {togglingRoleUser.userRole === 'ADMIN'
                     ? 'This account will lose Administrator access.'
                     : 'This account will gain full Administrator access.'}
@@ -2768,18 +2778,18 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-sm space-y-1">
               <div className="font-bold text-slate-900">{togglingRoleUser.username}</div>
               <div className="text-slate-500">{togglingRoleUser.email}</div>
             </div>
 
             {toggleRoleError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">
                 {toggleRoleError}
               </div>
             )}
 
-            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={toggleRoleConfirmed}
@@ -2809,7 +2819,7 @@ export default function App() {
                   setToggleRoleConfirmed(false);
                   setToggleRoleError(null);
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
@@ -2817,7 +2827,7 @@ export default function App() {
                 type="button"
                 disabled={!toggleRoleConfirmed || isTogglingRole}
                 onClick={handleToggleUserRole}
-                className={`flex items-center justify-center space-x-2 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow ${
+                className={`flex items-center justify-center space-x-2 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow ${
                   togglingRoleUser.userRole === 'ADMIN'
                     ? 'bg-rose-600 hover:bg-rose-700'
                     : 'bg-emerald-600 hover:bg-emerald-700'
@@ -2841,11 +2851,11 @@ export default function App() {
 
       {/* Supplier Details Inspection Modal */}
       {viewingSupplier && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                   {viewingSupplier.supplierCode}
                 </span>
                 <h3 className="font-bold text-lg text-slate-900 mt-1">{viewingSupplier.name}</h3>
@@ -2858,23 +2868,23 @@ export default function App() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-[10px] uppercase">Campus Zone</span>
+                <span className="text-slate-400 font-semibold block text-xs uppercase">Campus Zone</span>
                 <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewingSupplier.campusZone}</span>
               </div>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-[10px] uppercase">Category</span>
+                <span className="text-slate-400 font-semibold block text-xs uppercase">Category</span>
                 <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewingSupplier.category}</span>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2 text-xs">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2 text-sm">
               <div>
-                <span className="text-slate-400 font-semibold block text-[10px] uppercase">Exact Pickup Spot</span>
+                <span className="text-slate-400 font-semibold block text-xs uppercase">Exact Pickup Spot</span>
                 <span className="font-semibold text-slate-800">{viewingSupplier.exactLocation}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-1">
                 <div>
                   <span className="text-slate-400">Building:</span>{' '}
                   <span className="font-medium">{viewingSupplier.building || 'Not specified'}</span>
@@ -2886,9 +2896,9 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-[10px] uppercase">Operating Hours</span>
+                <span className="text-slate-400 font-semibold block text-xs uppercase">Operating Hours</span>
                 <span className="font-mono font-semibold text-slate-700 mt-0.5 block">
                   {viewingSupplier.startingTime && viewingSupplier.closingTime
                     ? `${viewingSupplier.startingTime} - ${viewingSupplier.closingTime}`
@@ -2896,7 +2906,7 @@ export default function App() {
                 </span>
               </div>
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-[10px] uppercase">Availability Status</span>
+                <span className="text-slate-400 font-semibold block text-xs uppercase">Availability Status</span>
                 <span className="mt-0.5 block">
                   {viewingSupplier.isActive ? (
                     <span className="text-emerald-600 font-bold inline-flex items-center space-x-1">
@@ -2914,15 +2924,15 @@ export default function App() {
             </div>
 
             {viewingSupplier.description && (
-              <div className="text-xs">
-                <span className="text-slate-400 font-semibold block text-[10px] uppercase mb-1">Description</span>
+              <div className="text-sm">
+                <span className="text-slate-400 font-semibold block text-xs uppercase mb-1">Description</span>
                 <p className="text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
                   {viewingSupplier.description}
                 </p>
               </div>
             )}
 
-            <div className="pt-2 text-[10px] text-slate-400 flex justify-between items-center font-mono">
+            <div className="pt-2 text-xs text-slate-400 flex justify-between items-center font-mono">
               <span>ID: {viewingSupplier.id}</span>
               <span>Added: {new Date(viewingSupplier.createdAt).toLocaleDateString()}</span>
             </div>
@@ -2930,7 +2940,7 @@ export default function App() {
             <div className="flex justify-end pt-3 border-t border-slate-100">
               <button
                 onClick={() => setViewingSupplier(null)}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2 rounded-lg"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg"
               >
                 Close Details
               </button>
