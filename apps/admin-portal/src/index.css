@@ -1,3 +1,8 @@
+/* AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Readable controls, square pagination and icon buttons, keyboard focus, and viewport-constrained dialogs.
+ * Author review: <to be completed by huangjiaxi1111>
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,4 +11,27 @@ body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+
+/* AI-generated (edited by huangjiaxi1111) */
+@layer base {
+  body { @apply bg-slate-100; }
+  button, input:not([type='checkbox']), select, textarea { min-height: 2.75rem; }
+  input:not([type='checkbox']), select, textarea { font-size: 1rem; max-width: 100%; }
+  button:focus-visible, a:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+}
+
+@layer components {
+  /* AI-generated (edited by huangjiaxi1111) */
+  .admin-square-button {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center;
+  }
+  .admin-shell main { overflow-wrap: anywhere; }
+  .admin-shell table { overflow-wrap: normal; }
+  .admin-shell th { white-space: nowrap; }
+  .dialog-overlay > :first-child {
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }

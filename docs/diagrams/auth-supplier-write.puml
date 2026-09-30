@@ -1,0 +1,64 @@
+' AI Assistance Disclosure:
+' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+' Scope: PlantUML version of section 2 of auth-sequence.md (supplier write: 401, 403, 409 or 201), drawn from
+' packages/auth, supplierRoutes.ts and the D2 UAT results (check IDs in brackets) on main @ fcd5371. No rationale.
+' Author review: <to be completed by Reallyeasy1>
+' Render: java -jar plantuml.jar -tsvg auth-supplier-write.puml
+@startuml auth-supplier-write
+title Supplier write — RBAC enforced inside supplier-service, as built (main @ fcd5371)
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "Caller" as U
+participant "api-gateway\n(nginx)" as GW
+participant "supplier-service" as SS
+participant "@campus-errand/auth\n(inside supplier-service)" as MW
+database "supplier_db" as DB
+
+U -> GW : POST /api/suppliers\nAuthorization: Bearer (access token)
+GW -> SS : proxy (headers passed through unchanged)
+SS -> MW : authMiddleware
+alt no Bearer token
+  MW --> U : 401 MISSING_TOKEN [W1]
+else bad signature, issuer or audience
+  MW --> U : 401 INVALID_TOKEN [W12]
+else expired
+  MW --> U : 401 TOKEN_EXPIRED
+else token verified with JWT_PUBLIC_KEY
+  MW -> MW : requireAdmin reads role from the verified claims
+  alt role is STUDENT
+    MW --> U : 403 ADMIN_REQUIRED [W2]
+  else role is ADMIN
+    MW -> SS : next()
+    SS -> SS : required fields present and not blank?\n(name, campusZone, exactLocation, category, building, floor)
+    alt a required field is missing
+      SS --> U : 400 [W3]
+    else
+      SS -> DB : find supplier with the same name, category,\nbuilding, floor (trimmed, case-insensitive)
+      DB --> SS : existing row or none
+      alt duplicate found
+        SS --> U : 409 {error, duplicate}
+      else none
+        SS -> DB : insert supplier (generated SUP-NNN code)
+        DB --> SS : row
+        SS --> U : 201 {success, data: supplier} [W4]
+      end
+    end
+  end
+end
+
+note over SS, MW
+  user-service is not involved: supplier-service verifies the token locally
+  and never calls it. GET /api/suppliers and GET /api/suppliers/:id skip
+  both middleware steps and answer without a token [S1].
+end note
+
+legend bottom
+  |= Symbol |= Meaning |
+  | solid arrow | request or call (control flow) |
+  | dashed arrow | response or data returned |
+  | alt / else | the branch the service takes |
+  | [W1] | check ID defined in scripts/uat/uat-d2-api.mjs (results kept locally in docs/evidence/d2/) |
+endlegend
+@enduml

@@ -1,20 +1,22 @@
 /**
  * AI Assistance Disclosure:
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Responsive layouts and an Admin Log In link on the student login page.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Connected Student App to live Supplier Service API (/api/suppliers), added dynamic supplier dropdown in errand creation, and added campus supplier directory browsing tab.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Added a Log In / Sign Up gate in front of the whole app. Log In posts to /api/auth/login through the gateway with a loading-spinner button and a red error box (code + message) on failure. Sign Up posts to /api/auth/register with 7 fields (5 required, marked with a red asterisk), client-side validation before any API call (required fields filled, retype-password matches password, password 8-24 characters), and auto-logs the user in on success using the token returned by the register response. "Sign up"/"Log in" links toggle between the two forms in place. No role restriction (unlike the admin portal's login gate) — any successfully authenticated account is let in. The rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet data) is unchanged.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
  * Scope: Fixed the "Spots" tab hiding suppliers an admin has deactivated. fetchLiveSuppliers now fetches all suppliers (dropped the ?isActive=true query param) instead of only active ones. The Post Errand pickup dropdown still only ever offers active suppliers (new `activeSuppliers` derived list), so unavailable ones can't be selected as a pickup point, but the Spots tab now shows every supplier — inactive ones rendered dimmed (bg-slate-50, opacity-60) with a red "Unavailable" badge and a disabled, unclickable "Pick for Errand" button.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Merge of dev into the user-service PR: Log In posts { email, password } and reads data.data.accessToken;
  * Sign Up now sends the User Service (PR #76) registration contract { username, email, password } (the full name,
@@ -23,37 +25,30 @@
  * Error boxes read the service's { error, code } shape.
  * Author review: <to be completed by ngkhengyang>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Renamed the bottom-nav "Wallet" tab to "Profile" (UserCircle icon), keeping all existing wallet content unchanged but shifted below a new "Profile Info" section. Added GET /api/users/me (lazy-loaded when the tab opens) displaying User ID/Username/Email/Role/Status, all disabled by default with a "Loading users..." indicator and red error box on failure; red asterisks on Username/Email only (the two NOT NULL+unique fields per 01-init-databases.sql, per the author's choice — Role/Status are also NOT NULL but read-only here). "Edit" enables only the Username input and is replaced by a stacked "Cancel"/"Update" pair; "Update" shows a spinner and calls PATCH /api/users/me, updating the field from the server's returned value on success or showing an inline error (e.g. duplicate username) otherwise; "Cancel" discards the draft and reverts to view mode.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Removed the User ID field from Profile Info (now just Username/Email/Role/Status). Role and Status now render as colored badge divs instead of disabled text inputs: Role is emerald for STUDENT / blue for ADMIN, Status is emerald for Active / rose for Disabled — same "transparent tint + colored border" badge style already used in the admin portal.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Added a "Remember me?" checkbox to the Log In form, sent as keepLoggedIn in the /api/auth/login request (defaults to false everywhere else, e.g. Sign Up's auto-login call is unaffected) — this selects the backend's existing 30-day persistent session window instead of the standard 1-day one, verified live via the sessions table. Added a silent session-restore check on app load: a new mount effect calls POST /api/auth/refresh (the browser attaches the refresh_token cookie automatically) before deciding whether to show the login page; on success it restores the access token and logs the user back in without any interaction, on a 401 it falls through silently to the login page (expected for a first visit or an expired session, not an error). A brief spinner screen covers this check so a still-logged-in user never sees a flash of the login form.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Added a "Log Out" button (blue, full-width) at the bottom of the Profile page's Profile Info section, below the Transaction Ledger. Calls POST /api/auth/logout through the gateway (revokes the session server-side via the refresh_token cookie, no request body/headers needed); client-side auth state (isAuthenticated, authToken, login form fields, rememberMe, profile, activeTab reset to 'feed') is cleared unconditionally in a finally block, so a network failure calling the server never leaves the user stuck logged-in locally. Shows a spinner + "Logging out…" while in flight. Verified live with curl/cookie jars: logout returns 204, the matching sessions row is deleted, the refresh_token cookie is cleared server-side, and a subsequent /api/auth/refresh call correctly returns 401 INVALID_SESSION.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
  * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
  * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
  * Author review: <to be completed by Reallyeasy1>
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added a "Delete Account" button (red, full-width) below Log Out on the Profile page. Opens a
  * confirmation modal (warning text, inline error box on failure, a required "I understand this is
@@ -64,11 +59,11 @@
  * are new, styled to match this file's existing rose-error-box and RefreshCw-spinner conventions.
  * Author review: (to be completed by author after review)
  *
- * AI Assistance Disclosure:
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added a responsive desktop layout (top nav bar, wide multi-column content grids) gated on Tailwind's md: (768px) breakpoint, alongside the existing mobile phone-card layout.
  * Author review: [left for the human author to fill in]
  */
+
 // AI-generated (edited by yanhwee)
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -647,20 +642,20 @@ export default function App() {
         <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-5">
           <div className="text-center space-y-1">
             <h1 className="font-extrabold text-lg text-nus-blue">NUS CampusErrand</h1>
-            <p className="text-[11px] text-slate-400">Dual-Role Peer Network</p>
+            <p className="text-xs text-slate-400">Dual-Role Peer Network</p>
           </div>
 
           {authView === 'login' ? (
             <form onSubmit={handleLogin} className="space-y-4">
               <h2 className="text-base font-bold text-slate-900 text-center">Log In</h2>
               {loginError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
                   <p className="font-bold">{loginError.code}</p>
                   <p>{loginError.message}</p>
                 </div>
               )}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
                 <input
                   type="email"
                   required
@@ -671,7 +666,7 @@ export default function App() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
                 <input
                   type="password"
                   required
@@ -681,7 +676,7 @@ export default function App() {
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
                 />
               </div>
-              <label className="flex items-center space-x-2 text-xs text-slate-600">
+              <label className="flex items-center space-x-2 text-sm text-slate-600">
                 <input
                   type="checkbox"
                   checked={rememberMe}
@@ -699,7 +694,7 @@ export default function App() {
                 {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
                 <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
               </button>
-              <p className="text-center text-[11px] text-slate-500">
+              <p className="text-center text-xs text-slate-500">
                 If you don't have an account,{' '}
                 <button
                   type="button"
@@ -713,22 +708,30 @@ export default function App() {
                 </button>{' '}
                 with us
               </p>
+              <div className="border-t border-slate-200 pt-4">
+                <a
+                  href="/admin/"
+                  className="flex min-h-11 w-full items-center justify-center rounded-lg border border-nus-blue px-4 py-2.5 text-sm font-bold text-nus-blue transition hover:bg-blue-50"
+                >
+                  Admin Log In
+                </a>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleSignup} className="space-y-3">
               <h2 className="text-base font-bold text-slate-900 text-center">Sign Up</h2>
               {signupError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
                   <p className="font-bold">{signupError.code}</p>
                   <p>{signupError.message}</p>
                 </div>
               )}
               {/* AI-generated (edited by ngkhengyang) */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Username <span className="text-rose-600">*</span>
                 </label>
-                <p className="text-[10px] text-slate-400 mb-1">1-50 characters.</p>
+                <p className="text-xs text-slate-400 mb-1">1-50 characters.</p>
                 <input
                   type="text"
                   value={signupData.username}
@@ -738,7 +741,7 @@ export default function App() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Email <span className="text-rose-600">*</span>
                 </label>
                 <input
@@ -750,10 +753,10 @@ export default function App() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Password <span className="text-rose-600">*</span>
                 </label>
-                <p className="text-[10px] text-slate-400 mb-1">Must be 8-24 characters long.</p>
+                <p className="text-xs text-slate-400 mb-1">Must be 8-24 characters long.</p>
                 <input
                   type="password"
                   value={signupData.password}
@@ -763,7 +766,7 @@ export default function App() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-1">
                   Re-type Password <span className="text-rose-600">*</span>
                 </label>
                 <input
@@ -774,7 +777,7 @@ export default function App() {
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
                 />
               </div>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
               </p>
               <button
@@ -785,7 +788,7 @@ export default function App() {
                 {isSigningUp && <RefreshCw className="w-4 h-4 animate-spin" />}
                 <span>{isSigningUp ? 'Signing up...' : 'Sign Up'}</span>
               </button>
-              <p className="text-center text-[11px] text-slate-500">
+              <p className="text-center text-xs text-slate-500">
                 Already have an account,{' '}
                 <button
                   type="button"
@@ -806,26 +809,28 @@ export default function App() {
   }
 
   return (
-    // AI-generated (edited by jagdeepsh) - release the phone-card constraint at md: and up
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 max-w-md mx-auto shadow-2xl relative font-sans md:max-w-6xl md:mx-auto md:shadow-none">
+    // AI-generated (edited by jagdeepsh) - original responsive shell
+    // AI-generated (edited by huangjiaxi1111) - fluid shell with viewport-based navigation
+    <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
       {/* Top Header */}
-      <header className="bg-nus-blue text-white p-4 sticky top-0 z-30 shadow-md md:px-8 md:py-3">
-        <div className="flex justify-between items-center">
+      <header className="bg-nus-blue text-white px-4 py-4 md:px-6 lg:px-8 sticky top-0 z-30 shadow-md">
+        <div className="student-header-row">
           <div>
-            <h1 className="font-extrabold text-base tracking-tight flex items-center space-x-1.5">
+            <h1 className="font-extrabold text-base tracking-tight flex flex-wrap items-center gap-1.5">
               <span>NUS CampusErrand</span>
-              <span className="bg-nus-orange text-[10px] font-black px-1.5 py-0.5 rounded tracking-normal">
+              <span className="bg-nus-orange text-xs font-black px-1.5 py-0.5 rounded tracking-normal">
                 STUDENT
               </span>
             </h1>
-            <p className="text-[11px] text-blue-200">Dual-Role Peer Network • Milestone D2</p>
+            <p className="text-xs text-blue-200">Dual-Role Peer Network • Milestone D2</p>
           </div>
 
           {/* AI-generated (edited by jagdeepsh) - desktop top nav bar, replaces the bottom tab bar at md: and up */}
-          <nav className="hidden md:flex items-center space-x-1 bg-blue-900/40 rounded-full px-1.5 py-1 border border-blue-400/20">
+          <nav aria-label="Main navigation" className="student-top-nav hidden md:flex flex-wrap items-center gap-1 bg-blue-900/40 rounded-2xl px-1.5 py-1 border border-blue-400/20">
             <button
+              aria-current={activeTab === 'feed' ? 'page' : undefined}
               onClick={() => setActiveTab('feed')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
                 activeTab === 'feed' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
               }`}
             >
@@ -834,8 +839,9 @@ export default function App() {
             </button>
 
             <button
+              aria-current={activeTab === 'post' ? 'page' : undefined}
               onClick={() => setActiveTab('post')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
                 activeTab === 'post' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
               }`}
             >
@@ -844,8 +850,9 @@ export default function App() {
             </button>
 
             <button
+              aria-current={activeTab === 'spots' ? 'page' : undefined}
               onClick={() => setActiveTab('spots')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
                 activeTab === 'spots' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
               }`}
             >
@@ -854,8 +861,9 @@ export default function App() {
             </button>
 
             <button
+              aria-current={activeTab === 'tasks' ? 'page' : undefined}
               onClick={() => setActiveTab('tasks')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
                 activeTab === 'tasks' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
               }`}
             >
@@ -864,11 +872,12 @@ export default function App() {
             </button>
 
             <button
+              aria-current={activeTab === 'profile' ? 'page' : undefined}
               onClick={() => {
                 setActiveTab('profile');
                 fetchProfile();
               }}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
                 activeTab === 'profile' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
               }`}
             >
@@ -879,12 +888,12 @@ export default function App() {
 
           <div className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">
             <Coins className="w-3.5 h-3.5 text-amber-300" />
-            <span className="text-xs font-bold text-amber-300">{wallet.availableCredits} C</span>
+            <span className="text-sm font-bold text-amber-300">{wallet.availableCredits} C</span>
           </div>
         </div>
 
         {/* Status Line */}
-        <div className="mt-2.5 pt-2 border-t border-blue-800 flex justify-between items-center text-[11px]">
+        <div className="mt-2.5 pt-2 border-t border-blue-800 flex justify-between items-center text-xs">
           <span className="flex items-center space-x-1.5 text-blue-200">
             <span
               className={`w-2 h-2 rounded-full ${
@@ -903,31 +912,31 @@ export default function App() {
 
       {/* Notification Toast */}
       {notification && (
-        <div className="bg-emerald-600 text-white text-xs px-4 py-2 text-center font-medium shadow-md transition-all">
+        <div className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all">
           {notification}
         </div>
       )}
 
       {/* Main Content Area */}
       {/* AI-generated (edited by jagdeepsh) - relax bottom padding at md: since the fixed bottom nav is hidden there */}
-      <main className="flex-1 p-4 pb-24 overflow-y-auto md:pb-6">
+      <main className="student-main flex-1 min-w-0 px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
         {/* TAB 1: Errand Feed */}
         {activeTab === 'feed' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-800">Errand Feed</h2>
-              <span className="text-xs bg-slate-200 px-2 py-0.5 rounded-full text-slate-700 font-semibold">
+              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Errand Feed</h2>
+              <span className="text-sm bg-slate-200 px-2 py-0.5 rounded-full text-slate-700 font-semibold">
                 {filteredOrders.length} Open
               </span>
             </div>
 
             {/* Campus Zone Filter Pills */}
-            <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap">
               {['ALL', 'COM3', 'UTown', 'PGPR', 'FASS', 'Science', 'Engineering'].map((zone) => (
                 <button
                   key={zone}
                   onClick={() => setSelectedZone(zone)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+                  className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap transition ${
                     selectedZone === zone
                       ? 'bg-nus-orange text-white shadow-sm'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
@@ -940,14 +949,17 @@ export default function App() {
 
             {/* Errand Cards List */}
             {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+            <div className="responsive-card-grid">
+              {filteredOrders.length === 0 && (
+                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No open errands in this zone.</p>
+              )}
               {filteredOrders.map((order) => (
                 <div
                   key={order.id}
                   className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition"
                 >
                   <div className="flex items-start justify-between">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-nus-blue border border-blue-100">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-nus-blue border border-blue-100">
                       {order.campusZone}
                     </span>
                     <div className="flex items-center space-x-1 text-amber-600 font-black text-sm bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
@@ -958,10 +970,10 @@ export default function App() {
 
                   <h3 className="font-bold text-slate-900 text-sm mt-2">{order.itemDescription}</h3>
                   {order.specialNotes && (
-                    <p className="text-xs text-slate-500 italic mt-0.5">"{order.specialNotes}"</p>
+                    <p className="text-sm text-slate-500 italic mt-0.5">"{order.specialNotes}"</p>
                   )}
 
-                  <div className="mt-3 bg-slate-50 rounded-lg p-2.5 space-y-1.5 text-xs text-slate-700">
+                  <div className="mt-3 bg-slate-50 rounded-lg p-2.5 space-y-1.5 text-sm text-slate-700">
                     <div className="flex items-center space-x-1.5">
                       <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
                       <span className="font-semibold text-slate-600">Pickup:</span>
@@ -975,7 +987,7 @@ export default function App() {
                   </div>
 
                   <div className="mt-3.5 flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-[11px] text-slate-400 flex items-center space-x-1">
+                    <span className="text-xs text-slate-400 flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
                       <span>Expires in ~25m</span>
                     </span>
@@ -983,12 +995,12 @@ export default function App() {
                     {order.status === 'OPEN' ? (
                       <button
                         onClick={() => handleAcceptOrder(order.id)}
-                        className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1"
+                        className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1"
                       >
                         <span>Accept Errand</span>
                       </button>
                     ) : (
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
+                      <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
                         Accepted by You
                       </span>
                     )}
@@ -1002,110 +1014,116 @@ export default function App() {
         {/* TAB 2: Post Errand */}
         {activeTab === 'post' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-slate-800">Post New Errand</h2>
-            <form onSubmit={handlePostSubmit} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3.5">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Pickup Store / Spot (Live M3 Directory)
-                  </label>
-                  <span className="text-[10px] text-blue-600 font-semibold">
-                    {activeSuppliers.length} active spots
-                  </span>
-                </div>
-                <select
-                  value={formData.supplierId}
-                  onChange={(e) => {
-                    const chosen = suppliers.find((s) => s.id === e.target.value);
-                    if (chosen) {
-                      setFormData({
-                        ...formData,
-                        supplierId: chosen.id,
-                        supplierName: chosen.name,
-                        campusZone: chosen.campusZone,
-                      });
-                    }
-                  }}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                >
-                  {activeSuppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.campusZone} - {s.category})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Selected Zone: <span className="font-bold text-slate-600">{formData.campusZone}</span>
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Item Description & Order Details</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
-                  value={formData.itemDescription}
-                  onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Drop-off Study Spot & Visual Cue</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
-                  value={formData.dropoffLocation}
-                  onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Special Delivery Notes (Optional)</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
-                  value={formData.specialNotes}
-                  onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
-                  className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                />
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-900">Courier Reward Credits:</span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.max(5, f.rewardCredits - 5) }))}
-                      className="w-6 h-6 rounded bg-amber-200 text-amber-900 font-bold text-sm"
-                    >
-                      -
-                    </button>
-                    <span className="font-black text-sm text-amber-900">{formData.rewardCredits} C</span>
-                    <button
-                      type="button"
-                      onClick={() => setFormData((f) => ({ ...f, rewardCredits: f.rewardCredits + 5 }))}
-                      className="w-6 h-6 rounded bg-amber-200 text-amber-900 font-bold text-sm"
-                    >
-                      +
-                    </button>
+            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Post New Errand</h2>
+            <form onSubmit={handlePostSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
+              <div className="min-w-0 bg-white rounded-xl p-4 md:p-6 shadow-sm border border-slate-200 space-y-5">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-bold text-slate-700">
+                      Pickup Store / Spot (Live M3 Directory)
+                    </label>
+                    <span className="text-xs text-blue-600 font-semibold">
+                      {activeSuppliers.length} active spots
+                    </span>
                   </div>
+                  <select
+                    value={formData.supplierId}
+                    onChange={(e) => {
+                      const chosen = suppliers.find((s) => s.id === e.target.value);
+                      if (chosen) {
+                        setFormData({
+                          ...formData,
+                          supplierId: chosen.id,
+                          supplierName: chosen.name,
+                          campusZone: chosen.campusZone,
+                        });
+                      }
+                    }}
+                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
+                  >
+                    {activeSuppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.campusZone} - {s.category})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Selected Zone: <span className="font-bold text-slate-600">{formData.campusZone}</span>
+                  </p>
                 </div>
-                <p className="text-[11px] text-amber-700 mt-1">
-                  Available: {wallet.availableCredits} C | Escrow hold applied upon posting.
-                </p>
-              </div>
 
-              <button
-                type="submit"
-                className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                Post Errand & Reserve Escrow
-              </button>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Item Description & Order Details</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
+                    value={formData.itemDescription}
+                    onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
+                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Drop-off Study Spot & Visual Cue</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
+                    value={formData.dropoffLocation}
+                    onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
+                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Special Delivery Notes (Optional)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
+                    value={formData.specialNotes}
+                    onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
+                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
+                  />
+                </div>
+
+              </div>
+              <aside aria-label="Reward and posting" className="min-w-0 space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-6">
+                  <div className="flex flex-wrap gap-3 items-center justify-between">
+                    <span className="text-sm font-bold text-amber-900">Courier Reward Credits:</span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        aria-label="Decrease reward"
+                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.max(5, f.rewardCredits - 5) }))}
+                        className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
+                      >
+                        -
+                      </button>
+                      <span className="font-black text-sm text-amber-900">{formData.rewardCredits} C</span>
+                      <button
+                        type="button"
+                        aria-label="Increase reward"
+                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: f.rewardCredits + 5 }))}
+                        className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Available: {wallet.availableCredits} C | Escrow hold applied upon posting.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+                >
+                  Post Errand & Reserve Escrow
+                </button>
+              </aside>
             </form>
           </div>
         )}
@@ -1113,36 +1131,42 @@ export default function App() {
         {/* TAB 3: Campus Spots Directory (M3 Live Integration) */}
         {activeTab === 'spots' && (
           <div className="space-y-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-800">Campus Spots (M3)</h2>
-                <p className="text-xs text-slate-500">Live directory fetched from Supplier Service</p>
+                <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Campus Spots (M3)</h2>
+                <p className="text-sm text-slate-500">Live directory fetched from Supplier Service</p>
               </div>
-              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 font-bold px-2 py-0.5 rounded-full">
+              <span className="text-sm bg-blue-50 text-blue-700 border border-blue-200 font-bold px-2 py-0.5 rounded-full">
                 {filteredSuppliers.length} Verified
               </span>
             </div>
 
-            {/* Spot Search Bar */}
-            <div className="relative">
+              {/* Spot Search Bar */}
+            <div className="relative w-full lg:max-w-md">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search food, cafes, lockers, print hubs..."
                 value={supplierSearch}
                 onChange={(e) => setSupplierSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-xs bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-nus-blue shadow-sm"
+                className="w-full pl-9 pr-4 py-2 text-sm bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-nus-blue shadow-sm"
               />
+            </div>
+
             </div>
 
             {/* Loading Indicator */}
             {isSuppliersLoading && (
-              <div className="p-4 text-center text-xs text-slate-400">Loading campus spots...</div>
+              <div className="p-4 text-center text-sm text-slate-400">Loading campus spots...</div>
             )}
 
             {/* List of Verified Spots */}
             {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+            <div className="responsive-card-grid">
+              {!isSuppliersLoading && filteredSuppliers.length === 0 && (
+                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No campus spots match your search.</p>
+              )}
               {filteredSuppliers.map((s) => (
                 <div
                   key={s.id}
@@ -1152,18 +1176,18 @@ export default function App() {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                      <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
                         {s.supplierCode}
                       </span>
                       <h3 className="font-bold text-sm text-slate-900 mt-1">{s.name}</h3>
-                      <p className="text-xs text-slate-500">{s.exactLocation}</p>
+                      <p className="text-sm text-slate-500">{s.exactLocation}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
+                      <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
                         {s.campusZone}
                       </span>
                       {!s.isActive && (
-                        <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded">
+                        <span className="text-xs bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded">
                           Unavailable
                         </span>
                       )}
@@ -1171,7 +1195,7 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
                       {s.category}
                     </span>
                     <button
@@ -1185,7 +1209,7 @@ export default function App() {
                         }));
                         setActiveTab('post');
                       }}
-                      className="text-xs font-bold text-nus-orange hover:text-orange-700 flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:text-slate-400"
+                      className="text-sm font-bold text-nus-orange hover:text-orange-700 flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:text-slate-400"
                     >
                       <span>Pick for Errand</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1200,24 +1224,27 @@ export default function App() {
         {/* TAB 4: My Tasks */}
         {activeTab === 'tasks' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-slate-800">My Active Tasks</h2>
+            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Active Tasks</h2>
             {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+            <div className="responsive-card-grid">
+              {!orders.some((o) => o.courierId === wallet.userId || o.requesterId === wallet.userId) && (
+                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No active tasks yet.</p>
+              )}
               {orders
                 .filter((o) => o.courierId === wallet.userId || o.requesterId === wallet.userId)
                 .map((task) => (
                   <div key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                      <span className="text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
                         {task.orderCode}
                       </span>
-                      <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                      <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
                         {task.status}
                       </span>
                     </div>
-                    <p className="text-xs font-bold text-slate-800">{task.itemDescription}</p>
-                    <p className="text-[11px] text-slate-500">Pickup: {task.supplierName}</p>
-                    <p className="text-[11px] text-slate-500">Dropoff: {task.dropoffLocation}</p>
+                    <p className="text-sm font-bold text-slate-800">{task.itemDescription}</p>
+                    <p className="text-xs text-slate-500">Pickup: {task.supplierName}</p>
+                    <p className="text-xs text-slate-500">Dropoff: {task.dropoffLocation}</p>
                   </div>
                 ))}
             </div>
@@ -1226,246 +1253,256 @@ export default function App() {
 
         {/* TAB 5: Profile & Wallet */}
         {activeTab === 'profile' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-slate-800">Profile Info</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <section aria-labelledby="profile-heading" className="min-w-0 space-y-4">
+              <h2 id="profile-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Profile Info</h2>
 
-            {isLoadingProfile && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-xs flex items-center space-x-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Loading profile…</span>
-              </div>
-            )}
+              {isLoadingProfile && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center space-x-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Loading profile…</span>
+                </div>
+              )}
 
-            {profileError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
-                <p className="font-bold">{profileError.code}</p>
-                <p>{profileError.message}</p>
-              </div>
-            )}
+              {profileError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
+                  <p className="font-bold">{profileError.code}</p>
+                  <p>{profileError.message}</p>
+                </div>
+              )}
 
-            {profile && (
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3">
-                <p className="text-[10px] text-slate-400">
-                  Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
-                </p>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Username: <span className="text-rose-600">*</span>
-                  </label>
-                  <p className="text-[10px] text-slate-400 mb-1">
-                    Must be 1-50 characters and unique (case-insensitive).
+              {profile && (
+                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3">
+                  <p className="text-xs text-slate-400">
+                    Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
                   </p>
-                  {updateProfileError && (
-                    <p className="text-[11px] text-rose-600 mb-1">{updateProfileError.message}</p>
+
+                  <div>
+                    <label htmlFor="profile-username" className="block text-sm font-bold text-slate-700 mb-1">
+                      Username: <span className="text-rose-600">*</span>
+                    </label>
+                    <p className="text-xs text-slate-400 mb-1">
+                      Must be 1-50 characters and unique (case-insensitive).
+                    </p>
+                    {updateProfileError && (
+                      <p className="text-xs text-rose-600 mb-1">{updateProfileError.message}</p>
+                    )}
+                    <input
+                      type="text"
+                      id="profile-username"
+                      value={isEditingProfile ? editUsernameDraft : profile.username}
+                      disabled={!isEditingProfile || isUpdatingProfile}
+                      onChange={(e) => setEditUsernameDraft(e.target.value)}
+                      className={`w-full text-sm p-2.5 rounded-lg border ${
+                        isEditingProfile ? 'border-nus-blue bg-white' : 'border-slate-200 bg-slate-50 text-slate-500'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="profile-email" className="block text-sm font-bold text-slate-700 mb-1">
+                      Email: <span className="text-rose-600">*</span>
+                    </label>
+                    <p className="text-xs text-slate-400 mb-1">
+                      Read-only here. Must be a valid, unique email address.
+                    </p>
+                    <input
+                      type="text"
+                      id="profile-email"
+                      value={profile.email}
+                      disabled
+                      className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Role:</label>
+                    <p className="text-xs text-slate-400 mb-1">Read-only. Set by an administrator.</p>
+                    <div
+                      className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
+                        profile.userRole === 'ADMIN'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}
+                    >
+                      {profile.userRole}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Status:</label>
+                    <p className="text-xs text-slate-400 mb-1">Read-only. Whether your account is active.</p>
+                    <div
+                      className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
+                        profile.status
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-rose-50 text-rose-700 border-rose-200'
+                      }`}
+                    >
+                      {profile.status ? 'Active' : 'Disabled'}
+                    </div>
+                  </div>
+
+                  {!isEditingProfile ? (
+                    <button
+                      onClick={startEditingProfile}
+                      className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <button
+                        onClick={cancelEditingProfile}
+                        disabled={isUpdatingProfile}
+                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-2 rounded-lg transition disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUpdateProfile}
+                        disabled={isUpdatingProfile}
+                        className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition disabled:opacity-60"
+                      >
+                        {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{isUpdatingProfile ? 'Updating…' : 'Update'}</span>
+                      </button>
+                    </div>
                   )}
-                  <input
-                    type="text"
-                    value={isEditingProfile ? editUsernameDraft : profile.username}
-                    disabled={!isEditingProfile || isUpdatingProfile}
-                    onChange={(e) => setEditUsernameDraft(e.target.value)}
-                    className={`w-full text-xs p-2.5 rounded-lg border ${
-                      isEditingProfile ? 'border-nus-blue bg-white' : 'border-slate-200 bg-slate-50 text-slate-500'
-                    }`}
-                  />
+                </div>
+              )}
+
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+              >
+                {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
+                <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowDeleteAccountModal(true);
+                  setDeleteAccountConfirmed(false);
+                  setDeleteAccountError(null);
+                }}
+                className="w-full flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+              >
+                <span>Delete Account</span>
+              </button>
+            </section>
+            <section aria-labelledby="credit-heading" className="min-w-0 space-y-4">
+              <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Credit Wallet & Ledger</h2>
+
+              {/* Balance Card */}
+              <div className="bg-gradient-to-br from-nus-blue to-blue-950 text-white rounded-2xl p-5 shadow-lg">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm font-bold tracking-wider text-blue-200 uppercase">NUS Closed Economy</span>
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                </div>
+                <p className="text-sm text-blue-200 font-semibold">Total Account Balance</p>
+                <div className="flex items-baseline space-x-1 mt-1">
+                  <span className="text-3xl font-black text-amber-300">
+                    {wallet.availableCredits + wallet.escrowCredits}
+                  </span>
+                  <span className="text-sm text-blue-200 font-bold">Credits</span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Email: <span className="text-rose-600">*</span>
-                  </label>
-                  <p className="text-[10px] text-slate-400 mb-1">
-                    Read-only here. Must be a valid, unique email address.
-                  </p>
-                  <input
-                    type="text"
-                    value={profile.email}
-                    disabled
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Role:</label>
-                  <p className="text-[10px] text-slate-400 mb-1">Read-only. Set by an administrator.</p>
-                  <div
-                    className={`inline-block text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                      profile.userRole === 'ADMIN'
-                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    }`}
-                  >
-                    {profile.userRole}
+                <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-blue-800/80">
+                  <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
+                    <span className="text-xs text-blue-200 block">Available to Spend</span>
+                    <span className="text-base font-bold text-emerald-400">{wallet.availableCredits} C</span>
+                  </div>
+                  <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
+                    <span className="text-xs text-blue-200 block">Held in Escrow</span>
+                    <span className="text-base font-bold text-amber-300">{wallet.escrowCredits} C</span>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Status:</label>
-                  <p className="text-[10px] text-slate-400 mb-1">Read-only. Whether your account is active.</p>
-                  <div
-                    className={`inline-block text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                      profile.status
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}
-                  >
-                    {profile.status ? 'Active' : 'Disabled'}
-                  </div>
-                </div>
-
-                {!isEditingProfile ? (
-                  <button
-                    onClick={startEditingProfile}
-                    className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs py-2 rounded-lg transition"
-                  >
-                    Edit
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={cancelEditingProfile}
-                      disabled={isUpdatingProfile}
-                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-lg transition disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUpdateProfile}
-                      disabled={isUpdatingProfile}
-                      className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs py-2 rounded-lg transition disabled:opacity-60"
-                    >
-                      {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                      <span>{isUpdatingProfile ? 'Updating…' : 'Update'}</span>
-                    </button>
-                  </div>
-                )}
               </div>
-            )}
 
-            <h2 className="text-lg font-bold text-slate-800">Credit Wallet & Ledger</h2>
-
-            {/* Balance Card */}
-            <div className="bg-gradient-to-br from-nus-blue to-blue-950 text-white rounded-2xl p-5 shadow-lg">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-bold tracking-wider text-blue-200 uppercase">NUS Closed Economy</span>
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              </div>
-              <p className="text-xs text-blue-200 font-semibold">Total Account Balance</p>
-              <div className="flex items-baseline space-x-1 mt-1">
-                <span className="text-3xl font-black text-amber-300">
-                  {wallet.availableCredits + wallet.escrowCredits}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900 flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Closed Economy Guarantee:</strong> Credits cannot be bought or withdrawn with real money.
+                  Complete errands for peers to earn more credits.
                 </span>
-                <span className="text-sm text-blue-200 font-bold">Credits</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-blue-800/80">
-                <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                  <span className="text-[11px] text-blue-200 block">Available to Spend</span>
-                  <span className="text-base font-bold text-emerald-400">{wallet.availableCredits} C</span>
-                </div>
-                <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                  <span className="text-[11px] text-blue-200 block">Held in Escrow</span>
-                  <span className="text-base font-bold text-amber-300">{wallet.escrowCredits} C</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-              <span>
-                <strong>Closed Economy Guarantee:</strong> Credits cannot be bought or withdrawn with real money.
-                Complete errands for peers to earn more credits.
-              </span>
-            </div>
-
-            {/* Transaction Ledger */}
-            <div>
-              <h3 className="font-bold text-sm text-slate-800 mb-2">Recent Ledger Transactions</h3>
-              <div className="space-y-2">
-                <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-slate-800">Welcome Grant</p>
-                    <p className="text-[10px] text-slate-400">Initial student signup allocation</p>
+              {/* Transaction Ledger */}
+              <div>
+                <h3 className="font-bold text-sm text-slate-800 mb-2">Recent Ledger Transactions</h3>
+                <div className="space-y-2">
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-slate-800">Welcome Grant</p>
+                      <p className="text-xs text-slate-400">Initial student signup allocation</p>
+                    </div>
+                    <span className="font-bold text-emerald-600">+100 C</span>
                   </div>
-                  <span className="font-bold text-emerald-600">+100 C</span>
-                </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-slate-800">Escrow Hold (E-1042)</p>
-                    <p className="text-[10px] text-slate-400">Locked for active request</p>
+                  <div className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
+                    <div>
+                      <p className="font-bold text-slate-800">Escrow Hold (E-1042)</p>
+                      <p className="text-xs text-slate-400">Locked for active request</p>
+                    </div>
+                    <span className="font-bold text-amber-600">-15 C</span>
                   </div>
-                  <span className="font-bold text-amber-600">-15 C</span>
                 </div>
               </div>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-            >
-              {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
-              <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setShowDeleteAccountModal(true);
-                setDeleteAccountConfirmed(false);
-                setDeleteAccountError(null);
-              }}
-              className="w-full flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-            >
-              <span>Delete Account</span>
-            </button>
+            </section>
           </div>
         )}
       </main>
 
       {/* Bottom Navigation Bar */}
       {/* AI-generated (edited by jagdeepsh) - hidden at md: and up, replaced by the top nav bar in the header */}
-      <nav className="fixed bottom-0 max-w-md w-full bg-white border-t border-slate-200 px-3 py-2 flex justify-around items-center z-40 md:hidden">
+      <nav aria-label="Main navigation" className="student-bottom-nav fixed inset-x-0 bottom-0 w-full bg-white border-t border-slate-200 px-3 pt-2 flex justify-around items-center z-40 md:hidden">
         <button
-          onClick={() => setActiveTab('feed')}
+          aria-current={activeTab === 'feed' ? 'page' : undefined}
+              onClick={() => setActiveTab('feed')}
           className={`flex flex-col items-center py-1 transition ${
             activeTab === 'feed' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Compass className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Feed</span>
+          <span className="text-xs mt-0.5">Feed</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('post')}
+          aria-current={activeTab === 'post' ? 'page' : undefined}
+              onClick={() => setActiveTab('post')}
           className={`flex flex-col items-center py-1 transition ${
             activeTab === 'post' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <PlusCircle className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Post</span>
+          <span className="text-xs mt-0.5">Post</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('spots')}
+          aria-current={activeTab === 'spots' ? 'page' : undefined}
+              onClick={() => setActiveTab('spots')}
           className={`flex flex-col items-center py-1 transition ${
             activeTab === 'spots' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Store className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Spots</span>
+          <span className="text-xs mt-0.5">Spots</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('tasks')}
+          aria-current={activeTab === 'tasks' ? 'page' : undefined}
+              onClick={() => setActiveTab('tasks')}
           className={`flex flex-col items-center py-1 transition ${
             activeTab === 'tasks' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Clock className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Tasks</span>
+          <span className="text-xs mt-0.5">Tasks</span>
         </button>
 
         <button
+          aria-current={activeTab === 'profile' ? 'page' : undefined}
           onClick={() => {
             setActiveTab('profile');
             fetchProfile();
@@ -1475,13 +1512,13 @@ export default function App() {
           }`}
         >
           <UserCircle className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5">Profile</span>
+          <span className="text-xs mt-0.5">Profile</span>
         </button>
       </nav>
 
       {/* Delete Account Confirmation Modal */}
       {showDeleteAccountModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center space-x-3 text-rose-600">
               <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
@@ -1489,22 +1526,22 @@ export default function App() {
               </div>
               <div>
                 <h3 className="font-bold text-base text-slate-900">Delete Account</h3>
-                <p className="text-xs text-slate-500">This action is permanent</p>
+                <p className="text-sm text-slate-500">This action is permanent</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className="text-sm text-slate-600">
               Deleting your account will permanently remove your profile and cannot be undone. You will be logged out immediately.
             </p>
 
             {deleteAccountError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs space-y-0.5">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
                 <p className="font-bold">{deleteAccountError.code}</p>
                 <p>{deleteAccountError.message}</p>
               </div>
             )}
 
-            <label className="flex items-start space-x-2 text-xs text-slate-700 cursor-pointer">
+            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={deleteAccountConfirmed}
@@ -1524,7 +1561,7 @@ export default function App() {
                   setDeleteAccountConfirmed(false);
                   setDeleteAccountError(null);
                 }}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
@@ -1532,7 +1569,7 @@ export default function App() {
                 type="button"
                 disabled={!deleteAccountConfirmed || isDeletingAccount}
                 onClick={handleDeleteAccount}
-                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-lg shadow"
+                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
               >
                 {isDeletingAccount && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</span>
@@ -1544,14 +1581,14 @@ export default function App() {
 
       {/* Delete Account Success Modal */}
       {deleteAccountSuccess && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
             <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
               <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
-              <p className="text-xs text-slate-500 mt-1">Your account has been permanently deleted.</p>
+              <p className="text-sm text-slate-500 mt-1">Your account has been permanently deleted.</p>
             </div>
             <button
               onClick={() => {

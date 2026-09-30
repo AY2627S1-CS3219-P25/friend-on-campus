@@ -1,15 +1,25 @@
 <!--
 AI Assistance Disclosure:
+
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Documented the working admin gateway route and student login navigation.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Updated D2 test and seed-account descriptions to match the author-approved User Service contracts.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected stale Milestone D2 implementation facts after the author-approved User and Supplier Service migrations.
 Author review: <to be completed by ngkhengyang>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
+Scope: Added the "Documentation index" and "Claude Code set-up" links under Milestone Documentation. Nothing else in this file was changed.
+Author review: <to be completed by Reallyeasy1>
 -->
+
+
+
 
 # Friend of Campus (FoC) 🏃‍♂️💨
 
@@ -88,7 +98,7 @@ docker compose up --build
 | Component | Local Access URL | Description |
 | :--- | :--- | :--- |
 | **Unified Web Ingress** | [http://localhost](http://localhost) | Main Gateway (routes to Student Mobile App) |
-| **Admin Portal** | [http://localhost:5174](http://localhost:5174) | Campus Supplier Directory Management |
+| **Admin Portal** | [http://localhost/admin/](http://localhost/admin/) | Admin login and supplier management; also available directly at [port 5174](http://localhost:5174/admin/) |
 | **Student App** | [http://localhost:5173](http://localhost:5173) | Student Errand Feed & Campus Spots |
 | **User Service Health** | [http://localhost:8001/health](http://localhost:8001/health) | M2 Health Probe (`/api/users/me` for auth) |
 | **Supplier Service Health**| [http://localhost:8002/health](http://localhost:8002/health) | M3 Health Probe (`/api/suppliers` for catalog) |
@@ -201,10 +211,3 @@ friend-on-campus/
 - **Documentation index** (architecture overview, per-service pages, requirements and open conflicts, design decisions): see [`docs/README.md`](./docs/README.md)
 - **Claude Code set-up for this repo** (AI-usage rules, plugins, agents, hooks): see [`.claude/README.md`](./.claude/README.md)
 - **Team Onboarding Guide**: See [`docs/onboarding-guide-sep-3.md`](./docs/onboarding-guide-sep-3.md)
-
-<!--
-AI Assistance Disclosure:
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Added the "Documentation index" and "Claude Code set-up" links under Milestone Documentation. Nothing else in this file was changed.
-Author review: <to be completed by Reallyeasy1>
--->

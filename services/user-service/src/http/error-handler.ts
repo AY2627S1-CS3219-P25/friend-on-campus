@@ -1,32 +1,34 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Return HTTP 409 for LAST_ADMIN_REQUIRED.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented centralized User Service error handling, structured deferred-route responses, and safe error responses.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Body-parser client errors (malformed JSON, oversized body) are now answered with their own 4xx status
  * and a JSON body instead of falling through to the generic 500 handler.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Mapped the new FORBIDDEN UserErrorCode (thrown by the DELETE /api/users/:id self-or-admin check) to 403.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Mapped the new SELF_ACTION_FORBIDDEN code (PATCH /:id/toggle-role rejecting an admin targeting their
  * own id) to 403. Removed the NOT_IMPLEMENTED mapping — the route that used to throw it (the old /:id/promote
  * stub) no longer exists.
  * Author review: (to be completed by author after review)
  */
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
+
 import { ErrorRequestHandler } from 'express';
 import { AuthError, AuthErrorCode } from '../auth/auth-module';
 import { logError } from '../utils/logger';
@@ -47,6 +49,7 @@ const USER_ERROR_STATUS: Record<UserErrorCode, number> = {
   USER_NOT_FOUND: 404,
   FORBIDDEN: 403,
   SELF_ACTION_FORBIDDEN: 403,
+  LAST_ADMIN_REQUIRED: 409,
 };
 
 interface HttpClientError {

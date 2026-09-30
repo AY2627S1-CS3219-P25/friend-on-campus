@@ -1,18 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Accepted configured Ed25519 authentication middleware for the author-approved Supplier Service migration.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: createSupplier and updateSupplier now check findDuplicateLocation() before writing, rejecting with
  * 409 and a `duplicate` object (name/category/building/floor of the conflicting record) if one is found.
@@ -20,7 +16,19 @@
  * *effective* post-update values before checking, since PUT allows partial updates, and excludes its own id
  * so a no-op/unrelated update isn't flagged as duplicating itself.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+ * Scope: PR #93 review fixes: the duplicate check uses trimmed values (the repository stores trimmed values),
+ * a unique-index violation (Prisma P2002) is answered with 409 instead of 500, and updateSupplier returns 400
+ * when name, category, building or floor is sent empty. createSupplier treats whitespace-only required
+ * fields as missing.
+ * Author review: (to be completed by author after review)
  */
+
+
+// AI-generated (edited by yanhwee)
+
+
 
 import { Router, Request, RequestHandler, Response } from 'express';
 import * as supplierRepository from '../database/supplierRepository';
@@ -31,6 +39,14 @@ import {
   SupplierDTO,
   SupplierQueryOptions,
 } from '@campus-errand/common-dtos';
+
+// AI-generated (edited by jagdeepsh)
+const DUPLICATE_LOCATION_ERROR = 'A supplier already exists with this name, category, and location.';
+
+// Safety net for a duplicate that gets past the pre-check (e.g. two concurrent creates).
+function isUniqueViolation(err: any): boolean {
+  return err?.code === 'P2002';
+}
 
 // GET /api/suppliers
 export async function getSuppliers(req: Request, res: Response) {
@@ -88,18 +104,25 @@ export async function createSupplier(req: Request, res: Response) {
   try {
     const body: CreateSupplierRequest = req.body;
 
-    if (!body.name || !body.campusZone || !body.exactLocation || !body.category || !body.building || !body.floor) {
+    // Whitespace-only counts as missing, the same as in updateSupplier.
+    const required = ['name', 'campusZone', 'exactLocation', 'category', 'building', 'floor'] as const;
+    if (required.some((key) => !String(body[key] ?? '').trim())) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor',
       });
     }
 
-    const duplicate = await supplierRepository.findDuplicateLocation(body.name, body.category, body.building, body.floor);
+    const duplicate = await supplierRepository.findDuplicateLocation(
+      String(body.name).trim(),
+      String(body.category).trim(),
+      String(body.building).trim(),
+      String(body.floor).trim(),
+    );
     if (duplicate) {
       return res.status(409).json({
         success: false,
-        error: 'A supplier already exists with this name, category, and location.',
+        error: DUPLICATE_LOCATION_ERROR,
         duplicate: {
           name: duplicate.name,
           category: duplicate.category,
@@ -116,6 +139,9 @@ export async function createSupplier(req: Request, res: Response) {
       message: 'Supplier created successfully',
     });
   } catch (err: any) {
+    if (isUniqueViolation(err)) {
+      return res.status(409).json({ success: false, error: DUPLICATE_LOCATION_ERROR });
+    }
     console.error('Error creating supplier:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -132,11 +158,18 @@ export async function updateSupplier(req: Request, res: Response) {
       return res.status(404).json({ success: false, error: `Supplier '${id}' not found` });
     }
 
+    // Same rule as createSupplier: these four fields may be left out of a PUT, but not blanked.
+    for (const key of ['name', 'category', 'building', 'floor'] as const) {
+      if (body[key] !== undefined && !String(body[key]).trim()) {
+        return res.status(400).json({ success: false, error: `${key} cannot be empty` });
+      }
+    }
+
     const effective = {
-      name: body.name ?? existing.name,
-      category: body.category ?? existing.category,
-      building: body.building ?? existing.building,
-      floor: body.floor ?? existing.floor,
+      name: String(body.name ?? existing.name).trim(),
+      category: String(body.category ?? existing.category).trim(),
+      building: String(body.building ?? existing.building).trim(),
+      floor: String(body.floor ?? existing.floor).trim(),
     };
     const duplicate = await supplierRepository.findDuplicateLocation(
       effective.name,
@@ -148,7 +181,7 @@ export async function updateSupplier(req: Request, res: Response) {
     if (duplicate) {
       return res.status(409).json({
         success: false,
-        error: 'A supplier already exists with this name, category, and location.',
+        error: DUPLICATE_LOCATION_ERROR,
         duplicate: {
           name: duplicate.name,
           category: duplicate.category,
@@ -165,6 +198,9 @@ export async function updateSupplier(req: Request, res: Response) {
       message: 'Supplier updated successfully',
     });
   } catch (err: any) {
+    if (isUniqueViolation(err)) {
+      return res.status(409).json({ success: false, error: DUPLICATE_LOCATION_ERROR });
+    }
     console.error('Error updating supplier:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

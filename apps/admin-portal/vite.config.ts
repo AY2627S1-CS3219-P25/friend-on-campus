@@ -1,10 +1,8 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Sonnet 5), date: 2026-09-30
-// Scope: Proxy no longer routes to user-service/supplier-service directly — every rule now points at the
-// nginx API Gateway (GATEWAY_URL), so every request from this app goes through the gateway regardless of
-// which port the app is accessed on (previously only true when accessed via the gateway's own port 80).
-// Author review: (to be completed by author after review)
-
+// Tool: Codex (model: GPT-6), date: 2026-09-30
+// Scope: Serve admin pages and assets under /admin/ through the gateway.
+// Author review: <to be completed by huangjiaxi1111>
+// AI-generated (edited by huangjiaxi1111)
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -15,10 +13,12 @@ import react from '@vitejs/plugin-react';
 const gatewayTarget = process.env.GATEWAY_URL ?? 'http://localhost';
 
 export default defineConfig({
+  base: '/admin/',
   plugins: [react()],
   server: {
     port: 5174,
     host: true,
+    allowedHosts: ['admin-portal'],
     proxy: {
       '/api/auth': {
         target: gatewayTarget,

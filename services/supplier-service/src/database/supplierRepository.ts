@@ -1,12 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Enhanced supplier repository with dynamic sorting, pagination, and total count calculations for Milestone D2.
  * Author review: (to be completed by author after review)
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: Added findDuplicateLocation() for the new (name, category, building, floor) uniqueness check used by
  * createSupplier/updateSupplier in supplierRoutes.ts. Case-insensitive via Prisma's native mode: 'insensitive'
@@ -14,6 +12,9 @@
  * added in this same round's migration.
  * Author review: (to be completed by author after review)
  */
+
+// AI-generated (edited by yanhwee)
+
 
 import { prisma } from './client';
 import {

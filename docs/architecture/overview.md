@@ -1,27 +1,42 @@
 <!--
 AI Assistance Disclosure:
+
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Documented the working admin gateway route and student login navigation.
+Author review: <to be completed by huangjiaxi1111>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: "Built today" column for user-service, supplier-service, student-app and admin-portal brought in step with main @ 6dc22a6 (PR #93: toggle-status, toggle-role, DELETE /:id, required building/floor, 409 duplicate rule, env-var proxy targets, healthchecks). Facts only.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Compiled this overview from the team's own sources (README, D1, D2 / Sprint 2 plan, docker-compose.yml,
 gateway/nginx.conf, packages/common-dtos) and from reading the code on milestone-d2. It restates what those
 sources already say and what the code currently does; it proposes nothing and contains no rationale.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected User and Supplier Service implementation facts, repository paths, and resolved documentation references.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated repository layout and conflict status to reflect that 01-init-databases.sql provisions logical databases only while microservices manage their own migrations.
 Author review: (to be completed by author after review)
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+Scope: Updated the "Built today" column for user-service, student-app, admin-portal and gateway, the directory layout
+(scripts/uat) and the conflict row list, from the code on `main` @ f0ee632 and the D2 UAT. Facts only.
+Author review: <to be completed by Reallyeasy1>
 -->
+
+
+
+
+
 
 # Architecture overview — intended vs built
 
-Read this before working on any service. **"Intended"** is what the team has written down (source given in brackets). **"Built"** is what the current code does as of 2026-09-22. Where they differ, neither is automatically right: see [`../requirements/conflicts.md`](../requirements/conflicts.md) and ask the author. *Why* the team chose any of this belongs in [`../decisions/`](../decisions/README.md), written by the team.
+Read this before working on any service. **"Intended"** is what the team has written down (source given in brackets). **"Built"** is what the current code does as of 2026-09-28 (`main` @ f0ee632). Where they differ, neither is automatically right: see [`../requirements/conflicts.md`](../requirements/conflicts.md) and ask the author. *Why* the team chose any of this belongs in [`../decisions/`](../decisions/README.md), written by the team.
 
 ## 1. The system in one paragraph
 
@@ -58,14 +73,14 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 
 | Service | Owns (intended) | Built today |
 |---|---|---|
-| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable; deferred ADMIN user-management routes return `501`. No event is published. |
-| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. Reads are unauthenticated; no `version` column. |
+| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable. ADMIN can list users, toggle an account's `status` (`PATCH /:id/toggle-status`) and flip a role between STUDENT and ADMIN (`PATCH /:id/toggle-role`, own id refused); any user can delete their own account and an ADMIN any account (`DELETE /:id`). `status` is not checked at login, refresh or token verification; there is no last-admin guard on status, role or deletion. No event is published. |
+| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. `building` and `floor` are required; a supplier with the same name, category, building and floor as another (case-insensitive) is rejected with 409. Reads are unauthenticated; no `version` column. |
 | **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
 | **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Mock: in-memory wallet and ledger, same header identity. `credit_wallets` / `credit_transactions` exist in the init SQL only. |
 | **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
-| **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; fetches the live supplier directory (with a hardcoded fallback list) and opens `/ws/`; makes no calls to the order or credit APIs yet. |
-| **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login + full supplier CRUD against the real APIs. |
-| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Built as described; routing only. |
+| **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; register / login / silent refresh / logout and profile edit against user-service; fetches the live supplier directory (with a hardcoded fallback list used only when the call fails) and opens `/ws/`; makes no calls to the order or credit APIs yet (wallet and escrow figures are mock data). Vite proxy targets come from env vars, so the container on `:5173` works. |
+| **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login gate that refuses non-`ADMIN` accounts, full supplier CRUD with search / filter / sort / pagination (page size 8) / details, and a Users page (list, search, disable / reinstate, upgrade / downgrade role, delete) against the real APIs; the Add / Edit supplier forms require building and floor and show the 409 duplicate; table at desktop width, cards and a drawer at 390 px. |
+| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. `/api/*` and `/` work as described. As of 2026-09-30, `/admin/` serves the admin portal and its assets: Vite uses `/admin/` as its base and nginx preserves that prefix. The student login page links to `/admin/`. Direct access on `:5174` redirects to the same base path. `/api/users` without a trailing slash is a 301. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
 
 ## 4. Directory layout
 
@@ -86,6 +101,7 @@ nus-campus-errand/
 ├── docker/postgres-init/       01-init-databases.sql — creates the 4 databases (tables managed per-service by migrations)
 ├── docker-compose.yml          gateway, 2 apps, 5 services, postgres:16, rabbitmq:3.13-management
 ├── scripts/test-d2-e2e.ts      D2 end-to-end suite (npm run test:d2)
+├── scripts/uat/                uat-d2-api.mjs, uat-d2-ui.mjs — D2 UAT drivers run against a live stack
 ├── data/{csv,images}/          supplier seed data
 ├── docs/                       see docs/README.md
 ├── ai/usage-log.md             mandatory AI usage log
@@ -98,4 +114,8 @@ Generated and ignored: `node_modules/`, `dist/`, `**/src/database/generated/` (p
 
 ## 5. Where intent and code currently differ
 
-Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15 - resolved), README's D2 status (16). Unresolved rows are open questions for the team, not defects for an AI tool to fix.
+Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15 - resolved), README's D2 status (16), promotion and last-admin guard (18), `/admin/` through the gateway (19; fixed 2026-09-30), `test:d2` expectations (20), stale user-service API reference (21 - resolved). Unresolved rows are open questions for the team, not defects for an AI tool to fix.
+
+## Admin navigation in local development
+
+The student Vite server forwards `/admin` requests, including asset and HMR requests, to `ADMIN_PORTAL_URL` (default `http://localhost:5174`). Compose sets it to `http://admin-portal:5174`. The login-page link therefore also works when opening the student frontend directly on port 5173. API requests remain under `/api/`; the existing backend authentication and ADMIN checks apply.

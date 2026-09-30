@@ -1,32 +1,31 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account creation with shared registration request and user response DTOs.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented login and session handling with shared access-token and refresh-token response DTOs.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Login now verifies the password against a constant dummy scrypt hash when the email is unknown, so
  * unknown-email and wrong-password attempts take comparable time; login and refresh opportunistically delete
  * idle-expired session rows.
  * Author review: <to be completed by ngkhengyang>
  */
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
 // AI-generated (edited by ngkhengyang)
 import type {
   AuthResponse,

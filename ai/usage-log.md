@@ -1,33 +1,36 @@
 <!--
 AI Assistance Disclosure:
+
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Implemented responsive UI layouts, recorded login navigation verification, and recorded atomic last-admin guards and self-deletion logout.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 11 documentation-compliance record below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 10 D2 contract-alignment record below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Appended the Database-per-Service schema ownership and migration refactoring record below.
 Author review: (to be completed by author after review)
 -->
+
+
+
+
+
+
 
 # AI Usage Log
 
@@ -1224,3 +1227,370 @@ Verified: `npm run typecheck` passes clean across every workspace in the monorep
 - `tests/postman/postman_collection.json` — rebuilt folder 5 ("Supplier Service: Admin CRUD") end to end, 11 → 15 requests: fixed 5.1's body to include `building`/`floor`; added 5.2 (attempt to create a case-varied duplicate of 5.1's supplier, expect `409` with the `duplicate` object matching the original exactly); added 5.6 (create a second, genuinely different throwaway supplier, capturing `testSupplierId2`); added 5.8 (attempt to update the second supplier into a case-varied duplicate of the first, expect `409`); added 5.15 (permanently delete the second supplier, keeping the DB stateless per this collection's existing cleanup philosophy). Every other existing request preserved unchanged, just renumbered.
 
 Verified: both JSON files re-parse as valid JSON. Ran the full collection for real via `postman collection run` — **57/57 requests, 103/103 assertions passed, zero failures** (up from a previously-broken folder 5 that would have failed at request 1). Confirmed directly in Postgres afterward that both throwaway suppliers (`Postman Test Supplier`, `Postman Second Supplier`) were actually deleted, not just marked inactive.
+## 2026-09-26 17:10 SGT — D2 requirements checklist and localhost UAT of main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632; the uncommitted usage-log entries from `claude-config` are in `git stash` "claude-config: uncommitted ai/usage-log.md entries")
+
+**Prompt (summarised):** Pull main, build a checklist of the D2 requirements from the CS3219 D2 instructions PDF, mark what is done, then run UAT on localhost.
+
+**Usage scenario:** Requirements formatting (checklist from the PDF, facts only), debugging assistance and test writing (UAT drivers, evidence). No architecture or rationale written; the "why" answers the PDF asks for are left to the team, and the defects found are reported, not fixed. Stack: `docker compose up --build -d` from a fresh volume with a compose override (postgres `5440:5432`, rabbitmq `5673:5672` / `15673:15672`, because native PostgreSQL and RabbitMQ own the default ports on this machine) and a new git-ignored `.env` from `generate-jwt-keys`. Results: API driver 56/63 (the 7 failures are findings: nginx 301 on `/api/users`, promote 501, disabled account still logs in and keeps its session, admin can disable self/last admin, non-UUID id → 500, byte-order sort); browser driver 29/29 with the admin portal on `:5174` (via the gateway `/admin/` renders the student app — root-absolute Vite assets); `test:d2` 40/44 (4 stale 501 assertions). API also verified with both UI containers stopped, and data verified after `docker compose restart`. UAT accounts created during the run were deleted from `user_db` afterwards; the 21 suppliers and 3 seed users are untouched.
+
+**Files changed:**
+- `docs/evidence/d2/d2-checklist.md` — new: PDF points 1-6 / 1-5 with [x]/[~]/[ ] status, check IDs, and the cross-cutting findings.
+- `docs/evidence/d2/README.md` — results table filled in, reproduction steps.
+- `docs/evidence/d2/screenshots/*.png` — 29 desktop/mobile screenshots from the browser run (binary, no header).
+- `scripts/uat/uat-d2-api.mjs` — new UAT driver, 63 API checks, no dependencies.
+- `scripts/uat/uat-d2-ui.mjs` — new UAT driver, 29 Playwright checks (Playwright installed with `--no-save`, not added to package.json).
+- `.env` — created locally (git-ignored, not listed in the diff).
+
+Not changed: the compose override lives outside the repo (`docker-compose.override.yml` is not git-ignored here, so it was not added); paste this into one if needed:
+
+```yaml
+services:
+  postgres:
+    ports: !override
+      - "5440:5432"
+  rabbitmq:
+    ports: !override
+      - "5673:5672"
+      - "15673:15672"
+```
+
+Verified: the four runs above, `node --check` on both drivers. The stack was left running for the author's own UAT.
+
+## 2026-09-28 14:24 SGT — D2 checklist and localhost UAT re-run
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632)
+
+**Prompt (summarised):** Pull main, build a checklist of the D2 requirements from the CS3219 D2 instructions PDF, mark what is done, then run UAT on localhost.
+
+**Usage scenario:** Debugging assistance / test evidence. origin/main was already at the local commit, so the existing checklist was kept and the UAT was re-run against the docker compose stack: `uat-d2-api` 56/63, `uat-d2-ui` 29/29, `test:d2` 40/44, API reachable with the UI containers stopped. Results only; the role artifact, database justifications, the promotion workflow and the admin edge-case behaviour are left to the author.
+
+**Files changed:**
+- `docs/evidence/d2/d2-checklist.md` — re-run line and header date.
+- `docs/evidence/d2/README.md` — re-run line and header date.
+- `scripts/uat/uat-d2-ui.mjs` — fixed the `ADMIN_URL` default (it referenced itself and threw when the variable was unset).
+- `docs/evidence/d2/screenshots/*.png` — regenerated by the UI run (binary, no header).
+
+## 2026-09-28 14:34 SGT — Bring docs/ in step with the D2 UAT findings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632)
+
+**Prompt (summarised):** Based on the UAT session, update the docs/ directory and say what else should be added to it.
+
+**Usage scenario:** Documentation improvements, as-built facts only. Each change was checked against the code (`user-routes.ts`, `schema.prisma`, Dockerfiles, `gateway/nginx.conf`, `vite.config.ts`) and the UAT output. No rationale, decision or recommendation was written; the conflicts' Resolution column, the decision records and the "why" answers are left to the author.
+
+**Files changed:**
+- `docs/services/user-service.md` — `status` column and migrations, corrected API table, new "Roles as enforced", "Behaviour as built" and "Tests" sections, seed-on-boot note.
+- `docs/services/supplier-service.md` — name sort order, denial codes, seed-on-boot, UAT drivers under Tests.
+- `docs/architecture/overview.md` — "Built today" for user-service, student-app, admin-portal, gateway; `scripts/uat/` in the layout; conflict rows 18-21 listed.
+- `docs/requirements/conflicts.md` — rows 18-21 (Resolution empty).
+- `docs/README.md` — evidence entry extended.
+- `docs/onboarding-guide-sep-3.md` — troubleshooting: Windows port override, 502 after single-service restart, missing JWT keys.
+
+## 2026-09-28 14:46 SGT — Diagrams, OpenAPI files and User Service API reference
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (f0ee632)
+
+**Prompt (summarised):** Generate docs/diagrams, docs/api and update api-reference.md. The author also stated the team's decisions (PostgreSQL, shared verification middleware, two roles, reproducible seeded admin) in the prompt.
+
+**Usage scenario:** Documentation improvements: transcription of the existing schema, routes and request flow. Nothing was designed or changed. The decisions and their reasons stated by the author were not written into any file; the decision records in `docs/decisions/` are left to the author. All 5 Mermaid blocks render and both OpenAPI files parse with every `$ref` resolving.
+
+**Files changed:**
+- `docs/diagrams/component.md`, `user-schema.md`, `supplier-schema.md`, `auth-sequence.md` — new, Mermaid, as built.
+- `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml` — new, OpenAPI 3.0.3 transcriptions of existing routes.
+- `services/user-service/docs/api-reference.md` — `status` in user objects, implemented admin routes, removed `GET /api/users/:id`, body-parser error codes.
+- `docs/README.md`, `docs/services/user-service.md`, `docs/services/supplier-service.md` — links to the new files.
+- `docs/requirements/conflicts.md`, `docs/architecture/overview.md` — row 21 marked resolved.
+
+## 2026-09-28 14:49 SGT — Ignore local-only docs, branch and push
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built (from main @ f0ee632)
+
+**Prompt (summarised):** Git-ignore docs/evidence/, docs/requirements/ and the onboarding guide, then create a new branch and push it to the remote.
+
+**Usage scenario:** Boilerplate / configuration. The commit and push were made at the author's explicit request. Files already tracked under the ignored paths were left tracked and their local edits were left out of the commit.
+
+**Files changed:**
+- `.gitignore` — three ignore rules.
+
+## 2026-09-28 15:16 SGT — PR #92 opened; Claude PR review failure diagnosed, turn limit raised
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Open a pull request to main, then find out why its CI check fails and raise the Claude review's turn limit above 1000.
+
+**Usage scenario:** Debugging assistance and configuration. PR #92 was opened at the author's request. Run 36389908313 failed because the review finished in 57 turns against `--max-turns 40`; the review itself was posted. The workflow edit is left uncommitted for the author.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — `--max-turns` 40 to 1500, comment and disclosure header.
+
+## 2026-09-28 16:04 SGT — Decision record files 0001-0004 created
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Update docs/decisions/.
+
+**Usage scenario:** Boilerplate generation and formatting. Four records were created from the template with title, date and Related links. Each holds the author's own statement from an earlier prompt, pasted word for word. The AI wrote no context, options, decision, rationale or consequences; those sections, Status and Deciders are left to the author. Also corrected the time in today's five earlier headings, which were UTC labelled as SGT.
+
+**Files changed:**
+- `docs/decisions/0001-database-choice.md`, `0002-token-verification.md`, `0003-roles.md`, `0004-first-administrator.md` — new.
+- `docs/decisions/README.md` — index rows.
+- `ai/usage-log.md` — heading times of today's entries.
+
+## 2026-09-28 20:19 SGT — D2 question guide
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Write the docs that help answer the questions in the CS3219 D2 instructions PDF.
+
+**Usage scenario:** Documentation and formatting. The guide lists each PDF question with the as-built facts, demo steps and links already recorded in docs/, and quotes the author's statements from decision records 0001-0004 word for word. Differences between those statements and the code are listed as observations. Every "why" answer (role rationale, database justification, authentication approach, first-administrator security, promotion workflow, edge-case behaviour) is left empty for the team.
+
+**Files changed:**
+- `docs/d2-question-guide.md` — new.
+- `docs/README.md` — index entry and disclosure scope.
+
+## 2026-09-28 20:23 SGT — PR for the D2 question guide and decision record files
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide (from docs/d2-as-built)
+
+**Prompt (summarised):** Make a pull request to the GitHub repo.
+
+**Usage scenario:** Boilerplate / configuration. Branch, commit, push and pull request were made at the author's explicit request. Left out of the commit: the workflow turn-limit edit, the git-ignored local docs (evidence, requirements, onboarding guide) and the generated UAT results file.
+
+**Files changed:**
+- none beyond this entry; the commit contains the files from the two entries above and the decision records.
+
+## 2026-09-28 21:21 SGT — Seed account lookup; Word copy of the D2 question guide
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Two prompts: give the test account names and password; create a Word document from docs/d2-question-guide.md.
+
+**Usage scenario:** Learning support (facts read from the seed script and service page) and formatting. The Word file is a pandoc conversion of the guide with no change to its content; the disclosure header is kept as visible text and the "Team's answer" slots are still empty.
+
+**Files changed:**
+- none in the repository besides this entry. Output written outside the repo: `../d2-question-guide.docx`.
+
+## 2026-09-29 12:12 SGT — Checked main for changes before a docs update
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Pull from main, then update the diagrams and documentation accordingly.
+
+**Usage scenario:** Documentation upkeep. Fetched the remote: `origin/main` is still f0ee632, the commit the diagrams and service pages already describe, so nothing was merged and no document was changed. PRs #91, #93 and #95 are open and not on main.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-29 14:07 SGT — PR #92 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-as-built
+
+**Prompt (summarised):** Resolve the code review on PR #92 and merge it.
+
+**Usage scenario:** Debugging assistance and documentation improvements. Two of the three review findings were fixed in the UAT drivers. The `.gitignore` finding was not changed: which folders stay local is the author's decision. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `scripts/uat/uat-d2-api.mjs` — R3 detail reads `userRole`; header comment states the real output path.
+- `scripts/uat/uat-d2-ui.mjs` — results file goes to the temp folder or `UAT_OUT`; header comment corrected.
+
+## 2026-09-29 14:14 SGT — PR #92 merged; PR #94 brought up to date with main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Resolve the code review on PRs #92 and #94 and merge them; do not merge PR #93 yet.
+
+**Usage scenario:** Debugging assistance and configuration. A second review pass on PR #92 found a missing `tmpdir` import in the browser driver (fixed in f984922), after which #92 was merged. PR #94 was retargeted to main and main was merged into it; the only conflict was this log, resolved by keeping the entries of both sides. PR #93 was not touched. Merges were made at the author's explicit request.
+
+**Files changed:**
+- `ai/usage-log.md` — merge resolution and this entry.
+
+## 2026-09-29 14:34 SGT — PR #93 review findings addressed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** Resolve the code review on PR #93 and merge it.
+
+**Usage scenario:** Debugging assistance, test updates and documentation improvements. Fixed the defects the review reported in code the branch author had already designed, updated the tests and the as-built documents for the routes and rules this branch introduces, and merged main into the branch. Not done, left to the authors: whether an ADMIN may delete their own or the last ADMIN account, whether the migration backfills old rows, and the usage-log entry for the branch author's own AI use on 2026-09-27. `npm run typecheck` passes on all workspaces. `npm run test:d2`, the UAT drivers and the Postman collection were not run: Docker is not running on this machine. Commit, push and merge were made at the author's explicit request.
+
+**Files changed:**
+- `services/user-service/src/users/user-routes.ts` — self checks compare the id in lower case.
+- `services/supplier-service/src/backend/supplierRoutes.ts` — trimmed duplicate check, 409 on a unique-index violation, 400 on blank fields in PUT.
+- `scripts/test-d2-e2e.ts`, `scripts/uat/uat-d2-api.mjs` — building and floor in the create body, renamed user routes, toggle-role check.
+- `tests/postman/postman_collection.json` — request 3.15 accepts 400, 404 or 500 (JSON file, disclosure is in its description field).
+- `docs/services/user-service.md`, `docs/services/supplier-service.md`, `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml`, `docs/diagrams/supplier-schema.md`, `docs/d2-question-guide.md`, `services/user-service/docs/api-reference.md` — routes and rules as built on this branch.
+- `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
+- Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.
+
+## 2026-09-30 16:23 SGT — Implement responsive student and admin UI
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Fix frontend UI responsiveness across student-app and admin-portal: remove fixed shell width caps, adapt navigation for mobile/tablet/desktop, convert feeds to card grids, arrange profile and credits side-by-side on desktop, enlarge control touch targets, and make dialogs scroll within viewport height.
+
+**Usage scenario:** Frontend UI styling and responsive improvements based on author specifications. Implemented full-width layouts, breakpoint navigation, desktop two-column views, accessible control sizing, and dialog overflow handling. Added responsive browser regression checks. No architecture, schema, or API changes; no commits or pushes.
+
+**Validation:** Typecheck and production builds passed successfully.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx`, `apps/student-app/src/index.css` — responsive shell/navigation, grids, Post and Profile sections, typography, focus and dialog sizing.
+- `apps/admin-portal/src/App.tsx`, `apps/admin-portal/src/index.css` — tablet navigation, table/card breakpoints, wrapping controls, typography and scrollable dialogs.
+
+## 2026-09-30 16:54 SGT — Add admin login navigation through nginx
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Add a button on the login page at localhost:80 to open the admin login page.
+
+**Usage scenario:** Implementation of the requested login navigation and debugging of its existing gateway route. Added a styled navigation link to `/admin/`, set the admin Vite base to `/admin/`, and preserved that prefix in nginx so admin modules and assets no longer load from the student app. Added a student Vite proxy and Docker target for the same link during direct development. Existing API authentication and ADMIN authorization remain in place. No commits or pushes.
+
+**Validation:** Full workspace typecheck and both frontend builds passed. nginx configuration validation passed. D2 API suite: 56/56 passed; API containers were automatically restored afterward. D2 browser suite through localhost:80: 30/30 passed, including clicking the new link, reloading the admin login, successful admin sign-in, and rejection of student credentials. Visually inspected the mobile login screenshot. Rebuilt/recreated local frontend containers and reloaded nginx.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — Admin Log In navigation link on the student login form.
+- `apps/admin-portal/vite.config.ts`, `gateway/nginx.conf` — consistent `/admin/` base path and proxy handling.
+- `apps/student-app/vite.config.ts`, `docker-compose.yml` — direct-development admin proxy and Docker target.
+- `scripts/uat/uat-d2-ui.mjs` — default admin checks to the gateway and add link/reload coverage.
+- `README.md`, `docs/architecture/overview.md` — current admin entry URL and routing behavior.
+- `ai/usage-log.md` — this record and updated disclosure scope.
+
+## 2026-09-30 17:37 SGT — Add student login return button
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Add a button on the admin login page to return to the student login.
+
+**Usage scenario:** Implemented the author-requested navigation as a styled link to `/` below the admin login button, using the existing gateway route. No commits or pushes.
+
+**Validation:** Workspace typecheck and admin production build passed. D2 API checks passed 56/56; service containers restored afterward. Browser checks passed at 1440px and 390px for student → admin → student navigation through localhost:80. Rebuilt the local admin container and reloaded nginx.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — Student Log In return link and consolidated disclosure update.
+- `ai/usage-log.md` — this record and consolidated disclosure update.
+## 2026-09-30 15:36 SGT — Merge-readiness check of the gateway-auth PR
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Based on the team chat, check whether Yan Hwee's PR should be merged.
+
+**Usage scenario:** Learning support / review assistance. Read the state of PRs #95 (closed, superseded) and #97 (open): mergeability, review threads, verification claims, and which documents describe the current auth model. Reported facts and a merge-timing recommendation; the architecture choice itself is the team's.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 15:39 SGT — Task list for the author
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** List the tasks I still need to do.
+
+**Usage scenario:** Formatting. Compiled the open items from this session's work into a list; no prioritisation of project requirements, no new content.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 15:52 SGT — Admin and migration behaviour checked; housekeeping PR
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** ci/claude-review-max-turns (from main @ fcd5371)
+
+**Prompt (summarised):** Report the current behaviour of admin self-deletion / last admin and of the supplier migration on old rows (no changes); then do the repo housekeeping.
+
+**Usage scenario:** Learning support (facts read from the code on main) and configuration. Opened a branch and pull request for the review workflow turn-limit change at the author's request; deleted a leftover results file; carried the usage-log entries over. No decision was made on the two open design questions.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — `--max-turns` 40 to 1500, comment, disclosure header (change made 2026-09-28, committed now).
+- `ai/usage-log.md` — entries.
+
+## 2026-09-30 16:04 SGT — PlantUML twins of the four diagrams, legends added
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree, uncommitted)
+
+**Prompt (summarised):** Make sure every diagram exists in both PlantUML and Mermaid form.
+
+**Usage scenario:** Documentation. Transcribed the four as-built diagrams into PlantUML (five files: the auth sequence is two), added legends and control-vs-data arrow styling to both forms, and added the 400/409 supplier-write branches from PR #93. All five .puml files pass `plantuml -checkonly` and render; all five Mermaid blocks parse with the mermaid library. No design content.
+
+**Files changed:**
+- `docs/diagrams/component.puml`, `user-schema.puml`, `supplier-schema.puml`, `auth-login.puml`, `auth-supplier-write.puml` — new.
+- `docs/diagrams/component.md`, `auth-sequence.md`, `user-schema.md`, `supplier-schema.md` — legends, links to the twins, re-pinned to fcd5371; Rendering section.
+- `docs/README.md` — diagrams entry.
+- `docs/architecture/overview.md` — "Built today" column for PR #93; `docs/api/*.yaml` — version string `d2-6dc22a6`. (Added after PR #98 was merged at the author's request.)
+
+## 2026-09-30 19:12 SGT — Unit tests for user-service and supplier-service
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/unit-tests-user-supplier (from main)
+
+**Prompt (summarised):** Add extensive unit tests for both the User Service and the Supplier Service.
+
+**Usage scenario:** Writing implementation code (unit tests) for behaviour the authors already built; no production code changed. Runner: Node's built-in `node --test` through `tsx`, so no new dependency. user-service: 92 tests (validation, password hashing, token signing, auth and user modules on in-memory repositories, the assembled app over HTTP). supplier-service: 47 tests (repository with the Prisma client mocked; routes over HTTP with the repository mocked and the real token middleware). All 139 pass; `npm run typecheck` unchanged; the test files also typecheck with a temporary config. Two expectations were corrected during the run to match existing behaviour (a refresh token is generated before the rotation is attempted; a non-Bearer scheme is MISSING_TOKEN). Docs updated for the new `npm test`.
+
+**Files changed:**
+- `services/user-service/test/{helpers,validation.test,password.test,tokens.test,auth-module.test,user-module.test,app.test}.ts` — new.
+- `services/supplier-service/test/{supplierRepository.test,supplierRoutes.test}.ts` — new.
+- `package.json`, `services/user-service/package.json`, `services/supplier-service/package.json` — `test` scripts (JSON, no header possible).
+- `CLAUDE.md` §5, `docs/services/user-service.md`, `docs/services/supplier-service.md` — how to run the unit tests.
+- Review pass: root `package.json` `engines` node >=22.3 and `.claude/README.md` prerequisite (the runner needs Node 22.3); `services/*/tsconfig.test.json`, used by each service's `typecheck` script so `npm run typecheck` covers the tests (second review pass: it was a separate unwired `typecheck:test` at first); the supplier route fake fails one named repository function at a time so the P2002-on-update test proves the update path; AI markers in the test files name the PR author instead of another teammate.
+
+## 2026-09-30 22:29 SGT — Atomic last-admin guards and self-deletion logout
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/concurrent-demote
+
+**Prompt (summarised):** Make concurrent admin demotion atomic, prevent deletion of the last admin, and immediately log out a user who deletes their own account.
+
+**Usage scenario:** Implemented the author-requested guards and logout behavior. Role changes and deletions share a PostgreSQL transaction-scoped advisory lock; removing the final ADMIN returns 409 LAST_ADMIN_REQUIRED. Successful self-deletion clears the refresh cookie and the admin portal's local session. Existing self-demotion prohibition remains. No commits or pushes.
+
+**Validation:** Workspace typecheck and admin production build passed. Unit tests passed 143/143 outside the sandbox (sandbox prevented HTTP listeners). Six PostgreSQL integration tests passed using two application instances in an isolated random schema, including concurrent demotion/deletion and session cleanup. Six browser checks passed with mock APIs at 390px/1440px. D2 initially passed 31/56 because the demo-admin login failed; after the normal container restart restored the expected seed fixture, rerun passed 56/56. API containers were restored after both runs.
+
+**Files changed:**
+- `services/user-service/src/persistence/user-repository.ts`, `src/users/user-module.ts`, `src/http/error-handler.ts` — atomic admin guard and structured error.
+- `services/user-service/src/auth/auth-routes.ts`, `src/users/user-routes.ts`, `src/app.ts` — shared cookie clearing on successful self-deletion.
+- `apps/admin-portal/src/App.tsx` — immediate logout after successful self-deletion.
+- `services/user-service/test/admin-guard.integration.test.ts`, `test/app.test.ts`, `test/helpers.ts`, `test/user-module.test.ts` — database concurrency, guard mapping and cookie regression checks.
+- `docs/services/user-service.md`, `services/user-service/docs/api-reference.md`, `docs/api/user-service.yaml` — current behavior and regression-test instructions.
+- `ai/usage-log.md` — this record.

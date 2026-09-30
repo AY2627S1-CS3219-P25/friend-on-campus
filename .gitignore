@@ -45,3 +45,9 @@ Thumbs.db
 # Claude Code: personal, per-machine settings (shared config lives in .claude/settings.json)
 # AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-09-21 - added the line below. Author review: <pending>
 .claude/settings.local.json
+
+# Local-only docs (files already tracked under these paths stay tracked; new files and folders are ignored)
+# AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-09-28 - added the three lines below. Author review: <pending>
+docs/evidence/
+docs/requirements/
+docs/onboarding-guide-sep-3.md

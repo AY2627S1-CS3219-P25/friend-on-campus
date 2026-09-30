@@ -1,20 +1,22 @@
 # AI Assistance Disclosure:
+#
+# Tool: Codex (model: GPT-6), date: 2026-09-30
+# Scope: Configure the student development server's admin portal proxy inside Docker.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 # Scope: Consolidated User Service onto the shared PostgreSQL Compose deployment.
 # Author review: <to be completed by ngkhengyang>
-
-# AI Assistance Disclosure:
+#
 # Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 # Scope: Supplied the author-approved Ed25519 verification configuration to Supplier Service.
 # Author review: <to be completed by ngkhengyang>
-
-# AI Assistance Disclosure:
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
 # Scope: JWT key variables now fail `docker compose up` immediately with an instruction when unset (`:?`) instead of
 # expanding to an empty string and crashing two containers; CORS_ORIGIN passed through to user-service.
 # Author review: <to be completed by ngkhengyang>
-
-# AI Assistance Disclosure:
+#
 # Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
 # Scope: Added healthchecks to student-app, admin-portal, supplier-service, order-service, credit-service, and
 # notification-service, and switched api-gateway's depends_on conditions for all of them from service_started to
@@ -25,13 +27,11 @@
 # each service first, so this race can no longer happen on a normal `docker compose down -v && up --build`.
 # Author review: (to be completed by author after review)
 
-# AI Assistance Disclosure:
-# Tool: Claude Code (model: Sonnet 5), date: 2026-09-30
-# Scope: student-app and admin-portal's Vite dev proxies no longer target user-service/supplier-service
-# (and, for student-app, notification-service) directly — both now route every request through the nginx
-# api-gateway instead, via a single GATEWAY_URL. Removed the now-unused SUPPLIER_SERVICE_URL/USER_SERVICE_URL
-# (both services) and NOTIFICATION_SERVICE_URL (student-app) env vars.
-# Author review: (to be completed by author after review)
+# AI-generated (edited by huangjiaxi1111)
+
+
+
+
 
 services:
   # ----------------------------------------------------

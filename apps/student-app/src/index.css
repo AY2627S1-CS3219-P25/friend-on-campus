@@ -1,3 +1,8 @@
+/* AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Responsive shell, card grids, navigation, control sizing, and dialog overflow.
+ * Author review: <to be completed by huangjiaxi1111>
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,4 +11,50 @@ body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+}
+
+/* AI-generated (edited by huangjiaxi1111) */
+@layer base {
+  body { @apply bg-slate-50; }
+  button, input:not([type='checkbox']), select, textarea { min-height: 2.75rem; }
+  input:not([type='checkbox']), select, textarea { font-size: 1rem; max-width: 100%; }
+  button:focus-visible, a:focus-visible { outline: 2px solid #EF7C00; outline-offset: 3px; }
+}
+
+@layer components {
+  .student-header-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .student-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); }
+  .student-bottom-nav { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)); }
+  .student-bottom-nav button { flex: 1; min-width: 0; }
+
+  .responsive-card-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .responsive-card-grid > * { min-width: 0; overflow-wrap: anywhere; }
+  .student-main section { overflow-wrap: anywhere; }
+
+  .dialog-overlay > :first-child {
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  @media (min-width: 640px) {
+    .responsive-card-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); }
+  }
+
+  @media (min-width: 768px) {
+    .student-top-nav { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+    .student-main { padding-bottom: 1.5rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .student-main { padding-bottom: 2rem; }
+    .student-header-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+    .student-top-nav { grid-column: 2; grid-row: 1; }
+  }
 }

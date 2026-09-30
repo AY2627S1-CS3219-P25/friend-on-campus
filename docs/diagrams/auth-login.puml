@@ -1,0 +1,51 @@
+' AI Assistance Disclosure:
+' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+' Scope: PlantUML version of section 1 of auth-sequence.md (login and token refresh), drawn from auth-routes.ts,
+' auth-module.ts and the D2 UAT results (check IDs in brackets) on main @ fcd5371. Shows what the code does; no rationale.
+' Author review: <to be completed by Reallyeasy1>
+' Render: java -jar plantuml.jar -tsvg auth-login.puml
+@startuml auth-login
+title Login and token refresh, as built (main @ fcd5371)
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "User (browser)" as U
+participant "api-gateway\n(nginx)" as GW
+participant "user-service" as US
+database "user_db" as DB
+
+U -> GW : POST /api/auth/login\n{email, password, keepLoggedIn}
+GW -> US : proxy (headers unchanged)
+US -> DB : find user by LOWER(email)
+DB --> US : user row (password_hash, role)
+US -> US : verify password against the scrypt hash\n(unknown email: verify against a dummy hash)
+alt wrong email or password
+  US --> U : 401 INVALID_CREDENTIALS [L1]
+else correct
+  US -> DB : insert session\n(refresh_token_hash, persistent, idle_expires_at)
+  US -> US : sign access token with the Ed25519 private key\nclaims: sub, sid, role, iat, exp (15 min), iss, aud
+  US --> U : 200 {accessToken, user}\nSet-Cookie: refresh_token (HttpOnly, SameSite=Lax,\nPath=/api/auth; ~1 day, ~30 days with keepLoggedIn) [L2, L3, L5]
+end
+
+... later, when the access token has expired ...
+
+U -> GW : POST /api/auth/refresh (cookie)
+GW -> US : proxy
+US -> DB : look up session by SHA-256 of the cookie value
+alt unknown, expired or already rotated
+  US --> U : 401 INVALID_SESSION [L7, L10]
+else valid
+  US -> DB : store the new refresh_token_hash,\nextend idle_expires_at
+  US -> US : sign a new access token with the user's current role
+  US --> U : 200 {accessToken} + rotated cookie [L6]
+end
+
+legend bottom
+  |= Symbol |= Meaning |
+  | solid arrow | request or call (control flow) |
+  | dashed arrow | response or data returned |
+  | alt / else | the branch the service takes |
+  | [L1] | check ID defined in scripts/uat/uat-d2-api.mjs (results kept locally in docs/evidence/d2/) |
+endlegend
+@enduml

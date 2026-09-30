@@ -1,0 +1,406 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-09-30
+# Scope: Document last-admin 409 responses and self-deletion cookie cleanup.
+# Author review: <to be completed by huangjiaxi1111>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+# Scope: PR #93: replaced /api/users/{id}/admin and /api/users/{id}/promote with toggle-status, toggle-role and DELETE /api/users/{id}, transcribed from user-routes.ts.
+# Author review: <to be completed by the service owner>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+# Scope: Transcribed the routes that exist in services/user-service/src (app.ts, auth-routes.ts, user-routes.ts,
+#   error-handler.ts) and the types in packages/common-dtos on `main` @ f0ee632 into OpenAPI. Describes the API as
+#   built; designs nothing new.
+# Author review: <to be completed by the service owner>
+
+openapi: 3.0.3
+info:
+  title: User Service API (as built)
+  version: "d2-6dc22a6"
+  description: >
+    Registration, login sessions, own profile, and ADMIN user administration. Prose reference with full examples:
+    services/user-service/docs/api-reference.md. Behaviour notes: docs/services/user-service.md.
+servers:
+  - url: http://localhost
+    description: through the nginx gateway (use /api/users/ with a trailing slash for the list; without it nginx answers 301)
+  - url: http://localhost:8001
+    description: directly
+tags:
+  - name: service
+  - name: auth
+  - name: profile
+    description: The authenticated user's own account
+  - name: admin
+    description: ADMIN only
+paths:
+  /health:
+    get:
+      tags: [service]
+      summary: Liveness; does not check the database
+      responses:
+        "200":
+          description: Running
+          content:
+            application/json:
+              example: { service: user-service, status: UP }
+  /ready:
+    get:
+      tags: [service]
+      summary: Readiness; checks the database schema
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              example: { service: user-service, status: READY, dependencies: { database: UP } }
+        "503":
+          description: Database not reachable
+          content:
+            application/json:
+              example: { service: user-service, status: NOT_READY, dependencies: { database: DOWN } }
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Create a STUDENT account; does not log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "409":
+          description: DUPLICATE_EMAIL or DUPLICATE_USERNAME (both case-insensitive)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Log in; returns an access token and sets the refresh cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Logged in
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: "refresh_token=<opaque>; HttpOnly; SameSite=Lax; Path=/api/auth; Expires=<1 day, or 30 days with keepLoggedIn>; Secure in production"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      accessToken: { type: string }
+                      accessTokenExpiresInSeconds: { type: integer, example: 900 }
+                      user: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401":
+          description: INVALID_CREDENTIALS
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Rotate the refresh token and return a new access token
+      description: The token is read from the refresh_token cookie, else from refreshToken in the JSON body.
+      security: [{ refreshCookie: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshBody" }
+      responses:
+        "200":
+          description: New access token; the cookie is replaced
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      accessToken: { type: string }
+                      accessTokenExpiresInSeconds: { type: integer, example: 900 }
+        "401":
+          description: INVALID_SESSION (missing, expired, revoked, malformed or already rotated). A replay does not revoke the active session.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke the refresh session and clear the cookie
+      description: Works without a token too (still clears the cookie). Access tokens already issued stay valid until they expire.
+      security: [{ refreshCookie: [] }, {}]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshBody" }
+      responses:
+        "204": { description: Logged out }
+  /api/users/me:
+    get:
+      tags: [profile]
+      summary: Own profile
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+    patch:
+      tags: [profile]
+      summary: Change own username
+      description: The body must contain username and nothing else. role, status, userId, email or any other key gives 400 INVALID_INPUT.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username]
+              properties:
+                username: { type: string, minLength: 1, maxLength: 50, description: Length after trimming }
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: DUPLICATE_USERNAME
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /api/users/me/password:
+    put:
+      tags: [profile]
+      summary: Change own password
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8, maxLength: 24 }
+      responses:
+        "204": { description: Password changed }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401":
+          description: INVALID_CURRENT_PASSWORD, or an authentication error (MISSING_TOKEN, INVALID_TOKEN, TOKEN_EXPIRED)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+  /api/users:
+    get:
+      tags: [admin]
+      summary: List all users, ordered by username
+      description: No query parameters are read; no pagination.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: All users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+  /api/users/{id}/toggle-status:
+    patch:
+      tags: [admin]
+      summary: Flip a user's status (enable / disable)
+      description: >
+        No request body. The target may be the caller or the only ADMIN. status is not read at login, refresh or
+        token verification.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The user with status flipped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/AdminRequired" }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "500":
+          description: id is not a UUID
+          content:
+            application/json:
+              example: { success: false, error: Internal server error, errorId: 1c5ccf08-a628-4595-9cb9-bbc78ce8543b }
+  /api/users/{id}/toggle-role:
+    patch:
+      tags: [admin]
+      summary: Flip a user's role between STUDENT and ADMIN
+      description: >
+        No request body. The caller's own id is refused. A transaction shared with account deletion
+        prevents concurrent requests from demoting or deleting the last ADMIN (409 LAST_ADMIN_REQUIRED).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The user with userRole flipped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403":
+          description: ADMIN_REQUIRED for a non-ADMIN caller; SELF_ACTION_FORBIDDEN when id is the caller's own id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: Admins cannot change their own role, code: SELF_ACTION_FORBIDDEN }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: LAST_ADMIN_REQUIRED; the target is the last remaining admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: The last admin cannot be demoted or deleted, code: LAST_ADMIN_REQUIRED }
+  /api/users/{id}:
+    delete:
+      tags: [profile, admin]
+      summary: Delete an account (own account, or any account for an ADMIN)
+      description: >
+        No request body. The account's sessions are deleted by cascade. An ADMIN may delete their own account
+        only when another ADMIN remains. A transaction shared with role changes protects the last ADMIN.
+        Successful self-deletion expires the refresh_token cookie at Path=/api/auth.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204": { description: Account deleted }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403":
+          description: FORBIDDEN; a non-ADMIN caller sent another user's id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: You can only delete your own account, code: FORBIDDEN }
+        "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: LAST_ADMIN_REQUIRED; the target is the last remaining admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: The last admin cannot be demoted or deleted, code: LAST_ADMIN_REQUIRED }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "EdDSA (Ed25519) access token; claims sub, sid, role, iat, exp, iss=friend-on-campus-user-service, aud=friend-on-campus-services"
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+  responses:
+    InvalidInput:
+      description: INVALID_INPUT; also INVALID_JSON for a malformed body
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthenticated:
+      description: MISSING_TOKEN, INVALID_TOKEN or TOKEN_EXPIRED
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { success: false, error: Authentication is required, code: MISSING_TOKEN }
+    AdminRequired:
+      description: ADMIN_REQUIRED
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { success: false, error: Administrator access is required, code: ADMIN_REQUIRED }
+    UserNotFound:
+      description: USER_NOT_FOUND
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string }
+        code: { type: string }
+        errorId: { type: string, description: Only on 500; also sent as the X-Error-Id header }
+    User:
+      type: object
+      required: [userId, username, email, userRole, status]
+      properties:
+        userId: { type: string, format: uuid }
+        username: { type: string, example: alice }
+        email: { type: string, format: email, example: alice@u.nus.edu }
+        userRole: { type: string, enum: [STUDENT, ADMIN] }
+        status: { type: boolean, description: "true = active, false = disabled" }
+    UserResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          properties:
+            user: { $ref: "#/components/schemas/User" }
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 50 }
+        email: { type: string, format: email, maxLength: 320, description: Trimmed and stored in lowercase }
+        password: { type: string, minLength: 8, maxLength: 24 }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        keepLoggedIn: { type: boolean, description: Only exactly true selects the 30-day refresh lifetime }
+    RefreshBody:
+      type: object
+      properties:
+        refreshToken: { type: string, description: Fallback when no cookie is sent }
