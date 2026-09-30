@@ -4,19 +4,23 @@
 // the admin-portal fix — student-app runs in its own container where "localhost" refers to itself, not
 // the backend containers, so docker-compose.yml overrides these to the real service names.
 // Author review: (to be completed by author after review)
+//
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Sonnet 5), date: 2026-09-30
+// Scope: Proxy no longer routes to user-service/supplier-service/notification-service directly — every
+// rule (including /ws) now points at the nginx API Gateway (GATEWAY_URL), so every request from this app
+// goes through the gateway regardless of which port the app is accessed on (previously only true when
+// accessed via the gateway's own port 80, or when hitting the generic /api fallback).
+// Author review: (to be completed by author after review)
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Proxy targets default to localhost for normal host-based dev (`npm run dev:student`
-// with the backend services also running on the host). Inside Docker, student-app
-// runs in its own container where "localhost" refers to itself, not the backend
-// containers — so docker-compose.yml overrides these to the real service names
-// (e.g. http://user-service:8001) via env vars.
-const supplierTarget = process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';
-const userTarget = process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
+// Proxy target defaults to localhost for normal host-based dev (`npm run dev:student`, gateway also
+// running on the host). Inside Docker, student-app runs in its own container where "localhost" refers
+// to itself, not the gateway — so docker-compose.yml overrides this to the gateway's real service name
+// (http://api-gateway:80) via GATEWAY_URL.
 const gatewayTarget = process.env.GATEWAY_URL ?? 'http://localhost';
-const notificationTarget = process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
 
 export default defineConfig({
   plugins: [react()],
@@ -25,15 +29,15 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api/suppliers': {
-        target: supplierTarget,
+        target: gatewayTarget,
         changeOrigin: true,
       },
       '/api/auth': {
-        target: userTarget,
+        target: gatewayTarget,
         changeOrigin: true,
       },
       '/api/users': {
-        target: userTarget,
+        target: gatewayTarget,
         changeOrigin: true,
       },
       '/api': {
@@ -41,7 +45,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/ws': {
-        target: notificationTarget,
+        target: gatewayTarget,
         ws: true,
       },
     },

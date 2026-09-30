@@ -25,6 +25,14 @@
 # each service first, so this race can no longer happen on a normal `docker compose down -v && up --build`.
 # Author review: (to be completed by author after review)
 
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Sonnet 5), date: 2026-09-30
+# Scope: student-app and admin-portal's Vite dev proxies no longer target user-service/supplier-service
+# (and, for student-app, notification-service) directly — both now route every request through the nginx
+# api-gateway instead, via a single GATEWAY_URL. Removed the now-unused SUPPLIER_SERVICE_URL/USER_SERVICE_URL
+# (both services) and NOTIFICATION_SERVICE_URL (student-app) env vars.
+# Author review: (to be completed by author after review)
+
 services:
   # ----------------------------------------------------
   # Ingress API Gateway & Reverse Proxy (Nginx)
@@ -64,10 +72,7 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_BASE_URL=/api
-      - SUPPLIER_SERVICE_URL=http://supplier-service:8002
-      - USER_SERVICE_URL=http://user-service:8001
       - GATEWAY_URL=http://api-gateway:80
-      - NOTIFICATION_SERVICE_URL=ws://notification-service:8005
     healthcheck:
       test:
         - CMD
@@ -88,8 +93,7 @@ services:
     ports:
       - "5174:5174"
     environment:
-      - SUPPLIER_SERVICE_URL=http://supplier-service:8002
-      - USER_SERVICE_URL=http://user-service:8001
+      - GATEWAY_URL=http://api-gateway:80
     healthcheck:
       test:
         - CMD
