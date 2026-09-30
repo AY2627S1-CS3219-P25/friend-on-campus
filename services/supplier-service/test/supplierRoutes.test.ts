@@ -36,13 +36,14 @@ function token(role: 'STUDENT' | 'ADMIN', overrides: Record<string, unknown> = {
 type Row = Record<string, any>;
 const rows = new Map<string, Row>();
 let nextId = 1;
-let failNext: Error | null = null;
+// A failure aimed at one repository function, so a test proves which call the handler was in when it threw.
+let failOn: { fn: string; error: Error } | null = null;
 const seen: Array<{ fn: string; args: any[] }> = [];
 
-function maybeFail() {
-  if (failNext) {
-    const e = failNext;
-    failNext = null;
+function maybeFail(fn: string) {
+  if (failOn && failOn.fn === fn) {
+    const e = failOn.error;
+    failOn = null;
     throw e;
   }
 }
@@ -51,12 +52,12 @@ const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
 const fakeRepository = {
   async getSuppliers(filter: any) {
     seen.push({ fn: 'getSuppliers', args: [filter] });
-    maybeFail();
+    maybeFail('getSuppliers');
     const list = [...rows.values()];
     return { suppliers: list, total: list.length, page: 1, limit: list.length, totalPages: 1 };
   },
   async getSupplierById(id: string) {
-    maybeFail();
+    maybeFail('getSupplierById');
     return rows.get(id) ?? null;
   },
   async getSupplierByCode(code: string) {
@@ -76,7 +77,7 @@ const fakeRepository = {
     );
   },
   async createSupplier(data: any) {
-    maybeFail();
+    maybeFail('createSupplier');
     const row = { id: `id-${nextId}`, supplierCode: `SUP-${String(nextId).padStart(3, '0')}`, isActive: true, ...data };
     row.name = row.name.trim();
     nextId += 1;
@@ -84,7 +85,8 @@ const fakeRepository = {
     return row;
   },
   async updateSupplier(id: string, data: any) {
-    maybeFail();
+    seen.push({ fn: 'updateSupplier', args: [id, data] });
+    maybeFail('updateSupplier');
     const row = { ...rows.get(id), ...data };
     rows.set(id, row);
     return row;
@@ -159,7 +161,7 @@ after(async () => {
 beforeEach(() => {
   rows.clear();
   nextId = 1;
-  failNext = null;
+  failOn = null;
   seen.length = 0;
 });
 
@@ -208,7 +210,7 @@ describe('reads need no token', () => {
   });
 
   it('GET / answers 500 with the error message when the repository throws', async () => {
-    failNext = new Error('db down');
+    failOn = { fn: 'getSuppliers', error: new Error('db down') };
     const res = await call('GET', '/api/suppliers');
     assert.equal(res.status, 500);
     assert.deepEqual(res.body, { success: false, error: 'db down' });
@@ -318,15 +320,16 @@ describe('POST /api/suppliers', () => {
   });
 
   it('a unique-index violation (Prisma P2002) from the insert is answered with 409, not 500', async () => {
-    failNext = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+    failOn = { fn: 'createSupplier', error: Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }) };
     const res = await call('POST', '/api/suppliers', { body: VALID, token: admin });
     assert.equal(res.status, 409);
     assert.equal(res.body.success, false);
     assert.equal('duplicate' in res.body, false);
+    assert.ok(seen.some((s) => s.fn === 'findDuplicateLocation'), 'the pre-check ran and passed; the insert itself threw');
   });
 
   it('any other repository error is 500 with the message', async () => {
-    failNext = new Error('disk full');
+    failOn = { fn: 'createSupplier', error: new Error('disk full') };
     const res = await call('POST', '/api/suppliers', { body: VALID, token: admin });
     assert.equal(res.status, 500);
     assert.equal(res.body.error, 'disk full');
@@ -369,11 +372,14 @@ describe('PUT /api/suppliers/:id', () => {
     assert.equal(rows.get(a.id)!.name, 'Smooy', 'unchanged');
   });
 
-  it('a unique-index violation on update is 409', async () => {
+  it('a unique-index violation from the update itself is 409, after the pre-check passed', async () => {
     const row = seed();
-    failNext = Object.assign(new Error('unique'), { code: 'P2002' });
+    failOn = { fn: 'updateSupplier', error: Object.assign(new Error('unique'), { code: 'P2002' }) };
     const res = await call('PUT', `/api/suppliers/${row.id}`, { body: { name: 'x' }, token: admin });
     assert.equal(res.status, 409);
+    assert.ok(seen.some((s) => s.fn === 'findDuplicateLocation'), 'pre-check ran');
+    assert.ok(seen.some((s) => s.fn === 'updateSupplier'), 'the update call is what threw');
+    assert.equal(failOn, null, 'the failure was consumed by updateSupplier, not by an earlier call');
   });
 });
 
