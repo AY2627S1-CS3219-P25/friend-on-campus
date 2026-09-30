@@ -8,6 +8,7 @@
     "start": "tsx src/backend/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --experimental-test-module-mocks --test \"test/**/*.test.ts\"",
+    "typecheck:test": "tsc -p tsconfig.test.json",
     "build": "tsc",
     "db:generate": "npx prisma generate --schema src/database/prisma/schema.prisma",
     "db:migrate": "npx prisma migrate dev --schema src/database/prisma/schema.prisma",

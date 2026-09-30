@@ -4,9 +4,9 @@
  * Scope: Unit tests for src/auth/auth-module.ts against an in-memory repository and a fake token manager:
  * registration validation and duplicate mapping, login and the dummy-hash path, refresh rotation and replay,
  * keep-me-logged-in lifetimes, logout.
- * Author review: <to be completed by ngkhengyang>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { AuthError, createAuthModule } from '../src/auth/auth-module';

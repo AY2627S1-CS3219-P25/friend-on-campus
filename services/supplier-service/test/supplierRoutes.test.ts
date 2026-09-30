@@ -6,9 +6,9 @@
  * query parsing, RBAC on writes (401 / 403 / tampered / expired), required-field and blank-field rules, the 409
  * duplicate rule on create and update including the unique-index fallback, toggle, soft and permanent delete,
  * and the 500 path.
- * Author review: <to be completed by the service owner>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by the service owner)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it, before, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';

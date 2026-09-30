@@ -3,9 +3,9 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/auth/password.ts (scrypt hash format, verification, rejection of malformed or
  * foreign-parameter hashes, the dummy hash).
- * Author review: <to be completed by ngkhengyang>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from '../src/auth/password';

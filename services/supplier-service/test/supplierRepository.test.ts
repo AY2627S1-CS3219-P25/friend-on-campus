@@ -4,9 +4,9 @@
  * Scope: Unit tests for src/database/supplierRepository.ts with the Prisma client replaced by a recording fake
  * (node:test module mock): where-clause and orderBy construction, pagination arithmetic and clamping, the
  * duplicate lookup, trimming and null defaults on create and update, supplier-code generation, toggle and delete.
- * Author review: <to be completed by the service owner>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by the service owner)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it, before, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 

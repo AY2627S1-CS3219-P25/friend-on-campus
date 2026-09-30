@@ -4,9 +4,9 @@
  * Scope: HTTP tests for the assembled user-service app (src/app.ts with the real routers, error handler and
  * @campus-errand/auth middleware) over in-memory repositories: health and readiness, body parsing errors, the
  * auth routes and their cookies, token errors, RBAC on the admin routes, the self-target rules, error bodies.
- * Author review: <to be completed by ngkhengyang>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';

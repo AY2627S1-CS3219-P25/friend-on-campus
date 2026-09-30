@@ -8,6 +8,9 @@
     "services/*",
     "packages/*"
   ],
+  "engines": {
+    "node": ">=22.3"
+  },
   "scripts": {
     "dev:student": "npm run dev --workspace=@campus-errand/student-app",
     "dev:admin": "npm run dev --workspace=@campus-errand/admin-portal",

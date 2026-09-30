@@ -3,9 +3,9 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Test helpers: in-memory fakes for AuthRepository and UserRepository, a deterministic TokenManager,
  * an Ed25519 key pair for tests, and a small HTTP client for the app tests. No production code changed.
- * Author review: <to be completed by ngkhengyang>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by Reallyeasy1)
 import { generateKeyPairSync, createHash } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import type { Express } from 'express';

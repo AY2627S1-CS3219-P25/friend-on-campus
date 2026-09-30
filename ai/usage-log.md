@@ -1573,3 +1573,4 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/supplier-service/test/{supplierRepository.test,supplierRoutes.test}.ts` — new.
 - `package.json`, `services/user-service/package.json`, `services/supplier-service/package.json` — `test` scripts (JSON, no header possible).
 - `CLAUDE.md` §5, `docs/services/user-service.md`, `docs/services/supplier-service.md` — how to run the unit tests.
+- Review pass: root `package.json` `engines` node >=22.3 and `.claude/README.md` prerequisite (the runner needs Node 22.3); `services/*/tsconfig.test.json` + `typecheck:test` scripts so the test files are typechecked; AI markers in the test files name the PR author instead of another teammate.

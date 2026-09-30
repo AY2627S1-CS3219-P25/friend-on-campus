@@ -3,9 +3,9 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/users/user-module.ts against an in-memory repository: profile read, list, the
  * username-only update rule, duplicate mapping, password change, status and role toggles, deletion.
- * Author review: <to be completed by ngkhengyang>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { hashPassword, verifyPassword } from '../src/auth/password';

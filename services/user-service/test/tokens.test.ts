@@ -3,9 +3,9 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/auth/tokens.ts (JWT structure and claims, Ed25519 signature verifiable with the
  * public key, refresh-token generation and hashing, private-key validation).
- * Author review: <to be completed by ngkhengyang>
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by Reallyeasy1)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPublicKey, generateKeyPairSync, verify } from 'node:crypto';
