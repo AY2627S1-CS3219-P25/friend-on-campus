@@ -1447,3 +1447,43 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/services/user-service.md`, `docs/services/supplier-service.md`, `docs/api/user-service.yaml`, `docs/api/supplier-service.yaml`, `docs/diagrams/supplier-schema.md`, `docs/d2-question-guide.md`, `services/user-service/docs/api-reference.md` — routes and rules as built on this branch.
 - `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
 - Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.
+
+## 2026-09-30 15:36 SGT — Merge-readiness check of the gateway-auth PR
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Based on the team chat, check whether Yan Hwee's PR should be merged.
+
+**Usage scenario:** Learning support / review assistance. Read the state of PRs #95 (closed, superseded) and #97 (open): mergeability, review threads, verification claims, and which documents describe the current auth model. Reported facts and a merge-timing recommendation; the architecture choice itself is the team's.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 15:39 SGT — Task list for the author
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** List the tasks I still need to do.
+
+**Usage scenario:** Formatting. Compiled the open items from this session's work into a list; no prioritisation of project requirements, no new content.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 15:52 SGT — Admin and migration behaviour checked; housekeeping PR
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** ci/claude-review-max-turns (from main @ fcd5371)
+
+**Prompt (summarised):** Report the current behaviour of admin self-deletion / last admin and of the supplier migration on old rows (no changes); then do the repo housekeeping.
+
+**Usage scenario:** Learning support (facts read from the code on main) and configuration. Opened a branch and pull request for the review workflow turn-limit change at the author's request; deleted a leftover results file; carried the usage-log entries over. No decision was made on the two open design questions.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — `--max-turns` 40 to 1500, comment, disclosure header (change made 2026-09-28, committed now).
+- `ai/usage-log.md` — entries.
