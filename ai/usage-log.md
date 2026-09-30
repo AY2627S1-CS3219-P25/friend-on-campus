@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-6), date: 2026-09-30
-Scope: Implemented responsive UI layouts and recorded navigation between student and admin login pages and gateway routing verification.
+Scope: Implemented responsive UI layouts, recorded login navigation verification, and recorded atomic last-admin guards and self-deletion logout.
 Author review: <to be completed by huangjiaxi1111>
 
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
@@ -1574,3 +1574,23 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `package.json`, `services/user-service/package.json`, `services/supplier-service/package.json` — `test` scripts (JSON, no header possible).
 - `CLAUDE.md` §5, `docs/services/user-service.md`, `docs/services/supplier-service.md` — how to run the unit tests.
 - Review pass: root `package.json` `engines` node >=22.3 and `.claude/README.md` prerequisite (the runner needs Node 22.3); `services/*/tsconfig.test.json`, used by each service's `typecheck` script so `npm run typecheck` covers the tests (second review pass: it was a separate unwired `typecheck:test` at first); the supplier route fake fails one named repository function at a time so the P2002-on-update test proves the update path; AI markers in the test files name the PR author instead of another teammate.
+
+## 2026-09-30 22:29 SGT — Atomic last-admin guards and self-deletion logout
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/concurrent-demote
+
+**Prompt (summarised):** Make concurrent admin demotion atomic, prevent deletion of the last admin, and immediately log out a user who deletes their own account.
+
+**Usage scenario:** Implemented the author-requested guards and logout behavior. Role changes and deletions share a PostgreSQL transaction-scoped advisory lock; removing the final ADMIN returns 409 LAST_ADMIN_REQUIRED. Successful self-deletion clears the refresh cookie and the admin portal's local session. Existing self-demotion prohibition remains. No commits or pushes.
+
+**Validation:** Workspace typecheck and admin production build passed. Unit tests passed 143/143 outside the sandbox (sandbox prevented HTTP listeners). Six PostgreSQL integration tests passed using two application instances in an isolated random schema, including concurrent demotion/deletion and session cleanup. Six browser checks passed with mock APIs at 390px/1440px. D2 initially passed 31/56 because the demo-admin login failed; after the normal container restart restored the expected seed fixture, rerun passed 56/56. API containers were restored after both runs.
+
+**Files changed:**
+- `services/user-service/src/persistence/user-repository.ts`, `src/users/user-module.ts`, `src/http/error-handler.ts` — atomic admin guard and structured error.
+- `services/user-service/src/auth/auth-routes.ts`, `src/users/user-routes.ts`, `src/app.ts` — shared cookie clearing on successful self-deletion.
+- `apps/admin-portal/src/App.tsx` — immediate logout after successful self-deletion.
+- `services/user-service/test/admin-guard.integration.test.ts`, `test/app.test.ts`, `test/helpers.ts`, `test/user-module.test.ts` — database concurrency, guard mapping and cookie regression checks.
+- `docs/services/user-service.md`, `services/user-service/docs/api-reference.md`, `docs/api/user-service.yaml` — current behavior and regression-test instructions.
+- `ai/usage-log.md` — this record.

@@ -1,5 +1,8 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Serialize role changes and deletions with a transaction-scoped PostgreSQL advisory lock and reject removal of the last admin.
+ * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented Prisma-backed persistence operations for user profiles and password changes.
@@ -24,7 +27,14 @@
 // AI-generated (edited by ngkhengyang)
 
 
-import { PrismaClient, User as PrismaUser } from '../database/generated/client';
+import { Prisma, PrismaClient, User as PrismaUser } from '../database/generated/client';
+
+export class LastAdminError extends Error {
+  constructor() {
+    super('The last admin cannot be demoted or deleted');
+    this.name = 'LastAdminError';
+  }
+}
 
 export type UserRole = 'STUDENT' | 'ADMIN';
 
@@ -67,6 +77,22 @@ function toUserRecord(row: PrismaUser): UserRecord {
 }
 
 export function createUserRepository(prisma: PrismaClient): UserRepository {
+  // Role changes and deletions share a database lock across all service instances.
+  // ReadCommitted gives the reads after a lock wait a fresh view of committed admins.
+  function withAdminMembershipLock<T>(operation: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return prisma.$transaction(async (tx) => {
+      // Reserved advisory-lock namespace: 3219 (application), 1 (admin membership).
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(3219, 1)`;
+      return operation(tx);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+  }
+
+  async function assertAdminRemains(tx: Prisma.TransactionClient, user: PrismaUser) {
+    if (user.role === 'ADMIN' && await tx.user.count({ where: { role: 'ADMIN' } }) <= 1) {
+      throw new LastAdminError();
+    }
+  }
+
   return {
     async findById(userId) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -115,22 +141,26 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
     },
 
     async toggleRole(userId) {
-      const existing = await prisma.user.findUnique({ where: { id: userId } });
-      if (!existing) {
-        return null;
-      }
-
-      const updated = await prisma.user.update({
-        where: { id: userId },
-        data: { role: existing.role === 'ADMIN' ? 'STUDENT' : 'ADMIN' },
+      return withAdminMembershipLock(async (tx) => {
+        const existing = await tx.user.findUnique({ where: { id: userId } });
+        if (!existing) return null;
+        await assertAdminRemains(tx, existing);
+        const updated = await tx.user.update({
+          where: { id: userId },
+          data: { role: existing.role === 'ADMIN' ? 'STUDENT' : 'ADMIN' },
+        });
+        return toUserRecord(updated);
       });
-
-      return toUserRecord(updated);
     },
 
     async deleteById(userId) {
-      const deleted = await prisma.user.deleteMany({ where: { id: userId } });
-      return deleted.count === 1;
+      return withAdminMembershipLock(async (tx) => {
+        const existing = await tx.user.findUnique({ where: { id: userId } });
+        if (!existing) return false;
+        await assertAdminRemains(tx, existing);
+        await tx.user.delete({ where: { id: userId } });
+        return true;
+      });
     },
   };
 }

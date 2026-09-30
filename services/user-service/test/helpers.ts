@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Mirror last-admin protection and UUID case handling in the user repository fake.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Test helpers: in-memory fakes for AuthRepository and UserRepository, a deterministic TokenManager,
  * an Ed25519 key pair for tests, and a small HTTP client for the app tests. No production code changed.
@@ -17,6 +21,7 @@ import type {
   UserRecord,
 } from '../src/persistence/auth-repository';
 import type { UpdateUserRecord, UserRepository } from '../src/persistence/user-repository';
+import { LastAdminError } from '../src/persistence/user-repository';
 import type { TokenManager } from '../src/auth/tokens';
 
 export function makeUser(overrides: Partial<UserRecord> = {}): UserRecord {
@@ -201,10 +206,18 @@ export function makeFakeUserRepository(seed: UserRecord[] = [], shared?: Map<str
     async toggleRole(userId) {
       const u = users.get(userId);
       if (!u) return null;
+      if (u.role === 'ADMIN' && [...users.values()].filter((user) => user.role === 'ADMIN').length <= 1) {
+        throw new LastAdminError();
+      }
       u.role = u.role === 'ADMIN' ? 'STUDENT' : 'ADMIN';
       return { ...u };
     },
     async deleteById(userId) {
+      userId = userId.toLowerCase();
+      const u = users.get(userId);
+      if (u?.role === 'ADMIN' && [...users.values()].filter((user) => user.role === 'ADMIN').length <= 1) {
+        throw new LastAdminError();
+      }
       return users.delete(userId);
     },
   };

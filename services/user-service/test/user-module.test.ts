@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Cover last-admin error mapping and deletion when another admin remains.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/users/user-module.ts against an in-memory repository: profile read, list, the
  * username-only update rule, duplicate mapping, password change, status and role toggles, deletion.
@@ -161,6 +165,19 @@ describe('administration', () => {
   it('deleteUser removes the account', async () => {
     await users.deleteUser(ALICE.id);
     assert.equal(fake.users.has(ALICE.id), false);
+  });
+
+  it('maps both last-admin removals to LAST_ADMIN_REQUIRED without changing the account', async () => {
+    await rejects(users.toggleUserRole(ADMIN.id), 'LAST_ADMIN_REQUIRED');
+    await rejects(users.deleteUser(ADMIN.id), 'LAST_ADMIN_REQUIRED');
+    assert.equal(fake.users.get(ADMIN.id)?.role, 'ADMIN');
+  });
+
+  it('allows an admin to be deleted when another admin remains', async () => {
+    await users.toggleUserRole(ALICE.id);
+    await users.deleteUser(ADMIN.id);
+    assert.equal(fake.users.has(ADMIN.id), false);
+    assert.equal(fake.users.get(ALICE.id)?.role, 'ADMIN');
   });
 
   it('every admin operation throws USER_NOT_FOUND for an unknown id', async () => {

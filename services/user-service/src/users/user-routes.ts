@@ -1,5 +1,8 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Clear the refresh cookie after successful self-deletion while retaining it on rejected deletion.
+ * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented authenticated profile routes and structured 501 ADMIN user-management placeholders for the User Service.
@@ -47,6 +50,7 @@ import {
   Router,
 } from 'express';
 import { AuthError } from '../auth/auth-module';
+import { AuthRouteOptions, clearRefreshCookie } from '../auth/auth-routes';
 import { UserError, UserModule } from './user-module';
 
 interface AuthenticatedPrincipal {
@@ -93,6 +97,7 @@ export function createUserRouter(
   users: UserModule,
   requireAuthentication: RequestHandler,
   requireAdmin: RequestHandler,
+  options: AuthRouteOptions,
 ): Router {
   const router = Router();
 
@@ -155,6 +160,10 @@ export function createUserRouter(
     requireSelfOrAdmin,
     asyncRoute(async (req, res) => {
       await users.deleteUser(req.params.id);
+      // Deletion cascades to all sessions; expire this browser's cookie as well.
+      if (req.params.id.toLowerCase() === authenticatedUserId(res).toLowerCase()) {
+        clearRefreshCookie(res, options.secureCookies);
+      }
       res.status(204).send();
     }),
   );

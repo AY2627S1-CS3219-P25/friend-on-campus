@@ -1,11 +1,12 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Document atomic last-admin guards, self-deletion logout, and isolated PostgreSQL regression checks.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: Tests section: added the unit-test suite.
 Author review: <to be completed by the service owner>
--->
-<!--
-AI Assistance Disclosure:
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: replaced `PATCH /:id/admin` and `POST /:id/promote` with `toggle-status`, `toggle-role` and `DELETE /:id` in the API table, the roles table and the behaviour notes, as implemented in `user-routes.ts`. Existing behaviour only.
@@ -120,8 +121,8 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | `PUT /api/users/me/password` | Bearer token | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
 | `GET /api/users` | ADMIN Bearer token | 200 `{ users: [{ userId, username, email, userRole, status }] }`. |
 | `PATCH /api/users/:id/toggle-status` | ADMIN Bearer token | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `DELETE /api/users/:id` | Bearer token; own id, or ADMIN for any id | Deletes the account and, by cascade, its sessions; 204; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; last-admin demotion → 409 `LAST_ADMIN_REQUIRED`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `DELETE /api/users/:id` | Bearer token; own id, or ADMIN for any id | Deletes the account and, by cascade, its sessions; clears the refresh cookie on self-deletion; 204; last-admin deletion → 409 `LAST_ADMIN_REQUIRED`; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
 
 There is no `GET /api/users/:id` route (404 "Route not found"). `PATCH /api/users/:id/admin` and
 `POST /api/users/:id/promote` no longer exist; the two toggle routes above replaced them.
@@ -144,9 +145,9 @@ another user's account on `DELETE` → 403 `FORBIDDEN`; own id on `toggle-role` 
 | Read / edit own profile, change own password (`/api/users/me*`) | 401 | yes | yes |
 | List users (`GET /api/users`) | 401 | 403 | yes |
 | Enable / disable an account (`PATCH /api/users/:id/toggle-status`) | 401 | 403 | yes |
-| Promote or demote a user (`PATCH /api/users/:id/toggle-role`) | 401 | 403 | yes, except own id (403) |
-| Delete own account (`DELETE /api/users/:id`) | 401 | yes | yes |
-| Delete another user's account (`DELETE /api/users/:id`) | 401 | 403 | yes |
+| Promote or demote a user (`PATCH /api/users/:id/toggle-role`) | 401 | 403 | yes, except own id (403) or last admin (409) |
+| Delete own account (`DELETE /api/users/:id`) | 401 | yes | unless last admin (409) |
+| Delete another user's account (`DELETE /api/users/:id`) | 401 | 403 | unless target is last admin (409) |
 | List, search, read suppliers (`GET /api/suppliers`, `/:id`) | yes | yes | yes |
 | Create, edit, toggle, delete suppliers | 401 | 403 | yes |
 | Log in to the admin portal UI | — | refused by the portal's login gate | yes |
@@ -174,11 +175,11 @@ password to the values above. The seed does not write `status`.
 ## Behaviour as built
 
 Items with a UAT check ID in brackets were observed on `main` @ f0ee632 (see `../evidence/d2/d2-checklist.md`);
-the items about `toggle-role` and `DELETE` are read from the code and have not been run in a UAT.
+the updated admin-removal guards and self-deletion session cleanup have PostgreSQL integration coverage.
 
 - `status` is stored and returned but not read by login, refresh or the auth middleware: a disabled account still logs in [A6], and its existing access token and refresh session keep working [A11].
-- `PATCH /api/users/:id/toggle-role` refuses the caller's own id (compared in lower case) and does not count remaining admins.
-- `DELETE /api/users/:id` does not count remaining admins and does not refuse an `ADMIN` deleting their own account.
+- `PATCH /api/users/:id/toggle-role` still refuses the caller's own id. Role changes and deletions share a PostgreSQL transaction advisory lock; the remaining-admin check and mutation commit together. Attempts to demote or delete the last `ADMIN` return 409 `LAST_ADMIN_REQUIRED`, including concurrent requests across service instances. This guard counts `ADMIN` roles, independently of `status`.
+- `DELETE /api/users/:id` allows admin self-deletion only when another admin remains. Successful self-deletion clears the refresh cookie and cascades to all sessions. The admin portal immediately clears its local session and returns to login; deleting someone else keeps the caller signed in.
 - `PATCH /api/users/:id/toggle-status` (formerly `/admin`) does not compare the target with the caller or count remaining admins: the seeded admin can disable its own account, including when it is the only `ADMIN` [A8].
 - A non-UUID `:id` on `toggle-status` returns 500 `Internal server error` [A10].
 - Refresh rotation: a replayed (already rotated) refresh cookie gets 401 `INVALID_SESSION`; the current cookie keeps working [L7, L8].
@@ -192,3 +193,13 @@ the items about `toggle-role` and `DELETE` are read from the code and have not b
 - `npm run test:d2` — Scenario 4 covers the user list, `toggle-status` and `toggle-role`. The last recorded run (40/44, on f0ee632) predates that rewrite.
 - `tests/postman/` — Postman collection and environment for this service and Supplier Service, run against ports 8001 / 8002.
 - `node scripts/uat/uat-d2-api.mjs` — 63 API checks against a running stack; the recorded results in `../evidence/d2/` are from f0ee632.
+
+### Admin concurrency regression checks
+
+Set `ADMIN_GUARD_TEST_DATABASE_URL` to a disposable PostgreSQL database, then run from the repository root:
+
+```bash
+node --import tsx --test services/user-service/test/admin-guard.integration.test.ts
+```
+
+The suite creates and removes a random schema using the existing migrations. It checks concurrent demotion, deletion and mixed requests through two app instances, last-admin rejection, and session/cookie cleanup. Without the environment variable, these database tests are skipped by `npm test`. Existing account tables are not modified.

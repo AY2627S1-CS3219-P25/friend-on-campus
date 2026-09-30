@@ -1,5 +1,8 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Share refresh-cookie clearing between logout and successful self-deletion.
+ * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented User Service authentication HTTP routes with typed responses and safe malformed-cookie handling.
@@ -78,6 +81,10 @@ function setRefreshCookie(
   });
 }
 
+export function clearRefreshCookie(res: Response, secure: boolean): void {
+  res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions(secure));
+}
+
 export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): Router {
   const router = Router();
 
@@ -147,7 +154,7 @@ export function createAuthRouter(auth: AuthModule, options: AuthRouteOptions): R
     asyncRoute(async (req, res) => {
       const refreshToken = readCookie(req, REFRESH_COOKIE_NAME) ?? req.body?.refreshToken;
       await auth.logout(refreshToken);
-      res.clearCookie(REFRESH_COOKIE_NAME, cookieOptions(options.secureCookies));
+      clearRefreshCookie(res, options.secureCookies);
       res.status(204).send();
     }),
   );

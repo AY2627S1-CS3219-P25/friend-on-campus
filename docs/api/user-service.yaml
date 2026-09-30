@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-09-30
+# Scope: Document last-admin 409 responses and self-deletion cookie cleanup.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 # Scope: PR #93: replaced /api/users/{id}/admin and /api/users/{id}/promote with toggle-status, toggle-role and DELETE /api/users/{id}, transcribed from user-routes.ts.
 # Author review: <to be completed by the service owner>
@@ -270,7 +274,8 @@ paths:
       tags: [admin]
       summary: Flip a user's role between STUDENT and ADMIN
       description: >
-        No request body. The caller's own id is refused. The number of remaining ADMIN accounts is not counted.
+        No request body. The caller's own id is refused. A transaction shared with account deletion
+        prevents concurrent requests from demoting or deleting the last ADMIN (409 LAST_ADMIN_REQUIRED).
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -288,13 +293,20 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
               example: { success: false, error: Admins cannot change their own role, code: SELF_ACTION_FORBIDDEN }
         "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: LAST_ADMIN_REQUIRED; the target is the last remaining admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: The last admin cannot be demoted or deleted, code: LAST_ADMIN_REQUIRED }
   /api/users/{id}:
     delete:
       tags: [profile, admin]
       summary: Delete an account (own account, or any account for an ADMIN)
       description: >
-        No request body. The account's sessions are deleted by cascade. An ADMIN may delete their own account; the
-        number of remaining ADMIN accounts is not counted.
+        No request body. The account's sessions are deleted by cascade. An ADMIN may delete their own account
+        only when another ADMIN remains. A transaction shared with role changes protects the last ADMIN.
+        Successful self-deletion expires the refresh_token cookie at Path=/api/auth.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -308,6 +320,12 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
               example: { success: false, error: You can only delete your own account, code: FORBIDDEN }
         "404": { $ref: "#/components/responses/UserNotFound" }
+        "409":
+          description: LAST_ADMIN_REQUIRED; the target is the last remaining admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: The last admin cannot be demoted or deleted, code: LAST_ADMIN_REQUIRED }
 components:
   securitySchemes:
     bearerAuth:

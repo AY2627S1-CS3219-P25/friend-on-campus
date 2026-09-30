@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Cover last-admin HTTP errors and cookie behavior for self-deletion and deletion of another account.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: HTTP tests for the assembled user-service app (src/app.ts with the real routers, error handler and
  * @campus-errand/auth middleware) over in-memory repositories: health and readiness, body parsing errors, the
@@ -370,13 +374,39 @@ describe('user-service app', () => {
       assert.equal(selfUpper.body.code, 'SELF_ACTION_FORBIDDEN');
     });
 
-    it('DELETE /:id: a student may delete only their own account, an admin any account', async () => {
+    it('a stale admin token cannot demote or delete the last admin', async () => {
+      const staleAdmin = issueToken(ALICE_ID, 'ADMIN');
+      for (const [method, suffix] of [['PATCH', '/toggle-role'], ['DELETE', '']]) {
+        const res = await client.call(method, `/api/users/${ADMIN_ID}${suffix}`, { token: staleAdmin });
+        assert.equal(res.status, 409);
+        assert.equal(res.body.code, 'LAST_ADMIN_REQUIRED');
+        assert.equal(res.headers.get('set-cookie'), null);
+      }
+    });
+
+    it('an admin may delete itself when another admin remains, clearing its cookie', async () => {
+      const registered = await client.call('POST', '/api/auth/register', {
+        body: { username: 'second-admin', email: 'second-admin@u.nus.edu', password: 'Password123!' },
+      });
+      assert.equal(registered.status, 201);
+      const id = registered.body.data.user.userId;
+      const promoted = await client.call('PATCH', `/api/users/${id}/toggle-role`, { token: issueToken(ADMIN_ID, 'ADMIN') });
+      assert.equal(promoted.status, 200);
+      const res = await client.call('DELETE', `/api/users/${id.toUpperCase()}`, { token: issueToken(id, 'ADMIN') });
+      assert.equal(res.status, 204);
+      assert.match(res.headers.get('set-cookie')!, /refresh_token=;/);
+      assert.match(res.headers.get('set-cookie')!, /Path=\/api\/auth/);
+      assert.match(res.headers.get('set-cookie')!, /Expires=Thu, 01 Jan 1970/);
+    });
+
+    it('DELETE /:id: a student may delete only their own account, an admin may delete others', async () => {
       const bob = issueToken(BOB_ID, 'STUDENT');
       const other = await client.call('DELETE', `/api/users/${ALICE_ID}`, { token: bob });
       assert.equal(other.status, 403);
       assert.equal(other.body.code, 'FORBIDDEN');
       const otherUpper = await client.call('DELETE', `/api/users/${BOB_ID.toUpperCase()}`, { token: bob });
       assert.equal(otherUpper.status, 204, 'own id in upper case is accepted');
+      assert.match(otherUpper.headers.get('set-cookie')!, /refresh_token=;/);
       const gone = await client.call('GET', '/api/users/me', { token: bob });
       assert.equal(gone.status, 404);
 
@@ -385,12 +415,15 @@ describe('user-service app', () => {
       assert.equal(unknown.status, 404);
       const byAdmin = await client.call('DELETE', `/api/users/${ALICE_ID}`, { token: admin });
       assert.equal(byAdmin.status, 204);
+      assert.equal(byAdmin.headers.get('set-cookie'), null, 'deleting another user preserves the caller cookie');
     });
 
-    it('nothing stops an admin deleting their own account (documented gap)', async () => {
+    it('the last admin cannot delete itself and keeps its session cookie', async () => {
       const admin = issueToken(ADMIN_ID, 'ADMIN');
       const res = await client.call('DELETE', `/api/users/${ADMIN_ID}`, { token: admin });
-      assert.equal(res.status, 204);
+      assert.equal(res.status, 409);
+      assert.equal(res.body.code, 'LAST_ADMIN_REQUIRED');
+      assert.equal(res.headers.get('set-cookie'), null);
     });
   });
 
