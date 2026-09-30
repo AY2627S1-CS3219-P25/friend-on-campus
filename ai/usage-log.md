@@ -1487,3 +1487,19 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 **Files changed:**
 - `.github/workflows/claude-pr-review.yml` — `--max-turns` 40 to 1500, comment, disclosure header (change made 2026-09-28, committed now).
 - `ai/usage-log.md` — entries.
+
+## 2026-09-30 16:04 SGT — PlantUML twins of the four diagrams, legends added
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree, uncommitted)
+
+**Prompt (summarised):** Make sure every diagram exists in both PlantUML and Mermaid form.
+
+**Usage scenario:** Documentation. Transcribed the four as-built diagrams into PlantUML (five files: the auth sequence is two), added legends and control-vs-data arrow styling to both forms, and added the 400/409 supplier-write branches from PR #93. All five .puml files pass `plantuml -checkonly` and render; all five Mermaid blocks parse with the mermaid library. No design content.
+
+**Files changed:**
+- `docs/diagrams/component.puml`, `user-schema.puml`, `supplier-schema.puml`, `auth-login.puml`, `auth-supplier-write.puml` — new.
+- `docs/diagrams/component.md`, `auth-sequence.md`, `user-schema.md`, `supplier-schema.md` — legends, links to the twins, re-pinned to fcd5371; Rendering section.
+- `docs/README.md` — diagrams entry.
+- `docs/architecture/overview.md` — "Built today" column for PR #93; `docs/api/*.yaml` — version string `d2-6dc22a6`. (Added after PR #98 was merged at the author's request.)

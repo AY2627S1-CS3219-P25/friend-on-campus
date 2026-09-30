@@ -11,7 +11,7 @@
 openapi: 3.0.3
 info:
   title: User Service API (as built)
-  version: "d2-f0ee632"
+  version: "d2-6dc22a6"
   description: >
     Registration, login sessions, own profile, and ADMIN user administration. Prose reference with full examples:
     services/user-service/docs/api-reference.md. Behaviour notes: docs/services/user-service.md.

@@ -1,0 +1,48 @@
+' AI Assistance Disclosure:
+' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+' Scope: PlantUML version of user-schema.md, transcribed from services/user-service/src/database/prisma/schema.prisma
+' and its two migrations on main @ fcd5371. No design change.
+' Author review: <to be completed by the service owner>
+' Render: java -jar plantuml.jar -tsvg user-schema.puml
+@startuml user-schema
+title user_db — User Service schema, as built (main @ fcd5371)
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+
+entity "users" as users {
+  * id : uuid <<PK>> default uuid()
+  --
+  * username : varchar(50)  -- unique on LOWER(username)
+  * email : varchar(320)  -- unique on LOWER(email)
+  * password_hash : text  -- scrypt; never returned by the API
+  * role : varchar(20)  -- STUDENT (default) or ADMIN
+  * status : boolean  -- default true
+  * created_at : timestamptz
+  * updated_at : timestamptz
+}
+
+entity "sessions" as sessions {
+  * id : uuid <<PK>> default uuid()  -- the token's sid claim
+  --
+  * user_id : uuid <<FK>>
+  * refresh_token_hash : text <<unique>>  -- SHA-256 of the opaque refresh token
+  * persistent : boolean  -- true when keepLoggedIn
+  * created_at : timestamptz
+  * last_used_at : timestamptz
+  * idle_expires_at : timestamptz
+}
+
+users ||--o{ sessions : "user_id (ON DELETE CASCADE)"
+
+legend bottom
+  |= Symbol |= Meaning |
+  | * | NOT NULL column |
+  | PK / FK | primary key / foreign key |
+  | one-to-many crow's foot | a user has zero or more sessions |
+  Indexes: users_username_case_insensitive_uq and users_email_case_insensitive_uq
+  (expression indexes on LOWER(...), created in the migration SQL);
+  sessions_user_expiry_idx on (user_id, idle_expires_at).
+  Other services refer to users.id as a logical reference only; no cross-database foreign keys.
+endlegend
+@enduml
