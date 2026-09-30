@@ -4,8 +4,18 @@
 ' auth-module.ts and the D2 UAT results (check IDs in brackets) on main @ fcd5371. Shows what the code does; no rationale.
 ' Author review: <to be completed by Reallyeasy1>
 ' Render: java -jar plantuml.jar -tsvg auth-login.puml
+' Tool: Codex (model: GPT-6), date: 2026-09-30
+' Scope: Reworked the authentication sequence to show successful login, session and cookie creation, expired-token
+' rejection and refresh, and successful Supplier Service token validation at a high level.
+' Author review: <to be completed by the author>
+' Tool: Codex (model: GPT-6), date: 2026-09-30
+' Scope: Added an ellipsis after Supplier Service token validation to indicate omitted supplier actions.
+' Author review: <to be completed by the author>
+' Tool: Codex (model: GPT-6), date: 2026-09-30
+' Scope: Reordered the sequence to show a successful protected request, time passing until token expiry, and then rejection and refresh.
+' Author review: <to be completed by the author>
 @startuml auth-login
-title Login and token refresh, as built (main @ fcd5371)
+title Login, token refresh, and protected Supplier Service access
 skinparam shadowing false
 skinparam sequenceMessageAlign center
 autonumber
@@ -14,38 +24,47 @@ actor "User (browser)" as U
 participant "api-gateway\n(nginx)" as GW
 participant "user-service" as US
 database "user_db" as DB
+participant "supplier-service" as SS
 
-U -> GW : POST /api/auth/login\n{email, password, keepLoggedIn}
-GW -> US : proxy (headers unchanged)
-US -> DB : find user by LOWER(email)
-DB --> US : user row (password_hash, role)
-US -> US : verify password against the scrypt hash\n(unknown email: verify against a dummy hash)
-alt wrong email or password
-  US --> U : 401 INVALID_CREDENTIALS [L1]
-else correct
-  US -> DB : insert session\n(refresh_token_hash, persistent, idle_expires_at)
-  US -> US : sign access token with the Ed25519 private key\nclaims: sub, sid, role, iat, exp (15 min), iss, aud
-  US --> U : 200 {accessToken, user}\nSet-Cookie: refresh_token (HttpOnly, SameSite=Lax,\nPath=/api/auth; ~1 day, ~30 days with keepLoggedIn) [L2, L3, L5]
+U -> GW : Send login details
+GW -> US : Forward login request
+US -> DB : Find the account
+DB --> US : Account details
+US -> US : Validate and create refresh \ntoken upon success
+US -> DB : Save session with the refresh-token hash
+US -> US : Create and sign access token with private key
+US --> U : Access token and user details;\nset an HttpOnly refresh-token cookie
+
+group Access token is valid
+  U -> GW : Request a protected supplier action\nwith the access token
+  GW -> SS : Forward request and access token
+  SS -> SS : Validate access token with\n public key and auth middleware
+  ... supplier-service performs other actions; details omitted ...
+  SS --> U : Return supplier response
 end
 
-... later, when the access token has expired ...
+... time passes until the access token expires ...
 
-U -> GW : POST /api/auth/refresh (cookie)
-GW -> US : proxy
-US -> DB : look up session by SHA-256 of the cookie value
-alt unknown, expired or already rotated
-  US --> U : 401 INVALID_SESSION [L7, L10]
-else valid
-  US -> DB : store the new refresh_token_hash,\nextend idle_expires_at
-  US -> US : sign a new access token with the user's current role
-  US --> U : 200 {accessToken} + rotated cookie [L6]
+group Access token has expired
+  U -> GW : Request a protected supplier action\nwith the expired access token
+  GW -> SS : Forward request and access token
+  SS -> SS : Validate access token with\n public key and auth middleware
+  SS --> U : Reject the request with an expired-token response
+
+  U -> GW : Ask for a refreshed access token\n(cookie is sent automatically)
+  GW -> US : Forward refresh request and cookie
+  US -> DB : Find the session matching the cookie's hash
+  DB --> US : Confirm the saved session is active
+  US -> US : Create a replacement opaque refresh token
+  US -> DB : Replace the saved refresh-token hash\nand extend the session expiry
+  US -> US : Create a new signed access token
+  US --> U : Return the new access token\nand set a rotated HttpOnly refresh-token cookie
 end
 
 legend bottom
   |= Symbol |= Meaning |
   | solid arrow | request or call (control flow) |
   | dashed arrow | response or data returned |
-  | alt / else | the branch the service takes |
-  | [L1] | check ID defined in scripts/uat/uat-d2-api.mjs (results kept locally in docs/evidence/d2/) |
+  | group | the scenario shown in that part of the sequence |
 endlegend
 @enduml

@@ -14,81 +14,45 @@ skinparam shadowing false
 skinparam defaultTextAlignment center
 skinparam ArrowFontSize 10
 
-skinparam rectangle {
-  BackgroundColor<<mock>> #F4F4F4
-  BorderStyle<<mock>> dashed
-}
-
 package "Clients (browser)" {
-  [student-app\nReact + Vite :5173] as SA
-  [admin-portal\nReact + Vite :5174] as AP
+  [<size:16>Admin portal</size>\n<size:12>React, Vite :5174</size>\n\n<size:10>Admin supplier and user management</size>] as AP
+  [<size:16>Friend on Campus</size>\n<size:12>React, Vite :5173</size>\n\n<size:10>Student-facing errand app</size>] as SA
 }
 
-node "api-gateway\nnginx :80\n(routes only, no auth)" as GW
+node "api-gateway\nnginx :80\n(routes only)" as GW
 
-package "Real services (Node + Express + Prisma)" {
-  [user-service :8001\nsigns access tokens\nwith the Ed25519 private key] as US
-  [supplier-service :8002\nverifies access tokens\nwith the public key] as SS
-}
-
-package "In-memory mocks (starter template)" {
-  rectangle "order-service :8003" <<mock>> as OS
-  rectangle "credit-service :8004" <<mock>> as CS
-  rectangle "notification-service :8005\nWebSocket" <<mock>> as NS
-}
-
-package "Shared packages (compile-time)" {
-  [@campus-errand/auth\nauthMiddleware, requireAdmin] as AUTH
-  [@campus-errand/common-dtos] as DTO
+package "Services" {
+  component "<size:18>User Service</size>\n<size:12>Express, TypeScript, Prisma :8001</size>\n\n<size:11>Accounts, sessions and roles</size>" as US
+  rectangle "<size:18>Supplier Service</size>\n<size:12>Express, TypeScript, Prisma :8002</size>\n\n<size:11>Supplier directory and management</size>" as SS
+  rectangle "<size:18>Order Service</size>\n<size:12>Express, TypeScript :8003</size>\n\n<size:11><i>To be implemented</i></size>" as OS
+  rectangle "<size:18>Credit Service</size>\n<size:12>Express, TypeScript :8004</size>\n\n<size:11><i>To be implemented</i></size>" as CS
 }
 
 database "PostgreSQL 16 (one server)" {
-  database "user_db\nusers, sessions" as UDB
-  database "supplier_db\nsuppliers" as SDB
-  database "order_db\nempty" as ODB
-  database "credit_db\nempty" as CDB
+  database "User DB\n" as UDB
+  database "Supplier DB\n" as SDB
+  database "Order DB\n" as ODB
+  database "Credit DB\n" as CDB
 }
 
-queue "RabbitMQ 3.13\nrunning; no publisher or consumer yet" as MQ
-
-' ---- control flow: HTTP / WebSocket requests (solid, black)
-SA --> GW : "/ , /api/*, /ws/"
-AP --> US : "/api/auth, /api/users\n(Vite proxy on :5174)"
+' ---- control flow: HTTP requests (solid, black)
+SA --> GW : "/ , /api/*"
+AP --> US : "/api/users\n(Vite proxy on :5174)"
 AP --> SS : "/api/suppliers\n(Vite proxy on :5174)"
-GW --> US : "/api/auth/, /api/users/"
+GW --> US : "/api/users/"
 GW --> SS : "/api/suppliers"
 GW --> OS : "/api/orders"
 GW --> CS : "/api/credits/"
-GW --> NS : "/ws/"
 
 ' ---- data flow: reads and writes (solid, blue)
 US -[#1F5FBF]-> UDB : "read/write\nusers, sessions"
 SS -[#1F5FBF]-> SDB : "read/write\nsuppliers"
 
-' keep RabbitMQ beside the databases
-CDB -[hidden]- MQ
-
-' ---- compile-time dependency (dotted)
-US ..> AUTH : uses
-SS ..> AUTH : uses
-US ..> DTO : types
-SS ..> DTO : types
-
 legend right
   |= Symbol |= Meaning |
-  | black solid arrow | control flow: HTTP or WebSocket request, in the direction of the call |
+  | black solid arrow | control flow: HTTP request, in the direction of the call |
   | <color:#1F5FBF>blue solid arrow</color> | data flow: database read/write |
-  | dotted arrow | compile-time dependency (import), no runtime call |
-  | dashed grey box | in-memory mock from the starter template |
-  | database / queue | backing store; order_db, credit_db and RabbitMQ are provisioned but unused |
+  | database | backing store; order_db and credit_db are provisioned but unused |
 endlegend
 
-note right of SS
-  Verifies tokens locally with JWT_PUBLIC_KEY,
-  issuer and audience. Never calls user-service.
-end note
-note left of GW
-  http://localhost/admin/ does not render the admin portal
-  (conflicts.md row 19); use http://localhost:5174/.
-end note
 @enduml
