@@ -1,5 +1,8 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Map atomic last-admin guard failures to LAST_ADMIN_REQUIRED.
+ * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
@@ -35,6 +38,7 @@ import type {
 } from '@campus-errand/common-dtos';
 import { hashPassword, verifyPassword } from '../auth/password';
 import {
+  LastAdminError,
   UserRecord,
   UserRepository,
   UpdateUserRecord,
@@ -57,6 +61,7 @@ export type UserErrorCode =
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
   | 'FORBIDDEN'
+  | 'LAST_ADMIN_REQUIRED'
   | 'SELF_ACTION_FORBIDDEN';
 
 export class UserError extends Error {
@@ -201,18 +206,31 @@ export function createUserModule(options: UserModuleOptions): UserModule {
     },
 
     async toggleUserRole(targetUserId) {
-      const user = await options.repository.toggleRole(targetUserId);
-      if (!user) {
-        throw new UserError('USER_NOT_FOUND', 'User not found');
+      try {
+        const user = await options.repository.toggleRole(targetUserId);
+        if (!user) {
+          throw new UserError('USER_NOT_FOUND', 'User not found');
+        }
+        return toUserDTO(user);
+      } catch (error) {
+        if (error instanceof LastAdminError) {
+          throw new UserError('LAST_ADMIN_REQUIRED', error.message);
+        }
+        throw error;
       }
-
-      return toUserDTO(user);
     },
 
     async deleteUser(targetUserId) {
-      const deleted = await options.repository.deleteById(targetUserId);
-      if (!deleted) {
-        throw new UserError('USER_NOT_FOUND', 'User not found');
+      try {
+        const deleted = await options.repository.deleteById(targetUserId);
+        if (!deleted) {
+          throw new UserError('USER_NOT_FOUND', 'User not found');
+        }
+      } catch (error) {
+        if (error instanceof LastAdminError) {
+          throw new UserError('LAST_ADMIN_REQUIRED', error.message);
+        }
+        throw error;
       }
     },
   };

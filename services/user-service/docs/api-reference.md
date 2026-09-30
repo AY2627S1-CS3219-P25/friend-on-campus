@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Document LAST_ADMIN_REQUIRED and self-deletion cookie cleanup.
+Author review: <to be completed by huangjiaxi1111>
+
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: replaced the `PATCH /:id/admin` and `POST /:id/promote` sections with `toggle-status`, `toggle-role` and `DELETE /:id`, as implemented in `user-routes.ts`. Describes existing behaviour only.
@@ -545,7 +549,8 @@ In addition to the [authentication errors](#authentication-error-responses):
 ### `PATCH /api/users/:id/toggle-role`
 
 Flips the role of the account with the given ID between `STUDENT` and `ADMIN`. The
-caller's own ID is refused. The route does not count the remaining `ADMIN` accounts.
+caller's own ID is refused. Demoting the last `ADMIN` returns 409 `LAST_ADMIN_REQUIRED`.
+The admin count and update share a transaction lock with account deletion, including across service instances.
 It replaces the former `POST /api/users/:id/promote` placeholder.
 
 #### Request
@@ -582,6 +587,7 @@ In addition to the [authentication errors](#authentication-error-responses):
 | Status | Code | Meaning |
 |---:|---|---|
 | `403` | `SELF_ACTION_FORBIDDEN` | `:id` is the caller's own ID. |
+| `409` | `LAST_ADMIN_REQUIRED` | The target is the last remaining admin. |
 | `404` | `USER_NOT_FOUND` | No account has that UUID. |
 
 There is no `GET /api/users/:id` route; it returns the `404` "Route not found" body.
@@ -601,7 +607,10 @@ For the administration routes above, missing or invalid authentication returns t
 
 Deletes the account with the given ID and, by cascade, its sessions. Any authenticated
 caller may delete their own account; an `ADMIN` may delete any account, including their
-own. The route does not count the remaining `ADMIN` accounts.
+own, provided another `ADMIN` remains. Deleting the last `ADMIN` returns 409 `LAST_ADMIN_REQUIRED`.
+The check and deletion run in the same transaction as the shared admin-membership lock.
+Successful self-deletion expires the refresh cookie (`Path=/api/auth`); deleting someone else does not change the caller's cookie.
+The admin portal returns directly to login after successful self-deletion.
 
 #### Request
 
@@ -622,6 +631,7 @@ In addition to the [authentication errors](#authentication-error-responses):
 | Status | Code | Meaning |
 |---:|---|---|
 | `403` | `FORBIDDEN` | A non-`ADMIN` caller sent another user's ID. |
+| `409` | `LAST_ADMIN_REQUIRED` | The target is the last remaining admin. |
 | `404` | `USER_NOT_FOUND` | No account has that UUID. |
 
 ## Authentication

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Return directly to login after successful self-deletion and clear account-deletion UI state.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Responsive shell, adaptive navigation, card grids, control sizing, scrollable dialogs, a student login return link hidden on the direct admin port, and square pagination and icon buttons.
  * Author review: <to be completed by huangjiaxi1111>
  *
@@ -131,11 +135,6 @@
  */
 
 // AI-generated (edited by huangjiaxi1111)
-
-
-
-
-
 // AI-generated (edited by yanhwee)
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -192,6 +191,15 @@ function decodeJwtRole(token: string): string | null {
     const payload = token.split('.')[1];
     const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
     return JSON.parse(json).role ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function decodeJwtUserId(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.sub === 'string' ? payload.sub.toLowerCase() : null;
   } catch {
     return null;
   }
@@ -364,6 +372,12 @@ export default function App() {
     setLoginError(null);
     setRememberMe(false);
     setActiveNav('suppliers');
+    setCurrentRole('GUEST');
+    setUsers([]);
+    setDeletingUser(null);
+    setDeleteUserConfirmed(false);
+    setDeleteUserError(null);
+    setDeletedUserSuccess(null);
   };
 
   const handleLogout = async () => {
@@ -778,6 +792,10 @@ export default function App() {
     try {
       const res = await authFetch(`/api/users/${deletingUser.userId}`, { method: 'DELETE' });
       if (res.status === 204) {
+        if (deletingUser.userId.toLowerCase() === decodeJwtUserId(authToken)) {
+          clearLocalSession();
+          return;
+        }
         setUsers((prev) => prev.filter((u) => u.userId !== deletingUser.userId));
         setDeletedUserSuccess(deletingUser.username);
         setDeletingUser(null);
