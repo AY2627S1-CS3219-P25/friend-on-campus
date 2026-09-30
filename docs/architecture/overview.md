@@ -1,36 +1,38 @@
 <!--
 AI Assistance Disclosure:
+
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Documented the working admin gateway route and student login navigation.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: "Built today" column for user-service, supplier-service, student-app and admin-portal brought in step with main @ 6dc22a6 (PR #93: toggle-status, toggle-role, DELETE /:id, required building/floor, 409 duplicate rule, env-var proxy targets, healthchecks). Facts only.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Compiled this overview from the team's own sources (README, D1, D2 / Sprint 2 plan, docker-compose.yml,
 gateway/nginx.conf, packages/common-dtos) and from reading the code on milestone-d2. It restates what those
 sources already say and what the code currently does; it proposes nothing and contains no rationale.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected User and Supplier Service implementation facts, repository paths, and resolved documentation references.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated repository layout and conflict status to reflect that 01-init-databases.sql provisions logical databases only while microservices manage their own migrations.
 Author review: (to be completed by author after review)
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Updated the "Built today" column for user-service, student-app, admin-portal and gateway, the directory layout
 (scripts/uat) and the conflict row list, from the code on `main` @ f0ee632 and the D2 UAT. Facts only.
 Author review: <to be completed by Reallyeasy1>
 -->
+
+
+
+
+
 
 # Architecture overview — intended vs built
 
@@ -78,7 +80,7 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 | **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
 | **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; register / login / silent refresh / logout and profile edit against user-service; fetches the live supplier directory (with a hardcoded fallback list used only when the call fails) and opens `/ws/`; makes no calls to the order or credit APIs yet (wallet and escrow figures are mock data). Vite proxy targets come from env vars, so the container on `:5173` works. |
 | **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login gate that refuses non-`ADMIN` accounts, full supplier CRUD with search / filter / sort / pagination (page size 8) / details, and a Users page (list, search, disable / reinstate, upgrade / downgrade role, delete) against the real APIs; the Add / Edit supplier forms require building and floor and show the 409 duplicate; table at desktop width, cards and a drawer at 390 px. |
-| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. `/api/*` and `/` work as described. `/admin/` returns the admin portal's `index.html`, but its script URLs are root-absolute (`/src/main.tsx`, `/@vite/client`), so they fall to `location /` and the student app loads; the admin portal works on `:5174`. `/api/users` without a trailing slash is a 301. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
+| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. `/api/*` and `/` work as described. As of 2026-09-30, `/admin/` serves the admin portal and its assets: Vite uses `/admin/` as its base and nginx preserves that prefix. The student login page links to `/admin/`. Direct access on `:5174` redirects to the same base path. `/api/users` without a trailing slash is a 301. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
 
 ## 4. Directory layout
 
@@ -112,4 +114,8 @@ Generated and ignored: `node_modules/`, `dist/`, `**/src/database/generated/` (p
 
 ## 5. Where intent and code currently differ
 
-Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15 - resolved), README's D2 status (16), promotion and last-admin guard (18), `/admin/` through the gateway (19), `test:d2` expectations (20), stale user-service API reference (21 - resolved). Unresolved rows are open questions for the team, not defects for an AI tool to fix.
+Tracked row by row in [`../requirements/conflicts.md`](../requirements/conflicts.md): session method (row 8), role names (9), guest reads of suppliers (10), supplier edit contract and `version` (11), Bun vs npm (13), backend stack mention (14), duplicated table definitions (15 - resolved), README's D2 status (16), promotion and last-admin guard (18), `/admin/` through the gateway (19; fixed 2026-09-30), `test:d2` expectations (20), stale user-service API reference (21 - resolved). Unresolved rows are open questions for the team, not defects for an AI tool to fix.
+
+## Admin navigation in local development
+
+The student Vite server forwards `/admin` requests, including asset and HMR requests, to `ADMIN_PORTAL_URL` (default `http://localhost:5174`). Compose sets it to `http://admin-portal:5174`. The login-page link therefore also works when opening the student frontend directly on port 5173. API requests remain under `/api/`; the existing backend authentication and ADMIN checks apply.

@@ -1,29 +1,22 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented authenticated profile routes and structured 501 ADMIN user-management placeholders for the User Service.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: The deferred ADMIN placeholders now return the service's standard JSON error body with code
  * NOT_IMPLEMENTED instead of an empty 501, so JSON clients (e.g. the admin portal Users page) do not throw.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added DELETE /:id (account deletion) with a new local requireSelfOrAdmin middleware — allows the
  * request through only if the caller is ADMIN or is deleting their own account (auth.userId === req.params.id),
  * otherwise throws UserError('FORBIDDEN'). Deliberately not added to the shared @campus-errand/auth package,
  * since "does the URL's :id match the caller's own id" is specific to this one route.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Renamed PATCH /:id/admin to PATCH /:id/toggle-status (same behavior — flips the status boolean —
  * just a clearer name, since "/admin" read as if it changed the ADMIN role, which it never did). Replaced the
@@ -33,14 +26,19 @@
  * throwNotImplemented/notImplemented helpers and the NOT_IMPLEMENTED error code, since nothing uses them
  * anymore.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
  * Scope: PR #93 review fix: the self checks in requireSelfOrAdmin and PATCH /:id/toggle-role lower-case the
  * URL id before comparing it with the token's user id, because Postgres matches uuid values in any letter case.
  * Author review: (to be completed by author after review)
  */
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
+
+
 import {
   NextFunction,
   Request,

@@ -8,13 +8,13 @@ AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this agent definition.
 Author review: Approved by Reallyeasy1
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the agent's stale Supplier Service JWT configuration fact.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
 
 You are the infrastructure engineer. CLAUDE.md sections 1–5 bind you.
 

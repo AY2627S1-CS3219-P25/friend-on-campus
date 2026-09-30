@@ -3,13 +3,13 @@ AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Created this index page and its empty table.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Added index rows for records 0001-0004 (number, title, date only).
 Author review: <to be completed by Reallyeasy1>
 -->
+
+
 
 # Design decisions
 

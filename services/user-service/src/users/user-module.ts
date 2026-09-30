@@ -1,27 +1,20 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented username-only profile updates and shared user and password DTO handling.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added deleteUser() and the FORBIDDEN error code for the new DELETE /api/users/:id endpoint. Role/self
  * authorization for this route is enforced at the route layer (requireSelfOrAdmin in user-routes.ts), not here —
  * this method trusts that check has already passed, same as toggleUserStatus trusts requireAdmin.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added toggleUserRole() (flips STUDENT<->ADMIN, backing the new PATCH /:id/toggle-role) and the
  * SELF_ACTION_FORBIDDEN error code (an admin may not change their own role — enforced at the route layer, same
@@ -29,6 +22,12 @@
  * now that the old promote stub is gone.
  * Author review: (to be completed by author after review)
  */
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
+
 import type {
   ChangePasswordRequest,
   UpdateUserProfileRequest,

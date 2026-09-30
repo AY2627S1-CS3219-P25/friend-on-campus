@@ -1,18 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Accepted configured Ed25519 authentication middleware for the author-approved Supplier Service migration.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: createSupplier and updateSupplier now check findDuplicateLocation() before writing, rejecting with
  * 409 and a `duplicate` object (name/category/building/floor of the conflicting record) if one is found.
@@ -20,9 +16,7 @@
  * *effective* post-update values before checking, since PUT allows partial updates, and excludes its own id
  * so a no-op/unrelated update isn't flagged as duplicating itself.
  * Author review: (to be completed by author after review)
- */
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
  * Scope: PR #93 review fixes: the duplicate check uses trimmed values (the repository stores trimmed values),
  * a unique-index violation (Prisma P2002) is answered with 409 instead of 500, and updateSupplier returns 400
@@ -30,6 +24,11 @@
  * fields as missing.
  * Author review: (to be completed by author after review)
  */
+
+
+// AI-generated (edited by yanhwee)
+
+
 
 import { Router, Request, RequestHandler, Response } from 'express';
 import * as supplierRepository from '../database/supplierRepository';

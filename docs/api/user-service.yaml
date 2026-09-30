@@ -2,12 +2,13 @@
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 # Scope: PR #93: replaced /api/users/{id}/admin and /api/users/{id}/promote with toggle-status, toggle-role and DELETE /api/users/{id}, transcribed from user-routes.ts.
 # Author review: <to be completed by the service owner>
-# AI Assistance Disclosure:
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 # Scope: Transcribed the routes that exist in services/user-service/src (app.ts, auth-routes.ts, user-routes.ts,
 #   error-handler.ts) and the types in packages/common-dtos on `main` @ f0ee632 into OpenAPI. Describes the API as
 #   built; designs nothing new.
 # Author review: <to be completed by the service owner>
+
 openapi: 3.0.3
 info:
   title: User Service API (as built)

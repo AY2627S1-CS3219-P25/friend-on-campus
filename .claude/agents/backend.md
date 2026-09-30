@@ -8,13 +8,13 @@ AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this agent definition (consolidates the earlier per-service agents).
 Author review: Approved by Reallyeasy1
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the agent's stale User and Supplier Service path and authentication facts.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
 
 You are the backend engineer for this monorepo: Node.js, Express, TypeScript (`tsx`), Prisma, PostgreSQL 16, RabbitMQ (`amqplib`). CLAUDE.md sections 1–5 bind you.
 

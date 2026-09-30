@@ -1,33 +1,36 @@
 <!--
 AI Assistance Disclosure:
+
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Implemented responsive UI layouts and recorded navigation between student and admin login pages and gateway routing verification.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 11 documentation-compliance record below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 10 D2 contract-alignment record below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 8 Supplier Service Ed25519 migration record below.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Appended the Database-per-Service schema ownership and migration refactoring record below.
 Author review: (to be completed by author after review)
 -->
+
+
+
+
+
+
 
 # AI Usage Log
 
@@ -1448,6 +1451,57 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `CLAUDE.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md` — student-app proxy note.
 - Second review pass: `supplierRoutes.ts` — create treats whitespace-only required fields as missing; `scripts/test-d2-e2e.ts` — the test supplier's name carries the random test code.
 
+## 2026-09-30 16:23 SGT — Implement responsive student and admin UI
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Fix frontend UI responsiveness across student-app and admin-portal: remove fixed shell width caps, adapt navigation for mobile/tablet/desktop, convert feeds to card grids, arrange profile and credits side-by-side on desktop, enlarge control touch targets, and make dialogs scroll within viewport height.
+
+**Usage scenario:** Frontend UI styling and responsive improvements based on author specifications. Implemented full-width layouts, breakpoint navigation, desktop two-column views, accessible control sizing, and dialog overflow handling. Added responsive browser regression checks. No architecture, schema, or API changes; no commits or pushes.
+
+**Validation:** Typecheck and production builds passed successfully.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx`, `apps/student-app/src/index.css` — responsive shell/navigation, grids, Post and Profile sections, typography, focus and dialog sizing.
+- `apps/admin-portal/src/App.tsx`, `apps/admin-portal/src/index.css` — tablet navigation, table/card breakpoints, wrapping controls, typography and scrollable dialogs.
+
+## 2026-09-30 16:54 SGT — Add admin login navigation through nginx
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Add a button on the login page at localhost:80 to open the admin login page.
+
+**Usage scenario:** Implementation of the requested login navigation and debugging of its existing gateway route. Added a styled navigation link to `/admin/`, set the admin Vite base to `/admin/`, and preserved that prefix in nginx so admin modules and assets no longer load from the student app. Added a student Vite proxy and Docker target for the same link during direct development. Existing API authentication and ADMIN authorization remain in place. No commits or pushes.
+
+**Validation:** Full workspace typecheck and both frontend builds passed. nginx configuration validation passed. D2 API suite: 56/56 passed; API containers were automatically restored afterward. D2 browser suite through localhost:80: 30/30 passed, including clicking the new link, reloading the admin login, successful admin sign-in, and rejection of student credentials. Visually inspected the mobile login screenshot. Rebuilt/recreated local frontend containers and reloaded nginx.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — Admin Log In navigation link on the student login form.
+- `apps/admin-portal/vite.config.ts`, `gateway/nginx.conf` — consistent `/admin/` base path and proxy handling.
+- `apps/student-app/vite.config.ts`, `docker-compose.yml` — direct-development admin proxy and Docker target.
+- `scripts/uat/uat-d2-ui.mjs` — default admin checks to the gateway and add link/reload coverage.
+- `README.md`, `docs/architecture/overview.md` — current admin entry URL and routing behavior.
+- `ai/usage-log.md` — this record and updated disclosure scope.
+
+## 2026-09-30 17:37 SGT — Add student login return button
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Add a button on the admin login page to return to the student login.
+
+**Usage scenario:** Implemented the author-requested navigation as a styled link to `/` below the admin login button, using the existing gateway route. No commits or pushes.
+
+**Validation:** Workspace typecheck and admin production build passed. D2 API checks passed 56/56; service containers restored afterward. Browser checks passed at 1440px and 390px for student → admin → student navigation through localhost:80. Rebuilt the local admin container and reloaded nginx.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — Student Log In return link and consolidated disclosure update.
+- `ai/usage-log.md` — this record and consolidated disclosure update.
 ## 2026-09-30 15:36 SGT — Merge-readiness check of the gateway-auth PR
 
 **Tool:** Claude Code (model: Claude Fable 5.1)

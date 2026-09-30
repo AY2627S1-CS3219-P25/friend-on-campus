@@ -4,13 +4,13 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Created this index; on clean-up reordered it into reading order and folded three placeholder-only
 folders (api, diagrams, mentor-feedback) into the "Add when first needed" table. Structure only, no design content.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Extended the evidence entry (checklist, screenshots, UAT drivers). Added the d2-question-guide.md entry. Index text only. 2026-09-30: diagrams entry mentions the PlantUML twins.
 Author review: <to be completed by Reallyeasy1>
 -->
+
+
 
 # Project docs
 

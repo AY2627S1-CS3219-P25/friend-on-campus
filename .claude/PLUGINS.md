@@ -4,13 +4,13 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this list from the plugins installed on the author's machine (names, marketplaces and versions read
 from the local plugin registry) and the project's stack and AI-usage policy. Only plugins verified to exist are named.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the password-hashing terminology in the internal plugin guide.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
 
 # Claude Code plugins for this project
 

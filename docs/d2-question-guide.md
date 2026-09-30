@@ -3,9 +3,7 @@ AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: role promotion, account deletion, the renamed status route and the supplier duplicate rule, as implemented on the `admin_dashboard` branch. Facts only; every "Team's answer" slot is unchanged.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Laid out the questions from the CS3219 D2 instructions PDF (Part 1 points 1-6, Part 2 points 1-5) and, under each,
 collected the as-built facts and demo pointers already recorded in docs/services, docs/diagrams, docs/api and
@@ -13,6 +11,8 @@ docs/evidence/d2 (main @ f0ee632). Author statements are quoted word for word fr
 Every "Team's answer" slot is empty: the AI wrote no justification, trade-off, risk or rationale.
 Author review: <to be completed by Reallyeasy1>
 -->
+
+
 
 # D2 progress check — question guide
 
