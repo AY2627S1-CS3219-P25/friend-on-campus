@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive shell, adaptive navigation, card grids, control sizing, and scrollable dialogs.
+ * Scope: Responsive shell, adaptive navigation, card grids, control sizing, scrollable dialogs, and a return link to the student login.
  * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Google Antigravity Agent, date: 2026-09-20
@@ -1028,6 +1028,14 @@ export default function App() {
             {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
             <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
           </button>
+          <div className="border-t border-slate-200 pt-4">
+            <a
+              href="/"
+              className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-900 px-4 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+            >
+              Student Log In
+            </a>
+          </div>
         </form>
       </div>
     );

@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-6), date: 2026-09-30
-Scope: Implemented responsive UI layouts and recorded admin login navigation and gateway routing verification.
+Scope: Implemented responsive UI layouts and recorded navigation between student and admin login pages and gateway routing verification.
 Author review: <to be completed by huangjiaxi1111>
 
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
@@ -1486,3 +1486,19 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `scripts/uat/uat-d2-ui.mjs` — default admin checks to the gateway and add link/reload coverage.
 - `README.md`, `docs/architecture/overview.md` — current admin entry URL and routing behavior.
 - `ai/usage-log.md` — this record and updated disclosure scope.
+
+## 2026-09-30 17:37 SGT — Add student login return button
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-desktop-view
+
+**Prompt (summarised):** Add a button on the admin login page to return to the student login.
+
+**Usage scenario:** Implemented the author-requested navigation as a styled link to `/` below the admin login button, using the existing gateway route. No commits or pushes.
+
+**Validation:** Workspace typecheck and admin production build passed. D2 API checks passed 56/56; service containers restored afterward. Browser checks passed at 1440px and 390px for student → admin → student navigation through localhost:80. Rebuilt the local admin container and reloaded nginx.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` — Student Log In return link and consolidated disclosure update.
+- `ai/usage-log.md` — this record and consolidated disclosure update.
