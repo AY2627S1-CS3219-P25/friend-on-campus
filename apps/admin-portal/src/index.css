@@ -1,6 +1,6 @@
 /* AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Readable controls, keyboard focus, and viewport-constrained dialogs.
+ * Scope: Readable controls, square pagination and icon buttons, keyboard focus, and viewport-constrained dialogs.
  * Author review: <to be completed by huangjiaxi1111>
  */
 @tailwind base;
@@ -22,6 +22,10 @@ body {
 }
 
 @layer components {
+  /* AI-generated (edited by huangjiaxi1111) */
+  .admin-square-button {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center;
+  }
   .admin-shell main { overflow-wrap: anywhere; }
   .admin-shell table { overflow-wrap: normal; }
   .admin-shell th { white-space: nowrap; }

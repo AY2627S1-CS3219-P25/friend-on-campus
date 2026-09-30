@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive shell, adaptive navigation, card grids, control sizing, scrollable dialogs, and a return link to the student login.
+ * Scope: Responsive shell, adaptive navigation, card grids, control sizing, scrollable dialogs, a student login return link hidden on the direct admin port, and square pagination and icon buttons.
  * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Google Antigravity Agent, date: 2026-09-20
@@ -1028,14 +1028,16 @@ export default function App() {
             {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
             <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
           </button>
-          <div className="border-t border-slate-200 pt-4">
-            <a
-              href="/"
-              className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-900 px-4 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
-            >
-              Student Log In
-            </a>
-          </div>
+          {window.location.port !== '5174' && (
+            <div className="border-t border-slate-200 pt-4">
+              <a
+                href="/"
+                className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-900 px-4 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+              >
+                Student Log In
+              </a>
+            </div>
+          )}
         </form>
       </div>
     );
@@ -1138,7 +1140,7 @@ export default function App() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle navigation"
               aria-expanded={mobileMenuOpen}
-              className="lg:hidden text-slate-600 hover:text-slate-900 p-2"
+              className="admin-square-button lg:hidden text-slate-600 hover:text-slate-900 p-2"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -1178,7 +1180,7 @@ export default function App() {
 
             <button
               onClick={() => (activeNav === 'users' ? fetchUsers() : fetchSuppliers())}
-              className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+              className="admin-square-button p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
               title={activeNav === 'users' ? 'Refresh users list' : 'Refresh suppliers list'}
             >
               <RefreshCw
@@ -1279,7 +1281,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setActionAlert(null)}
-              className="text-slate-400 hover:text-slate-600 ml-4"
+              className="admin-square-button text-slate-400 hover:text-slate-600 ml-4"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1331,12 +1333,12 @@ export default function App() {
                       setSearchQuery(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-9 pr-12 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 text-slate-400 hover:text-slate-600"
+                      className="admin-square-button absolute right-0 text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1425,14 +1427,14 @@ export default function App() {
                       <div className="flex items-center space-x-1">
                         <button
                           onClick={() => setViewingSupplier(s)}
-                          className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
+                          className="admin-square-button p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => openEditModal(s)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          className="admin-square-button p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
                           title="Edit Location"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -1442,7 +1444,7 @@ export default function App() {
                             setDeletingSupplier(s);
                             setIsPermanentDelete(false);
                           }}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                          className="admin-square-button p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
                           title="Delete Location"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1559,7 +1561,7 @@ export default function App() {
                             </span>
                           )}
                         </td>
-                        <td className="p-3.5 text-right space-x-1">
+                        <td className="p-3.5 text-right whitespace-nowrap space-x-1">
                           <button
                             onClick={() => toggleStatus(s.id)}
                             className={`text-sm font-semibold px-2 py-1 rounded transition ${
@@ -1571,14 +1573,14 @@ export default function App() {
                           </button>
                           <button
                             onClick={() => setViewingSupplier(s)}
-                            className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
+                            className="admin-square-button p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
                             title="View full details"
                           >
                             <Eye className="w-3.5 h-3.5 inline" />
                           </button>
                           <button
                             onClick={() => openEditModal(s)}
-                            className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                            className="admin-square-button p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
                             title="Edit details"
                           >
                             <Edit2 className="w-3.5 h-3.5 inline" />
@@ -1588,7 +1590,7 @@ export default function App() {
                               setDeletingSupplier(s);
                               setIsPermanentDelete(false);
                             }}
-                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            className="admin-square-button p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
                             title="Delete supplier"
                           >
                             <Trash2 className="w-3.5 h-3.5 inline" />
@@ -1614,11 +1616,11 @@ export default function App() {
                   {Math.min(filteredAndSorted.length, currentPage * pageSize)} of {filteredAndSorted.length} campus locations
                 </span>
 
-                <div className="flex items-center space-x-1">
+                <div className="flex max-w-full flex-wrap items-center justify-center gap-1">
                   <button
                     disabled={currentPage <= 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -1627,7 +1629,7 @@ export default function App() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-7 h-7 rounded-lg text-sm font-bold transition ${
+                      className={`admin-square-button rounded-lg text-sm font-bold transition ${
                         currentPage === page
                           ? 'bg-slate-900 text-white'
                           : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1640,7 +1642,7 @@ export default function App() {
                   <button
                     disabled={currentPage >= totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -1686,12 +1688,12 @@ export default function App() {
                       setSearchQueryUsers(e.target.value);
                       setCurrentPageUsers(1);
                     }}
-                    className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-9 pr-12 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {searchQueryUsers && (
                     <button
                       onClick={() => setSearchQueryUsers('')}
-                      className="absolute right-3 text-slate-400 hover:text-slate-600"
+                      className="admin-square-button absolute right-0 text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1778,7 +1780,7 @@ export default function App() {
                             setDeleteUserConfirmed(false);
                             setDeleteUserError(null);
                           }}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                          className="admin-square-button p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
                           title="Delete user"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1865,7 +1867,7 @@ export default function App() {
                             </span>
                           )}
                         </td>
-                        <td className="p-3.5 text-right space-x-1">
+                        <td className="p-3.5 text-right whitespace-nowrap space-x-1">
                           <button
                             disabled={togglingUserIds.has(u.userId)}
                             onClick={() => toggleUserStatus(u.userId)}
@@ -1893,7 +1895,7 @@ export default function App() {
                               setDeleteUserConfirmed(false);
                               setDeleteUserError(null);
                             }}
-                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
+                            className="admin-square-button p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
                             title="Delete user"
                           >
                             <Trash2 className="w-3.5 h-3.5 inline" />
@@ -1920,11 +1922,11 @@ export default function App() {
                   {filteredAndSortedUsers.length} users
                 </span>
 
-                <div className="flex items-center space-x-1">
+                <div className="flex max-w-full flex-wrap items-center justify-center gap-1">
                   <button
                     disabled={currentPageUsers <= 1}
                     onClick={() => setCurrentPageUsers((p) => Math.max(1, p - 1))}
-                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -1933,7 +1935,7 @@ export default function App() {
                     <button
                       key={page}
                       onClick={() => setCurrentPageUsers(page)}
-                      className={`w-7 h-7 rounded-lg text-sm font-bold transition ${
+                      className={`admin-square-button rounded-lg text-sm font-bold transition ${
                         currentPageUsers === page
                           ? 'bg-slate-900 text-white'
                           : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -1946,7 +1948,7 @@ export default function App() {
                   <button
                     disabled={currentPageUsers >= totalPagesUsers}
                     onClick={() => setCurrentPageUsers((p) => Math.min(totalPagesUsers, p + 1))}
-                    className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -2017,7 +2019,7 @@ export default function App() {
                   setDraftSelectedZones(selectedZones);
                   setIsFilterModalOpen(false);
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="admin-square-button text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2105,7 +2107,7 @@ export default function App() {
                   setDraftSelectedUserRoles(selectedUserRoles);
                   setIsUserFilterModalOpen(false);
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="admin-square-button text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2174,7 +2176,7 @@ export default function App() {
                   setAddDuplicateConflict(null);
                   setIsAddOpen(false);
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="admin-square-button text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2396,7 +2398,7 @@ export default function App() {
                   setEditDuplicateConflict(null);
                   setEditingSupplier(null);
                 }}
-                className="text-slate-400 hover:text-slate-600"
+                className="admin-square-button text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2849,7 +2851,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setViewingSupplier(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="admin-square-button text-slate-400 hover:text-slate-600"
               >
                 <X className="w-5 h-5" />
               </button>

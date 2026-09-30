@@ -1,6 +1,6 @@
 /**
  * AI Assistance Disclosure:
- * 
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
  * Author review: (to be completed by author after review)
@@ -26,6 +26,10 @@
  * UpdateSupplierRequest and SupplierDTO are unchanged (partial-update and read shapes stay flexible).
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by yanhwee)
+// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by ngkhengyang)
 
 /**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs

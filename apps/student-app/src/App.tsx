@@ -809,6 +809,7 @@ export default function App() {
   }
 
   return (
+    // AI-generated (edited by jagdeepsh) - original responsive shell
     // AI-generated (edited by huangjiaxi1111) - fluid shell with viewport-based navigation
     <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
       {/* Top Header */}

@@ -1,6 +1,6 @@
 /**
  * AI Assistance Disclosure:
- * 
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement.
  * Author review: (to be completed by author after review)
@@ -37,8 +37,9 @@
  * carries the random test code, so a row left by an aborted run cannot trip the uniqueness rule.
  * Author review: (to be completed by author after review)
  */
-
-
+// AI-generated (edited by yanhwee)
+// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by yanhwee)
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
