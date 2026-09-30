@@ -1557,3 +1557,20 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/diagrams/component.md`, `auth-sequence.md`, `user-schema.md`, `supplier-schema.md` — legends, links to the twins, re-pinned to fcd5371; Rendering section.
 - `docs/README.md` — diagrams entry.
 - `docs/architecture/overview.md` — "Built today" column for PR #93; `docs/api/*.yaml` — version string `d2-6dc22a6`. (Added after PR #98 was merged at the author's request.)
+
+## 2026-09-30 19:12 SGT — Unit tests for user-service and supplier-service
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/unit-tests-user-supplier (from main)
+
+**Prompt (summarised):** Add extensive unit tests for both the User Service and the Supplier Service.
+
+**Usage scenario:** Writing implementation code (unit tests) for behaviour the authors already built; no production code changed. Runner: Node's built-in `node --test` through `tsx`, so no new dependency. user-service: 92 tests (validation, password hashing, token signing, auth and user modules on in-memory repositories, the assembled app over HTTP). supplier-service: 47 tests (repository with the Prisma client mocked; routes over HTTP with the repository mocked and the real token middleware). All 139 pass; `npm run typecheck` unchanged; the test files also typecheck with a temporary config. Two expectations were corrected during the run to match existing behaviour (a refresh token is generated before the rotation is attempted; a non-Bearer scheme is MISSING_TOKEN). Docs updated for the new `npm test`.
+
+**Files changed:**
+- `services/user-service/test/{helpers,validation.test,password.test,tokens.test,auth-module.test,user-module.test,app.test}.ts` — new.
+- `services/supplier-service/test/{supplierRepository.test,supplierRoutes.test}.ts` — new.
+- `package.json`, `services/user-service/package.json`, `services/supplier-service/package.json` — `test` scripts (JSON, no header possible).
+- `CLAUDE.md` §5, `docs/services/user-service.md`, `docs/services/supplier-service.md` — how to run the unit tests.
+- Review pass: root `package.json` `engines` node >=22.3 and `.claude/README.md` prerequisite (the runner needs Node 22.3); `services/*/tsconfig.test.json`, used by each service's `typecheck` script so `npm run typecheck` covers the tests (second review pass: it was a separate unwired `typecheck:test` at first); the supplier route fake fails one named repository function at a time so the P2002-on-update test proves the update path; AI markers in the test files name the PR author instead of another teammate.
