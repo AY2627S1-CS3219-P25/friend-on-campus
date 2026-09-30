@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Added the link to the PlantUML twin and a legend; re-pinned to main @ fcd5371.
+Author review: <to be completed by the service owner>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: `building` and `floor` are required and the location uniqueness index was added. Transcribed from `schema.prisma` and the migration SQL.
 Author review: <to be completed by the service owner>
@@ -9,9 +13,10 @@ Scope: Transcribed services/supplier-service/src/database/prisma/schema.prisma i
 Author review: <to be completed by the service owner>
 -->
 
+# Supplier Service schema — `supplier_db` (`main` @ fcd5371)
 
-
-# Supplier Service schema — `supplier_db` (`main` @ f0ee632)
+PlantUML version: [`supplier-schema.puml`](./supplier-schema.puml) (see [Rendering](./component.md#rendering)).
+Legend: `PK` / `UK` = primary, unique key; "nullable" in the comment = optional column, everything else NOT NULL.
 
 Source: `services/supplier-service/src/database/prisma/schema.prisma`, migrations `20260919090038_init` and
 `20260929134701_add_location_uniqueness`.

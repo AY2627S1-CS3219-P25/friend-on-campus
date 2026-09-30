@@ -1,14 +1,23 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Added the 400 and 409 branches of the supplier write (PR #93), the role re-read on refresh, a legend and links to the PlantUML twins; re-pinned to main @ fcd5371. As built, no rationale.
+Author review: <to be completed by Reallyeasy1>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Drew the login and supplier-write sequences from auth-routes.ts, packages/auth, supplierRoutes.ts and the D2 UAT results
 (check IDs in brackets). Shows what the code does; no rationale.
 Author review: <to be completed by Reallyeasy1>
 -->
 
-# Login, then an allowed / denied supplier action (`main` @ f0ee632)
+# Login, then an allowed / denied supplier action (`main` @ fcd5371)
 
-Check IDs refer to [`../evidence/d2/d2-checklist.md`](../evidence/d2/d2-checklist.md).
+PlantUML versions: [`auth-login.puml`](./auth-login.puml) and [`auth-supplier-write.puml`](./auth-supplier-write.puml)
+(see [Rendering](./component.md#rendering)). Check IDs are defined in [`scripts/uat/uat-d2-api.mjs`](../../scripts/uat/uat-d2-api.mjs); the recorded results are kept locally in `docs/evidence/d2/` (git-ignored).
+
+Legend: solid arrow = request or call (control flow); dashed arrow = response or data returned; `alt` / `else` = the branch the service takes.
 
 ## 1. Login and token refresh
 
@@ -41,11 +50,12 @@ sequenceDiagram
     US-->>U: 401 INVALID_SESSION [L7, L10]
   else valid
     US->>DB: store the new refresh_token_hash, extend idle_expires_at
+    US->>US: sign a new access token with the user's current role
     US-->>U: 200 {accessToken} + rotated cookie [L6]
   end
 ```
 
-## 2. Supplier write: 401, 403 or 201
+## 2. Supplier write: 401, 403, 400, 409 or 201
 
 ```mermaid
 sequenceDiagram
@@ -71,9 +81,20 @@ sequenceDiagram
       MW-->>U: 403 ADMIN_REQUIRED [W2]
     else role is ADMIN
       MW->>SS: next()
-      SS->>DB: insert supplier (generated SUP-NNN code)
-      DB-->>SS: row
-      SS-->>U: 201 {success, data: supplier} [W4]
+      SS->>SS: required fields present and not blank?<br/>(name, campusZone, exactLocation, category, building, floor)
+      alt a required field is missing
+        SS-->>U: 400 [W3]
+      else
+        SS->>DB: find supplier with the same name, category,<br/>building, floor (trimmed, case-insensitive)
+        DB-->>SS: existing row or none
+        alt duplicate found
+          SS-->>U: 409 {error, duplicate}
+        else none
+          SS->>DB: insert supplier (generated SUP-NNN code)
+          DB-->>SS: row
+          SS-->>U: 201 {success, data: supplier} [W4]
+        end
+      end
     end
   end
 ```

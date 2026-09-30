@@ -1502,3 +1502,58 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 **Files changed:**
 - `apps/admin-portal/src/App.tsx` — Student Log In return link and consolidated disclosure update.
 - `ai/usage-log.md` — this record and consolidated disclosure update.
+## 2026-09-30 15:36 SGT — Merge-readiness check of the gateway-auth PR
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** Based on the team chat, check whether Yan Hwee's PR should be merged.
+
+**Usage scenario:** Learning support / review assistance. Read the state of PRs #95 (closed, superseded) and #97 (open): mergeability, review threads, verification claims, and which documents describe the current auth model. Reported facts and a merge-timing recommendation; the architecture choice itself is the team's.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 15:39 SGT — Task list for the author
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/d2-question-guide
+
+**Prompt (summarised):** List the tasks I still need to do.
+
+**Usage scenario:** Formatting. Compiled the open items from this session's work into a list; no prioritisation of project requirements, no new content.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 15:52 SGT — Admin and migration behaviour checked; housekeeping PR
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** ci/claude-review-max-turns (from main @ fcd5371)
+
+**Prompt (summarised):** Report the current behaviour of admin self-deletion / last admin and of the supplier migration on old rows (no changes); then do the repo housekeeping.
+
+**Usage scenario:** Learning support (facts read from the code on main) and configuration. Opened a branch and pull request for the review workflow turn-limit change at the author's request; deleted a leftover results file; carried the usage-log entries over. No decision was made on the two open design questions.
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — `--max-turns` 40 to 1500, comment, disclosure header (change made 2026-09-28, committed now).
+- `ai/usage-log.md` — entries.
+
+## 2026-09-30 16:04 SGT — PlantUML twins of the four diagrams, legends added
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree, uncommitted)
+
+**Prompt (summarised):** Make sure every diagram exists in both PlantUML and Mermaid form.
+
+**Usage scenario:** Documentation. Transcribed the four as-built diagrams into PlantUML (five files: the auth sequence is two), added legends and control-vs-data arrow styling to both forms, and added the 400/409 supplier-write branches from PR #93. All five .puml files pass `plantuml -checkonly` and render; all five Mermaid blocks parse with the mermaid library. No design content.
+
+**Files changed:**
+- `docs/diagrams/component.puml`, `user-schema.puml`, `supplier-schema.puml`, `auth-login.puml`, `auth-supplier-write.puml` — new.
+- `docs/diagrams/component.md`, `auth-sequence.md`, `user-schema.md`, `supplier-schema.md` — legends, links to the twins, re-pinned to fcd5371; Rendering section.
+- `docs/README.md` — diagrams entry.
+- `docs/architecture/overview.md` — "Built today" column for PR #93; `docs/api/*.yaml` — version string `d2-6dc22a6`. (Added after PR #98 was merged at the author's request.)
