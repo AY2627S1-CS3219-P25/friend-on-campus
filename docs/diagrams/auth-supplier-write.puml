@@ -59,6 +59,6 @@ legend bottom
   | solid arrow | request or call (control flow) |
   | dashed arrow | response or data returned |
   | alt / else | the branch the service takes |
-  | [W1] | check ID in docs/evidence/d2/d2-checklist.md |
+  | [W1] | check ID defined in scripts/uat/uat-d2-api.mjs (results kept locally in docs/evidence/d2/) |
 endlegend
 @enduml

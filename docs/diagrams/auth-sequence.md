@@ -15,7 +15,7 @@ Author review: <to be completed by Reallyeasy1>
 # Login, then an allowed / denied supplier action (`main` @ fcd5371)
 
 PlantUML versions: [`auth-login.puml`](./auth-login.puml) and [`auth-supplier-write.puml`](./auth-supplier-write.puml)
-(see [Rendering](./component.md#rendering)). Check IDs refer to [`../evidence/d2/d2-checklist.md`](../evidence/d2/d2-checklist.md).
+(see [Rendering](./component.md#rendering)). Check IDs are defined in [`scripts/uat/uat-d2-api.mjs`](../../scripts/uat/uat-d2-api.mjs); the recorded results are kept locally in `docs/evidence/d2/` (git-ignored).
 
 Legend: solid arrow = request or call (control flow); dashed arrow = response or data returned; `alt` / `else` = the branch the service takes.
 
