@@ -10,7 +10,7 @@
 openapi: 3.0.3
 info:
   title: Supplier Service API (as built)
-  version: "d2-f0ee632"
+  version: "d2-6dc22a6"
   description: >
     Verified supplier / pickup-location directory. Reads need no token; writes need an ADMIN access token issued
     by the User Service, verified locally with the Ed25519 public key. Behaviour notes: docs/services/supplier-service.md.

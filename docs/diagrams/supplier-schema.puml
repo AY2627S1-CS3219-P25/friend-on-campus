@@ -1,0 +1,44 @@
+' AI Assistance Disclosure:
+' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+' Scope: PlantUML version of supplier-schema.md, transcribed from services/supplier-service/src/database/prisma/schema.prisma
+' and its two migrations on main @ fcd5371. No design change.
+' Author review: <to be completed by the service owner>
+' Render: java -jar plantuml.jar -tsvg supplier-schema.puml
+@startuml supplier-schema
+title supplier_db — Supplier Service schema, as built (main @ fcd5371)
+skinparam shadowing false
+hide circle
+
+entity "suppliers" as suppliers {
+  * id : text <<PK>> default uuid()  -- uuid stored as text
+  --
+  * supplier_code : text <<unique>>  -- SUP-NNN, generated when not supplied
+  * name : text
+  * campus_zone : text  -- filter: case-insensitive equality
+  * exact_location : text
+  * category : text  -- filter: case-insensitive equality; not validated against SupplierCategory
+    description : text
+  * building : text  -- required; part of the uniqueness rule
+  * floor : text  -- required; part of the uniqueness rule
+    latitude : float
+    longitude : float
+    starting_time : text
+    closing_time : text
+    image_url : text
+  * is_active : boolean  -- default true; soft delete sets false
+  * created_at : timestamp
+  * updated_at : timestamp
+}
+
+legend bottom
+  |= Symbol |= Meaning |
+  | * | NOT NULL column |
+  | no marker | nullable column |
+  One table, no relations. Seeded with 21 rows from data/csv/supplier-seed-data.csv on container start.
+  Indexes: primary key; unique on supplier_code; unique expression index
+  suppliers_location_case_insensitive_uq on LOWER(name), LOWER(category), LOWER(building), LOWER(floor).
+  Queries (supplierRepository.ts): search = case-insensitive "contains" over name, exact_location, building,
+  description, supplier_code; campusZone, category and isActive are AND filters;
+  sortBy is one of name, campusZone, category, createdAt, supplierCode.
+endlegend
+@enduml

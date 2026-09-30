@@ -1,11 +1,20 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Added the link to the PlantUML twin and a legend; re-pinned to main @ fcd5371 (schema unchanged). No design change.
+Author review: <to be completed by the service owner>
+-->
+<!--
+AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Transcribed services/user-service/src/database/prisma/schema.prisma and its migrations into an ER diagram. No design change.
 Author review: <to be completed by the service owner>
 -->
 
-# User Service schema — `user_db` (`main` @ f0ee632)
+# User Service schema — `user_db` (`main` @ fcd5371)
+
+PlantUML version: [`user-schema.puml`](./user-schema.puml) (see [Rendering](./component.md#rendering)).
+Legend: crow's foot = one-to-many; `PK` / `FK` / `UK` = primary, foreign, unique key.
 
 Source: `services/user-service/src/database/prisma/schema.prisma`, migrations
 `20260922170000_initial_user_service` and `20260923150000_add_user_status`.

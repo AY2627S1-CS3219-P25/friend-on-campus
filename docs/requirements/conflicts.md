@@ -17,10 +17,16 @@ Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Recorded resolution for conflict 15: decoupled database table creation from 01-init-databases.sql into service-owned Prisma migrations.
 Author review: (to be completed by author after review)
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+Scope: Added rows 18-21 from the D2 UAT on `main` @ f0ee632. Observations only; Resolution left empty.
+Author review: <to be completed by Reallyeasy1>
+-->
 
 # Open conflicts between documents, issues and code
 
-Facts as of 2026-09-23 (current workspace). Nothing here is a recommendation. When the team settles a row, write the outcome in a decision record under [`../decisions/`](../decisions/README.md) and link it in the last column.
+Facts as of 2026-09-28 (`main` @ f0ee632). Nothing here is a recommendation. When the team settles a row, write the outcome in a decision record under [`../decisions/`](../decisions/README.md) and link it in the last column.
 
 ## Already listed in issue #1
 
@@ -47,3 +53,14 @@ Facts as of 2026-09-23 (current workspace). Nothing here is a recommendation. Wh
 | 15 | Table definitions exist twice (raw SQL in `docker/postgres-init` and Prisma schemas) and differ in places, e.g. supplier `id` is `UUID` in SQL and plain `String` in Prisma | `01-init-databases.sql` vs `schema.prisma` files | Resolved: `01-init-databases.sql` provisions logical databases only; table schemas, migrations, and seeds are owned independently by each microservice via Prisma |
 | 16 | README marks D2 "Completed"; the D2 milestone has 5 open issues and 0 closed | README vs GitHub milestone | |
 | 17 | Earlier D2 behavior rejected non-NUS email domains, while issue #2 F1.1.5 requires only valid email format; the approved implementation accepts syntactically valid domains such as `example.test` | Prior D2 test vs issue #2 F1.1.5, `utils/validation.ts`, `scripts/test-d2-e2e.ts` | Generic valid-email acceptance retained; NUS-only restriction superseded |
+
+## Found in the D2 UAT (2026-09-26, re-run 2026-09-28)
+
+Check IDs refer to [`../evidence/d2/d2-checklist.md`](../evidence/d2/d2-checklist.md).
+
+| # | Conflict | Sources | Resolution |
+|---|---|---|---|
+| 18 | Role lifecycle: D1 F1 lists admin promotion with a last-admin guard, and the D2 instructions point 6 ask for a promotion workflow and the self-revoke / only-admin edge cases; the code returns 501 for promotion, lets an admin disable their own or the only admin account, and does not read `status` at login, refresh or token verification (A3, A6, A8, A11) | D1 F1, D2 instructions Part 1 §6 vs `user-routes.ts`, `auth-module.ts`, `packages/auth` | |
+| 19 | Admin portal path: the gateway and the architecture overview route `/admin/` to the admin portal; the page served there loads the student app because the admin portal's Vite assets are root-absolute | `gateway/nginx.conf` `location /admin/` vs `apps/admin-portal/vite.config.ts` (no `base`) | |
+| 20 | `npm run test:d2` asserts `501` for `GET /api/users` and `GET /api/users/:id`; the first now returns 200 and the second has no route (404), so 4 of 44 assertions fail | `scripts/test-d2-e2e.ts` vs `user-routes.ts` | |
+| 21 | `services/user-service/docs/api-reference.md` documents `GET /api/users` and `GET /api/users/:id` as `501` placeholders and omits `PATCH /api/users/:id/admin` | `api-reference.md` vs `user-routes.ts` | Resolved 2026-09-28: `api-reference.md` updated to the routes in `user-routes.ts` |
