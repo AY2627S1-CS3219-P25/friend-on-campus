@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-6), date: 2026-10-01
+# Scope: Restore the student's admin portal target alongside gateway API routing.
+# Author review: Approved by ngkhengyang
+#
 # Tool: Codex (model: GPT-6), date: 2026-09-30
 # Scope: Configure the student development server's admin portal proxy inside Docker.
 # Author review: <to be completed by huangjiaxi1111>
@@ -72,6 +76,7 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_BASE_URL=/api
+      - ADMIN_PORTAL_URL=http://admin-portal:5174
       - GATEWAY_URL=http://api-gateway:80
     healthcheck:
       test:

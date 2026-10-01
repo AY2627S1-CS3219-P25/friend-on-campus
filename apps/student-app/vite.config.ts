@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-01
+ * Scope: Restore the admin proxy target and keep host-based API and WebSocket service fallbacks.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
  * Scope: Proxy targets now read from env vars (falling back to localhost for host-based dev), mirroring
  * the admin-portal fix — student-app runs in its own container where "localhost" refers to itself, not
@@ -14,11 +18,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Proxy target defaults to localhost for normal host-based dev (`npm run dev:student`, gateway also
-// running on the host). Inside Docker, student-app runs in its own container where "localhost" refers
-// to itself, not the gateway — so docker-compose.yml overrides this to the gateway's real service name
-// (http://api-gateway:80) via GATEWAY_URL.
-const gatewayTarget = process.env.GATEWAY_URL ?? 'http://localhost';
+// AI-generated (edited by huangjiaxi1111)
+// Docker routes through the gateway; host-based development uses local services.
+const gatewayTarget = process.env.GATEWAY_URL;
+const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';
+const userTarget = gatewayTarget ?? process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
+const notificationTarget = gatewayTarget ?? process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
+const adminTarget = process.env.ADMIN_PORTAL_URL ?? 'http://localhost:5174';
 
 export default defineConfig({
   plugins: [react()],
@@ -32,23 +38,23 @@ export default defineConfig({
         ws: true,
       },
       '/api/suppliers': {
-        target: gatewayTarget,
+        target: supplierTarget,
         changeOrigin: true,
       },
       '/api/auth': {
-        target: gatewayTarget,
+        target: userTarget,
         changeOrigin: true,
       },
       '/api/users': {
-        target: gatewayTarget,
+        target: userTarget,
         changeOrigin: true,
       },
       '/api': {
-        target: gatewayTarget,
+        target: gatewayTarget ?? supplierTarget,
         changeOrigin: true,
       },
       '/ws': {
-        target: gatewayTarget,
+        target: notificationTarget,
         ws: true,
       },
     },

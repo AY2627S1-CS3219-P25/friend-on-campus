@@ -1,18 +1,20 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-01
+Scope: Updated proxy paths for Compose and host development after PR #105 review fixes.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: Added the legend, the data-flow colouring and the link to the PlantUML twin; re-pinned to main @ fcd5371 (the gateway and service facts are unchanged by PRs #92-#94 and #93). As built, no rationale.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 Scope: Drew this component diagram from docker-compose.yml, gateway/nginx.conf and the service entry points on `main` @ f0ee632.
 It shows what is built, not a proposal. No rationale.
 Author review: <to be completed by Reallyeasy1>
 -->
 
-# Component diagram — as built (`main` @ fcd5371)
+# Component diagram — as built
 
 PlantUML version: [`component.puml`](./component.puml) (see [Rendering](#rendering)).
 Intended shape and sources: [`../architecture/overview.md`](../architecture/overview.md).
@@ -54,12 +56,11 @@ flowchart LR
   MQ{{"RabbitMQ 3.13<br/>running, no publisher or consumer yet"}}
 
   SA -->|"/ , /api/*, /ws/"| GW
-  AP -->|"/api/* via Vite proxy on :5174"| US
-  AP -->|"/api/suppliers via Vite proxy"| SS
-  GW -->|"/api/auth/, /api/users/"| US
+  AP -->|"/api/* via Vite proxy in Compose"| GW
+  GW -->|"/api/auth/, /api/users[/]"| US
   GW -->|"/api/suppliers"| SS
   GW -->|"/api/orders"| OS
-  GW -->|"/api/credits/"| CS
+  GW -->|"/api/credits[/]"| CS
   GW -->|"/ws/"| NS
 
   US -->|"read/write users, sessions"| UDB
@@ -79,15 +80,15 @@ flowchart LR
   classDef mock stroke-dasharray: 5 5;
   classDef legendDot width:0px,height:0px,stroke:none,fill:none;
   class L1,L2,L3,L4,L5,L6 legendDot;
-  linkStyle 8,9,15 stroke:#1F5FBF,stroke-width:2px;
+  linkStyle 7,8,14 stroke:#1F5FBF,stroke-width:2px;
 ```
 
 Notes (facts):
 
 - supplier-service never calls user-service; it verifies the access token locally with `JWT_PUBLIC_KEY`, issuer and audience.
 - The gateway only routes. It does not inspect tokens or sessions.
-- Both apps' Vite dev servers read their proxy targets from env vars (`SUPPLIER_SERVICE_URL`, `USER_SERVICE_URL`; student-app also `GATEWAY_URL`, `NOTIFICATION_SERVICE_URL`), set in `docker-compose.yml`.
-- `http://localhost/admin/` does not render the admin portal (see `../requirements/conflicts.md` row 19); the portal is reached on `:5174`, whose Vite dev server proxies `/api/*` to the services.
+- Compose sets `GATEWAY_URL` for both Vite apps to route API traffic through nginx; student-app routes `/ws` through nginx too. Host-based development without it uses service URLs or localhost port defaults.
+- `http://localhost/admin/` renders the admin portal through nginx. Direct `:5174/admin/` access also works; student-app forwards `/admin` to `ADMIN_PORTAL_URL` (set by Compose, with a localhost default).
 
 ## Rendering
 

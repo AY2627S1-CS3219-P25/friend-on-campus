@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-6), date: 2026-10-01
+Scope: Updated gateway and Vite proxy facts after PR #105 review fixes.
+Author review: <to be completed by author after review>
+
 Tool: Codex (model: GPT-6), date: 2026-09-30
 Scope: Documented the working admin gateway route and student login navigation.
 Author review: <to be completed by huangjiaxi1111>
@@ -80,7 +84,7 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 | **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
 | **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; register / login / silent refresh / logout and profile edit against user-service; fetches the live supplier directory (with a hardcoded fallback list used only when the call fails) and opens `/ws/`; makes no calls to the order or credit APIs yet (wallet and escrow figures are mock data). Vite proxy targets come from env vars, so the container on `:5173` works. |
 | **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login gate that refuses non-`ADMIN` accounts, full supplier CRUD with search / filter / sort / pagination (page size 8) / details, and a Users page (list, search, disable / reinstate, upgrade / downgrade role, delete) against the real APIs; the Add / Edit supplier forms require building and floor and show the 409 duplicate; table at desktop width, cards and a drawer at 390 px. |
-| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. `/api/*` and `/` work as described. As of 2026-09-30, `/admin/` serves the admin portal and its assets: Vite uses `/admin/` as its base and nginx preserves that prefix. The student login page links to `/admin/`. Direct access on `:5174` redirects to the same base path. `/api/users` without a trailing slash is a 301. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
+| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. Known `/api/*` paths reach their services; unknown API paths return 404. `/admin/` serves the admin portal and its assets: Vite uses `/admin/` as its base and nginx preserves that prefix. The student login page links to `/admin/`. Direct access on `:5174` redirects to the same base path. Bare `/api/users` and `/api/credits` paths also reach their services. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
 
 ## 4. Directory layout
 
@@ -88,7 +92,7 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 nus-campus-errand/
 ├── apps/
 │   ├── student-app/            Vite + React + Tailwind; src/App.tsx, vite.config.ts (dev proxy), Dockerfile
-│   └── admin-portal/           same shape; proxy targets from SUPPLIER_SERVICE_URL / USER_SERVICE_URL
+│   └── admin-portal/           same shape; API proxy via GATEWAY_URL in Compose, direct service defaults on host
 ├── services/
 │   ├── user-service/           src/{index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
 │   ├── supplier-service/       src/backend/{server,supplierRoutes}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}

@@ -1,11 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-01
+Scope: Updated Vite proxy guidance for gateway routing in Compose and direct service routing on the host.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: Section 5: added `npm test` and the unit-test note (Node's built-in runner, no framework), and put `npm test` in the before-you-say-it-works rule.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: the Vite dev proxy note in section 4 now says student-app reads its proxy targets from env vars.
 Author review: <to be completed by Reallyeasy1>
@@ -130,7 +132,7 @@ Things that are easy to get wrong:
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
-- Vite dev proxies: admin-portal reads `SUPPLIER_SERVICE_URL` / `USER_SERVICE_URL`; student-app reads `SUPPLIER_SERVICE_URL`, `USER_SERVICE_URL`, `GATEWAY_URL` and `NOTIFICATION_SERVICE_URL`. Both fall back to `localhost`; `docker-compose.yml` sets the variables to the service names.
+- Vite dev proxies: Compose sets `GATEWAY_URL` for both apps, so API and WebSocket requests go through nginx. Without it, host-based development sends user, supplier and notification requests directly to their localhost ports. The student app sends `/admin` to `ADMIN_PORTAL_URL` (default `http://localhost:5174`); Compose sets that variable to the admin portal container.
 - Dockerfiles copy only the root `package.json`, `packages/` and the service's own folder, then `npm install`. A new npm dependency in that service's `package.json` needs no Dockerfile edit; a new shared folder, a native/system package, or a new env var does (Dockerfile and/or `docker-compose.yml`). `.dockerignore` excludes `*.md`.
 
 ## 5. Commands
