@@ -7,7 +7,7 @@
 ' Render: java -jar plantuml.jar -tsvg component.puml   (or paste into https://www.plantuml.com/plantuml)
 @startuml component
 !pragma layout smetana
-title Friend on Campus — component diagram, as built (main @ fcd5371)
+title Friend on Campus — component diagram, as built
 left to right direction
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -53,12 +53,11 @@ queue "RabbitMQ 3.13\nrunning; no publisher or consumer yet" as MQ
 
 ' ---- control flow: HTTP / WebSocket requests (solid, black)
 SA --> GW : "/ , /api/*, /ws/"
-AP --> US : "/api/auth, /api/users\n(Vite proxy on :5174)"
-AP --> SS : "/api/suppliers\n(Vite proxy on :5174)"
-GW --> US : "/api/auth/, /api/users/"
+AP --> GW : "/api/* via Vite proxy"
+GW --> US : "/api/auth/, /api/users[/]"
 GW --> SS : "/api/suppliers"
 GW --> OS : "/api/orders"
-GW --> CS : "/api/credits/"
+GW --> CS : "/api/credits[/]"
 GW --> NS : "/ws/"
 
 ' ---- data flow: reads and writes (solid, blue)
@@ -88,7 +87,7 @@ note right of SS
   issuer and audience. Never calls user-service.
 end note
 note left of GW
-  http://localhost/admin/ does not render the admin portal
-  (conflicts.md row 19); use http://localhost:5174/.
+  http://localhost/admin/ serves the admin portal.
+  Unknown /api/ paths return 404.
 end note
 @enduml
