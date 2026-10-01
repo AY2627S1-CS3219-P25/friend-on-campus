@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+Scope: Document the 403 ACCOUNT_DISABLED login response.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-09-30
 Scope: Document LAST_ADMIN_REQUIRED and self-deletion cookie cleanup.
 Author review: <to be completed by huangjiaxi1111>
@@ -234,6 +238,7 @@ stored and sent.
 |---:|---|---|
 | `400` | `INVALID_INPUT` | The email or password is missing or does not have a valid input format. |
 | `401` | `INVALID_CREDENTIALS` | The email/password combination is incorrect. |
+| `403` | `ACCOUNT_DISABLED` | The credentials are correct but an admin has disabled the account (`status` is false). Checked after the password, so it does not reveal whether an email exists. |
 
 ### `POST /api/auth/refresh`
 

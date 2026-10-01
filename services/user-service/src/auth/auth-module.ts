@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+ * Scope: Login refuses a disabled account with ACCOUNT_DISABLED, checked after password verification (UAT gap A6).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
@@ -77,6 +81,7 @@ export type AuthErrorCode =
   | 'DUPLICATE_EMAIL'
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CREDENTIALS'
+  | 'ACCOUNT_DISABLED'
   | 'INVALID_SESSION';
 
 export class AuthError extends Error {
@@ -204,6 +209,10 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       const passwordMatches = await verifyPassword(password, passwordHash);
       if (!user || !passwordMatches) {
         throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
+      }
+      // Checked after the password so a disabled account is not an email-enumeration oracle.
+      if (!user.status) {
+        throw new AuthError('ACCOUNT_DISABLED', 'This account has been disabled');
       }
 
       const persistent = input.keepLoggedIn === true;

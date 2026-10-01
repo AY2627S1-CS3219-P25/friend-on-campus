@@ -1594,3 +1594,91 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/user-service/test/admin-guard.integration.test.ts`, `test/app.test.ts`, `test/helpers.ts`, `test/user-module.test.ts` — database concurrency, guard mapping and cookie regression checks.
 - `docs/services/user-service.md`, `services/user-service/docs/api-reference.md`, `docs/api/user-service.yaml` — current behavior and regression-test instructions.
 - `ai/usage-log.md` — this record.
+
+## 2026-09-30 21:24 SGT — PR #102 review resolved and merged; D2 component diagram limited to the two services
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** Resolve the review comments on PR #102 before merging; then make the D2 wiki diagrams show only what is implemented for the User and Supplier Services, without the notification service.
+
+**Usage scenario:** Review follow-up and documentation. PR #102: four findings over two passes fixed (Node 22.3 engines and docs, attribution markers, test files typechecked by the normal typecheck, fake failures aimed at one repository call), merged at the author's request. Wiki: new D2-scope component diagram (PlantUML source and PNG in the wiki, Mermaid on the page) with the three mocks and RabbitMQ left out at the author's request; runbook and root page wording adjusted. The repository's whole-system diagram is unchanged.
+
+**Files changed:**
+- none in this repository besides this entry; wiki commit on master.
+
+## 2026-09-30 21:33 SGT — Open issues checked against main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** Check the open GitHub issues and see which can be closed.
+
+**Usage scenario:** Learning support / review assistance. Read the acceptance criteria of the open issues that touch the User Service, the Supplier Service, the apps and the infrastructure, and compared each with the code and evidence on main @ 57cf5c2. Reported per-criterion status; no issue was closed, no priority was set.
+
+**Files changed:**
+- none besides this entry.
+
+## 2026-09-30 22:01 SGT — Local UAT re-run, database inspection, four issues closed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; uncommitted)
+
+**Prompt (summarised):** Run the UAT locally, check the environments and the PostgreSQL data, then close the issues that are done.
+
+**Usage scenario:** Verification and bookkeeping. Fresh \`docker compose down -v && up --build\` with the local port override; all containers healthy; env variable names per container checked (the private key is only in user-service); migrations, tables, indexes, seed rows and uniqueness checked in psql; \`uat-d2-api\` 57/63, \`uat-d2-ui\` 30/30, \`test:d2\` 56/56 (port-remapped copy), \`npm test\` 139/139. Closed #6, #7, #27 and #67 with evidence comments at the author's request; commented on #81 (C2 not met) and #59 (results, CSV encoding defect). Wiki Evidence page and runbook updated. Results JSON copied to the local docs/evidence/d2/ (git-ignored).
+
+**Files changed:**
+- \`docs/evidence/d2/uat-api-results-2026-09-30.json\`, \`uat-ui-results-2026-09-30.json\` — local only.
+- \`ai/usage-log.md\` — this entry.
+
+## 2026-10-01 12:05 SGT — UAT re-run of main @ 754331f (PR #103, PR #104) on the local compose stack
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Pull the latest `main` and do extensive UAT while running the stack locally; free port 80 from another project's containers first.
+
+**Usage scenario:** Verification and bookkeeping. Pulled 57cf5c2 → 754331f (local `ai/usage-log.md` conflict resolved by keeping both entries). The compose stack was rebuilt with the local 5440/5673 port overrides (the other project's containers were stopped by the author). Runs: `uat-d2-api` 57/63 (same six known gaps A0 A6 A8 A10 A11 S8), `uat-d2-ui` 30/30 through the gateway `/admin/` route, `test:d2` 56/56, unit tests 143/143, 34 new API checks for the PR #104 last-admin guard and self-deletion cookie (32/34), 8 new Playwright checks for the admin-portal self-deletion logout and the last-admin dialog error (8/8). Two new findings for the author to decide on: a demoted admin's unexpired access token still passes ADMIN-only routes (`GET /api/users/`, `toggle-status`) because the role is read from the JWT, and a non-UUID id on `DELETE /api/users/:id` returns 500 (same class as A10). The new drivers live outside the repo (session scratchpad) and were not added; the author decides whether to adopt them under `scripts/uat/`. No commits or pushes.
+
+**Files changed:**
+- `docs/evidence/d2/README.md` — 2026-10-01 re-run line and disclosure note.
+- `docs/evidence/d2/uat-api-results-2026-10-01.json`, `uat-ui-results-2026-10-01.json`, `uat-admin-guards-results-2026-10-01.json`, `screenshots/admin-selfdelete-back-to-login-desktop.png`, `screenshots/admin-lastadmin-delete-refused-desktop.png` — local only (folder is git-ignored).
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-01 14:40 SGT — Merge PR #105 and UAT re-run of main @ e999596
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Merge PR #105 (frontends proxy through the API gateway) and then do extensive UAT on the merged main with the stack running locally.
+
+**Usage scenario:** Merge on explicit instruction, then verification and bookkeeping. Checked PR #105 first: mergeable/clean, `Claude PR review` green on 2f5f2a1 with all three earlier threads resolved; merged with `gh pr merge --merge --match-head-commit` → e999596. Pulled, rebuilt the compose stack with the local 5440/5673 port overrides and restarted the gateway (bind-mounted nginx.conf). Runs: `uat-d2-api` 58/63 (A0 fixed by the exact-match `/api/users` location; A6 A8 A10 A11 S8 remain), `uat-d2-ui` 30/30 via the gateway and 30/30 via the direct ports 5173/5174, `test:d2` 56/56, last-admin guard checks 32/34 (same two findings as the morning run), self-deletion browser checks 8/8 on both origins, student-app `/ws/` socket connects on both origins, and the gateway access log confirms proxied requests arrive from the app container IPs. One false alarm during the run: the first `/ws/` socket is closed by React StrictMode's double mount in dev; the second stays open. No new findings. No commits or pushes besides the merge.
+
+**Files changed:**
+- `docs/evidence/d2/README.md` — e999596 re-run line.
+- `docs/evidence/d2/*-2026-10-01-e999596*.json` — local only (folder is git-ignored).
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-01 16:10 SGT — Fix A6: disabled accounts can no longer log in
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/a6-disabled-login
+
+**Prompt (summarised):** Fix UAT gap A6 (a disabled account still logs in), make sure it works, then run the UAT again.
+
+**Usage scenario:** Bug fix with tests first, then verification. RED: unit test in `auth-module.test.ts` failed ("Missing expected rejection"); the HTTP test in `app.test.ts` failed with 500 when the 403 mapping was absent. GREEN: `login` throws `AuthError('ACCOUNT_DISABLED')` after the password check (so a disabled account is not an email-enumeration oracle); `error-handler.ts` maps it to 403. Design choice left visible for the author: 403 with a distinct code rather than a generic 401, so both login forms can show "This account has been disabled". Scope kept to login; the refresh route and auth middleware still trust an already-issued token (A11), unchanged. Verification: typecheck clean, unit 146/146, user-service image rebuilt, `uat-d2-api` 59/63 (A6 passes), `uat-d2-ui` 30/30, `test:d2` 56/56, guard checks 32/34 (unchanged), 4 browser checks of the message in both login forms. Not committed or pushed; the author decides.
+
+**Files changed:**
+- `services/user-service/src/auth/auth-module.ts` — `ACCOUNT_DISABLED` error code and the status check in `login`.
+- `services/user-service/src/http/error-handler.ts` — `ACCOUNT_DISABLED` → 403.
+- `services/user-service/test/auth-module.test.ts`, `test/app.test.ts` — disabled-account login tests.
+- `services/user-service/docs/api-reference.md`, `docs/api/user-service.yaml`, `docs/services/user-service.md` — documented the 403 response; A6 note updated.
+- `docs/evidence/d2/README.md` — re-run line; `uat-api-results-2026-10-01-a6fix.json` and two screenshots local only (git-ignored).
+- `ai/usage-log.md` — this entry.

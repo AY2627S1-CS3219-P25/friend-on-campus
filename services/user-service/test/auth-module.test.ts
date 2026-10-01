@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+ * Scope: Added the disabled-account login tests (ACCOUNT_DISABLED, password checked before status).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/auth/auth-module.ts against an in-memory repository and a fake token manager:
  * registration validation and duplicate mapping, login and the dummy-hash path, refresh rotation and replay,
@@ -108,6 +112,19 @@ describe('login', () => {
     await rejects(auth.login({ email: 'alice@u.nus.edu', password: 'Password123?' }), 'INVALID_CREDENTIALS');
     await rejects(auth.login({ email: 'nobody@u.nus.edu', password: 'Password123!' }), 'INVALID_CREDENTIALS');
     assert.equal(fake.sessions.size, 0, 'no session on failure');
+  });
+
+  it('refuses a disabled account with ACCOUNT_DISABLED and creates no session', async () => {
+    fake = makeFakeAuthRepository([makeUser({ status: false, passwordHash: await hashPassword('Password123!') })]);
+    auth = createAuthModule({ repository: fake.repo, tokens, ...LIFETIMES });
+    await rejects(auth.login({ email: 'alice@u.nus.edu', password: 'Password123!' }), 'ACCOUNT_DISABLED');
+    assert.equal(fake.sessions.size, 0, 'no session for a disabled account');
+  });
+
+  it('checks the password before the status, so a disabled account is not an email oracle', async () => {
+    fake = makeFakeAuthRepository([makeUser({ status: false, passwordHash: await hashPassword('Password123!') })]);
+    auth = createAuthModule({ repository: fake.repo, tokens, ...LIFETIMES });
+    await rejects(auth.login({ email: 'alice@u.nus.edu', password: 'Password123?' }), 'INVALID_CREDENTIALS');
   });
 
   it('rejects malformed input as INVALID_INPUT, not INVALID_CREDENTIALS', async () => {

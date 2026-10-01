@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+# Scope: Document the 403 ACCOUNT_DISABLED login response.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Codex (model: GPT-6), date: 2026-09-30
 # Scope: Document last-admin 409 responses and self-deletion cookie cleanup.
 # Author review: <to be completed by huangjiaxi1111>
@@ -113,6 +117,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "403":
+          description: ACCOUNT_DISABLED; correct credentials but the account is disabled (checked after the password)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: This account has been disabled, code: ACCOUNT_DISABLED }
   /api/auth/refresh:
     post:
       tags: [auth]
