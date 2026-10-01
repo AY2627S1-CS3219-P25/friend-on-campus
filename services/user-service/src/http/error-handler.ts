@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+ * Scope: Map ACCOUNT_DISABLED to HTTP 403.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Return HTTP 409 for LAST_ADMIN_REQUIRED.
  * Author review: <to be completed by huangjiaxi1111>
@@ -39,6 +43,7 @@ const AUTH_ERROR_STATUS: Record<AuthErrorCode, number> = {
   DUPLICATE_EMAIL: 409,
   DUPLICATE_USERNAME: 409,
   INVALID_CREDENTIALS: 401,
+  ACCOUNT_DISABLED: 403,
   INVALID_SESSION: 401,
 };
 

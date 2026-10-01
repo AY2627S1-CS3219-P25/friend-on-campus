@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+ * Scope: Added the 403 ACCOUNT_DISABLED login test.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Cover last-admin HTTP errors and cookie behavior for self-deletion and deletion of another account.
  * Author review: <to be completed by huangjiaxi1111>
@@ -342,6 +346,18 @@ describe('user-service app', () => {
       // alice is a STUDENT in the store; a token claiming ADMIN gets admin access until it expires.
       const res = await client.call('GET', '/api/users/', { token: issueToken(ALICE_ID, 'ADMIN') });
       assert.equal(res.status, 200);
+    });
+
+    it('a disabled account gets 403 ACCOUNT_DISABLED on login and no cookie; re-enabling restores login', async () => {
+      const admin = issueToken(ADMIN_ID, 'ADMIN');
+      await client.call('PATCH', `/api/users/${BOB_ID}/toggle-status`, { token: admin });
+      const refused = await client.call('POST', '/api/auth/login', { body: { email: 'bob@u.nus.edu', password: 'Password123!' } });
+      assert.equal(refused.status, 403);
+      assert.equal(refused.body.code, 'ACCOUNT_DISABLED');
+      assert.equal(refused.headers.get('set-cookie'), null);
+      await client.call('PATCH', `/api/users/${BOB_ID}/toggle-status`, { token: admin });
+      const again = await client.call('POST', '/api/auth/login', { body: { email: 'bob@u.nus.edu', password: 'Password123!' } });
+      assert.equal(again.status, 200);
     });
 
     it('toggle-status flips status; unknown id 404; STUDENT 403', async () => {

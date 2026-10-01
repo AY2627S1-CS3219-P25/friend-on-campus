@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+Scope: Login now refuses disabled accounts (A6); behaviour notes and API table updated.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-09-30
 Scope: Document atomic last-admin guards, self-deletion logout, and isolated PostgreSQL regression checks.
 Author review: <to be completed by huangjiaxi1111>
@@ -113,7 +117,7 @@ The Prisma repositories are `src/persistence/auth-repository.ts` and
 | Method & path | Auth | Result |
 |---|---|---|
 | `POST /api/auth/register` | none | Creates a `username`/`email`/`password` account; does not create a session. |
-| `POST /api/auth/login` | none | Returns access token and user; sets refresh-token cookie. |
+| `POST /api/auth/login` | none | Returns access token and user; sets refresh-token cookie. Disabled account with correct credentials → 403 `ACCOUNT_DISABLED`. |
 | `POST /api/auth/refresh` | refresh cookie or body | Rotates refresh token and returns access token. |
 | `POST /api/auth/logout` | refresh cookie or body | Revokes that refresh session and clears the cookie. |
 | `GET /api/users/me` | Bearer token | Returns authenticated profile. |
@@ -177,7 +181,7 @@ password to the values above. The seed does not write `status`.
 Items with a UAT check ID in brackets were observed on `main` @ f0ee632 (see `../evidence/d2/d2-checklist.md`);
 the updated admin-removal guards and self-deletion session cleanup have PostgreSQL integration coverage.
 
-- `status` is stored and returned but not read by login, refresh or the auth middleware: a disabled account still logs in [A6], and its existing access token and refresh session keep working [A11].
+- `status` is read by login (a disabled account gets 403 `ACCOUNT_DISABLED`, checked after the password; A6 fixed 2026-10-01) but not by refresh or the auth middleware: an already-issued access token and refresh session keep working until they expire [A11].
 - `PATCH /api/users/:id/toggle-role` still refuses the caller's own id. Role changes and deletions share a PostgreSQL transaction advisory lock; the remaining-admin check and mutation commit together. Attempts to demote or delete the last `ADMIN` return 409 `LAST_ADMIN_REQUIRED`, including concurrent requests across service instances. This guard counts `ADMIN` roles, independently of `status`.
 - `DELETE /api/users/:id` allows admin self-deletion only when another admin remains. Successful self-deletion clears the refresh cookie and cascades to all sessions. The admin portal immediately clears its local session and returns to login; deleting someone else keeps the caller signed in.
 - `PATCH /api/users/:id/toggle-status` (formerly `/admin`) does not compare the target with the caller or count remaining admins: the seeded admin can disable its own account, including when it is the only `ADMIN` [A8].
