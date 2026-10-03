@@ -3,6 +3,10 @@
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Implemented direct confirmed RabbitMQ publisher for user.registered events with error isolation.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Added 5000 ms connection timeout to amqp.connect matching credit-service to prevent unbounded connection stalls.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import amqp, { type ConfirmChannel, type Options } from 'amqplib';
@@ -19,6 +23,7 @@ export interface UserEventPublisher {
 export interface RabbitMQPublisherConfig {
   url: string;
   exchange: string;
+  connectionTimeoutMs?: number;
 }
 
 export function createConfirmedPublisher(channel: ConfirmChannel) {
@@ -69,7 +74,9 @@ export function createRabbitMQPublisher(config: RabbitMQPublisherConfig): UserEv
 
     connectingPromise = (async () => {
       try {
-        const conn = await amqp.connect(config.url);
+        const conn = await amqp.connect(config.url, {
+          timeout: config.connectionTimeoutMs ?? 5000,
+        });
         conn.on('error', (err) => {
           logError('rabbitmq_connection_error', err);
           channel = null;

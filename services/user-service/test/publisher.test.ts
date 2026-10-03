@@ -128,6 +128,28 @@ describe('createRabbitMQPublisher error tolerance', () => {
 
     await publisher.close();
   });
+
+  it('respects connectionTimeoutMs option when attempting broker connection', async () => {
+    const publisher = createRabbitMQPublisher({
+      url: 'amqp://user_service:invalid@127.0.0.1:1/campus',
+      exchange: 'campus.events',
+      connectionTimeoutMs: 100,
+    });
+
+    const event: UserRegisteredEvent = {
+      eventId: '10000000-0000-4000-8000-000000000001',
+      eventType: 'user.registered',
+      timestamp: new Date().toISOString(),
+      userId: '20000000-0000-4000-8000-000000000001',
+      email: 'student@u.nus.edu',
+      initialGrant: 100,
+    };
+
+    const result = await publisher.publishUserRegistered(event);
+    assert.equal(result, false);
+
+    await publisher.close();
+  });
 });
 
 describe('noopPublisher', () => {
