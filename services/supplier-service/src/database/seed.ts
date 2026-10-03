@@ -1,3 +1,12 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: building/floor are now required columns (part of the new location-uniqueness constraint), so the seed
+ * script fails loudly with a clear error if a CSV row is missing either, instead of silently seeding a null
+ * that the database would then reject. Every current seed row already has both, so this is a safety net for
+ * future CSV edits, not a fix for a live problem.
+ * Author review: (to be completed by author after review)
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from './client';
@@ -107,6 +116,13 @@ function emptyToNull(value: string): string | null {
   return value === '' ? null : value;
 }
 
+function requireField(value: string, label: string, name: string): string {
+  if (!value.trim()) {
+    throw new Error(`Missing required ${label} for supplier "${name}"`);
+  }
+  return value.trim();
+}
+
 function mapBuildingToCampusZone(building: string | null): string {
   if (!building) return 'Kent Ridge';
   const b = building.toLowerCase();
@@ -131,8 +147,8 @@ async function seedSuppliers(csvPath: string) {
   for (let i = 0; i < records.length; i++) {
     const r = records[i];
     const code = `SUP-${String(i + 1).padStart(3, '0')}`;
-    const building = emptyToNull(r.Building);
-    const floor = emptyToNull(r.Floor);
+    const building = requireField(r.Building, 'Building', r.Name);
+    const floor = requireField(r.Floor, 'Floor', r.Name);
     const locationDesc = emptyToNull(r['Location Description']);
     const exactLocation = locationDesc || (building && floor ? `${building} Level ${floor}` : building || 'NUS Kent Ridge');
     const campusZone = mapBuildingToCampusZone(building);

@@ -1,17 +1,18 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: findUserByEmail now queries LOWER(email) so it uses the case-insensitive unique index instead of a
  * sequential scan; added deleteExpiredSessions for opportunistic clean-up of idle-expired session rows.
  * Author review: <to be completed by ngkhengyang>
  */
+
+// AI-generated (edited by ngkhengyang)
+
 // AI-generated (edited by ngkhengyang)
 import { Prisma, PrismaClient, User as PrismaUser } from '../database/generated/client';
 

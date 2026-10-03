@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Pass secure-cookie settings into account-deletion routes.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented the Express application with CORS, authentication middleware, error handling, and User Service route registration.
  * Author review: <to be completed by ngkhengyang>
@@ -62,6 +66,7 @@ export function createApp(dependencies: AppDependencies) {
       dependencies.users,
       dependencies.requireAuthentication,
       dependencies.requireAdmin,
+      { secureCookies: dependencies.secureCookies },
     ),
   );
 

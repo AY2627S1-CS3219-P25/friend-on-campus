@@ -1,17 +1,36 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-30
+ * Scope: Map atomic last-admin guard failures to LAST_ADMIN_REQUIRED.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented username-only profile updates and shared user and password DTO handling.
  * Author review: <to be completed by ngkhengyang>
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added deleteUser() and the FORBIDDEN error code for the new DELETE /api/users/:id endpoint. Role/self
+ * authorization for this route is enforced at the route layer (requireSelfOrAdmin in user-routes.ts), not here —
+ * this method trusts that check has already passed, same as toggleUserStatus trusts requireAdmin.
+ * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
+ * Scope: Added toggleUserRole() (flips STUDENT<->ADMIN, backing the new PATCH /:id/toggle-role) and the
+ * SELF_ACTION_FORBIDDEN error code (an admin may not change their own role — enforced at the route layer, same
+ * split as toggleUserStatus/deleteUser). Removed the NOT_IMPLEMENTED error code — nothing throws it anymore
+ * now that the old promote stub is gone.
+ * Author review: (to be completed by author after review)
  */
+
 // AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
+
 import type {
   ChangePasswordRequest,
   UpdateUserProfileRequest,
@@ -19,6 +38,7 @@ import type {
 } from '@campus-errand/common-dtos';
 import { hashPassword, verifyPassword } from '../auth/password';
 import {
+  LastAdminError,
   UserRecord,
   UserRepository,
   UpdateUserRecord,
@@ -31,6 +51,8 @@ export interface UserModule {
   updateOwnProfile(userId: string, input: UpdateUserProfileRequest): Promise<UserDTO>;
   changePassword(userId: string, input: ChangePasswordRequest): Promise<void>;
   toggleUserStatus(targetUserId: string): Promise<UserDTO>;
+  toggleUserRole(targetUserId: string): Promise<UserDTO>;
+  deleteUser(targetUserId: string): Promise<void>;
 }
 
 export type UserErrorCode =
@@ -38,7 +60,9 @@ export type UserErrorCode =
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CURRENT_PASSWORD'
   | 'USER_NOT_FOUND'
-  | 'NOT_IMPLEMENTED';
+  | 'FORBIDDEN'
+  | 'LAST_ADMIN_REQUIRED'
+  | 'SELF_ACTION_FORBIDDEN';
 
 export class UserError extends Error {
   constructor(
@@ -179,6 +203,35 @@ export function createUserModule(options: UserModuleOptions): UserModule {
       }
 
       return toUserDTO(user);
+    },
+
+    async toggleUserRole(targetUserId) {
+      try {
+        const user = await options.repository.toggleRole(targetUserId);
+        if (!user) {
+          throw new UserError('USER_NOT_FOUND', 'User not found');
+        }
+        return toUserDTO(user);
+      } catch (error) {
+        if (error instanceof LastAdminError) {
+          throw new UserError('LAST_ADMIN_REQUIRED', error.message);
+        }
+        throw error;
+      }
+    },
+
+    async deleteUser(targetUserId) {
+      try {
+        const deleted = await options.repository.deleteById(targetUserId);
+        if (!deleted) {
+          throw new UserError('USER_NOT_FOUND', 'User not found');
+        }
+      } catch (error) {
+        if (error instanceof LastAdminError) {
+          throw new UserError('LAST_ADMIN_REQUIRED', error.message);
+        }
+        throw error;
+      }
     },
   };
 }

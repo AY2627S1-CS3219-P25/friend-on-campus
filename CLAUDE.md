@@ -1,37 +1,44 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Updated the credit-service repo-map entry after replacing mock storage with Prisma.
-Author review: <to be completed by huangjiaxi1111>
--->
-<!--
-AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-01
+Scope: Updated Vite proxy guidance for gateway routing in Compose and direct service routing on the host.
+Author review: <to be completed by author after review>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Section 5: added `npm test` and the unit-test note (Node's built-in runner, no framework), and put `npm test` in the before-you-say-it-works rule.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
+Scope: PR #93: the Vite dev proxy note in section 4 now says student-app reads its proxy targets from env vars.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Restructured this file into sections and added repo map, commands, gh/branch notes and
 the usage-log format. The AI-usage policy wording in section 1 is the team's original text, unchanged.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected internal repository facts for the author-approved Prisma and Ed25519 authentication implementation.
 Author review: <to be completed by ngkhengyang>
--->
 
-<!--
-AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
 Scope: Added the "every PR must link the issue(s) it closes" rule to section 6, alongside the new PR template and workflow.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-24
+Scope: Section 6 linked-issue rule now describes the Claude PR review's Linked-issues check; the separate pr-linked-issue.yml workflow was removed.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated repo map and database schema management notes to reflect single-source-of-truth Prisma migration ownership per service.
 Author review: (to be completed by author after review)
+
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Updated the credit-service repo-map entry after replacing mock storage with Prisma.
+Author review: <to be completed by huangjiaxi1111>
 -->
 
-# CLAUDE.md — Friend of Campus (CS3219 AY26/27 S1, Group 25)
+# CLAUDE.md — NUS CampusErrand / Friend of Campus (CS3219 AY26/27 S1, Group 25)
 
 ## 1. AI usage policy (course rules — these override everything else in this file)
 
@@ -73,10 +80,10 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
    - `path` — what changed
    ```
 
-2. **Disclosure header.** Every file you create or edit gets this at the top (as a comment in that file's syntax), or the existing header is updated with the new date/scope:
+2. **Disclosure header.** Maintain exactly one consolidated disclosure block per file, at the top (after any frontmatter or shebang, using the file's comment syntax). Add new tool/date/scope and author-review records to that existing block rather than creating another heading. Preserve earlier attribution and review status. For a file without a block, use this format:
 
    ```
-   AI Assistance Disclosure:
+   <disclosure heading, as used at the top of this file>
    Tool: <tool> (model: <model>), date: YYYY-MM-DD
    Scope: <what the AI generated or changed in this file>
    Author review: <left for the human author to fill in — never write this for them>
@@ -122,7 +129,7 @@ Things that are easy to get wrong:
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
-- Vite dev proxies: admin-portal reads `SUPPLIER_SERVICE_URL` / `USER_SERVICE_URL`; student-app still hardcodes `localhost` targets, which does not work from inside its container (go through the gateway on :80 instead).
+- Vite dev proxies: Compose sets `GATEWAY_URL` for both apps, so API and WebSocket requests go through nginx. Without it, host-based development sends user, supplier and notification requests directly to their localhost ports. The student app sends `/admin` to `ADMIN_PORTAL_URL` (default `http://localhost:5174`); Compose sets that variable to the admin portal container.
 - Dockerfiles copy only the root `package.json`, `packages/` and the service's own folder, then `npm install`. A new npm dependency in that service's `package.json` needs no Dockerfile edit; a new shared folder, a native/system package, or a new env var does (Dockerfile and/or `docker-compose.yml`). `.dockerignore` excludes `*.md`.
 
 ## 5. Commands
@@ -135,6 +142,7 @@ npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:stude
 npm run db:migrate --workspace=@campus-errand/<service>
 npm run db:seed    --workspace=@campus-errand/<service>
 npm run typecheck                             # all workspaces — run after every code change
+npm run test                                  # unit tests: user-service and supplier-service (node:test + tsx, no database)
 npm run test:d2                               # D2 end-to-end suite — see note below
 docker exec -it campuserrand-postgres psql -U postgres
 ```
@@ -147,16 +155,16 @@ docker exec -it campuserrand-postgres psql -U postgres
 
 **Code intelligence:** the `typescript-lsp` plugin is enabled for this project (`.claude/settings.json`). It needs the server on your PATH once per machine — `npm install -g typescript-language-server typescript` — and `npm install` in the repo so imports and the generated Prisma clients resolve. With it, prefer the `LSP` tool (go to definition, find references, hover) over grepping when tracing a type or function across workspaces, e.g. who uses a `common-dtos` type. It does not replace `npm run typecheck` before reporting.
 
-There is no lint script and no unit-test runner yet (tracked in issue #68). Do not add one unprompted.
+Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed; needs Node 22.3+, pinned in the root `package.json` `engines`; the Dockerfiles stay on `node:20-alpine` because containers do not run the tests): `services/<name>/test/*.test.ts`, run with `npm test` at the root or in the workspace. They need no database: user-service tests use in-memory repositories, supplier-service tests replace the Prisma client and the repository with `mock.module` (hence `--experimental-test-module-mocks` in its script). Each service's `typecheck` script uses `tsconfig.test.json`, which includes `src/**` and `test/**`, so `npm run typecheck` covers the tests too (`build` still uses `tsconfig.json`, src only). There is no lint script (tracked in issue #68). Do not add a test framework or linter unprompted.
 
-Before saying a change works: run `npm run typecheck`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
+Before saying a change works: run `npm run typecheck` and `npm test`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
 
 ## 6. Git and GitHub
 
 - Team repo: `AY2627S1-CS3219-P25/friend-on-campus`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/friend-on-campus`** to `gh issue` / `gh pr` commands.
 - Branches: `main` (releases), `dev` (integration), `milestone-d2` (D2 demo baseline), feature branches off `dev`.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
-- **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this, and the `PR links an issue` workflow (`.github/workflows/pr-linked-issue.yml`) fails any PR whose body has none. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first (the check fails a PR with none).
+- **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this. The `Claude PR review` workflow (`.github/workflows/claude-pr-review.yml`) checks it on every push: it reads the linked issues, compares their acceptance criteria with the diff, searches open issues for related work the PR does not link, and reports all of this in a **Linked issues** section of its summary comment with `Closes #<n>` lines to paste. It does not fail the PR or edit its body; the author decides which issues a PR closes. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
 - Never commit, push, merge, force-push, or open/close issues and PRs yourself.
 
 ## 7. Source documents

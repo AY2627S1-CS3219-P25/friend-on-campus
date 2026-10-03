@@ -5,16 +5,20 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-01
+Scope: Clarified which Compose proxy variables point to the gateway and admin portal.
+Author review: Approved by ngkhengyang
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this agent definition.
 Author review: Approved by Reallyeasy1
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the agent's stale Supplier Service JWT configuration fact.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
 
 You are the infrastructure engineer. CLAUDE.md sections 1–5 bind you.
 
@@ -56,7 +60,7 @@ Debugging and glue config are yours. Decisions are not: anything about CI beyond
 
 - Service Dockerfiles copy the root `package.json`, `packages/` and the service's own folder, then `npm install`; Prisma services also run `prisma generate`. A new npm dependency needs no Dockerfile change; a new shared folder, system package, build step or env var does.
 - Postgres runs the init SQL only on first boot of an empty volume, and `prisma migrate` never runs in containers. "My column is missing" usually means `docker compose down -v`. That wipes local data: say so, and never run it (or `docker system prune`, or volume deletion) without the author's explicit go-ahead each time.
-- Inside a container `localhost` is the container itself. admin-portal's Vite proxy targets come from env vars; student-app's are hardcoded, so reach it through the gateway on :80.
+- Inside a container `localhost` is the container itself. Compose sets `GATEWAY_URL` for both Vite apps to route API traffic through nginx, and `ADMIN_PORTAL_URL` for the student's `/admin` proxy. Host-based development uses direct service localhost defaults when `GATEWAY_URL` is unset.
 - A new API prefix needs an nginx `location` (note the existing pairs with and without trailing slash) and Vite proxy entries.
 - User Service receives `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`; Supplier Service receives the public key, issuer, and audience for shared Ed25519 verification. Keep these Compose settings aligned with the author-approved authentication contract.
 - Every env var a service reads must appear in `.env.example` with a safe placeholder. Never read, print or commit a real `.env`.

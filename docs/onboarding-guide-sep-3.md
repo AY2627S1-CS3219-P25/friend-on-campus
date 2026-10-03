@@ -1,3 +1,10 @@
+<!--
+AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
+Scope: Added to section 12 (Troubleshooting) only: the Windows port-conflict note under item 1, and items 1a (502 after a
+single-service restart) and 1b (missing JWT keys). The rest of the guide is unchanged.
+Author review: <to be completed by Reallyeasy1>
+-->
 # 🎓 NUS CampusErrand — Engineering Guide
 
 > **CS3219 Software Design and Architecture (AY26/27 S1)**  
@@ -802,6 +809,29 @@ const cancelErrand = async (orderId: string) => {
   # Stop existing docker containers:
   docker compose down
   ```
+* **Windows** (added 2026-09-28, AI-assisted: Claude Code): find the owner with
+  `Get-NetTCPConnection -LocalPort 5432 | Select-Object OwningProcess`. If a natively installed PostgreSQL or
+  RabbitMQ holds 5432 / 5672 / 15672 and has to stay, start the stack with a second compose file that remaps the
+  host ports (`docker compose -f docker-compose.yml -f <override>.yml up --build -d`):
+  ```yaml
+  services:
+    postgres:
+      ports: !override
+        - "5440:5432"
+    rabbitmq:
+      ports: !override
+        - "5673:5672"
+        - "15673:15672"
+  ```
+  Containers still reach each other on `postgres:5432`; only host tools change port. `npm run test:d2` has
+  `localhost:5432` written into it.
+
+### 1a. `/api/*` returns 502 after restarting one service
+* **What it means**: nginx resolved the service's container IP when it started; the restarted container has a new one.
+* **Fix**: `docker compose restart api-gateway` (or restart the whole stack).
+
+### 1b. `docker compose up` stops with a missing `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`
+* **Fix**: `npm run generate:jwt-keys -- --print > .env` once (`.env` is git-ignored).
 
 ### 2. `ECONNREFUSED` when connecting to database
 * **What it means**: PostgreSQL is not running or not ready yet.

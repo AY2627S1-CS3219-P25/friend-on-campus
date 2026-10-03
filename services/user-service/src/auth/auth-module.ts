@@ -1,32 +1,35 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
+ * Scope: Login refuses a disabled account with ACCOUNT_DISABLED, checked after password verification (UAT gap A6).
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account creation with shared registration request and user response DTOs.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented login and session handling with shared access-token and refresh-token response DTOs.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Login now verifies the password against a constant dummy scrypt hash when the email is unknown, so
  * unknown-email and wrong-password attempts take comparable time; login and refresh opportunistically delete
  * idle-expired session rows.
  * Author review: <to be completed by ngkhengyang>
  */
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
+// AI-generated (edited by ngkhengyang)
+
 // AI-generated (edited by ngkhengyang)
 import type {
   AuthResponse,
@@ -78,6 +81,7 @@ export type AuthErrorCode =
   | 'DUPLICATE_EMAIL'
   | 'DUPLICATE_USERNAME'
   | 'INVALID_CREDENTIALS'
+  | 'ACCOUNT_DISABLED'
   | 'INVALID_SESSION';
 
 export class AuthError extends Error {
@@ -205,6 +209,10 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       const passwordMatches = await verifyPassword(password, passwordHash);
       if (!user || !passwordMatches) {
         throw new AuthError('INVALID_CREDENTIALS', 'Invalid email or password');
+      }
+      // Checked after the password so a disabled account is not an email-enumeration oracle.
+      if (!user.status) {
+        throw new AuthError('ACCOUNT_DISABLED', 'This account has been disabled');
       }
 
       const persistent = input.keepLoggedIn === true;

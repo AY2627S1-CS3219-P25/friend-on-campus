@@ -1,24 +1,24 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented database seeding for initial Admin and Student accounts for Milestone D2.
  * Author review: (to be completed by author after review)
- */
-// AI-generated (edited by yanhwee)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented development seed accounts using the Prisma user model, scrypt password format, and case-insensitive email lookup.
  * Author review: <to be completed by ngkhengyang>
- */
-// AI-generated (edited by ngkhengyang)
-/**
- * AI Assistance Disclosure:
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Existing-account look-up now matches on LOWER(email) like the service does, so the seed updates an
  * account registered with different letter-casing instead of colliding with the unique index.
  * Author review: <to be completed by ngkhengyang>
  */
+
+// AI-generated (edited by yanhwee)
+
+// AI-generated (edited by ngkhengyang)
+
 // AI-generated (edited by ngkhengyang)
 import { hashPassword } from '../auth/password';
 import { prisma } from './client';

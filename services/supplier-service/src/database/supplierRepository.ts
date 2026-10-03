@@ -1,10 +1,20 @@
 /**
  * AI Assistance Disclosure:
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Enhanced supplier repository with dynamic sorting, pagination, and total count calculations for Milestone D2.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
+ * Scope: Added findDuplicateLocation() for the new (name, category, building, floor) uniqueness check used by
+ * createSupplier/updateSupplier in supplierRoutes.ts. Case-insensitive via Prisma's native mode: 'insensitive'
+ * filter (already used elsewhere in this file for campusZone/category), matching the DB-level expression index
+ * added in this same round's migration.
+ * Author review: (to be completed by author after review)
  */
+
 // AI-generated (edited by yanhwee)
+
 
 import { prisma } from './client';
 import {
@@ -95,6 +105,26 @@ export async function getSupplierByCode(supplierCode: string) {
   return prisma.supplier.findUnique({ where: { supplierCode } });
 }
 
+// Case-insensitive lookup for the (name, category, building, floor) uniqueness check. excludeId lets an
+// update check "does anyone else already occupy this spot" without flagging the record against itself.
+export async function findDuplicateLocation(
+  name: string,
+  category: string,
+  building: string,
+  floor: string,
+  excludeId?: string,
+) {
+  return prisma.supplier.findFirst({
+    where: {
+      name: { equals: name, mode: 'insensitive' },
+      category: { equals: category, mode: 'insensitive' },
+      building: { equals: building, mode: 'insensitive' },
+      floor: { equals: floor, mode: 'insensitive' },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+  });
+}
+
 async function generateNextSupplierCode(): Promise<string> {
   const count = await prisma.supplier.count();
   const nextNum = count + 1;
@@ -115,8 +145,8 @@ export async function createSupplier(data: CreateSupplierRequest) {
       exactLocation: data.exactLocation.trim(),
       category: data.category,
       description: data.description?.trim() || null,
-      building: data.building?.trim() || null,
-      floor: data.floor?.trim() || null,
+      building: data.building.trim(),
+      floor: data.floor.trim(),
       latitude: data.latitude ?? null,
       longitude: data.longitude ?? null,
       startingTime: data.startingTime?.trim() || null,

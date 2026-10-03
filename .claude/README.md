@@ -1,16 +1,22 @@
 <!--
 AI Assistance Disclosure:
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this set-up guide from the configuration in this folder and from problems actually hit while
-setting it up on Windows (gh default repo, missing language server, missing node_modules, plugin start-up timeouts).
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
+Scope: Prerequisite row: Node 22.3+ because npm test uses node --test with module mocking.
 Author review: <to be completed by Reallyeasy1>
 -->
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
+Scope: Wrote this set-up guide from the configuration in this folder and from problems actually hit while
+setting it up on Windows (gh default repo, missing language server, missing node_modules, plugin start-up timeouts).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the shared-DTO reference example after the author-approved authentication migration.
 Author review: <to be completed by ngkhengyang>
 -->
+
+
 
 # Claude Code set-up guide for this repo
 
@@ -22,7 +28,7 @@ About 15 minutes. Do it once per machine. Everything here is about the AI toolin
 
 | Need | Check | Notes |
 |---|---|---|
-| Node.js 20+ and npm | `node -v` | Also runs the hook scripts |
+| Node.js 22.3+ and npm | `node -v` | Also runs the hook scripts and the unit tests (`npm test` uses `node --test` with module mocking, which needs 22.3) |
 | Git | `git --version` | Windows: Git for Windows (Claude Code runs hooks through Git Bash) |
 | GitHub CLI, logged in | `gh auth status` | `gh auth login` if not |
 | Docker Desktop | `docker compose version` | For Postgres / RabbitMQ / the full stack |

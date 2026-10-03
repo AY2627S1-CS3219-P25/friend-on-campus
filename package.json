@@ -8,6 +8,9 @@
     "services/*",
     "packages/*"
   ],
+  "engines": {
+    "node": ">=22.3"
+  },
   "scripts": {
     "dev:student": "npm run dev --workspace=@campus-errand/student-app",
     "dev:admin": "npm run dev --workspace=@campus-errand/admin-portal",
@@ -19,6 +22,7 @@
     "generate:jwt-keys": "node scripts/generate-jwt-keys.mjs",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "db:generate": "npm run db:generate --workspaces --if-present",
     "postinstall": "npm run db:generate --workspaces --if-present",
     "test:d2": "npx tsx scripts/test-d2-e2e.ts"
