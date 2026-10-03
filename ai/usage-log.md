@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-03
+Scope: Recorded implementation of User Service user.registered RabbitMQ publisher, configuration, and unit tests.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-03
 Scope: Recorded matching development credit wallet seeding, startup wiring and verification, live student wallet/ledger integration.
 Author review: <to be completed by huangjiaxi1111>
@@ -1845,3 +1849,26 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/credit-service/src/{credits/service.ts,database/seed.ts}` — separate reads from initialization.
 - `services/credit-service/tests/{credits,messaging}.integration.test.ts` — read-only regressions and explicit fixtures.
 - `docs/architecture/overview.md`, `docs/services/{credit-service,credit-service-integration-contract}.md`, `ai/usage-log.md` — behavior and disclosure.
+
+## 2026-10-03 22:48 SGT — Implement user.registered RabbitMQ publisher
+
+**Tool:** Google Antigravity Agent
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Implement user.registered publisher.
+
+**Usage scenario:** Writing implementation code (allowed use) following user's approved architecture choice (direct confirmed RabbitMQ publisher with error isolation) and approved dependency addition (`amqplib` and `@types/amqplib` in User Service). Published `UserRegisteredEvent` to `campus.events` upon account creation in `auth-module.ts`; error logging and graceful degradation ensure registration does not fail if the message broker is unavailable. Configured `RABBITMQ_URL` and dependency in `docker-compose.yml`, updated configuration files, and added unit tests.
+
+**Files changed:**
+- `services/user-service/package.json` — Added `amqplib` and `@types/amqplib` dependencies (user approved).
+- `package-lock.json` — Workspace dependency linkage.
+- `docker-compose.yml` — Added `RABBITMQ_URL` environment variable and `rabbitmq` health dependency for `user-service`.
+- `services/user-service/.env.example` — Documented `RABBITMQ_URL` and `EVENTS_EXCHANGE`.
+- `services/user-service/src/config.ts` — Added `rabbitmqUrl` and `eventsExchange` runtime configuration.
+- `services/user-service/src/messaging/publisher.ts` [NEW] — Direct confirmed RabbitMQ publisher with error isolation and connection lifecycle management.
+- `services/user-service/src/auth/auth-module.ts` — Emitted `user.registered` event upon successful user registration.
+- `services/user-service/src/index.ts` — Wired RabbitMQ publisher into `auth-module` and added graceful shutdown handling.
+- `services/user-service/test/publisher.test.ts` [NEW] — Unit tests for confirmed publisher, unroutable rejections, error tolerance, and noop publisher.
+- `services/user-service/test/auth-module.test.ts` — Unit tests for event publication and error tolerance during registration.
+- `ai/usage-log.md` — This record and disclosure.

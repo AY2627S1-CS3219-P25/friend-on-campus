@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Published user.registered events upon successful account creation with error isolation.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
  * Scope: Login refuses a disabled account with ACCOUNT_DISABLED, checked after password verification (UAT gap A6).
  * Author review: <to be completed by Reallyeasy1>
@@ -31,13 +35,16 @@
 // AI-generated (edited by ngkhengyang)
 
 // AI-generated (edited by ngkhengyang)
+import { randomUUID } from 'node:crypto';
 import type {
   AuthResponse,
   LoginUserRequest,
   RefreshTokenResponse,
   RegisterUserRequest,
   UserDTO,
+  UserRegisteredEvent,
 } from '@campus-errand/common-dtos';
+import type { UserEventPublisher } from '../messaging/publisher';
 import {
   AuthRepository,
   SessionUserRecord,
@@ -100,6 +107,7 @@ export interface AuthModuleOptions {
   accessTokenLifetimeSeconds: number;
   refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
+  publisher?: UserEventPublisher;
 }
 
 interface DuplicateUserError {
@@ -193,6 +201,18 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
           email,
           passwordHash,
         });
+
+        if (options.publisher) {
+          const event: UserRegisteredEvent = {
+            eventId: randomUUID(),
+            eventType: 'user.registered',
+            timestamp: new Date().toISOString(),
+            userId: user.id,
+            email: user.email,
+            initialGrant: 100,
+          };
+          await options.publisher.publishUserRegistered(event);
+        }
 
         return toUserDTO(user);
       } catch (error) {

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Added RabbitMQ URL and exchange configuration for user registration event publishing.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented User Service environment loading and runtime configuration for the database, JWT, CORS, and service settings.
  * Author review: <to be completed by ngkhengyang>
@@ -11,6 +15,8 @@ dotenv.config();
 
 const DEFAULT_PORT = 8001;
 const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/user_db';
+const DEFAULT_RABBITMQ_URL = 'amqp://user_service:user-service-dev@localhost:5672/campus';
+const DEFAULT_EVENTS_EXCHANGE = 'campus.events';
 
 function readPort(value: string | undefined): number {
   if (value === undefined) {
@@ -37,6 +43,8 @@ export interface AppConfig {
   accessTokenAudience: string;
   corsOrigin: string;
   secureCookies: boolean;
+  rabbitmqUrl: string;
+  eventsExchange: string;
 }
 
 function readRequiredKey(name: 'JWT_PRIVATE_KEY' | 'JWT_PUBLIC_KEY'): string {
@@ -90,4 +98,6 @@ export const config: AppConfig = Object.freeze({
   accessTokenAudience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   secureCookies: nodeEnvironment === 'production',
+  rabbitmqUrl: process.env.RABBITMQ_URL ?? DEFAULT_RABBITMQ_URL,
+  eventsExchange: process.env.EVENTS_EXCHANGE ?? DEFAULT_EVENTS_EXCHANGE,
 });
