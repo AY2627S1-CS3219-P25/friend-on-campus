@@ -112,7 +112,7 @@ async function main() {
     const conflict = event('user.registered', { userId: registered, email: 'mq@example.test', initialGrant: 100 });
     await send(conflict); await dead();
     assert.equal(await db.processedCreditEvent.count({ where: { eventId: conflict.eventId } }), 0);
-    const lazy = user(); await credits.getWallet(lazy);
+    const lazy = user(); await credits.initializeWallet(lazy);
     const lazyEvent = event('user.registered', { userId: lazy, email: 'lazy@example.test', initialGrant: 100 });
     await send(lazyEvent); await processed(lazyEvent);
     assert.equal((await credits.getWallet(lazy)).availableCredits, 100);

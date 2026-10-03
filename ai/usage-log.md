@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-6), date: 2026-10-03
-Scope: Recorded matching development credit wallet seeding, startup wiring and verification.
+Scope: Recorded matching development credit wallet seeding, startup wiring and verification, live student wallet/ledger integration.
 Author review: <to be completed by huangjiaxi1111>
 
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
@@ -1828,4 +1828,20 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/services/credit-service.md` — seed records, host/container setup, config and limitations, including disabled/missing accounts or changed seed passwords preventing successful seeding.
 - `ai/usage-log.md` — this record and disclosure.
 
-**Verification:** All nine workspace typechecks passed. Initial sandboxed unit run failed because local HTTP servers could not bind; the permitted rerun passed all 146 tests (47 Supplier, 99 User). Compose configuration validation and git diff --check passed. A disposable PostgreSQL 16 container received the credit migration; test:seed passed three initial wallets/grants, concurrent reruns preserving spent/earned/escrow balances and exact ledger history, invalid identity/disabled-account rejection before writes, and temporary-session cleanup. A separate temporary driver deployed actual User Service migrations and ran its existing seed against an isolated user database, started the real User Service with generated test signing keys, and executed Credit Service's seed CLI twice against an isolated credit database: all three UUIDs matched, exactly three wallets/grants/welcome entries remained, and no login sessions remained. The temporary service and PostgreSQL container (including all disposable databases) were removed. No development database was changed. The Docker image was not rebuilt or deployed; its startup command and Compose wiring were inspected and configuration-validated. D2 was not run because neither user/supplier implementation nor either app was modified. No commits or pushes.
+
+
+## 2026-10-03 22:09 SGT — Display live credits with read-only wallet retrieval
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Replace hardcoded credit displays and ensure wallet reads never initialize credits.
+
+**Usage scenario:** Connected authenticated wallet/ledger APIs with loading/error/retry/empty states and session guards; removed mock balances and deductions. `getWallet` now only reads (404 if absent); startup seeding uses explicit `initializeWallet`. Covers #17 F4.2.1–F4.2.2. Orders remain previews; upstream event publication is pending. Existing event/write initialization is unchanged. No schema, DTO, architecture or dependency changes.
+
+**Files changed:**
+- `apps/student-app/{src/App.tsx,vite.config.ts}` — live credit UI, missing-wallet handling and gateway/local credit proxy.
+- `services/credit-service/src/{credits/service.ts,database/seed.ts}` — separate reads from initialization.
+- `services/credit-service/tests/{credits,messaging}.integration.test.ts` — read-only regressions and explicit fixtures.
+- `docs/architecture/overview.md`, `docs/services/{credit-service,credit-service-integration-contract}.md`, `ai/usage-log.md` — behavior and disclosure.

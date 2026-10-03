@@ -105,7 +105,12 @@ async function refund(tx: CreditTransactionStore, body: EscrowRefundRequest): Pr
 
 export function createCreditService(store: CreditStore) {
   return {
-    getWallet: (userId: string) => store.transaction(tx => initializeWallet(tx, userId)),
+    initializeWallet: (userId: string) => store.transaction(tx => initializeWallet(tx, userId)),
+    async getWallet(userId: string): Promise<CreditWalletDTO> {
+      const wallet = await store.findWallet(userId);
+      if (!wallet) throw new CreditError('Wallet not found', 404);
+      return wallet;
+    },
     getLedger: (userId: string) => store.findTransactions(userId),
     reserve: (body: EscrowReserveRequest) => store.transaction(tx => reserve(tx, body)),
     settle: (body: EscrowSettleRequest) => store.transaction(tx => settle(tx, body)),

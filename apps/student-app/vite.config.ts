@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-03
+ * Scope: Route student credit API requests through the gateway or directly to local Credit Service.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-01
  * Scope: Restore the admin proxy target and keep host-based API and WebSocket service fallbacks.
  * Author review: <to be completed by author after review>
@@ -23,6 +27,7 @@ import react from '@vitejs/plugin-react';
 const gatewayTarget = process.env.GATEWAY_URL;
 const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';
 const userTarget = gatewayTarget ?? process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
+const creditTarget = gatewayTarget ?? process.env.CREDIT_SERVICE_URL ?? 'http://localhost:8004';
 const notificationTarget = gatewayTarget ?? process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
 const adminTarget = process.env.ADMIN_PORTAL_URL ?? 'http://localhost:5174';
 
@@ -47,6 +52,10 @@ export default defineConfig({
       },
       '/api/users': {
         target: userTarget,
+        changeOrigin: true,
+      },
+      '/api/credits': {
+        target: creditTarget,
         changeOrigin: true,
       },
       '/api': {

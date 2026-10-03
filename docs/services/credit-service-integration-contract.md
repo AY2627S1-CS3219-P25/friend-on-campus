@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-03
+Scope: Document read-only wallet retrieval and explicit development seed initialization.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-09-25
 Scope: Documented broker-provisioned shared exchanges and publisher handling before queue bindings exist.
 Author review: <to be completed by huangjiaxi1111>
@@ -57,7 +61,9 @@ Routing key: `user.registered`. `email` is required, must be syntactically valid
 
 Credit Service atomically creates a wallet, a grant marker and a `WELCOME_GRANT` ledger entry. Repeated events with the same or a new event ID do not grant credits again. A different amount for an existing grant is a permanent conflict and goes to the DLQ.
 
-Compatibility behavior: a wallet read, first reservation or first courier payout can still initialize an unknown wallet with 100 credits and one grant entry before registration delivery. A later registration with `initialGrant: 100` records the event without changing the balance. A different amount then conflicts; it is never added on top of the existing grant. If the registration event arrives first, its amount initializes the wallet. Upstream code must not rely on an arbitrary grant amount overriding an earlier lazy grant.
+Wallet reads are strictly read-only: `GET /api/credits/wallet` returns 404 `Wallet not found` if no wallet exists and never creates a wallet, grant or ledger entry. The development startup seed calls the explicit `initializeWallet` service method for its three existing user accounts. Registration events continue to initialize wallets through the event handler. Until User Service publishes those events, a newly registered account is not initialized merely by opening its profile.
+
+Compatibility behavior for writes remains unchanged: a first reservation or first courier payout can initialize an unknown wallet with 100 credits and one grant entry before registration delivery. A later registration with `initialGrant: 100` records the event without changing the balance. A different amount then conflicts; it is never added on top of the existing grant. If the registration event arrives first, its amount initializes the wallet. Upstream code must not rely on an arbitrary grant amount overriding an earlier allocation.
 
 ## Order Service: expected future implementation
 

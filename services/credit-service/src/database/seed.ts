@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Initialize development wallets using the existing seeded users' identities from User Service.
+ * Scope: Initialize development wallets explicitly using the existing seeded users' identities from User Service; keep wallet reads read-only.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
@@ -47,7 +47,7 @@ async function resolveSeedUserId(userServiceUrl: string, email: string): Promise
   }
 }
 
-export async function seedCreditWallets(credits: Pick<CreditService, 'getWallet'>, userServiceUrl: string) {
+export async function seedCreditWallets(credits: Pick<CreditService, 'initializeWallet'>, userServiceUrl: string) {
   // Resolve every account before writing any wallets; never invent or hardcode UUIDs.
   const userIds: string[] = [];
   for (const email of seedEmails) userIds.push(await resolveSeedUserId(userServiceUrl, email));
@@ -56,7 +56,7 @@ export async function seedCreditWallets(credits: Pick<CreditService, 'getWallet'
   const wallets = [];
   for (const userId of userIds) {
     // Existing transactional initialization preserves balances and grants credits at most once.
-    wallets.push(await credits.getWallet(userId));
+    wallets.push(await credits.initializeWallet(userId));
   }
   return wallets;
 }

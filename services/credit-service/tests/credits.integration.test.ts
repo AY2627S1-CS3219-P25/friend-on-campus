@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-03
+ * Scope: Verify wallet reads never create or change wallets, grants or ledger entries; initialize fixtures explicitly.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Tested JWT authentication and wallet ownership alongside HTTP and PostgreSQL regressions.
  * Author review: <to be completed by huangjiaxi1111>
@@ -68,6 +72,15 @@ async function main() {
     assert.equal(await db.creditWallet.count({ where: { userId: unknownUser } }), 0);
     assert.equal(await db.creditGrant.count({ where: { userId: unknownUser } }), 0);
     assert.equal((await request('/api/credits/wallet', undefined, 'u1111111-1111-1111-1111-111111111111')).status, 400);
+    const missingReads = await Promise.all(Array.from({ length: 6 }, () => request('/api/credits/wallet', undefined, requesterId)));
+    assert(missingReads.every(result => result.status === 404 && result.body.error === 'Wallet not found'));
+    assert.equal(await db.creditWallet.count({ where: { userId: requesterId } }), 0);
+    assert.equal(await db.creditGrant.count({ where: { userId: requesterId } }), 0);
+    assert.deepEqual(await credits.getLedger(requesterId), []);
+    await credits.initializeWallet(requesterId);
+    const initializedWallet = await db.creditWallet.findUniqueOrThrow({ where: { userId: requesterId } });
+    const initializedGrant = await db.creditGrant.findUniqueOrThrow({ where: { userId: requesterId } });
+    const initializedLedger = await credits.getLedger(requesterId);
     const wallet = await request('/api/credits/wallet', undefined, requesterId);
     assert.equal(wallet.status, 200);
     assert.equal(wallet.body.data.availableCredits, 100);
@@ -85,6 +98,11 @@ async function main() {
       }
     }
     assert.equal(await db.creditWallet.count({ where: { userId: unknownUser } }), 0);
+    // Existing wallet reads preserve stored balances, timestamps, grant and ledger exactly.
+    assert.deepEqual(await db.creditWallet.findUniqueOrThrow({ where: { userId: requesterId } }), initializedWallet);
+    assert.deepEqual(await db.creditGrant.findUniqueOrThrow({ where: { userId: requesterId } }), initializedGrant);
+    assert.deepEqual(await credits.getLedger(requesterId), initializedLedger);
+    console.log('PASS: missing wallet reads return 404 without writes; existing wallet reads preserve all records');
     console.log('PASS: JWT validation, authenticated wallet/ledger ownership, spoofed identity rejection and public health endpoints');
 
     for (const amount of [0, -1, 1.5, '10', null, 2147483648]) {
@@ -158,8 +176,8 @@ async function main() {
       assert.equal(reloaded.escrowCredits, 0);
     } finally { await secondClient.$disconnect(); }
 
-    const firstReads = await Promise.all(Array.from({ length: 6 }, () => credits.getWallet(newRaceUser)));
-    assert(firstReads.every(w => w.availableCredits === 100));
+    const initializations = await Promise.all(Array.from({ length: 6 }, () => credits.initializeWallet(newRaceUser)));
+    assert(initializations.every(w => w.availableCredits === 100));
     assert.equal(await db.creditWallet.count({ where: { userId: newRaceUser } }), 1);
     const raceOrders = Array.from({ length: 6 }, () => randomUUID());
     const racing = await Promise.all(raceOrders.map(orderId => request('/api/credits/escrow/reserve', {

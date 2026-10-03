@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Codex (model: GPT-6), date: 2026-10-03
+ * Scope: Display authenticated Credit Service wallet and ledger data, handle loading/errors, and remove simulated balance changes.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Responsive layouts and an Admin Log In link on the student login page.
  * Author review: <to be completed by huangjiaxi1111>
@@ -82,7 +86,7 @@ import {
   RefreshCw,
   CheckCircle,
 } from 'lucide-react';
-import { OrderDTO, CreditWalletDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
+import { OrderDTO, CreditWalletDTO, CreditTransactionDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 
 export default function App() {
   // Login / Sign Up Gate state
@@ -133,14 +137,12 @@ export default function App() {
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
 
-  // Wallet State
-  const [wallet, setWallet] = useState<CreditWalletDTO>({
-    userId: 'u1111111-1111-1111-1111-111111111111',
-    availableCredits: 85,
-    escrowCredits: 15,
-    totalEarnedCredits: 45,
-    updatedAt: new Date().toISOString(),
-  });
+  // Credit Wallet & Ledger State
+  const [wallet, setWallet] = useState<CreditWalletDTO | null>(null);
+  const [ledger, setLedger] = useState<CreditTransactionDTO[]>([]);
+  const [isLoadingCredits, setIsLoadingCredits] = useState(false);
+  const [creditError, setCreditError] = useState<string | null>(null);
+  const creditRequestId = useRef(0);
 
   // Open Orders State
   const [orders, setOrders] = useState<OrderDTO[]>([
@@ -340,6 +342,47 @@ export default function App() {
     return res;
   };
 
+  const fetchCredits = async () => {
+    const requestId = ++creditRequestId.current;
+    setIsLoadingCredits(true);
+    setCreditError(null);
+    setWallet(null);
+    setLedger([]);
+    try {
+      // Both endpoints only read persisted credit data.
+      const walletResponse = await authFetch('/api/credits/wallet');
+      const walletResult = await walletResponse.json();
+      if (requestId !== creditRequestId.current) return;
+      if (walletResponse.status === 404) {
+        setCreditError('Your credit wallet has not been initialized yet.');
+        return;
+      }
+      if (!walletResponse.ok || !walletResult.success || !walletResult.data) {
+        throw new Error('Unable to load your credits. Please try again.');
+      }
+      const ledgerResponse = await authFetch('/api/credits/ledger');
+      const ledgerResult = await ledgerResponse.json();
+      if (requestId !== creditRequestId.current) return;
+      if (!ledgerResponse.ok || !ledgerResult.success || !Array.isArray(ledgerResult.data)) {
+        throw new Error('Unable to load your transactions. Please try again.');
+      }
+      setWallet(walletResult.data);
+      setLedger(ledgerResult.data);
+    } catch {
+      if (requestId === creditRequestId.current) {
+        setCreditError('Unable to load your wallet and transactions. Please try again.');
+      }
+    } finally {
+      if (requestId === creditRequestId.current) setIsLoadingCredits(false);
+    }
+  };
+
+  // Refresh on sign-in and tab navigation; ignore responses from previous sessions or requests.
+  useEffect(() => {
+    if (isAuthenticated) void fetchCredits();
+    return () => { creditRequestId.current++; };
+  }, [isAuthenticated, activeTab]);
+
   // Fetch the logged-in user's own profile (GET /api/users/me)
   const fetchProfile = async () => {
     setIsLoadingProfile(true);
@@ -425,6 +468,11 @@ export default function App() {
   // when a refresh fails: that 401 may be a lost rotation race, and the cookie may by then belong
   // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
   const clearLocalSession = () => {
+    creditRequestId.current++;
+    setWallet(null);
+    setLedger([]);
+    setCreditError(null);
+    setIsLoadingCredits(false);
     setIsAuthenticated(false);
     setAuthToken('');
     setLoginEmail('');
@@ -554,6 +602,7 @@ export default function App() {
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!wallet) return;
     if (wallet.availableCredits < formData.rewardCredits) {
       alert('Insufficient available credits to post errand.');
       return;
@@ -578,13 +627,7 @@ export default function App() {
     };
 
     setOrders([newOrder, ...orders]);
-    setWallet((prev) => ({
-      ...prev,
-      availableCredits: prev.availableCredits - formData.rewardCredits,
-      escrowCredits: prev.escrowCredits + formData.rewardCredits,
-    }));
-
-    setNotification(`Errand ${newOrder.orderCode} posted! Escrow locked: ${formData.rewardCredits} Credits.`);
+    setNotification(`Errand ${newOrder.orderCode} preview created. No credits reserved.`);
     setActiveTab('feed');
 
     setFormData({
@@ -599,6 +642,7 @@ export default function App() {
   };
 
   const handleAcceptOrder = (orderId: string) => {
+    if (!wallet) return;
     setOrders((prev) =>
       prev.map((ord) =>
         ord.id === orderId
@@ -888,7 +932,9 @@ export default function App() {
 
           <div className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">
             <Coins className="w-3.5 h-3.5 text-amber-300" />
-            <span className="text-sm font-bold text-amber-300">{wallet.availableCredits} C</span>
+            <span className="text-sm font-bold text-amber-300" aria-live="polite">
+              {wallet ? `${wallet.availableCredits} C` : isLoadingCredits ? 'Loading credits…' : 'Credits unavailable'}
+            </span>
           </div>
         </div>
 
@@ -906,7 +952,7 @@ export default function App() {
             />
             <span>WS Hub: {wsStatus}</span>
           </span>
-          <span className="text-blue-300">Escrow: {wallet.escrowCredits} C Held</span>
+          <span className="text-blue-300">Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}</span>
         </div>
       </header>
 
@@ -995,7 +1041,8 @@ export default function App() {
                     {order.status === 'OPEN' ? (
                       <button
                         onClick={() => handleAcceptOrder(order.id)}
-                        className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1"
+                        disabled={!wallet || isLoadingCredits}
+                        className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span>Accept Errand</span>
                       </button>
@@ -1113,15 +1160,16 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 mt-1">
-                    Available: {wallet.availableCredits} C | Escrow hold applied upon posting.
+                    Available: {wallet ? `${wallet.availableCredits} C` : '—'}. This preview does not reserve credits.
                   </p>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+                  disabled={!wallet || isLoadingCredits}
+                  className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Post Errand & Reserve Escrow
+                  Preview Errand
                 </button>
               </aside>
             </form>
@@ -1227,11 +1275,11 @@ export default function App() {
             <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Active Tasks</h2>
             {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
             <div className="responsive-card-grid">
-              {!orders.some((o) => o.courierId === wallet.userId || o.requesterId === wallet.userId) && (
+              {!orders.some((o) => wallet && (o.courierId === wallet.userId || o.requesterId === wallet.userId)) && (
                 <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No active tasks yet.</p>
               )}
               {orders
-                .filter((o) => o.courierId === wallet.userId || o.requesterId === wallet.userId)
+                .filter((o) => wallet && (o.courierId === wallet.userId || o.requesterId === wallet.userId))
                 .map((task) => (
                   <div key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
                     <div className="flex justify-between items-center">
@@ -1393,9 +1441,19 @@ export default function App() {
               </button>
             </section>
             <section aria-labelledby="credit-heading" className="min-w-0 space-y-4">
-              <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Credit Wallet & Ledger</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Credit Wallet & Ledger</h2>
+                <button type="button" onClick={() => void fetchCredits()} disabled={isLoadingCredits}
+                  className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
+                  <RefreshCw className={`h-4 w-4 ${isLoadingCredits ? 'animate-spin' : ''}`} />
+                  {creditError ? 'Retry credits' : 'Refresh credits'}
+                </button>
+              </div>
+              {isLoadingCredits && <p role="status" className="text-sm text-slate-500">Loading wallet and transactions…</p>}
+              {creditError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{creditError}</p>}
 
               {/* Balance Card */}
+              {wallet && <>
               <div className="bg-gradient-to-br from-nus-blue to-blue-950 text-white rounded-2xl p-5 shadow-lg">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-sm font-bold tracking-wider text-blue-200 uppercase">NUS Closed Economy</span>
@@ -1419,6 +1477,7 @@ export default function App() {
                     <span className="text-base font-bold text-amber-300">{wallet.escrowCredits} C</span>
                   </div>
                 </div>
+                <p className="mt-3 text-sm text-blue-200">Total earned: {wallet.totalEarnedCredits} C</p>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900 flex items-start space-x-2">
@@ -1433,22 +1492,28 @@ export default function App() {
               <div>
                 <h3 className="font-bold text-sm text-slate-800 mb-2">Recent Ledger Transactions</h3>
                 <div className="space-y-2">
-                  <div className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-slate-800">Welcome Grant</p>
-                      <p className="text-xs text-slate-400">Initial student signup allocation</p>
-                    </div>
-                    <span className="font-bold text-emerald-600">+100 C</span>
-                  </div>
-                  <div className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-slate-800">Escrow Hold (E-1042)</p>
-                      <p className="text-xs text-slate-400">Locked for active request</p>
-                    </div>
-                    <span className="font-bold text-amber-600">-15 C</span>
-                  </div>
+                  {ledger.length === 0 && <p className="text-sm text-slate-500">No credit transactions yet.</p>}
+                  {ledger.map(transaction => {
+                    const labels = { WELCOME_GRANT: 'Welcome Grant', ESCROW_HOLD: 'Escrow Hold',
+                      ESCROW_RELEASE: 'Escrow Settlement', ESCROW_REFUND: 'Escrow Refund' };
+                    const incoming = transaction.transactionType === 'ESCROW_REFUND' || transaction.toUserId === wallet.userId;
+                    return (
+                      <div key={transaction.id} className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-start gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-800">{labels[transaction.transactionType]}</p>
+                          <p className="text-xs text-slate-500 break-words">{transaction.description}</p>
+                          <p className="text-xs text-slate-400 break-all">{transaction.transactionCode}</p>
+                          <time className="text-xs text-slate-400" dateTime={transaction.createdAt}>{new Date(transaction.createdAt).toLocaleString()}</time>
+                        </div>
+                        <span className={`shrink-0 font-bold ${incoming ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {incoming ? '+' : '−'}{transaction.amount} C
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+              </>}
             </section>
           </div>
         )}
