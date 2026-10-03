@@ -9,6 +9,10 @@ Tool: Codex (model: GPT-6), date: 2026-10-03
 Scope: Recorded matching development credit wallet seeding, startup wiring and verification, live student wallet/ledger integration.
 Author review: <to be completed by huangjiaxi1111>
 
+Tool: Codex (model: GPT-6), date: 2026-10-04
+Scope: Recorded poison-event quarantine, AMQP connection reuse, regression verification.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
@@ -1917,3 +1921,37 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/services/credit-service-integration-contract.md` — Updated User Service integration specification to reflect the transactional outbox implementation.
 - `ai/usage-log.md` — Appended this record.
 
+## 2026-10-04 00:10 SGT — Quarantine poisoned outbox records
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Fix the relay loop where a full batch of permanently invalid outbox rows is fetched forever and blocks newer registration events.
+
+**Usage scenario:** Debugging and implementation. Added the author-requested terminal `FAILED` state for malformed JSON and unsupported event types while retaining retries for transient publisher failures. Added a full-batch regression proving poison rows leave the pending set and the following valid event is delivered. Review and commit remain with the author.
+
+**Files changed:**
+- `services/user-service/src/messaging/outbox.ts`, `src/persistence/auth-repository.ts` — Mark permanent failures `FAILED` and increment their retry count atomically.
+- `services/user-service/test/helpers.ts`, `test/outbox.test.ts` — Mirror the terminal state and cover a 20-row poisoned head followed by a valid event.
+- `docs/services/user-service.md`, `docs/services/credit-service-integration-contract.md` — Document `FAILED` records and continued queue progress.
+- `ai/usage-log.md` — Recorded this prompt.
+
+**Verification:** User Service and all-workspace type-checks passed; focused outbox tests passed 4/4; full unit tests passed 158/158; D2 passed 56/56. Commit `e84d3a2` was made by the author, not Codex.
+
+## 2026-10-04 00:12 SGT — Reuse live AMQP connection after channel closure
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** After completing the poison-row fix, prevent the User Service publisher from leaking one TCP connection whenever an AMQP channel closes and the outbox retries.
+
+**Usage scenario:** Debugging and implementation. Changed channel recreation to reuse the existing live AMQP connection, dial only when no connection exists, and prevent stale channel or connection callbacks from clearing newer resources. Added a mocked lifecycle regression proving two channels use one connection and shutdown closes it once. Review and commit remain with the author.
+
+**Files changed:**
+- `services/user-service/src/messaging/publisher.ts` — Reuse the live connection for replacement confirm channels and guard resource event handlers.
+- `services/user-service/test/publisher.test.ts` — Verify one connection is reused across channel closure and recreation.
+- `ai/usage-log.md` — Recorded this prompt.
+
+**Verification:** Focused publisher tests passed 7/7; all nine workspace type-checks passed; full unit tests passed 159/159; D2 passed 56/56. No commit or push was made by Codex.

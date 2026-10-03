@@ -7,6 +7,10 @@
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Added 5000 ms connection timeout to amqp.connect matching credit-service to prevent unbounded connection stalls.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-04
+ * Scope: Reused live AMQP connections when recreating closed publisher channels and guarded lifecycle handlers against stale resources.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import amqp, { type ConfirmChannel, type Options } from 'amqplib';
@@ -74,33 +78,36 @@ export function createRabbitMQPublisher(config: RabbitMQPublisherConfig): UserEv
 
     connectingPromise = (async () => {
       try {
-        const conn = await amqp.connect(config.url, {
-          timeout: config.connectionTimeoutMs ?? 5000,
-        });
-        conn.on('error', (err) => {
-          logError('rabbitmq_connection_error', err);
-          channel = null;
-          connection = null;
-          publishFn = null;
-        });
-        conn.on('close', () => {
-          channel = null;
-          connection = null;
-          publishFn = null;
-        });
+        let conn = connection;
+        if (!conn) {
+          conn = await amqp.connect(config.url, {
+            timeout: config.connectionTimeoutMs ?? 5000,
+          });
+          connection = conn;
+          conn.on('error', (err) => {
+            logError('rabbitmq_connection_error', err);
+          });
+          conn.on('close', () => {
+            if (connection !== conn) return;
+            channel = null;
+            connection = null;
+            publishFn = null;
+          });
+        }
 
         const ch = await conn.createConfirmChannel();
         ch.on('error', (err) => {
           logError('rabbitmq_channel_error', err);
+          if (channel !== ch) return;
           channel = null;
           publishFn = null;
         });
         ch.on('close', () => {
+          if (channel !== ch) return;
           channel = null;
           publishFn = null;
         });
 
-        connection = conn;
         channel = ch;
         publishFn = createConfirmedPublisher(ch);
         return ch;
