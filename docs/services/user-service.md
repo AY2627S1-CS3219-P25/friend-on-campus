@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-03
+Scope: Documented transactional outbox persistence, RabbitMQ event publishing, at-least-once delivery guarantees, and background relay lifecycle.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
 Scope: Login now refuses disabled accounts (A6); behaviour notes and API table updated.
 Author review: <to be completed by Reallyeasy1>
@@ -89,6 +93,8 @@ the shared `postgres` hostname on port `5432`.
 |---|---|---|
 | `PORT` | HTTP listen port | `8001` |
 | `DATABASE_URL` | Prisma connection | local `user_db` URL above |
+| `RABBITMQ_URL` | RabbitMQ connection URL | `amqp://user_service:user-service-dev@localhost:5672/campus` |
+| `EVENTS_EXCHANGE` | Topic exchange for campus events | `campus.events` |
 | `JWT_PRIVATE_KEY` | Ed25519 access-token signing | required |
 | `JWT_PUBLIC_KEY` | local access-token verification | required |
 | `JWT_ISSUER` | access-token issuer claim | `friend-on-campus-user-service` |
@@ -100,17 +106,29 @@ the shared `postgres` hostname on port `5432`.
 
 ## Persistence
 
-`src/database/prisma/schema.prisma` defines `User` and `Session`.
+`src/database/prisma/schema.prisma` defines `User`, `Session`, and `OutboxEvent`.
 
 - `users`: UUID, username, email, password hash (scrypt), `STUDENT`/`ADMIN` role (default `STUDENT`), `status` boolean (default `true`), and timestamps.
 - `sessions.user_id` references `users.id` with `ON DELETE CASCADE`; index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
-- Migrations: `20260922170000_initial_user_service`, `20260923150000_add_user_status`.
+- `outbox_events`: UUID primary key, `event_type` (`user.registered`), `payload` JSON text, `status` (`PENDING`/`DELIVERED`/`FAILED`), `retry_count`, and timestamps; index `outbox_events_status_created_at_idx` on (`status`, `created_at`).
+- Migrations: `20260922170000_initial_user_service`, `20260923150000_add_user_status`, `20261003233000_add_outbox_events`.
 - `sessions`: UUID, user reference, refresh-token hash, persistence flag, timestamps, and idle expiry.
 - Usernames and emails are unique case-insensitively through PostgreSQL indexes.
 - `src/database/prisma/migrations/` is the service migration source, deployed automatically on container startup or via `npm run db:migrate`. The tables are owned exclusively by User Service and are no longer created in the shared postgres-init script.
 
 The Prisma repositories are `src/persistence/auth-repository.ts` and
 `src/persistence/user-repository.ts`; no runtime `pg` pool is used.
+
+## Messaging and transactional outbox
+
+When a new student registers (`POST /api/auth/register`), User Service coordinates account creation and credit grant event publication:
+- The user account and a `user.registered` event record (`initialGrant: 100`) are committed atomically within the same PostgreSQL transaction into `users` and `outbox_events`.
+- A background Outbox Relay polls `outbox_events` (`status = 'PENDING'`) and publishes events to RabbitMQ topic exchange `campus.events` using a confirmed channel (`mandatory: true`, `persistent: true`).
+- Upon broker confirmation, the outbox record is marked `status = 'DELIVERED'`.
+- If RabbitMQ or downstream queue bindings are temporarily unavailable (e.g. broker rebooting or Credit Service still initialising), registration returns HTTP 201 immediately without failure, and the event remains `PENDING` in the database.
+- The relay periodically retries pending records with incremented `retry_count`, maintaining the exact same `eventId` and payload across attempts.
+- Records with malformed JSON or unsupported event types are permanent failures and are marked `FAILED`; they are not polled again and cannot block later records.
+- **Delivery Guarantee**: At-least-once. Downstream consumers (Credit Service) must handle `user.registered` idempotently.
 
 ## API
 

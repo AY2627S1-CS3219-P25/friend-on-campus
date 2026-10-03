@@ -1,0 +1,5 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-09-24
+# Scope: Declared the existing PostgreSQL migration provider.
+# Author review: <to be completed by huangjiaxi1111>
+provider = "postgresql"

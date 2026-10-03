@@ -17,6 +17,12 @@ Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Added the "Documentation index" and "Claude Code set-up" links under Milestone Documentation. Nothing else in this file was changed.
 Author review: <to be completed by Reallyeasy1>
 -->
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Updated the local RabbitMQ dashboard login for separate service identities.
+Author review: <to be completed by huangjiaxi1111>
+-->
 
 
 
@@ -102,7 +108,7 @@ docker compose up --build
 | **Student App** | [http://localhost:5173](http://localhost:5173) | Student Errand Feed & Campus Spots |
 | **User Service Health** | [http://localhost:8001/health](http://localhost:8001/health) | M2 Health Probe (`/api/users/me` for auth) |
 | **Supplier Service Health**| [http://localhost:8002/health](http://localhost:8002/health) | M3 Health Probe (`/api/suppliers` for catalog) |
-| **RabbitMQ Web Dashboard** | [http://localhost:15672](http://localhost:15672) | Login: `guest` / `guest` |
+| **RabbitMQ Web Dashboard** | [http://localhost:15672](http://localhost:15672) | Development login: `campus_admin` / `campus-admin-dev` |
 | **PostgreSQL Shell** | `docker exec -it campuserrand-postgres psql -U postgres` | Database shell |
 
 ---

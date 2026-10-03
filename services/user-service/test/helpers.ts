@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Extended fake AuthRepository with outbox persistence and querying methods.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Mirror last-admin protection and UUID case handling in the user repository fake.
  * Author review: <to be completed by huangjiaxi1111>
@@ -10,19 +14,20 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
-import { generateKeyPairSync, createHash } from 'node:crypto';
-import type { AddressInfo } from 'node:net';
 import type { Express } from 'express';
+import { createHash, generateKeyPairSync } from 'node:crypto';
+import type { AddressInfo } from 'node:net';
+import type { TokenManager } from '../src/auth/tokens';
 import type {
   AuthRepository,
   CreateSessionRecord,
   CreateUserRecord,
+  OutboxEventRecord,
   SessionUserRecord,
   UserRecord,
 } from '../src/persistence/auth-repository';
 import type { UpdateUserRecord, UserRepository } from '../src/persistence/user-repository';
 import { LastAdminError } from '../src/persistence/user-repository';
-import type { TokenManager } from '../src/auth/tokens';
 
 export function makeUser(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
@@ -77,6 +82,7 @@ interface StoredSession {
 export function makeFakeAuthRepository(seed: UserRecord[] = []) {
   const users = new Map<string, UserRecord>(seed.map((u) => [u.id, { ...u }]));
   const sessions = new Map<string, StoredSession>();
+  const outboxEvents: OutboxEventRecord[] = [];
   let nextId = 1;
   const calls: string[] = [];
 
@@ -92,7 +98,7 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
         }
       }
       const user: UserRecord = {
-        id: `00000000-0000-4000-8000-${String(nextId++).padStart(12, '0')}`,
+        id: input.id ?? `00000000-0000-4000-8000-${String(nextId++).padStart(12, '0')}`,
         username: input.username,
         email: input.email,
         passwordHash: input.passwordHash,
@@ -100,6 +106,19 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
         status: true,
       };
       users.set(user.id, user);
+
+      if (input.outboxEvent) {
+        outboxEvents.push({
+          id: input.outboxEvent.id ?? `event-${nextId++}`,
+          eventType: input.outboxEvent.eventType,
+          payload: input.outboxEvent.payload,
+          status: 'PENDING',
+          retryCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
       return { ...user };
     },
     async findUserByEmail(email) {
@@ -150,6 +169,38 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
         if (s.idleExpiresAt <= now) sessions.delete(hash);
       }
     },
+    async getPendingOutboxEvents(limit = 50) {
+      calls.push('getPendingOutboxEvents');
+      return outboxEvents
+        .filter((e) => e.status === 'PENDING')
+        .slice(0, limit)
+        .map((e) => ({ ...e }));
+    },
+    async markOutboxEventDelivered(id) {
+      calls.push('markOutboxEventDelivered');
+      const event = outboxEvents.find((e) => e.id === id);
+      if (event) {
+        event.status = 'DELIVERED';
+        event.updatedAt = new Date();
+      }
+    },
+    async markOutboxEventFailed(id) {
+      calls.push('markOutboxEventFailed');
+      const event = outboxEvents.find((e) => e.id === id);
+      if (event) {
+        event.status = 'FAILED';
+        event.retryCount += 1;
+        event.updatedAt = new Date();
+      }
+    },
+    async incrementOutboxEventRetry(id) {
+      calls.push('incrementOutboxEventRetry');
+      const event = outboxEvents.find((e) => e.id === id);
+      if (event) {
+        event.retryCount += 1;
+        event.updatedAt = new Date();
+      }
+    },
   };
 
   function toSessionUser(session: StoredSession): SessionUserRecord {
@@ -163,7 +214,7 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
     };
   }
 
-  return { repo, users, sessions, calls };
+  return { repo, users, sessions, outboxEvents, calls };
 }
 
 /** In-memory UserRepository mirroring the Prisma implementation's semantics. */

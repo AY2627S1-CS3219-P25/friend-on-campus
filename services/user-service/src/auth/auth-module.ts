@@ -1,9 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Persisted user.registered event in transactional outbox during registration and integrated outbox relay.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
  * Scope: Login refuses a disabled account with ACCOUNT_DISABLED, checked after password verification (UAT gap A6).
  * Author review: <to be completed by Reallyeasy1>
- *
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented account registration, authentication, session lifecycle, timing-safe unknown-user login handling, and Prisma duplicate-constraint error handling.
@@ -37,7 +40,11 @@ import type {
   RefreshTokenResponse,
   RegisterUserRequest,
   UserDTO,
+  UserRegisteredEvent,
 } from '@campus-errand/common-dtos';
+import { randomUUID } from 'node:crypto';
+import type { OutboxRelay } from '../messaging/outbox';
+import type { UserEventPublisher } from '../messaging/publisher';
 import {
   AuthRepository,
   SessionUserRecord,
@@ -100,6 +107,8 @@ export interface AuthModuleOptions {
   accessTokenLifetimeSeconds: number;
   refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
+  publisher?: UserEventPublisher;
+  outboxRelay?: OutboxRelay;
 }
 
 interface DuplicateUserError {
@@ -187,12 +196,35 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       const password = validatePassword(input?.password);
       const passwordHash = await hashPassword(password);
 
+      const userId = randomUUID();
+      const eventId = randomUUID();
+      const event: UserRegisteredEvent = {
+        eventId,
+        eventType: 'user.registered',
+        timestamp: new Date().toISOString(),
+        userId,
+        email,
+        initialGrant: 100,
+      };
+
       try {
         const user = await options.repository.createUser({
+          id: userId,
           username,
           email,
           passwordHash,
+          outboxEvent: {
+            id: eventId,
+            eventType: 'user.registered',
+            payload: JSON.stringify(event),
+          },
         });
+
+        if (options.outboxRelay) {
+          void options.outboxRelay.trigger();
+        } else if (options.publisher) {
+          await options.publisher.publishUserRegistered(event);
+        }
 
         return toUserDTO(user);
       } catch (error) {

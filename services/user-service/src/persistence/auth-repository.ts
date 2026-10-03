@@ -1,6 +1,14 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Implemented transactional outbox persistence in createUser and outbox event querying, delivery marking, and retry tracking.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-04
+ * Scope: Added terminal failed-state persistence for permanently invalid outbox events.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation.
  * Author review: <to be completed by ngkhengyang>
@@ -34,10 +42,28 @@ export interface SessionUserRecord {
   idleExpiresAt: Date;
 }
 
+export interface CreateOutboxEventRecord {
+  id?: string;
+  eventType: string;
+  payload: string;
+}
+
+export interface OutboxEventRecord {
+  id: string;
+  eventType: string;
+  payload: string;
+  status: string;
+  retryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface CreateUserRecord {
+  id?: string;
   username: string;
   email: string;
   passwordHash: string;
+  outboxEvent?: CreateOutboxEventRecord;
 }
 
 export interface CreateSessionRecord {
@@ -60,6 +86,10 @@ export interface AuthRepository {
   ): Promise<SessionUserRecord | null>;
   revokeSession(refreshTokenHash: string): Promise<void>;
   deleteExpiredSessions(now: Date): Promise<void>;
+  getPendingOutboxEvents(limit?: number): Promise<OutboxEventRecord[]>;
+  markOutboxEventDelivered(id: string): Promise<void>;
+  markOutboxEventFailed(id: string): Promise<void>;
+  incrementOutboxEventRetry(id: string): Promise<void>;
 }
 
 type SessionWithUser = Prisma.SessionGetPayload<{ include: { user: true } }>;
@@ -87,16 +117,30 @@ function toSessionUserRecord(row: SessionWithUser): SessionUserRecord {
 export function createAuthRepository(prisma: PrismaClient): AuthRepository {
   return {
     async createUser(input) {
-      const user = await prisma.user.create({
-        data: {
-          username: input.username,
-          email: input.email,
-          passwordHash: input.passwordHash,
-          role: 'STUDENT',
-        },
-      });
+      return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const user = await tx.user.create({
+          data: {
+            ...(input.id ? { id: input.id } : {}),
+            username: input.username,
+            email: input.email,
+            passwordHash: input.passwordHash,
+            role: 'STUDENT',
+          },
+        });
 
-      return toUserRecord(user);
+        if (input.outboxEvent) {
+          await tx.outboxEvent.create({
+            data: {
+              ...(input.outboxEvent.id ? { id: input.outboxEvent.id } : {}),
+              eventType: input.outboxEvent.eventType,
+              payload: input.outboxEvent.payload,
+              status: 'PENDING',
+            },
+          });
+        }
+
+        return toUserRecord(user);
+      });
     },
 
     async findUserByEmail(email) {
@@ -172,6 +216,47 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
 
     async deleteExpiredSessions(now) {
       await prisma.session.deleteMany({ where: { idleExpiresAt: { lte: now } } });
+    },
+
+    async getPendingOutboxEvents(limit = 50) {
+      const rows = await prisma.outboxEvent.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'asc' },
+        take: limit,
+      });
+      return rows.map((row) => ({
+        id: row.id,
+        eventType: row.eventType,
+        payload: row.payload,
+        status: row.status,
+        retryCount: row.retryCount,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      }));
+    },
+
+    async markOutboxEventDelivered(id: string) {
+      await prisma.outboxEvent.update({
+        where: { id },
+        data: { status: 'DELIVERED' },
+      });
+    },
+
+    async markOutboxEventFailed(id: string) {
+      await prisma.outboxEvent.update({
+        where: { id },
+        data: {
+          status: 'FAILED',
+          retryCount: { increment: 1 },
+        },
+      });
+    },
+
+    async incrementOutboxEventRetry(id: string) {
+      await prisma.outboxEvent.update({
+        where: { id },
+        data: { retryCount: { increment: 1 } },
+      });
     },
   };
 }

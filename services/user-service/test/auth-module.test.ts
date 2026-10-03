@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-03
+ * Scope: Added registration event publisher integration tests and error isolation checks.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
  * Scope: Added the disabled-account login tests (ACCOUNT_DISABLED, password checked before status).
  * Author review: <to be completed by Reallyeasy1>
@@ -13,8 +17,10 @@
 // AI-generated (edited by Reallyeasy1)
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import type { UserRegisteredEvent } from '@campus-errand/common-dtos';
 import { AuthError, createAuthModule } from '../src/auth/auth-module';
 import { hashPassword, verifyPassword } from '../src/auth/password';
+import type { UserEventPublisher } from '../src/messaging/publisher';
 import { makeFakeAuthRepository, makeFakeTokens, makeUser } from './helpers';
 
 const LIFETIMES = {
@@ -79,6 +85,62 @@ describe('register', () => {
       auth.register({ username: 'alice', email: 'alice@u.nus.edu', password: 'Password123!' }),
       /connection refused/,
     );
+  });
+
+  it('publishes a user.registered event with initialGrant 100 when a publisher is provided', async () => {
+    const publishedEvents: UserRegisteredEvent[] = [];
+    const testPublisher: UserEventPublisher = {
+      async publishUserRegistered(event) {
+        publishedEvents.push(event);
+        return true;
+      },
+      async close() {},
+    };
+    const authWithPublisher = createAuthModule({
+      repository: fake.repo,
+      tokens: makeFakeTokens(),
+      publisher: testPublisher,
+      ...LIFETIMES,
+    });
+
+    const user = await authWithPublisher.register({
+      username: 'charlie',
+      email: 'charlie@u.nus.edu',
+      password: 'Password123!',
+    });
+
+    assert.equal(publishedEvents.length, 1);
+    const event = publishedEvents[0];
+    assert.equal(event.eventType, 'user.registered');
+    assert.equal(event.userId, user.userId);
+    assert.equal(event.email, 'charlie@u.nus.edu');
+    assert.equal(event.initialGrant, 100);
+    assert.match(event.eventId, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    assert.ok(Number.isFinite(new Date(event.timestamp).getTime()));
+  });
+
+  it('completes registration successfully even if the event publisher encounters a failure', async () => {
+    const failingPublisher: UserEventPublisher = {
+      async publishUserRegistered() {
+        return false;
+      },
+      async close() {},
+    };
+    const authWithFailingPublisher = createAuthModule({
+      repository: fake.repo,
+      tokens: makeFakeTokens(),
+      publisher: failingPublisher,
+      ...LIFETIMES,
+    });
+
+    const user = await authWithFailingPublisher.register({
+      username: 'david',
+      email: 'david@u.nus.edu',
+      password: 'Password123!',
+    });
+
+    assert.equal(user.username, 'david');
+    assert.equal(user.email, 'david@u.nus.edu');
   });
 });
 

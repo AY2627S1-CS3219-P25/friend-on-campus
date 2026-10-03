@@ -1,3 +1,10 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-09-24
+ * Scope: Replaced the unused shared RabbitMQ credential with Notification Service's dedicated development identity.
+ * Author review: <to be completed by huangjiaxi1111>
+ */
+// AI-generated (edited by huangjiaxi1111)
 import express, { Request, Response } from 'express';
 import http from 'http';
 import cors from 'cors';
@@ -8,7 +15,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8005;
-const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://notification_service:notification-service-dev@localhost:5672/campus';
 
 app.use(cors());
 app.use(express.json());

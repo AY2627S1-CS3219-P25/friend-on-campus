@@ -1,5 +1,13 @@
 # AI Assistance Disclosure:
 #
+# Tool: Google Antigravity Agent, date: 2026-10-03
+# Scope: Configured User Service RabbitMQ URL and startup dependency on healthy RabbitMQ broker.
+# Author review: <to be completed by huangjiaxi1111>
+#
+# Tool: Codex (model: GPT-6), date: 2026-10-03
+# Scope: Wait for seeded User Service before Credit Service startup seeding; configure its seed API URL.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-6), date: 2026-10-01
 # Scope: Restore the student's admin portal target alongside gateway API routing.
 # Author review: Approved by ngkhengyang
@@ -30,12 +38,12 @@
 # launched, not for it to actually be reachable. service_healthy makes the gateway wait for a real response from
 # each service first, so this race can no longer happen on a normal `docker compose down -v && up --build`.
 # Author review: (to be completed by author after review)
+#
+# Tool: Codex (model: GPT-6), date: 2026-09-24
+# Scope: Supplied Credit Service recovery and separate least-privilege RabbitMQ identities.
+# Author review: <to be completed by huangjiaxi1111>
 
 # AI-generated (edited by huangjiaxi1111)
-
-
-
-
 
 services:
   # ----------------------------------------------------
@@ -133,8 +141,11 @@ services:
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
       JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RABBITMQ_URL: amqp://user_service:user-service-dev@rabbitmq:5672/campus
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test:
@@ -187,7 +198,7 @@ services:
     environment:
       - PORT=8003
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/order_db
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
       - CREDIT_SERVICE_URL=http://credit-service:8004
     depends_on:
       postgres:
@@ -211,16 +222,23 @@ services:
       context: .
       dockerfile: services/credit-service/Dockerfile
     container_name: campuserrand-credit-service
+    restart: unless-stopped
     ports:
       - "8004:8004"
     environment:
       - PORT=8004
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/credit_db
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - USER_SERVICE_URL=http://user-service:8001
+      - RABBITMQ_URL=amqp://credit_service:credit-service-dev@rabbitmq:5672/campus
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      user-service:
         condition: service_healthy
     healthcheck:
       test:
@@ -243,7 +261,7 @@ services:
       - "8005:8005"
     environment:
       - PORT=8005
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - RABBITMQ_URL=amqp://notification_service:notification-service-dev@rabbitmq:5672/campus
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -287,6 +305,8 @@ services:
       - "15672:15672"  # Management Web Dashboard
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s

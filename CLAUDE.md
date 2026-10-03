@@ -32,14 +32,11 @@ Author review: <to be completed by Reallyeasy1>
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Updated repo map and database schema management notes to reflect single-source-of-truth Prisma migration ownership per service.
 Author review: (to be completed by author after review)
+
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Updated the credit-service repo-map entry after replacing mock storage with Prisma.
+Author review: <to be completed by huangjiaxi1111>
 -->
-
-
-
-
-
-
-
 
 # CLAUDE.md — NUS CampusErrand / Friend of Campus (CS3219 AY26/27 S1, Group 25)
 
@@ -112,7 +109,7 @@ Compact map (state as of 2026-09-21; if the code differs, trust the code and fix
 services/user-service          :8001  real (Prisma, user_db)      entry src/index.ts
 services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/backend/server.ts
 services/order-service         :8003  in-memory mock              single src/index.ts
-services/credit-service        :8004  in-memory mock              single src/index.ts
+services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  in-memory mock (ws)         single src/index.ts
 apps/student-app               :5173  one src/App.tsx (~730 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
@@ -164,7 +161,7 @@ Before saying a change works: run `npm run typecheck` and `npm test`, and `npm r
 
 ## 6. Git and GitHub
 
-- Team repo: `AY2627S1-CS3219-P25/nus-campus-errand`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/nus-campus-errand`** to `gh issue` / `gh pr` commands.
+- Team repo: `AY2627S1-CS3219-P25/friend-on-campus`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/friend-on-campus`** to `gh issue` / `gh pr` commands.
 - Branches: `main` (releases), `dev` (integration), `milestone-d2` (D2 demo baseline), feature branches off `dev`.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
 - **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this. The `Claude PR review` workflow (`.github/workflows/claude-pr-review.yml`) checks it on every push: it reads the linked issues, compares their acceptance criteria with the diff, searches open issues for related work the PR does not link, and reports all of this in a **Linked issues** section of its summary comment with `Closes #<n>` lines to paste. It does not fail the PR or edit its body; the author decides which issues a PR closes. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.

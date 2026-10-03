@@ -1,8 +1,16 @@
 <!--
 AI Assistance Disclosure:
 
-Tool: Codex (model: GPT-6), date: 2026-09-30
-Scope: Implemented responsive UI layouts, recorded login navigation verification, and recorded atomic last-admin guards and self-deletion logout.
+Tool: Google Antigravity Agent, date: 2026-10-03
+Scope: Recorded implementation of User Service user.registered RabbitMQ publisher, transactional outbox, configuration, unit tests, and system documentation alignment.
+Author review: <to be completed by huangjiaxi1111>
+
+Tool: Codex (model: GPT-6), date: 2026-10-03
+Scope: Recorded matching development credit wallet seeding, startup wiring and verification, live student wallet/ledger integration.
+Author review: <to be completed by huangjiaxi1111>
+
+Tool: Codex (model: GPT-6), date: 2026-10-04
+Scope: Recorded poison-event quarantine, AMQP connection reuse, regression verification.
 Author review: <to be completed by huangjiaxi1111>
 
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
@@ -24,13 +32,15 @@ Author review: <to be completed by ngkhengyang>
 Tool: Google Antigravity Agent, date: 2026-09-24
 Scope: Appended the Database-per-Service schema ownership and migration refactoring record below.
 Author review: (to be completed by author after review)
+
+Tool: Codex (model: GPT-6), date: 2026-09-24
+Scope: Appended Credit Service scaffold, Prisma, RabbitMQ, JWT authentication and broker identity implementation records.
+Author review: <to be completed by huangjiaxi1111>
+
+Tool: Codex (model: GPT-6), date: 2026-09-30
+Scope: Implemented responsive UI layouts, recorded login navigation verification, and recorded atomic last-admin guards and self-deletion logout.
+Author review: <to be completed by huangjiaxi1111>
 -->
-
-
-
-
-
-
 
 # AI Usage Log
 
@@ -987,6 +997,130 @@ Verified:
 - Verified PostgreSQL: `user_db` has 3 seeded users, `supplier_db` has 21 seeded suppliers, `order_db` and `credit_db` have zero relations.
 - Executed `npm run test:d2`: 40/44 tests passed (all registration, authentication, token claims, user profile immutability, supplier querying, and cross-service RBAC passed).
 
+## 2026-09-24 12:09 SGT — Scaffold Credit Service with the author-specified module boundaries
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Scaffold Credit Service with credit functionality under `src/credits`: `routes.ts` for HTTP translation, `service.ts` for credit rules, `store.ts` for data access; `app.ts` assembles Express, `config.ts` owns environment configuration, and `index.ts` constructs dependencies and starts the server.
+
+**Usage scenario:** Boilerplate generation and refactoring following the author's stated boundaries. Extracted the existing mock behavior, reused shared DTOs and the author's existing untracked `config.ts`, and preserved endpoints, response shapes, initial balances, and insufficient-credit errors. New persistence, authentication, validation, idempotency and event behavior remain outside this scaffold. Read referenced issues #69 and #60 for context; this structural change does not complete their acceptance criteria. No dependencies added; no commits or pushes.
+
+**Files changed:**
+- `services/credit-service/src/index.ts` — constructs the store, service and Express app and starts the listener.
+- `services/credit-service/src/app.ts` — fills the empty scaffold with Express middleware, health check and credit router assembly.
+- `services/credit-service/src/credits/routes.ts` — HTTP request/response translation and existing 400 error mapping; replaces the empty untracked `route.ts` placeholder.
+- `services/credit-service/src/credits/service.ts` — existing wallet creation, ledger reads and escrow rules using the injected store.
+- `services/credit-service/src/credits/store.ts` — isolated in-memory wallet and ledger access with existing sample data.
+- `services/credit-service/src/credits/types.ts` — shared credit DTO re-exports and existing settlement result type.
+- `docs/services/credit-service.md` — module responsibilities and configuration location.
+- `CLAUDE.md`, `.claude/agents/backend.md` — corrected credit-service layout summaries.
+- `ai/usage-log.md` — disclosure and this entry.
+
+**Verification:** `npm run typecheck` passed across all nine workspaces. A transient HTTP smoke check passed for health, default/new wallets, reserve/settle/refund balances, all three insufficient-credit 400 responses, ledger ordering/filtering and independent stores. The sandbox initially blocked loopback binding (`EPERM`); the smoke check passed when rerun with approved escalation. `git diff --check` passed. D2 tests were not required because User Service, Supplier Service and both apps were untouched. No permanent tests or test dependencies added.
+
+## 2026-09-24 13:21 SGT — Replace Credit Service mock persistence with Prisma
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Follow the existing Credit Service PostgreSQL schema, replace mock storage with Prisma, and make the service runnable.
+
+**Usage scenario:** Implementation and configuration of the author's selected Prisma persistence using the existing SQL schema and module boundaries. No columns, constraints, shared DTOs or credit operation paths changed. Read issues #17, #42 and #43: this change provides persistence and negative-balance/integer checks relevant to F4.2.3–F4.2.4, but does not complete authentication, total-balance DTO or performance requirements. The existing caller-supplied identity and implicit 100-credit creation behavior are documented as remaining limitations. No idempotency/event schema was introduced. Prisma dependencies were explicitly authorized by the request. All changes remain uncommitted; nothing was pushed.
+
+**Files changed:**
+- `services/credit-service/src/database/prisma/schema.prisma` — exact table/column/default/nullability mappings for the existing credit SQL.
+- `services/credit-service/src/database/prisma/migrations/20260924050000_existing_credit_tables/migration.sql`, `migration_lock.toml` — initial migration copies the existing SQL and its CHECK constraints.
+- `services/credit-service/src/database/client.ts` — service-local Prisma singleton using the existing centralized configuration.
+- `services/credit-service/src/credits/store.ts` — Prisma reads, DTO mapping, transaction-scoped conditional atomic balance updates and ledger writes.
+- `services/credit-service/src/credits/service.ts` — async credit operations with balance changes and ledger records committed together; transaction codes fit the existing unique VARCHAR(30) column.
+- `services/credit-service/src/credits/routes.ts` — async Express 4 error forwarding, UUID/positive PostgreSQL integer input validation, removal of the invalid mock user fallback.
+- `services/credit-service/src/app.ts` — JSON errors for invalid JSON and unexpected persistence failures.
+- `services/credit-service/src/index.ts` — database/table checks before listening, startup failure reporting and Prisma shutdown.
+- `services/credit-service/src/credits/credits.integration.test.ts` — real PostgreSQL/HTTP lifecycle, validation, persistence, concurrent mutation and rollback coverage without a new test framework.
+- `services/credit-service/package.json`, `package-lock.json` — Prisma dependencies and generation, baseline, deploy and integration scripts; JSON cannot contain disclosure comments.
+- `services/credit-service/Dockerfile` — schema copied before workspace postinstall, Linux Prisma client generation and OpenSSL runtime support.
+- `services/credit-service/.env.example` — local database/environment reference.
+- `docs/services/credit-service.md`, `docs/services/README.md`, `docs/architecture/overview.md`, `CLAUDE.md`, `.claude/agents/backend.md` — persistence, setup and remaining-limitations documentation; preserved pre-existing edits.
+- `ai/usage-log.md` — this entry and disclosure.
+
+**Verification:** Client generation, Credit Service build, all nine workspace typechecks and `git diff --check` passed. A temporary PostgreSQL database received the initial migration; the integration suite passed HTTP wallet/reserve/settle/refund, invalid input, insufficient funds, ledger filtering, persistence from another client, concurrent wallet creation/reservations/settlements and rollback on a real unique-constraint failure (including newly created wallets). Prisma's schema diff against the existing `credit_db` reported no differences. Initial deployment to Docker-created tables returned expected P3005; after verifying their schema, the initial migration was recorded using `db:baseline`, and `db:deploy` reported no pending migrations. Its wallet/transaction counts remained zero. A separate Docker image built, started, served HTTP, wrote a test balance and retained it across a container restart. The temporary container and database were removed; the verification image remains. Existing application containers were not replaced. The Docker npm install reported three high-severity dependency audit findings; no unrelated dependency upgrades were made. D2 tests were not required because User Service, Supplier Service and both apps were untouched. No `.env` contents were inspected or printed.
+
+## 2026-09-24 17:43 SGT — Authenticate Credit Service wallet and ledger reads
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Implement the User Service JWT contract for Credit Service while leaving service-to-service authentication for later.
+
+**Usage scenario:** Implementation of the author-approved authentication contract. Added local Ed25519 access-token verification and bound wallet/ledger ownership to the verified token subject; escrow HTTP and RabbitMQ service authentication were deliberately left unchanged.
+
+**Files changed:**
+- `services/credit-service/src/{app.ts,config.ts,index.ts,credits/routes.ts}` — configured and injected shared authentication and protected wallet/ledger routes.
+- `services/credit-service/tests/{auth-fixture.ts,credits.integration.test.ts,messaging.integration.test.ts}` — added ephemeral signed-token coverage and retained messaging regressions.
+- `services/credit-service/{package.json,.env.example}`, `docker-compose.yml` — added the shared auth workspace dependency and JWT public-key settings.
+- `docs/services/credit-service.md` — documented the implemented authentication boundary and remaining service-to-service work.
+- `ai/usage-log.md` — this entry and updated disclosure.
+
+**Verification:** Credit Service typecheck, JWT/HTTP/PostgreSQL integration tests, RabbitMQ integration tests, invalid-key startup checks, Compose validation and `git diff --check` passed. The root typecheck reached all workspaces but failed on pre-existing User Service generated Prisma types missing `status`. The isolated test database was removed; changes remain uncommitted.
+
+## 2026-09-24 19:48 SGT — Separate RabbitMQ service identities
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Replace the shared RabbitMQ `guest:guest` login with separate service identities and permissions.
+
+**Usage scenario:** Implemented the author's requested broker access separation using RabbitMQ's built-in users, virtual host, resource permissions and routing-key permissions. Development credentials remain local fixtures; production secret provisioning remains with the author and deployment environment.
+
+**Files changed:**
+- `docker/rabbitmq/{rabbitmq.conf,definitions.json}`, `docker-compose.yml` — provisioned the `campus` virtual host, dedicated accounts and restricted permissions, then assigned each service its own connection URL.
+- `services/{credit-service,order-service,notification-service}/**` — replaced shared broker credentials with service-specific development identities and updated the Credit messaging test identity.
+- `README.md`, `docs/onboarding-guide-sep-3.md`, `docs/services/{credit-service.md,credit-service-integration-contract.md,order-service.md,notification-service.md}` — documented the identities, permissions and management login.
+- `ai/usage-log.md` — this entry and updated disclosure.
+
+**Verification:** RabbitMQ imported all dedicated accounts and permissions. Live checks confirmed Order Service can publish `order.created` but cannot publish `user.registered`, Credit Service cannot create another service's queue, and the isolated test account can manage only `credit-test.*` resources. Credit Service connected as `credit_service` on `campus`, reported ready, and its full RabbitMQ integration suite passed. Relevant service typechecks and `git diff --check` passed. The root typecheck still failed only on the existing User Service generated Prisma `status` errors. Test database and queues were cleaned up; changes remain uncommitted.
+
+## 2026-09-25 16:06 SGT — Correct Credit Service deployment documentation
+
+**Tool:** Codex (model: GPT-5), date: 2026-09-25
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Verify and apply three PR review fixes covering legacy Prisma baselining, the RabbitMQ virtual host, and stale Credit Service summaries.
+
+**Usage scenario:** Debugging and documentation correction. Verified the review findings against the implementation, documented the existing schema and migration preconditions, and corrected stale repository facts without changing application behavior.
+
+**Files changed:**
+- `services/credit-service/src/database/prisma/migrations/20260924050000_existing_credit_tables/migration.sql` — replaced the misleading `IF NOT EXISTS` compatibility claim with the actual empty-database or verified-baseline precondition.
+- `docs/services/credit-service.md` — documented Prisma `P3005`, the one-time legacy baseline procedure, and the current five-table SQL reference.
+- `.claude/agents/backend.md` — updated Credit Service authentication, HTTP, RabbitMQ and idempotency facts.
+- `docs/services/credit-service-integration-contract.md` — verified the current branch already identifies the RabbitMQ virtual host as `campus`; no further edit was needed.
+- `ai/usage-log.md` — recorded this review-driven correction.
+
+## 2026-09-27 17:29 SGT — Consolidate Credit Service database migration
+
+**Tool:** Codex (models: GPT-5, GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Review the unsafe legacy baseline path and, assuming a fresh deployment, consolidate Credit Service into one database migration.
+
+**Usage scenario:** Migration correction. Removed legacy baselining, combined the complete five-table schema into one fresh migration, and verified Docker's Prisma deployment path against a temporary test database.
+
+**Files changed:**
+- `services/credit-service/src/database/prisma/migrations/20260924050000_init/migration.sql` — creates all five Credit Service tables in one transaction.
+- `services/credit-service/src/database/prisma/migrations/20260924050000_existing_credit_tables/migration.sql` and `20260924100000_credit_messaging/migration.sql` — removed after consolidation.
+- `services/credit-service/tests/migration.integration.test.ts` — updated to validate the single migration.
+- `docs/services/credit-service.md` and `.claude/agents/backend.md` — documented fresh-database deployment and removed legacy baseline guidance.
+- `ai/usage-log.md` — updated this existing entry.
+
+**Verification:** Prisma reported one migration and deployed it successfully; the migration integration test, Credit Service typecheck, and `git diff --check` passed. Root typecheck remained blocked by unrelated stale User Service Prisma types.
+
 ## 2026-09-24 12:30 SGT — Fold the linked-issue check into the Claude PR review
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
@@ -1682,3 +1816,142 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/user-service/docs/api-reference.md`, `docs/api/user-service.yaml`, `docs/services/user-service.md` — documented the 403 response; A6 note updated.
 - `docs/evidence/d2/README.md` — re-run line; `uat-api-results-2026-10-01-a6fix.json` and two screenshots local only (git-ignored).
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-03 21:44 SGT — Seed matching development credit wallets at startup
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Add Credit Service seed.ts to initialize the existing seed users' wallets at startup using real credit records.
+
+**Usage scenario:** Implemented the author's requested matching startup seed using the existing User Service login/logout contract and Credit Service transactional wallet initializer. Resolves Alice, Bob and Admin's actual UUIDs from authenticated login responses, validates identity and closes temporary sessions before initializing wallets. Uses the current 100-credit initial allocation without resetting existing balances or adding duplicate grants. Added the development startup command and User Service readiness dependency. No schemas, shared interfaces or user IDs changed; no new dependencies. User registration-event publishing and student-app wallet/ledger API integration remain separate unfinished work. Related issue #16 criteria exercised in this seed flow: F4.1.1 (resolve an existing user), F4.1.1.1 (retain an existing allocation), F4.1.2 (existing default initial allocation) and F4.1.3 (at-most-once allocation). This development seed does not complete the registration requirement or close the issue.
+
+**Files changed:**
+- `services/credit-service/src/database/seed.ts` — resolve development users through existing APIs, close sessions, initialize persistent wallets and disconnect Prisma on exit.
+- `services/credit-service/src/config.ts`, `services/credit-service/.env.example` — seed-only User Service URL, defaulting to localhost:8001.
+- `services/credit-service/package.json` — db:seed and test:seed scripts; JSON cannot carry disclosure comments. No dependency or lockfile changes needed.
+- `services/credit-service/Dockerfile`, `docker-compose.yml` — migrate then seed before serving; wait for User Service readiness and use its container URL. Consolidated the existing Compose disclosure blocks while retaining prior attribution.
+- `services/credit-service/tests/seed.integration.test.ts` — PostgreSQL seed/reseed and concurrent rerun checks, real UUID matching, session cleanup, identity validation and failures before wallet writes.
+- `docs/services/credit-service.md` — seed records, host/container setup, config and limitations, including disabled/missing accounts or changed seed passwords preventing successful seeding.
+- `ai/usage-log.md` — this record and disclosure.
+
+
+
+## 2026-10-03 22:09 SGT — Display live credits with read-only wallet retrieval
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Replace hardcoded credit displays and ensure wallet reads never initialize credits.
+
+**Usage scenario:** Connected authenticated wallet/ledger APIs with loading/error/retry/empty states and session guards; removed mock balances and deductions. `getWallet` now only reads (404 if absent); startup seeding uses explicit `initializeWallet`. Covers #17 F4.2.1–F4.2.2. Orders remain previews; upstream event publication is pending. Existing event/write initialization is unchanged. No schema, DTO, architecture or dependency changes.
+
+**Files changed:**
+- `apps/student-app/{src/App.tsx,vite.config.ts}` — live credit UI, missing-wallet handling and gateway/local credit proxy.
+- `services/credit-service/src/{credits/service.ts,database/seed.ts}` — separate reads from initialization.
+- `services/credit-service/tests/{credits,messaging}.integration.test.ts` — read-only regressions and explicit fixtures.
+- `docs/architecture/overview.md`, `docs/services/{credit-service,credit-service-integration-contract}.md`, `ai/usage-log.md` — behavior and disclosure.
+
+## 2026-10-03 22:48 SGT — Implement user.registered RabbitMQ publisher
+
+**Tool:** Google Antigravity Agent
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Implement user.registered publisher.
+
+**Usage scenario:** Writing implementation code (allowed use) following user's approved architecture choice (direct confirmed RabbitMQ publisher with error isolation) and approved dependency addition (`amqplib` and `@types/amqplib` in User Service). Published `UserRegisteredEvent` to `campus.events` upon account creation in `auth-module.ts`; error logging and graceful degradation ensure registration does not fail if the message broker is unavailable. Configured `RABBITMQ_URL` and dependency in `docker-compose.yml`, updated configuration files, and added unit tests.
+
+**Files changed:**
+- `services/user-service/package.json` — Added `amqplib` and `@types/amqplib` dependencies (user approved).
+- `package-lock.json` — Workspace dependency linkage.
+- `docker-compose.yml` — Added `RABBITMQ_URL` environment variable and `rabbitmq` health dependency for `user-service`.
+- `services/user-service/.env.example` — Documented `RABBITMQ_URL` and `EVENTS_EXCHANGE`.
+- `services/user-service/src/config.ts` — Added `rabbitmqUrl` and `eventsExchange` runtime configuration.
+- `services/user-service/src/messaging/publisher.ts` [NEW] — Direct confirmed RabbitMQ publisher with error isolation and connection lifecycle management.
+- `services/user-service/src/auth/auth-module.ts` — Emitted `user.registered` event upon successful user registration.
+- `services/user-service/src/index.ts` — Wired RabbitMQ publisher into `auth-module` and added graceful shutdown handling.
+- `services/user-service/test/publisher.test.ts` [NEW] — Unit tests for confirmed publisher, unroutable rejections, error tolerance, and noop publisher.
+- `services/user-service/test/auth-module.test.ts` — Unit tests for event publication and error tolerance during registration.
+- `ai/usage-log.md` — This record and disclosure.
+
+## 2026-10-03 23:20 SGT — Implement transactional outbox for user.registered publication
+
+**Tool:** Google Antigravity Agent
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Implement Option A (Transactional Outbox) to address PR #91 review feedback on user.registered at-most-once failure/dropped event risk.
+
+**Usage scenario:** Implementation code (allowed use) following author's explicit choice of Option A (Transactional Outbox pattern). Added `outbox_events` table and migration in User Service, transactionally committing user accounts and pending `user.registered` event records together in PostgreSQL. Implemented a background Outbox Relay worker with publisher confirms and retries to ensure at-least-once delivery to RabbitMQ topic exchange `campus.events` without coupling HTTP registration availability to broker status. Added unit tests for outbox persistence, relay processing, publisher failure handling, and recovery. Updated integration contracts and service documentation.
+
+**Files changed:**
+- `services/user-service/src/database/prisma/schema.prisma` — Added `OutboxEvent` model with composite index on `(status, createdAt)`.
+- `services/user-service/src/database/prisma/migrations/20261003233000_add_outbox_events/migration.sql` [NEW] — Migration script creating `outbox_events` table and index.
+- `services/user-service/src/persistence/auth-repository.ts` — Updated `createUser` to transactionally persist outbox events; added outbox query, delivery mark, and retry increment methods.
+- `services/user-service/src/messaging/outbox.ts` [NEW] — Implemented `OutboxRelay` worker with background polling, publisher confirms, and broker failure retry loop.
+- `services/user-service/src/auth/auth-module.ts` — Atomically created `user.registered` outbox event in registration transaction and triggered outbox relay.
+- `services/user-service/src/index.ts` — Wired `OutboxRelay` into User Service startup and graceful shutdown.
+- `services/user-service/test/helpers.ts` — Extended in-memory `AuthRepository` fake with outbox storage and methods.
+- `services/user-service/test/outbox.test.ts` [NEW] — Unit tests for outbox persistence, relay dispatch, broker failure retry, and recovery.
+- `docs/services/user-service.md` — Documented outbox persistence, at-least-once delivery guarantee, and background relay lifecycle.
+- `docs/services/credit-service-integration-contract.md` — Updated User Service integration specification to reflect the transactional outbox implementation.
+- `ai/usage-log.md` — Appended this record.
+
+## 2026-10-03 23:25 SGT — Align system documentation with event publishing and transactional outbox
+
+**Tool:** Google Antigravity Agent
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Address PR #91 review comment regarding documentation drift in `docs/architecture/overview.md`, `docs/services/README.md`, and `docs/services/user-service.md`.
+
+**Usage scenario:** Documentation update (allowed use). Resolved documentation drift identified during PR review across system architecture and service documentation:
+- Updated User Service "Owns (intended)" and "Built today" in `docs/architecture/overview.md` to reflect transactional outbox persistence, at-least-once event publication on `campus.events`, login disabled account handling, and PostgreSQL advisory-lock last-admin safeguards.
+- Updated service status table in `docs/services/README.md` to reflect real states for User Service (Prisma, RabbitMQ transactional outbox) and Credit Service (Prisma, JWT auth, RabbitMQ consumer).
+- Added `RABBITMQ_URL` and `EVENTS_EXCHANGE` configuration rows, `outbox_events` table and migration documentation, and a detailed "Messaging and transactional outbox" section in `docs/services/user-service.md`.
+- Consolidated AI assistance disclosure headers across documentation files.
+
+**Files changed:**
+- `docs/architecture/overview.md` — Updated User Service intended and built descriptions.
+- `docs/services/README.md` — Updated User Service and Credit Service state entries; consolidated disclosure block.
+- `docs/services/user-service.md` — Documented configuration, persistence schema, migration, and outbox messaging lifecycle.
+- `docs/services/credit-service-integration-contract.md` — Updated User Service integration specification to reflect the transactional outbox implementation.
+- `ai/usage-log.md` — Appended this record.
+
+## 2026-10-04 00:10 SGT — Quarantine poisoned outbox records
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Fix the relay loop where a full batch of permanently invalid outbox rows is fetched forever and blocks newer registration events.
+
+**Usage scenario:** Debugging and implementation. Added the author-requested terminal `FAILED` state for malformed JSON and unsupported event types while retaining retries for transient publisher failures. Added a full-batch regression proving poison rows leave the pending set and the following valid event is delivered. Review and commit remain with the author.
+
+**Files changed:**
+- `services/user-service/src/messaging/outbox.ts`, `src/persistence/auth-repository.ts` — Mark permanent failures `FAILED` and increment their retry count atomically.
+- `services/user-service/test/helpers.ts`, `test/outbox.test.ts` — Mirror the terminal state and cover a 20-row poisoned head followed by a valid event.
+- `docs/services/user-service.md`, `docs/services/credit-service-integration-contract.md` — Document `FAILED` records and continued queue progress.
+- `ai/usage-log.md` — Recorded this prompt.
+
+**Verification:** User Service and all-workspace type-checks passed; focused outbox tests passed 4/4; full unit tests passed 158/158; D2 passed 56/56. Commit `e84d3a2` was made by the author, not Codex.
+
+## 2026-10-04 00:12 SGT — Reuse live AMQP connection after channel closure
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** After completing the poison-row fix, prevent the User Service publisher from leaking one TCP connection whenever an AMQP channel closes and the outbox retries.
+
+**Usage scenario:** Debugging and implementation. Changed channel recreation to reuse the existing live AMQP connection, dial only when no connection exists, and prevent stale channel or connection callbacks from clearing newer resources. Added a mocked lifecycle regression proving two channels use one connection and shutdown closes it once. Review and commit remain with the author.
+
+**Files changed:**
+- `services/user-service/src/messaging/publisher.ts` — Reuse the live connection for replacement confirm channels and guard resource event handlers.
+- `services/user-service/test/publisher.test.ts` — Verify one connection is reused across channel closure and recreation.
+- `ai/usage-log.md` — Recorded this prompt.
+
+**Verification:** Focused publisher tests passed 7/7; all nine workspace type-checks passed; full unit tests passed 159/159; D2 passed 56/56. No commit or push was made by Codex.

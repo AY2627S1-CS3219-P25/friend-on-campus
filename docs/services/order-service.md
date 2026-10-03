@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this page from services/order-service source, docker-compose.yml, the init SQL, common-dtos and D1 / D2-plan text. Descriptive only.
+Scope: Documented the current Order Service and its dedicated future RabbitMQ publisher identity.
 Author review: <to be completed by the service owner>
 -->
 
@@ -21,7 +21,7 @@ npm run dev:order        # needs nothing else running
 
 ## Configuration
 
-`PORT` (default `8003`). `DATABASE_URL`, `RABBITMQ_URL` and `CREDIT_SERVICE_URL` are read into constants and set in compose, but no code uses them. `pg` and `amqplib` are dependencies that are never imported for use.
+`PORT` (default `8003`). `DATABASE_URL`, `RABBITMQ_URL` and `CREDIT_SERVICE_URL` are read into constants and set in compose, but no code uses them. `pg` and `amqplib` are dependencies that are never imported for use. Compose assigns the unused `order_service` RabbitMQ identity permission to publish only documented `order.*` routing keys, ready for the separately scoped publisher implementation.
 
 ## Files
 

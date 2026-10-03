@@ -1,0 +1,139 @@
+{
+  "users": [
+    {
+      "name": "campus_admin",
+      "password_hash": "JP+wnscC+r1mqPN+RmL7UdeWGCshqd22qKS2oLnbfYM5g2vb",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"]
+    },
+    {
+      "name": "user_service",
+      "password_hash": "cjLBkgn9OI7uR88WmW2ADAU5DTYDobxYsLDGepC1ahFjYaoc",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "order_service",
+      "password_hash": "JIekOETTOv4PVIOkLqw1GuycfmEM3jjMyFmtJ77mm0UkIrrF",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "credit_service",
+      "password_hash": "HIKjH4DE+NIAgeYPhoy+QSWcSuU8LBpc6cK6lK61g31inLGc",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "notification_service",
+      "password_hash": "t9k8tqnsleOSJ5yPIhOIQZs97O08JBNXP6935KNZQyEuN3aU",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "credit_test",
+      "password_hash": "qyvQla5dIhYFRYKL46uQwwxgRSdPsqXMQlrX0inBcdeZlVIE",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "campus"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "campus.events",
+      "vhost": "campus",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "campus.events.dlx",
+      "vhost": "campus",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "permissions": [
+    {
+      "user": "campus_admin",
+      "vhost": "campus",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "user_service",
+      "vhost": "campus",
+      "configure": "^$",
+      "write": "^campus\\.events$",
+      "read": "^$"
+    },
+    {
+      "user": "order_service",
+      "vhost": "campus",
+      "configure": "^$",
+      "write": "^campus\\.events$",
+      "read": "^$"
+    },
+    {
+      "user": "credit_service",
+      "vhost": "campus",
+      "configure": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
+      "write": "^(amq\\.default|campus\\.events\\.dlx|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
+      "read": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$"
+    },
+    {
+      "user": "notification_service",
+      "vhost": "campus",
+      "configure": "^(campus\\.events|notification-service\\.events(?:\\..+)?)$",
+      "write": "^notification-service\\.events(?:\\..+)?$",
+      "read": "^(campus\\.events|notification-service\\.events(?:\\..+)?)$"
+    },
+    {
+      "user": "credit_test",
+      "vhost": "campus",
+      "configure": "^credit-test\\..+$",
+      "write": "^(amq\\.default|credit-test\\..+)$",
+      "read": "^credit-test\\..+$"
+    }
+  ],
+  "topic_permissions": [
+    {
+      "user": "user_service",
+      "vhost": "campus",
+      "exchange": "campus.events",
+      "write": "^user\\.registered$",
+      "read": "^$"
+    },
+    {
+      "user": "order_service",
+      "vhost": "campus",
+      "exchange": "campus.events",
+      "write": "^order\\.(created|accepted|in_transit|completed|cancelled|expired)$",
+      "read": "^$"
+    },
+    {
+      "user": "credit_service",
+      "vhost": "campus",
+      "exchange": "campus.events",
+      "write": "^$",
+      "read": "^(user\\.registered|order\\.(completed|cancelled|expired))$"
+    },
+    {
+      "user": "notification_service",
+      "vhost": "campus",
+      "exchange": "campus.events",
+      "write": "^$",
+      "read": "^(order\\.(created|accepted|in_transit|completed|cancelled|expired))$"
+    }
+  ]
+}
