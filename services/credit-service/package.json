@@ -11,6 +11,8 @@
     "db:generate": "prisma generate --schema src/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema src/database/prisma/schema.prisma",
+    "db:seed": "tsx src/database/seed.ts",
+    "test:seed": "tsx tests/seed.integration.test.ts",
     "test:integration": "tsx tests/credits.integration.test.ts",
     "test:messaging": "tsx tests/messaging.integration.test.ts",
     "test:migration": "tsx tests/migration.integration.test.ts"

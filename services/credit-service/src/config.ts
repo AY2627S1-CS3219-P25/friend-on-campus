@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-03
+ * Scope: Configure the User Service URL used only by the development wallet seed.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Centralized dedicated RabbitMQ identity and public-key access-token verification configuration.
  * Author review: <to be completed by Jiaxi>
@@ -19,6 +23,7 @@ const exchange = process.env.CREDIT_EXCHANGE || 'campus.events';
 export const config = Object.freeze({
   port: process.env.PORT || 8004,
   databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/credit_db',
+  seedUserServiceUrl: process.env.USER_SERVICE_URL || 'http://localhost:8001',
   auth: {
     // Validated by authMiddleware during startup, before opening connections.
     publicKey: process.env.JWT_PUBLIC_KEY ?? '',

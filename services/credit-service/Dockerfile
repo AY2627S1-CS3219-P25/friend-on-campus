@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-10-03
+# Scope: Initialize matching development credit wallets after migrations and before serving.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-6), date: 2026-09-24
 # Scope: Generated Prisma client and deployed Credit Service migrations before startup.
 # Author review: <to be completed by huangjiaxi1111>
@@ -24,4 +28,4 @@ RUN npm run db:generate
 
 EXPOSE 8004
 
-CMD ["sh", "-c", "npm run db:deploy && exec /app/node_modules/.bin/tsx src/index.ts"]
+CMD ["sh", "-c", "npm run db:deploy && npm run db:seed && exec /app/node_modules/.bin/tsx src/index.ts"]

@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-6), date: 2026-10-03
+# Scope: Wait for seeded User Service before Credit Service startup seeding; configure its seed API URL.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-6), date: 2026-10-01
 # Scope: Restore the student's admin portal target alongside gateway API routing.
 # Author review: Approved by ngkhengyang
@@ -30,17 +34,12 @@
 # launched, not for it to actually be reachable. service_healthy makes the gateway wait for a real response from
 # each service first, so this race can no longer happen on a normal `docker compose down -v && up --build`.
 # Author review: (to be completed by author after review)
-
-# AI-generated (edited by huangjiaxi1111)
-
-
-
-
-
-# AI Assistance Disclosure:
+#
 # Tool: Codex (model: GPT-6), date: 2026-09-24
 # Scope: Supplied Credit Service recovery and separate least-privilege RabbitMQ identities.
 # Author review: <to be completed by huangjiaxi1111>
+
+# AI-generated (edited by huangjiaxi1111)
 
 services:
   # ----------------------------------------------------
@@ -222,6 +221,7 @@ services:
     environment:
       - PORT=8004
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/credit_db
+      - USER_SERVICE_URL=http://user-service:8001
       - RABBITMQ_URL=amqp://credit_service:credit-service-dev@rabbitmq:5672/campus
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
@@ -230,6 +230,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      user-service:
         condition: service_healthy
     healthcheck:
       test:

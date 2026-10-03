@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-6), date: 2026-10-03
+Scope: Recorded matching development credit wallet seeding, startup wiring and verification.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Appended the Iteration 1 through Iteration 3, Iteration 5, and Iteration 6 implementation records below.
 Author review: <to be completed by ngkhengyang>
@@ -1804,3 +1808,24 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/user-service/docs/api-reference.md`, `docs/api/user-service.yaml`, `docs/services/user-service.md` — documented the 403 response; A6 note updated.
 - `docs/evidence/d2/README.md` — re-run line; `uat-api-results-2026-10-01-a6fix.json` and two screenshots local only (git-ignored).
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-03 21:44 SGT — Seed matching development credit wallets at startup
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Add Credit Service seed.ts to initialize the existing seed users' wallets at startup using real credit records.
+
+**Usage scenario:** Implemented the author's requested matching startup seed using the existing User Service login/logout contract and Credit Service transactional wallet initializer. Resolves Alice, Bob and Admin's actual UUIDs from authenticated login responses, validates identity and closes temporary sessions before initializing wallets. Uses the current 100-credit initial allocation without resetting existing balances or adding duplicate grants. Added the development startup command and User Service readiness dependency. No schemas, shared interfaces or user IDs changed; no new dependencies. User registration-event publishing and student-app wallet/ledger API integration remain separate unfinished work. Related issue #16 criteria exercised in this seed flow: F4.1.1 (resolve an existing user), F4.1.1.1 (retain an existing allocation), F4.1.2 (existing default initial allocation) and F4.1.3 (at-most-once allocation). This development seed does not complete the registration requirement or close the issue.
+
+**Files changed:**
+- `services/credit-service/src/database/seed.ts` — resolve development users through existing APIs, close sessions, initialize persistent wallets and disconnect Prisma on exit.
+- `services/credit-service/src/config.ts`, `services/credit-service/.env.example` — seed-only User Service URL, defaulting to localhost:8001.
+- `services/credit-service/package.json` — db:seed and test:seed scripts; JSON cannot carry disclosure comments. No dependency or lockfile changes needed.
+- `services/credit-service/Dockerfile`, `docker-compose.yml` — migrate then seed before serving; wait for User Service readiness and use its container URL. Consolidated the existing Compose disclosure blocks while retaining prior attribution.
+- `services/credit-service/tests/seed.integration.test.ts` — PostgreSQL seed/reseed and concurrent rerun checks, real UUID matching, session cleanup, identity validation and failures before wallet writes.
+- `docs/services/credit-service.md` — seed records, host/container setup, config and limitations, including disabled/missing accounts or changed seed passwords preventing successful seeding.
+- `ai/usage-log.md` — this record and disclosure.
+
+**Verification:** All nine workspace typechecks passed. Initial sandboxed unit run failed because local HTTP servers could not bind; the permitted rerun passed all 146 tests (47 Supplier, 99 User). Compose configuration validation and git diff --check passed. A disposable PostgreSQL 16 container received the credit migration; test:seed passed three initial wallets/grants, concurrent reruns preserving spent/earned/escrow balances and exact ledger history, invalid identity/disabled-account rejection before writes, and temporary-session cleanup. A separate temporary driver deployed actual User Service migrations and ran its existing seed against an isolated user database, started the real User Service with generated test signing keys, and executed Credit Service's seed CLI twice against an isolated credit database: all three UUIDs matched, exactly three wallets/grants/welcome entries remained, and no login sessions remained. The temporary service and PostgreSQL container (including all disposable databases) were removed. No development database was changed. The Docker image was not rebuilt or deployed; its startup command and Compose wiring were inspected and configuration-validated. D2 was not run because neither user/supplier implementation nor either app was modified. No commits or pushes.
