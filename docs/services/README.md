@@ -1,11 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-03
+Scope: Updated service states for User Service (RabbitMQ transactional outbox) and Credit Service (JWT auth, RabbitMQ consumer).
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-09-24
 Scope: Updated Credit Service persistence status.
 Author review: <to be completed by huangjiaxi1111>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Created this index and the per-service pages by reading the code on milestone-d2 and the team's requirement documents.
 Author review: <to be completed by Reallyeasy1>
@@ -17,10 +19,10 @@ One page per service. Each page describes **what the code does today** (verified
 
 | Service | Port | Database | State | Issue assignees (GitHub, 2026-09-21) |
 |---|---|---|---|---|
-| [user-service](./user-service.md) | 8001 | `user_db` | Real (Prisma) | jagdeepsh |
+| [user-service](./user-service.md) | 8001 | `user_db` | Real (Prisma, RabbitMQ transactional outbox) | jagdeepsh |
 | [supplier-service](./supplier-service.md) | 8002 | `supplier_db` | Real (Prisma) | yanhwee |
 | [order-service](./order-service.md) | 8003 | `order_db` (unused) | In-memory mock | Reallyeasy1 (with huangjiaxi1111 intended on F3.2–F3.3; yanhwee + ngkhengyang on F3.1) |
-| [credit-service](./credit-service.md) | 8004 | `credit_db` | Prisma persistence; authentication/events pending | ngkhengyang |
+| [credit-service](./credit-service.md) | 8004 | `credit_db` | Real (Prisma, JWT auth, RabbitMQ consumer) | ngkhengyang |
 | [notification-service](./notification-service.md) | 8005 | none | In-memory mock | Reallyeasy1 (F5, F8) |
 
 System-level picture: [`../architecture/overview.md`](../architecture/overview.md). Shared types for every request, response and event: `packages/common-dtos/src/index.ts`.

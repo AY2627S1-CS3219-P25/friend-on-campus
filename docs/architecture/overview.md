@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-03
+Scope: Updated user-service intended and built summaries for transactional outbox registration event publication, login disabled checks, and atomic last-admin guards.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-01
 Scope: Updated gateway and Vite proxy facts after PR #105 review fixes.
 Author review: <to be completed by author after review>
@@ -81,7 +85,7 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 
 | Service | Owns (intended) | Built today |
 |---|---|---|
-| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. D1 F4.1 requires initial credits when a user registers, and a `UserRegisteredEvent` type exists in `common-dtos`; how the two services coordinate is not written down. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable. ADMIN can list users, toggle an account's `status` (`PATCH /:id/toggle-status`) and flip a role between STUDENT and ADMIN (`PATCH /:id/toggle-role`, own id refused); any user can delete their own account and an ADMIN any account (`DELETE /:id`). `status` is not checked at login, refresh or token verification; there is no last-admin guard on status, role or deletion. No event is published. |
+| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. Initial credits on registration [D1 F4.1]; coordinates with credit-service via `user.registered` on topic exchange `campus.events` [docs/services/credit-service-integration-contract.md]. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable. Login refuses disabled accounts (403 `ACCOUNT_DISABLED`). ADMIN can list users, toggle status (`PATCH /:id/toggle-status`), and flip roles (`PATCH /:id/toggle-role`, own id refused). Any user can delete their own account (clearing session) and an ADMIN any account (`DELETE /:id`). Atomic PostgreSQL advisory-lock guards protect last-admin demotion and deletion (409 `LAST_ADMIN_REQUIRED`). User registration commits an outbox record in `outbox_events` and an Outbox Relay worker publishes `user.registered` (`eventId`, `userId`, `email`, `initialGrant: 100`) to topic exchange `campus.events` with publisher confirms and retries (at-least-once delivery; broker unavailability does not fail registration). |
 | **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. `building` and `floor` are required; a supplier with the same name, category, building and floor as another (case-insensitive) is rejected with 409. Reads are unauthenticated; no `version` column. |
 | **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
 | **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Real: Prisma on `credit_db` for wallets, ledger entries, grants, escrows and processed events. Wallet/ledger reads require JWT authentication; reserve uses unauthenticated HTTP while service authentication remains pending. User registration and order completion, cancellation and expiry are consumed from RabbitMQ with persistent event and order idempotency. |

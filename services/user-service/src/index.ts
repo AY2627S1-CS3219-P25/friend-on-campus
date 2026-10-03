@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-03
- * Scope: Wired RabbitMQ publisher into authentication module and added graceful shutdown handlers.
+ * Scope: Wired transactional outbox relay worker into User Service startup and shutdown lifecycle.
  * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
@@ -13,7 +13,6 @@
  * Author review: <to be completed by ngkhengyang>
  */
 
-
 // AI-generated (edited by ngkhengyang)
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import { createApp } from './app';
@@ -21,6 +20,7 @@ import { createAuthModule } from './auth/auth-module';
 import { createTokenManager } from './auth/tokens';
 import { config } from './config';
 import { prisma } from './database/client';
+import { createOutboxRelay } from './messaging/outbox';
 import { createRabbitMQPublisher } from './messaging/publisher';
 import { createAuthRepository } from './persistence/auth-repository';
 import { createDatabase } from './persistence/database';
@@ -35,6 +35,13 @@ const publisher = createRabbitMQPublisher({
   url: config.rabbitmqUrl,
   exchange: config.eventsExchange,
 });
+const outboxRelay = createOutboxRelay({
+  repository,
+  publisher,
+  pollIntervalMs: 2000,
+});
+outboxRelay.start();
+
 const tokens = createTokenManager({
   accessTokenPrivateKey: config.accessTokenPrivateKey,
   accessTokenLifetimeSeconds: config.accessTokenLifetimeSeconds,
@@ -45,6 +52,7 @@ const auth = createAuthModule({
   repository,
   tokens,
   publisher,
+  outboxRelay,
   accessTokenLifetimeSeconds: config.accessTokenLifetimeSeconds,
   refreshTokenIdleLifetimeSeconds: config.refreshTokenIdleLifetimeSeconds,
   persistentRefreshTokenIdleLifetimeSeconds:
@@ -73,6 +81,7 @@ server.on('error', (error) => {
 });
 
 async function shutdown(): Promise<void> {
+  await outboxRelay.stop().catch(() => {});
   await publisher.close().catch(() => {});
   await database.close().catch(() => {});
   server.close();

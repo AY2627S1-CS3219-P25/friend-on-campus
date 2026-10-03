@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-03
+Scope: Updated User Service integration specification to reflect the transactional outbox implementation and at-least-once delivery guarantee.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-03
 Scope: Document read-only wallet retrieval and explicit development seed initialization.
 Author review: <to be completed by huangjiaxi1111>
@@ -38,11 +42,15 @@ The committed passwords are development fixtures. Compose URLs use the service n
 
 Credit Service's durable queue `credit-service.events` has bindings for exactly `user.registered`, `order.completed`, `order.cancelled`, and `order.expired`. Other service subscribers must have their own queues. There is no business outcome event published by Credit Service in this implementation.
 
-## User Service: expected future implementation
+## User Service: registration event publication
 
-After successful registration, publish `user.registered`. Registration must not synchronously call Credit Service.
-
-Coordinate event creation with the user database transaction. A future approved transactional outbox implementation should commit the user and its event record together, publish pending records with confirms, and mark them delivered only after confirmation. Keep the event ID stable across retries. Publishing directly after committing the user leaves a crash window and does not meet reliable publication on its own.
+After successful registration, User Service publishes `user.registered` to `campus.events` using a **transactional outbox**:
+- The user account and a `user.registered` event record are committed atomically in PostgreSQL within the same database transaction into `users` and `outbox_events`.
+- An Outbox Relay worker polls `outbox_events` (`status = 'PENDING'`) and publishes events to RabbitMQ topic exchange `campus.events` using a confirmed channel (`mandatory: true`, `persistent: true`).
+- The record is marked `status = 'DELIVERED'` only after broker confirmation.
+- Retries keep the exact same `eventId` and payload.
+- Registration returns 201 immediately without synchronous coupling or failure if RabbitMQ or Credit Service bindings are temporarily unavailable.
+- **Delivery Guarantee**: At-least-once delivery. Credit Service's idempotent grant and processed-event handling safely absorbs replays.
 
 Complete payload:
 

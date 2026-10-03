@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 
 Tool: Google Antigravity Agent, date: 2026-10-03
-Scope: Recorded implementation of User Service user.registered RabbitMQ publisher, configuration, and unit tests.
+Scope: Recorded implementation of User Service user.registered RabbitMQ publisher, transactional outbox, configuration, unit tests, and system documentation alignment.
 Author review: <to be completed by huangjiaxi1111>
 
 Tool: Codex (model: GPT-6), date: 2026-10-03
@@ -1895,3 +1895,25 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/services/user-service.md` — Documented outbox persistence, at-least-once delivery guarantee, and background relay lifecycle.
 - `docs/services/credit-service-integration-contract.md` — Updated User Service integration specification to reflect the transactional outbox implementation.
 - `ai/usage-log.md` — Appended this record.
+
+## 2026-10-03 23:25 SGT — Align system documentation with event publishing and transactional outbox
+
+**Tool:** Google Antigravity Agent
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Address PR #91 review comment regarding documentation drift in `docs/architecture/overview.md`, `docs/services/README.md`, and `docs/services/user-service.md`.
+
+**Usage scenario:** Documentation update (allowed use). Resolved documentation drift identified during PR review across system architecture and service documentation:
+- Updated User Service "Owns (intended)" and "Built today" in `docs/architecture/overview.md` to reflect transactional outbox persistence, at-least-once event publication on `campus.events`, login disabled account handling, and PostgreSQL advisory-lock last-admin safeguards.
+- Updated service status table in `docs/services/README.md` to reflect real states for User Service (Prisma, RabbitMQ transactional outbox) and Credit Service (Prisma, JWT auth, RabbitMQ consumer).
+- Added `RABBITMQ_URL` and `EVENTS_EXCHANGE` configuration rows, `outbox_events` table and migration documentation, and a detailed "Messaging and transactional outbox" section in `docs/services/user-service.md`.
+- Consolidated AI assistance disclosure headers across documentation files.
+
+**Files changed:**
+- `docs/architecture/overview.md` — Updated User Service intended and built descriptions.
+- `docs/services/README.md` — Updated User Service and Credit Service state entries; consolidated disclosure block.
+- `docs/services/user-service.md` — Documented configuration, persistence schema, migration, and outbox messaging lifecycle.
+- `docs/services/credit-service-integration-contract.md` — Updated User Service integration specification to reflect the transactional outbox implementation.
+- `ai/usage-log.md` — Appended this record.
+
