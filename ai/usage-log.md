@@ -1872,3 +1872,26 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/user-service/test/publisher.test.ts` [NEW] — Unit tests for confirmed publisher, unroutable rejections, error tolerance, and noop publisher.
 - `services/user-service/test/auth-module.test.ts` — Unit tests for event publication and error tolerance during registration.
 - `ai/usage-log.md` — This record and disclosure.
+
+## 2026-10-03 23:20 SGT — Implement transactional outbox for user.registered publication
+
+**Tool:** Google Antigravity Agent
+**Author:** huangjiaxi1111
+**Branch:** feature/credit-service
+
+**Prompt (summarised):** Implement Option A (Transactional Outbox) to address PR #91 review feedback on user.registered at-most-once failure/dropped event risk.
+
+**Usage scenario:** Implementation code (allowed use) following author's explicit choice of Option A (Transactional Outbox pattern). Added `outbox_events` table and migration in User Service, transactionally committing user accounts and pending `user.registered` event records together in PostgreSQL. Implemented a background Outbox Relay worker with publisher confirms and retries to ensure at-least-once delivery to RabbitMQ topic exchange `campus.events` without coupling HTTP registration availability to broker status. Added unit tests for outbox persistence, relay processing, publisher failure handling, and recovery. Updated integration contracts and service documentation.
+
+**Files changed:**
+- `services/user-service/src/database/prisma/schema.prisma` — Added `OutboxEvent` model with composite index on `(status, createdAt)`.
+- `services/user-service/src/database/prisma/migrations/20261003233000_add_outbox_events/migration.sql` [NEW] — Migration script creating `outbox_events` table and index.
+- `services/user-service/src/persistence/auth-repository.ts` — Updated `createUser` to transactionally persist outbox events; added outbox query, delivery mark, and retry increment methods.
+- `services/user-service/src/messaging/outbox.ts` [NEW] — Implemented `OutboxRelay` worker with background polling, publisher confirms, and broker failure retry loop.
+- `services/user-service/src/auth/auth-module.ts` — Atomically created `user.registered` outbox event in registration transaction and triggered outbox relay.
+- `services/user-service/src/index.ts` — Wired `OutboxRelay` into User Service startup and graceful shutdown.
+- `services/user-service/test/helpers.ts` — Extended in-memory `AuthRepository` fake with outbox storage and methods.
+- `services/user-service/test/outbox.test.ts` [NEW] — Unit tests for outbox persistence, relay dispatch, broker failure retry, and recovery.
+- `docs/services/user-service.md` — Documented outbox persistence, at-least-once delivery guarantee, and background relay lifecycle.
+- `docs/services/credit-service-integration-contract.md` — Updated User Service integration specification to reflect the transactional outbox implementation.
+- `ai/usage-log.md` — Appended this record.
