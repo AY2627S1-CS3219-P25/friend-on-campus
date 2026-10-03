@@ -93,7 +93,7 @@ the shared `postgres` hostname on port `5432`.
 |---|---|---|
 | `PORT` | HTTP listen port | `8001` |
 | `DATABASE_URL` | Prisma connection | local `user_db` URL above |
-| `RABBITMQ_URL` | RabbitMQ connection URL | `amqp://user_service:user_service_dev@localhost:5672/campus` |
+| `RABBITMQ_URL` | RabbitMQ connection URL | `amqp://user_service:user-service-dev@localhost:5672/campus` |
 | `EVENTS_EXCHANGE` | Topic exchange for campus events | `campus.events` |
 | `JWT_PRIVATE_KEY` | Ed25519 access-token signing | required |
 | `JWT_PUBLIC_KEY` | local access-token verification | required |
