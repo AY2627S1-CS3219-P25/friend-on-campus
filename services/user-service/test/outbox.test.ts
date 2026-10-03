@@ -133,7 +133,7 @@ describe('Transactional Outbox Relay', () => {
     await relay.stop();
   });
 
-  it('handles malformed payload by incrementing retry count without crashing the relay', async () => {
+  it('marks a malformed payload FAILED without crashing the relay', async () => {
     const fake = makeFakeAuthRepository();
     fake.outboxEvents.push({
       id: 'bad-event-1',
@@ -158,8 +158,73 @@ describe('Transactional Outbox Relay', () => {
     });
 
     await relay.processPending();
-    assert.equal(fake.outboxEvents[0].status, 'PENDING');
+    assert.equal(fake.outboxEvents[0].status, 'FAILED');
     assert.equal(fake.outboxEvents[0].retryCount, 1);
+
+    await relay.stop();
+  });
+
+  it('quarantines a full poisoned batch and delivers the next valid event', async () => {
+    const fake = makeFakeAuthRepository();
+    const createdAt = new Date('2026-10-04T00:00:00.000Z');
+
+    for (let index = 0; index < 20; index++) {
+      fake.outboxEvents.push({
+        id: `poison-${index}`,
+        eventType: index % 2 === 0 ? 'unsupported.event' : 'user.registered',
+        payload: index % 2 === 0 ? '{}' : 'invalid-json{{{',
+        status: 'PENDING',
+        retryCount: 0,
+        createdAt,
+        updatedAt: createdAt,
+      });
+    }
+
+    const validEvent: UserRegisteredEvent = {
+      eventId: '10000000-0000-4000-8000-000000000001',
+      eventType: 'user.registered',
+      timestamp: '2026-10-04T00:00:01.000Z',
+      userId: '20000000-0000-4000-8000-000000000001',
+      email: 'next@u.nus.edu',
+      initialGrant: 100,
+    };
+    fake.outboxEvents.push({
+      id: 'valid-after-poison',
+      eventType: validEvent.eventType,
+      payload: JSON.stringify(validEvent),
+      status: 'PENDING',
+      retryCount: 0,
+      createdAt: new Date('2026-10-04T00:00:01.000Z'),
+      updatedAt: new Date('2026-10-04T00:00:01.000Z'),
+    });
+
+    const originalGetPending = fake.repo.getPendingOutboxEvents;
+    let fetchCount = 0;
+    fake.repo.getPendingOutboxEvents = async (limit) => {
+      fetchCount += 1;
+      if (fetchCount > 3) throw new Error('Relay repeatedly fetched a poisoned head batch');
+      return originalGetPending(limit);
+    };
+
+    const published: UserRegisteredEvent[] = [];
+    const publisher: UserEventPublisher = {
+      async publishUserRegistered(event) {
+        published.push(event);
+        return true;
+      },
+      async close() {},
+    };
+    const relay = createOutboxRelay({ repository: fake.repo, publisher, batchSize: 20 });
+
+    const deliveredCount = await relay.processPending();
+
+    assert.equal(deliveredCount, 1);
+    assert.equal(fetchCount, 2);
+    assert.equal(published.length, 1);
+    assert.equal(published[0].eventId, validEvent.eventId);
+    assert.ok(fake.outboxEvents.slice(0, 20).every((event) => event.status === 'FAILED'));
+    assert.ok(fake.outboxEvents.slice(0, 20).every((event) => event.retryCount === 1));
+    assert.equal(fake.outboxEvents[20].status, 'DELIVERED');
 
     await relay.stop();
   });

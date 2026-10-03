@@ -184,6 +184,15 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
         event.updatedAt = new Date();
       }
     },
+    async markOutboxEventFailed(id) {
+      calls.push('markOutboxEventFailed');
+      const event = outboxEvents.find((e) => e.id === id);
+      if (event) {
+        event.status = 'FAILED';
+        event.retryCount += 1;
+        event.updatedAt = new Date();
+      }
+    },
     async incrementOutboxEventRetry(id) {
       calls.push('incrementOutboxEventRetry');
       const event = outboxEvents.find((e) => e.id === id);

@@ -48,6 +48,7 @@ After successful registration, User Service publishes `user.registered` to `camp
 - The user account and a `user.registered` event record are committed atomically in PostgreSQL within the same database transaction into `users` and `outbox_events`.
 - An Outbox Relay worker polls `outbox_events` (`status = 'PENDING'`) and publishes events to RabbitMQ topic exchange `campus.events` using a confirmed channel (`mandatory: true`, `persistent: true`).
 - The record is marked `status = 'DELIVERED'` only after broker confirmation.
+- Malformed JSON and unsupported event types are marked `status = 'FAILED'` so they leave the pending queue and cannot block later registrations.
 - Retries keep the exact same `eventId` and payload.
 - Registration returns 201 immediately without synchronous coupling or failure if RabbitMQ or Credit Service bindings are temporarily unavailable.
 - **Delivery Guarantee**: At-least-once delivery. Credit Service's idempotent grant and processed-event handling safely absorbs replays.

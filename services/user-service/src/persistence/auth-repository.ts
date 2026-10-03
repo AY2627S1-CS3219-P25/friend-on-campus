@@ -5,6 +5,10 @@
  * Scope: Implemented transactional outbox persistence in createUser and outbox event querying, delivery marking, and retry tracking.
  * Author review: <to be completed by huangjiaxi1111>
  *
+ * Tool: Codex (model: GPT-6), date: 2026-10-04
+ * Scope: Added terminal failed-state persistence for permanently invalid outbox events.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation.
  * Author review: <to be completed by ngkhengyang>
@@ -84,6 +88,7 @@ export interface AuthRepository {
   deleteExpiredSessions(now: Date): Promise<void>;
   getPendingOutboxEvents(limit?: number): Promise<OutboxEventRecord[]>;
   markOutboxEventDelivered(id: string): Promise<void>;
+  markOutboxEventFailed(id: string): Promise<void>;
   incrementOutboxEventRetry(id: string): Promise<void>;
 }
 
@@ -234,6 +239,16 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
       await prisma.outboxEvent.update({
         where: { id },
         data: { status: 'DELIVERED' },
+      });
+    },
+
+    async markOutboxEventFailed(id: string) {
+      await prisma.outboxEvent.update({
+        where: { id },
+        data: {
+          status: 'FAILED',
+          retryCount: { increment: 1 },
+        },
       });
     },
 

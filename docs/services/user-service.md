@@ -110,7 +110,7 @@ the shared `postgres` hostname on port `5432`.
 
 - `users`: UUID, username, email, password hash (scrypt), `STUDENT`/`ADMIN` role (default `STUDENT`), `status` boolean (default `true`), and timestamps.
 - `sessions.user_id` references `users.id` with `ON DELETE CASCADE`; index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
-- `outbox_events`: UUID primary key, `event_type` (`user.registered`), `payload` JSON text, `status` (`PENDING`/`DELIVERED`), `retry_count`, and timestamps; index `outbox_events_status_created_at_idx` on (`status`, `created_at`).
+- `outbox_events`: UUID primary key, `event_type` (`user.registered`), `payload` JSON text, `status` (`PENDING`/`DELIVERED`/`FAILED`), `retry_count`, and timestamps; index `outbox_events_status_created_at_idx` on (`status`, `created_at`).
 - Migrations: `20260922170000_initial_user_service`, `20260923150000_add_user_status`, `20261003233000_add_outbox_events`.
 - `sessions`: UUID, user reference, refresh-token hash, persistence flag, timestamps, and idle expiry.
 - Usernames and emails are unique case-insensitively through PostgreSQL indexes.
@@ -127,6 +127,7 @@ When a new student registers (`POST /api/auth/register`), User Service coordinat
 - Upon broker confirmation, the outbox record is marked `status = 'DELIVERED'`.
 - If RabbitMQ or downstream queue bindings are temporarily unavailable (e.g. broker rebooting or Credit Service still initialising), registration returns HTTP 201 immediately without failure, and the event remains `PENDING` in the database.
 - The relay periodically retries pending records with incremented `retry_count`, maintaining the exact same `eventId` and payload across attempts.
+- Records with malformed JSON or unsupported event types are permanent failures and are marked `FAILED`; they are not polled again and cannot block later records.
 - **Delivery Guarantee**: At-least-once. Downstream consumers (Credit Service) must handle `user.registered` idempotently.
 
 ## API

@@ -69,7 +69,7 @@ export function createOutboxRelay(options: OutboxRelayOptions): OutboxRelay {
                   id: event.id,
                   eventType: event.eventType,
                 });
-                await repository.incrementOutboxEventRetry(event.id);
+                await repository.markOutboxEventFailed(event.id);
                 continue;
               }
 
@@ -87,7 +87,7 @@ export function createOutboxRelay(options: OutboxRelayOptions): OutboxRelay {
                 id: event.id,
                 eventType: event.eventType,
               });
-              await repository.incrementOutboxEventRetry(event.id);
+              await repository.markOutboxEventFailed(event.id);
             }
           }
 
