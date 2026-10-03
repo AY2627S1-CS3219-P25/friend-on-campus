@@ -28,4 +28,4 @@ RUN npm run db:generate
 
 EXPOSE 8004
 
-CMD ["sh", "-c", "npm run db:deploy && npm run db:seed && exec /app/node_modules/.bin/tsx src/index.ts"]
+CMD ["sh", "-c", "npm run db:deploy && (npm run db:seed || echo >&2 '[credit-seed] Automatic startup seed failed; continuing without development wallet seeding') && exec /app/node_modules/.bin/tsx src/index.ts"]

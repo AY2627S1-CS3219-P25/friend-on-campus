@@ -65,8 +65,9 @@ if (require.main === module) {
   const credits = createCreditService(createCreditStore(prisma));
   seedCreditWallets(credits, config.seedUserServiceUrl)
     .then(wallets => console.log(`[credit-seed] Initialized or retained ${wallets.length} development wallets`))
-    .catch(() => {
-      console.error('[credit-seed] Failed. Check User Service availability, enabled development seed accounts and deployed credit migrations.');
+    .catch((error: unknown) => {
+      const detail = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[credit-seed] Failed: ${detail}`);
       process.exitCode = 1;
     })
     .finally(async () => { await prisma.$disconnect(); });

@@ -38,7 +38,7 @@ npm run dev:credit
 
 If port 8004 is occupied, set `PORT=8014` for the local process. Compose parses the full project; if it requests JWT keys, use the existing repository key-generation setup. PostgreSQL and RabbitMQ must both be available before startup completes. A missing or malformed public key prevents startup before connections are opened. Credit Service requires only the public key, never `JWT_PRIVATE_KEY`.
 
-For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migration, seeds development wallets and starts the consumer and HTTP server. Compose supplies PostgreSQL/RabbitMQ addresses and the shared JWT public key, issuer and audience. It waits for User Service to be healthy (after its user seed completes). Docker startup runs `db:deploy`, then `db:seed`, then Node. The migration expects a fresh `credit_db`.
+For Docker, `docker compose up --build -d credit-service` builds the client, deploys this service's migration, attempts to seed development wallets and starts the consumer and HTTP server. Compose supplies PostgreSQL/RabbitMQ addresses and the shared JWT public key, issuer and audience. It waits for User Service to be healthy (after its user seed completes). Docker startup runs `db:deploy`, attempts `db:seed`, then starts Node. Migration failure remains fatal; automatic seed failure is logged and skipped so Credit Service and the gateway can still start. The migration expects a fresh `credit_db`.
 
 ## Development wallet seed
 
@@ -54,7 +54,7 @@ The seed logs in through User Service's existing API using its development passw
 
 The seed explicitly calls `initializeWallet`, which creates one wallet, one grant marker and one `WELCOME_GRANT` ledger entry per new user in a transaction. Reruns preserve existing balances, earned credits, escrows and ledger history without granting credits again. Wallet reads never initialize credits. No sample orders or escrow transactions are invented. Supplier seed records do not own wallets.
 
-`USER_SERVICE_URL` defaults to `http://localhost:8001`; Compose sets it to `http://user-service:8001`. The seed requires the three development accounts to exist, be enabled and accept the development password. API requests have a 10-second timeout. Lookup, logout or database failures make the seed exit unsuccessfully and prevent that container startup from continuing. For host development, seed users and start User Service before running `db:seed`; `npm run dev:credit` does not automatically seed.
+`USER_SERVICE_URL` defaults to `http://localhost:8001`; Compose sets it to `http://user-service:8001`. The seed requires the three development accounts to exist, be enabled and accept the development password. API requests have a 10-second timeout. The explicit `npm run db:seed` command remains strict: lookup, logout or database failures print the specific cause and exit non-zero. Container startup treats that non-zero result as an optional development-seed failure and continues; existing wallets remain available, but any missing seed wallet stays missing. For host development, seed users and start User Service before running `db:seed`; `npm run dev:credit` does not automatically seed.
 
 This populates real PostgreSQL credit records. The student app reads the authenticated user's wallet and ledger from Credit Service. Seeding does not implement User Service's registration-event publisher.
 
@@ -78,7 +78,7 @@ Start with an empty `credit_db` and run `db:deploy`. The single `20260924050000_
 | `credit_escrows` | One requester/amount and lifecycle per order; `RESERVED`, `SETTLED` or `REFUNDED` |
 | `processed_credit_events` | Event ID, type and hash of the validated payload |
 
-The migration creates five empty tables. The startup seed then initializes the three development wallets, grant markers and welcome ledger entries through the normal wallet initializer. Escrows and processed events remain empty until application operations create them. There is no legacy-data backfill or reconciliation. This setup targets fresh databases rather than upgrading existing credit records.
+The migration creates five empty tables. The best-effort startup seed normally initializes the three development wallets, grant markers and welcome ledger entries through the normal wallet initializer. If it is skipped after an account/login failure, the service still starts and any missing wallet returns 404 until explicitly initialized. Escrows and processed events remain empty until application operations create them. There is no legacy-data backfill or reconciliation. This setup targets fresh databases rather than upgrading existing credit records.
 
 Databases created with the former Docker init SQL or either earlier Credit Service migration layout are not supported by this fresh-start migration. For disposable local data, recreate the volume with `docker compose down -v` and then start the stack again. This deletes every database in that Compose volume. Retaining legacy data requires a separately designed and approved data migration.
 
