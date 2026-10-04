@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: Added the 2026-10-04 re-run line.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Created this placeholder page (structure only).
 Author review: <to be completed by Reallyeasy1>
@@ -23,6 +27,7 @@ Re-run: 2026-09-28, same commit (origin/main unchanged), existing volume — ide
 Re-run: 2026-10-01, `main` @ 754331f (PR #103 gateway `/admin/` host fix, PR #104 atomic last-admin guard + self-deletion logout), existing volume — API 57/63 (same six known gaps), UI 30/30 now through the gateway `/admin/` route, `test:d2` 56/56, unit 143/143, plus 34 targeted checks for the last-admin guard (`uat-admin-guards-results-2026-10-01.json`: 32/34; the two failures are findings — a demoted admin keeps ADMIN rights on its unexpired access token, and a non-UUID id on `DELETE /api/users/:id` returns 500) and 8 browser checks for self-deletion logout and the last-admin dialog error (screenshots `admin-selfdelete-back-to-login-desktop.png`, `admin-lastadmin-delete-refused-desktop.png`).
 Re-run: 2026-10-01 (later), `main` @ e999596 (PR #105: both Vite dev servers proxy `/api` and `/ws` to the gateway inside Compose; nginx exact-match `/api/users`, `/api/credits` and a 404 catch-all for unknown `/api/*`) — API 58/63 (A0 now passes: bare `/api/users` is served, no 301; A6 A8 A10 A11 S8 remain), UI 30/30 through the gateway and 30/30 again through the direct ports 5173/5174, `test:d2` 56/56, last-admin guard checks 32/34 (same two findings), self-deletion browser checks 8/8 on both origins, student-app `/ws/` socket connects on both origins, gateway access log shows the frontend-proxied requests arriving from the app containers. Result files `*-2026-10-01-e999596*.json`.
 Re-run: 2026-10-01 (branch `fix/a6-disabled-login`, uncommitted, on top of e999596) — login refuses a disabled account with 403 `ACCOUNT_DISABLED` (checked after the password). API 59/63 (A6 now passes; A8 A10 A11 S8 remain), UI 30/30, `test:d2` 56/56, unit 146/146, guard checks 32/34 (unchanged), plus 4 browser checks that a disabled student sees the message in both login forms (`student-login-disabled-mobile.png`, `admin-login-disabled-desktop.png`).
+Re-run: 2026-10-04 (uncommitted, on top of `main` @ 1109278, existing volume) — A8, A10, A11 and S8 closed: the last enabled admin cannot be disabled (409 `LAST_ADMIN_REQUIRED`), a non-UUID user id gives 400 `INVALID_INPUT`, a disabled account cannot refresh (401; its access token stays valid until it expires), and supplier sorting ignores letter case. API 62/62 (A8b is only recorded when the self-disable succeeds), UI 30/30, `test:d2` 56/56, unit 185/185 including the 9 PostgreSQL admin-guard tests.
 Drivers: `scripts/uat/uat-d2-api.mjs` (63 checks, no dependencies) and `scripts/uat/uat-d2-ui.mjs` (29 checks, Playwright 1.63 headless Chromium).
 
 | Check (D2 plan §5) | Result | Evidence (command output, screenshot, test name) | Date | By |

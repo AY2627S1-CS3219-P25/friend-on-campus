@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: Row 18 restated against the code after the A6, A8 and A11 changes; the Resolution column is still the team's.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Listed places where D1, the D2 plan, issue #1 and the code on milestone-d2 say different things.
 Observations only — the "Resolution" column is deliberately empty and is for the team to fill.
@@ -59,7 +63,7 @@ Check IDs refer to [`../evidence/d2/d2-checklist.md`](../evidence/d2/d2-checklis
 
 | # | Conflict | Sources | Resolution |
 |---|---|---|---|
-| 18 | Role lifecycle: D1 F1 lists admin promotion with a last-admin guard, and the D2 instructions point 6 ask for a promotion workflow and the self-revoke / only-admin edge cases; the code returns 501 for promotion, lets an admin disable their own or the only admin account, and does not read `status` at login, refresh or token verification (A3, A6, A8, A11) | D1 F1, D2 instructions Part 1 §6 vs `user-routes.ts`, `auth-module.ts`, `packages/auth` | |
+| 18 | Role lifecycle: D1 F1 lists admin promotion with a last-admin guard, and the D2 instructions point 6 ask for a promotion workflow and the self-revoke / only-admin edge cases. As of 2026-10-04 the code promotes and demotes through `toggle-role`, refuses to demote, delete or disable the last admin (409 `LAST_ADMIN_REQUIRED`), and reads `status` at login and refresh but not at token verification (decision recorded in issue #108). Still different: the demote and delete guard counts `ADMIN` roles rather than enabled admins (issue #109) (A3, A6, A8, A11) | D1 F1, D2 instructions Part 1 §6 vs `user-routes.ts`, `user-repository.ts`, `auth-repository.ts`, `packages/auth` | |
 | 19 | Admin portal path: the gateway and the architecture overview route `/admin/` to the admin portal; the page served there loads the student app because the admin portal's Vite assets are root-absolute | `gateway/nginx.conf` `location /admin/` vs `apps/admin-portal/vite.config.ts` (no `base`) | |
 | 20 | `npm run test:d2` asserts `501` for `GET /api/users` and `GET /api/users/:id`; the first now returns 200 and the second has no route (404), so 4 of 44 assertions fail | `scripts/test-d2-e2e.ts` vs `user-routes.ts` | |
 | 21 | `services/user-service/docs/api-reference.md` documents `GET /api/users` and `GET /api/users/:id` as `501` placeholders and omits `PATCH /api/users/:id/admin` | `api-reference.md` vs `user-routes.ts` | Resolved 2026-09-28: `api-reference.md` updated to the routes in `user-routes.ts` |
