@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: Added the last-enabled-admin tests for toggleUserStatus (UAT A8).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Cover last-admin error mapping and deletion when another admin remains.
  * Author review: <to be completed by huangjiaxi1111>
@@ -171,6 +175,18 @@ describe('administration', () => {
     await rejects(users.toggleUserRole(ADMIN.id), 'LAST_ADMIN_REQUIRED');
     await rejects(users.deleteUser(ADMIN.id), 'LAST_ADMIN_REQUIRED');
     assert.equal(fake.users.get(ADMIN.id)?.role, 'ADMIN');
+  });
+
+  it('refuses to disable the last enabled admin and leaves it enabled', async () => {
+    await rejects(users.toggleUserStatus(ADMIN.id), 'LAST_ADMIN_REQUIRED');
+    assert.equal(fake.users.get(ADMIN.id)?.status, true);
+  });
+
+  it('disables an admin while another enabled admin remains, and always allows re-enabling', async () => {
+    await users.toggleUserRole(ALICE.id);
+    assert.equal((await users.toggleUserStatus(ADMIN.id)).status, false);
+    await rejects(users.toggleUserStatus(ALICE.id), 'LAST_ADMIN_REQUIRED');
+    assert.equal((await users.toggleUserStatus(ADMIN.id)).status, true);
   });
 
   it('allows an admin to be deleted when another admin remains', async () => {

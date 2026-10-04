@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+# Scope: toggle-status gains 400 and 409 and loses the 500; toggle-role and DELETE gain 400; refresh mentions a disabled account.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
 # Scope: Document the 403 ACCOUNT_DISABLED login response.
 # Author review: <to be completed by Reallyeasy1>
@@ -149,7 +153,7 @@ paths:
                       accessToken: { type: string }
                       accessTokenExpiresInSeconds: { type: integer, example: 900 }
         "401":
-          description: INVALID_SESSION (missing, expired, revoked, malformed or already rotated). A replay does not revoke the active session.
+          description: INVALID_SESSION (missing, expired, revoked, malformed or already rotated, or the account is disabled). A replay does not revoke the active session.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -260,8 +264,9 @@ paths:
       tags: [admin]
       summary: Flip a user's status (enable / disable)
       description: >
-        No request body. The target may be the caller or the only ADMIN. status is not read at login, refresh or
-        token verification.
+        No request body. Disabling an enabled ADMIN is refused when no other enabled ADMIN exists, including the
+        caller's own account (409 LAST_ADMIN_REQUIRED). A disabled account cannot log in or refresh; access tokens
+        already issued are accepted until they expire.
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -271,14 +276,16 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UserResponse" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403": { $ref: "#/components/responses/AdminRequired" }
         "404": { $ref: "#/components/responses/UserNotFound" }
-        "500":
-          description: id is not a UUID
+        "409":
+          description: LAST_ADMIN_REQUIRED; the target is the last enabled admin
           content:
             application/json:
-              example: { success: false, error: Internal server error, errorId: 1c5ccf08-a628-4595-9cb9-bbc78ce8543b }
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: The last enabled admin cannot be disabled, code: LAST_ADMIN_REQUIRED }
   /api/users/{id}/toggle-role:
     patch:
       tags: [admin]
@@ -295,6 +302,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/UserResponse" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403":
           description: ADMIN_REQUIRED for a non-ADMIN caller; SELF_ACTION_FORBIDDEN when id is the caller's own id
@@ -322,6 +330,7 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         "204": { description: Account deleted }
+        "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "403":
           description: FORBIDDEN; a non-ADMIN caller sent another user's id

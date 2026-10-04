@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: The fakes mirror the repositories: rotateSession refuses a disabled account and toggleStatus refuses
+ * to disable the last enabled admin.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Extended fake AuthRepository with outbox persistence and querying methods.
  * Author review: <to be completed by huangjiaxi1111>
@@ -149,7 +154,7 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
     async rotateSession(currentTokenHash, nextTokenHash, standardIdleExpiresAt, persistentIdleExpiresAt) {
       calls.push('rotateSession');
       const current = sessions.get(currentTokenHash);
-      if (!current || current.idleExpiresAt <= new Date()) return null;
+      if (!current || current.idleExpiresAt <= new Date() || !users.get(current.userId)?.status) return null;
       sessions.delete(currentTokenHash);
       const rotated: StoredSession = {
         ...current,
@@ -251,6 +256,10 @@ export function makeFakeUserRepository(seed: UserRecord[] = [], shared?: Map<str
     async toggleStatus(userId) {
       const u = users.get(userId);
       if (!u) return null;
+      if (u.status && u.role === 'ADMIN'
+        && ![...users.values()].some((user) => user.id !== u.id && user.role === 'ADMIN' && user.status)) {
+        throw new LastAdminError('The last enabled admin cannot be disabled');
+      }
       u.status = !u.status;
       return { ...u };
     },

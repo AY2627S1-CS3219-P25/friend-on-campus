@@ -1,6 +1,11 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: rotateSession returns null for a disabled account, so refresh is refused and the session is left as it
+ * was (UAT A11, issue #108).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Implemented transactional outbox persistence in createUser and outbox event querying, delivery marking, and retry tracking.
  * Author review: <to be completed by huangjiaxi1111>
@@ -183,7 +188,9 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
           include: { user: true },
         });
         const now = new Date();
-        if (!currentSession || currentSession.idleExpiresAt <= now) {
+        // AI-generated (edited by Reallyeasy1)
+        // A disabled account keeps its access token until it expires but cannot obtain a new one.
+        if (!currentSession || currentSession.idleExpiresAt <= now || !currentSession.user.status) {
           return null;
         }
 

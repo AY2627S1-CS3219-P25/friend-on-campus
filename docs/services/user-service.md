@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: As built after the A8, A10, A11 fixes: last-enabled-admin guard on toggle-status, 400 for a non-UUID id, refresh refused for a disabled account; test counts.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-03
 Scope: Documented transactional outbox persistence, RabbitMQ event publishing, at-least-once delivery guarantees, and background relay lifecycle.
 Author review: <to be completed by huangjiaxi1111>
@@ -142,9 +146,9 @@ When a new student registers (`POST /api/auth/register`), User Service coordinat
 | `PATCH /api/users/me` | Bearer token | Updates username only; any other field in the body (`role`, `status`, `userId`, `email`) → 400 `INVALID_INPUT`. Taken username → 409 `DUPLICATE_USERNAME`. |
 | `PUT /api/users/me/password` | Bearer token | Verifies current password (401 `INVALID_CURRENT_PASSWORD`) and changes password; 204. |
 | `GET /api/users` | ADMIN Bearer token | 200 `{ users: [{ userId, username, email, userRole, status }] }`. |
-| `PATCH /api/users/:id/toggle-status` | ADMIN Bearer token | Flips the target's `status`; 200 with the user; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; last-admin demotion → 409 `LAST_ADMIN_REQUIRED`; unknown UUID → 404 `USER_NOT_FOUND`. |
-| `DELETE /api/users/:id` | Bearer token; own id, or ADMIN for any id | Deletes the account and, by cascade, its sessions; clears the refresh cookie on self-deletion; 204; last-admin deletion → 409 `LAST_ADMIN_REQUIRED`; another user's id as `STUDENT` → 403 `FORBIDDEN`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `PATCH /api/users/:id/toggle-status` | ADMIN Bearer token | Flips the target's `status`; 200 with the user; disabling the last enabled `ADMIN` → 409 `LAST_ADMIN_REQUIRED`; non-UUID id → 400 `INVALID_INPUT`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `PATCH /api/users/:id/toggle-role` | ADMIN Bearer token | Flips the target's role between `STUDENT` and `ADMIN`; 200 with the user; own id → 403 `SELF_ACTION_FORBIDDEN`; last-admin demotion → 409 `LAST_ADMIN_REQUIRED`; non-UUID id → 400 `INVALID_INPUT`; unknown UUID → 404 `USER_NOT_FOUND`. |
+| `DELETE /api/users/:id` | Bearer token; own id, or ADMIN for any id | Deletes the account and, by cascade, its sessions; clears the refresh cookie on self-deletion; 204; last-admin deletion → 409 `LAST_ADMIN_REQUIRED`; another user's id as `STUDENT` → 403 `FORBIDDEN`; non-UUID id → 400 `INVALID_INPUT`; unknown UUID → 404 `USER_NOT_FOUND`. |
 
 There is no `GET /api/users/:id` route (404 "Route not found"). `PATCH /api/users/:id/admin` and
 `POST /api/users/:id/promote` no longer exist; the two toggle routes above replaced them.
@@ -166,7 +170,7 @@ another user's account on `DELETE` → 403 `FORBIDDEN`; own id on `toggle-role` 
 | Register, log in, refresh, log out (`/api/auth/*`) | yes | yes | yes |
 | Read / edit own profile, change own password (`/api/users/me*`) | 401 | yes | yes |
 | List users (`GET /api/users`) | 401 | 403 | yes |
-| Enable / disable an account (`PATCH /api/users/:id/toggle-status`) | 401 | 403 | yes |
+| Enable / disable an account (`PATCH /api/users/:id/toggle-status`) | 401 | 403 | yes, unless the target is the last enabled admin (409) |
 | Promote or demote a user (`PATCH /api/users/:id/toggle-role`) | 401 | 403 | yes, except own id (403) or last admin (409) |
 | Delete own account (`DELETE /api/users/:id`) | 401 | yes | unless last admin (409) |
 | Delete another user's account (`DELETE /api/users/:id`) | 401 | 403 | unless target is last admin (409) |
@@ -199,11 +203,11 @@ password to the values above. The seed does not write `status`.
 Items with a UAT check ID in brackets were observed on `main` @ f0ee632 (see `../evidence/d2/d2-checklist.md`);
 the updated admin-removal guards and self-deletion session cleanup have PostgreSQL integration coverage.
 
-- `status` is read by login (a disabled account gets 403 `ACCOUNT_DISABLED`, checked after the password; A6 fixed 2026-10-01) but not by refresh or the auth middleware: an already-issued access token and refresh session keep working until they expire [A11].
+- `status` is read by login (a disabled account gets 403 `ACCOUNT_DISABLED`, checked after the password; A6) and by refresh (401 `INVALID_SESSION`; the session row is neither rotated nor revoked, so it works again if the account is re-enabled before its idle expiry). The auth middleware does not read the user row: an access token issued before the account was disabled, or before an admin was demoted, is accepted until it expires (15 minutes by default) [A11, issue #108].
 - `PATCH /api/users/:id/toggle-role` still refuses the caller's own id. Role changes and deletions share a PostgreSQL transaction advisory lock; the remaining-admin check and mutation commit together. Attempts to demote or delete the last `ADMIN` return 409 `LAST_ADMIN_REQUIRED`, including concurrent requests across service instances. This guard counts `ADMIN` roles, independently of `status`.
 - `DELETE /api/users/:id` allows admin self-deletion only when another admin remains. Successful self-deletion clears the refresh cookie and cascades to all sessions. The admin portal immediately clears its local session and returns to login; deleting someone else keeps the caller signed in.
-- `PATCH /api/users/:id/toggle-status` (formerly `/admin`) does not compare the target with the caller or count remaining admins: the seeded admin can disable its own account, including when it is the only `ADMIN` [A8].
-- A non-UUID `:id` on `toggle-status` returns 500 `Internal server error` [A10].
+- `PATCH /api/users/:id/toggle-status` (formerly `/admin`) takes the same advisory lock and refuses to disable an enabled `ADMIN` when no other enabled `ADMIN` exists: 409 `LAST_ADMIN_REQUIRED`, for the caller's own account as for any other, including concurrent requests across service instances. Re-enabling is never refused. The demote/delete guard above still counts roles and not `status`, so with one enabled and one disabled admin the enabled one can still be demoted or deleted [A8, issue #109].
+- A non-UUID `:id` on `toggle-status`, `toggle-role` or `DELETE /api/users/:id` returns 400 `INVALID_INPUT` from one `router.param` check, after the token check and before the role check [A10].
 - Refresh rotation: a replayed (already rotated) refresh cookie gets 401 `INVALID_SESSION`; the current cookie keeps working [L7, L8].
 - Refresh cookie: `HttpOnly`, `Path=/api/auth`, about 1 day, or about 30 days with `keepLoggedIn: true` [L2, L5].
 - No password or password hash appears in any response [R3, P3].
@@ -211,7 +215,7 @@ the updated admin-removal guards and self-deletion session cleanup have PostgreS
 
 ## Tests
 
-- `npm test --workspace=@campus-errand/user-service` — 92 unit tests in `test/` (Node's built-in runner via `tsx`, no database): validation rules, scrypt hashing, token signing, the auth and user modules against in-memory repositories, and the assembled app over HTTP (cookies, token errors, RBAC, self-target rules, error bodies).
+- `npm test --workspace=@campus-errand/user-service` — 119 unit tests in `test/` (Node's built-in runner via `tsx`, no database): validation rules, scrypt hashing, token signing, the auth and user modules against in-memory repositories, the outbox and publisher, and the assembled app over HTTP (cookies, token errors, RBAC, self-target and last-admin rules, error bodies). `test/admin-guard.integration.test.ts` adds 9 PostgreSQL tests (concurrent demote/delete/disable, refresh for a disabled account); it is skipped unless `ADMIN_GUARD_TEST_DATABASE_URL` is set, which CI does.
 - `npm run test:d2` — Scenario 4 covers the user list, `toggle-status` and `toggle-role`. The last recorded run (40/44, on f0ee632) predates that rewrite.
 - `tests/postman/` — Postman collection and environment for this service and Supplier Service, run against ports 8001 / 8002.
 - `node scripts/uat/uat-d2-api.mjs` — 63 API checks against a running stack; the recorded results in `../evidence/d2/` are from f0ee632.

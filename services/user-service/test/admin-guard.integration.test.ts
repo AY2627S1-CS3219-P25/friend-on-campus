@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: Added PostgreSQL tests for the last-enabled-admin disable guard (UAT A8) and for refresh being refused
+ * for a disabled account (A11).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: PostgreSQL integration tests for concurrent admin removal and self-deletion session cleanup.
  * Author review: <to be completed by huangjiaxi1111>
@@ -114,6 +119,41 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
     assert.equal(res.body.code, 'LAST_ADMIN_REQUIRED');
     assert.equal(res.headers.get('set-cookie'), null);
     assert.equal(await databases[0].session.count({ where: { userId: adminA } }), 1);
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('keeps one enabled admin when two instances race to disable each other', async () => {
+    const results = await Promise.all([0, 1].map((i) => clients[i].call(
+      'PATCH', `/api/users/${i === 0 ? adminB : adminA}/toggle-status`, { token: tokenFor(i === 0 ? adminA : adminB) },
+    )));
+    assert.equal(results.filter((result) => result.status === 200).length, 1);
+    assert.equal(results.find((result) => result.status === 409)?.body.code, 'LAST_ADMIN_REQUIRED');
+    assert.equal(await databases[0].user.count({ where: { role: 'ADMIN', status: true } }), 1);
+  });
+
+  it('refuses the last enabled admin disabling itself, and still lets it disable a student', async () => {
+    await databases[0].user.update({ where: { id: adminB }, data: { status: false } });
+    const self = await clients[0].call('PATCH', `/api/users/${adminA}/toggle-status`, { token: tokenFor(adminA) });
+    assert.equal(self.status, 409);
+    assert.equal(self.body.code, 'LAST_ADMIN_REQUIRED');
+    const other = await clients[0].call('PATCH', `/api/users/${student}/toggle-status`, { token: tokenFor(adminA) });
+    assert.equal(other.body.data.user.status, false);
+    assert.equal((await databases[0].user.findUnique({ where: { id: adminA } }))?.status, true);
+  });
+
+  it('refuses refresh for a disabled account without rotating or revoking its session', async () => {
+    const refreshToken = tokens.generateRefreshToken();
+    await databases[0].session.create({ data: {
+      userId: student, refreshTokenHash: tokens.hashRefreshToken(refreshToken),
+      idleExpiresAt: new Date(Date.now() + 86_400_000),
+    } });
+    await databases[0].user.update({ where: { id: student }, data: { status: false } });
+    const refused = await clients[0].call('POST', '/api/auth/refresh', { cookie: `refresh_token=${refreshToken}` });
+    assert.equal(refused.status, 401);
+    assert.equal(refused.body.code, 'INVALID_SESSION');
+    await databases[0].user.update({ where: { id: student }, data: { status: true } });
+    const restored = await clients[0].call('POST', '/api/auth/refresh', { cookie: `refresh_token=${refreshToken}` });
+    assert.equal(restored.status, 200);
   });
 
   for (const role of ['student', 'admin']) {

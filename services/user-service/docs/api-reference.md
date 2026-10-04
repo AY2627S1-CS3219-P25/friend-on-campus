@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: toggle-status documents the last-enabled-admin 409; the /:id routes document 400 for a non-UUID id; refresh documents the disabled-account case.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
 Scope: Document the 403 ACCOUNT_DISABLED login response.
 Author review: <to be completed by Reallyeasy1>
@@ -290,7 +294,7 @@ A previously rotated refresh token is treated as an invalid session and returns
 
 | Status | Code | Meaning |
 |---:|---|---|
-| `401` | `INVALID_SESSION` | The refresh token is missing, expired, invalid, revoked, or has already been rotated. |
+| `401` | `INVALID_SESSION` | The refresh token is missing, expired, invalid, revoked, or has already been rotated, or its account is disabled (the session is then left as it was). |
 
 ### `POST /api/auth/logout`
 
@@ -510,10 +514,10 @@ Status: `200 OK`
 ### `PATCH /api/users/:id/toggle-status`
 
 Flips the `status` of the account with the given ID: `true` (active) becomes `false`
-(disabled) and the reverse. The route does not compare the target with the caller and
-does not count the remaining `ADMIN` accounts. `status` is stored and returned; login,
-refresh and access-token verification do not read it. This route was named
-`PATCH /api/users/:id/admin` before.
+(disabled) and the reverse. Disabling an enabled `ADMIN` is refused with 409
+`LAST_ADMIN_REQUIRED` when no other enabled `ADMIN` exists, including when the target is
+the caller. A disabled account cannot log in or refresh; access tokens it already holds
+are accepted until they expire. This route was named `PATCH /api/users/:id/admin` before.
 
 #### Request
 
@@ -548,8 +552,9 @@ In addition to the [authentication errors](#authentication-error-responses):
 
 | Status | Code | Meaning |
 |---:|---|---|
+| `400` | `INVALID_INPUT` | `:id` is not a UUID. |
 | `404` | `USER_NOT_FOUND` | No account has that UUID. |
-| `500` | — | `:id` is not a UUID; the generic server-error body is returned. |
+| `409` | `LAST_ADMIN_REQUIRED` | The target is the last enabled admin and would be disabled. |
 
 ### `PATCH /api/users/:id/toggle-role`
 
@@ -591,6 +596,7 @@ In addition to the [authentication errors](#authentication-error-responses):
 
 | Status | Code | Meaning |
 |---:|---|---|
+| `400` | `INVALID_INPUT` | `:id` is not a UUID. |
 | `403` | `SELF_ACTION_FORBIDDEN` | `:id` is the caller's own ID. |
 | `409` | `LAST_ADMIN_REQUIRED` | The target is the last remaining admin. |
 | `404` | `USER_NOT_FOUND` | No account has that UUID. |
@@ -635,6 +641,7 @@ In addition to the [authentication errors](#authentication-error-responses):
 
 | Status | Code | Meaning |
 |---:|---|---|
+| `400` | `INVALID_INPUT` | `:id` is not a UUID. |
 | `403` | `FORBIDDEN` | A non-`ADMIN` caller sent another user's ID. |
 | `409` | `LAST_ADMIN_REQUIRED` | The target is the last remaining admin. |
 | `404` | `USER_NOT_FOUND` | No account has that UUID. |
