@@ -95,7 +95,7 @@
       "user": "notification_service",
       "vhost": "campus",
       "configure": "^(campus\\.events|notification-service\\.events(?:\\..+)?)$",
-      "write": "^notification-service\\.events(?:\\..+)?$",
+      "write": "^(amq\\.default|notification-service\\.events(?:\\..+)?)$",
       "read": "^(campus\\.events|notification-service\\.events(?:\\..+)?)$"
     },
     {
