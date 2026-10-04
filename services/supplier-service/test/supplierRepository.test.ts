@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: Sorting and pagination tests now assert on the returned rows (case-insensitive order, stable ties,
+ * slicing) because the repository sorts and pages in memory (UAT S8).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/database/supplierRepository.ts with the Prisma client replaced by a recording fake
  * (node:test module mock): where-clause and orderBy construction, pagination arithmetic and clamping, the
@@ -43,10 +48,12 @@ beforeEach(() => {
 
 describe('getSuppliers: filters and search', () => {
   it('with no filter returns the whole list as one page, sorted by name ascending', async () => {
-    answers.findMany = [[{ id: 'a' }, { id: 'b' }]];
+    answers.findMany = [[{ id: 'b', name: 'Beta' }, { id: 'a', name: 'Alpha' }]];
     const result = await repo.getSuppliers();
-    assert.deepEqual(calls[0].args, { where: {}, orderBy: { name: 'asc' } });
-    assert.deepEqual(result, { suppliers: [{ id: 'a' }, { id: 'b' }], total: 2, page: 1, limit: 2, totalPages: 1 });
+    assert.deepEqual(calls[0].args, { where: {} });
+    assert.deepEqual(result, {
+      suppliers: [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Beta' }], total: 2, page: 1, limit: 2, totalPages: 1,
+    });
     assert.equal(calls.some((c) => c.method === 'count'), false, 'no count query without pagination');
   });
 
@@ -88,73 +95,78 @@ describe('getSuppliers: filters and search', () => {
 });
 
 describe('getSuppliers: sorting', () => {
+  // Stored order is deliberately unsorted; byte order would put the lower-case name last.
+  const stored = () => [
+    { id: '3', name: 'The Deck', campusZone: 'FASS', category: 'Food', supplierCode: 'SUP-002', createdAt: new Date('2026-09-03') },
+    { id: '1', name: 'he by He Brews', campusZone: 'UTown', category: 'Drinks', supplierCode: 'SUP-004', createdAt: new Date('2026-09-01') },
+    { id: '4', name: 'TOMORO COFFEE', campusZone: 'COM3', category: 'drinks', supplierCode: 'SUP-001', createdAt: new Date('2026-09-04') },
+    { id: '2', name: 'A Hot Hideout', campusZone: 'com3', category: 'Food', supplierCode: 'SUP-003', createdAt: new Date('2026-09-02') },
+  ];
+  const ids = async (filter?: Parameters<typeof repo.getSuppliers>[0]) => {
+    answers.findMany = [stored()];
+    return (await repo.getSuppliers(filter)).suppliers.map((s: any) => s.id).join('');
+  };
+
+  it('orders names without regard to letter case, in both directions', async () => {
+    assert.equal(await ids({ sortBy: 'name' }), '2134');
+    assert.equal(await ids({ sortBy: 'name', sortOrder: 'desc' }), '4312');
+  });
+
   it('accepts the five sortable fields', async () => {
-    for (const field of ['name', 'campusZone', 'category', 'createdAt', 'supplierCode'] as const) {
-      answers.findMany = [[]];
-      await repo.getSuppliers({ sortBy: field });
-      assert.deepEqual(calls.at(-1)!.args.orderBy, { [field]: 'asc' });
-    }
+    assert.equal(await ids({ sortBy: 'supplierCode' }), '4321');
+    assert.equal(await ids({ sortBy: 'createdAt' }), '1234');
+    assert.equal(await ids({ sortBy: 'createdAt', sortOrder: 'desc' }), '4321');
+    // Equal values (ignoring case) keep a fixed order by id, so pages do not shuffle between requests.
+    assert.equal(await ids({ sortBy: 'category' }), '1423');
+    assert.equal(await ids({ sortBy: 'campusZone' }), '2431');
   });
 
   it('falls back to name for an unknown sortBy and to asc for anything but desc', async () => {
-    answers.findMany = [[], [], []];
-    await repo.getSuppliers({ sortBy: 'price' as any });
-    await repo.getSuppliers({ sortBy: 'category', sortOrder: 'DESC' as any });
-    await repo.getSuppliers({ sortBy: 'category', sortOrder: 'desc' });
-    assert.deepEqual(calls[0].args.orderBy, { name: 'asc' });
-    assert.deepEqual(calls[1].args.orderBy, { category: 'asc' });
-    assert.deepEqual(calls[2].args.orderBy, { category: 'desc' });
+    assert.equal(await ids({ sortBy: 'price' as any }), '2134');
+    assert.equal(await ids({ sortBy: 'supplierCode', sortOrder: 'DESC' as any }), '4321');
+    assert.equal(await ids({ sortBy: 'supplierCode', sortOrder: 'desc' }), '1234');
   });
 });
 
 describe('getSuppliers: pagination', () => {
-  it('page and limit become skip and take, with total and totalPages from a count query', async () => {
-    answers.findMany = [[{ id: 'x' }]];
-    answers.count = [21];
+  const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `id-${i}`, name: `S${String(i).padStart(2, '0')}` }));
+  const names = (result: { suppliers: any[] }) => result.suppliers.map((s) => s.name);
+
+  it('page and limit slice the sorted matches, with total and totalPages from the match count', async () => {
+    answers.findMany = [rows(21).reverse()];
     const result = await repo.getSuppliers({ page: 3, limit: 5 });
-    const findMany = calls.find((c) => c.method === 'findMany')!;
-    assert.equal(findMany.args.skip, 10);
-    assert.equal(findMany.args.take, 5);
-    const count = calls.find((c) => c.method === 'count')!;
-    assert.deepEqual(count.args, { where: {} });
-    assert.deepEqual(result, { suppliers: [{ id: 'x' }], total: 21, page: 3, limit: 5, totalPages: 5 });
+    assert.deepEqual(names(result), ['S10', 'S11', 'S12', 'S13', 'S14']);
+    assert.deepEqual({ ...result, suppliers: undefined }, { suppliers: undefined, total: 21, page: 3, limit: 5, totalPages: 5 });
   });
 
   it('paginates when only one of page or limit is sent, with defaults page 1 and limit 10', async () => {
-    answers.findMany = [[], []];
-    answers.count = [0, 0];
-    await repo.getSuppliers({ page: 2 });
-    await repo.getSuppliers({ limit: 7 });
-    const [first, second] = calls.filter((c) => c.method === 'findMany');
-    assert.equal(first.args.skip, 10);
-    assert.equal(first.args.take, 10);
-    assert.equal(second.args.skip, 0);
-    assert.equal(second.args.take, 7);
+    answers.findMany = [rows(21), rows(21)];
+    const second = await repo.getSuppliers({ page: 2 });
+    assert.deepEqual([names(second)[0], second.suppliers.length, second.limit], ['S10', 10, 10]);
+    const first = await repo.getSuppliers({ limit: 7 });
+    assert.deepEqual([names(first)[0], first.suppliers.length, first.page], ['S00', 7, 1]);
   });
 
   it('clamps page to at least 1 and limit to 1..100', async () => {
-    answers.findMany = [[], [], []];
-    answers.count = [0, 0, 0];
-    await repo.getSuppliers({ page: 0, limit: 500 });
-    await repo.getSuppliers({ page: -3, limit: 0 });
-    await repo.getSuppliers({ page: 1, limit: 100 });
-    const pages = calls.filter((c) => c.method === 'findMany').map((c) => [c.args.skip, c.args.take]);
-    assert.deepEqual(pages, [[0, 100], [0, 1], [0, 100]]);
+    answers.findMany = [rows(120), rows(120)];
+    const wide = await repo.getSuppliers({ page: 0, limit: 500 });
+    assert.deepEqual([wide.page, wide.limit, wide.suppliers.length], [1, 100, 100]);
+    const narrow = await repo.getSuppliers({ page: -3, limit: 0 });
+    assert.deepEqual([narrow.page, narrow.limit, names(narrow)], [1, 1, ['S00']]);
   });
 
-  it('totalPages rounds up and is 0 for an empty result', async () => {
-    answers.findMany = [[], []];
-    answers.count = [11, 0];
+  it('totalPages rounds up and is 0 for an empty result; a page past the end is empty', async () => {
+    answers.findMany = [rows(11), [], rows(11)];
     assert.equal((await repo.getSuppliers({ limit: 5 })).totalPages, 3);
     assert.equal((await repo.getSuppliers({ limit: 5 })).totalPages, 0);
+    assert.deepEqual((await repo.getSuppliers({ page: 9, limit: 5 })).suppliers, []);
   });
 
-  it('applies the same where clause to the page query and the count', async () => {
+  it('filters are applied by the query, before sorting and paging', async () => {
     answers.findMany = [[]];
-    answers.count = [0];
     await repo.getSuppliers({ category: 'Food', page: 1 });
-    const [findMany, count] = [calls.find((c) => c.method === 'findMany')!, calls.find((c) => c.method === 'count')!];
-    assert.deepEqual(findMany.args.where, count.args.where);
+    assert.deepEqual(calls.map((c) => c.method), ['findMany']);
+    assert.deepEqual(calls[0].args, { where: { category: { equals: 'Food', mode: 'insensitive' } } });
   });
 });
 
