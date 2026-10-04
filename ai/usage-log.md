@@ -2119,4 +2119,5 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 **Usage scenario:** Git and GitHub housekeeping on the author's explicit instruction: CLAUDE.md reserves commits, pushes and pull requests to the author, who asked for them here. Split the working tree into five commits by area, pushed the branch and opened the pull request against `main` using the template. Which issues the pull request closes remains the author's call; the body proposes `Closes #108` and lists #52 and #68 as partly covered.
 
 **Files changed:**
+- `scripts/test-d2-e2e.ts` — after the first CI run hung in the D2 suite: on Linux and macOS the spawned services run in their own process group and the group is killed, so the suite exits. Committed and pushed to the same pull request.
 - `ai/usage-log.md` — this entry.
