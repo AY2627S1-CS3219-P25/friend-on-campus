@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: Section 5: what the CI workflow runs.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-01
 Scope: Updated Vite proxy guidance for gateway routing in Compose and direct service routing on the host.
 Author review: <to be completed by author after review>
@@ -158,6 +162,8 @@ docker exec -it campuserrand-postgres psql -U postgres
 Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed; needs Node 22.3+, pinned in the root `package.json` `engines`; the Dockerfiles stay on `node:20-alpine` because containers do not run the tests): `services/<name>/test/*.test.ts`, run with `npm test` at the root or in the workspace. They need no database: user-service tests use in-memory repositories, supplier-service tests replace the Prisma client and the repository with `mock.module` (hence `--experimental-test-module-mocks` in its script). Each service's `typecheck` script uses `tsconfig.test.json`, which includes `src/**` and `test/**`, so `npm run typecheck` covers the tests too (`build` still uses `tsconfig.json`, src only). There is no lint script (tracked in issue #68). Do not add a test framework or linter unprompted.
 
 Before saying a change works: run `npm run typecheck` and `npm test`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
+
+CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm run typecheck` and `npm test` with a PostgreSQL service (`ADMIN_GUARD_TEST_DATABASE_URL` set, so the user-service admin-guard tests run), then the whole Compose stack with `scripts/uat/uat-d2-api.mjs` and `npm run test:d2`. The browser driver `scripts/uat/uat-d2-ui.mjs` is not in CI: Playwright is not a dependency of this repo.
 
 ## 6. Git and GitHub
 

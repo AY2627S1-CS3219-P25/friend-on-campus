@@ -1,0 +1,108 @@
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+# Scope: Wrote this workflow: type checks and unit tests (with the PostgreSQL admin-guard tests opted in), then the
+# Docker Compose stack with the API acceptance driver and the D2 end-to-end suite.
+# Author review: <to be completed by Reallyeasy1>
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Type checks and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22 # root package.json engines: >=22.3
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci # postinstall generates every service's Prisma client
+
+      - name: Type checks
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+        env:
+          # Opts in services/user-service/test/admin-guard.integration.test.ts, which creates and drops its own schema.
+          ADMIN_GUARD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+  acceptance:
+    name: API acceptance (Docker Compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate throwaway JWT keys
+        run: node scripts/generate-jwt-keys.mjs --print > .env
+
+      - name: Build and start the stack
+        run: docker compose up --build -d --wait --wait-timeout 300
+
+      - name: API acceptance checks
+        run: node scripts/uat/uat-d2-api.mjs
+        env:
+          UAT_OUT: uat-d2-api-results.json
+
+      # The suite starts its own user-service and supplier-service on 8001/8002 against the Compose database.
+      - name: D2 end-to-end suite
+        run: |
+          docker compose stop user-service supplier-service
+          npm run test:d2
+
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Upload acceptance results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: uat-d2-api-results
+          path: uat-d2-api-results.json
+          if-no-files-found: ignore
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
