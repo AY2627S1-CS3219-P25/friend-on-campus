@@ -2121,3 +2121,30 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 **Files changed:**
 - `scripts/test-d2-e2e.ts` — after the first CI run hung in the D2 suite: on Linux and macOS the spawned services run in their own process group and the group is killed, so the suite exits. Committed and pushed to the same pull request.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-04 23:33 SGT — Sprint 1 milestone status and notification-related issues
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Check which Sprint 1 milestone issues are completed and which are not, and which issues relate to the Notification Service.
+
+**Usage scenario:** Requirements lookup, facts only: issue states from GitHub, what the code and today's test runs show for each open Sprint 1 issue, and the issues that involve the Notification Service with what each depends on. No ranking or choice of what to do next was given; that part of the request falls under the not-allowed list (prioritising, sprint planning) and is left to the author.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry (uncommitted).
+
+## 2026-10-05 20:55 SGT — Which Sprint 1 issues can close; add the closure to PR #111
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Of the open Sprint 1 issues, say which can be closed and include that closure in the pull request.
+
+**Usage scenario:** Requirements checking and CI configuration: compared each open Sprint 1 issue's criteria with the code, the database and the service logs. Only #23 (N1.1, N1.2) had evidence for every criterion, so `Closes #23` and the evidence went into the pull request body on the author's instruction, with a CI step that repeats the review. #3 stays open: the author's 2026-09-23 comment left it open for the F1.2.5 gap (an access token outlives logout) and #79, and whether the A11 decision also settles that is the author's call. #24 depends on whether the request log counts as an audit record, also the author's call. #1, #5, #25, #26, #43 and #68 have unmet criteria. Committed and pushed on the author's standing instruction for this pull request.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — "Credential exposure review" step in the acceptance job.
+- `ai/usage-log.md` — this entry and the previous one.
