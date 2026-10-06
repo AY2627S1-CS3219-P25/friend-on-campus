@@ -7,7 +7,8 @@
  * order tracking): a two-pane inbox on desktop (errand list left, the selected errand's stage timeline right), a
  * list-then-detail flow on a phone, rows bundled per errand under "Needs your confirmation" / "Today" / "Earlier",
  * one quiet unread signal, read on open. The delivered step's button says what it does today (opens Tasks);
- * confirming delivery is an Order Service action that does not exist yet.
+ * confirming delivery is an Order Service action that does not exist yet. Review fix the same day: the selected
+ * errand is resolved from all errands, so under the Unread filter it stays open after opening marks it read.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -138,8 +139,11 @@ export function NotificationPanel({ items, unreadCount, isLoading, error, onMark
   // On a phone the board is one pane at a time: the list, then the errand you tapped.
   const [mobileDetail, setMobileDetail] = useState(false);
 
-  const errands = groupByErrand(items).filter((e) => filter === 'all' || e.unread > 0);
-  const selected = errands.find((e) => e.orderId === selectedId) ?? errands[0] ?? null;
+  const all = groupByErrand(items);
+  const errands = all.filter((e) => filter === 'all' || e.unread > 0);
+  // Resolved from every errand, not the filtered list: opening marks read, which would otherwise drop the
+  // opened errand out of the Unread view and jump the detail pane to the next one.
+  const selected = all.find((e) => e.orderId === selectedId) ?? errands[0] ?? null;
   useEffect(() => {
     if (selected && selected.orderId !== selectedId) setSelectedId(selected.orderId);
   }, [selected, selectedId]);
@@ -286,7 +290,7 @@ export function NotificationPanel({ items, unreadCount, isLoading, error, onMark
 
       {error && <p className="rounded-xl px-4 py-3 text-sm text-rose-700 bg-rose-50 border border-rose-200">{error} Refresh to try again.</p>}
 
-      {!error && errands.length === 0 && !isLoading && (
+      {!error && errands.length === 0 && !selected && !isLoading && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
           <Bell className="w-8 h-8 mx-auto text-slate-300" />
           <p className="mt-3 text-sm font-bold text-slate-700">{filter === 'unread' ? "You're all caught up" : 'No alerts yet'}</p>
@@ -298,10 +302,12 @@ export function NotificationPanel({ items, unreadCount, isLoading, error, onMark
         </div>
       )}
 
-      {errands.length > 0 && (
+      {(errands.length > 0 || selected) && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden lg:grid lg:grid-cols-[minmax(20rem,2fr)_3fr] lg:min-h-[28rem]">
           <section aria-label="Errands with alerts" className={`${mobileDetail ? 'hidden lg:block' : ''} lg:border-r lg:border-slate-100 lg:max-h-[70vh] lg:overflow-y-auto`}>
-            {list}
+            {errands.length > 0 ? list : (
+              <p className="px-4 py-10 text-center text-sm text-slate-500">You're all caught up. Every alert has been read.</p>
+            )}
           </section>
           <section aria-label="Selected errand" className={`${mobileDetail ? '' : 'hidden lg:block'} bg-slate-50/50`}>
             {detail}

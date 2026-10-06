@@ -3,6 +3,8 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: Client side of the Notification Service's WebSocket and REST contract, per the author's Notification Service
  * Design (third pull request): AUTH frame after login, reconnect with backoff, history over REST, mark read.
+ * Review fix the same day: a 4401 before AUTH_OK (token rejected outright, e.g. mismatched keys) backs off like any
+ * other close instead of looping refresh -> connect -> 4401 with no pause.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -87,11 +89,13 @@ export function useNotifications(options: {
       setStatus('connecting');
       const ws = new WebSocket(url);
       socket = ws;
+      let authenticated = false;
       ws.onopen = () => ws.send(JSON.stringify({ type: 'AUTH', token }));
       ws.onmessage = (event) => {
         let frame: { type?: string; unreadCount?: number; data?: NotificationDTO };
         try { frame = JSON.parse(event.data); } catch { return; }
         if (frame.type === 'AUTH_OK') {
+          authenticated = true;
           attempt = 0;
           setStatus('connected');
           setUnreadCount(frame.unreadCount ?? 0);
@@ -108,9 +112,11 @@ export function useNotifications(options: {
         if (socket === ws) socket = null;
         setStatus('disconnected');
         if (stopped) return;
-        // 4401 after a successful handshake means the token reached its expiry (about every 15 minutes):
-        // get a fresh one and come straight back. Anything else backs off: 1 s, 2 s, 4 s ... 30 s.
-        const delay = event.code === UNAUTHORIZED ? 0 : Math.min(MAX_BACKOFF_MS, 1000 * 2 ** attempt);
+        // 4401 after a successful handshake means the token reached its expiry (about every 15 minutes): get a
+        // fresh one and come straight back. A 4401 before AUTH_OK means the token was rejected outright (for example
+        // the service verifies with a different key), so it backs off like any other close: 1 s, 2 s, 4 s ... 30 s.
+        const expired = event.code === UNAUTHORIZED && authenticated;
+        const delay = expired ? 0 : Math.min(MAX_BACKOFF_MS, 1000 * 2 ** attempt);
         attempt += 1;
         timer = setTimeout(async () => {
           if (stopped) return;

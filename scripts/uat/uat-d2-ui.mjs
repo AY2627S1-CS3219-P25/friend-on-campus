@@ -1,7 +1,7 @@
 // AI Assistance Disclosure:
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-// Scope: UD2-UD4: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address). UD4 finds the step inside its errand card.
+// Scope: UD2-UD5: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address). UD4 finds the step inside its errand card.
 // Author review: <to be completed by Reallyeasy1>
 //
 // Tool: Codex (model: GPT-6), date: 2026-09-30
@@ -415,6 +415,26 @@ const browser = await chromium.launch();
     await page.waitForFunction(() => document.querySelectorAll('[data-testid=notification-badge]').length === 0);
     if ((await row.getAttribute('data-unread')) !== 'false') throw new Error('row still unread after tap');
     return 'read, badge cleared';
+  });
+  await step('UD5', 'student (desktop): under the Unread filter, opening the only unread errand keeps it open', async () => {
+    const connection = await amqp.connect(AMQP_URL);
+    const channel = await connection.createConfirmChannel();
+    const code = `UI-${stamp.toUpperCase()}-B`;
+    const event = { eventId: randomUUID(), eventType: 'order.accepted', timestamp: new Date().toISOString(), orderId: randomUUID(), orderCode: code, requesterId: bobId, courierId: randomUUID() };
+    await new Promise((resolve, reject) => channel.publish('campus.events', 'order.accepted', Buffer.from(JSON.stringify(event)), { persistent: true }, (e) => (e ? reject(e) : resolve())));
+    await channel.close();
+    await connection.close();
+    await page.getByTestId('notification-badge').first().waitFor();
+    await page.getByRole('tab', { name: /^Unread/ }).click();
+    const row = page.locator('li').filter({ hasText: code }).getByTestId('notification-row').first();
+    await row.waitFor();
+    await row.getByRole('button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid=notification-badge]').length === 0);
+    await page.getByRole('heading', { name: code }).waitFor();
+    await page.getByText("You're all caught up").first().waitFor();
+    await shot(page, 'student-alerts-unread-desktop');
+    await page.getByRole('tab', { name: /^All/ }).click();
+    return `${code} stayed open`;
   });
   await ctx.close();
 }

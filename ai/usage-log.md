@@ -2334,3 +2334,19 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `ai/usage-log.md` — this entry.
 
 **Verification:** typecheck clean; student app rebuilt; `uat-d2-ui` 33/33; screenshots at 390 px (list and detail) and 1440 px reviewed.
+
+## 2026-10-06 16:55 SGT — Two review findings on the student-app notifications
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Look at the Claude Code review comments on PR #111.
+
+**Usage scenario:** Bug fixes for two findings of the automated review, both in code written earlier today. (1) A 4401 close before AUTH_OK (token rejected outright, for example when the service verifies with a different key) was retried with no delay, so a misconfiguration looped refresh, connect, 4401 without a pause; only an authenticated socket's expiry close now reconnects at once, anything else backs off. (2) The selected errand was looked up in the filtered list, so under the Unread filter opening one marked it read, dropped it out and switched the detail to another errand; it is now resolved from all errands. Committed and pushed to pull request #111 on the author's instruction.
+
+**Files changed:**
+- `apps/student-app/src/notifications/useNotifications.ts` — per-socket `authenticated` flag decides the reconnect delay.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — selection from the unfiltered errands; the board stays when the filtered list is empty but an errand is open.
+- `scripts/uat/uat-d2-ui.mjs` — UD5 covers the Unread-filter case.
+- `ai/usage-log.md` — this entry.
