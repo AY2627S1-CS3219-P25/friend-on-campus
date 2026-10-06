@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+ * Scope: Added the database URL and the access-token verification settings (same variables as credit-service).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03
  * Scope: Broker configuration for the Notification Service, mirroring credit-service/src/config.ts on PR #91. The dead-letter
  * exchange is service-owned (not the shared campus.events.dlx) because the notification_service broker account may only
@@ -22,6 +26,13 @@ const exchange = process.env.NOTIFICATION_EXCHANGE || 'campus.events';
 
 export const config = Object.freeze({
   port: process.env.PORT || 8005,
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/notification_db',
+  auth: {
+    // Validated by authMiddleware during startup, before opening connections.
+    publicKey: process.env.JWT_PUBLIC_KEY ?? '',
+    issuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',
+    audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
+  },
   rabbitmq: {
     url: process.env.RABBITMQ_URL || 'amqp://notification_service:notification-service-dev@localhost:5672/campus',
     exchange,

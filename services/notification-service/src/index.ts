@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+ * Scope: Rewritten as wiring only, per the author's Notification Service Design: store, WebSocket hub, REST app and
+ * consumer. The unauthenticated echo handler and POST /api/notifications/broadcast of the starter stub are removed.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Replaced the unused shared RabbitMQ credential with Notification Service's dedicated development identity.
  * Author review: <to be completed by huangjiaxi1111>
@@ -10,110 +15,39 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by huangjiaxi1111, Reallyeasy1)
-import express, { Request, Response } from 'express';
 import http from 'http';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
+import { authMiddleware } from '@campus-errand/auth';
+import { createApp } from './app';
 import { config } from './config';
-import { startNotificationConsumer } from './notifications/events';
+import { prisma } from './database/client';
+import { createDeliver, startNotificationConsumer } from './notifications/events';
+import { createNotificationStore } from './notifications/store';
+import { createHub, createSocketAuthenticator } from './ws/hub';
 
-dotenv.config();
-
-const app = express();
-const PORT = config.port;
+const store = createNotificationStore(prisma);
+const hub = createHub({ authenticate: createSocketAuthenticator(config.auth), unreadCount: store.unreadCount });
 let consumerReady = () => false;
 
-app.use(cors());
-app.use(express.json());
+const app = createApp({
+  store,
+  authenticate: authMiddleware(config.auth),
+  port: config.port,
+  isReady: async () => consumerReady() && (await store.ping()),
+  status: () => ({ activeWsClients: hub.connectionCount(), rabbitmq: consumerReady() ? 'UP' : 'DOWN' }),
+});
 
+// REST and WebSocket share one HTTP server; the gateway forwards /ws/ to its root path.
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
-
-// Set of connected active WebSocket clients
-const clients = new Set<WebSocket>();
-
-wss.on('connection', (ws: WebSocket) => {
-  clients.add(ws);
-  console.log(`📡 [WS Service] Client connected. Total active connections: ${clients.size}`);
-
-  // Send initial welcome
-  ws.send(
-    JSON.stringify({
-      type: 'CONNECTION_ACK',
-      message: 'Connected to NUS CampusErrand Real-Time Hub',
-      timestamp: new Date().toISOString(),
-    })
-  );
-
-  ws.on('message', (data: string) => {
-    try {
-      const payload = JSON.parse(data.toString());
-      console.log('📩 [WS Message Received]:', payload);
-
-      // Echo / Broadcast to all clients for live chat & feed testing
-      const broadcastMsg = JSON.stringify({
-        ...payload,
-        broadcastedAt: new Date().toISOString(),
-      });
-
-      for (const client of clients) {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(broadcastMsg);
-        }
-      }
-    } catch (e) {
-      console.error('Invalid WS payload received');
-    }
-  });
-
-  ws.on('close', () => {
-    clients.delete(ws);
-    console.log(`🔌 [WS Service] Client disconnected. Total active: ${clients.size}`);
-  });
+new WebSocketServer({ server }).on('connection', hub.handleConnection);
+server.listen(config.port, () => {
+  console.log(`[Notification Service] listening on ${config.port}`);
 });
 
-// Health Check
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({
-    service: 'notification-service',
-    status: 'UP',
-    port: PORT,
-    activeWsClients: clients.size,
-    rabbitmq: consumerReady() ? 'UP' : 'DOWN',
-    timestamp: new Date(),
-  });
-});
-
-// Trigger broadcast test
-app.post('/api/notifications/broadcast', (req: Request, res: Response) => {
-  const { title, message } = req.body;
-  const payload = JSON.stringify({
-    type: 'SYSTEM_BROADCAST',
-    title: title || 'Campus Announcement',
-    message: message || 'Live errand update',
-    timestamp: new Date().toISOString(),
-  });
-
-  for (const client of clients) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(payload);
-    }
-  }
-
-  res.json({ success: true, broadcastedTo: clients.size });
-});
-
-server.listen(PORT, () => {
-  console.log(`🚀 [Notification & WS Service] running on port ${PORT} with tsx`);
-});
-
-// Broker failure exits so Compose restarts the process, same as credit-service.
+// A broker or channel failure exits the process, and Compose restarts it (restart: unless-stopped).
 startNotificationConsumer(
   config.rabbitmq,
-  async (event, draft) => {
-    console.log(JSON.stringify({ service: 'notification-service', action: 'notify', eventId: event.eventId, userId: event.requesterId, kind: draft.kind }));
-  },
+  createDeliver(store, hub.push),
   () => { console.error('RabbitMQ consumer failed; exiting for restart'); process.exit(1); },
 )
   .then((consumer) => { consumerReady = consumer.isReady; })
