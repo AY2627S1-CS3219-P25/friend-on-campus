@@ -5,7 +5,7 @@
  * Scope: Notifications per the author's Notification Service Design (third pull request): the socket opens after login
  * and sends the AUTH frame (src/notifications/useNotifications.ts), an Alerts bell with the unread badge in the top nav
  * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
- * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone.
+ * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-03
@@ -364,6 +364,8 @@ export default function App() {
     },
   });
   const wsStatus = notifications.status;
+  // Feature flag: the connection status line is a development aid; VITE_SHOW_WS_STATUS=false hides it.
+  const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const fetchCredits = async () => {
     const requestId = ++creditRequestId.current;
@@ -938,18 +940,22 @@ export default function App() {
 
         {/* Status Line */}
         <div className="mt-2.5 pt-2 border-t border-blue-800 flex justify-between items-center text-xs">
-          <span className="flex items-center space-x-1.5 text-blue-200">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                wsStatus === 'connected'
-                  ? 'bg-emerald-400 animate-pulse'
-                  : wsStatus === 'connecting'
-                  ? 'bg-amber-400'
-                  : 'bg-rose-400'
-              }`}
-            />
-            <span>WS Hub: {wsStatus}</span>
-          </span>
+          {showWsStatus ? (
+            <span className="flex items-center space-x-1.5 text-blue-200">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  wsStatus === 'connected'
+                    ? 'bg-emerald-400 motion-safe:animate-pulse'
+                    : wsStatus === 'connecting'
+                    ? 'bg-amber-400'
+                    : 'bg-rose-400'
+                }`}
+              />
+              <span>WS Hub: {wsStatus}</span>
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="text-blue-300">Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}</span>
         </div>
       </header>
@@ -1299,8 +1305,11 @@ export default function App() {
 
         {/* Alerts: notifications from the Notification Service */}
         {activeTab === 'alerts' && (
-          <div className="space-y-4 max-w-3xl">
-            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Alerts</h2>
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Alerts</h2>
+              <p className="text-sm text-slate-500 mt-1">Every errand a courier has acted on, newest first. Open one to see its stages; unread alerts wait here until you do.</p>
+            </div>
             <NotificationPanel
               items={notifications.items}
               unreadCount={notifications.unreadCount}

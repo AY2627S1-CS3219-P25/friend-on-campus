@@ -101,7 +101,7 @@ The token is checked with the same key, issuer and audience as the HTTP middlewa
 ## Behaviour as built
 
 - The starter stub's echo-to-everyone handler and `POST /api/notifications/broadcast` are removed.
-- The student app opens the socket after login, sends `AUTH`, reconnects with backoff (immediately after the token-expiry close), shows a toast and an unread badge on its Alerts bell for each pushed notification, and lists them in an Alerts view with mark-read and mark-all-read (`apps/student-app/src/notifications/`). The delivered row's "Confirm delivery" button leads to Tasks, where the confirm action will live once Order Service is real.
+- The student app opens the socket after login, sends `AUTH`, reconnects with backoff (immediately after the token-expiry close), shows a toast and an unread badge on its Alerts bell for each pushed notification, and lists them in an Alerts view with mark-read and mark-all-read (`apps/student-app/src/notifications/`). The header's "WS Hub: connected" line is a development aid behind the flag `VITE_SHOW_WS_STATUS` (`false` hides it; Compose passes it through from `.env`). The delivered row's "Confirm delivery" button leads to Tasks, where the confirm action will live once Order Service is real.
 - Order Service does not publish yet (#72, #14), and `OrderStatus` has no delivered state, so the queue only receives hand-published messages. Publish one from the RabbitMQ management UI (`localhost:15672`, exchange `campus.events`) or with `amqplib` as `order_service`.
 - A notification stored while its user is offline is not pushed later; the client sees it in the list after reconnecting.
 - While this service is down, events wait in its durable queue and are processed when it returns. No other service calls it.

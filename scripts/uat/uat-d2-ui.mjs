@@ -1,7 +1,7 @@
 // AI Assistance Disclosure:
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-// Scope: UD2-UD4: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address).
+// Scope: UD2-UD4: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address). UD4 finds the step inside its errand card.
 // Author review: <to be completed by Reallyeasy1>
 //
 // Tool: Codex (model: GPT-6), date: 2026-09-30
@@ -376,14 +376,17 @@ const browser = await chromium.launch();
   // Notifications (issue #52, F5): Order Service does not publish yet, so the event is published here as order_service.
   let bobId;
   await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
-    await page.getByText('WS Hub: connected').waitFor();
+    await page.getByText('WS Hub: connected').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
     await page.getByRole('button', { name: /^Alerts/ }).first().waitFor();
     const login = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob@u.nus.edu', password: PW }) });
     const token = (await login.json()).data.accessToken;
     bobId = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub;
-    await fetch(`${GW}/api/notifications/read-all`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    // Clear anything left from earlier runs through the app itself, so the badge reflects what the app knows.
     await page.getByRole('button', { name: /^Alerts/ }).first().click();
     await page.getByRole('heading', { name: 'Alerts' }).waitFor();
+    const markAll = page.getByRole('button', { name: 'Mark all as read' });
+    if (await markAll.isEnabled()) await markAll.click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid=notification-badge]').length === 0);
     await page.getByRole('button', { name: 'Feed' }).first().click();
     if (await page.getByTestId('notification-badge').count() > 0) throw new Error('badge shown with nothing unread');
     return 'connected, badge hidden';
@@ -403,7 +406,8 @@ const browser = await chromium.launch();
   });
   await step('UD4', 'student (desktop): the Alerts view lists it; tapping it marks it read and clears the badge', async () => {
     await page.getByRole('button', { name: /^Alerts/ }).first().click();
-    const row = page.getByTestId('notification-row').filter({ hasText: orderCode }).first();
+    // One card per errand: the order code is in the card header, the steps are the rows inside it.
+    const row = page.locator('li').filter({ hasText: orderCode }).getByTestId('notification-row').first();
     await row.waitFor();
     if ((await row.getAttribute('data-unread')) !== 'true') throw new Error('row not marked unread');
     await shot(page, 'student-alerts-desktop');

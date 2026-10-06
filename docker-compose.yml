@@ -2,7 +2,7 @@
 #
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
 # Scope: notification-service's health check probes /ready, so `up --wait` returns only once the consumer is bound and
-# the database answers (review finding on PR #111).
+# the database answers (review finding on PR #111). VITE_SHOW_WS_STATUS passed to the student app.
 # Author review: <to be completed by Reallyeasy1>
 #
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
@@ -99,6 +99,8 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_BASE_URL=/api
+      # false hides the "WS Hub" connection status line in the student app's header.
+      - VITE_SHOW_WS_STATUS=${VITE_SHOW_WS_STATUS:-true}
       - ADMIN_PORTAL_URL=http://admin-portal:5174
       - GATEWAY_URL=http://api-gateway:80
     healthcheck:

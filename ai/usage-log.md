@@ -2262,3 +2262,75 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `ai/usage-log.md` — this entry.
 
 **Verification:** typecheck clean (9 workspaces); student app container rebuilt; `uat-d2-ui` 33/33 including the three new checks; screenshots `student-alert-toast-desktop.png`, `student-alerts-desktop.png`.
+
+## 2026-10-06 15:41 SGT — Feature flag for the "WS Hub" status line
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Add a feature flag so the "WS Hub: connected" status line can be hidden or shown.
+
+**Usage scenario:** Configuration and a small UI change the author asked for. `VITE_SHOW_WS_STATUS=false` hides the line; anything else (and unset) shows it, so nothing changes by default. Compose passes the variable through from `.env`. Uncommitted.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — the status line renders only when the flag is not `false`.
+- `apps/student-app/src/vite-env.d.ts` — new: Vite client types and the typed variable.
+- `docker-compose.yml`, `.env.example` — the variable, default `true`.
+- `docs/services/notification-service.md`, `.claude/agents/frontend.md` — documented.
+- `scripts/uat/uat-d2-ui.mjs` — comment: UD2 needs the default.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-06 16:04 SGT — Alerts UI second pass
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Enhance the Alerts UI (the badge covered the bell icon); and the "Confirm delivery" button does nothing visible: should it change the status?
+
+**Usage scenario:** UI implementation on the existing design system. The unread count now sits beside the "Alerts" label instead of over the icon; each row shows the errand stage as an icon and a three-step strip; All / Unread filter; copy made consistent ("Mark all as read"); empty states say what to do; focus rings; reduced-motion respected. The delivered row's button is relabelled "Open in Tasks to confirm" because that is what it does: confirming delivery is an Order Service action that does not exist yet, which was explained to the author as their decision for when Order Service is real. Uncommitted.
+
+**Files changed:**
+- `apps/student-app/src/notifications/NotificationBell.tsx` — rewritten as above.
+- `apps/student-app/src/App.tsx` — lead line under the Alerts heading; status dot animates only when motion is allowed.
+- `ai/usage-log.md` — this entry.
+
+**Verification:** typecheck clean; student app rebuilt; `uat-d2-ui` 33/33; screenshot `student-alerts-desktop.png`.
+
+## 2026-10-06 16:21 SGT — Alerts view: responsive errand cards; hook timeouts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Make the Alerts page responsive and better looking; and fix the two Claude Code hook timeouts seen on prompt submit.
+
+**Usage scenario:** UI implementation on the existing design system. Notifications are grouped into one card per errand with a stage timeline (accepted, picked up, delivered), cards sit in a grid (one column on a phone, two at md:, three at 2xl:), the toolbar holds the All / Unread filter and mark-all. The hook timeouts were plugin settings on this machine, not repo files: ponytail's hooks had a 5 s limit and security-guidance's prompt hook none, and both overran only while Docker builds were pinning the CPU; limits raised to 30 s and 90 s in the plugin cache. Uncommitted.
+
+**Files changed:**
+- `apps/student-app/src/notifications/NotificationBell.tsx` — rewritten around errand cards.
+- `apps/student-app/src/App.tsx` — Alerts view uses the full width; lead line.
+- `scripts/uat/uat-d2-ui.mjs` — UD4 finds the step inside its errand card.
+- `ai/usage-log.md` — this entry.
+
+- `scripts/uat/uat-d2-ui.mjs` — UD2 also clears leftovers through the app's own "Mark all as read" so the badge check reflects what the app knows.
+
+**Verification:** typecheck clean; student app rebuilt; `uat-d2-ui` 33/33 (a first run after the rebuild was 31/33 because the previous run's leftover notification was cleared through the API, which the open page cannot see; UD2 now clears it through the app).
+
+## 2026-10-06 16:38 SGT — Alerts as a notification board, after a pattern scan
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Make the Alerts page look like a notification board; do some product research first.
+
+**Usage scenario:** UI implementation on the existing design system, informed by a web scan of notification-centre guidance (Courier's in-app notification centre guide, write-ups of Linear's inbox, delivery-app order tracking). Patterns applied: rows bundled per source (errand) under time sections, one quiet unread signal, mark read on open, bulk action in the header, a real action only where one exists, an empty state that reads as finished, list-then-detail on a phone. No requirement or priority was changed. Committed and pushed to pull request #111 on the author's instruction, together with the feature flag and the two earlier UI passes.
+
+**Files changed:**
+- `apps/student-app/src/notifications/NotificationBell.tsx` — two-pane board: errand list (Needs your confirmation / Today / Earlier) and the selected errand's stage timeline; list-then-detail on a phone.
+- `apps/student-app/src/App.tsx` — lead line.
+- `ai/usage-log.md` — this entry.
+
+**Verification:** typecheck clean; student app rebuilt; `uat-d2-ui` 33/33; screenshots at 390 px (list and detail) and 1440 px reviewed.
