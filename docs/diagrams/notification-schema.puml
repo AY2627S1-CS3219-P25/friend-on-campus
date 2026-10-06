@@ -1,0 +1,36 @@
+' AI Assistance Disclosure:
+' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+' Scope: PlantUML version of notification-schema.md, transcribed from services/notification-service/src/database/prisma/schema.prisma
+' and its migration. No design change.
+' Author review: <to be completed by Reallyeasy1>
+' Render: java -jar plantuml.jar -tsvg notification-schema.puml
+@startuml notification-schema
+title notification_db — Notification Service schema, as built (feature/notification-service)
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+
+entity "notifications" as notifications {
+  * id : uuid <<PK>> default gen_random_uuid()
+  --
+  * user_id : uuid  -- the requester; users.id in user_db
+  * event_id : uuid <<unique>>  -- the order event's eventId; the duplicate guard
+  * kind : text  -- ORDER_ACCEPTED, ORDER_PICKED_UP or ORDER_DELIVERED
+  * order_id : uuid  -- the errand
+  order_code : text  -- null when the event carried none
+  courier_id : uuid  -- users.id in user_db
+  * title : text  -- rendered at insert time
+  * body : text  -- rendered at insert time
+  read_at : timestamptz  -- null means unread
+  * created_at : timestamptz  -- the event's timestamp, not the insert time
+}
+
+legend bottom
+  |= Symbol |= Meaning |
+  | * | NOT NULL column |
+  | PK / unique | primary key / unique index |
+  Indexes: notifications_event_id_key (unique on event_id; a redelivered event inserts nothing);
+  notifications_user_id_created_at_idx on (user_id, created_at DESC) for the newest-first list and the unread count.
+  No foreign keys: user_id, courier_id and order_id refer to rows in other services' databases.
+endlegend
+@enduml

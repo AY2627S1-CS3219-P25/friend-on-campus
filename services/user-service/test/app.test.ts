@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: Added tests for the last enabled admin disabling itself (UAT A8), non-UUID ids on the /:id routes (A10)
+ * and refresh for a disabled account (A11).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
  * Scope: Added the 403 ACCOUNT_DISABLED login test.
  * Author review: <to be completed by Reallyeasy1>
@@ -358,6 +363,49 @@ describe('user-service app', () => {
       await client.call('PATCH', `/api/users/${BOB_ID}/toggle-status`, { token: admin });
       const again = await client.call('POST', '/api/auth/login', { body: { email: 'bob@u.nus.edu', password: 'Password123!' } });
       assert.equal(again.status, 200);
+    });
+
+    it('a disabled account cannot refresh but keeps its unexpired access token; re-enabling restores the session', async () => {
+      const admin = issueToken(ADMIN_ID, 'ADMIN');
+      const login = await client.call('POST', '/api/auth/login', { body: { email: 'bob@u.nus.edu', password: 'Password123!' } });
+      const cookie = `refresh_token=${cookieValue(login.headers.get('set-cookie'), 'refresh_token')}`;
+      await client.call('PATCH', `/api/users/${BOB_ID}/toggle-status`, { token: admin });
+
+      // Access tokens are not re-checked against the user row; the account is cut off when the token expires.
+      const me = await client.call('GET', '/api/users/me', { token: login.body.data.accessToken });
+      assert.equal(me.status, 200);
+      const refused = await client.call('POST', '/api/auth/refresh', { cookie });
+      assert.equal(refused.status, 401);
+      assert.equal(refused.body.code, 'INVALID_SESSION');
+      assert.equal(refused.headers.get('set-cookie'), null);
+
+      await client.call('PATCH', `/api/users/${BOB_ID}/toggle-status`, { token: admin });
+      const restored = await client.call('POST', '/api/auth/refresh', { cookie });
+      assert.equal(restored.status, 200, 'the refused refresh did not rotate or revoke the session');
+    });
+
+    it('the last enabled admin cannot disable itself -> 409 LAST_ADMIN_REQUIRED', async () => {
+      const admin = issueToken(ADMIN_ID, 'ADMIN');
+      const res = await client.call('PATCH', `/api/users/${ADMIN_ID}/toggle-status`, { token: admin });
+      assert.equal(res.status, 409);
+      assert.equal(res.body.code, 'LAST_ADMIN_REQUIRED');
+      const users = await client.call('GET', '/api/users/', { token: admin });
+      assert.equal(users.body.data.users.find((u: any) => u.userId === ADMIN_ID).status, true);
+    });
+
+    it('a non-UUID :id is 400 INVALID_INPUT on every /:id route', async () => {
+      const admin = issueToken(ADMIN_ID, 'ADMIN');
+      for (const [method, path] of [
+        ['PATCH', '/api/users/not-a-uuid/toggle-status'],
+        ['PATCH', '/api/users/not-a-uuid/toggle-role'],
+        ['DELETE', '/api/users/not-a-uuid'],
+      ]) {
+        const res = await client.call(method, path, { token: admin });
+        assert.equal(res.status, 400, `${method} ${path}`);
+        assert.equal(res.body.code, 'INVALID_INPUT');
+      }
+      const anonymous = await client.call('PATCH', '/api/users/not-a-uuid/toggle-status');
+      assert.equal(anonymous.status, 401, 'the token check still comes first');
     });
 
     it('toggle-status flips status; unknown id 404; STUDENT 403', async () => {

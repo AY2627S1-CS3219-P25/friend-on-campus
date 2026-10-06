@@ -95,7 +95,7 @@
       "user": "notification_service",
       "vhost": "campus",
       "configure": "^(campus\\.events|notification-service\\.events(?:\\..+)?)$",
-      "write": "^notification-service\\.events(?:\\..+)?$",
+      "write": "^(amq\\.default|notification-service\\.events(?:\\..+)?)$",
       "read": "^(campus\\.events|notification-service\\.events(?:\\..+)?)$"
     },
     {
@@ -118,7 +118,7 @@
       "user": "order_service",
       "vhost": "campus",
       "exchange": "campus.events",
-      "write": "^order\\.(created|accepted|in_transit|completed|cancelled|expired)$",
+      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired)$",
       "read": "^$"
     },
     {
@@ -133,7 +133,7 @@
       "vhost": "campus",
       "exchange": "campus.events",
       "write": "^$",
-      "read": "^(order\\.(created|accepted|in_transit|completed|cancelled|expired))$"
+      "read": "^(order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired))$"
     }
   ]
 }

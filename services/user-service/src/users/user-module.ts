@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: toggleUserStatus maps the last-enabled-admin guard to LAST_ADMIN_REQUIRED (UAT A8).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Map atomic last-admin guard failures to LAST_ADMIN_REQUIRED.
  * Author review: <to be completed by huangjiaxi1111>
@@ -197,12 +201,18 @@ export function createUserModule(options: UserModuleOptions): UserModule {
     },
 
     async toggleUserStatus(targetUserId) {
-      const user = await options.repository.toggleStatus(targetUserId);
-      if (!user) {
-        throw new UserError('USER_NOT_FOUND', 'User not found');
+      try {
+        const user = await options.repository.toggleStatus(targetUserId);
+        if (!user) {
+          throw new UserError('USER_NOT_FOUND', 'User not found');
+        }
+        return toUserDTO(user);
+      } catch (error) {
+        if (error instanceof LastAdminError) {
+          throw new UserError('LAST_ADMIN_REQUIRED', error.message);
+        }
+        throw error;
       }
-
-      return toUserDTO(user);
     },
 
     async toggleUserRole(targetUserId) {

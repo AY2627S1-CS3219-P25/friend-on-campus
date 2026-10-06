@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: A non-UUID :id is answered with 400 INVALID_INPUT by one router.param check instead of reaching Prisma
+ * and failing with 500 (UAT A10).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Clear the refresh cookie after successful self-deletion while retaining it on rejected deletion.
  * Author review: <to be completed by huangjiaxi1111>
@@ -51,6 +56,7 @@ import {
 } from 'express';
 import { AuthError } from '../auth/auth-module';
 import { AuthRouteOptions, clearRefreshCookie } from '../auth/auth-routes';
+import { isUuid } from '../utils/validation';
 import { UserError, UserModule } from './user-module';
 
 interface AuthenticatedPrincipal {
@@ -102,6 +108,12 @@ export function createUserRouter(
   const router = Router();
 
   router.use(requireAuthentication);
+
+  // AI-generated (edited by Reallyeasy1)
+  // The id column is a Postgres uuid; any other string makes the query itself fail.
+  router.param('id', (_req, _res, next, id) => {
+    next(isUuid(id) ? undefined : new UserError('INVALID_INPUT', 'User id must be a UUID'));
+  });
 
   router.get(
     '/me',

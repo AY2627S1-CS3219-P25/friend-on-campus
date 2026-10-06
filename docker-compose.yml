@@ -1,5 +1,20 @@
 # AI Assistance Disclosure:
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+# Scope: notification-service's health check probes /ready, so `up --wait` returns only once the consumer is bound and
+# the database answers (review finding on PR #111). VITE_SHOW_WS_STATUS passed to the student app.
+# Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+# Scope: notification-service gets its database URL, the access-token verification settings, a restart policy and a
+# dependency on postgres, per the author's Notification Service Design.
+# Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+# Scope: Gave the RabbitMQ health check a start period; a cold broker boot outlasted the five retries, so the first
+# `docker compose up` (and CI) failed with "dependency failed to start".
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Google Antigravity Agent, date: 2026-10-03
 # Scope: Configured User Service RabbitMQ URL and startup dependency on healthy RabbitMQ broker.
 # Author review: <to be completed by huangjiaxi1111>
@@ -84,6 +99,8 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_BASE_URL=/api
+      # false hides the "WS Hub" connection status line in the student app's header.
+      - VITE_SHOW_WS_STATUS=${VITE_SHOW_WS_STATUS:-true}
       - ADMIN_PORTAL_URL=http://admin-portal:5174
       - GATEWAY_URL=http://api-gateway:80
     healthcheck:
@@ -257,12 +274,20 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     container_name: campuserrand-notification-service
+    # The service exits when its broker connection fails and relies on this to come back.
+    restart: unless-stopped
     ports:
       - "8005:8005"
     environment:
       - PORT=8005
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/notification_db
       - RABBITMQ_URL=amqp://notification_service:notification-service-dev@rabbitmq:5672/campus
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:
+      postgres:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -271,7 +296,7 @@ services:
         - node
         - -e
         - >-
-          fetch('http://localhost:8005/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+          fetch('http://localhost:8005/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
       interval: 5s
       timeout: 5s
       retries: 10
@@ -312,6 +337,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 60s
 
 volumes:
   postgres_data:

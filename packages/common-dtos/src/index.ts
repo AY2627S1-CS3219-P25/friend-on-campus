@@ -1,6 +1,11 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+ * Scope: Notification contract from the author's Notification Service Design: optional orderCode on the order
+ * events that lacked it, OrderDeliveredEvent, NotificationKind and NotificationDTO.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
  * Author review: (to be completed by author after review)
@@ -290,6 +295,16 @@ export interface OrderAcceptedEvent extends BaseEvent {
 export interface OrderInTransitEvent extends BaseEvent {
   eventType: 'order.in_transit';
   orderId: string;
+  orderCode?: string;
+  requesterId: string;
+  courierId: string;
+}
+
+// AI-generated (edited by Reallyeasy1)
+export interface OrderDeliveredEvent extends BaseEvent {
+  eventType: 'order.delivered';
+  orderId: string;
+  orderCode: string;
   requesterId: string;
   courierId: string;
 }
@@ -297,6 +312,7 @@ export interface OrderInTransitEvent extends BaseEvent {
 export interface OrderCompletedEvent extends BaseEvent {
   eventType: 'order.completed';
   orderId: string;
+  orderCode?: string;
   requesterId: string;
   courierId: string;
   rewardCredits: number;
@@ -305,6 +321,7 @@ export interface OrderCompletedEvent extends BaseEvent {
 export interface OrderExpiredEvent extends BaseEvent {
   eventType: 'order.expired';
   orderId: string;
+  orderCode?: string;
   requesterId: string;
   rewardCredits: number;
 }
@@ -312,6 +329,7 @@ export interface OrderExpiredEvent extends BaseEvent {
 export interface OrderCancelledEvent extends BaseEvent {
   eventType: 'order.cancelled';
   orderId: string;
+  orderCode?: string;
   requesterId: string;
   rewardCredits: number;
 }
@@ -321,9 +339,26 @@ export type CampusErrandEvent =
   | OrderCreatedEvent
   | OrderAcceptedEvent
   | OrderInTransitEvent
+  | OrderDeliveredEvent
   | OrderCompletedEvent
   | OrderExpiredEvent
   | OrderCancelledEvent;
+
+// AI-generated (edited by Reallyeasy1)
+// Notification Service (F5): what the requester is told, as stored and as sent over REST and the WebSocket.
+export type NotificationKind = 'ORDER_ACCEPTED' | 'ORDER_PICKED_UP' | 'ORDER_DELIVERED';
+
+export interface NotificationDTO {
+  id: string;
+  kind: NotificationKind;
+  orderId: string;
+  orderCode?: string | null;
+  courierId?: string | null;
+  title: string;
+  body: string;
+  readAt?: string | null;
+  createdAt: string;
+}
 
 // ==========================================
 // 6. Generic API Response Wrapper

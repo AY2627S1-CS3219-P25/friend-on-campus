@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: Facts for A6, A8, A10, A11 and S8 brought in step with the code: status at login and refresh, last-admin guards, 400 for a non-UUID id, case-insensitive sort.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 Scope: PR #93: role promotion, account deletion, the renamed status route and the supplier duplicate rule, as implemented on the `admin_dashboard` branch. Facts only; every "Team's answer" slot is unchanged.
 Author review: <to be completed by Reallyeasy1>
@@ -186,7 +190,7 @@ Index `sessions_user_expiry_idx` on (`user_id`, `idle_expires_at`).
 
 **Related facts the mentor may ask about**
 - The role is read from the token, so a role or status change reaches a user's requests when their token is next issued (at most 15 minutes).
-- `status` is not read at login, refresh or verification: a disabled account still logs in and its sessions keep working [A6, A11].
+- `status` is read at login (403 `ACCOUNT_DISABLED`) and at refresh (401 `INVALID_SESSION`), not at access-token verification: a disabled account keeps the access token it already holds until it expires, 15 minutes by default [A6, A11, issue #108].
 - The D2 plan sketched an opaque session cookie with a validation endpoint (conflicts row 8).
 
 **Team's answer** — the PDF asks you to justify why this approach suits FoC.
@@ -280,9 +284,9 @@ Promotion is implemented; the last-administrator cases are not guarded (conflict
 
 | Case in the PDF | What happens today |
 |---|---|
-| An administrator revokes their own privileges | Changing their own role is refused: 403 `SELF_ACTION_FORBIDDEN`. Disabling their own account through `toggle-status` is allowed [A8]. Deleting their own account through `DELETE /api/users/:id` is allowed. |
-| The only administrator deletes or demotes their account | Demoting is refused by the own-id rule above. Deleting is allowed; no route counts the remaining admins, so the system can be left with no `ADMIN` until the next seed. The seeded admin also disabled itself while being the only `ADMIN` [A8]; because `status` is not enforced, the account could still log in [A6]. |
-| Non-UUID id on the status route | 500 instead of 404 [A10]. |
+| An administrator revokes their own privileges | Changing their own role is refused: 403 `SELF_ACTION_FORBIDDEN`. Disabling their own account through `toggle-status` is allowed while another enabled `ADMIN` exists [A8]. Deleting their own account through `DELETE /api/users/:id` is allowed while another `ADMIN` exists. |
+| The only administrator deletes, demotes or disables their account | Demoting is refused by the own-id rule above. Deleting returns 409 `LAST_ADMIN_REQUIRED`. Disabling returns 409 `LAST_ADMIN_REQUIRED` [A8]. The delete and demote guard counts `ADMIN` roles, not enabled accounts (issue #109). |
+| Non-UUID id on a `/:id` user route | 400 `INVALID_INPUT` [A10]. |
 
 **Team's answer** — intended behaviour for each case.
 
@@ -361,7 +365,7 @@ Promotion is implemented; the last-administrator cases are not guarded (conflict
 Filters combine with AND. Full contract: [`api/supplier-service.yaml`](./api/supplier-service.yaml).
 
 **Behaviour the mentor may notice**
-- `sortBy=name` is case-sensitive: `he by He Brews` sorts after `TOMORO COFFEE` [S8].
+- `sortBy=name` ignores letter case: `he by He Brews` sorts among the names starting with H [S8]. Sorting and paging happen in the service, not in SQL (issue #110).
 - An unsupported `sortBy` falls back to `name`; the D2 plan expects 400.
 - Pagination applies only when `page` or `limit` is sent (default limit 10, max 100).
 

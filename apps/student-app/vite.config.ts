@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+ * Scope: /api/notifications proxy entry for host-based development (the Notification Service over HTTP).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-03
  * Scope: Route student credit API requests through the gateway or directly to local Credit Service.
  * Author review: <to be completed by huangjiaxi1111>
@@ -29,6 +33,8 @@ const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'htt
 const userTarget = gatewayTarget ?? process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
 const creditTarget = gatewayTarget ?? process.env.CREDIT_SERVICE_URL ?? 'http://localhost:8004';
 const notificationTarget = gatewayTarget ?? process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
+// AI-generated (edited by Reallyeasy1): the same service over HTTP for /api/notifications.
+const notificationApiTarget = gatewayTarget ?? notificationTarget.replace(/^ws/, 'http');
 const adminTarget = process.env.ADMIN_PORTAL_URL ?? 'http://localhost:5174';
 
 export default defineConfig({
@@ -56,6 +62,10 @@ export default defineConfig({
       },
       '/api/credits': {
         target: creditTarget,
+        changeOrigin: true,
+      },
+      '/api/notifications': {
+        target: notificationApiTarget,
         changeOrigin: true,
       },
       '/api': {

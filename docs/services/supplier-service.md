@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: Sorting note: the list is sorted and paged in the service, without regard to letter case (UAT S8).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: Tests section: added the unit-test suite.
 Author review: <to be completed by the service owner>
@@ -91,7 +95,7 @@ Table `suppliers`: `id`, `supplier_code` unique, `name`, `campus_zone`, `exact_l
 
 - `campusZone` and `category` filters are case-insensitive equality; `search` is a case-insensitive "contains" over `name`, `exactLocation`, `building`, `description`, `supplierCode`; a whitespace-only `search` is ignored. Filters combine with AND.
 - `sortBy` accepts `name, campusZone, category, createdAt, supplierCode`; anything else silently falls back to `name`. `sortOrder` is `desc` only if exactly `desc`.
-- `sortBy=name` is case-sensitive as returned by the database: ascending, `he by He Brews` comes after `TOMORO COFFEE` (UAT S8).
+- Sorting and paging happen in the service, not in SQL: every matching row is loaded, text columns are compared without regard to letter case (`localeCompare`, `sensitivity: 'base'`), equal values keep `id` order, and the page is sliced from the result. Ascending, `he by He Brews` now sorts among the names starting with H instead of after `TOMORO COFFEE` (UAT S8). Whether to keep this mechanism is open in issue #110.
 - Denials on write routes: no token → 401 `MISSING_TOKEN`, bad signature → 401 `INVALID_TOKEN`, `STUDENT` → 403 `ADMIN_REQUIRED` (UAT W1, W2, W12).
 - The container start command runs `prisma migrate deploy`, the seed, then the server. On a fresh volume the seed reports `created=21`; on later boots `created=0 updated=21`, which puts the 21 CSV rows' fields back to the CSV values. Rows created through the API are not touched.
 - Pagination applies only when `page` or `limit` is sent (default limit 10, max 100); otherwise the whole list is returned as one page.

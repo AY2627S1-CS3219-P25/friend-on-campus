@@ -1,6 +1,13 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+ * Scope: Notifications per the author's Notification Service Design (third pull request): the socket opens after login
+ * and sends the AUTH frame (src/notifications/useNotifications.ts), an Alerts bell with the unread badge in the top nav
+ * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
+ * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-03
  * Scope: Display authenticated Credit Service wallet and ledger data, handle loading/errors, and remove simulated balance changes.
  * Author review: <to be completed by huangjiaxi1111>
@@ -87,6 +94,8 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { OrderDTO, CreditWalletDTO, CreditTransactionDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
+import { NotificationBell, NotificationPanel } from './notifications/NotificationBell';
+import { useNotifications } from './notifications/useNotifications';
 
 export default function App() {
   // Login / Sign Up Gate state
@@ -112,9 +121,8 @@ export default function App() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile'>('feed');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
-  const [wsStatus, setWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
 
   // Profile Info state (GET/PATCH /api/users/me)
   const [profile, setProfile] = useState<UserDTO | null>(null);
@@ -341,6 +349,23 @@ export default function App() {
     clearLocalSession();
     return res;
   };
+
+  // AI-generated (edited by Reallyeasy1)
+  // Notification Service: the socket opens once logged in and authenticates with the access token; new
+  // notifications arrive as frames, history and read state go over REST. A pushed notification also shows a toast.
+  const notifications = useNotifications({
+    enabled: isAuthenticated,
+    token: authToken,
+    refreshToken: refreshAccessToken,
+    authFetch,
+    onNotification: (n) => {
+      setNotification(`🔔 ${n.title}`);
+      window.setTimeout(() => setNotification((current) => (current === `🔔 ${n.title}` ? null : current)), 6000);
+    },
+  });
+  const wsStatus = notifications.status;
+  // Feature flag: the connection status line is a development aid; VITE_SHOW_WS_STATUS=false hides it.
+  const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const fetchCredits = async () => {
     const requestId = ++creditRequestId.current;
@@ -571,32 +596,6 @@ export default function App() {
 
   useEffect(() => {
     fetchLiveSuppliers();
-
-    // Attempt WebSocket connection to Notification Service via Gateway
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/`;
-
-    let ws: WebSocket;
-    try {
-      ws = new WebSocket(wsUrl);
-      ws.onopen = () => setWsStatus('connected');
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'SYSTEM_BROADCAST') {
-            setNotification(`📢 ${data.title}: ${data.message}`);
-          }
-        } catch (e) {}
-      };
-      ws.onerror = () => setWsStatus('disconnected');
-      ws.onclose = () => setWsStatus('disconnected');
-    } catch (e) {
-      setWsStatus('disconnected');
-    }
-
-    return () => {
-      if (ws) ws.close();
-    };
   }, []);
 
   const handlePostSubmit = (e: React.FormEvent) => {
@@ -928,6 +927,7 @@ export default function App() {
               <UserCircle className="w-4 h-4" />
               <span>Profile</span>
             </button>
+            <NotificationBell variant="top" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
           </nav>
 
           <div className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">
@@ -940,18 +940,22 @@ export default function App() {
 
         {/* Status Line */}
         <div className="mt-2.5 pt-2 border-t border-blue-800 flex justify-between items-center text-xs">
-          <span className="flex items-center space-x-1.5 text-blue-200">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                wsStatus === 'connected'
-                  ? 'bg-emerald-400 animate-pulse'
-                  : wsStatus === 'connecting'
-                  ? 'bg-amber-400'
-                  : 'bg-rose-400'
-              }`}
-            />
-            <span>WS Hub: {wsStatus}</span>
-          </span>
+          {showWsStatus ? (
+            <span className="flex items-center space-x-1.5 text-blue-200">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  wsStatus === 'connected'
+                    ? 'bg-emerald-400 motion-safe:animate-pulse'
+                    : wsStatus === 'connecting'
+                    ? 'bg-amber-400'
+                    : 'bg-rose-400'
+                }`}
+              />
+              <span>WS Hub: {wsStatus}</span>
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="text-blue-300">Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}</span>
         </div>
       </header>
@@ -1299,6 +1303,27 @@ export default function App() {
           </div>
         )}
 
+        {/* Alerts: notifications from the Notification Service */}
+        {activeTab === 'alerts' && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Alerts</h2>
+              <p className="text-sm text-slate-500 mt-1">Every errand a courier has acted on, newest first. Open one to see its stages; unread alerts wait here until you do.</p>
+            </div>
+            <NotificationPanel
+              items={notifications.items}
+              unreadCount={notifications.unreadCount}
+              isLoading={notifications.isLoading}
+              error={notifications.error}
+              onMarkRead={notifications.markRead}
+              onMarkAllRead={notifications.markAllRead}
+              onRefresh={notifications.refresh}
+              // The errand's confirm-delivery action lives in Tasks once Order Service is real; today Tasks shows the local previews.
+              onOpenErrand={(n) => { if (!n.readAt) notifications.markRead(n.id); setActiveTab('tasks'); }}
+            />
+          </div>
+        )}
+
         {/* TAB 5: Profile & Wallet */}
         {activeTab === 'profile' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -1565,6 +1590,8 @@ export default function App() {
           <Clock className="w-5 h-5" />
           <span className="text-xs mt-0.5">Tasks</span>
         </button>
+
+        <NotificationBell variant="tab" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
 
         <button
           aria-current={activeTab === 'profile' ? 'page' : undefined}

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: Added the isUuid tests (UAT A10).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/utils/validation.ts (username, email, password rules and email normalisation).
  * Author review: <to be completed by Reallyeasy1>
@@ -9,6 +13,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isNonEmptyString,
+  isUuid,
   isValidEmail,
   isValidPassword,
   isValidUsername,
@@ -84,6 +89,21 @@ describe('isValidPassword', () => {
 
   it('does not trim: surrounding spaces are part of the password', () => {
     assert.equal(isValidPassword('      ab'), true);
+  });
+});
+
+describe('isUuid', () => {
+  it('accepts the 8-4-4-4-12 hex form in either letter case', () => {
+    assert.equal(isUuid('11111111-1111-4111-8111-111111111111'), true);
+    assert.equal(isUuid('ABCDEF12-3456-7890-ABCD-EF1234567890'), true);
+  });
+
+  it('rejects anything else, including non-strings', () => {
+    assert.equal(isUuid('not-a-uuid'), false);
+    assert.equal(isUuid('11111111111141118111111111111111'), false, 'hyphens are required');
+    assert.equal(isUuid('11111111-1111-4111-8111-111111111111 '), false);
+    assert.equal(isUuid(''), false);
+    assert.equal(isUuid(undefined), false);
   });
 });
 

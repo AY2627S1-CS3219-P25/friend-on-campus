@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+# Scope: sortBy notes that text fields sort without regard to letter case.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
 # Scope: PR #93: building and floor are required, POST and PUT document the 409 duplicate response, PUT documents the 400 on blank fields. Transcribed from supplierRoutes.ts and common-dtos.
 # Author review: <to be completed by the service owner>
@@ -49,7 +53,7 @@ paths:
         - name: sortBy
           in: query
           schema: { type: string, enum: [name, campusZone, category, createdAt, supplierCode], default: name }
-          description: Any other value falls back to name (no 400)
+          description: Any other value falls back to name (no 400). Text fields sort without regard to letter case.
         - { name: sortOrder, in: query, schema: { type: string, enum: [asc, desc], default: asc }, description: "desc only when exactly 'desc'" }
         - { name: page, in: query, schema: { type: integer, minimum: 1 }, description: Pagination applies only when page or limit is sent }
         - { name: limit, in: query, schema: { type: integer, default: 10, maximum: 100 } }

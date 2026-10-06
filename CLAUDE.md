@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+Scope: Repo map: notification-service is no longer a mock; postgres-init creates five databases; npm test covers three services.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+Scope: Section 5: what the CI workflow runs.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-01
 Scope: Updated Vite proxy guidance for gateway routing in Compose and direct service routing on the host.
 Author review: <to be completed by author after review>
@@ -110,12 +118,12 @@ services/user-service          :8001  real (Prisma, user_db)      entry src/inde
 services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/backend/server.ts
 services/order-service         :8003  in-memory mock              single src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
-services/notification-service  :8005  in-memory mock (ws)         single src/index.ts
+services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
 apps/student-app               :5173  one src/App.tsx (~730 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/postgres-init/*.sql            creates the 4 databases (tables managed per-service by migrations)
+docker/postgres-init/*.sql            creates the 5 databases (tables managed per-service by migrations)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
 docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config
@@ -142,7 +150,7 @@ npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:stude
 npm run db:migrate --workspace=@campus-errand/<service>
 npm run db:seed    --workspace=@campus-errand/<service>
 npm run typecheck                             # all workspaces — run after every code change
-npm run test                                  # unit tests: user-service and supplier-service (node:test + tsx, no database)
+npm run test                                  # unit tests: user-, supplier- and notification-service (node:test + tsx, no database)
 npm run test:d2                               # D2 end-to-end suite — see note below
 docker exec -it campuserrand-postgres psql -U postgres
 ```
@@ -158,6 +166,8 @@ docker exec -it campuserrand-postgres psql -U postgres
 Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed; needs Node 22.3+, pinned in the root `package.json` `engines`; the Dockerfiles stay on `node:20-alpine` because containers do not run the tests): `services/<name>/test/*.test.ts`, run with `npm test` at the root or in the workspace. They need no database: user-service tests use in-memory repositories, supplier-service tests replace the Prisma client and the repository with `mock.module` (hence `--experimental-test-module-mocks` in its script). Each service's `typecheck` script uses `tsconfig.test.json`, which includes `src/**` and `test/**`, so `npm run typecheck` covers the tests too (`build` still uses `tsconfig.json`, src only). There is no lint script (tracked in issue #68). Do not add a test framework or linter unprompted.
 
 Before saying a change works: run `npm run typecheck` and `npm test`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
+
+CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm run typecheck` and `npm test` with a PostgreSQL service (`ADMIN_GUARD_TEST_DATABASE_URL` set, so the user-service admin-guard tests run), then the whole Compose stack with `scripts/uat/uat-d2-api.mjs`, the notification-service broker test and `scripts/uat/uat-notifications.mjs`, and `npm run test:d2`. The browser driver `scripts/uat/uat-d2-ui.mjs` is not in CI: Playwright is not a dependency of this repo.
 
 ## 6. Git and GitHub
 

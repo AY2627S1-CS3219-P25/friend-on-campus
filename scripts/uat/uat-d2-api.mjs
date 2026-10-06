@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+// Scope: A8 expects 409 LAST_ADMIN_REQUIRED, A10 expects 400, A11 checks the decided behaviour (refresh refused for a disabled account; its access token stays valid until it expires), S8 compares names without regard to letter case.
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-29
 // Scope: 2026-09-29 (PR #93): admin checks call the renamed PATCH /:id/toggle-status, A3 exercises PATCH /:id/toggle-role, and the supplier create body sends building and floor. 2026-09-29: R3 detail reads userRole; header comment states the real output path. Wrote this D2 UAT driver: 63 API-level checks (auth, sessions, profile, admin user management, supplier directory queries, supplier CRUD + RBAC) against the gateway and the supplier service directly. See docs/evidence/d2/d2-checklist.md for the run results.
 // Author review: <to be completed by Reallyeasy1>
@@ -157,7 +161,8 @@ let bobId, adminId;
   record('A7', 'rbac', 'ADMIN re-enables bob (status -> true)', bobTokenBefore.status === 200 && bobTokenBefore.json?.data?.user?.status === true, `HTTP ${bobTokenBefore.status}`);
   const self = await call(`${GW}/api/users/${adminId}/toggle-status`, { method: 'PATCH', token: admin });
   const selfState = self.json?.data?.user?.status;
-  record('A8', 'rbac', 'edge case: only admin disabling their own account is refused', self.status >= 400, `HTTP ${self.status} ${code(self)} status=${selfState}`);
+  const otherEnabledAdmins = users.filter((x) => x.userRole === 'ADMIN' && x.status && x.userId !== adminId).length;
+  record('A8', 'rbac', 'the last enabled admin disabling their own account is refused -> 409', self.status === 409 && code(self) === 'LAST_ADMIN_REQUIRED', `HTTP ${self.status} ${code(self)} status=${selfState}, other enabled admins=${otherEnabledAdmins}`);
   if (self.status === 200 && selfState === false) {
     // put the seeded admin back so the rest of the UAT (and the demo) still works
     const fix = await call(`${GW}/api/users/${adminId}/toggle-status`, { method: 'PATCH', token: admin });
@@ -166,14 +171,15 @@ let bobId, adminId;
   const unknown = await call(`${GW}/api/users/00000000-0000-0000-0000-000000000000/toggle-status`, { method: 'PATCH', token: admin });
   record('A9', 'rbac', 'PATCH /users/:id/toggle-status unknown id -> 404', unknown.status === 404, `HTTP ${unknown.status} ${code(unknown)}`);
   const notUuid = await call(`${GW}/api/users/not-a-uuid/toggle-status`, { method: 'PATCH', token: admin });
-  record('A10', 'rbac', 'PATCH /users/:id/toggle-status with a non-UUID id -> 4xx, not 500', notUuid.status >= 400 && notUuid.status < 500, `HTTP ${notUuid.status} ${code(notUuid)}`);
+  record('A10', 'rbac', 'PATCH /users/:id/toggle-status with a non-UUID id -> 400, not 500', notUuid.status === 400, `HTTP ${notUuid.status} ${code(notUuid)}`);
   const bobTokenRes = await login('bob@u.nus.edu', PW);
   const bobToken = bobTokenRes.json?.data?.accessToken;
   await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: admin }); // disable
   const bobMeWhileDisabled = await call(`${GW}/api/users/me`, { token: bobToken });
   const bobRefreshWhileDisabled = await call(`${GW}/api/auth/refresh`, { method: 'POST', cookie: bobTokenRes.cookieValue });
   await call(`${GW}/api/users/${bobId}/toggle-status`, { method: 'PATCH', token: admin }); // re-enable
-  record('A11', 'rbac', 'disabling an account cuts off its existing token/session', bobMeWhileDisabled.status === 401 && bobRefreshWhileDisabled.status === 401, `GET /me ${bobMeWhileDisabled.status}, refresh ${bobRefreshWhileDisabled.status}`);
+  // Decided trade-off: access tokens are not re-checked against the user row, so only the refresh is cut off.
+  record('A11', 'rbac', 'a disabled account cannot refresh its session (its access token stays valid until it expires)', bobRefreshWhileDisabled.status === 401, `refresh ${bobRefreshWhileDisabled.status} ${code(bobRefreshWhileDisabled)}, GET /me with the old access token ${bobMeWhileDisabled.status}`);
 }
 
 // ---------------------------------------------------------------- supplier directory (reads)
@@ -200,8 +206,8 @@ let firstSupplier;
   record('S7', 'supplier', 'filter by category', cat.status === 200 && cItems.length >= 1 && cItems.every((x) => x.category.toLowerCase() === firstSupplier.category.toLowerCase()), `${firstSupplier?.category} -> ${cItems.length}`);
   const sorted = await call(`${GW}/api/suppliers?sortBy=name&sortOrder=desc`);
   const names = (sorted.json?.data?.suppliers ?? []).map((x) => x.name);
-  const isDesc = names.every((n, i) => i === 0 || names[i - 1].localeCompare(n) >= 0);
-  record('S8', 'supplier', 'sortBy=name&sortOrder=desc is descending', sorted.status === 200 && isDesc, `first=${names[0]} last=${names.at(-1)}`);
+  const isDesc = names.every((n, i) => i === 0 || names[i - 1].localeCompare(n, 'en', { sensitivity: 'base' }) >= 0);
+  record('S8', 'supplier', 'sortBy=name&sortOrder=desc is descending, ignoring letter case', sorted.status === 200 && isDesc, `first=${names[0]} last=${names.at(-1)}`);
   const p1 = await call(`${GW}/api/suppliers?page=1&limit=5`);
   const p2 = await call(`${GW}/api/suppliers?page=2&limit=5`);
   record('S9', 'supplier', 'pagination page=1&limit=5 / page=2 (5 rows, totalPages, disjoint pages)', p1.json?.data?.suppliers?.length === 5 && p1.json?.data?.totalPages >= 5 && p2.json?.data?.suppliers?.[0]?.id !== p1.json?.data?.suppliers?.[0]?.id, `total=${p1.json?.data?.total} totalPages=${p1.json?.data?.totalPages}`);

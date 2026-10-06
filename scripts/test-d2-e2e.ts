@@ -1,6 +1,11 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: On Linux and macOS the two services are spawned in their own process group and the group is killed, so the
+ * suite exits when it finishes; before, only the npx wrapper was killed and the run hung (first seen in CI).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement.
  * Author review: (to be completed by author after review)
@@ -121,6 +126,7 @@ async function runTests() {
     },
     stdio: 'pipe',
     shell: SPAWN_THROUGH_SHELL,
+    detached: !SPAWN_THROUGH_SHELL,
   });
 
   // 2. Start Supplier Service
@@ -137,6 +143,7 @@ async function runTests() {
     },
     stdio: 'pipe',
     shell: SPAWN_THROUGH_SHELL,
+    detached: !SPAWN_THROUGH_SHELL,
   });
 
   const userReady = await waitReady(`${USER_API}/health`);
@@ -543,6 +550,17 @@ function killProcessTree(child: ChildProcess) {
   if (SPAWN_THROUGH_SHELL && child.pid) {
     try {
       execFileSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      return;
+    } catch {
+      // fall through to the plain kill
+    }
+  }
+  // AI-generated (edited by Reallyeasy1)
+  // Elsewhere npx starts the tsx server as a grandchild; killing npx alone leaves it running with our pipes open,
+  // so this script never exits. The child leads its own process group (detached), and the group is killed.
+  if (!SPAWN_THROUGH_SHELL && child.pid) {
+    try {
+      process.kill(-child.pid, 'SIGTERM');
       return;
     } catch {
       // fall through to the plain kill

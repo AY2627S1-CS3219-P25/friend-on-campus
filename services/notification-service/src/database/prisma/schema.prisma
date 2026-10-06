@@ -1,0 +1,36 @@
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+// Scope: The notifications table from the author's Notification Service Design (data model section), in the
+// layout credit-service uses.
+// Author review: <to be completed by Reallyeasy1>
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Notification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // The requester the notification is addressed to.
+  userId    String    @map("user_id") @db.Uuid
+  // The event's eventId; the unique index is the duplicate guard.
+  eventId   String    @unique @map("event_id") @db.Uuid
+  kind      String
+  orderId   String    @map("order_id") @db.Uuid
+  orderCode String?   @map("order_code")
+  courierId String?   @map("courier_id") @db.Uuid
+  title     String
+  body      String
+  // Null means unread.
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  // The event's timestamp, not insert time, so ordering survives redelivery.
+  createdAt DateTime  @map("created_at") @db.Timestamptz(6)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}

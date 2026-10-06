@@ -1,6 +1,11 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
+ * Scope: getSuppliers sorts and pages the matching rows in memory so text columns order without regard to letter
+ * case (UAT S8); the database ORDER BY and the separate count query are gone.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Enhanced supplier repository with dynamic sorting, pagination, and total count calculations for Milestone D2.
  * Author review: (to be completed by author after review)
@@ -22,6 +27,13 @@ import {
   UpdateSupplierRequest,
   SupplierQueryOptions,
 } from '@campus-errand/common-dtos';
+
+// AI-generated (edited by Reallyeasy1)
+function compareValues(a: unknown, b: unknown): number {
+  return typeof a === 'string' && typeof b === 'string'
+    ? a.localeCompare(b, 'en', { sensitivity: 'base' })
+    : Number(a) - Number(b); // createdAt
+}
 
 export async function getSuppliers(filter?: SupplierQueryOptions) {
   const whereClause: any = {};
@@ -54,8 +66,16 @@ export async function getSuppliers(filter?: SupplierQueryOptions) {
   // Determine sorting order
   const validSortFields = ['name', 'campusZone', 'category', 'createdAt', 'supplierCode'];
   const sortBy = filter?.sortBy && validSortFields.includes(filter.sortBy) ? filter.sortBy : 'name';
-  const sortOrder = filter?.sortOrder === 'desc' ? 'desc' : 'asc';
-  const orderBy = { [sortBy]: sortOrder };
+  const direction = filter?.sortOrder === 'desc' ? -1 : 1;
+
+  // AI-generated (edited by Reallyeasy1)
+  // ponytail: sorted and paged in memory. The alpine Postgres image compares text by byte, so ORDER BY puts
+  // "he by He Brews" after every capitalised name, and Prisma cannot order case-insensitively. Fine for a
+  // directory of a few hundred rows; move to an ICU-collated column or raw SQL on lower(name) if it grows (issue #110).
+  const matches = await prisma.supplier.findMany({ where: whereClause });
+  const key = sortBy as keyof (typeof matches)[number];
+  // Ties fall back to id so the same request always pages the same way.
+  matches.sort((a, b) => direction * compareValues(a[key], b[key]) || a.id.localeCompare(b.id));
 
   // If pagination is requested (page or limit provided)
   if (filter?.page !== undefined || filter?.limit !== undefined) {
@@ -63,36 +83,21 @@ export async function getSuppliers(filter?: SupplierQueryOptions) {
     const limit = Math.min(100, Math.max(1, filter.limit ?? 10));
     const skip = (page - 1) * limit;
 
-    const [suppliers, total] = await Promise.all([
-      prisma.supplier.findMany({
-        where: whereClause,
-        orderBy,
-        skip,
-        take: limit,
-      }),
-      prisma.supplier.count({ where: whereClause }),
-    ]);
-
     return {
-      suppliers,
-      total,
+      suppliers: matches.slice(skip, skip + limit),
+      total: matches.length,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(matches.length / limit),
     };
   }
 
   // Fallback: return full list
-  const suppliers = await prisma.supplier.findMany({
-    where: whereClause,
-    orderBy,
-  });
-
   return {
-    suppliers,
-    total: suppliers.length,
+    suppliers: matches,
+    total: matches.length,
     page: 1,
-    limit: suppliers.length,
+    limit: matches.length,
     totalPages: 1,
   };
 }

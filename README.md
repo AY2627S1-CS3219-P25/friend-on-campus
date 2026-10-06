@@ -87,7 +87,7 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 | **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
 | **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
 | **D3** | **Order Service (M1) & Credit Service (M4)** (Escrow, State Machine) | ⏳ Upcoming |
-| **D4** | **Notification Service (M5)** (RabbitMQ event choreography & WebSockets) | ⏳ Upcoming |
+| **D4** | **Notification Service (M5)** (RabbitMQ event choreography & WebSockets) | 🚧 Service built (consumer, storage, authenticated WebSocket, REST); student-app integration and the Order Service publisher pending |
 
 ---
 
