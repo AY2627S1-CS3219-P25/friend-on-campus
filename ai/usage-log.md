@@ -2148,3 +2148,62 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 **Files changed:**
 - `.github/workflows/ci.yml` — "Credential exposure review" step in the acceptance job.
 - `ai/usage-log.md` — this entry and the previous one.
+
+## 2026-10-05 22:07 SGT — Build the Notification Service from the approved design
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Leave the Sprint 1 issues open as backlog. Look at the notification-service issues, then build the Notification Service from the design the author approved ("Notification Service Design", 2026-10-02).
+
+**Usage scenario:** Implementation code, tests and configuration for a design the author wrote down and approved; the design's sections were followed for the data model, REST routes, WebSocket frames, event mapping and tests. Tests were written first and seen failing. Choices the design did not fix, left for the author to confirm: the three notification body texts (the design gives titles only); `orderCode` added to the older order events as optional so credit-service's parser still compiles; a non-UUID id on mark-read answers 404; the dead-letter exchange stays the service's own because the broker account cannot write to `campus.events.dlx`. Not built: the student-app changes (the design's third pull request) and anything in Order Service. The design's four open decisions (courier name, cancelled/expired notifications, where the UI lives, a courier notification on completion) are untouched. Nothing committed or pushed.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — optional `orderCode` on in_transit, completed, expired and cancelled events; `OrderDeliveredEvent`; `NotificationKind`; `NotificationDTO`.
+- `packages/auth/src/index.ts` — exports `readPublicKey` and `verifyAccessToken`.
+- `services/notification-service/src/{index,app,config}.ts`, `src/database/**`, `src/notifications/{events,store,routes}.ts`, `src/ws/hub.ts` — the service.
+- `services/notification-service/test/{helpers,events.test,hub.test,store-routes.integration.test,messaging.integration.test}.ts` — tests.
+- `services/notification-service/{package.json,Dockerfile,.env.example}`, `package-lock.json` — Prisma (same version range as credit-service) and `@campus-errand/auth` added to the workspace; no header in the JSON files.
+- `docker-compose.yml`, `docker/postgres-init/01-init-databases.sql`, `gateway/nginx.conf`, `docker/rabbitmq/definitions.json` (JSON, no header) — database, restart policy, token settings, `/api/notifications` routes, `order.delivered` in the topic permissions.
+- `scripts/uat/uat-notifications.mjs` — new acceptance driver (17 checks).
+- `.github/workflows/ci.yml` — notification Postgres tests in the unit job; broker test and the driver in the acceptance job.
+- `docs/services/notification-service.md`, `CLAUDE.md` — as built.
+- `ai/usage-log.md` — this entry.
+
+**Verification:** typecheck clean (9 workspaces); `npm test` 214/214 with both Postgres suites opted in (notification 38, supplier 48, user 128), notification 41/41 with the broker; `uat-notifications` 17/17 through the gateway; `uat-d2-api` 62/62; `test:d2` 56/56; `uat-d2-ui` 30/30 (a first run was 29/30: US9 failed with Chrome's ERR_NETWORK_IO_SUSPENDED and passed on the re-run); credential review clean. Manual: with the service stopped, suppliers, orders, profile and wallet still answered 200 and an event waited in the queue, then appeared as unread after restart; after a broker restart the container came back by itself.
+
+## 2026-10-06 10:02 SGT — Bring the documentation in step with the Notification Service
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Look at the documentation and update it to match the Notification Service as built.
+
+**Usage scenario:** Documentation updates, as-built facts only. Every repository document that still described the starter-template stub was corrected; the component diagrams also now show credit-service as the real service it has been since PR #91. The wiki (separate repository) was not changed: it describes `main`, and this branch is not merged; its stale lines are listed for the author. `docs/onboarding-guide-sep-3.md` is a dated walkthrough and was left as is. Nothing committed or pushed.
+
+**Files changed:**
+- `docs/architecture/overview.md` — intended-shape diagram, five databases, gateway routes, event list, notification-service row, directory tree.
+- `docs/diagrams/component.md`, `docs/diagrams/component.puml` — credit- and notification-service as real services with their databases, RabbitMQ edges, `/api/notifications`.
+- `docs/api/notification-service.yaml` — new OpenAPI transcription of the REST routes; `docs/README.md` lists it.
+- `docs/services/README.md` — notification-service row.
+- `docs/services/credit-service-integration-contract.md` — what the Notification Service consumes and the two additive DTO changes.
+- `docs/requirements/conflicts.md` — row 3 notes the missing DELIVERED state and the event that waits on it.
+- `services/user-service/docs/authentication-for-services.md` — the exported verifier functions and their WebSocket use.
+- `.claude/agents/backend.md`, `.claude/agents/reviewer.md` — service summaries.
+- `README.md` — D4 milestone status.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-06 10:05 SGT — Commit and push the Notification Service to pull request #111
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Create a pull request for the Notification Service work.
+
+**Usage scenario:** Git and GitHub housekeeping on the author's explicit instruction. The branch already has pull request #111 open, so the work was committed in four commits (shared contract, service, infrastructure and CI, docs) and pushed there, and the pull request title and body were extended; a second pull request from the same branch is not possible. Nothing was merged.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.

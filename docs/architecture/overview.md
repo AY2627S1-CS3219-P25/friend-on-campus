@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+Scope: notification-service is real (Prisma notification_db, authenticated WebSocket, RabbitMQ consumer); five databases; /api/notifications route.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-03
 Scope: Updated user-service intended and built summaries for transactional outbox registration event publication, login disabled checks, and atomic last-admin guards.
 Author review: <to be completed by huangjiaxi1111>
@@ -61,16 +65,16 @@ Friend of Campus / NUS CampusErrand is a peer-to-peer errand platform for NUS st
  admin-portal :5174 ─┼─► nginx gateway :80 ── REST ────►├─ supplier-service     :8002 ── supplier_db
                      │        │                          ├─ order-service        :8003 ── order_db
                      │        └── /ws/ (WebSocket) ────► ├─ credit-service       :8004 ── credit_db
-                     │                                   └─ notification-service :8005   (no database)
+                     │                                   └─ notification-service :8005 ── notification_db
                      │
    order-service ── HTTP ──► credit-service          (reserve credits while creating an errand)
    order-service, credit-service ── publish ──► RabbitMQ ── consume ──► credit-service, notification-service
 ```
 
-- **Microservices, one database per service**, in an npm-workspaces monorepo. The four currently provisioned service databases live in one PostgreSQL 16 server as separate databases; cross-service user/supplier/order IDs are logical references, never foreign keys. [README; D2 plan §4, App. B; `docker-compose.yml`]
-- **Single entry point**: nginx on :80 routes `/api/auth`, `/api/users`, `/api/suppliers`, `/api/orders`, `/api/credits`, `/ws/`, `/admin/` and `/`. Services must also work when called directly with the UI stopped. [`gateway/nginx.conf`; D2 plan §5]
+- **Microservices, one database per service**, in an npm-workspaces monorepo. The five provisioned service databases live in one PostgreSQL 16 server as separate databases; cross-service user/supplier/order IDs are logical references, never foreign keys. [README; D2 plan §4, App. B; `docker-compose.yml`]
+- **Single entry point**: nginx on :80 routes `/api/auth`, `/api/users`, `/api/suppliers`, `/api/orders`, `/api/credits`, `/api/notifications`, `/ws/`, `/admin/` and `/`. Services must also work when called directly with the UI stopped. [`gateway/nginx.conf`; D2 plan §5]
 - **Synchronous REST** between clients and services, and from order-service to credit-service for reservation (`CREDIT_SERVICE_URL`). An errand becomes `OPEN` only after the reservation is confirmed; a lost response is retried with the same operation ID rather than treated as failure. [`docker-compose.yml`; D2 plan App. D; D1 F3.1, F4.3]
-- **Asynchronous event choreography over RabbitMQ** for everything after that: order lifecycle events (`order.created`, `order.accepted`, `order.completed`, `order.cancelled`, `order.expired`, plus picked-up/delivered) carry order ID, user IDs and timestamp; credit-service settles or releases in response; notification-service turns them into WebSocket pushes. [D1 F3.5.5, F3.6.1, F4.6, F5, §5.4 "M6"]
+- **Asynchronous event choreography over RabbitMQ** for everything after that: order lifecycle events (`order.created`, `order.accepted`, `order.completed`, `order.cancelled`, `order.expired`, `order.in_transit`, `order.delivered`) carry order ID, user IDs and timestamp; credit-service settles or releases in response; notification-service stores a notification for the requester and pushes it over WebSocket. [D1 F3.5.5, F3.6.1, F4.6, F5, §5.4 "M6"]
 - **Idempotent credit operations**: duplicate requests or redelivered events must cause zero duplicate balance changes, including after a crash and recovery. [D1 F4.0, Credit N3.1.1]
 - **Errand state machine**: `OPEN → ACCEPTED → (picked up / in transit) → COMPLETED`, with `CANCELLED` and `EXPIRED` exits. [D1 §6.1; `OrderStatus` in `packages/common-dtos`]
 - **Identity and access**: user-service owns identity, roles and login; other services apply their own access rules using trusted identity, never a client-supplied role. 401 for missing/expired identity, 403 for insufficient role, fail closed if identity cannot be checked. [D2 plan §4, §8]
@@ -89,7 +93,7 @@ Detail for each service (API, configuration, data, behaviour as built) is in [`.
 | **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. `building` and `floor` are required; a supplier with the same name, category, building and floor as another (case-insensitive) is rejected with 409. Reads are unauthenticated; no `version` column. |
 | **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
 | **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Real: Prisma on `credit_db` for wallets, ledger entries, grants, escrows and processed events. Wallet/ledger reads require JWT authentication; reserve uses unauthenticated HTTP while service authentication remains pending. User registration and order completion, cancellation and expiry are consumed from RabbitMQ with persistent event and order idempotency. |
-| **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Mock: `ws` server that re-broadcasts every message to every client; not connected to RabbitMQ; no socket identity. |
+| **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Real: consumes the seven `order.*` keys from `campus.events`; `order.accepted`, `order.in_transit` and `order.delivered` each store a notification for the requester in `notification_db` (Prisma; unique event id as the duplicate guard) and push it to that user's authenticated sockets; REST list / mark-read under `/api/notifications`; a socket must send the access token as its first frame or is closed with 4401. Order Service does not publish yet, so events are hand-published for now. [`docs/services/notification-service.md`] |
 | **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; register / login / silent refresh / logout and profile edit against user-service; fetches the live supplier directory (with a hardcoded fallback list used only when the call fails) and opens `/ws/`. Wallet, escrow, earned credits and ledger are loaded from authenticated Credit Service APIs with loading/error/retry states. Orders remain local previews; previewing an errand does not change credit balances or reserve escrow. Vite proxies credit requests through the gateway in Compose and to `CREDIT_SERVICE_URL` (default localhost:8004) on the host. |
 | **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login gate that refuses non-`ADMIN` accounts, full supplier CRUD with search / filter / sort / pagination (page size 8) / details, and a Users page (list, search, disable / reinstate, upgrade / downgrade role, delete) against the real APIs; the Add / Edit supplier forms require building and floor and show the 409 duplicate; table at desktop width, cards and a drawer at 390 px. |
 | **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. Known `/api/*` paths reach their services; unknown API paths return 404. `/admin/` serves the admin portal and its assets: Vite uses `/admin/` as its base and nginx preserves that prefix. The student login page links to `/admin/`. Direct access on `:5174` redirects to the same base path. Bare `/api/users` and `/api/credits` paths also reach their services. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
@@ -106,14 +110,14 @@ nus-campus-errand/
 │   ├── supplier-service/       src/backend/{server,supplierRoutes}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}
 │   ├── order-service/          src/index.ts            (mock)
 │   ├── credit-service/         src/{index,app,config}.ts, credits/, database/{client.ts,prisma/}
-│   └── notification-service/   src/index.ts            (mock)
+│   └── notification-service/   src/{index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client.ts,prisma/}
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile
 ├── packages/common-dtos/       src/index.ts — shared user/auth DTOs, OrderStatus, event types, ApiResponse<T>
 ├── gateway/nginx.conf          ingress routing
-├── docker/postgres-init/       01-init-databases.sql — creates the 4 databases (tables managed per-service by migrations)
+├── docker/postgres-init/       01-init-databases.sql — creates the 5 databases (tables managed per-service by migrations)
 ├── docker-compose.yml          gateway, 2 apps, 5 services, postgres:16, rabbitmq:3.13-management
 ├── scripts/test-d2-e2e.ts      D2 end-to-end suite (npm run test:d2)
-├── scripts/uat/                uat-d2-api.mjs, uat-d2-ui.mjs — D2 UAT drivers run against a live stack
+├── scripts/uat/                uat-d2-api.mjs, uat-d2-ui.mjs, uat-notifications.mjs — acceptance drivers run against a live stack
 ├── data/{csv,images}/          supplier seed data
 ├── docs/                       see docs/README.md
 ├── ai/usage-log.md             mandatory AI usage log

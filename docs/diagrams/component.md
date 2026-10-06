@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+Scope: credit-service and notification-service moved from the mock box to the real services with their databases; RabbitMQ now carries user-service's publisher and two consumers; /api/notifications edge.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-01
 Scope: Updated proxy paths for Compose and host development after PR #105 review fixes.
 Author review: <to be completed by author after review>
@@ -35,12 +39,12 @@ flowchart LR
   subgraph Real["Real services"]
     US["user-service :8001<br/>signs tokens (Ed25519 private key)"]
     SS["supplier-service :8002<br/>verifies tokens (public key)"]
+    CS["credit-service :8004<br/>verifies tokens; consumes events"]
+    NS["notification-service :8005<br/>verifies tokens; consumes events; WebSocket push"]
   end
 
-  subgraph Mock["In-memory mocks"]
+  subgraph Mock["In-memory mock"]
     OS["order-service :8003"]:::mock
-    CS["credit-service :8004"]:::mock
-    NS["notification-service :8005<br/>WebSocket"]:::mock
   end
 
   AUTH[["@campus-errand/auth<br/>authMiddleware, requireAdmin"]]
@@ -50,10 +54,11 @@ flowchart LR
     UDB[("user_db<br/>users, sessions")]
     SDB[("supplier_db<br/>suppliers")]
     ODB[("order_db<br/>empty")]
-    CDB[("credit_db<br/>empty")]
+    CDB[("credit_db<br/>wallets, transactions, escrows, grants, processed events")]
+    NDB[("notification_db<br/>notifications")]
   end
 
-  MQ{{"RabbitMQ 3.13<br/>running, no publisher or consumer yet"}}
+  MQ{{"RabbitMQ 3.13<br/>campus.events topic exchange"}}
 
   SA -->|"/ , /api/*, /ws/"| GW
   AP -->|"/api/* via Vite proxy in Compose"| GW
@@ -61,12 +66,20 @@ flowchart LR
   GW -->|"/api/suppliers"| SS
   GW -->|"/api/orders"| OS
   GW -->|"/api/credits[/]"| CS
+  GW -->|"/api/notifications[/]"| NS
   GW -->|"/ws/"| NS
 
   US -->|"read/write users, sessions"| UDB
   SS -->|"read/write suppliers"| SDB
+  CS -->|"read/write"| CDB
+  NS -->|"read/write notifications"| NDB
+  US -->|"publish user.registered"| MQ
+  MQ -->|"consume user.registered, order.*"| CS
+  MQ -->|"consume order.*"| NS
   US -. uses .-> AUTH
   SS -. uses .-> AUTH
+  CS -. uses .-> AUTH
+  NS -. uses .-> AUTH
   US -. types .-> DTO
   SS -. types .-> DTO
 

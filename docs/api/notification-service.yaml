@@ -1,0 +1,150 @@
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+# Scope: Transcribed the routes in services/notification-service/src/notifications/routes.ts and src/app.ts into
+# OpenAPI, in the shape of user-service.yaml. The WebSocket frames are described in docs/services/notification-service.md.
+# Author review: <to be completed by Reallyeasy1>
+
+openapi: 3.0.3
+info:
+  title: Notification Service API (as built)
+  version: "feature/notification-service"
+  description: >
+    Notifications addressed to the requester of an errand, created from order events consumed from RabbitMQ.
+    Every route under /api/notifications needs the User Service access token and acts only on the caller's own
+    notifications. New notifications are also pushed over the WebSocket at /ws/ (see the service page).
+servers:
+  - url: http://localhost
+    description: Through the nginx gateway
+  - url: http://localhost:8005
+    description: Direct
+tags:
+  - name: notifications
+  - name: service
+paths:
+  /health:
+    get:
+      tags: [service]
+      summary: Liveness
+      responses:
+        "200":
+          description: Always UP while the process runs; rabbitmq is UP once the consumer is bound
+          content:
+            application/json:
+              example: { service: notification-service, status: UP, port: "8005", activeWsClients: 2, rabbitmq: UP, timestamp: "2026-10-05T13:52:11.649Z" }
+  /ready:
+    get:
+      tags: [service]
+      summary: Readiness (consumer bound and database answering)
+      responses:
+        "200":
+          description: READY
+          content:
+            application/json:
+              example: { service: notification-service, status: READY }
+        "503":
+          description: NOT_READY
+          content:
+            application/json:
+              example: { service: notification-service, status: NOT_READY }
+  /api/notifications:
+    get:
+      tags: [notifications]
+      summary: List the caller's notifications, newest first
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: unread, in: query, schema: { type: string, enum: ["true"] }, description: Only unread rows when exactly "true" }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 }, description: Anything that is not a positive integer becomes 1 }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 }, description: Clamped to 1..100 }
+      responses:
+        "200":
+          description: One page; unreadCount always counts every unread row of the caller
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: "#/components/schemas/Notification" }
+                      total: { type: integer, example: 3 }
+                      page: { type: integer, example: 1 }
+                      limit: { type: integer, example: 20 }
+                      totalPages: { type: integer, example: 1 }
+                      unreadCount: { type: integer, example: 2 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+  /api/notifications/{id}/read:
+    patch:
+      tags: [notifications]
+      summary: Mark one notification read
+      description: Reading twice keeps the first readAt. Another user's notification answers like a missing one.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The notification with readAt set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: "#/components/schemas/Notification" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404":
+          description: NOTIFICATION_NOT_FOUND; unknown id, non-UUID id, or not the caller's
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { success: false, error: Notification not found, code: NOTIFICATION_NOT_FOUND }
+  /api/notifications/read-all:
+    post:
+      tags: [notifications]
+      summary: Mark every unread notification of the caller read
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: How many rows changed
+          content:
+            application/json:
+              example: { success: true, data: { updated: 2 } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "The User Service access token (EdDSA); verified with the shared public key, issuer and audience"
+  responses:
+    Unauthenticated:
+      description: MISSING_TOKEN, INVALID_TOKEN or TOKEN_EXPIRED
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string }
+        code: { type: string }
+    Notification:
+      type: object
+      description: NotificationDTO in packages/common-dtos
+      required: [id, kind, orderId, title, body, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [ORDER_ACCEPTED, ORDER_PICKED_UP, ORDER_DELIVERED] }
+        orderId: { type: string, format: uuid }
+        orderCode: { type: string, nullable: true, example: ORD-0042 }
+        courierId: { type: string, format: uuid, nullable: true }
+        title: { type: string, example: Your errand ORD-0042 was accepted }
+        body: { type: string, example: A courier has been assigned to your errand. }
+        readAt: { type: string, format: date-time, nullable: true, description: null means unread }
+        createdAt: { type: string, format: date-time, description: The event's timestamp, not the insert time }

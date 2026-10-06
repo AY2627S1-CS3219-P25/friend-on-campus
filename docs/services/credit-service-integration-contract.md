@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+Scope: Added what the Notification Service consumes and the two additive DTO changes it relies on (order.delivered, optional orderCode).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-03
 Scope: Updated User Service integration specification to reflect the transactional outbox implementation and at-least-once delivery guarantee.
 Author review: <to be completed by huangjiaxi1111>
@@ -35,7 +39,7 @@ Author review: <to be completed by huangjiaxi1111>
 | `user_service` | Publish `user.registered` to `campus.events` |
 | `order_service` | Publish the documented `order.*` routing keys to `campus.events` |
 | `credit_service` | Bind/consume Credit Service event keys and manage its retry/dead-letter topology |
-| `notification_service` | Bind documented `order.*` keys to Notification Service-owned queues |
+| `notification_service` | Bind documented `order.*` keys (including `order.delivered`) to Notification Service-owned queues |
 | `credit_test` | Manage only resources whose names begin with `credit-test.` |
 
 The committed passwords are development fixtures. Compose URLs use the service name `rabbitmq`; host processes use `localhost`. Both use the `/campus` URL path for the `campus` virtual host.
@@ -169,6 +173,10 @@ Order Service reserves through HTTP and requests settlement/refund through the l
 ### Publication reliability still pending
 
 Order Service currently stores orders in memory and logs fake publications. It has not been changed by this task. Publisher confirms alone cannot atomically coordinate order persistence and event publication, and an in-memory service cannot guarantee crash-safe publishing. A separately approved Order Service persistence/outbox implementation is needed to durably record transitions and events together and reuse event IDs after restart.
+
+## Notification Service consumer
+
+Notification Service's durable queue `notification-service.events` is bound to `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled` and `order.expired`. It validates the same way as this service (JSON object, `eventType` equals the routing key, UUID ids, UTC ISO-8601 `timestamp`) and uses `eventId` as its duplicate guard. Two additive changes in `packages/common-dtos` support it, and an Order Service publisher should populate them: `orderCode` is now an optional field on `OrderInTransitEvent`, `OrderCompletedEvent`, `OrderExpiredEvent` and `OrderCancelledEvent` (the notification text names the errand by it), and `OrderDeliveredEvent` (`order.delivered`: `orderId`, `orderCode`, `requesterId`, `courierId`) exists for the delivered transition once Order Service has that state. The `order_service` topic permission already allows `order.delivered`. Details: `docs/services/notification-service.md`.
 
 ## Credit consumer delivery behavior
 

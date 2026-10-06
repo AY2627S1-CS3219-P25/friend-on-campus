@@ -1,4 +1,8 @@
 ' AI Assistance Disclosure:
+' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+' Scope: credit-service and notification-service are real services with their databases; RabbitMQ edges; /api/notifications.
+' Author review: <to be completed by Reallyeasy1>
+'
 ' Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 ' Scope: PlantUML version of component.md, drawn from docker-compose.yml, gateway/nginx.conf and the service
 ' entry points on main @ fcd5371. Shows what is built; no rationale. Legend and arrow styles added so control
@@ -29,12 +33,12 @@ node "api-gateway\nnginx :80\n(routes only, no auth)" as GW
 package "Real services (Node + Express + Prisma)" {
   [user-service :8001\nsigns access tokens\nwith the Ed25519 private key] as US
   [supplier-service :8002\nverifies access tokens\nwith the public key] as SS
+  [credit-service :8004\nverifies tokens\nconsumes events] as CS
+  [notification-service :8005\nverifies tokens\nconsumes events, WebSocket push] as NS
 }
 
-package "In-memory mocks (starter template)" {
+package "In-memory mock (starter template)" {
   rectangle "order-service :8003" <<mock>> as OS
-  rectangle "credit-service :8004" <<mock>> as CS
-  rectangle "notification-service :8005\nWebSocket" <<mock>> as NS
 }
 
 package "Shared packages (compile-time)" {
@@ -46,10 +50,11 @@ database "PostgreSQL 16 (one server)" {
   database "user_db\nusers, sessions" as UDB
   database "supplier_db\nsuppliers" as SDB
   database "order_db\nempty" as ODB
-  database "credit_db\nempty" as CDB
+  database "credit_db\nwallets, transactions, escrows" as CDB
+  database "notification_db\nnotifications" as NDB
 }
 
-queue "RabbitMQ 3.13\nrunning; no publisher or consumer yet" as MQ
+queue "RabbitMQ 3.13\ncampus.events topic exchange" as MQ
 
 ' ---- control flow: HTTP / WebSocket requests (solid, black)
 SA --> GW : "/ , /api/*, /ws/"
@@ -58,7 +63,12 @@ GW --> US : "/api/auth/, /api/users[/]"
 GW --> SS : "/api/suppliers"
 GW --> OS : "/api/orders"
 GW --> CS : "/api/credits[/]"
-GW --> NS : "/ws/"
+GW --> NS : "/api/notifications[/], /ws/"
+CS -[#1F5FBF]-> CDB : "read/write"
+NS -[#1F5FBF]-> NDB : "read/write\nnotifications"
+US --> MQ : "publish user.registered"
+MQ --> CS : "consume"
+MQ --> NS : "consume order.*"
 
 ' ---- data flow: reads and writes (solid, blue)
 US -[#1F5FBF]-> UDB : "read/write\nusers, sessions"
@@ -79,7 +89,7 @@ legend right
   | <color:#1F5FBF>blue solid arrow</color> | data flow: database read/write |
   | dotted arrow | compile-time dependency (import), no runtime call |
   | dashed grey box | in-memory mock from the starter template |
-  | database / queue | backing store; order_db, credit_db and RabbitMQ are provisioned but unused |
+  | database / queue | backing store; order_db is provisioned but unused |
 endlegend
 
 note right of SS

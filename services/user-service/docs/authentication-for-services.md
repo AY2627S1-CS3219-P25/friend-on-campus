@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+Scope: Noted the exported verifier functions and their WebSocket use.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
 Scope: Updated the access-token payload section to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud).
 Author review: <to be completed by ngkhengyang>
@@ -116,4 +120,4 @@ Logout prevents future refreshes. An already-issued access token remains valid u
 
 Authentication establishes who is calling. The route must still enforce its own resource rules. Examples include checking that the authenticated user owns a wallet, requested an order, or is the assigned courier. `requireAdmin` only implements the platform-wide `ADMIN` role check.
 
-This package currently covers Express HTTP middleware. WebSocket authentication and service-to-service credentials require separate handling.
+This package covers Express HTTP middleware and also exports `readPublicKey` and `verifyAccessToken` for callers outside a request: the Notification Service's WebSocket hub verifies the token a client sends as its first frame with them (same key, issuer, audience and expiry checks). Service-to-service credentials still require separate handling.

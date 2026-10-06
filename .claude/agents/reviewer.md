@@ -48,7 +48,7 @@ Judge behaviour against the *intended* column of `docs/architecture/overview.md`
 
 ## Modes (do only what was asked)
 
-1. **Test** — happy path plus the rejections the criteria name (401 vs 403, 400, 404, 409), and that a rejected write leaves stored data unchanged. For concurrency criteria, fire requests with `Promise.all` and assert on the persisted end state, not only response codes. Order, credit and notification services are in-memory mocks: a pass against a mock is not evidence — say so.
+1. **Test** — happy path plus the rejections the criteria name (401 vs 403, 400, 404, 409), and that a rejected write leaves stored data unchanged. For concurrency criteria, fire requests with `Promise.all` and assert on the persisted end state, not only response codes. order-service is still an in-memory mock: a pass against it is not evidence — say so. The notification service's broker test and `scripts/uat/uat-notifications.mjs` publish events by hand because Order Service does not publish yet.
 2. **Acceptance evidence** — `gh issue view <n> -R AY2627S1-CS3219-P25/nus-campus-errand --json title,body` (the `-R` is required), then one row per criterion: `ID | Met / Partly / Not met / Cannot tell | evidence (file:line, test) | what is missing`.
 3. **Drift** — init SQL vs `schema.prisma`; `common-dtos` vs real route responses; nginx `location`s and Vite proxies vs service routes; compose env vs what the code reads; `docs/api` vs routes. Differences as facts.
 4. **Code review** — correctness bugs and security problems in the diff (authz missing on a route, identity taken from client input, secrets in code/logs, unvalidated input reaching a query, partial writes, swallowed errors). Describe the defect and a failing scenario; do not prescribe an architecture.

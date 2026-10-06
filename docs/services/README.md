@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+Scope: notification-service row: database and state.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-03
 Scope: Updated service states for User Service (RabbitMQ transactional outbox) and Credit Service (JWT auth, RabbitMQ consumer).
 Author review: <to be completed by huangjiaxi1111>
@@ -23,7 +27,7 @@ One page per service. Each page describes **what the code does today** (verified
 | [supplier-service](./supplier-service.md) | 8002 | `supplier_db` | Real (Prisma) | yanhwee |
 | [order-service](./order-service.md) | 8003 | `order_db` (unused) | In-memory mock | Reallyeasy1 (with huangjiaxi1111 intended on F3.2–F3.3; yanhwee + ngkhengyang on F3.1) |
 | [credit-service](./credit-service.md) | 8004 | `credit_db` | Real (Prisma, JWT auth, RabbitMQ consumer) | ngkhengyang |
-| [notification-service](./notification-service.md) | 8005 | none | In-memory mock | Reallyeasy1 (F5, F8) |
+| [notification-service](./notification-service.md) | 8005 | `notification_db` | Real (Prisma, authenticated WebSocket, RabbitMQ consumer) | Reallyeasy1 (F5, F8) |
 
 System-level picture: [`../architecture/overview.md`](../architecture/overview.md). Shared types for every request, response and event: `packages/common-dtos/src/index.ts`.
 

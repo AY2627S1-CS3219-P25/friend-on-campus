@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+Scope: Row 3: noted the missing DELIVERED state and the event that waits on it; Resolution column untouched.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 Scope: Row 18 restated against the code after the A6, A8 and A11 changes; the Resolution column is still the team's.
 Author review: <to be completed by Reallyeasy1>
@@ -37,7 +41,7 @@ Facts as of 2026-09-28 (`main` @ f0ee632). Nothing here is a recommendation. Whe
 |---|---|---|---|
 | 1 | Full supplier CRUD is scheduled for Sprint 3 in D1, but D2 (Week 7) expects it | D1 §5; D2 plan §1 | |
 | 2 | CI/CD timing: Sprint 3 in one place, Sprint 4 in another | D1 §3.6 vs §5.5 | |
-| 3 | `ACCEPTED → EXPIRED` allowed by Order N3.2, but F3.5.3 expires only unaccepted `OPEN` errands; `DISPUTED` handling undefined | D1 Order N3.2 vs F3.5.3 | |
+| 3 | `ACCEPTED → EXPIRED` allowed by Order N3.2, but F3.5.3 expires only unaccepted `OPEN` errands; `DISPUTED` handling undefined. Also: `OrderStatus` in `packages/common-dtos` goes from `IN_TRANSIT` to `COMPLETED` with no `DELIVERED`, while #12 (F3.4.4), #38 and F5.3 assume one; `OrderDeliveredEvent` exists in the DTOs for when it does | D1 Order N3.2 vs F3.5.3; D1 F3.4.4, F5.3 vs `common-dtos` | |
 | 4 | Repeated NFR identifiers with different performance thresholds | D1 §6.2 and appendices | |
 | 5 | Credit estimator input: item count vs item weight | D1 F9.1.1 vs §3.4 | |
 | 6 | Mockup escrow arithmetic subtracts reserved credits twice | D1 §4.5 mockup | |

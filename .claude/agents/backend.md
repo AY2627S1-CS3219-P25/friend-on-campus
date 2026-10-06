@@ -50,9 +50,10 @@ services/<name>-service/   package.json, tsconfig.json, Dockerfile, src/
   user-service/src/        {index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
   supplier-service/src/    backend/{server,supplierRoutes}.ts, database/{client,supplierRepository,seed}.ts, database/prisma/{schema.prisma,migrations/}
   credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,prisma,generated}/
-  order-, notification-service/src/index.ts              single-file mocks
+  notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client,prisma,generated}/
+  order-service/src/index.ts              single-file mock
 packages/common-dtos/src/index.ts      shared user/auth DTOs, OrderStatus, event types
-docker/postgres-init/01-init-databases.sql   databases + tables, first boot only
+docker/postgres-init/01-init-databases.sql   the five databases, first boot only (tables come from each service's migrations)
 data/csv/supplier-seed-data.csv        supplier seed input
 scripts/test-d2-e2e.ts                 end-to-end suite (reviewer's file; read it to see expected behaviour)
 ```
@@ -79,7 +80,7 @@ The detail is in `docs/services/<name>.md` — read the page for every service y
 - **supplier-service :8002** — real. Entry is `src/backend/server.ts`; Prisma schema and migrations under `src/database/prisma/`.
 - **order-service :8003** — in-memory mock that trusts a client-supplied `x-user-id` header; its tables exist only in the init SQL.
 - **credit-service :8004** — real (Prisma, `credit_db`). JWT-protected wallet/ledger reads; reserve over unauthenticated HTTP with service-to-service authorization pending; settle/refund via RabbitMQ with persistent event and order idempotency. See its service page for fresh migration/deploy setup.
-- **notification-service :8005** — mock `ws` server that re-broadcasts to everyone; not connected to RabbitMQ.
+- **notification-service :8005** — real (Prisma, `notification_db`). Consumes `order.*` from RabbitMQ, stores notifications for the requester, pushes them to that user's authenticated WebSocket sockets; JWT-protected REST under `/api/notifications`.
 
 When your change makes a service page wrong, list the corrections in your report so the main session can update it.
 
