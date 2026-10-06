@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+ * Scope: Retry defaults raised to 30 attempts 2 s apart, so a database restart no longer dead-letters notifications
+ * (review finding on PR #111).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Added the database URL and the access-token verification settings (same variables as credit-service).
  * Author review: <to be completed by Reallyeasy1>
@@ -41,7 +46,9 @@ export const config = Object.freeze({
     retryQueue: process.env.NOTIFICATION_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.NOTIFICATION_DLX || `${queue}.dlx`,
     deadLetterQueue: process.env.NOTIFICATION_DLQ || `${queue}.dlq`,
-    retryDelayMs: integer('NOTIFICATION_RETRY_DELAY_MS', 1000, 1),
-    retryLimit: integer('NOTIFICATION_RETRY_LIMIT', 5, 0),
+    // About a minute in total: every insert error counts as transient, and the dead-letter queue is terminal,
+    // so the budget has to outlast a database restart.
+    retryDelayMs: integer('NOTIFICATION_RETRY_DELAY_MS', 2000, 1),
+    retryLimit: integer('NOTIFICATION_RETRY_LIMIT', 30, 0),
   },
 });

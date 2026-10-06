@@ -2207,3 +2207,19 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 
 **Files changed:**
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-06 10:59 SGT — Address the two review findings on PR #111
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Fix the two findings of the automated review (health check probes /health; 5-second retry budget).
+
+**Usage scenario:** Configuration changes the review suggested and the author asked for. The Compose health check for notification-service probes `/ready`; the retry defaults are 30 attempts 2 s apart (the review's suggested values), set in the service's config so Compose, host runs and the docs agree. Verified by stopping postgres for 15 s while an event was published: it was retried four times and stored, with nothing dead-lettered. Committed and pushed to the pull request on the author's instruction.
+
+**Files changed:**
+- `docker-compose.yml` — notification-service health check probes `/ready`.
+- `services/notification-service/src/config.ts`, `.env.example` — retry defaults 2000 ms × 30.
+- `docs/services/notification-service.md` — the two facts above.
+- `ai/usage-log.md` — this entry.

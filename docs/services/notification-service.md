@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
-Scope: Rewritten to describe the service as built from the author's Notification Service Design: database, REST API, authenticated WebSocket, event mapping, tests.
+Scope: Rewritten to describe the service as built from the author's Notification Service Design: database, REST API, authenticated WebSocket, event mapping, tests. 2026-10-06: retry defaults and the /ready health check.
 Author review: <to be completed by Reallyeasy1>
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
@@ -37,7 +37,7 @@ In Compose the container runs `db:deploy` itself before starting. `docker/postgr
 
 - `PORT` (default `8005`), `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/notification_db`).
 - `JWT_PUBLIC_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`: the same values as User Service; the service refuses to start without a valid public key.
-- `RABBITMQ_URL` (default `amqp://notification_service:notification-service-dev@localhost:5672/campus`; Compose sets the `rabbitmq` host). Optional overrides: `NOTIFICATION_EXCHANGE` (`campus.events`), `NOTIFICATION_QUEUE` (`notification-service.events`), `NOTIFICATION_RETRY_EXCHANGE` / `NOTIFICATION_RETRY_QUEUE` (`<queue>.retry`), `NOTIFICATION_DLX` / `NOTIFICATION_DLQ` (`<queue>.dlx`, `<queue>.dlq`), `NOTIFICATION_RETRY_DELAY_MS` (1000), `NOTIFICATION_RETRY_LIMIT` (5).
+- `RABBITMQ_URL` (default `amqp://notification_service:notification-service-dev@localhost:5672/campus`; Compose sets the `rabbitmq` host). Optional overrides: `NOTIFICATION_EXCHANGE` (`campus.events`), `NOTIFICATION_QUEUE` (`notification-service.events`), `NOTIFICATION_RETRY_EXCHANGE` / `NOTIFICATION_RETRY_QUEUE` (`<queue>.retry`), `NOTIFICATION_DLX` / `NOTIFICATION_DLQ` (`<queue>.dlx`, `<queue>.dlq`), `NOTIFICATION_RETRY_DELAY_MS` (2000), `NOTIFICATION_RETRY_LIMIT` (30): about a minute of retries, so a database restart does not dead-letter notifications.
 - The broker account comes from `docker/rabbitmq/definitions.json`: read on `campus.events` for the seven `order.*` keys, configure/write only on `notification-service.events*` and the default exchange. The dead-letter exchange is therefore the service's own (`notification-service.events.dlx`), not the shared `campus.events.dlx`.
 
 ## Files
@@ -54,7 +54,7 @@ In Compose the container runs `db:deploy` itself before starting. `docker/postgr
 
 ## Events
 
-The queue is bound to seven keys on `campus.events`. A message must be a JSON object whose `eventType` equals the routing key, with UUID `eventId`, `orderId`, `requesterId` (and `courierId` where listed), and a UTC ISO-8601 `timestamp`. Anything else is a permanent failure and goes to `notification-service.events.dlq`. Other failures are retried up to the limit.
+The queue is bound to seven keys on `campus.events`. A message must be a JSON object whose `eventType` equals the routing key, with UUID `eventId`, `orderId`, `requesterId` (and `courierId` where listed), and a UTC ISO-8601 `timestamp`. Anything else is a permanent failure and goes to `notification-service.events.dlq`. Other failures (a database error, for example) are retried 2 s apart up to 30 times, then dead-lettered; nothing reads that queue, so an operator replays it by hand.
 
 | Routing key | Notification to the requester | Requires `courierId` |
 |---|---|---|
@@ -82,7 +82,7 @@ All REST routes need `Authorization: Bearer <access token>` and act only on the 
 | `PATCH /api/notifications/:id/read` | Marks one read and returns it. 404 `NOTIFICATION_NOT_FOUND` for an unknown id, a non-UUID id, or another user's notification. Reading twice keeps the first `readAt`. |
 | `POST /api/notifications/read-all` | `{ success, data: { updated } }`. |
 | `GET /health` | Usual fields plus `activeWsClients` and `rabbitmq` (`UP` once the consumer is bound). |
-| `GET /ready` | 200 `READY` when the consumer is bound and the database answers, else 503 `NOT_READY`. |
+| `GET /ready` | 200 `READY` when the consumer is bound and the database answers, else 503 `NOT_READY`. The Compose health check probes this, so `docker compose up --wait` returns only once events can be received. |
 | WebSocket on `/` (through the gateway: `ws://localhost/ws/`) | See below. |
 
 `NotificationDTO` is in `packages/common-dtos`: `id`, `kind`, `orderId`, `orderCode`, `courierId`, `title`, `body`, `readAt`, `createdAt`.

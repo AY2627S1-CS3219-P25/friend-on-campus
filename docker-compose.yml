@@ -1,5 +1,10 @@
 # AI Assistance Disclosure:
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+# Scope: notification-service's health check probes /ready, so `up --wait` returns only once the consumer is bound and
+# the database answers (review finding on PR #111).
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 # Scope: notification-service gets its database URL, the access-token verification settings, a restart policy and a
 # dependency on postgres, per the author's Notification Service Design.
@@ -289,7 +294,7 @@ services:
         - node
         - -e
         - >-
-          fetch('http://localhost:8005/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+          fetch('http://localhost:8005/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
       interval: 5s
       timeout: 5s
       retries: 10
