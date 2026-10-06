@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+ * Scope: Exported readPublicKey and verifyAccessToken so the Notification Service's WebSocket hub can verify a token
+ * outside an HTTP request. No behaviour change for the middleware.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
  * Scope: Switched access-token verification to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud)
  * and made this package consume the shared JWTPayload type from common-dtos instead of a local duplicate. The
@@ -63,7 +68,7 @@ function isJwtPayload(value: unknown): value is JWTPayload {
   );
 }
 
-function readPublicKey(encodedKey: string): KeyObject {
+export function readPublicKey(encodedKey: string): KeyObject {
   if (encodedKey.length !== 59 || !/^[A-Za-z0-9_-]+$/.test(encodedKey)) {
     throw new Error('JWT public key must be a 59-character Base64URL string');
   }
@@ -80,7 +85,8 @@ function readPublicKey(encodedKey: string): KeyObject {
   return key;
 }
 
-function verifyAccessToken(
+// Throws on any missing, malformed, expired or wrongly signed token.
+export function verifyAccessToken(
   accessToken: string,
   publicKey: KeyObject,
   options: AuthMiddlewareOptions,
