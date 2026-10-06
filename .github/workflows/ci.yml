@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+# Scope: Opted the Notification Service's PostgreSQL tests into the unit job and its broker test into the acceptance job.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 # Scope: Wrote this workflow: type checks and unit tests (with the PostgreSQL admin-guard tests opted in), then the
 # Docker Compose stack with the API acceptance driver, a credential-exposure review of the database and logs
@@ -57,6 +61,8 @@ jobs:
         env:
           # Opts in services/user-service/test/admin-guard.integration.test.ts, which creates and drops its own schema.
           ADMIN_GUARD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          # Opts in the notification-service store and route tests the same way.
+          NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
   acceptance:
     name: API acceptance (Docker Compose)
@@ -97,6 +103,19 @@ jobs:
             echo "A credential appears in the logs of the services listed above."
             exit 1
           fi
+
+      # Event in, row stored, frame pushed, duplicate ignored, malformed message dead-lettered: needs the broker,
+      # so it runs here against the Compose stack, on its own exchange, queues and database schema.
+      - name: Notification Service integration tests
+        run: npm test --workspace=@campus-errand/notification-service
+        env:
+          NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notification_db
+          NOTIFICATION_TEST_RABBITMQ_URL: amqp://notification_service:notification-service-dev@localhost:5672/campus
+
+      # F5 through the gateway: login, authenticated socket, events published with the order_service account,
+      # pushed frames, the REST list and read state.
+      - name: Notification acceptance checks
+        run: node scripts/uat/uat-notifications.mjs
 
       # The suite starts its own user-service and supplier-service on 8001/8002 against the Compose database.
       - name: D2 end-to-end suite

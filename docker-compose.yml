@@ -1,5 +1,10 @@
 # AI Assistance Disclosure:
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
+# Scope: notification-service gets its database URL, the access-token verification settings, a restart policy and a
+# dependency on postgres, per the author's Notification Service Design.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 # Scope: Gave the RabbitMQ health check a start period; a cold broker boot outlasted the five retries, so the first
 # `docker compose up` (and CI) failed with "dependency failed to start".
@@ -262,12 +267,20 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     container_name: campuserrand-notification-service
+    # The service exits when its broker connection fails and relies on this to come back.
+    restart: unless-stopped
     ports:
       - "8005:8005"
     environment:
       - PORT=8005
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/notification_db
       - RABBITMQ_URL=amqp://notification_service:notification-service-dev@rabbitmq:5672/campus
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:
+      postgres:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     healthcheck:
