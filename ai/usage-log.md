@@ -2241,3 +2241,24 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `docs/diagrams/user-schema.md`, `.puml` — `outbox_events` added; this table has been on `main` since 2026-10-03.
 - `docs/services/notification-service.md` — link to the diagram.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-06 15:34 SGT — Student app: notification socket, Alerts bell and view (design PR 3)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** The WS Hub badge shows disconnected; check it, then build the full student-app side of the notifications.
+
+**Usage scenario:** Implementation of the third pull request of the author's Notification Service Design. The two UI decisions the design left open were taken from the design's own PR 3 text (a bell with the unread badge in the top nav and the mobile tab bar) and its fallback for the courier (shown by order code; `courierId` is carried but no name is looked up). The delivered row's "Confirm delivery" button opens Tasks, where that action will live once Order Service is real. Committed and pushed to pull request #111 on the author's instruction.
+
+**Files changed:**
+- `apps/student-app/src/notifications/useNotifications.ts` — socket after login with the AUTH frame, reconnect with backoff (immediately after the 4401 expiry close, with a fresh token), history over REST, mark read / read all.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — bell with badge (top and tab variants) and the notification panel.
+- `apps/student-app/src/App.tsx` — hook wired in, Alerts tab and view, toast on push, old socket effect and SYSTEM_BROADCAST toast removed.
+- `apps/student-app/vite.config.ts` — `/api/notifications` proxy for host-based development.
+- `scripts/uat/uat-d2-ui.mjs` — UD2–UD4: connected status, toast and badge after a published event, Alerts view and mark-read.
+- `docs/services/notification-service.md`, `docs/architecture/overview.md`, `.claude/agents/frontend.md` — app behaviour as built.
+- `ai/usage-log.md` — this entry.
+
+**Verification:** typecheck clean (9 workspaces); student app container rebuilt; `uat-d2-ui` 33/33 including the three new checks; screenshots `student-alert-toast-desktop.png`, `student-alerts-desktop.png`.

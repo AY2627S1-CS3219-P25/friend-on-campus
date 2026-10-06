@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 //
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
+// Scope: UD2-UD4: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Codex (model: GPT-6), date: 2026-09-30
 // Scope: Test the admin portal through the gateway and the student login's Admin Log In navigation and reload.
 // Author review: <to be completed by huangjiaxi1111>
@@ -16,6 +20,8 @@
 // Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;
 // results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
 import { chromium } from 'playwright';
+import { randomUUID } from 'node:crypto';
+import amqp from 'amqplib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -25,6 +31,7 @@ const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
 const SHOTS = process.env.SHOTS ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../docs/evidence/d2/screenshots');
 const PW = 'Password123!';
+const AMQP_URL = process.env.AMQP_URL ?? 'amqp://order_service:order-service-dev@localhost:5672/campus';
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
 mkdirSync(SHOTS, { recursive: true });
@@ -363,6 +370,47 @@ const browser = await chromium.launch();
     await page.getByRole('button', { name: 'Spots' }).click();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     await shot(page, 'student-spots-desktop');
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  // Notifications (issue #52, F5): Order Service does not publish yet, so the event is published here as order_service.
+  let bobId;
+  await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
+    await page.getByText('WS Hub: connected').waitFor();
+    await page.getByRole('button', { name: /^Alerts/ }).first().waitFor();
+    const login = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob@u.nus.edu', password: PW }) });
+    const token = (await login.json()).data.accessToken;
+    bobId = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub;
+    await fetch(`${GW}/api/notifications/read-all`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+    await page.getByRole('button', { name: /^Alerts/ }).first().click();
+    await page.getByRole('heading', { name: 'Alerts' }).waitFor();
+    await page.getByRole('button', { name: 'Feed' }).first().click();
+    if (await page.getByTestId('notification-badge').count() > 0) throw new Error('badge shown with nothing unread');
+    return 'connected, badge hidden';
+  });
+  const orderCode = `UI-${stamp.toUpperCase()}`;
+  await step('UD3', 'student (desktop): an order.accepted event for this user shows a toast and a badge of 1', async () => {
+    const connection = await amqp.connect(AMQP_URL);
+    const channel = await connection.createConfirmChannel();
+    const event = { eventId: randomUUID(), eventType: 'order.accepted', timestamp: new Date().toISOString(), orderId: randomUUID(), orderCode, requesterId: bobId, courierId: randomUUID() };
+    await new Promise((resolve, reject) => channel.publish('campus.events', 'order.accepted', Buffer.from(JSON.stringify(event)), { persistent: true }, (e) => (e ? reject(e) : resolve())));
+    await channel.close();
+    await connection.close();
+    await page.getByText(`Your errand ${orderCode} was accepted`).first().waitFor();
+    await page.getByTestId('notification-badge').first().waitFor();
+    await shot(page, 'student-alert-toast-desktop');
+    return await page.getByTestId('notification-badge').first().innerText();
+  });
+  await step('UD4', 'student (desktop): the Alerts view lists it; tapping it marks it read and clears the badge', async () => {
+    await page.getByRole('button', { name: /^Alerts/ }).first().click();
+    const row = page.getByTestId('notification-row').filter({ hasText: orderCode }).first();
+    await row.waitFor();
+    if ((await row.getAttribute('data-unread')) !== 'true') throw new Error('row not marked unread');
+    await shot(page, 'student-alerts-desktop');
+    await row.getByRole('button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid=notification-badge]').length === 0);
+    if ((await row.getAttribute('data-unread')) !== 'false') throw new Error('row still unread after tap');
+    return 'read, badge cleared';
   });
   await ctx.close();
 }
