@@ -70,7 +70,7 @@ A redelivered event is harmless: `event_id` is unique, the second insert returns
 
 ## Data
 
-`notification_db`, table `notifications`: `id`, `user_id` (the requester), `event_id` (unique), `kind`, `order_id`, `order_code` (nullable), `courier_id` (nullable), `title`, `body`, `read_at` (null means unread), `created_at` (the event's timestamp, not the insert time). Index on `(user_id, created_at desc)`. Rows are never deleted.
+`notification_db`, table `notifications`: `id`, `user_id` (the requester), `event_id` (unique), `kind`, `order_id`, `order_code` (nullable), `courier_id` (nullable), `title`, `body`, `read_at` (null means unread), `created_at` (the event's timestamp, not the insert time). Index on `(user_id, created_at desc)`. Rows are never deleted. ER diagram: `docs/diagrams/notification-schema.md`.
 
 ## Interfaces
 

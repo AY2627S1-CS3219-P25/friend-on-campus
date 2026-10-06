@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-Scope: api entry lists notification-service.yaml.
+Scope: api entry lists notification-service.yaml; services entry mentions the database access notes; diagrams entry lists the schema diagrams.
 Author review: <to be completed by Reallyeasy1>
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
@@ -21,11 +21,11 @@ Author review: <to be completed by Reallyeasy1>
 ## Start here
 
 1. [`architecture/overview.md`](./architecture/overview.md) — the system in one page: intended architecture (with sources) beside what is built, and the directory layout.
-2. [`services/`](./services/README.md) — one page per service: run, configuration, API, data, behaviour as built. **The single detailed source for service facts**; `CLAUDE.md` and the agent files only summarise it.
+2. [`services/`](./services/README.md) — one page per service: run, configuration, API, data, behaviour as built; its index also says where the databases run and how to open them with `psql`. **The single detailed source for service facts**; `CLAUDE.md` and the agent files only summarise it.
 3. [`requirements/`](./requirements/README.md) — links to D1, the D2 / Sprint 2 plan and the GitHub backlog, plus [`conflicts.md`](./requirements/conflicts.md), the list of places where documents, issues and code disagree.
 4. [`decisions/`](./decisions/README.md) — one record per design decision. **Written by humans only**; `/new-adr <title>` creates the empty numbered file.
 5. [`evidence/d2/`](./evidence/d2/README.md) — acceptance-check results for the D2 demo, [`d2-checklist.md`](./evidence/d2/d2-checklist.md) (the D2 instructions point by point, with status), and `screenshots/` at desktop and mobile widths. Produced by `scripts/uat/uat-d2-api.mjs` and `scripts/uat/uat-d2-ui.mjs`.
-6. [`diagrams/`](./diagrams/) — as built, each in two forms: a Mermaid block in the `.md` (GitHub renders it) and a PlantUML `.puml` twin with a legend (render with `plantuml.jar`, see [`component.md`](./diagrams/component.md#rendering)): [`component.md`](./diagrams/component.md), [`user-schema.md`](./diagrams/user-schema.md), [`supplier-schema.md`](./diagrams/supplier-schema.md), [`auth-sequence.md`](./diagrams/auth-sequence.md) (login, then an allowed / denied supplier action). Export images only for slides.
+6. [`diagrams/`](./diagrams/) — as built, each in two forms: a Mermaid block in the `.md` (GitHub renders it) and a PlantUML `.puml` twin with a legend (render with `plantuml.jar`, see [`component.md`](./diagrams/component.md#rendering)): [`component.md`](./diagrams/component.md), [`user-schema.md`](./diagrams/user-schema.md), [`supplier-schema.md`](./diagrams/supplier-schema.md), [`notification-schema.md`](./diagrams/notification-schema.md), [`auth-sequence.md`](./diagrams/auth-sequence.md) (login, then an allowed / denied supplier action). Export images only for slides.
 7. [`api/`](./api/) — OpenAPI 3.0 transcriptions of the routes that exist: [`user-service.yaml`](./api/user-service.yaml), [`supplier-service.yaml`](./api/supplier-service.yaml), [`notification-service.yaml`](./api/notification-service.yaml).
 8. [`d2-question-guide.md`](./d2-question-guide.md) — the D2 instructions question by question: as-built facts, what to show, and empty slots for the team's "why" answers.
 9. [`onboarding-guide-sep-3.md`](./onboarding-guide-sep-3.md) — beginner walkthrough of the stack (nginx, Postgres init, Docker, workspaces), written 3 Sep from the starter template; for current service behaviour prefer `services/`.

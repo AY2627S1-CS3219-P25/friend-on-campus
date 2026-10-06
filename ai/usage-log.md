@@ -2223,3 +2223,21 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `services/notification-service/src/config.ts`, `.env.example` — retry defaults 2000 ms × 30.
 - `docs/services/notification-service.md` — the two facts above.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-06 13:05 SGT — Document where PostgreSQL runs and how to open it
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-service
+
+**Prompt (summarised):** Write down where PostgreSQL is hosted and how to reach it with psql.
+
+**Usage scenario:** Documentation of as-built facts (container, volume, databases and their tables as listed by `\dt`, credentials, the two psql routes, the port-conflict override, example queries, the notification ER diagram and the outbox table in the user one). Committed and pushed to pull request #111 on the author's instruction.
+
+**Files changed:**
+- `docs/services/README.md` — new section "Databases: where they run and how to open them". Example SELECT statements per database added on request, column names checked against the live tables.
+- `docs/README.md` — index line mentions it; diagrams entry lists the new schema diagram.
+- `docs/diagrams/notification-schema.md`, `.puml` — new ER diagram of `notification_db`, in the shape of the user and supplier ones (asked after checking which schemas are documented).
+- `docs/diagrams/user-schema.md`, `.puml` — `outbox_events` added; this table has been on `main` since 2026-10-03.
+- `docs/services/notification-service.md` — link to the diagram.
+- `ai/usage-log.md` — this entry.
