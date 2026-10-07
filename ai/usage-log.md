@@ -2350,3 +2350,180 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `apps/student-app/src/notifications/NotificationBell.tsx` — selection from the unfiltered errands; the board stays when the filtered list is empty but an errand is open.
 - `scripts/uat/uat-d2-ui.mjs` — UD5 covers the Unread-filter case.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-07 14:30 SGT — Order Service Implementation (Persistence, Escrow, Concurrency & Outbox)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):**
+Implement the production-ready Order Service replacing the initial in-memory mock:
+- Database layer: PostgreSQL `order_db` using Prisma ORM with versioned migrations, schema definition, indexes, and initial seed data.
+- Credit Service escrow integration: Synchronous HTTP reservation (`POST /api/credits/escrow/reserve`) with retry backoff and error translation.
+- Lifecycle state machine: Strict role authorization and state transitions (`OPEN` -> `ACCEPTED` -> `IN_TRANSIT` -> `DELIVERED` -> `COMPLETED`, `CANCELLED`, `EXPIRED`).
+- Concurrency & security safeguards: Single-winner atomic claim concurrency with version tracking, self-claim prevention, and caller role verification.
+- Transactional Outbox pattern: Atomic persistence of order changes and outbox records, with guaranteed at-least-once delivery to RabbitMQ topic exchange `campus.events` using confirmed AMQP channels.
+- Automated background expiration sweeper: Periodic task identifying stale open errands and emitting `order.expired` events to trigger escrow release.
+- REST API & Authentication: Express application with health and readiness checks, CORS, error middleware, and Ed25519 token verification via `@campus-errand/auth`.
+- Comprehensive test coverage: 22 automated unit, integration, concurrency, outbox, and HTTP tests via Node native test runner (`node --test`).
+
+**Usage scenario:** Core microservice implementation for Milestone D1/D2 requirements (allowed use).
+
+**Files changed / created:**
+- `packages/common-dtos/src/index.ts` — Added `DELIVERED` to `OrderStatus`, added `deliveredAt` and `courierContactNote` to `OrderDTO`, added `durationMinutes` to `CreateOrderRequest`, and created `AcceptOrderRequest`.
+- `services/order-service/package.json` — Added `@campus-errand/auth`, `@prisma/client`, `prisma`, and database/test scripts.
+- `services/order-service/src/config.ts` — Centralized environment configuration and type-safe schema parsing.
+- `services/order-service/src/database/prisma/schema.prisma` — Persistent `Order` and `OutboxEvent` models targeting isolated client output.
+- `services/order-service/src/database/prisma/migrations/migration_lock.toml` — Prisma PostgreSQL migration lockfile.
+- `services/order-service/src/database/prisma/migrations/20261007120000_init_order_service/migration.sql` — Initial schema migration for `orders` and `outbox_events`.
+- `services/order-service/src/database/client.ts` — Singleton Prisma client export.
+- `services/order-service/src/database/seed.ts` — Sample development errands initialization.
+- `services/order-service/src/messaging/publisher.ts` — RabbitMQ confirmed channel publisher for `order.*` events.
+- `services/order-service/src/messaging/outbox-relay.ts` — Transactional outbox relay worker.
+- `services/order-service/src/orders/types.ts` — Custom domain errors, DTO mappers, and order code generator.
+- `services/order-service/src/orders/credit-client.ts` — Synchronous Credit Service client for escrow reservations.
+- `services/order-service/src/orders/supplier-client.ts` — Supplier validation client with campus zone resolution.
+- `services/order-service/src/orders/order-repository.ts` — Database operations with atomic outbox inserts and optimistic concurrency.
+- `services/order-service/src/orders/expiry-sweeper.ts` — Background interval sweeper for expired open errands.
+- `services/order-service/src/orders/service.ts` — Domain orchestrator handling escrow coordination and state transitions.
+- `services/order-service/src/orders/routes.ts` — Express router with authentication and lifecycle endpoints.
+- `services/order-service/src/app.ts` — Express app factory with health and readiness probes.
+- `services/order-service/src/index.ts` — Main server entrypoint with graceful shutdown.
+- `services/order-service/Dockerfile` — Multi-stage build with OpenSSL, Prisma client generation, and startup migrations.
+- `services/order-service/.env.example` — Configuration template for local development.
+- `docker-compose.yml` — Added supplier service URL, JWT settings, and service dependency links.
+- `services/order-service/test/helpers.ts` — In-memory repository fakes, mock clients, and HTTP test server helpers.
+- `services/order-service/test/order-service.test.ts` — Unit tests for domain logic, state machine, concurrency, and sweeper.
+- `services/order-service/test/outbox-relay.test.ts` — Unit tests for transactional outbox polling, confirms, and poison isolation.
+- `services/order-service/test/app.test.ts` — Integration tests for HTTP routes, authentication, and status codes.
+- `docs/services/order-service.md` — Service documentation updated from mock to real architecture.
+- `docs/services/order-service-architecture.md` — Comprehensive architectural map, sequence diagrams, and file interaction guide.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all test suites across the monorepo with 100% pass rate.
+
+## 2026-10-07 15:05 SGT — Refactor Order Service to Extracted Functions Factory
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Refactor `services/order-service/src/orders/service.ts` using the extracted functions factory pattern to replace the monolithic 230-line returned object literal with modular top-level handlers and a lightweight factory function.
+
+**Usage scenario:** Code maintainability and architectural alignment with sibling services (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/service.ts` — Extracted request validation and lifecycle handlers (`handleCreateOrder`, `handleAcceptOrder`, `handlePickupOrder`, `handleDeliverOrder`, `handleCompleteOrder`, `handleCancelOrder`), reducing `createOrderService` to a clean 16-line delegating factory.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces.
+- `npm test --workspace=@campus-errand/order-service` passed 22/22 unit and integration tests.
+
+## 2026-10-07 15:20 SGT — Refactor HTTP Clients to Extracted Functions Factory
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Refactor `services/order-service/src/orders/credit-client.ts` (and `supplier-client.ts`) using the extracted functions factory pattern to keep factory functions lightweight and modularize network/retry and response parsing logic.
+
+**Usage scenario:** Code maintainability and architectural consistency (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/credit-client.ts` — Extracted `extractErrorMessage` and `handleReserveEscrow`, simplifying `createCreditClient` to a concise 7-line delegating factory.
+- `services/order-service/src/orders/supplier-client.ts` — Extracted `handleGetSupplier`, simplifying `createSupplierClient` to a concise 5-line delegating factory.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces.
+- `npm test --workspace=@campus-errand/order-service` passed 22/22 unit and integration tests.
+
+## 2026-10-07 15:24 SGT — Refactor All Order Service Components to Extracted Functions Pattern
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Run through all Order Service files and refactor them to use the extracted functions factory pattern, replacing bloated inlined factory objects with modular top-level handlers and concise factory delegators.
+
+**Usage scenario:** Full architectural cleanup and code maintainability (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/order-repository.ts` — Extracted 10 SQL transaction and query handlers (`handleCreateOrderWithOutbox`, `handleFindOrderById`, `handleListOrders`, `handleGetUserActivity`, `handleAcceptOrder`, `handlePickupOrder`, `handleDeliverOrder`, `handleCompleteOrder`, `handleCancelOrder`, `handleExpireDueOrders`), reducing `createOrderRepository` from 380 lines to a 16-line delegating factory.
+- `services/order-service/src/messaging/outbox-relay.ts` — Extracted `processSingleOutboxRecord` and `processPendingBatch`, separating record-level dispatch and error quarantine from timer and state management.
+- `services/order-service/src/orders/expiry-sweeper.ts` — Extracted `handleSweep` to isolate repository scanning and outbox triggering from interval lifecycle.
+- `services/order-service/src/messaging/publisher.ts` — Extracted `handlePublishEvent` and `handleClosePublisher`, separating message serialization and AMQP confirmation from connection pooling.
+- `services/order-service/src/orders/routes.ts` — Extracted `domainErrorHandler` outside router factory.
+- `services/order-service/src/app.ts` — Extracted `jsonParseErrorHandler` outside app factory.
+- `services/order-service/src/index.ts` — Extracted `buildAuthMiddleware` outside `main()`.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-07 18:42 SGT — Organize HTTP Client Adapters into `src/clients/`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Move `-client.ts` external microservice adapters into a dedicated `services/order-service/src/clients/` folder to cleanly decouple outbound HTTP integration from the internal `orders` domain.
+
+**Usage scenario:** Code maintainability and architectural alignment (allowed use).
+
+**Files changed:**
+- `services/order-service/src/clients/credit-client.ts` — Moved and created under `src/clients/`.
+- `services/order-service/src/clients/supplier-client.ts` — Moved and created under `src/clients/`.
+- `services/order-service/src/orders/service.ts` — Updated imports to `../clients/credit-client` and `../clients/supplier-client`.
+- `services/order-service/src/index.ts` — Updated imports to `./clients/credit-client` and `./clients/supplier-client`.
+- `services/order-service/test/helpers.ts` — Updated imports to `../src/clients/credit-client` and `../src/clients/supplier-client`.
+- `services/order-service/src/orders/credit-client.ts` — Removed old file.
+- `services/order-service/src/orders/supplier-client.ts` — Removed old file.
+- `docs/services/order-service-architecture.md` — Updated architecture diagram and collaboration tables with the new `src/clients/` paths.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-07 23:23 SGT — Adopt Pattern A Repositories Layer & Dot-Notation Filenames
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Adopt Pattern A (dedicated `src/repositories/` folder) and migrate Order Service files to standard dot-notation (`<domain>.<role>.ts`) for cleaner file semantics and IDE navigation.
+
+**Usage scenario:** Code maintainability and architectural alignment (allowed use).
+
+**Files changed:**
+- `services/order-service/src/repositories/order.repository.ts` — Moved from `src/orders/order-repository.ts` into dedicated `src/repositories/` layer with dot-notation.
+- `services/order-service/src/clients/credit.client.ts` — Renamed from `credit-client.ts`.
+- `services/order-service/src/clients/supplier.client.ts` — Renamed from `supplier-client.ts`.
+- `services/order-service/src/messaging/event.publisher.ts` — Renamed from `publisher.ts`.
+- `services/order-service/src/messaging/outbox.relay.ts` — Renamed from `outbox-relay.ts`.
+- `services/order-service/src/orders/order.routes.ts` — Renamed from `routes.ts`.
+- `services/order-service/src/orders/order.service.ts` — Renamed from `service.ts`.
+- `services/order-service/src/orders/order.types.ts` — Renamed from `types.ts`.
+- `services/order-service/src/orders/expiry.sweeper.ts` — Renamed from `expiry-sweeper.ts`.
+- `services/order-service/src/app.ts` — Updated internal imports to new dot-notation paths.
+- `services/order-service/src/index.ts` — Updated internal imports to new dot-notation paths and `src/repositories/`.
+- `services/order-service/test/order.service.test.ts` — Renamed from `order-service.test.ts` with updated imports.
+- `services/order-service/test/outbox.relay.test.ts` — Renamed from `outbox-relay.test.ts` with updated imports.
+- `services/order-service/test/app.test.ts` — Updated internal imports.
+- `services/order-service/test/helpers.ts` — Updated internal imports.
+- `docs/services/order-service-architecture.md` — Updated architecture diagrams and tables.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.

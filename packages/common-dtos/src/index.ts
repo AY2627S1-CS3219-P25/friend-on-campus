@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-07
+ * Scope: Added DELIVERED status to OrderStatus, deliveredAt and courierContactNote to OrderDTO, durationMinutes to CreateOrderRequest, and AcceptOrderRequest for Order Service lifecycle management.
+ * Author review: (to be completed by author after review)
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Notification contract from the author's Notification Service Design: optional orderCode on the order
  * events that lacked it, OrderDeliveredEvent, NotificationKind and NotificationDTO.
@@ -175,6 +179,7 @@ export type OrderStatus =
   | 'OPEN'
   | 'ACCEPTED'
   | 'IN_TRANSIT'
+  | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
   | 'EXPIRED'
@@ -192,11 +197,13 @@ export interface OrderDTO {
   specialNotes?: string;
   dropoffLocation: string;
   requesterContactNote?: string;
+  courierContactNote?: string | null;
   rewardCredits: number;
   status: OrderStatus;
   expiresAt: string;
   acceptedAt?: string | null;
   pickedUpAt?: string | null;
+  deliveredAt?: string | null;
   completedAt?: string | null;
   createdAt: string;
   version: number;
@@ -209,6 +216,11 @@ export interface CreateOrderRequest {
   dropoffLocation: string;
   requesterContactNote?: string;
   rewardCredits: number;
+  durationMinutes?: number;
+}
+
+export interface AcceptOrderRequest {
+  courierContactNote?: string;
 }
 
 // ==========================================

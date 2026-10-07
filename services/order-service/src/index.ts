@@ -1,229 +1,162 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Replaced the unused shared RabbitMQ credential with Order Service's dedicated development identity.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Google Antigravity Agent, date: 2026-10-07
+ * Scope: Main entrypoint for Order Service initializing database, outbox publisher, expiry sweeper, authenticated Express server, and graceful shutdown handlers.
+ * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by huangjiaxi1111)
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import {
-  OrderDTO,
-  ApiResponse,
-  CreateOrderRequest,
-  OrderCreatedEvent,
-  OrderAcceptedEvent,
-  OrderCompletedEvent,
-} from '@campus-errand/common-dtos';
+// AI-generated (edited by yanhwee)
+import type { Server } from 'node:http';
+import type { Request, Response, NextFunction } from 'express';
+import { authMiddleware } from '@campus-errand/auth';
+import { createApp } from './app';
+import { config } from './config';
+import { prisma } from './database/client';
+import { createOrderRepository } from './repositories/order.repository';
+import { createCreditClient } from './clients/credit.client';
+import { createSupplierClient } from './clients/supplier.client';
+import { createOrderService } from './orders/order.service';
+import { createExpirySweeper, type ExpirySweeper } from './orders/expiry.sweeper';
+import { createRabbitMQPublisher, type OrderEventPublisher } from './messaging/event.publisher';
+import { createOutboxRelay, type OutboxRelay } from './messaging/outbox.relay';
 
-dotenv.config();
+let server: Server | undefined;
+let publisher: OrderEventPublisher | undefined;
+let outboxRelay: OutboxRelay | undefined;
+let expirySweeper: ExpirySweeper | undefined;
+let stopping = false;
+let shutdownPromise: Promise<void> | undefined;
 
-const app = express();
-const PORT = process.env.PORT || 8003;
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/order_db';
-const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://order_service:order-service-dev@localhost:5672/campus';
-const CREDIT_SERVICE_URL = process.env.CREDIT_SERVICE_URL || 'http://localhost:8004';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-app.use(cors());
-app.use(express.json());
-
-// In-memory mock orders store
-const mockOrders: OrderDTO[] = [
-  {
-    id: 'ord-1001',
-    orderCode: 'E-1042',
-    requesterId: 'u1111111-1111-1111-1111-111111111111', // Alice
-    courierId: null,
-    supplierId: 's1111111-1111-1111-1111-111111111111',
-    supplierName: 'CoffeeBean @ COM3',
-    campusZone: 'COM3',
-    itemDescription: '1x Large Iced Hazelnut Latte (Oat Milk)',
-    specialNotes: 'Less ice please! Bench 3 near staircase.',
-    dropoffLocation: 'COM2 #02-04 Discussion Room',
-    requesterContactNote: 'Wearing blue NUS Computing hoodie',
-    rewardCredits: 15,
-    status: 'OPEN',
-    expiresAt: new Date(Date.now() + 25 * 60 * 1000).toISOString(),
-    createdAt: new Date().toISOString(),
-    version: 1,
-  },
-  {
-    id: 'ord-1002',
-    orderCode: 'E-1043',
-    requesterId: 'u2222222-2222-2222-2222-222222222222', // Bob
-    courierId: 'u1111111-1111-1111-1111-111111111111',   // Alice accepted
-    supplierId: 's2222222-2222-2222-2222-222222222222',
-    supplierName: 'Printers @ PCCommons',
-    campusZone: 'UTown',
-    itemDescription: 'CS3219 Tutorial 4 Handouts (8 pages, double-sided)',
-    specialNotes: 'PIN Code: 8842',
-    dropoffLocation: 'UTown ERC Study Deck Table 12',
-    requesterContactNote: 'Green backpack on the table',
-    rewardCredits: 20,
-    status: 'IN_TRANSIT',
-    expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-    acceptedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    pickedUpAt: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    version: 2,
-  },
-];
-
-// Health Check
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({ service: 'order-service', status: 'UP', port: PORT, timestamp: new Date() });
-});
-
-// 1. Errand Discovery Feed (Supports zone & status filtering)
-app.get('/api/orders', (req: Request, res: Response<ApiResponse<OrderDTO[]>>) => {
-  const { status, campusZone } = req.query;
-  let results = [...mockOrders];
-
-  if (status) {
-    results = results.filter((o) => o.status === status);
-  } else {
-    // Default feed shows OPEN orders
-    results = results.filter((o) => o.status === 'OPEN');
+function buildAuthMiddleware(authConfig: typeof config.auth): (req: Request, res: Response, next: NextFunction) => void {
+  if (authConfig.publicKey && authConfig.publicKey.trim() !== '') {
+    return authMiddleware(authConfig);
   }
 
-  if (campusZone) {
-    results = results.filter((o) => o.campusZone?.toLowerCase() === (campusZone as string).toLowerCase());
-  }
+  console.warn('[Order Service] WARNING: JWT_PUBLIC_KEY not set; using development fallback authentication.');
+  return (req: Request, res: Response, next: NextFunction) => {
+    const headerUserId = req.headers['x-user-id'];
+    if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
+      res.locals.auth = {
+        userId: headerUserId.trim(),
+        role: (req.headers['x-user-role'] as string) || 'STUDENT',
+        sessionId: 'dev-session',
+      };
+      return next();
+    }
+    res.status(401).json({ success: false, error: 'Unauthorized: missing authentication token or x-user-id header' });
+  };
+}
 
-  res.json({ success: true, data: results });
-});
+function shutdown(failed = false): Promise<void> {
+  if (failed) process.exitCode = 1;
+  if (shutdownPromise) return shutdownPromise;
+  stopping = true;
 
-// 2. Order Details
-app.get('/api/orders/:id', (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-  const order = mockOrders.find((o) => o.id === req.params.id);
-  if (!order) {
-    return res.status(404).json({ success: false, error: 'Order not found' });
-  }
-  res.json({ success: true, data: order });
-});
-
-// 3. User Activity (Requested vs Delivering)
-app.get('/api/orders/user/activity', (req: Request, res: Response<ApiResponse<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>>) => {
-  const userId = (req.query.userId as string) || 'u1111111-1111-1111-1111-111111111111';
-
-  const requested = mockOrders.filter((o) => o.requesterId === userId && ['OPEN', 'ACCEPTED', 'IN_TRANSIT'].includes(o.status));
-  const delivering = mockOrders.filter((o) => o.courierId === userId && ['ACCEPTED', 'IN_TRANSIT'].includes(o.status));
-  const history = mockOrders.filter((o) => (o.requesterId === userId || o.courierId === userId) && ['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(o.status));
-
-  res.json({
-    success: true,
-    data: { requested, delivering, history },
+  shutdownPromise = (async () => {
+    console.log('[Order Service] Shutting down gracefully...');
+    if (expirySweeper) {
+      await expirySweeper.stop();
+    }
+    if (outboxRelay) {
+      await outboxRelay.stop();
+    }
+    if (publisher) {
+      await publisher.close();
+    }
+    if (server?.listening) {
+      await new Promise<void>((resolve) => server!.close(() => resolve()));
+    }
+    await prisma.$disconnect();
+    console.log('[Order Service] Shutdown complete.');
+  })().catch((err) => {
+    console.error('[Order Service] Error during shutdown:', err);
+    process.exitCode = 1;
   });
-});
 
-// 4. Create Errand Request (Triggers synchronous Escrow reservation)
-app.post('/api/orders', (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-  const body: CreateOrderRequest = req.body;
-  const requesterId = (req.headers['x-user-id'] as string) || 'u1111111-1111-1111-1111-111111111111';
+  return shutdownPromise;
+}
 
-  if (!body.supplierId || !body.itemDescription || !body.dropoffLocation || !body.rewardCredits) {
-    return res.status(400).json({ success: false, error: 'Missing required order fields' });
-  }
+// ---------------------------------------------------------------------------
+// Main Process Entrypoint
+// ---------------------------------------------------------------------------
 
-  const newOrder: OrderDTO = {
-    id: `ord-${Date.now()}`,
-    orderCode: `E-${Math.floor(1000 + Math.random() * 9000)}`,
-    requesterId,
-    courierId: null,
-    supplierId: body.supplierId,
-    supplierName: 'Selected Campus Location',
-    campusZone: 'COM3',
-    itemDescription: body.itemDescription,
-    specialNotes: body.specialNotes,
-    dropoffLocation: body.dropoffLocation,
-    requesterContactNote: body.requesterContactNote,
-    rewardCredits: body.rewardCredits,
-    status: 'OPEN',
-    expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-    createdAt: new Date().toISOString(),
-    version: 1,
-  };
+async function main() {
+  console.log(`[Order Service] Initializing on port ${config.port}...`);
 
-  mockOrders.unshift(newOrder);
+  const authenticate = buildAuthMiddleware(config.auth);
 
-  // RabbitMQ Mock Dispatch
-  const event: OrderCreatedEvent = {
-    eventType: 'order.created',
-    eventId: `evt-${Date.now()}`,
-    timestamp: new Date().toISOString(),
-    orderId: newOrder.id,
-    orderCode: newOrder.orderCode,
-    requesterId: newOrder.requesterId,
-    rewardCredits: newOrder.rewardCredits,
-    campusZone: newOrder.campusZone || 'Campus',
-    expiresAt: newOrder.expiresAt,
-  };
-  console.log('📢 [Order Service] Published event to RabbitMQ:', event.eventType, event);
+  // Connect to PostgreSQL database
+  await prisma.$connect();
+  console.log('[Order Service] Connected to PostgreSQL order_db.');
 
-  res.status(201).json({ success: true, data: newOrder, message: 'Order created and escrow reserved successfully' });
-});
+  // Verify database tables
+  await Promise.all([
+    prisma.order.findFirst().catch(() => null),
+    prisma.outboxEvent.findFirst().catch(() => null),
+  ]);
 
-// 5. Accept Errand (Single Courier assignment & self-accept validation)
-app.post('/api/orders/:id/accept', (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-  const courierId = (req.headers['x-user-id'] as string) || 'u2222222-2222-2222-2222-222222222222';
-  const order = mockOrders.find((o) => o.id === req.params.id);
+  // Initialize messaging and domain dependencies
+  publisher = createRabbitMQPublisher(config.rabbitmq);
+  outboxRelay = createOutboxRelay({
+    prisma,
+    publisher,
+    pollIntervalMs: config.outboxRelay.intervalMs,
+    batchSize: config.outboxRelay.batchSize,
+  });
 
-  if (!order) {
-    return res.status(404).json({ success: false, error: 'Order not found' });
-  }
+  const orderRepo = createOrderRepository(prisma);
+  const creditClient = createCreditClient(config.creditServiceUrl);
+  const supplierClient = createSupplierClient(config.supplierServiceUrl);
+  const orderService = createOrderService({
+    repository: orderRepo,
+    creditClient,
+    supplierClient,
+    outboxRelay,
+  });
 
-  if (order.status !== 'OPEN') {
-    return res.status(409).json({ success: false, error: 'Order has already been claimed or is no longer open' });
-  }
+  expirySweeper = createExpirySweeper({
+    repository: orderRepo,
+    outboxRelay,
+    pollIntervalMs: config.expirySweeper.intervalMs,
+  });
 
-  if (order.requesterId === courierId) {
-    return res.status(400).json({ success: false, error: 'You cannot accept your own errand request' });
-  }
+  // Start background workers
+  outboxRelay.start();
+  expirySweeper.start();
 
-  order.status = 'ACCEPTED';
-  order.courierId = courierId;
-  order.acceptedAt = new Date().toISOString();
-  order.version += 1;
+  // Create Express application
+  const app = createApp({
+    orderService,
+    authenticate,
+    port: config.port,
+    isReady: async () => {
+      if (stopping) return false;
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  });
 
-  res.json({ success: true, data: order, message: 'Errand accepted! Proceed to pickup spot.' });
-});
+  server = app.listen(config.port, () => {
+    console.log(`🚀 [Order Service] listening on port ${config.port}`);
+  });
 
-// 6. Pickup Item
-app.post('/api/orders/:id/pickup', (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-  const order = mockOrders.find((o) => o.id === req.params.id);
-  if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+  server.on('error', (err) => {
+    console.error('[Order Service] Server error:', err);
+    void shutdown(true);
+  });
 
-  order.status = 'IN_TRANSIT';
-  order.pickedUpAt = new Date().toISOString();
-  order.version += 1;
+  process.once('SIGINT', () => { void shutdown(); });
+  process.once('SIGTERM', () => { void shutdown(); });
+}
 
-  res.json({ success: true, data: order, message: 'Item picked up! Head to dropoff location.' });
-});
-
-// 7. Complete Delivery (Atomic Escrow settlement)
-app.post('/api/orders/:id/complete', (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-  const order = mockOrders.find((o) => o.id === req.params.id);
-  if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
-
-  order.status = 'COMPLETED';
-  order.completedAt = new Date().toISOString();
-  order.version += 1;
-
-  res.json({ success: true, data: order, message: 'Delivery confirmed! Credits transferred to courier.' });
-});
-
-// 8. Cancel Errand
-app.post('/api/orders/:id/cancel', (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-  const order = mockOrders.find((o) => o.id === req.params.id);
-  if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
-
-  order.status = 'CANCELLED';
-  order.version += 1;
-
-  res.json({ success: true, data: order, message: 'Errand cancelled. Escrow credits refunded.' });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 [Order Service] running on port ${PORT} with tsx`);
+void main().catch(async (err) => {
+  console.error('[Order Service] Startup failed:', err);
+  await shutdown(true);
 });

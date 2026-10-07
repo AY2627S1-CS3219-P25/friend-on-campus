@@ -217,6 +217,10 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/order_db
       - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
       - CREDIT_SERVICE_URL=http://credit-service:8004
+      - SUPPLIER_SERVICE_URL=http://supplier-service:8002
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:
       postgres:
         condition: service_healthy
