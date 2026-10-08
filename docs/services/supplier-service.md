@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Updated Files section: supplier-service entry point is src/index.ts, and routes and repository live under src/suppliers/.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 Scope: Sorting note: the list is sorted and paged in the service, without regard to letter case (UAT S8).
 Author review: <to be completed by Reallyeasy1>
@@ -70,7 +74,7 @@ does not receive the User Service private signing key.
 
 ## Files
 
-Entry point `src/backend/server.ts` (not `src/index.ts`) · `src/backend/supplierRoutes.ts` (handlers + router) · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/supplierRepository.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
+Entry point `src/index.ts` · `src/suppliers/supplierRoutes.ts` (handlers + router) · `src/suppliers/supplierRepository.ts` · `@campus-errand/auth` (configured Ed25519 verifier and `requireAdmin`) · `src/database/client.ts` · `src/database/seed.ts` · `src/database/prisma/schema.prisma` + `migrations/20260919090038_init/` and `migrations/20260929134701_add_location_uniqueness/`.
 
 ## API (mounted at `/api/suppliers`)
 

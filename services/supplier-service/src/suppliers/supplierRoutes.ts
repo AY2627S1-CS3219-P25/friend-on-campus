@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-08
+ * Scope: Relocated supplier routes to src/suppliers/supplierRoutes.ts and updated repository import to local module.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support.
  * Author review: (to be completed by author after review)
@@ -31,7 +35,7 @@
 
 
 import { Router, Request, RequestHandler, Response } from 'express';
-import * as supplierRepository from '../database/supplierRepository';
+import * as supplierRepository from './supplierRepository';
 import {
   CreateSupplierRequest,
   UpdateSupplierRequest,

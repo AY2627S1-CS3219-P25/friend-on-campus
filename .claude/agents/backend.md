@@ -48,7 +48,7 @@ Directory, from your seat:
 ```
 services/<name>-service/   package.json, tsconfig.json, Dockerfile, src/
   user-service/src/        {index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
-  supplier-service/src/    backend/{server,supplierRoutes}.ts, database/{client,supplierRepository,seed}.ts, database/prisma/{schema.prisma,migrations/}
+  supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts, database/prisma/{schema.prisma,migrations/}
   credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,prisma,generated}/
   notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client,prisma,generated}/
   order-service/src/index.ts              single-file mock
@@ -77,7 +77,7 @@ You implement decisions; you do not make them. If the task text does not state t
 The detail is in `docs/services/<name>.md` — read the page for every service you touch before editing. In one line each (2026-09-21):
 
 - **user-service :8001** — real. It issues Ed25519 access tokens and opaque refresh sessions; access-token claims or verification settings affect downstream services.
-- **supplier-service :8002** — real. Entry is `src/backend/server.ts`; Prisma schema and migrations under `src/database/prisma/`.
+- **supplier-service :8002** — real. Entry is `src/index.ts`; Prisma schema and migrations under `src/database/prisma/`.
 - **order-service :8003** — in-memory mock that trusts a client-supplied `x-user-id` header; its tables exist only in the init SQL.
 - **credit-service :8004** — real (Prisma, `credit_db`). JWT-protected wallet/ledger reads; reserve over unauthenticated HTTP with service-to-service authorization pending; settle/refund via RabbitMQ with persistent event and order idempotency. See its service page for fresh migration/deploy setup.
 - **notification-service :8005** — real (Prisma, `notification_db`). Consumes `order.*` from RabbitMQ, stores notifications for the requester, pushes them to that user's authenticated WebSocket sockets; JWT-protected REST under `/api/notifications`.

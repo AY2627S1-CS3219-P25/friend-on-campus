@@ -24,4 +24,4 @@ RUN npx prisma generate --schema src/database/prisma/schema.prisma
 
 EXPOSE 8002
 
-CMD ["sh", "-c", "npx prisma migrate deploy --schema src/database/prisma/schema.prisma && npx tsx src/database/seed.ts && npx tsx src/backend/server.ts"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema src/database/prisma/schema.prisma && npx tsx src/database/seed.ts && npx tsx src/index.ts"]

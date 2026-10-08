@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-08
+ * Scope: Relocated server entry point from src/backend/server.ts to standard root src/index.ts and updated routes import to src/suppliers/supplierRoutes.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
  * Scope: Generated Express server entry point that mounts the supplier routes (replaces src/index.ts).
  * Author review: (to be completed by author after review)
@@ -17,7 +21,7 @@ import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { createSupplierRouter } from './supplierRoutes';
+import { createSupplierRouter } from './suppliers/supplierRoutes';
 
 dotenv.config();
 

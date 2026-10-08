@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-08
+ * Scope: Relocated supplier repository to src/suppliers/supplierRepository.ts and updated prisma client import.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: getSuppliers sorts and pages the matching rows in memory so text columns order without regard to letter
  * case (UAT S8); the database ORDER BY and the separate count query are gone.
@@ -21,7 +25,7 @@
 // AI-generated (edited by yanhwee)
 
 
-import { prisma } from './client';
+import { prisma } from '../database/client';
 import {
   CreateSupplierRequest,
   UpdateSupplierRequest,

@@ -35,10 +35,10 @@ const fakePrisma = {
 };
 
 // The mock must be registered before the repository module is loaded, and CJS output has no top-level await.
-let repo: typeof import('../src/database/supplierRepository');
+let repo: typeof import('../src/suppliers/supplierRepository');
 before(async () => {
   mock.module('../src/database/client', { namedExports: { prisma: fakePrisma }, defaultExport: fakePrisma });
-  repo = await import('../src/database/supplierRepository.js');
+  repo = await import('../src/suppliers/supplierRepository.js');
 });
 
 beforeEach(() => {
