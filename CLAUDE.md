@@ -116,7 +116,7 @@ Compact map (state as of 2026-09-21; if the code differs, trust the code and fix
 ```
 services/user-service          :8001  real (Prisma, user_db)      entry src/index.ts
 services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/index.ts, logic src/suppliers/
-services/order-service         :8003  in-memory mock              single src/index.ts
+services/order-service         :8003  real (Prisma, order_db)     entry src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
 apps/student-app               :5173  one src/App.tsx (~730 lines), no router
@@ -184,7 +184,7 @@ CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `mai
 - Architecture overview (intended vs built, per service, with sources; directory layout): `docs/architecture/overview.md` — read it before any cross-service work
 - Per-service documentation (run, config, API, data, behaviour as built): `docs/services/<name>.md` — update the page in the same change that alters a service's routes, env vars, data model or mock/real status
 - Open conflicts: `docs/requirements/conflicts.md` · Recorded decisions: `docs/decisions/` · API contracts: `docs/api/` (created when the first contract is written)
-- Onboarding: `docs/onboarding-guide-sep-3.md`
+- Onboarding: `docs/archive/onboarding-guide-sep-3.md`
 
 Where the documents, the issues and the code disagree, do not pick a side silently: point out the conflict and let the author decide.
 

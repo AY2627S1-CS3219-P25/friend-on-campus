@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Moved authentication-for-services.md from services/user-service/docs to packages/auth/README.md to serve as the official package documentation.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
 Scope: Noted the exported verifier functions and their WebSocket use.
 Author review: <to be completed by Reallyeasy1>

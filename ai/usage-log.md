@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Recorded addressing Claude PR #112 review findings: authentication hardening, compensating refund outbox emission, optimistic concurrency locking, 32-bit order codes, and documentation alignment.
+Author review: (to be completed by author after review)
+
 Tool: Google Antigravity Agent, date: 2026-10-03
 Scope: Recorded implementation of User Service user.registered RabbitMQ publisher, transactional outbox, configuration, unit tests, and system documentation alignment.
 Author review: <to be completed by huangjiaxi1111>
@@ -2351,6 +2355,266 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `scripts/uat/uat-d2-ui.mjs` — UD5 covers the Unread-filter case.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-07 14:30 SGT — Order Service Implementation (Persistence, Escrow, Concurrency & Outbox)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):**
+Implement the production-ready Order Service replacing the initial in-memory mock:
+- Database layer: PostgreSQL `order_db` using Prisma ORM with versioned migrations, schema definition, indexes, and initial seed data.
+- Credit Service escrow integration: Synchronous HTTP reservation (`POST /api/credits/escrow/reserve`) with retry backoff and error translation.
+- Lifecycle state machine: Strict role authorization and state transitions (`OPEN` -> `ACCEPTED` -> `IN_TRANSIT` -> `DELIVERED` -> `COMPLETED`, `CANCELLED`, `EXPIRED`).
+- Concurrency & security safeguards: Single-winner atomic claim concurrency with version tracking, self-claim prevention, and caller role verification.
+- Transactional Outbox pattern: Atomic persistence of order changes and outbox records, with guaranteed at-least-once delivery to RabbitMQ topic exchange `campus.events` using confirmed AMQP channels.
+- Automated background expiration sweeper: Periodic task identifying stale open errands and emitting `order.expired` events to trigger escrow release.
+- REST API & Authentication: Express application with health and readiness checks, CORS, error middleware, and Ed25519 token verification via `@campus-errand/auth`.
+- Comprehensive test coverage: 22 automated unit, integration, concurrency, outbox, and HTTP tests via Node native test runner (`node --test`).
+
+**Usage scenario:** Core microservice implementation for Milestone D1/D2 requirements (allowed use).
+
+**Files changed / created:**
+- `packages/common-dtos/src/index.ts` — Added `DELIVERED` to `OrderStatus`, added `deliveredAt` and `courierContactNote` to `OrderDTO`, added `durationMinutes` to `CreateOrderRequest`, and created `AcceptOrderRequest`.
+- `services/order-service/package.json` — Added `@campus-errand/auth`, `@prisma/client`, `prisma`, and database/test scripts.
+- `services/order-service/src/config.ts` — Centralized environment configuration and type-safe schema parsing.
+- `services/order-service/src/database/prisma/schema.prisma` — Persistent `Order` and `OutboxEvent` models targeting isolated client output.
+- `services/order-service/src/database/prisma/migrations/migration_lock.toml` — Prisma PostgreSQL migration lockfile.
+- `services/order-service/src/database/prisma/migrations/20261007120000_init_order_service/migration.sql` — Initial schema migration for `orders` and `outbox_events`.
+- `services/order-service/src/database/client.ts` — Singleton Prisma client export.
+- `services/order-service/src/database/seed.ts` — Sample development errands initialization.
+- `services/order-service/src/messaging/publisher.ts` — RabbitMQ confirmed channel publisher for `order.*` events.
+- `services/order-service/src/messaging/outbox-relay.ts` — Transactional outbox relay worker.
+- `services/order-service/src/orders/types.ts` — Custom domain errors, DTO mappers, and order code generator.
+- `services/order-service/src/orders/credit-client.ts` — Synchronous Credit Service client for escrow reservations.
+- `services/order-service/src/orders/supplier-client.ts` — Supplier validation client with campus zone resolution.
+- `services/order-service/src/orders/order-repository.ts` — Database operations with atomic outbox inserts and optimistic concurrency.
+- `services/order-service/src/orders/expiry-sweeper.ts` — Background interval sweeper for expired open errands.
+- `services/order-service/src/orders/service.ts` — Domain orchestrator handling escrow coordination and state transitions.
+- `services/order-service/src/orders/routes.ts` — Express router with authentication and lifecycle endpoints.
+- `services/order-service/src/app.ts` — Express app factory with health and readiness probes.
+- `services/order-service/src/index.ts` — Main server entrypoint with graceful shutdown.
+- `services/order-service/Dockerfile` — Multi-stage build with OpenSSL, Prisma client generation, and startup migrations.
+- `services/order-service/.env.example` — Configuration template for local development.
+- `docker-compose.yml` — Added supplier service URL, JWT settings, and service dependency links.
+- `services/order-service/test/helpers.ts` — In-memory repository fakes, mock clients, and HTTP test server helpers.
+- `services/order-service/test/order-service.test.ts` — Unit tests for domain logic, state machine, concurrency, and sweeper.
+- `services/order-service/test/outbox-relay.test.ts` — Unit tests for transactional outbox polling, confirms, and poison isolation.
+- `services/order-service/test/app.test.ts` — Integration tests for HTTP routes, authentication, and status codes.
+- `docs/services/order-service.md` — Service documentation updated from mock to real architecture.
+- `docs/services/order-service-architecture.md` — Comprehensive architectural map, sequence diagrams, and file interaction guide.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all test suites across the monorepo with 100% pass rate.
+
+## 2026-10-07 15:05 SGT — Refactor Order Service to Extracted Functions Factory
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Refactor `services/order-service/src/orders/service.ts` using the extracted functions factory pattern to replace the monolithic 230-line returned object literal with modular top-level handlers and a lightweight factory function.
+
+**Usage scenario:** Code maintainability and architectural alignment with sibling services (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/service.ts` — Extracted request validation and lifecycle handlers (`handleCreateOrder`, `handleAcceptOrder`, `handlePickupOrder`, `handleDeliverOrder`, `handleCompleteOrder`, `handleCancelOrder`), reducing `createOrderService` to a clean 16-line delegating factory.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces.
+- `npm test --workspace=@campus-errand/order-service` passed 22/22 unit and integration tests.
+
+## 2026-10-07 15:20 SGT — Refactor HTTP Clients to Extracted Functions Factory
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Refactor `services/order-service/src/orders/credit-client.ts` (and `supplier-client.ts`) using the extracted functions factory pattern to keep factory functions lightweight and modularize network/retry and response parsing logic.
+
+**Usage scenario:** Code maintainability and architectural consistency (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/credit-client.ts` — Extracted `extractErrorMessage` and `handleReserveEscrow`, simplifying `createCreditClient` to a concise 7-line delegating factory.
+- `services/order-service/src/orders/supplier-client.ts` — Extracted `handleGetSupplier`, simplifying `createSupplierClient` to a concise 5-line delegating factory.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces.
+- `npm test --workspace=@campus-errand/order-service` passed 22/22 unit and integration tests.
+
+## 2026-10-07 15:24 SGT — Refactor All Order Service Components to Extracted Functions Pattern
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Run through all Order Service files and refactor them to use the extracted functions factory pattern, replacing bloated inlined factory objects with modular top-level handlers and concise factory delegators.
+
+**Usage scenario:** Full architectural cleanup and code maintainability (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/order-repository.ts` — Extracted 10 SQL transaction and query handlers (`handleCreateOrderWithOutbox`, `handleFindOrderById`, `handleListOrders`, `handleGetUserActivity`, `handleAcceptOrder`, `handlePickupOrder`, `handleDeliverOrder`, `handleCompleteOrder`, `handleCancelOrder`, `handleExpireDueOrders`), reducing `createOrderRepository` from 380 lines to a 16-line delegating factory.
+- `services/order-service/src/messaging/outbox-relay.ts` — Extracted `processSingleOutboxRecord` and `processPendingBatch`, separating record-level dispatch and error quarantine from timer and state management.
+- `services/order-service/src/orders/expiry-sweeper.ts` — Extracted `handleSweep` to isolate repository scanning and outbox triggering from interval lifecycle.
+- `services/order-service/src/messaging/publisher.ts` — Extracted `handlePublishEvent` and `handleClosePublisher`, separating message serialization and AMQP confirmation from connection pooling.
+- `services/order-service/src/orders/routes.ts` — Extracted `domainErrorHandler` outside router factory.
+- `services/order-service/src/app.ts` — Extracted `jsonParseErrorHandler` outside app factory.
+- `services/order-service/src/index.ts` — Extracted `buildAuthMiddleware` outside `main()`.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-07 18:42 SGT — Organize HTTP Client Adapters into `src/clients/`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Move `-client.ts` external microservice adapters into a dedicated `services/order-service/src/clients/` folder to cleanly decouple outbound HTTP integration from the internal `orders` domain.
+
+**Usage scenario:** Code maintainability and architectural alignment (allowed use).
+
+**Files changed:**
+- `services/order-service/src/clients/credit-client.ts` — Moved and created under `src/clients/`.
+- `services/order-service/src/clients/supplier-client.ts` — Moved and created under `src/clients/`.
+- `services/order-service/src/orders/service.ts` — Updated imports to `../clients/credit-client` and `../clients/supplier-client`.
+- `services/order-service/src/index.ts` — Updated imports to `./clients/credit-client` and `./clients/supplier-client`.
+- `services/order-service/test/helpers.ts` — Updated imports to `../src/clients/credit-client` and `../src/clients/supplier-client`.
+- `services/order-service/src/orders/credit-client.ts` — Removed old file.
+- `services/order-service/src/orders/supplier-client.ts` — Removed old file.
+- `docs/services/order-service-architecture.md` — Updated architecture diagram and collaboration tables with the new `src/clients/` paths.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-07 23:23 SGT — Adopt Pattern A Repositories Layer & Dot-Notation Filenames
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Adopt Pattern A (dedicated `src/repositories/` folder) and migrate Order Service files to standard dot-notation (`<domain>.<role>.ts`) for cleaner file semantics and IDE navigation.
+
+**Usage scenario:** Code maintainability and architectural alignment (allowed use).
+
+**Files changed:**
+- `services/order-service/src/repositories/order.repository.ts` — Moved from `src/orders/order-repository.ts` into dedicated `src/repositories/` layer with dot-notation.
+- `services/order-service/src/clients/credit.client.ts` — Renamed from `credit-client.ts`.
+- `services/order-service/src/clients/supplier.client.ts` — Renamed from `supplier-client.ts`.
+- `services/order-service/src/messaging/event.publisher.ts` — Renamed from `publisher.ts`.
+- `services/order-service/src/messaging/outbox.relay.ts` — Renamed from `outbox-relay.ts`.
+- `services/order-service/src/orders/order.routes.ts` — Renamed from `routes.ts`.
+- `services/order-service/src/orders/order.service.ts` — Renamed from `service.ts`.
+- `services/order-service/src/orders/order.types.ts` — Renamed from `types.ts`.
+- `services/order-service/src/orders/expiry.sweeper.ts` — Renamed from `expiry-sweeper.ts`.
+- `services/order-service/src/app.ts` — Updated internal imports to new dot-notation paths.
+- `services/order-service/src/index.ts` — Updated internal imports to new dot-notation paths and `src/repositories/`.
+- `services/order-service/test/order.service.test.ts` — Renamed from `order-service.test.ts` with updated imports.
+- `services/order-service/test/outbox.relay.test.ts` — Renamed from `outbox-relay.test.ts` with updated imports.
+- `services/order-service/test/app.test.ts` — Updated internal imports.
+- `services/order-service/test/helpers.ts` — Updated internal imports.
+- `docs/services/order-service-architecture.md` — Updated architecture diagrams and tables.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-08 10:40 SGT — Address Claude PR Review Findings for Order Service (PR #112)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feature/create-order-service
+
+**Prompt (summarised):** Address all review comments and findings raised by Claude PR review on PR #112.
+
+**Usage scenario:** Code hardening, security fixes, race condition prevention, and test/documentation alignment (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/order.routes.ts` — Placed `GET /`, `GET /user/activity`, and `GET /:id` behind `authenticate` middleware. Stripped query param and unauthenticated header bypasses from `resolveUserId`.
+- `services/order-service/src/orders/order.service.ts` — Added UUID format pre-validation on `requesterId` and `supplierId`. Handled `SupplierLookupResult` (400 on not found / inactive, 503 on service outage). Added compensating cancellation refund outbox record if DB insertion fails after credit escrow reservation.
+- `services/order-service/src/repositories/order.repository.ts` — Upgraded `pickupOrder`, `deliverOrder`, `completeOrder`, and `cancelOrder` to use atomic `updateMany` queries with status and optimistic `version` conditions. Disallowed skipping `DELIVERED` status in `completeOrder`. Fixed `findOrderById` to branch on UUID syntax. Added `recordCompensatingRefund`.
+- `services/order-service/src/orders/order.types.ts` — Switched `generateOrderCode` from 5-digit decimal to 8-character hex crypto random suffix (`ORD-XXXXXXXX`, 4.29 billion combinations) to eliminate birthday paradox collision risk.
+- `services/order-service/src/messaging/outbox.relay.ts` — Differentiated transient broker connection failures (retains `PENDING` status with retry count and log warnings) from unparseable poison JSON payloads (marked `FAILED`).
+- `services/order-service/src/clients/supplier.client.ts` — Refactored to return discriminated union `SupplierLookupResult` (`found`, `not_found`, `unavailable`).
+- `services/order-service/src/index.ts` — Guarded mock authentication header fallback behind explicit `ORDER_DEV_AUTH=1`, failing fast on startup if `JWT_PUBLIC_KEY` is missing.
+- `docker-compose.yml` — Required `${JWT_PUBLIC_KEY:?Run \`npm run generate:jwt-keys\`...}` in `order-service` environment.
+- `services/order-service/src/database/seed.ts` — Extended seed `expiresAt` to 180 days in the future to avoid DLQ refund noise in `credit-service`.
+- `services/order-service/test/app.test.ts` — Added test cases verifying 401 Unauthorized for unauthenticated GET endpoints and query param bypass protection.
+- `services/order-service/test/helpers.ts` — Aligned test doubles with `SupplierLookupResult` and added `recordCompensatingRefund`.
+- `services/order-service/test/order.service.test.ts` — Added unit tests for UUID validation, supplier lookup errors (400, 503), compensating refunds, and state transition guards.
+- `docs/services/order-service.md`, `CLAUDE.md`, `docs/architecture/overview.md` — Aligned documentation with dot-notation filenames, authentication requirements, and current microservice implementation facts.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 28 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-08 11:00 SGT — Address Claude PR Review Round 2 Findings for Order Service (PR #112)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feature/create-order-service
+
+**Prompt (summarised):** Address new review comments and findings raised by Claude PR review on PR #112:
+1. Medium: Validate string types and length constraints (`VarChar(255)` / `(128)` and text bounds) up front in `validateCreateOrderRequest` and `handleAcceptOrder` before making credit escrow reservations or outbound supplier calls.
+2. Low: Add retry loop with backoff for `repository.recordCompensatingRefund` during PostgreSQL outages, and emit structured `[compensating_refund_lost]` logs on terminal failure.
+3. Low: Add strict query parameter validation for `page` and `limit` in `order.routes.ts` via `parsePositiveInt` helper, rejecting invalid (`NaN`, non-integer, negative, or `> 100`) inputs with 400 Bad Request instead of triggering Prisma 500 crashes or reversed result windows.
+
+**Usage scenario:** Input validation hardening, fault-tolerant saga compensation, and pagination sanitization (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/order.service.ts` — Implemented `validateRequiredText` and `validateOptionalText` helpers; added pre-flight length and type bounds checking for `itemDescription` (1000), `dropoffLocation` (255), `specialNotes` (1000), `requesterContactNote` (255), and `courierContactNote` (255); wrapped `recordCompensatingRefund` in a 5-attempt retry loop with backoff and structured `[compensating_refund_lost]` logging.
+- `services/order-service/src/orders/order.routes.ts` — Added `parsePositiveInt` helper; validated `page` ($\ge 1$) and `limit` ($\ge 1$ and $\le 100$) query parameters on `GET /api/orders`, returning 400 `OrderValidationError` on invalid inputs.
+- `services/order-service/test/order.service.test.ts` — Added unit test coverage for compensating refund retries, terminal failure structured logging, and `courierContactNote` length/type bounds.
+- `services/order-service/test/app.test.ts` — Added integration tests verifying 400 Bad Request on invalid `page` and `limit` query parameters, and over-length text inputs without reserving credit escrow.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 33 unit and integration tests with 100% pass rate.
+- `npm test` executed all 124 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-08 10:45 SGT — Documentation pruning, consolidation, and cross-reference alignment
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/docs-cleanup
+
+**Prompt (summarised):** Clean up and polish documentation organisation: remove rogue in-service docs, archive obsolete D2 and onboarding guides, streamline architecture overview, address Claude PR review findings, and resolve merge conflicts with main.
+
+**Usage scenario:** Documentation cleanup and refactoring under human direction. Removed duplicate in-service documentation (`services/user-service/docs/api-reference.md`, `auth-setup.md`), moved cross-service authentication middleware contract to `packages/auth/README.md`, archived Milestone D2 Q&A and starter walkthrough guides under `docs/archive/`, and streamlined the Section 3 service matrix in `docs/architecture/overview.md` from a drifting commit-by-commit changelog to an enduring component responsibility table. Addressed PR #113 review feedback by updating 6 stale references to the archived onboarding guide, adding JWT key generation instructions to root `README.md`, and aligning `docs/services/README.md` with the production Order Service. Committed and pushed to pull request on author's explicit instruction.
+
+**Files changed:**
+- `docs/archive/d2-question-guide.md` — moved from `docs/d2-question-guide.md`.
+- `docs/archive/onboarding-guide-sep-3.md` — moved from `docs/onboarding-guide-sep-3.md`.
+- `packages/auth/README.md` — moved from `services/user-service/docs/authentication-for-services.md` to serve as the shared package documentation.
+- `services/user-service/docs/api-reference.md` — deleted (duplicated OpenAPI spec and service doc).
+- `services/user-service/docs/auth-setup.md` — deleted (covered in root README).
+- `docs/README.md` — updated index for archived guides.
+- `docs/architecture/overview.md` — streamlined Section 3 service matrix to enduring component responsibilities and interfaces.
+- `docs/services/user-service.md` — pointed directly to OpenAPI spec instead of retired in-service api-reference.md.
+- `docs/services/credit-service.md` — updated auth contract reference link to `packages/auth/README.md`.
+- `docs/services/README.md` — updated order-service status to real with Prisma and transactional outbox.
+- `docs/api/user-service.yaml` — removed reference to retired in-service api-reference.md in description.
+- `docs/requirements/conflicts.md` — updated conflict 21 resolution note.
+- `README.md` — added `npm run generate:jwt-keys` to setup guide; updated onboarding guide link to `docs/archive/`.
+- `CLAUDE.md`, `.claude/agents/*.md`, `.gitignore` — updated onboarding guide references to `docs/archive/`.
+- `ai/usage-log.md` — this entry.
+
 ## 2026-10-08 10:55 SGT — Supplier Service layout normalization
 
 **Tool:** Google Antigravity Agent
@@ -2376,4 +2640,5 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 **Verification:**
 - Full monorepo typecheck passed cleanly (`npm run typecheck`).
 - Supplier Service unit test suite passed 48/48 tests (`npm test --workspace=@campus-errand/supplier-service`).
+
 

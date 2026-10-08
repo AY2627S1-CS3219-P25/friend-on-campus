@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 
 Tool: Google Antigravity Agent, date: 2026-10-08
-Scope: Updated supplier-service entry in directory tree to src/index.ts and src/suppliers/.
+Scope: Streamlined Section 3 service matrix to enduring component responsibilities and interfaces; updated supplier-service entry in directory tree to src/index.ts and src/suppliers/.
 Author review: <to be completed by author after review>
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
@@ -54,9 +54,9 @@ Author review: <to be completed by Reallyeasy1>
 
 
 
-# Architecture overview — intended vs built
+# Architecture overview
 
-Read this before working on any service. **"Intended"** is what the team has written down (source given in brackets). **"Built"** is what the current code does as of 2026-09-28 (`main` @ f0ee632). Where they differ, neither is automatically right: see [`../requirements/conflicts.md`](../requirements/conflicts.md) and ask the author. *Why* the team chose any of this belongs in [`../decisions/`](../decisions/README.md), written by the team.
+Read this before working on any service. It outlines the core architectural boundaries, service communication patterns, and repository structure. Requirements and open conflict tracking are in [`../requirements/`](../requirements/README.md). *Why* the team chose any design pattern belongs in [`../decisions/`](../decisions/README.md), written by the team.
 
 ## 1. The system in one paragraph
 
@@ -91,16 +91,16 @@ Friend of Campus / NUS CampusErrand is a peer-to-peer errand platform for NUS st
 
 Detail for each service (API, configuration, data, behaviour as built) is in [`../services/`](../services/README.md).
 
-| Service | Owns (intended) | Built today |
-|---|---|---|
-| **user-service** :8001, `user_db` | Registration, login, sessions, profile, roles/RBAC, admin promotion with last-admin guard [D1 F1]. Initial credits on registration [D1 F4.1]; coordinates with credit-service via `user.registered` on topic exchange `campus.events` [docs/services/credit-service-integration-contract.md]. | Real: Prisma, password hashes, Ed25519 access tokens, and opaque refresh sessions. Email is immutable. Login refuses disabled accounts (403 `ACCOUNT_DISABLED`). ADMIN can list users, toggle status (`PATCH /:id/toggle-status`), and flip roles (`PATCH /:id/toggle-role`, own id refused). Any user can delete their own account (clearing session) and an ADMIN any account (`DELETE /:id`). Atomic PostgreSQL advisory-lock guards protect last-admin demotion and deletion (409 `LAST_ADMIN_REQUIRED`). User registration commits an outbox record in `outbox_events` and an Outbox Relay worker publishes `user.registered` (`eventId`, `userId`, `email`, `initialGrant: 100`) to topic exchange `campus.events` with publisher confirms and retries (at-least-once delivery; broker unavailability does not fail registration). |
-| **supplier-service** :8002, `supplier_db` | Verified supplier / pickup-location directory: search, filter, sort, paginate, details; admin create/edit/availability/remove [D1 F2; D2 plan App. A–C] | Real: Prisma, CSV seed (21 rows), and `@campus-errand/auth` Ed25519 verification for admin-only writes. `building` and `floor` are required; a supplier with the same name, category, building and floor as another (case-insensitive) is rejected with 409. Reads are unauthenticated; no `version` column. |
-| **order-service** :8003, `order_db` | Errand create → discover → accept → pickup → complete, cancel, expiry; one-winner acceptance; publishes lifecycle events [D1 F3, Order N1–N4] | Mock: in-memory array in one file; identity from an `x-user-id` header; "publish" is a `console.log`. An `orders` table exists in the init SQL only. |
-| **credit-service** :8004, `credit_db` | Initial grant, available/reserved/total balances, reserve, settle, release, ledger history, idempotency [D1 F4, Credit N1–N3] | Real: Prisma on `credit_db` for wallets, ledger entries, grants, escrows and processed events. Wallet/ledger reads require JWT authentication; reserve uses unauthenticated HTTP while service authentication remains pending. User registration and order completion, cancellation and expiry are consumed from RabbitMQ with persistent event and order idempotency. |
-| **notification-service** :8005 | Consume events, push status notifications to the right user over WebSocket; later per-errand chat [D1 F5, F8, §3.1] | Real: consumes the seven `order.*` keys from `campus.events`; `order.accepted`, `order.in_transit` and `order.delivered` each store a notification for the requester in `notification_db` (Prisma; unique event id as the duplicate guard) and push it to that user's authenticated sockets; REST list / mark-read under `/api/notifications`; a socket must send the access token as its first frame or is closed with 4401. Order Service does not publish yet, so events are hand-published for now. [`docs/services/notification-service.md`] |
-| **student-app** :5173 | Mobile-first requester/courier UI: feed, post errand, tracking + chat, my tasks, wallet [D1 §4.1–4.5] | One `App.tsx`; register / login / silent refresh / logout and profile edit against user-service; fetches the live supplier directory (with a hardcoded fallback list used only when the call fails); after login opens `/ws/`, authenticates with the access token and shows pushed notifications (toast, Alerts bell with unread badge, Alerts view with mark-read). Wallet, escrow, earned credits and ledger are loaded from authenticated Credit Service APIs with loading/error/retry states. Orders remain local previews; previewing an errand does not change credit balances or reserve escrow. Vite proxies credit requests through the gateway in Compose and to `CREDIT_SERVICE_URL` (default localhost:8004) on the host. |
-| **admin-portal** :5174 | Supplier and location management, later user/order admin; must work at desktop and mobile widths [D1 §4.6; D2 plan §7] | One `App.tsx`; login gate that refuses non-`ADMIN` accounts, full supplier CRUD with search / filter / sort / pagination (page size 8) / details, and a Users page (list, search, disable / reinstate, upgrade / downgrade role, delete) against the real APIs; the Add / Edit supplier forms require building and floor and show the 409 duplicate; table at desktop width, cards and a drawer at 390 px. |
-| **gateway** :80 | Reverse proxy / single ingress [`gateway/nginx.conf`] | Routing only. Known `/api/*` paths reach their services; unknown API paths return 404. `/admin/` serves the admin portal and its assets: Vite uses `/admin/` as its base and nginx preserves that prefix. The student login page links to `/admin/`. Direct access on `:5174` redirects to the same base path. Bare `/api/users` and `/api/credits` paths also reach their services. After a service container is restarted on its own, `/api/*` returns 502 until the gateway is restarted. `docker-compose.yml` starts the gateway only after every service's healthcheck passes (`service_healthy`). |
+| Component | Port | Database | Primary Responsibility | Interface & Communication |
+|---|---|---|---|---|
+| **user-service** | 8001 | `user_db` | Identity, authentication (Ed25519 JWT), session management, and RBAC | REST (`/api/auth`, `/api/users`), publishes `user.registered` via RabbitMQ |
+| **supplier-service** | 8002 | `supplier_db` | Campus supplier & pickup location directory (search, filter, categorize) | REST (`/api/suppliers`), public reads, admin writes |
+| **order-service** | 8003 | `order_db` | Errand lifecycle state machine (post, browse, accept, complete, cancel) | REST (`/api/orders`), sync HTTP reserve with credit-service, publishes `order.*` to RabbitMQ |
+| **credit-service** | 8004 | `credit_db` | Wallet balances, credit reservation, escrow, ledger, and idempotency | REST (`/api/credits`), sync HTTP reserve, consumes `order.*` from RabbitMQ |
+| **notification-service** | 8005 | `notification_db` | Real-time status notifications for errands | REST (`/api/notifications`), authenticated WebSocket (`/ws/`), consumes `order.*` from RabbitMQ |
+| **student-app** | 5173 | — | Student errand requester & courier web application | React SPA via Vite proxy / gateway |
+| **admin-portal** | 5174 | — | Administrative dashboard for suppliers and user management | React SPA mounted at `/admin/` |
+| **gateway** | 80 | — | Reverse proxy and single entry ingress | Nginx routing `/api/*`, `/ws/`, `/admin/`, and `/` |
 
 ## 4. Directory layout
 
@@ -112,7 +112,7 @@ nus-campus-errand/
 ├── services/
 │   ├── user-service/           src/{index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
 │   ├── supplier-service/       src/index.ts, src/suppliers/{supplierRoutes,supplierRepository}.ts, src/database/{client,seed}.ts, prisma/{schema.prisma,migrations/}
-│   ├── order-service/          src/index.ts            (mock)
+│   ├── order-service/          src/{index,app,config}.ts, orders/, repositories/, clients/, messaging/, database/
 │   ├── credit-service/         src/{index,app,config}.ts, credits/, database/{client.ts,prisma/}
 │   └── notification-service/   src/{index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client.ts,prisma/}
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile
