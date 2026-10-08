@@ -109,6 +109,116 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(fakeRepo.outboxEvents.length, 0);
     });
 
+    it('rejects order creation if requesterId or supplierId is not a valid UUID', async () => {
+      const { service } = setupTest();
+
+      await assert.rejects(
+        () => service.createOrder('not-a-uuid', {
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Meal',
+          dropoffLocation: 'Hall',
+          rewardCredits: 10,
+        }),
+        (err: Error) => err instanceof OrderValidationError && err.message.includes('requesterId'),
+      );
+
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: 'not-a-uuid',
+          itemDescription: 'Meal',
+          dropoffLocation: 'Hall',
+          rewardCredits: 10,
+        }),
+        (err: Error) => err instanceof OrderValidationError && err.message.includes('supplierId'),
+      );
+    });
+
+    it('rejects order creation if supplier does not exist or is inactive', async () => {
+      const { service, fakeSupplier } = setupTest();
+
+      // Non-existent supplier
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: '90000000-0000-4000-8000-000000000001',
+          itemDescription: 'Meal',
+          dropoffLocation: 'Hall',
+          rewardCredits: 10,
+        }),
+        (err: Error) => err instanceof OrderValidationError && /not exist/i.test(err.message),
+      );
+
+      // Inactive supplier
+      const inactiveId = '80000000-0000-4000-8000-000000000001';
+      fakeSupplier.addSupplier({
+        id: inactiveId,
+        name: 'Closed Kiosk',
+        campusZone: 'UTown',
+        isActive: false,
+      });
+
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: inactiveId,
+          itemDescription: 'Meal',
+          dropoffLocation: 'Hall',
+          rewardCredits: 10,
+        }),
+        (err: Error) => err instanceof OrderValidationError && /inactive/i.test(err.message),
+      );
+    });
+
+    it('rejects order creation with 503 when supplier service is unavailable', async () => {
+      const { service, fakeSupplier } = setupTest();
+      fakeSupplier.setAvailable(false);
+
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Meal',
+          dropoffLocation: 'Hall',
+          rewardCredits: 10,
+        }),
+        (err: any) => err.status === 503 && /temporarily unavailable/i.test(err.message),
+      );
+    });
+
+    it('records a compensating refund outbox event if repository insert fails after escrow hold', async () => {
+      const { fakeCredit, fakeSupplier } = setupTest();
+      const fakeRepo = makeFakeOrderRepository();
+
+      // Override createOrderWithOutbox to simulate DB crash
+      fakeRepo.repo.createOrderWithOutbox = async () => {
+        throw new Error('Database connection lost');
+      };
+
+      const service = createOrderService({
+        repository: fakeRepo.repo,
+        creditClient: fakeCredit.client,
+        supplierClient: fakeSupplier.client,
+      });
+
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Chicken Rice',
+          dropoffLocation: 'Kent Ridge Hall',
+          rewardCredits: 25,
+        }),
+        /Database connection lost/,
+      );
+
+      // Verify that escrow was reserved
+      assert.equal(fakeCredit.reservations.length, 1);
+      assert.equal(fakeCredit.reservations[0].amount, 25);
+
+      // Verify compensating refund outbox event was recorded
+      assert.equal(fakeRepo.outboxEvents.length, 1);
+      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.cancelled');
+      const refundPayload = JSON.parse(fakeRepo.outboxEvents[0].payload);
+      assert.equal(refundPayload.rewardCredits, 25);
+      assert.equal(refundPayload.requesterId, REQUESTER_ID);
+    });
+
     it('creates order with OPEN status, reserves credit escrow, and records outbox event', async () => {
       const { service, fakeCredit, fakeRepo } = setupTest();
 
@@ -306,6 +416,25 @@ describe('Order Service Lifecycle and Concurrency', () => {
       await assert.rejects(
         () => service.completeOrder(order.id, COURIER_1_ID),
         OrderAuthorizationError,
+      );
+    });
+
+    it('rejects confirmation of completion if errand is IN_TRANSIT and not yet DELIVERED', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Snack',
+        dropoffLocation: 'Kent Ridge Hall',
+        rewardCredits: 10,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.pickupOrder(order.id, COURIER_1_ID);
+
+      // Attempt complete while IN_TRANSIT
+      await assert.rejects(
+        () => service.completeOrder(order.id, REQUESTER_ID),
+        (err: Error) => err instanceof OrderStateConflictError && /DELIVERED/i.test(err.message),
       );
     });
   });

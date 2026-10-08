@@ -21,7 +21,7 @@ import type { CreditClient } from '../clients/credit.client';
 import type { SupplierClient } from '../clients/supplier.client';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import type { OutboxRelay } from '../messaging/outbox.relay';
-import { generateOrderCode, OrderNotFoundError, OrderValidationError } from './order.types';
+import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
 
 export interface OrderService {
   createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderDTO>;
@@ -82,20 +82,30 @@ async function handleCreateOrder(
 ): Promise<OrderDTO> {
   const { repository, creditClient, supplierClient, outboxRelay } = deps;
 
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_REGEX.test(requesterId)) {
+    throw new OrderValidationError('requesterId must be a valid UUID');
+  }
+  if (!UUID_REGEX.test(req.supplierId)) {
+    throw new OrderValidationError('supplierId must be a valid UUID');
+  }
+
   // 1. Input validations
   const durationMinutes = validateCreateOrderRequest(req);
 
   // 2. Validate supplier
-  let supplierName = 'Campus Spot';
-  let campusZone = 'Campus';
-  const supplier = await supplierClient.getSupplier(req.supplierId);
-  if (supplier) {
-    if (!supplier.isActive) {
-      throw new OrderValidationError('Selected supplier is currently inactive');
-    }
-    supplierName = supplier.name;
-    campusZone = supplier.campusZone || 'Campus';
+  const supplierLookup = await supplierClient.getSupplier(req.supplierId);
+  if (supplierLookup.kind === 'not_found') {
+    throw new OrderValidationError('Selected supplier does not exist or is invalid');
   }
+  if (supplierLookup.kind === 'unavailable') {
+    throw new OrderError('Supplier service is temporarily unavailable', 503);
+  }
+  if (!supplierLookup.supplier.isActive) {
+    throw new OrderValidationError('Selected supplier is currently inactive');
+  }
+  const supplierName = supplierLookup.supplier.name;
+  const campusZone = supplierLookup.supplier.campusZone || 'Campus';
 
   // 3. Reserve credit escrow synchronously before order becomes OPEN
   const orderId = crypto.randomUUID();
@@ -112,7 +122,7 @@ async function handleCreateOrder(
     throw new OrderValidationError(reservation.error || 'Failed to reserve escrow credits');
   }
 
-  // 4. Create Order & Outbox event atomically
+  // 4. Create Order & Outbox event atomically with compensation
   const event: OrderCreatedEvent = {
     eventType: 'order.created',
     eventId: crypto.randomUUID(),
@@ -125,20 +135,36 @@ async function handleCreateOrder(
     expiresAt: expiresAt.toISOString(),
   };
 
-  const created = await repository.createOrderWithOutbox({
-    id: orderId,
-    orderCode,
-    requesterId,
-    supplierId: req.supplierId,
-    supplierName,
-    campusZone,
-    itemDescription: req.itemDescription.trim(),
-    specialNotes: req.specialNotes?.trim() || undefined,
-    dropoffLocation: req.dropoffLocation.trim(),
-    requesterContactNote: req.requesterContactNote?.trim() || undefined,
-    rewardCredits: req.rewardCredits,
-    expiresAt,
-  }, event);
+  let created: OrderDTO;
+  try {
+    created = await repository.createOrderWithOutbox({
+      id: orderId,
+      orderCode,
+      requesterId,
+      supplierId: req.supplierId,
+      supplierName,
+      campusZone,
+      itemDescription: req.itemDescription.trim(),
+      specialNotes: req.specialNotes?.trim() || undefined,
+      dropoffLocation: req.dropoffLocation.trim(),
+      requesterContactNote: req.requesterContactNote?.trim() || undefined,
+      rewardCredits: req.rewardCredits,
+      expiresAt,
+    }, event);
+  } catch (insertErr) {
+    console.error('[create_order_failed_after_escrow_hold] Recording compensating cancellation refund outbox event', {
+      orderId,
+      requesterId,
+      insertErr,
+    });
+    await repository.recordCompensatingRefund(orderId, requesterId, req.rewardCredits).catch((refundErr) => {
+      console.error('[compensating_refund_outbox_failed]', { orderId, requesterId, refundErr });
+    });
+    if (outboxRelay) {
+      void outboxRelay.trigger();
+    }
+    throw insertErr;
+  }
 
   if (outboxRelay) {
     void outboxRelay.trigger();

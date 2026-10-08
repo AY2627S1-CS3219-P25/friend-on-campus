@@ -4,7 +4,7 @@
  * Scope: Domain types, custom errors, and DTO mappers for Order Service.
  * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by yanhwee)
+import { randomBytes } from 'node:crypto';
 import type { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
 import type { Order as PrismaOrder } from '../database/client';
 
@@ -77,6 +77,6 @@ export function toOrderDTO(order: PrismaOrder): OrderDTO {
 }
 
 export function generateOrderCode(): string {
-  const digits = Math.floor(10000 + Math.random() * 90000);
-  return `ORD-${digits}`;
+  const suffix = randomBytes(4).toString('hex').toUpperCase();
+  return `ORD-${suffix}`;
 }

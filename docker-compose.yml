@@ -218,7 +218,7 @@ services:
       - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
       - CREDIT_SERVICE_URL=http://credit-service:8004
       - SUPPLIER_SERVICE_URL=http://supplier-service:8002
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
     depends_on:

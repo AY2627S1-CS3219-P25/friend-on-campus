@@ -13,8 +13,13 @@ export interface SupplierDetails {
   isActive: boolean;
 }
 
+export type SupplierLookupResult =
+  | { kind: 'found'; supplier: SupplierDetails }
+  | { kind: 'not_found' }
+  | { kind: 'unavailable'; message: string };
+
 export interface SupplierClient {
-  getSupplier(supplierId: string): Promise<SupplierDetails | null>;
+  getSupplier(supplierId: string): Promise<SupplierLookupResult>;
 }
 
 // ---------------------------------------------------------------------------
@@ -24,31 +29,39 @@ export interface SupplierClient {
 async function handleGetSupplier(
   baseUrl: string,
   supplierId: string
-): Promise<SupplierDetails | null> {
+): Promise<SupplierLookupResult> {
   try {
     const url = new URL(`/api/suppliers/${supplierId}`, baseUrl).toString();
     const response = await fetch(url, {
       signal: AbortSignal.timeout(4000),
     });
 
+    if (response.status === 404 || response.status === 400) {
+      return { kind: 'not_found' };
+    }
+
     if (!response.ok) {
-      return null;
+      return { kind: 'unavailable', message: `Supplier Service returned status ${response.status}` };
     }
 
     const body = await response.json() as { success?: boolean; data?: any };
     if (body.success && body.data) {
       const supplier = body.data;
       return {
-        id: supplier.id,
-        name: supplier.name,
-        campusZone: supplier.campusZone || 'Campus',
-        isActive: supplier.isActive !== false,
+        kind: 'found',
+        supplier: {
+          id: supplier.id,
+          name: supplier.name,
+          campusZone: supplier.campusZone || 'Campus',
+          isActive: supplier.isActive !== false,
+        },
       };
     }
-    return null;
+    return { kind: 'not_found' };
   } catch (err) {
-    console.warn(`[supplier-client] Failed to fetch supplier ${supplierId}:`, err);
-    return null;
+    const message = err instanceof Error ? err.message : 'Unknown network failure';
+    console.warn(`[supplier-client] Failed to reach Supplier Service for ${supplierId}: ${message}`);
+    return { kind: 'unavailable', message };
   }
 }
 

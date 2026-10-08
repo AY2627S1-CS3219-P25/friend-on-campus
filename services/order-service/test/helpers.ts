@@ -77,7 +77,10 @@ export function makeFakeOrderRepository() {
     },
 
     async findOrderById(id: string): Promise<OrderDTO | null> {
-      const found = orders.find((o) => o.id === id || o.orderCode === id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      const found = isUuid
+        ? orders.find((o) => o.id === id)
+        : orders.find((o) => o.orderCode === id);
       return found ? { ...found } : null;
     },
 
@@ -237,8 +240,8 @@ export function makeFakeOrderRepository() {
         throw new OrderAuthorizationError('Only the requester can confirm delivery and complete this errand');
       }
 
-      if (order.status !== 'DELIVERED' && order.status !== 'IN_TRANSIT') {
-        throw new OrderStateConflictError(`Cannot complete errand from status ${order.status}`);
+      if (order.status !== 'DELIVERED') {
+        throw new OrderStateConflictError(`Cannot complete errand from status ${order.status}. Errand must be DELIVERED first.`);
       }
 
       order.status = 'COMPLETED';
@@ -320,6 +323,25 @@ export function makeFakeOrderRepository() {
       }
       return count;
     },
+
+    async recordCompensatingRefund(orderId: string, requesterId: string, rewardCredits: number): Promise<void> {
+      outboxEvents.push({
+        id: crypto.randomUUID(),
+        eventType: 'order.cancelled',
+        payload: JSON.stringify({
+          eventId: crypto.randomUUID(),
+          eventType: 'order.cancelled',
+          timestamp: new Date().toISOString(),
+          orderId,
+          requesterId,
+          rewardCredits,
+        }),
+        status: 'PENDING',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    },
   };
 
   return { repo, orders, outboxEvents };
@@ -352,16 +374,25 @@ export function makeFakeCreditClient(opts: { defaultSuccess?: boolean; defaultEr
 
 export function makeFakeSupplierClient(knownSuppliers: Record<string, SupplierDetails> = {}) {
   const suppliers = new Map<string, SupplierDetails>(Object.entries(knownSuppliers));
+  let isAvailable = true;
 
   const client: SupplierClient = {
     async getSupplier(supplierId: string) {
-      return suppliers.get(supplierId) ?? null;
+      if (!isAvailable) {
+        return { kind: 'unavailable', message: 'Fake supplier service outage' };
+      }
+      const s = suppliers.get(supplierId);
+      if (!s) return { kind: 'not_found' };
+      return { kind: 'found', supplier: s };
     },
   };
 
   return {
     client,
     suppliers,
+    setAvailable(val: boolean) {
+      isAvailable = val;
+    },
     addSupplier(supplier: SupplierDetails) {
       suppliers.set(supplier.id, supplier);
     },

@@ -50,6 +50,7 @@ export interface OrderRepository {
   completeOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
   expireDueOrders(now: Date): Promise<number>;
+  recordCompensatingRefund(orderId: string, requesterId: string, rewardCredits: number): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -99,14 +100,10 @@ async function handleFindOrderById(
   prisma: PrismaClient,
   id: string
 ): Promise<OrderDTO | null> {
-  const order = await prisma.order.findFirst({
-    where: {
-      OR: [
-        { id: id },
-        { orderCode: id },
-      ],
-    },
-  });
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const order = isUuid
+    ? await prisma.order.findUnique({ where: { id } })
+    : await prisma.order.findUnique({ where: { orderCode: id } });
 
   if (!order) return null;
   return toOrderDTO(order);
@@ -272,14 +269,23 @@ async function handlePickupOrder(
       throw new OrderStateConflictError(`Cannot mark errand as picked up from status ${order.status}`);
     }
 
-    const updated = await tx.order.update({
-      where: { id: orderId },
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'ACCEPTED',
+        version: order.version,
+        courierId,
+      },
       data: {
         status: 'IN_TRANSIT',
         pickedUpAt: new Date(),
         version: { increment: 1 },
       },
     });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
 
     await tx.outboxEvent.create({
       data: {
@@ -289,7 +295,8 @@ async function handlePickupOrder(
       },
     });
 
-    return toOrderDTO(updated);
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
   });
 }
 
@@ -313,14 +320,23 @@ async function handleDeliverOrder(
       throw new OrderStateConflictError(`Cannot mark errand as delivered from status ${order.status}`);
     }
 
-    const updated = await tx.order.update({
-      where: { id: orderId },
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'IN_TRANSIT',
+        version: order.version,
+        courierId,
+      },
       data: {
         status: 'DELIVERED',
         deliveredAt: new Date(),
         version: { increment: 1 },
       },
     });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
 
     await tx.outboxEvent.create({
       data: {
@@ -330,7 +346,8 @@ async function handleDeliverOrder(
       },
     });
 
-    return toOrderDTO(updated);
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
   });
 }
 
@@ -350,18 +367,27 @@ async function handleCompleteOrder(
       throw new OrderAuthorizationError('Only the requester can confirm delivery and complete this errand');
     }
 
-    if (order.status !== 'DELIVERED' && order.status !== 'IN_TRANSIT') {
-      throw new OrderStateConflictError(`Cannot complete errand from status ${order.status}`);
+    if (order.status !== 'DELIVERED') {
+      throw new OrderStateConflictError(`Cannot complete errand from status ${order.status}. Errand must be DELIVERED first.`);
     }
 
-    const updated = await tx.order.update({
-      where: { id: orderId },
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'DELIVERED',
+        version: order.version,
+        requesterId,
+      },
       data: {
         status: 'COMPLETED',
         completedAt: new Date(),
         version: { increment: 1 },
       },
     });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
 
     await tx.outboxEvent.create({
       data: {
@@ -371,7 +397,8 @@ async function handleCompleteOrder(
       },
     });
 
-    return toOrderDTO(updated);
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
   });
 }
 
@@ -399,14 +426,23 @@ async function handleCancelOrder(
       throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
     }
 
-    const updated = await tx.order.update({
-      where: { id: orderId },
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: order.status,
+        version: order.version,
+        requesterId,
+      },
       data: {
         status: 'CANCELLED',
         courierId: null, // unassign courier if was accepted
         version: { increment: 1 },
       },
     });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
 
     await tx.outboxEvent.create({
       data: {
@@ -416,7 +452,31 @@ async function handleCancelOrder(
       },
     });
 
-    return toOrderDTO(updated);
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
+  });
+}
+
+async function handleRecordCompensatingRefund(
+  prisma: PrismaClient,
+  orderId: string,
+  requesterId: string,
+  rewardCredits: number
+): Promise<void> {
+  const event = {
+    eventId: crypto.randomUUID(),
+    eventType: 'order.cancelled',
+    timestamp: new Date().toISOString(),
+    orderId,
+    requesterId,
+    rewardCredits,
+  };
+  await prisma.outboxEvent.create({
+    data: {
+      eventType: 'order.cancelled',
+      payload: JSON.stringify(event),
+      status: 'PENDING',
+    },
   });
 }
 
@@ -493,5 +553,7 @@ export function createOrderRepository(prisma: PrismaClient): OrderRepository {
     completeOrder: (orderId, requesterId, event) => handleCompleteOrder(prisma, orderId, requesterId, event),
     cancelOrder: (orderId, requesterId, event) => handleCancelOrder(prisma, orderId, requesterId, event),
     expireDueOrders: (now) => handleExpireDueOrders(prisma, now),
+    recordCompensatingRefund: (orderId, requesterId, rewardCredits) =>
+      handleRecordCompensatingRefund(prisma, orderId, requesterId, rewardCredits),
   };
 }

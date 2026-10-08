@@ -63,16 +63,18 @@ In Compose, the container runs `db:deploy` and `db:seed` automatically at boot b
   - `client.ts`: singleton Prisma client instance.
   - `seed.ts`: initial development order seed.
 - `src/messaging/`:
-  - `publisher.ts`: confirmed RabbitMQ publisher with connection recovery, mandatory routing, and persistent message flags.
-  - `outbox-relay.ts`: transactional outbox worker polling `outbox_events` and publishing to `campus.events` with retry backoff and poison message isolation.
+  - `event.publisher.ts`: confirmed RabbitMQ publisher with connection recovery, mandatory routing, and persistent message flags.
+  - `outbox.relay.ts`: transactional outbox worker polling `outbox_events` and publishing to `campus.events` with retry backoff and poison message isolation.
+- `src/clients/`:
+  - `credit.client.ts`: synchronous HTTP client for escrow reservation (`POST /api/credits/escrow/reserve`).
+  - `supplier.client.ts`: HTTP client validating supplier existence, active status, and campus zone.
+- `src/repositories/`:
+  - `order.repository.ts`: database operations with transaction boundaries, optimistic version guards, and atomic outbox insertions.
 - `src/orders/`:
-  - `types.ts`: domain errors (`OrderNotFoundError`, `OrderStateConflictError`, `OrderAuthorizationError`, `SelfAcceptForbiddenError`, `OrderValidationError`) and DTO mappers.
-  - `credit-client.ts`: synchronous HTTP client for escrow reservation (`POST /api/credits/escrow/reserve`).
-  - `supplier-client.ts`: HTTP client validating supplier existence, active status, and campus zone.
-  - `order-repository.ts`: database operations with transaction boundaries, version checks, and atomic outbox insertions.
-  - `expiry-sweeper.ts`: periodic background sweeper finding expired open errands and triggering escrow refunds.
-  - `service.ts`: core domain business logic orchestrator.
-  - `routes.ts`: Express router implementing REST endpoints with Ed25519 token verification.
+  - `order.types.ts`: domain errors (`OrderNotFoundError`, `OrderStateConflictError`, `OrderAuthorizationError`, `SelfAcceptForbiddenError`, `OrderValidationError`), 32-bit order code generator, and DTO mappers.
+  - `expiry.sweeper.ts`: periodic background sweeper finding expired open errands and triggering escrow refunds.
+  - `order.service.ts`: core domain business logic orchestrator with compensating transaction handlers.
+  - `order.routes.ts`: Express router implementing REST endpoints with Ed25519 token verification.
 
 ## REST API Reference
 
@@ -80,10 +82,10 @@ In Compose, the container runs `db:deploy` and `db:seed` automatically at boot b
 |---|---|---|---|---|
 | `GET /health` | None | Service liveness probe | 200 `{ status: "UP" }` | — |
 | `GET /ready` | None | Service readiness probe (checks DB) | 200 `{ status: "READY" }` | 503 |
-| `GET /api/orders` | Optional | Feed of open errands (filters: `status`, `campusZone`, pagination) | 200 `{ success: true, data: OrderDTO[], total }` | — |
-| `GET /api/orders/:id` | Optional | Get order by UUID or orderCode | 200 `{ success: true, data: OrderDTO }` | 404 |
+| `GET /api/orders` | Required | Feed of open errands (filters: `status`, `campusZone`, pagination) | 200 `{ success: true, data: OrderDTO[], total }` | 401 |
+| `GET /api/orders/:id` | Required | Get order by UUID or orderCode | 200 `{ success: true, data: OrderDTO }` | 401, 404 |
 | `GET /api/orders/user/activity` | Required | Partitioned activity (`requested`, `delivering`, `history`) | 200 `{ success: true, data: { requested, delivering, history } }` | 401 |
-| `POST /api/orders` | Required | Create errand with synchronous credit escrow reservation | 201 `{ success: true, data: OrderDTO }` | 400, 401 |
+| `POST /api/orders` | Required | Create errand with synchronous credit escrow reservation | 201 `{ success: true, data: OrderDTO }` | 400, 401, 503 |
 | `POST /api/orders/:id/accept` | Required | Single courier claim (rejects self-claims & expired orders) | 200 `{ success: true, data: OrderDTO }` | 400, 401, 404, 409 |
 | `POST /api/orders/:id/pickup` | Required | Courier marks item picked up (`ACCEPTED` &rarr; `IN_TRANSIT`) | 200 `{ success: true, data: OrderDTO }` | 401, 403, 404, 409 |
 | `POST /api/orders/:id/deliver` | Required | Courier marks item delivered (`IN_TRANSIT` &rarr; `DELIVERED`) | 200 `{ success: true, data: OrderDTO }` | 401, 403, 404, 409 |

@@ -21,19 +21,10 @@ function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): Re
   };
 }
 
-function resolveUserId(req: Request, res: Response): string {
+function resolveUserId(_req: Request, res: Response): string {
   const auth = res.locals.auth as AuthenticatedPrincipal | undefined;
   if (auth && auth.userId) {
     return auth.userId;
-  }
-  // Development / fallback support
-  const headerUserId = req.headers['x-user-id'];
-  if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {
-    return headerUserId.trim();
-  }
-  const queryUserId = req.query.userId;
-  if (typeof queryUserId === 'string' && queryUserId.trim() !== '') {
-    return queryUserId.trim();
   }
   throw new OrderError('Authentication required: user ID could not be identified', 401);
 }
@@ -61,8 +52,8 @@ const domainErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 export function createOrderRouter(orderService: OrderService, authenticate: RequestHandler): Router {
   const router = Router();
 
-  // 1. List / Discover Open Errands (public/authenticated)
-  router.get('/', asyncRoute(async (req: Request, res: Response) => {
+  // 1. List / Discover Open Errands (authenticated)
+  router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {
     const { status, campusZone, page, limit } = req.query;
     const result = await orderService.listOrders({
       status: typeof status === 'string' ? status : undefined,
@@ -79,15 +70,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
   }));
 
   // 2. User Activity (requested, delivering, history)
-  router.get('/user/activity', asyncRoute(async (req: Request, res: Response) => {
-    let userId: string;
-    try {
-      userId = resolveUserId(req, res);
-    } catch {
-      res.status(401).json({ success: false, error: 'User identity is required to view activity' });
-      return;
-    }
-
+  router.get('/user/activity', authenticate, asyncRoute(async (req: Request, res: Response) => {
+    const userId = resolveUserId(req, res);
     const activity = await orderService.getUserActivity(userId);
     res.json({
       success: true,
@@ -95,8 +79,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
-  // 3. Get Errand Details by ID or Code
-  router.get('/:id', asyncRoute(async (req: Request, res: Response) => {
+  // 3. Get Errand Details by ID or Code (authenticated)
+  router.get('/:id', authenticate, asyncRoute(async (req: Request, res: Response) => {
     const order = await orderService.getOrderById(req.params.id);
     res.json({
       success: true,

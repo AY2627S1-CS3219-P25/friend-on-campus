@@ -35,7 +35,14 @@ function buildAuthMiddleware(authConfig: typeof config.auth): (req: Request, res
     return authMiddleware(authConfig);
   }
 
-  console.warn('[Order Service] WARNING: JWT_PUBLIC_KEY not set; using development fallback authentication.');
+  const allowDevAuth = process.env.ORDER_DEV_AUTH === '1' || process.env.ORDER_DEV_AUTH === 'true';
+  if (!allowDevAuth) {
+    throw new Error(
+      '[Order Service] FATAL: JWT_PUBLIC_KEY is not set. To run with development mock authentication, explicitly set ORDER_DEV_AUTH=1.'
+    );
+  }
+
+  console.warn('[Order Service] WARNING: JWT_PUBLIC_KEY not set; using development fallback authentication because ORDER_DEV_AUTH=1.');
   return (req: Request, res: Response, next: NextFunction) => {
     const headerUserId = req.headers['x-user-id'];
     if (typeof headerUserId === 'string' && headerUserId.trim() !== '') {

@@ -67,12 +67,16 @@ async function processSingleOutboxRecord(
   }
 
   const newRetryCount = record.retryCount + 1;
-  const newStatus = newRetryCount >= maxRetries ? 'FAILED' : 'PENDING';
+  if (newRetryCount >= maxRetries && newRetryCount % 10 === 0) {
+    console.warn(
+      `[outbox_publish_warning] Broker publish failing repeatedly (${newRetryCount} attempts) for event ${record.id} (${record.eventType}); keeping PENDING until broker recovers.`
+    );
+  }
   await prisma.outboxEvent.update({
     where: { id: record.id },
     data: {
       retryCount: newRetryCount,
-      status: newStatus,
+      status: 'PENDING',
     },
   });
   return 'RETRY';

@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Recorded addressing Claude PR #112 review findings: authentication hardening, compensating refund outbox emission, optimistic concurrency locking, 32-bit order codes, and documentation alignment.
+Author review: (to be completed by author after review)
+
 Tool: Google Antigravity Agent, date: 2026-10-03
 Scope: Recorded implementation of User Service user.registered RabbitMQ publisher, transactional outbox, configuration, unit tests, and system documentation alignment.
 Author review: <to be completed by huangjiaxi1111>
@@ -2526,4 +2530,35 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Verification:**
 - `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
 - `npm test --workspace=@campus-errand/order-service` executed 22 unit and integration tests with 100% pass rate.
+- `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-08 10:40 SGT — Address Claude PR Review Findings for Order Service (PR #112)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feature/create-order-service
+
+**Prompt (summarised):** Address all review comments and findings raised by Claude PR review on PR #112.
+
+**Usage scenario:** Code hardening, security fixes, race condition prevention, and test/documentation alignment (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/order.routes.ts` — Placed `GET /`, `GET /user/activity`, and `GET /:id` behind `authenticate` middleware. Stripped query param and unauthenticated header bypasses from `resolveUserId`.
+- `services/order-service/src/orders/order.service.ts` — Added UUID format pre-validation on `requesterId` and `supplierId`. Handled `SupplierLookupResult` (400 on not found / inactive, 503 on service outage). Added compensating cancellation refund outbox record if DB insertion fails after credit escrow reservation.
+- `services/order-service/src/repositories/order.repository.ts` — Upgraded `pickupOrder`, `deliverOrder`, `completeOrder`, and `cancelOrder` to use atomic `updateMany` queries with status and optimistic `version` conditions. Disallowed skipping `DELIVERED` status in `completeOrder`. Fixed `findOrderById` to branch on UUID syntax. Added `recordCompensatingRefund`.
+- `services/order-service/src/orders/order.types.ts` — Switched `generateOrderCode` from 5-digit decimal to 8-character hex crypto random suffix (`ORD-XXXXXXXX`, 4.29 billion combinations) to eliminate birthday paradox collision risk.
+- `services/order-service/src/messaging/outbox.relay.ts` — Differentiated transient broker connection failures (retains `PENDING` status with retry count and log warnings) from unparseable poison JSON payloads (marked `FAILED`).
+- `services/order-service/src/clients/supplier.client.ts` — Refactored to return discriminated union `SupplierLookupResult` (`found`, `not_found`, `unavailable`).
+- `services/order-service/src/index.ts` — Guarded mock authentication header fallback behind explicit `ORDER_DEV_AUTH=1`, failing fast on startup if `JWT_PUBLIC_KEY` is missing.
+- `docker-compose.yml` — Required `${JWT_PUBLIC_KEY:?Run \`npm run generate:jwt-keys\`...}` in `order-service` environment.
+- `services/order-service/src/database/seed.ts` — Extended seed `expiresAt` to 180 days in the future to avoid DLQ refund noise in `credit-service`.
+- `services/order-service/test/app.test.ts` — Added test cases verifying 401 Unauthorized for unauthenticated GET endpoints and query param bypass protection.
+- `services/order-service/test/helpers.ts` — Aligned test doubles with `SupplierLookupResult` and added `recordCompensatingRefund`.
+- `services/order-service/test/order.service.test.ts` — Added unit tests for UUID validation, supplier lookup errors (400, 503), compensating refunds, and state transition guards.
+- `docs/services/order-service.md`, `CLAUDE.md`, `docs/architecture/overview.md` — Aligned documentation with dot-notation filenames, authentication requirements, and current microservice implementation facts.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 28 unit and integration tests with 100% pass rate.
 - `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.

@@ -100,6 +100,27 @@ describe('Order Service HTTP Application & Routes', () => {
     }
   });
 
+  it('rejects GET endpoints without authentication (401)', async () => {
+    const { app } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const listRes = await fetch(`${server.url}/api/orders`);
+      assert.equal(listRes.status, 401);
+
+      const activityRes = await fetch(`${server.url}/api/orders/user/activity`);
+      assert.equal(activityRes.status, 401);
+
+      // Verify that query param userId cannot bypass authentication
+      const spoofRes = await fetch(`${server.url}/api/orders/user/activity?userId=${ALICE_ID}`);
+      assert.equal(spoofRes.status, 401);
+
+      const detailRes = await fetch(`${server.url}/api/orders/some-id`);
+      assert.equal(detailRes.status, 401);
+    } finally {
+      await server.close();
+    }
+  });
+
   it('creates, claims, picks up, delivers, and completes an errand through HTTP endpoints', async () => {
     const { app } = setupApp();
     const server = await startTestServer(app);
@@ -125,8 +146,10 @@ describe('Order Service HTTP Application & Routes', () => {
       const orderId = createdBody.data.id;
       assert.equal(createdBody.data.status, 'OPEN');
 
-      // 2. Discover in feed
-      const listRes = await fetch(`${server.url}/api/orders`);
+      // 2. Discover in feed (authenticated)
+      const listRes = await fetch(`${server.url}/api/orders`, {
+        headers: { 'x-user-id': ALICE_ID },
+      });
       assert.equal(listRes.status, 200);
       const listBody = await listRes.json() as any;
       assert.equal(listBody.orders?.length || listBody.data?.length, 1);
@@ -172,8 +195,10 @@ describe('Order Service HTTP Application & Routes', () => {
       const completeBody = await completeRes.json() as any;
       assert.equal(completeBody.data.status, 'COMPLETED');
 
-      // 7. Check Alice's activity
-      const activityRes = await fetch(`${server.url}/api/orders/user/activity?userId=${ALICE_ID}`);
+      // 7. Check Alice's activity (authenticated)
+      const activityRes = await fetch(`${server.url}/api/orders/user/activity`, {
+        headers: { 'x-user-id': ALICE_ID },
+      });
       assert.equal(activityRes.status, 200);
       const activityBody = await activityRes.json() as any;
       assert.equal(activityBody.data.history.length, 1);

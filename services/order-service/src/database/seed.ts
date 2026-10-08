@@ -28,7 +28,7 @@ export async function seedOrders() {
       requesterContactNote: 'Wearing red hoodie, waiting near stairs',
       rewardCredits: 15,
       status: 'OPEN',
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
+      expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 180 days from now to avoid DLQ noise
       createdAt: new Date(),
       version: 1,
     },
@@ -45,7 +45,7 @@ export async function seedOrders() {
       requesterContactNote: 'Sitting at study pod',
       rewardCredits: 20,
       status: 'OPEN',
-      expiresAt: new Date(Date.now() + 45 * 60 * 1000), // 45 min from now
+      expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 180 days from now to avoid DLQ noise
       createdAt: new Date(),
       version: 1,
     },
