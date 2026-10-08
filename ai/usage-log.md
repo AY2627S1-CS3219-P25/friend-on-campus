@@ -2562,3 +2562,29 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
 - `npm test --workspace=@campus-errand/order-service` executed 28 unit and integration tests with 100% pass rate.
 - `npm test` executed all 119 unit and integration tests across the monorepo with 100% pass rate.
+
+## 2026-10-08 11:00 SGT — Address Claude PR Review Round 2 Findings for Order Service (PR #112)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feature/create-order-service
+
+**Prompt (summarised):** Address new review comments and findings raised by Claude PR review on PR #112:
+1. Medium: Validate string types and length constraints (`VarChar(255)` / `(128)` and text bounds) up front in `validateCreateOrderRequest` and `handleAcceptOrder` before making credit escrow reservations or outbound supplier calls.
+2. Low: Add retry loop with backoff for `repository.recordCompensatingRefund` during PostgreSQL outages, and emit structured `[compensating_refund_lost]` logs on terminal failure.
+3. Low: Add strict query parameter validation for `page` and `limit` in `order.routes.ts` via `parsePositiveInt` helper, rejecting invalid (`NaN`, non-integer, negative, or `> 100`) inputs with 400 Bad Request instead of triggering Prisma 500 crashes or reversed result windows.
+
+**Usage scenario:** Input validation hardening, fault-tolerant saga compensation, and pagination sanitization (allowed use).
+
+**Files changed:**
+- `services/order-service/src/orders/order.service.ts` — Implemented `validateRequiredText` and `validateOptionalText` helpers; added pre-flight length and type bounds checking for `itemDescription` (1000), `dropoffLocation` (255), `specialNotes` (1000), `requesterContactNote` (255), and `courierContactNote` (255); wrapped `recordCompensatingRefund` in a 5-attempt retry loop with backoff and structured `[compensating_refund_lost]` logging.
+- `services/order-service/src/orders/order.routes.ts` — Added `parsePositiveInt` helper; validated `page` ($\ge 1$) and `limit` ($\ge 1$ and $\le 100$) query parameters on `GET /api/orders`, returning 400 `OrderValidationError` on invalid inputs.
+- `services/order-service/test/order.service.test.ts` — Added unit test coverage for compensating refund retries, terminal failure structured logging, and `courierContactNote` length/type bounds.
+- `services/order-service/test/app.test.ts` — Added integration tests verifying 400 Bad Request on invalid `page` and `limit` query parameters, and over-length text inputs without reserving credit escrow.
+- `ai/usage-log.md` — Appended this implementation log entry.
+
+**Verification:**
+- `npm run typecheck` passed cleanly across all workspaces with zero TypeScript errors.
+- `npm test --workspace=@campus-errand/order-service` executed 33 unit and integration tests with 100% pass rate.
+- `npm test` executed all 124 unit and integration tests across the monorepo with 100% pass rate.
+

@@ -219,6 +219,79 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(refundPayload.requesterId, REQUESTER_ID);
     });
 
+    it('retries compensating refund write if it initially fails and succeeds on retry', async () => {
+      const { fakeCredit, fakeSupplier } = setupTest();
+      const fakeRepo = makeFakeOrderRepository();
+
+      fakeRepo.repo.createOrderWithOutbox = async () => {
+        throw new Error('Database connection lost');
+      };
+
+      let refundAttempts = 0;
+      const originalRecordCompensatingRefund = fakeRepo.repo.recordCompensatingRefund;
+      fakeRepo.repo.recordCompensatingRefund = async (...args) => {
+        refundAttempts++;
+        if (refundAttempts < 3) {
+          throw new Error('DB temporarily busy');
+        }
+        return originalRecordCompensatingRefund.apply(fakeRepo.repo, args);
+      };
+
+      const service = createOrderService({
+        repository: fakeRepo.repo,
+        creditClient: fakeCredit.client,
+        supplierClient: fakeSupplier.client,
+      });
+
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Chicken Rice',
+          dropoffLocation: 'Kent Ridge Hall',
+          rewardCredits: 25,
+        }),
+        /Database connection lost/,
+      );
+
+      assert.equal(refundAttempts, 3);
+      assert.equal(fakeRepo.outboxEvents.length, 1);
+      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.cancelled');
+    });
+
+    it('logs [compensating_refund_lost] and rethrows if compensating refund write fails all retry attempts', async () => {
+      const { fakeCredit, fakeSupplier } = setupTest();
+      const fakeRepo = makeFakeOrderRepository();
+
+      fakeRepo.repo.createOrderWithOutbox = async () => {
+        throw new Error('Database connection lost');
+      };
+
+      let refundAttempts = 0;
+      fakeRepo.repo.recordCompensatingRefund = async () => {
+        refundAttempts++;
+        throw new Error('Persistent DB outage');
+      };
+
+      const service = createOrderService({
+        repository: fakeRepo.repo,
+        creditClient: fakeCredit.client,
+        supplierClient: fakeSupplier.client,
+      });
+
+      await assert.rejects(
+        () => service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Chicken Rice',
+          dropoffLocation: 'Kent Ridge Hall',
+          rewardCredits: 25,
+        }),
+        /Database connection lost/,
+      );
+
+      assert.equal(refundAttempts, 5);
+      assert.equal(fakeRepo.outboxEvents.length, 0);
+    });
+
     it('creates order with OPEN status, reserves credit escrow, and records outbox event', async () => {
       const { service, fakeCredit, fakeRepo } = setupTest();
 
@@ -331,6 +404,28 @@ describe('Order Service Lifecycle and Concurrency', () => {
       await assert.rejects(
         () => service.acceptOrder(order.id, COURIER_1_ID),
         OrderStateConflictError,
+      );
+    });
+
+    it('rejects courierContactNote if it is not a string or exceeds 255 characters', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Juice',
+        dropoffLocation: 'UTown RC4',
+        rewardCredits: 10,
+      });
+
+      // Non-string
+      await assert.rejects(
+        () => service.acceptOrder(order.id, COURIER_1_ID, { courierContactNote: 12345 as any }),
+        (err: Error) => err instanceof OrderValidationError && err.message.includes('courierContactNote must be a string'),
+      );
+
+      // Over 255 characters
+      await assert.rejects(
+        () => service.acceptOrder(order.id, COURIER_1_ID, { courierContactNote: 'a'.repeat(256) }),
+        (err: Error) => err instanceof OrderValidationError && err.message.includes('courierContactNote must be at most 255 characters'),
       );
     });
   });

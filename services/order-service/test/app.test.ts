@@ -248,4 +248,88 @@ describe('Order Service HTTP Application & Routes', () => {
       await server.close();
     }
   });
+
+  it('rejects invalid page and limit query parameters with 400 Bad Request', async () => {
+    const { app } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const cases = [
+        { query: 'page=abc', expectedMsg: 'page must be an integer >= 1' },
+        { query: 'page=0', expectedMsg: 'page must be an integer >= 1' },
+        { query: 'page=-2', expectedMsg: 'page must be an integer >= 1' },
+        { query: 'limit=abc', expectedMsg: 'limit must be an integer >= 1 and <= 100' },
+        { query: 'limit=0', expectedMsg: 'limit must be an integer >= 1 and <= 100' },
+        { query: 'limit=-10', expectedMsg: 'limit must be an integer >= 1 and <= 100' },
+        { query: 'limit=101', expectedMsg: 'limit must be an integer >= 1 and <= 100' },
+      ];
+
+      for (const { query, expectedMsg } of cases) {
+        const res = await fetch(`${server.url}/api/orders?${query}`, {
+          headers: { 'x-user-id': ALICE_ID },
+        });
+        assert.equal(res.status, 400, `Expected 400 for ?${query}`);
+        const body = await res.json() as any;
+        assert.equal(body.success, false);
+        assert.equal(body.error, expectedMsg);
+      }
+
+      // Valid pagination passes
+      const validRes = await fetch(`${server.url}/api/orders?page=1&limit=20`, {
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(validRes.status, 200);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('rejects over-length dropoffLocation or non-string specialNotes with 400 Bad Request without reserving escrow', async () => {
+    const { app, fakeCredit } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      // Over 255 chars dropoffLocation
+      const overLengthRes = await fetch(`${server.url}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': ALICE_ID,
+        },
+        body: JSON.stringify({
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Drink',
+          dropoffLocation: 'x'.repeat(256),
+          rewardCredits: 10,
+        }),
+      });
+      assert.equal(overLengthRes.status, 400);
+      const overLengthBody = await overLengthRes.json() as any;
+      assert.equal(overLengthBody.success, false);
+      assert.match(overLengthBody.error, /dropoffLocation must be at most 255 characters/);
+
+      // Non-string specialNotes
+      const nonStringRes = await fetch(`${server.url}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': ALICE_ID,
+        },
+        body: JSON.stringify({
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Drink',
+          dropoffLocation: 'PGPR',
+          specialNotes: 12345,
+          rewardCredits: 10,
+        }),
+      });
+      assert.equal(nonStringRes.status, 400);
+      const nonStringBody = await nonStringRes.json() as any;
+      assert.equal(nonStringBody.success, false);
+      assert.match(nonStringBody.error, /specialNotes must be a string/);
+
+      // Verify that no escrow reservation was attempted
+      assert.equal(fakeCredit.reservations.length, 0);
+    } finally {
+      await server.close();
+    }
+  });
 });

@@ -46,16 +46,68 @@ export interface OrderServiceDependencies {
 // Validation Helpers
 // ---------------------------------------------------------------------------
 
-function validateCreateOrderRequest(req: CreateOrderRequest): number {
-  if (!req.supplierId || typeof req.supplierId !== 'string' || req.supplierId.trim() === '') {
+function validateRequiredText(value: unknown, field: string, maxLength: number): string {
+  if (value === undefined || value === null) {
+    throw new OrderValidationError(`${field} is required`);
+  }
+  if (typeof value !== 'string') {
+    throw new OrderValidationError(`${field} must be a string`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    throw new OrderValidationError(`${field} cannot be empty`);
+  }
+  if (trimmed.length > maxLength) {
+    throw new OrderValidationError(`${field} must be at most ${maxLength} characters`);
+  }
+  return trimmed;
+}
+
+function validateOptionalText(value: unknown, field: string, maxLength: number): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== 'string') {
+    throw new OrderValidationError(`${field} must be a string`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  if (trimmed.length > maxLength) {
+    throw new OrderValidationError(`${field} must be at most ${maxLength} characters`);
+  }
+  return trimmed;
+}
+
+interface ValidatedCreateOrderInput {
+  supplierId: string;
+  itemDescription: string;
+  dropoffLocation: string;
+  specialNotes?: string;
+  requesterContactNote?: string;
+  rewardCredits: number;
+  durationMinutes: number;
+}
+
+function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrderInput {
+  if (!req || typeof req !== 'object') {
+    throw new OrderValidationError('Request body must be an object');
+  }
+
+  if (!req.supplierId || typeof req.supplierId !== 'string') {
     throw new OrderValidationError('supplierId is required');
   }
-  if (!req.itemDescription || typeof req.itemDescription !== 'string' || req.itemDescription.trim() === '') {
-    throw new OrderValidationError('itemDescription is required');
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_REGEX.test(req.supplierId.trim())) {
+    throw new OrderValidationError('supplierId must be a valid UUID');
   }
-  if (!req.dropoffLocation || typeof req.dropoffLocation !== 'string' || req.dropoffLocation.trim() === '') {
-    throw new OrderValidationError('dropoffLocation is required');
-  }
+
+  const itemDescription = validateRequiredText(req.itemDescription, 'itemDescription', 1000);
+  const dropoffLocation = validateRequiredText(req.dropoffLocation, 'dropoffLocation', 255);
+  const specialNotes = validateOptionalText(req.specialNotes, 'specialNotes', 1000);
+  const requesterContactNote = validateOptionalText(req.requesterContactNote, 'requesterContactNote', 255);
+
   if (typeof req.rewardCredits !== 'number' || !Number.isInteger(req.rewardCredits) || req.rewardCredits <= 0) {
     throw new OrderValidationError('rewardCredits must be a positive integer');
   }
@@ -68,7 +120,15 @@ function validateCreateOrderRequest(req: CreateOrderRequest): number {
     durationMinutes = req.durationMinutes;
   }
 
-  return durationMinutes;
+  return {
+    supplierId: req.supplierId.trim(),
+    itemDescription,
+    dropoffLocation,
+    specialNotes,
+    requesterContactNote,
+    rewardCredits: req.rewardCredits,
+    durationMinutes,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -86,15 +146,12 @@ async function handleCreateOrder(
   if (!UUID_REGEX.test(requesterId)) {
     throw new OrderValidationError('requesterId must be a valid UUID');
   }
-  if (!UUID_REGEX.test(req.supplierId)) {
-    throw new OrderValidationError('supplierId must be a valid UUID');
-  }
 
-  // 1. Input validations
-  const durationMinutes = validateCreateOrderRequest(req);
+  // 1. Input validations before any external call
+  const validatedInput = validateCreateOrderRequest(req);
 
   // 2. Validate supplier
-  const supplierLookup = await supplierClient.getSupplier(req.supplierId);
+  const supplierLookup = await supplierClient.getSupplier(validatedInput.supplierId);
   if (supplierLookup.kind === 'not_found') {
     throw new OrderValidationError('Selected supplier does not exist or is invalid');
   }
@@ -110,12 +167,12 @@ async function handleCreateOrder(
   // 3. Reserve credit escrow synchronously before order becomes OPEN
   const orderId = crypto.randomUUID();
   const orderCode = generateOrderCode();
-  const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+  const expiresAt = new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000);
 
   const reservation = await creditClient.reserveEscrow({
     orderId,
     requesterId,
-    amount: req.rewardCredits,
+    amount: validatedInput.rewardCredits,
   });
 
   if (!reservation.success) {
@@ -130,7 +187,7 @@ async function handleCreateOrder(
     orderId,
     orderCode,
     requesterId,
-    rewardCredits: req.rewardCredits,
+    rewardCredits: validatedInput.rewardCredits,
     campusZone,
     expiresAt: expiresAt.toISOString(),
   };
@@ -141,14 +198,14 @@ async function handleCreateOrder(
       id: orderId,
       orderCode,
       requesterId,
-      supplierId: req.supplierId,
+      supplierId: validatedInput.supplierId,
       supplierName,
       campusZone,
-      itemDescription: req.itemDescription.trim(),
-      specialNotes: req.specialNotes?.trim() || undefined,
-      dropoffLocation: req.dropoffLocation.trim(),
-      requesterContactNote: req.requesterContactNote?.trim() || undefined,
-      rewardCredits: req.rewardCredits,
+      itemDescription: validatedInput.itemDescription,
+      specialNotes: validatedInput.specialNotes,
+      dropoffLocation: validatedInput.dropoffLocation,
+      requesterContactNote: validatedInput.requesterContactNote,
+      rewardCredits: validatedInput.rewardCredits,
       expiresAt,
     }, event);
   } catch (insertErr) {
@@ -157,10 +214,29 @@ async function handleCreateOrder(
       requesterId,
       insertErr,
     });
-    await repository.recordCompensatingRefund(orderId, requesterId, req.rewardCredits).catch((refundErr) => {
-      console.error('[compensating_refund_outbox_failed]', { orderId, requesterId, refundErr });
-    });
-    if (outboxRelay) {
+
+    let refundRecorded = false;
+    const maxRetries = 5;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await repository.recordCompensatingRefund(orderId, requesterId, validatedInput.rewardCredits);
+        refundRecorded = true;
+        break;
+      } catch (refundErr) {
+        if (attempt === maxRetries) {
+          console.error('[compensating_refund_lost]', {
+            orderId,
+            requesterId,
+            amount: validatedInput.rewardCredits,
+            error: refundErr,
+          });
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
+        }
+      }
+    }
+
+    if (refundRecorded && outboxRelay) {
       void outboxRelay.trigger();
     }
     throw insertErr;
@@ -181,6 +257,8 @@ async function handleAcceptOrder(
 ): Promise<OrderDTO> {
   const { repository, outboxRelay } = deps;
 
+  const courierContactNote = validateOptionalText(req?.courierContactNote, 'courierContactNote', 255);
+
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
     throw new OrderNotFoundError();
@@ -196,7 +274,7 @@ async function handleAcceptOrder(
     courierId,
   };
 
-  const accepted = await repository.acceptOrder(existing.id, courierId, req?.courierContactNote?.trim(), event);
+  const accepted = await repository.acceptOrder(existing.id, courierId, courierContactNote, event);
 
   if (outboxRelay) {
     void outboxRelay.trigger();

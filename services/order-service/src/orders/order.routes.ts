@@ -9,11 +9,22 @@ import { Router, type Request, type Response, type RequestHandler, type ErrorReq
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { ApiResponse, CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
 import type { OrderService } from './order.service';
-import { OrderError } from './order.types';
+import { OrderError, OrderValidationError } from './order.types';
 
 // ---------------------------------------------------------------------------
 // Route & Authentication Helpers
 // ---------------------------------------------------------------------------
+
+function parsePositiveInt(value: unknown, field: string, max?: number): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1 || (max !== undefined && n > max)) {
+    throw new OrderValidationError(`${field} must be an integer >= 1${max ? ` and <= ${max}` : ''}`);
+  }
+  return n;
+}
 
 function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): RequestHandler {
   return (req, res, next) => {
@@ -55,11 +66,14 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
   // 1. List / Discover Open Errands (authenticated)
   router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {
     const { status, campusZone, page, limit } = req.query;
+    const parsedPage = parsePositiveInt(page, 'page');
+    const parsedLimit = parsePositiveInt(limit, 'limit', 100);
+
     const result = await orderService.listOrders({
       status: typeof status === 'string' ? status : undefined,
       campusZone: typeof campusZone === 'string' ? campusZone : undefined,
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+      page: parsedPage,
+      limit: parsedLimit,
     });
 
     res.json({
