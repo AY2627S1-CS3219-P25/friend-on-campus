@@ -123,12 +123,19 @@ npm install
 ```
 *(Runs root `postinstall` hook which automatically executes `prisma generate` across all services).*
 
-### 2. Start PostgreSQL & RabbitMQ
+### 2. Configure Environment & JWT Keys
+Copy `.env.example` to `.env` and generate an Ed25519 key pair for JWT access token signing:
+```bash
+cp .env.example .env
+npm run generate:jwt-keys
+```
+
+### 3. Start PostgreSQL & RabbitMQ
 ```bash
 docker compose up postgres rabbitmq -d
 ```
 
-### 3. Seed Databases (First Time Setup)
+### 4. Seed Databases (First Time Setup)
 ```bash
 # Seed User Service (admin@nus.edu.sg, alice@u.nus.edu, bob@u.nus.edu)
 npm run db:seed --workspace=@campus-errand/user-service
@@ -137,7 +144,7 @@ npm run db:seed --workspace=@campus-errand/user-service
 npm run db:seed --workspace=@campus-errand/supplier-service
 ```
 
-### 4. Run Development Servers
+### 5. Run Development Servers
 ```bash
 # Backend microservices
 npm run dev:user        # Port 8001 (User & Auth Service)
@@ -216,4 +223,4 @@ friend-on-campus/
 
 - **Documentation index** (architecture overview, per-service pages, requirements and open conflicts, design decisions): see [`docs/README.md`](./docs/README.md)
 - **Claude Code set-up for this repo** (AI-usage rules, plugins, agents, hooks): see [`.claude/README.md`](./.claude/README.md)
-- **Team Onboarding Guide**: See [`docs/onboarding-guide-sep-3.md`](./docs/onboarding-guide-sep-3.md)
+- **Team Onboarding Guide (Archive)**: See [`docs/archive/onboarding-guide-sep-3.md`](./docs/archive/onboarding-guide-sep-3.md)

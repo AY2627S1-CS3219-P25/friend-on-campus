@@ -112,7 +112,7 @@ nus-campus-errand/
 ├── services/
 │   ├── user-service/           src/{index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
 │   ├── supplier-service/       src/backend/{server,supplierRoutes}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}
-│   ├── order-service/          src/index.ts            (mock)
+│   ├── order-service/          src/{index,app,config}.ts, orders/, repositories/, clients/, messaging/, database/
 │   ├── credit-service/         src/{index,app,config}.ts, credits/, database/{client.ts,prisma/}
 │   └── notification-service/   src/{index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client.ts,prisma/}
 │       each service: package.json, tsconfig.json (extends ../../tsconfig.base.json), Dockerfile

@@ -1,0 +1,58 @@
+// AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-07
+// Scope: Defined persistent Order and OutboxEvent models with lifecycle timestamps, campus zone, supplier snapshot, and transactional outbox.
+// Author review: (to be completed by author after review)
+// AI-generated (edited by yanhwee)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id                   String    @id @default(uuid()) @db.Uuid
+  orderCode            String    @unique @map("order_code") @db.VarChar(20)
+  requesterId          String    @map("requester_id") @db.Uuid
+  courierId            String?   @map("courier_id") @db.Uuid
+  supplierId           String    @map("supplier_id") @db.Uuid
+  supplierName         String?   @map("supplier_name") @db.VarChar(128)
+  campusZone           String?   @map("campus_zone") @db.VarChar(64)
+  itemDescription      String    @map("item_description") @db.Text
+  specialNotes         String?   @map("special_notes") @db.Text
+  dropoffLocation      String    @map("dropoff_location") @db.VarChar(255)
+  requesterContactNote String?   @map("requester_contact_note") @db.VarChar(255)
+  courierContactNote   String?   @map("courier_contact_note") @db.VarChar(255)
+  rewardCredits        Int       @map("reward_credits")
+  status               String    @default("OPEN") @db.VarChar(30)
+  expiresAt            DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt           DateTime? @map("accepted_at") @db.Timestamptz(6)
+  pickedUpAt           DateTime? @map("picked_up_at") @db.Timestamptz(6)
+  deliveredAt          DateTime? @map("delivered_at") @db.Timestamptz(6)
+  completedAt          DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version              Int       @default(1)
+
+  @@index([status, expiresAt], map: "orders_status_expires_at_idx")
+  @@index([requesterId], map: "orders_requester_id_idx")
+  @@index([courierId], map: "orders_courier_id_idx")
+  @@map("orders")
+}
+
+model OutboxEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  eventType  String   @map("event_type") @db.VarChar(64)
+  payload    String   @db.Text
+  status     String   @default("PENDING") @db.VarChar(20)
+  retryCount Int      @default(0) @map("retry_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt], map: "outbox_events_status_created_at_idx")
+  @@map("outbox_events")
+}

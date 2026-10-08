@@ -21,7 +21,7 @@ Your prompt does not include the conversation, so build context from the repo fi
 3. `docs/services/<name>.md` — one page per service: run commands, env vars, files, every route with auth/request/errors, data model, behaviour as built, and differences from the documents. Read the page for each service your task touches; if your change makes it wrong, say so in your report.
 4. `docs/requirements/conflicts.md` — open mismatches between D1, the D2 plan, the issues and the code. Never resolve one yourself.
 5. `docs/decisions/` — decisions the team has recorded. A recorded decision is binding; if your task contradicts one, stop and say so.
-6. `docs/api/` — agreed API contracts, when present. `docs/requirements/README.md` links to D1 and the D2 plan; `docs/onboarding-guide-sep-3.md` explains the stack for newcomers.
+6. `docs/api/` — agreed API contracts, when present. `docs/requirements/README.md` links to D1 and the D2 plan; `docs/archive/onboarding-guide-sep-3.md` explains the stack for newcomers.
 
 `docs/` is reference material for you, not yours to edit (the main session and the author maintain it). If you find it out of date, say so in your report.
 

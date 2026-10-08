@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Updated order-service row: state is Real (Prisma, RabbitMQ transactional outbox) backed by order_db.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
 Scope: notification-service row: database and state. Added the "Databases: where they run and how to open them" section.
 Author review: <to be completed by Reallyeasy1>
@@ -25,7 +29,7 @@ One page per service. Each page describes **what the code does today** (verified
 |---|---|---|---|---|
 | [user-service](./user-service.md) | 8001 | `user_db` | Real (Prisma, RabbitMQ transactional outbox) | jagdeepsh |
 | [supplier-service](./supplier-service.md) | 8002 | `supplier_db` | Real (Prisma) | yanhwee |
-| [order-service](./order-service.md) | 8003 | `order_db` (unused) | In-memory mock | Reallyeasy1 (with huangjiaxi1111 intended on F3.2–F3.3; yanhwee + ngkhengyang on F3.1) |
+| [order-service](./order-service.md) | 8003 | `order_db` | Real (Prisma, RabbitMQ transactional outbox) | Reallyeasy1 (with huangjiaxi1111 intended on F3.2–F3.3; yanhwee + ngkhengyang on F3.1) |
 | [credit-service](./credit-service.md) | 8004 | `credit_db` | Real (Prisma, JWT auth, RabbitMQ consumer) | ngkhengyang |
 | [notification-service](./notification-service.md) | 8005 | `notification_db` | Real (Prisma, authenticated WebSocket, RabbitMQ consumer) | Reallyeasy1 (F5, F8) |
 

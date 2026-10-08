@@ -1,0 +1,5 @@
+# AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-10-07
+# Scope: Declared the PostgreSQL migration provider for Order Service.
+# Author review: (to be completed by author after review)
+provider = "postgresql"
