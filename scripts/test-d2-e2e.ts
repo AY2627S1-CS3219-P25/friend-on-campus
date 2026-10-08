@@ -131,7 +131,7 @@ async function runTests() {
 
   // 2. Start Supplier Service
   console.log('2. Starting Supplier Service on port 8002...');
-  supplierProcess = spawn('npx', ['tsx', 'src/backend/server.ts'], {
+  supplierProcess = spawn('npx', ['tsx', 'src/index.ts'], {
     cwd: path.resolve(__dirname, '../services/supplier-service'),
     env: {
       ...process.env,

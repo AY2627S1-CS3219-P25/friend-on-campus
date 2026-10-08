@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Updated supplier-service entry in directory tree to src/index.ts and src/suppliers/.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
 Scope: notification-service is real (Prisma notification_db, authenticated WebSocket, RabbitMQ consumer); five databases; /api/notifications route.
 Author review: <to be completed by Reallyeasy1>
@@ -107,7 +111,7 @@ nus-campus-errand/
 │   └── admin-portal/           same shape; API proxy via GATEWAY_URL in Compose, direct service defaults on host
 ├── services/
 │   ├── user-service/           src/{index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
-│   ├── supplier-service/       src/backend/{server,supplierRoutes}.ts, src/database/{client,supplierRepository,seed}.ts, prisma/{schema.prisma,migrations/}
+│   ├── supplier-service/       src/index.ts, src/suppliers/{supplierRoutes,supplierRepository}.ts, src/database/{client,seed}.ts, prisma/{schema.prisma,migrations/}
 │   ├── order-service/          src/index.ts            (mock)
 │   ├── credit-service/         src/{index,app,config}.ts, credits/, database/{client.ts,prisma/}
 │   └── notification-service/   src/{index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client.ts,prisma/}

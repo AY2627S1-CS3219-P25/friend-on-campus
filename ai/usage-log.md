@@ -2350,3 +2350,30 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `apps/student-app/src/notifications/NotificationBell.tsx` — selection from the unfiltered errands; the board stays when the filtered list is empty but an errand is open.
 - `scripts/uat/uat-d2-ui.mjs` — UD5 covers the Unread-filter case.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-08 10:55 SGT — Supplier Service layout normalization
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/supplier-service-layout
+
+**Prompt (summarised):** Align supplier-service folder structure with the rest of the monorepo: move server entry to root src/index.ts, and group domain routes and repository into src/suppliers/.
+
+**Usage scenario:** Code layout refactoring under human direction. Flattened nested `src/backend/` entry point to standard root `src/index.ts`, grouped routes and repository into `src/suppliers/` (`supplierRoutes.ts` and `supplierRepository.ts`), leaving `src/database/` dedicated to database infrastructure (`client.ts`, `seed.ts`, `prisma/`). Updated `package.json` scripts, `Dockerfile`, test suites, and documentation maps (`CLAUDE.md`, `.claude/agents/backend.md`, `docs/services/supplier-service.md`, `docs/architecture/overview.md`).
+
+**Files changed:**
+- `services/supplier-service/src/backend/server.ts` → `services/supplier-service/src/index.ts`
+- `services/supplier-service/src/backend/supplierRoutes.ts` → `services/supplier-service/src/suppliers/supplierRoutes.ts`
+- `services/supplier-service/src/database/supplierRepository.ts` → `services/supplier-service/src/suppliers/supplierRepository.ts`
+- `services/supplier-service/package.json` — updated entry point scripts (`main`, `dev`, `start`).
+- `services/supplier-service/Dockerfile` — updated CMD to `src/index.ts`.
+- `services/supplier-service/test/supplierRoutes.test.ts` — updated import and module mock paths.
+- `services/supplier-service/test/supplierRepository.test.ts` — updated import paths.
+- `scripts/test-d2-e2e.ts` — updated supplier-service spawn path.
+- `CLAUDE.md`, `.claude/agents/backend.md`, `docs/services/supplier-service.md`, `docs/architecture/overview.md` — updated paths and repo maps.
+- `ai/usage-log.md` — this entry.
+
+**Verification:**
+- Full monorepo typecheck passed cleanly (`npm run typecheck`).
+- Supplier Service unit test suite passed 48/48 tests (`npm test --workspace=@campus-errand/supplier-service`).
+

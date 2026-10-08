@@ -115,7 +115,7 @@ Compact map (state as of 2026-09-21; if the code differs, trust the code and fix
 
 ```
 services/user-service          :8001  real (Prisma, user_db)      entry src/index.ts
-services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/backend/server.ts
+services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/index.ts, logic src/suppliers/
 services/order-service         :8003  in-memory mock              single src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer

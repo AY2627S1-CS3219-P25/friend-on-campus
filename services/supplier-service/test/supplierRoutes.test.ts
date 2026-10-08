@@ -142,8 +142,8 @@ async function call(method: string, path: string, options: { body?: unknown; tok
 }
 
 before(async () => {
-  mock.module('../src/database/supplierRepository', { namedExports: fakeRepository });
-  const { createSupplierRouter } = await import('../src/backend/supplierRoutes.js');
+  mock.module('../src/suppliers/supplierRepository', { namedExports: fakeRepository });
+  const { createSupplierRouter } = await import('../src/suppliers/supplierRoutes.js');
   const app = express();
   app.use(express.json());
   app.use('/api/suppliers', createSupplierRouter(authMiddleware({ publicKey: PUBLIC_KEY, issuer: ISSUER, audience: AUDIENCE }), requireAdmin));

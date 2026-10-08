@@ -2,10 +2,10 @@
   "name": "@campus-errand/supplier-service",
   "version": "1.0.0",
   "description": "Supplier & Campus Location Directory Microservice for NUS CampusErrand",
-  "main": "src/backend/server.ts",
+  "main": "src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/backend/server.ts",
-    "start": "tsx src/backend/server.ts",
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "node --import tsx --experimental-test-module-mocks --test \"test/**/*.test.ts\"",
     "build": "tsc",
