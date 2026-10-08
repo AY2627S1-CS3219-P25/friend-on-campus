@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Removed reference to retired in-service api-reference.md; pointed directly to user-service.yaml OpenAPI specification.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 Scope: As built after the A8, A10, A11 fixes: last-enabled-admin guard on toggle-status, 400 for a non-UUID id, refresh refused for a disabled account; test counts.
 Author review: <to be completed by Reallyeasy1>
@@ -153,9 +157,7 @@ When a new student registers (`POST /api/auth/register`), User Service coordinat
 There is no `GET /api/users/:id` route (404 "Route not found"). `PATCH /api/users/:id/admin` and
 `POST /api/users/:id/promote` no longer exist; the two toggle routes above replaced them.
 
-The endpoint-level request and response examples are in
-[`../../services/user-service/docs/api-reference.md`](../../services/user-service/docs/api-reference.md);
-the OpenAPI form is [`../api/user-service.yaml`](../api/user-service.yaml). Schema diagram:
+The OpenAPI specification is in [`../api/user-service.yaml`](../api/user-service.yaml). Schema diagram:
 [`../diagrams/user-schema.md`](../diagrams/user-schema.md); login and RBAC sequence:
 [`../diagrams/auth-sequence.md`](../diagrams/auth-sequence.md).
 

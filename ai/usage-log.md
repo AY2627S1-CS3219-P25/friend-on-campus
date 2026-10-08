@@ -2350,3 +2350,28 @@ Verified: the four runs above, `node --check` on both drivers. The stack was lef
 - `apps/student-app/src/notifications/NotificationBell.tsx` — selection from the unfiltered errands; the board stays when the filtered list is empty but an errand is open.
 - `scripts/uat/uat-d2-ui.mjs` — UD5 covers the Unread-filter case.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-08 10:45 SGT — Documentation pruning and consolidation
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/docs-cleanup
+
+**Prompt (summarised):** Clean up and polish documentation organisation: remove rogue in-service docs, archive obsolete D2 and onboarding guides, streamline architecture overview, and create pull request via gh.
+
+**Usage scenario:** Documentation cleanup and refactoring under human direction. Removed duplicate in-service documentation (`services/user-service/docs/api-reference.md`, `auth-setup.md`), moved cross-service authentication middleware contract to `packages/auth/README.md`, archived Milestone D2 Q&A and starter walkthrough guides under `docs/archive/`, and streamlined the Section 3 service matrix in `docs/architecture/overview.md` from a drifting commit-by-commit changelog to an enduring component responsibility table. Committed and pushed to pull request on author's explicit instruction.
+
+**Files changed:**
+- `docs/archive/d2-question-guide.md` — moved from `docs/d2-question-guide.md`.
+- `docs/archive/onboarding-guide-sep-3.md` — moved from `docs/onboarding-guide-sep-3.md`.
+- `packages/auth/README.md` — moved from `services/user-service/docs/authentication-for-services.md` to serve as the shared package documentation.
+- `services/user-service/docs/api-reference.md` — deleted (duplicated OpenAPI spec and service doc).
+- `services/user-service/docs/auth-setup.md` — deleted (covered in root README).
+- `docs/README.md` — updated index for archived guides.
+- `docs/architecture/overview.md` — streamlined Section 3 service matrix to enduring component responsibilities and interfaces.
+- `docs/services/user-service.md` — pointed directly to OpenAPI spec instead of retired in-service api-reference.md.
+- `docs/services/credit-service.md` — updated auth contract reference link to `packages/auth/README.md`.
+- `docs/api/user-service.yaml` — removed reference to retired in-service api-reference.md in description.
+- `docs/requirements/conflicts.md` — updated conflict 21 resolution note.
+- `ai/usage-log.md` — this entry.
+
