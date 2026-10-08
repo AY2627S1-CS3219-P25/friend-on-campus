@@ -2588,3 +2588,31 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `npm test --workspace=@campus-errand/order-service` executed 33 unit and integration tests with 100% pass rate.
 - `npm test` executed all 124 unit and integration tests across the monorepo with 100% pass rate.
 
+## 2026-10-08 10:45 SGT — Documentation pruning, consolidation, and cross-reference alignment
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/docs-cleanup
+
+**Prompt (summarised):** Clean up and polish documentation organisation: remove rogue in-service docs, archive obsolete D2 and onboarding guides, streamline architecture overview, address Claude PR review findings, and resolve merge conflicts with main.
+
+**Usage scenario:** Documentation cleanup and refactoring under human direction. Removed duplicate in-service documentation (`services/user-service/docs/api-reference.md`, `auth-setup.md`), moved cross-service authentication middleware contract to `packages/auth/README.md`, archived Milestone D2 Q&A and starter walkthrough guides under `docs/archive/`, and streamlined the Section 3 service matrix in `docs/architecture/overview.md` from a drifting commit-by-commit changelog to an enduring component responsibility table. Addressed PR #113 review feedback by updating 6 stale references to the archived onboarding guide, adding JWT key generation instructions to root `README.md`, and aligning `docs/services/README.md` with the production Order Service. Committed and pushed to pull request on author's explicit instruction.
+
+**Files changed:**
+- `docs/archive/d2-question-guide.md` — moved from `docs/d2-question-guide.md`.
+- `docs/archive/onboarding-guide-sep-3.md` — moved from `docs/onboarding-guide-sep-3.md`.
+- `packages/auth/README.md` — moved from `services/user-service/docs/authentication-for-services.md` to serve as the shared package documentation.
+- `services/user-service/docs/api-reference.md` — deleted (duplicated OpenAPI spec and service doc).
+- `services/user-service/docs/auth-setup.md` — deleted (covered in root README).
+- `docs/README.md` — updated index for archived guides.
+- `docs/architecture/overview.md` — streamlined Section 3 service matrix to enduring component responsibilities and interfaces.
+- `docs/services/user-service.md` — pointed directly to OpenAPI spec instead of retired in-service api-reference.md.
+- `docs/services/credit-service.md` — updated auth contract reference link to `packages/auth/README.md`.
+- `docs/services/README.md` — updated order-service status to real with Prisma and transactional outbox.
+- `docs/api/user-service.yaml` — removed reference to retired in-service api-reference.md in description.
+- `docs/requirements/conflicts.md` — updated conflict 21 resolution note.
+- `README.md` — added `npm run generate:jwt-keys` to setup guide; updated onboarding guide link to `docs/archive/`.
+- `CLAUDE.md`, `.claude/agents/*.md`, `.gitignore` — updated onboarding guide references to `docs/archive/`.
+- `ai/usage-log.md` — this entry.
+
+

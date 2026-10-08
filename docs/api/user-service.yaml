@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-10-08
+# Scope: Removed reference to retired in-service api-reference.md in description.
+# Author review: <to be completed by author after review>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 # Scope: toggle-status gains 400 and 409 and loses the 500; toggle-role and DELETE gain 400; refresh mentions a disabled account.
 # Author review: <to be completed by Reallyeasy1>
@@ -26,8 +30,7 @@ info:
   title: User Service API (as built)
   version: "d2-6dc22a6"
   description: >
-    Registration, login sessions, own profile, and ADMIN user administration. Prose reference with full examples:
-    services/user-service/docs/api-reference.md. Behaviour notes: docs/services/user-service.md.
+    Registration, login sessions, own profile, and ADMIN user administration. Behaviour notes: docs/services/user-service.md.
 servers:
   - url: http://localhost
     description: through the nginx gateway (use /api/users/ with a trailing slash for the list; without it nginx answers 301)

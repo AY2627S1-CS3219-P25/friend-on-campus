@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-08
+Scope: Updated auth contract documentation link to packages/auth/README.md.
+Author review: <to be completed by author after review>
+
 Tool: Codex (model: GPT-6), date: 2026-10-03
 Scope: Document read-only wallet retrieval, explicit initialization, student wallet/ledger integration and removal of frontend mock credit balances.
 Author review: <to be completed by huangjiaxi1111>
@@ -104,7 +108,7 @@ Wallet creation writes exactly one welcome ledger entry and grant marker in the 
 
 ### User authentication
 
-Wallet and ledger reads use `@campus-errand/auth` following [User Service's authentication contract](../../services/user-service/docs/authentication-for-services.md). The middleware verifies Ed25519 signatures, token claims, expiry, issuer and audience locally. Routes use only `res.locals.auth.userId` (the verified `sub` claim); `x-user-id` and query/body identifiers cannot select another wallet or ledger. Both `STUDENT` and `ADMIN` tokens access only their own records through these endpoints. Credit user IDs must be UUIDs; a verified token with a non-UUID subject receives 400.
+Wallet and ledger reads use `@campus-errand/auth` following [Auth package authentication contract](../../packages/auth/README.md). The middleware verifies Ed25519 signatures, token claims, expiry, issuer and audience locally. Routes use only `res.locals.auth.userId` (the verified `sub` claim); `x-user-id` and query/body identifiers cannot select another wallet or ledger. Both `STUDENT` and `ADMIN` tokens access only their own records through these endpoints. Credit user IDs must be UUIDs; a verified token with a non-UUID subject receives 400.
 
 ```bash
 curl http://localhost:8004/api/credits/wallet \
