@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+Scope: Recorded root ESLint, exhaustive workspace builds, CI validation jobs, lint-driven corrections, and verification results.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Google Antigravity Agent, date: 2026-10-08
 Scope: Recorded addressing Claude PR #112 review findings: authentication hardening, compensating refund outbox emission, optimistic concurrency locking, 32-bit order codes, and documentation alignment.
 Author review: (to be completed by author after review)
@@ -2640,5 +2644,34 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Verification:**
 - Full monorepo typecheck passed cleanly (`npm run typecheck`).
 - Supplier Service unit test suite passed 48/48 tests (`npm test --workspace=@campus-errand/supplier-service`).
+
+## 2026-10-11 02:00 SGT — Add monorepo lint and build validation
+
+**Tool:** Codex (model: GPT-5.6 Sol)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Configure root ESLint for the TypeScript services and React applications, make the root build cover every workspace, add independent lint and build CI jobs, and validate lint, Prisma generation, builds, type checks, and tests without committing or pushing.
+
+**Usage scenario:** Boilerplate/configuration generation, implementation, debugging, and localized lint refactoring (allowed uses). The author retains review of the ESLint policy, the remaining warnings, CI evidence, and the final commit/PR.
+
+**Files changed:**
+- `eslint.config.mjs` — added flat ESLint configuration for JavaScript, TypeScript, React, and React Hooks, with generated/build output ignored.
+- `package.json`, `package-lock.json` — added root lint scripts and compatible lint dependencies; made the root build strict across workspaces.
+- `packages/auth/package.json`, `packages/common-dtos/package.json` — added real TypeScript build scripts so shared packages cannot be skipped.
+- `.github/workflows/ci.yml` — added independent `Lint` and `Build` jobs with checkout, Node 22, locked installation, Prisma generation, and validation.
+- `docs/ci.md` — documented required CI check names and how new workspaces join validation.
+- `apps/admin-portal/src/App.tsx`, `apps/student-app/src/App.tsx` — removed unused bindings and used `const` where lint proved values were not reassigned.
+- `services/credit-service/src/database/seed.ts` — retained logout cleanup while avoiding a throw from `finally` that could mask identity errors.
+- `services/order-service/test/order.service.test.ts`, `services/supplier-service/src/suppliers/supplierRoutes.ts`, `services/user-service/src/auth/auth-routes.ts` — removed unused imports surfaced by lint.
+- `ai/usage-log.md` — appended this entry and updated its consolidated disclosure.
+
+**Verification:**
+- `npm run lint` passed with 0 errors and 33 warnings (30 pre-existing explicit-`any` uses and 3 React Hooks dependency warnings).
+- `npm run db:generate` passed for all five Prisma services.
+- `npm run build` passed for all nine workspaces: two apps, five services, and two shared packages.
+- `npm run typecheck` passed across all nine workspaces.
+- `npm test` passed: 229 tests passed across the four workspaces with unit-test scripts; 3 database/broker integration tests were skipped without opt-in environment variables.
+- `npm run test:d2` started both services but failed 7 of its first 10 checks because the local PostgreSQL data/schema preconditions were not satisfied; registration and seeded-admin login failed, after which the suite attempted to decode a missing token.
 
 

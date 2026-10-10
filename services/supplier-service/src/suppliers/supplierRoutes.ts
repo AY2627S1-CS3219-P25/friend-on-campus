@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+ * Scope: Removed unused DTO imports identified by the root lint configuration.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-08
  * Scope: Relocated supplier routes to src/suppliers/supplierRoutes.ts and updated repository import to local module.
  * Author review: <to be completed by author after review>
@@ -39,8 +43,6 @@ import * as supplierRepository from './supplierRepository';
 import {
   CreateSupplierRequest,
   UpdateSupplierRequest,
-  ApiResponse,
-  SupplierDTO,
   SupplierQueryOptions,
 } from '@campus-errand/common-dtos';
 

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+ * Scope: Resolved localized lint findings without changing dashboard behavior.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Return directly to login after successful self-deletion and clear account-deletion UI state.
  * Author review: <to be completed by huangjiaxi1111>
@@ -384,7 +388,7 @@ export default function App() {
     setIsLoggingOut(true);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (err) {
+    } catch {
       // Network failure logging out server-side shouldn't block clearing the local session below.
     } finally {
       clearLocalSession();
@@ -861,7 +865,7 @@ export default function App() {
 
   // Filter & Sort Pipeline
   const filteredAndSorted = useMemo(() => {
-    let result = suppliers.filter((s) => {
+    const result = suppliers.filter((s) => {
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !query ||
@@ -930,7 +934,7 @@ export default function App() {
   const activeUserFilterCount = selectedUserRoles.length > 0 ? 1 : 0;
 
   const filteredAndSortedUsers = useMemo(() => {
-    let result = users.filter((u) => {
+    const result = users.filter((u) => {
       const query = searchQueryUsers.toLowerCase().trim();
       const matchesSearch =
         !query ||

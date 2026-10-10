@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+# Scope: Added independent lint and production-build jobs with locked dependency installation and Prisma generation.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 # Scope: Opted the Notification Service's PostgreSQL tests into the unit job and its broker test into the acceptance job.
 # Author review: <to be completed by Reallyeasy1>
@@ -24,6 +28,54 @@ permissions:
   contents: read
 
 jobs:
+  # AI-generated (edited by ngkhengyang)
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22 # root package.json engines: >=22.3
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma clients
+        run: npm run db:generate
+
+      - name: Lint
+        run: npm run lint
+
+  # AI-generated (edited by ngkhengyang)
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22 # root package.json engines: >=22.3
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma clients
+        run: npm run db:generate
+
+      - name: Build all workspaces
+        run: npm run build
+
   unit:
     name: Type checks and unit tests
     runs-on: ubuntu-latest
