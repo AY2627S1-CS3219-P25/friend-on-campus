@@ -25,6 +25,7 @@
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "test:acceptance": "node scripts/uat/uat-d2-api.mjs && node scripts/uat/uat-notifications.mjs",
     "db:generate": "npm run db:generate --workspaces --if-present",
     "postinstall": "npm run db:generate --workspaces --if-present",
     "test:d2": "npx tsx scripts/test-d2-e2e.ts"

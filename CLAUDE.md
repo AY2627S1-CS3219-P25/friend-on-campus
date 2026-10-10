@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Replaced dynamic test-discovery facts with the mandatory static CI matrix maintenance rule.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Updated the CI repo facts for package-script discovery and category-specific automated test jobs.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 Scope: Repo map: notification-service is no longer a mock; postgres-init creates five databases; npm test covers three services.
 Author review: <to be completed by Reallyeasy1>
@@ -167,7 +175,9 @@ Unit tests use Node's built-in runner (`node --test` through `tsx`; no test fram
 
 Before saying a change works: run `npm run typecheck` and `npm test`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
 
-CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm run typecheck` and `npm test` with a PostgreSQL service (`ADMIN_GUARD_TEST_DATABASE_URL` set, so the user-service admin-guard tests run), then the whole Compose stack with `scripts/uat/uat-d2-api.mjs`, the notification-service broker test and `scripts/uat/uat-notifications.mjs`, and `npm run test:d2`. The browser driver `scripts/uat/uat-d2-ui.mjs` is not in CI: Playwright is not a dependency of this repo.
+CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`. Static matrices run unit, PostgreSQL integration, PostgreSQL/RabbitMQ messaging, migration, and seed scripts as separate checks. Compose-backed API/notification acceptance and D2 E2E remain separate system-test jobs, and a final gate requires every category to succeed. The browser driver `scripts/uat/uat-d2-ui.mjs` is not in CI: Playwright is not a dependency of this repo. The naming convention and infrastructure mapping are documented in `docs/ci.md`.
+
+**Mandatory test-suite maintenance:** whenever adding, renaming, moving, or removing a test suite or its `package.json` script, update the matching static matrix entry or system-test command in `.github/workflows/ci.yml` in the same change. Following the script naming convention alone does not add a suite to CI. Never add watch-mode scripts to CI.
 
 ## 6. Git and GitHub
 

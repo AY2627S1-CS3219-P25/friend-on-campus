@@ -8,6 +8,8 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "test:integration": "node --import tsx --test test/store-routes.integration.test.ts",
+    "test:messaging": "node --import tsx --test test/messaging.integration.test.ts",
     "build": "tsc",
     "db:generate": "prisma generate --schema src/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",

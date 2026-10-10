@@ -3,6 +3,14 @@
 # Scope: Added independent lint and production-build jobs with locked dependency installation and Prisma generation.
 # Author review: <to be completed by ngkhengyang>
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-11
+# Scope: Replaced dynamic test discovery with explicit static matrices maintained alongside package test scripts.
+# Author review: <to be completed by ngkhengyang>
+#
+# Tool: Codex (model: GPT-5), date: 2026-10-11
+# Scope: Added package-script test discovery, category matrices, isolated PostgreSQL/RabbitMQ services, system-test jobs, failure artifacts, and a final gate.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 # Scope: Opted the Notification Service's PostgreSQL tests into the unit job and its broker test into the acceptance job.
 # Author review: <to be completed by Reallyeasy1>
@@ -13,6 +21,7 @@
 # (issue #23), and the D2 end-to-end suite.
 # Author review: <to be completed by Reallyeasy1>
 
+# AI-generated (edited by ngkhengyang)
 name: CI
 
 on:
@@ -28,7 +37,6 @@ permissions:
   contents: read
 
 jobs:
-  # AI-generated (edited by ngkhengyang)
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -36,23 +44,18 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22 # root package.json engines: >=22.3
+          node-version: 22
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
       - name: Generate Prisma clients
         run: npm run db:generate
-
       - name: Lint
         run: npm run lint
 
-  # AI-generated (edited by ngkhengyang)
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -60,26 +63,103 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22 # root package.json engines: >=22.3
+          node-version: 22
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
       - name: Generate Prisma clients
         run: npm run db:generate
-
       - name: Build all workspaces
         run: npm run build
 
-  unit:
-    name: Type checks and unit tests
+  typecheck:
+    name: Type checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Type-check all workspaces
+        run: npm run typecheck
+
+  unit-tests:
+    name: Unit | ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: notification-service
+            script: test
+            workspaceArg: --workspace=@campus-errand/notification-service
+          - name: order-service
+            script: test
+            workspaceArg: --workspace=@campus-errand/order-service
+          - name: supplier-service
+            script: test
+            workspaceArg: --workspace=@campus-errand/supplier-service
+          - name: user-service
+            script: test
+            workspaceArg: --workspace=@campus-errand/user-service
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Run configured unit suite
+        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+      - name: Upload available unit-test reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: unit-${{ matrix.name }}-failure
+          path: |
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
+          if-no-files-found: ignore
+
+  integration-tests:
+    name: Integration | ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: credit-service
+            script: test:integration
+            workspaceArg: --workspace=@campus-errand/credit-service
+            deployDatabase: true
+          - name: notification-service
+            script: test:integration
+            workspaceArg: --workspace=@campus-errand/notification-service
+            deployDatabase: true
+          - name: user-service
+            script: test:integration
+            workspaceArg: --workspace=@campus-errand/user-service
+            deployDatabase: false
     services:
       postgres:
         image: postgres:16-alpine
@@ -91,62 +171,306 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 12
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22 # root package.json engines: >=22.3
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci # postinstall generates every service's Prisma client
-
-      - name: Type checks
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm test
-        env:
-          # Opts in services/user-service/test/admin-guard.integration.test.ts, which creates and drops its own schema.
-          ADMIN_GUARD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-          # Opts in the notification-service store and route tests the same way.
-          NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-
-  acceptance:
-    name: API acceptance (Docker Compose)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
-
       - name: Install dependencies
         run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Create isolated test database
+        run: node scripts/ci/create-test-database.mjs
+        env:
+          POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DATABASE_NAME: ci_test
+      - name: Deploy workspace migrations
+        if: matrix.deployDatabase
+        run: npm run db:deploy ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      - name: Run configured integration suite
+        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          ADMIN_GUARD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      - name: Collect PostgreSQL logs
+        if: failure()
+        run: |
+          mkdir -p ci-logs
+          docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
+      - name: Upload integration failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: integration-${{ matrix.name }}-failure
+          path: |
+            ci-logs/**
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
+          if-no-files-found: ignore
 
+  messaging-tests:
+    name: Messaging | ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: credit-service
+            script: test:messaging
+            workspaceArg: --workspace=@campus-errand/credit-service
+            deployDatabase: true
+          - name: notification-service
+            script: test:messaging
+            workspaceArg: --workspace=@campus-errand/notification-service
+            deployDatabase: true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      rabbitmq:
+        image: rabbitmq:3.13-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: ci_test
+          RABBITMQ_DEFAULT_PASS: ci-test-password
+          RABBITMQ_DEFAULT_VHOST: ci
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Create isolated test database
+        run: node scripts/ci/create-test-database.mjs
+        env:
+          POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DATABASE_NAME: ci_test
+      - name: Deploy workspace migrations
+        if: matrix.deployDatabase
+        run: npm run db:deploy ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      - name: Run configured messaging suite
+        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
+          TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CREDIT_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
+          NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          NOTIFICATION_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
+      - name: Collect PostgreSQL and RabbitMQ logs
+        if: failure()
+        run: |
+          mkdir -p ci-logs
+          docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
+          docker logs "${{ job.services.rabbitmq.id }}" > ci-logs/rabbitmq.log 2>&1 || true
+      - name: Upload messaging failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: messaging-${{ matrix.name }}-failure
+          path: |
+            ci-logs/**
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
+          if-no-files-found: ignore
+
+  migration-tests:
+    name: Migration | ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: credit-service
+            script: test:migration
+            workspaceArg: --workspace=@campus-errand/credit-service
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Create isolated test database
+        run: node scripts/ci/create-test-database.mjs
+        env:
+          POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DATABASE_NAME: ci_test
+      - name: Run configured migration suite
+        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      - name: Collect PostgreSQL logs
+        if: failure()
+        run: |
+          mkdir -p ci-logs
+          docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
+      - name: Upload migration failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: migration-${{ matrix.name }}-failure
+          path: |
+            ci-logs/**
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
+          if-no-files-found: ignore
+
+  seed-tests:
+    name: Seed | ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: credit-service
+            script: test:seed
+            workspaceArg: --workspace=@campus-errand/credit-service
+            deployDatabase: true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Create isolated test database
+        run: node scripts/ci/create-test-database.mjs
+        env:
+          POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DATABASE_NAME: ci_test
+      - name: Deploy workspace migrations
+        if: matrix.deployDatabase
+        run: npm run db:deploy ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      - name: Run configured seed suite
+        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      - name: Collect PostgreSQL logs
+        if: failure()
+        run: |
+          mkdir -p ci-logs
+          docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
+      - name: Upload seed failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: seed-${{ matrix.name }}-failure
+          path: |
+            ci-logs/**
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
+          if-no-files-found: ignore
+
+  acceptance-tests:
+    name: Acceptance | API and notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
       - name: Generate throwaway JWT keys
         run: node scripts/generate-jwt-keys.mjs --print > .env
-
-      - name: Build and start the stack
+      - name: Build and start the Compose stack
         run: docker compose up --build -d --wait --wait-timeout 300
-
-      - name: API acceptance checks
-        run: node scripts/uat/uat-d2-api.mjs
+      - name: Run acceptance suite
+        run: npm run test:acceptance
         env:
           UAT_OUT: uat-d2-api-results.json
-
-      # User Service N1.1 and N1.2 (issue #23), reviewed after the acceptance run has registered accounts, logged in,
-      # refreshed and changed a password: every stored password is a scrypt hash, and no password, access token or
-      # refresh token appears in any service's log.
       - name: Credential exposure review
         run: |
           docker compose exec -T postgres psql -U postgres -d user_db -Atc \
@@ -155,38 +479,132 @@ jobs:
             echo "A credential appears in the logs of the services listed above."
             exit 1
           fi
-
-      # Event in, row stored, frame pushed, duplicate ignored, malformed message dead-lettered: needs the broker,
-      # so it runs here against the Compose stack, on its own exchange, queues and database schema.
-      - name: Notification Service integration tests
-        run: npm test --workspace=@campus-errand/notification-service
-        env:
-          NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notification_db
-          NOTIFICATION_TEST_RABBITMQ_URL: amqp://notification_service:notification-service-dev@localhost:5672/campus
-
-      # F5 through the gateway: login, authenticated socket, events published with the order_service account,
-      # pushed frames, the REST list and read state.
-      - name: Notification acceptance checks
-        run: node scripts/uat/uat-notifications.mjs
-
-      # The suite starts its own user-service and supplier-service on 8001/8002 against the Compose database.
-      - name: D2 end-to-end suite
-        run: |
-          docker compose stop user-service supplier-service
-          npm run test:d2
-
-      - name: Service logs
+      - name: Collect Compose logs
         if: failure()
-        run: docker compose logs --no-color --tail 200
-
-      - name: Upload acceptance results
+        run: |
+          mkdir -p ci-logs
+          docker compose ps -a > ci-logs/docker-compose-ps.log
+          docker compose logs --no-color > ci-logs/docker-compose.log 2>&1
+      - name: Upload acceptance results and failure logs
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: uat-d2-api-results
-          path: uat-d2-api-results.json
+          name: acceptance-results
+          path: |
+            uat-d2-api-results.json
+            ci-logs/**
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
           if-no-files-found: ignore
-
-      - name: Stop the stack
+      - name: Stop the Compose stack
         if: always()
         run: docker compose down -v
+
+  e2e-tests:
+    name: E2E | D2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Generate throwaway JWT keys
+        run: node scripts/generate-jwt-keys.mjs --print > .env
+      - name: Build and start the Compose stack
+        run: docker compose up --build -d --wait --wait-timeout 300
+      - name: Stop services spawned by the E2E suite
+        run: docker compose stop user-service supplier-service
+      - name: Run D2 E2E suite
+        run: npm run test:d2
+      - name: Collect Compose logs
+        if: failure()
+        run: |
+          mkdir -p ci-logs
+          docker compose ps -a > ci-logs/docker-compose-ps.log
+          docker compose logs --no-color > ci-logs/docker-compose.log 2>&1
+      - name: Upload E2E failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-d2-failure
+          path: |
+            ci-logs/**
+            **/test-results/**
+            **/coverage/**
+            **/*.tap
+            **/junit*.xml
+          if-no-files-found: ignore
+      - name: Stop the Compose stack
+        if: always()
+        run: docker compose down -v
+
+  test-gate:
+    name: Test gate
+    if: ${{ always() }}
+    needs:
+      - lint
+      - build
+      - typecheck
+      - unit-tests
+      - integration-tests
+      - messaging-tests
+      - migration-tests
+      - seed-tests
+      - acceptance-tests
+      - e2e-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate Prisma clients
+        run: npm run db:generate
+      - name: Require every CI category to succeed
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
+          MESSAGING_RESULT: ${{ needs.messaging-tests.result }}
+          MIGRATION_RESULT: ${{ needs.migration-tests.result }}
+          SEED_RESULT: ${{ needs.seed-tests.result }}
+          ACCEPTANCE_RESULT: ${{ needs.acceptance-tests.result }}
+          E2E_RESULT: ${{ needs.e2e-tests.result }}
+        run: |
+          failed=0
+          for result in \
+            "lint=$LINT_RESULT" \
+            "build=$BUILD_RESULT" \
+            "typecheck=$TYPECHECK_RESULT" \
+            "unit=$UNIT_RESULT" \
+            "integration=$INTEGRATION_RESULT" \
+            "messaging=$MESSAGING_RESULT" \
+            "migration=$MIGRATION_RESULT" \
+            "seed=$SEED_RESULT" \
+            "acceptance=$ACCEPTANCE_RESULT" \
+            "e2e=$E2E_RESULT"
+          do
+            if [ "${result#*=}" != "success" ]; then
+              echo "Required job did not succeed: $result"
+              failed=1
+            fi
+          done
+          exit "$failed"

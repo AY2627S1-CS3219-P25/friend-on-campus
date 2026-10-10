@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "test:integration": "node --import tsx --test test/admin-guard.integration.test.ts",
     "build": "tsc",
     "db:generate": "npx prisma generate --schema src/database/prisma/schema.prisma",
     "db:migrate": "npx prisma migrate dev --schema src/database/prisma/schema.prisma",
