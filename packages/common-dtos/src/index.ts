@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Added AdminCancelOrderRequest, AdminCompleteOrderRequest, and AdminUnassignOrderRequest for administrative order lifecycle management.
+ * Author review: (to be completed by author after review)
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Added DELIVERED status to OrderStatus, deliveredAt and courierContactNote to OrderDTO, durationMinutes to CreateOrderRequest, and AcceptOrderRequest for Order Service lifecycle management.
  * Author review: (to be completed by author after review)
@@ -221,6 +225,21 @@ export interface CreateOrderRequest {
 
 export interface AcceptOrderRequest {
   courierContactNote?: string;
+}
+
+export interface AdminCancelOrderRequest {
+  reason: string;
+  expectedVersion?: number;
+}
+
+export interface AdminCompleteOrderRequest {
+  reason: string;
+  expectedVersion?: number;
+}
+
+export interface AdminUnassignOrderRequest {
+  reason: string;
+  expectedVersion?: number;
 }
 
 // ==========================================

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Added admin force-cancel, force-complete, and courier unassign endpoints with RBAC checks and query search.
+ * Author review: (to be completed by author after review)
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Express router for Order Service lifecycle endpoints with Ed25519 authentication, authorization checks, and error mapping.
  * Author review: (to be completed by author after review)
@@ -40,6 +44,19 @@ function resolveUserId(_req: Request, res: Response): string {
   throw new OrderError('Authentication required: user ID could not be identified', 401);
 }
 
+const ensureAdminRole: RequestHandler = (_req, res, next) => {
+  const auth = res.locals.auth as AuthenticatedPrincipal | undefined;
+  if (!auth || !auth.userId) {
+    res.status(401).json({ success: false, error: 'Authentication required' });
+    return;
+  }
+  if (auth.role !== 'ADMIN') {
+    res.status(403).json({ success: false, error: 'Administrator access is required' });
+    return;
+  }
+  next();
+};
+
 const domainErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof OrderError) {
     res.status(err.status).json({
@@ -65,13 +82,14 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 1. List / Discover Open Errands (authenticated)
   router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {
-    const { status, campusZone, page, limit } = req.query;
+    const { status, campusZone, search, page, limit } = req.query;
     const parsedPage = parsePositiveInt(page, 'page');
     const parsedLimit = parsePositiveInt(limit, 'limit', 100);
 
     const result = await orderService.listOrders({
       status: typeof status === 'string' ? status : undefined,
       campusZone: typeof campusZone === 'string' ? campusZone : undefined,
+      search: typeof search === 'string' ? search : undefined,
       page: parsedPage,
       limit: parsedLimit,
     });
@@ -167,6 +185,39 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
       success: true,
       data: order,
       message: 'Errand cancelled. Escrow credits refunded.',
+    });
+  }));
+
+  // 10. Admin Force-Cancel Errand (Admin only, triggers escrow refund)
+  router.post('/:id/admin/cancel', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const adminUserId = resolveUserId(req, res);
+    const order = await orderService.adminCancelOrder(req.params.id, adminUserId, req.body);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Order cancelled by administrator. Escrow credits refunded.',
+    });
+  }));
+
+  // 11. Admin Force-Complete Errand (Admin only, triggers escrow release to courier)
+  router.post('/:id/admin/complete', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const adminUserId = resolveUserId(req, res);
+    const order = await orderService.adminCompleteOrder(req.params.id, adminUserId, req.body);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Order completed by administrator. Credits transferred to courier.',
+    });
+  }));
+
+  // 12. Admin Unassign Courier (Admin only, sets ACCEPTED back to OPEN)
+  router.post('/:id/admin/unassign', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const adminUserId = resolveUserId(req, res);
+    const order = await orderService.adminUnassignOrder(req.params.id, adminUserId, req.body);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Courier unassigned by administrator. Errand returned to open feed.',
     });
   }));
 

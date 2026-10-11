@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder, and search filtering to fake repository.
+ * Author review: (to be completed by author after review)
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: In-memory repository fakes, mock clients, and HTTP test server helpers for Order Service unit/integration testing.
  * Author review: (to be completed by author after review)
@@ -85,7 +89,7 @@ export function makeFakeOrderRepository() {
     },
 
     async listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }> {
-      const { status, campusZone, page = 1, limit = 50 } = options;
+      const { status, campusZone, search, page = 1, limit = 50 } = options;
       const now = new Date().toISOString();
 
       let filtered = orders.filter((o) => {
@@ -101,6 +105,17 @@ export function makeFakeOrderRepository() {
       if (campusZone && campusZone.trim() !== '') {
         const zoneLower = campusZone.trim().toLowerCase();
         filtered = filtered.filter((o) => o.campusZone?.toLowerCase() === zoneLower);
+      }
+
+      if (search && search.trim() !== '') {
+        const term = search.trim().toLowerCase();
+        filtered = filtered.filter(
+          (o) =>
+            o.orderCode.toLowerCase().includes(term) ||
+            o.itemDescription.toLowerCase().includes(term) ||
+            o.dropoffLocation.toLowerCase().includes(term) ||
+            (o.supplierName && o.supplierName.toLowerCase().includes(term))
+        );
       }
 
       const total = filtered.length;
@@ -290,6 +305,117 @@ export function makeFakeOrderRepository() {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+      return { ...order };
+    },
+
+    async adminCancelOrder(
+      orderId: string,
+      adminUserId: string,
+      reason: string,
+      event: OrderLifecycleEvent,
+      expectedVersion?: number
+    ): Promise<OrderDTO> {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new OrderNotFoundError();
+
+      if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status)) {
+        throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
+      }
+
+      if (expectedVersion !== undefined && order.version !== expectedVersion) {
+        throw new OrderStateConflictError(
+          `Order was modified concurrently (expected version ${expectedVersion}, got ${order.version})`
+        );
+      }
+
+      order.status = 'CANCELLED';
+      order.version += 1;
+      const noteTag = `[Admin Cancel by ${adminUserId}: ${reason}]`;
+      order.specialNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
+
+      outboxEvents.push({
+        id: crypto.randomUUID(),
+        eventType: event.eventType,
+        payload: JSON.stringify(event),
+        status: 'PENDING',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return { ...order };
+    },
+
+    async adminCompleteOrder(
+      orderId: string,
+      adminUserId: string,
+      reason: string,
+      event: OrderLifecycleEvent,
+      expectedVersion?: number
+    ): Promise<OrderDTO> {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new OrderNotFoundError();
+
+      if (order.status !== 'DELIVERED') {
+        throw new OrderStateConflictError(
+          `Cannot complete errand from status ${order.status}. Errand must be DELIVERED first.`
+        );
+      }
+
+      if (expectedVersion !== undefined && order.version !== expectedVersion) {
+        throw new OrderStateConflictError(
+          `Order was modified concurrently (expected version ${expectedVersion}, got ${order.version})`
+        );
+      }
+
+      order.status = 'COMPLETED';
+      order.completedAt = new Date().toISOString();
+      order.version += 1;
+      const noteTag = `[Admin Force-Complete by ${adminUserId}: ${reason}]`;
+      order.specialNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
+
+      outboxEvents.push({
+        id: crypto.randomUUID(),
+        eventType: event.eventType,
+        payload: JSON.stringify(event),
+        status: 'PENDING',
+        retryCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      return { ...order };
+    },
+
+    async adminUnassignOrder(
+      orderId: string,
+      adminUserId: string,
+      reason: string,
+      expectedVersion?: number
+    ): Promise<OrderDTO> {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new OrderNotFoundError();
+
+      if (order.status !== 'ACCEPTED') {
+        throw new OrderStateConflictError(
+          `Cannot unassign courier from status ${order.status}. Errand must be in ACCEPTED state.`
+        );
+      }
+
+      if (expectedVersion !== undefined && order.version !== expectedVersion) {
+        throw new OrderStateConflictError(
+          `Order was modified concurrently (expected version ${expectedVersion}, got ${order.version})`
+        );
+      }
+
+      order.status = 'OPEN';
+      order.courierId = null;
+      order.acceptedAt = null;
+      order.courierContactNote = null;
+      order.version += 1;
+      const noteTag = `[Admin Courier Unassign by ${adminUserId}: ${reason}]`;
+      order.specialNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
 
       return { ...order };
     },

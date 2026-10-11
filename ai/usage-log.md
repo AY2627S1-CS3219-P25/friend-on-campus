@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Recorded Admin Order Management & Dispute Resolution implementation, optimistic concurrency control, transactional outbox events, and browser-based UAT verification.
+Author review: (to be completed by author after review)
+
 Tool: Google Antigravity Agent, date: 2026-10-08
 Scope: Recorded addressing Claude PR #112 review findings: authentication hardening, compensating refund outbox emission, optimistic concurrency locking, 32-bit order codes, and documentation alignment.
 Author review: (to be completed by author after review)
@@ -2640,5 +2644,34 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Verification:**
 - Full monorepo typecheck passed cleanly (`npm run typecheck`).
 - Supplier Service unit test suite passed 48/48 tests (`npm test --workspace=@campus-errand/supplier-service`).
+
+## 2026-10-11 19:25 SGT — Admin Order State Management & UAT Verification
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** main
+
+**Prompt (summarised):** Implement admin order state overrides respecting the order lifecycle state machine and financial invariants (escrow hold/refund/release), optimistic concurrency control, outbox event generation, and admin portal UI. Then perform User Acceptance Testing (UAT) using the browser subagent.
+
+**Usage scenario:** Writing implementation code and executing automated browser UAT under human design approval. Implemented domain validation, optimistic concurrency locking, transactional outbox event publishing, and interactive admin control interface with live search, filters, and dispute actions.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — added `AdminCancelOrderRequest`, `AdminCompleteOrderRequest`, `AdminUnassignOrderRequest`.
+- `services/order-service/src/repositories/order.repository.ts` — implemented `adminCancelOrder`, `adminCompleteOrder`, `adminUnassignOrder`, optimistic concurrency control, and search filtering.
+- `services/order-service/src/orders/order.service.ts` — added domain validation and transactional outbox relay triggering.
+- `services/order-service/src/orders/order.routes.ts` — added RBAC middleware and admin routes (`/:id/admin/cancel`, `/:id/admin/complete`, `/:id/admin/unassign`).
+- `services/order-service/test/order.service.test.ts` — unit tests for admin state transitions, conflicts, and validations.
+- `services/order-service/test/app.test.ts` — integration tests for admin endpoints and RBAC.
+- `apps/admin-portal/src/App.tsx` — added Errands & Orders navigation, KPI cards, live search, campus zone filters, status chips, data table, and action modal with optimistic concurrency guards.
+- `apps/admin-portal/vite.config.ts` — proxied `/api/orders` to order-service target.
+- `ai/usage-log.md` — this entry.
+
+**Verification:**
+- Order Service unit/integration tests: 48/48 passed (`npm test --workspace=@campus-errand/order-service`).
+- Monorepo tests: 119/119 passed (`npm test`).
+- Monorepo typecheck: All 9 workspaces passed (`npm run typecheck`).
+- Admin Portal build: Production Vite build passed cleanly (`npm run build --workspace=@campus-errand/admin-portal`).
+- End-to-end Browser UAT: Automated testing via browser subagent covering login, order navigation, KPI cards, real-time filtering, search, dispute cancellation modal, escrow refund guarantee verification, and optimistic concurrency version increment (`v2 -> v3`).
+
 
 

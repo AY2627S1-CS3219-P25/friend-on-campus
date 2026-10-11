@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-11
+// Scope: Added /api/orders proxy route to order service for host-based development.
+// Author review: (to be completed by author after review)
+//
 // Tool: Codex (model: GPT-6), date: 2026-10-01
 // Scope: Keep host-based API proxies on local services while Compose routes through the gateway.
 // Author review: Approved by ngkhengyang
@@ -15,6 +19,7 @@ import react from '@vitejs/plugin-react';
 const gatewayTarget = process.env.GATEWAY_URL;
 const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';
 const userTarget = gatewayTarget ?? process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
+const orderTarget = gatewayTarget ?? process.env.ORDER_SERVICE_URL ?? 'http://localhost:8003';
 
 export default defineConfig({
   base: '/admin/',
@@ -34,6 +39,10 @@ export default defineConfig({
       },
       '/api/suppliers': {
         target: supplierTarget,
+        changeOrigin: true,
+      },
+      '/api/orders': {
+        target: orderTarget,
         changeOrigin: true,
       },
       '/api': {

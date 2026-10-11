@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder with optimistic version checks and search options.
+ * Author review: (to be completed by author after review)
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored persistence repository for Order Service using extracted domain handler functions and a lightweight factory function.
  * Author review: (to be completed by author after review)
@@ -35,6 +39,7 @@ export interface CreateOrderParams {
 export interface ListOrdersOptions {
   status?: string;
   campusZone?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -49,6 +54,9 @@ export interface OrderRepository {
   deliverOrder(orderId: string, courierId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
+  adminCancelOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
+  adminCompleteOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
+  adminUnassignOrder(orderId: string, adminUserId: string, reason: string, expectedVersion?: number): Promise<OrderDTO>;
   expireDueOrders(now: Date): Promise<number>;
   recordCompensatingRefund(orderId: string, requesterId: string, rewardCredits: number): Promise<void>;
 }
@@ -113,7 +121,7 @@ async function handleListOrders(
   prisma: PrismaClient,
   options: ListOrdersOptions
 ): Promise<{ orders: OrderDTO[]; total: number }> {
-  const { status, campusZone, page = 1, limit = 50 } = options;
+  const { status, campusZone, search, page = 1, limit = 50 } = options;
   const skip = Math.max(0, (page - 1) * limit);
 
   const where: Record<string, any> = {};
@@ -127,6 +135,16 @@ async function handleListOrders(
 
   if (campusZone && campusZone.trim() !== '') {
     where.campusZone = { equals: campusZone.trim(), mode: 'insensitive' };
+  }
+
+  if (search && search.trim() !== '') {
+    const term = search.trim();
+    where.OR = [
+      { orderCode: { contains: term, mode: 'insensitive' } },
+      { itemDescription: { contains: term, mode: 'insensitive' } },
+      { dropoffLocation: { contains: term, mode: 'insensitive' } },
+      { supplierName: { contains: term, mode: 'insensitive' } },
+    ];
   }
 
   const [orders, total] = await Promise.all([
@@ -536,6 +554,176 @@ async function handleExpireDueOrders(
   return count;
 }
 
+async function handleAdminCancelOrder(
+  prisma: PrismaClient,
+  orderId: string,
+  adminUserId: string,
+  reason: string,
+  event: OrderLifecycleEvent,
+  expectedVersion?: number
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status)) {
+      throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
+    }
+
+    if (expectedVersion !== undefined && order.version !== expectedVersion) {
+      throw new OrderStateConflictError(
+        `Order was modified concurrently (expected version ${expectedVersion}, got ${order.version})`
+      );
+    }
+
+    const noteTag = `[Admin Cancel by ${adminUserId}: ${reason}]`;
+    const updatedNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
+
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: order.status,
+        version: order.version,
+      },
+      data: {
+        status: 'CANCELLED',
+        specialNotes: updatedNotes,
+        version: { increment: 1 },
+      },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
+
+    await tx.outboxEvent.create({
+      data: {
+        eventType: event.eventType,
+        payload: JSON.stringify(event),
+        status: 'PENDING',
+      },
+    });
+
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
+  });
+}
+
+async function handleAdminCompleteOrder(
+  prisma: PrismaClient,
+  orderId: string,
+  adminUserId: string,
+  reason: string,
+  event: OrderLifecycleEvent,
+  expectedVersion?: number
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (order.status !== 'DELIVERED') {
+      throw new OrderStateConflictError(
+        `Cannot complete errand from status ${order.status}. Errand must be DELIVERED first.`
+      );
+    }
+
+    if (expectedVersion !== undefined && order.version !== expectedVersion) {
+      throw new OrderStateConflictError(
+        `Order was modified concurrently (expected version ${expectedVersion}, got ${order.version})`
+      );
+    }
+
+    const noteTag = `[Admin Force-Complete by ${adminUserId}: ${reason}]`;
+    const updatedNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
+
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'DELIVERED',
+        version: order.version,
+      },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        specialNotes: updatedNotes,
+        version: { increment: 1 },
+      },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
+
+    await tx.outboxEvent.create({
+      data: {
+        eventType: event.eventType,
+        payload: JSON.stringify(event),
+        status: 'PENDING',
+      },
+    });
+
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
+  });
+}
+
+async function handleAdminUnassignOrder(
+  prisma: PrismaClient,
+  orderId: string,
+  adminUserId: string,
+  reason: string,
+  expectedVersion?: number
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (order.status !== 'ACCEPTED') {
+      throw new OrderStateConflictError(
+        `Cannot unassign courier from status ${order.status}. Errand must be in ACCEPTED state.`
+      );
+    }
+
+    if (expectedVersion !== undefined && order.version !== expectedVersion) {
+      throw new OrderStateConflictError(
+        `Order was modified concurrently (expected version ${expectedVersion}, got ${order.version})`
+      );
+    }
+
+    const noteTag = `[Admin Courier Unassign by ${adminUserId}: ${reason}]`;
+    const updatedNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
+
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'ACCEPTED',
+        version: order.version,
+      },
+      data: {
+        status: 'OPEN',
+        courierId: null,
+        acceptedAt: null,
+        courierContactNote: null,
+        specialNotes: updatedNotes,
+        version: { increment: 1 },
+      },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
+
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Lightweight Factory Function
 // ---------------------------------------------------------------------------
@@ -552,6 +740,12 @@ export function createOrderRepository(prisma: PrismaClient): OrderRepository {
     deliverOrder: (orderId, courierId, event) => handleDeliverOrder(prisma, orderId, courierId, event),
     completeOrder: (orderId, requesterId, event) => handleCompleteOrder(prisma, orderId, requesterId, event),
     cancelOrder: (orderId, requesterId, event) => handleCancelOrder(prisma, orderId, requesterId, event),
+    adminCancelOrder: (orderId, adminUserId, reason, event, expectedVersion) =>
+      handleAdminCancelOrder(prisma, orderId, adminUserId, reason, event, expectedVersion),
+    adminCompleteOrder: (orderId, adminUserId, reason, event, expectedVersion) =>
+      handleAdminCompleteOrder(prisma, orderId, adminUserId, reason, event, expectedVersion),
+    adminUnassignOrder: (orderId, adminUserId, reason, expectedVersion) =>
+      handleAdminUnassignOrder(prisma, orderId, adminUserId, reason, expectedVersion),
     expireDueOrders: (now) => handleExpireDueOrders(prisma, now),
     recordCompensatingRefund: (orderId, requesterId, rewardCredits) =>
       handleRecordCompensatingRefund(prisma, orderId, requesterId, rewardCredits),
