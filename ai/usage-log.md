@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Recorded documentation pruning, consolidation, and purpose-driven reorganization ("Less is more") across docs/.
+Author review: (to be completed by author after review)
+
 Tool: Google Antigravity Agent, date: 2026-10-08
 Scope: Recorded addressing Claude PR #112 review findings: authentication hardening, compensating refund outbox emission, optimistic concurrency locking, 32-bit order codes, and documentation alignment.
 Author review: (to be completed by author after review)
@@ -2640,5 +2644,92 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Verification:**
 - Full monorepo typecheck passed cleanly (`npm run typecheck`).
 - Supplier Service unit test suite passed 48/48 tests (`npm test --workspace=@campus-errand/supplier-service`).
+
+## 2026-10-11 19:20 SGT — System documentation tidy-up and consolidation ("Less is more")
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/tidy-docs
+
+**Prompt (summarised):** Tidy and simplify the docs/ folder in an isolated worktree branch. Remove confusing and redundant documents, consolidate duplicate service architectures, align component diagrams with production services, archive obsolete milestone verification logs, and rewrite docs/README.md into a purpose-driven map.
+
+**Usage scenario:** Documentation tidying, consolidation, and refactoring under human direction.
+1. Consolidate Order Service docs: Merged `docs/services/order-service-architecture.md` (sequence diagrams, event choreography, and atomic claim flows) directly into `docs/services/order-service.md`, strictly enforcing one page per service, and removed the duplicate file.
+2. Retire stale interim specs: Removed obsolete `docs/services/credit-service-integration-contract.md` (written when Order Service was in-memory mock), inlining DLQ recovery instructions directly into `docs/services/credit-service.md` and updating integration notes.
+3. Align component diagrams: Updated `docs/diagrams/component.md` and its PlantUML twin `component.puml` to promote `order-service` into real services with PostgreSQL `order_db` (`orders`, `outbox_events`), synchronous escrow reservation to `credit-service`, and outbox event publishing to RabbitMQ (`campus.events`).
+4. Update database inventory: Updated `docs/services/README.md` to list `order_db` tables (`orders`, `outbox_events`) and added sample `psql` queries for `order_db`.
+5. Clean and organize archive: Moved Milestone D2 UAT verification notes to `docs/archive/d2-evidence.md` (removing dead links to git-ignored local screenshots/checklists), removed empty `docs/evidence/d2`, created `docs/archive/README.md` explaining historical contexts, and fixed all repository-relative links in archived guides.
+6. Documentation map: Rewrote `docs/README.md` into a structured, purpose-driven directory map detailing the role and primary audience for every documentation section.
+
+**Files changed:**
+- `docs/services/order-service.md` — consolidated architecture sequence diagrams, component flows, and events matrix.
+- `docs/services/order-service-architecture.md` — deleted (merged into `order-service.md`).
+- `docs/services/credit-service.md` — updated integration notes and inlined DLQ replay instructions.
+- `docs/services/credit-service-integration-contract.md` — deleted (retired interim spec).
+- `docs/services/README.md` — updated `order_db` table list and added example `psql` queries.
+- `docs/diagrams/component.md` — updated Mermaid component diagram and removed mock subgraph.
+- `docs/diagrams/component.puml` — updated PlantUML twin diagram to match Mermaid.
+- `docs/archive/d2-evidence.md` — archived Milestone D2 UAT verification logs.
+- `docs/archive/README.md` — created directory index explaining historical contexts.
+- `docs/archive/d2-question-guide.md` — fixed relative links to active documentation and archived evidence.
+- `docs/archive/onboarding-guide-sep-3.md` — fixed repository-relative links.
+- `docs/requirements/conflicts.md` — updated link to archived D2 evidence.
+- `docs/evidence/d2/README.md` — deleted (archived to `docs/archive/d2-evidence.md`).
+- `docs/README.md` — restructured root index with comprehensive purpose map.
+- `ai/usage-log.md` — this entry and disclosure header.
+
+**Verification:**
+- Validated all internal markdown links across all files in `docs/` via script: 100% valid with 0 broken links.
+- Verified in isolated worktree `friend-on-campus-docs` on branch `chore/tidy-docs`, leaving changes uncommitted for author review.
+
+## 2026-10-11 19:35 SGT — Documentation Flattening & Formal System Specification Refactoring ("Less is more")
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/tidy-docs
+
+**Prompt (summarised):** Flatten the docs folder, eliminate redundant sub-folders, purge obsolete ADR templates (decisions/), D2 archives (archive/), duplicate OpenAPI specs (api/), and old requirements (requirements/). Reframe documentation into a lean, authoritative system specification describing system boundaries, domain rules, state machines, and security patterns rather than regurgitating code.
+
+**Usage scenario:** Complete documentation overhaul and flattening under explicit human direction:
+1. Purged obsolete sub-folders:
+   - `docs/decisions/`: Removed empty template ADRs (course evaluation relies on final slides/Q&A, and AI cannot draft decision rationale).
+   - `docs/archive/`: Purged historical Milestone D2 question guides and onboarding notes (preserved in git history).
+   - `docs/api/`: Purged handwritten OpenAPI YAML files that duplicated `packages/common-dtos`.
+   - `docs/requirements/`: Removed old Google Docs pointers and D2 conflict logs.
+   - `docs/diagrams/` & `docs/services/`: Consolidated and replaced with root specification documents.
+   - `.claude/skills/new-adr/`: Removed obsolete ADR generation skill.
+2. Formatted lean, authoritative system specifications in root `docs/`:
+   - `docs/architecture.md`: System topology, containerization, microservice responsibilities, database-per-service isolation, synchronous HTTP vs asynchronous outbox messaging, and Docker Compose orchestration.
+   - `docs/errand-specification.md`: Errand lifecycle state machine, credit escrow holds/settlement/refunds, single-winner atomic claiming under concurrency, background expiry sweeper, and RabbitMQ domain event matrix.
+   - `docs/security.md`: Asymmetric Ed25519 signing and offline verification, HttpOnly refresh cookie session management, Role-Based Access Control (`STUDENT` vs `ADMIN`), resource ownership rules, and atomic last-administrator guard.
+   - `docs/README.md`: Central 1-page guide and quick reference pointing directly to the specifications.
+3. Updated project documentation pointers:
+   - Root `README.md`: Updated Milestone Documentation section to point to new specifications.
+   - `CLAUDE.md`: Updated repo map and source documents sections.
+   - `.claude/README.md`: Removed `new-adr` skill reference.
+   - `.claude/agents/*.md` (`backend`, `frontend`, `infrastructure`, `reviewer`): Updated orientation reading lists to point to the new specifications.
+
+**Files changed:**
+- `docs/architecture.md` — authored high-level architecture specification.
+- `docs/errand-specification.md` — authored errand lifecycle & credit economy specification.
+- `docs/security.md` — authored security & access control specification.
+- `docs/README.md` — rewritten to link directly to the three core specifications.
+- `README.md` — updated documentation links.
+- `CLAUDE.md` — updated repo map, docs pointers, and policy to clarify commit/push requires explicit user approval.
+- `.claude/README.md` — removed `new-adr` reference.
+- `.claude/agents/backend.md` — updated reading list and real service facts.
+- `.claude/agents/frontend.md` — updated reading list.
+- `.claude/agents/infrastructure.md` — updated reading list.
+- `.claude/agents/reviewer.md` — updated reading list.
+- `.claude/skills/new-adr/SKILL.md` — deleted.
+- `docs/decisions/*`, `docs/archive/*`, `docs/api/*`, `docs/requirements/*`, `docs/diagrams/*`, `docs/services/*`, `docs/architecture/*` — deleted.
+- `ai/usage-log.md` — this entry.
+
+**Verification:**
+- Link integrity verification script executed: 100% valid with 0 broken links.
+- Verified all Mermaid diagrams across all docs using `@mermaid-js/mermaid-cli` (`mmdc`): 6/6 diagrams compiled with 0 errors.
+- Verified hooks pass (`node .claude/hooks/hooks.test.js`: hooks ok).
+- Clean `docs/` structure with exactly 4 files: `README.md`, `architecture.md`, `errand-specification.md`, and `security.md`.
+
 
 

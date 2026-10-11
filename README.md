@@ -1,5 +1,8 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Updated documentation links to the flattened specification structure.
+Author review: <to be completed by author after review>
 
 Tool: Codex (model: GPT-6), date: 2026-09-30
 Scope: Documented the working admin gateway route and student login navigation.
@@ -219,8 +222,10 @@ friend-on-campus/
 
 ---
 
-## 📄 Milestone Documentation
+## 📄 System Documentation & Specifications
 
-- **Documentation index** (architecture overview, per-service pages, requirements and open conflicts, design decisions): see [`docs/README.md`](./docs/README.md)
-- **Claude Code set-up for this repo** (AI-usage rules, plugins, agents, hooks): see [`.claude/README.md`](./.claude/README.md)
-- **Team Onboarding Guide (Archive)**: See [`docs/archive/onboarding-guide-sep-3.md`](./docs/archive/onboarding-guide-sep-3.md)
+- **Documentation Index**: [`docs/README.md`](./docs/README.md)
+- **System Architecture Specification**: [`docs/architecture.md`](./docs/architecture.md)
+- **Errand Lifecycle & Credit Economy Specification**: [`docs/errand-specification.md`](./docs/errand-specification.md)
+- **Security & Access Control Specification**: [`docs/security.md`](./docs/security.md)
+- **Claude Code set-up for this repo**: [`.claude/README.md`](./.claude/README.md)

@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
+Author review: <to be completed by author after review>
+
 Tool: Codex (model: GPT-6), date: 2026-10-01
 Scope: Clarified which Compose proxy variables point to the gateway and admin portal.
 Author review: Approved by ngkhengyang
@@ -27,11 +31,9 @@ You are the infrastructure engineer. CLAUDE.md sections 1–5 bind you.
 Your prompt does not include the conversation, so build context from the repo first (read-only; you may read anything in the repo except `.env` files):
 
 1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and pitfalls (§4), commands (§5), agent team (§8).
-2. `docs/architecture/overview.md` — the intended architecture with its sources, what is actually built per service, the directory layout, and where intent and code differ.
-3. `docs/services/<name>.md` — one page per service: run commands, env vars, files, every route with auth/request/errors, data model, behaviour as built, and differences from the documents. Read the page for each service your task touches; if your change makes it wrong, say so in your report.
-4. `docs/requirements/conflicts.md` — open mismatches between D1, the D2 plan, the issues and the code. Never resolve one yourself.
-5. `docs/decisions/` — decisions the team has recorded. A recorded decision is binding; if your task contradicts one, stop and say so.
-6. `docs/api/` — agreed API contracts, when present. `docs/requirements/README.md` links to D1 and the D2 plan; `docs/archive/onboarding-guide-sep-3.md` explains the stack for newcomers.
+2. `docs/architecture.md` — container topology, networking, gateway routing, and backing services.
+3. `docs/errand-specification.md` — RabbitMQ exchange and messaging architecture.
+4. `docs/security.md` — authentication and session routing rules.
 
 `docs/` is reference material for you, not yours to edit (the main session and the author maintain it). If you find it out of date, say so in your report.
 
