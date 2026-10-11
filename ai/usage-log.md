@@ -2,6 +2,10 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded static CI matrix validation, isolated aggregate orchestration, Chromium UAT, command/documentation updates, and verification results.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Recorded an explanation of the final GitHub Actions test gate.
 Author review: <to be completed by ngkhengyang>
 
@@ -2786,5 +2790,36 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — appended this mandatory explanation-only usage record and updated its consolidated disclosure.
+
+## 2026-10-11 14:13 SGT — Complete static test CI orchestration
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Complete the static GitHub Actions test setup without changing tests: expose every root test category, separate unit files from integration files, add an isolated full-suite runner, validate matrix/package-script drift, add Chromium UAT, simplify setup and the final gate, update agent/CI documentation, and verify all practical commands without committing or pushing.
+
+**Usage scenario:** CI boilerplate/configuration, implementation, debugging, and documentation under the author's fully specified design (allowed uses). The author retains review of CI policy, workflow execution on GitHub-hosted runners, branch protection, dependency audit findings, and the final commit/PR.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — added the matrix-consistency and Chromium UAT jobs, isolated all Compose system jobs, removed redundant Prisma steps and file-report globs, added explicit infrastructure metadata, and reduced the final gate to dependency results.
+- `docker-compose.test.yml` — added an isolated test overlay that removes fixed container names without changing the normal development Compose file.
+- `scripts/ci/run-all-tests.mjs` — added cross-platform full and system-only orchestration with dedicated databases, RabbitMQ, isolated Compose resources, Chromium, timeouts, diagnostics, and signal-safe cleanup.
+- `scripts/ci/validate-test-matrix.mjs` — added package/workflow drift checks for missing, stale, duplicate, unknown, watch-mode, metadata, system-job, and final-gate errors without adding a YAML dependency.
+- `package.json`, `package-lock.json` — exposed all public test-category commands, made `npm test` the aggregate runner, preserved `test:d2`, and pinned Playwright 1.64.0.
+- `services/notification-service/package.json`, `services/order-service/package.json`, `services/supplier-service/package.json`, `services/user-service/package.json` — renamed unit entry points to `test:unit`; user and notification now select only unit files.
+- `scripts/uat/uat-d2-ui.mjs` — updated only the manual Chromium run note for the locked Playwright dependency.
+- `CLAUDE.md` — documented test commands, matrix maintenance/validation, current lint/browser coverage, isolated aggregate behavior, and removal of the former `dev` branch.
+- `docs/ci.md` — documented commands, prerequisites, naming, infrastructure metadata, orchestration, artifacts, and static-matrix maintenance.
+- `ai/usage-log.md` — appended this record and updated its consolidated disclosure.
+
+**Verification:**
+- `npm ci` passed and generated Prisma clients for all five database services; npm reported 12 audit findings (2 moderate, 9 high, 1 critical).
+- `npm run ci:validate-tests` passed with 11 workspace suites and 3 system commands. Temporary missing-suite and stale-entry mismatches both failed with actionable messages and were removed.
+- Workflow YAML parsed with 13 jobs; the isolated Compose overlay passed `docker compose config --quiet` and emitted no `container_name` values.
+- `npm run lint` passed with 0 errors and 33 existing warnings; `npm run build` and `npm run typecheck` passed across all workspaces.
+- `npm run test:unit` passed all 229 unit tests across notification, order, supplier, and user services; the explicit user/notification unit commands did not select integration files.
+- `npm test` reached its Docker preflight and stopped because the local Docker Desktop engine was unavailable. Integration, messaging, migration, seed, acceptance, API E2E, and Chromium UAT therefore could not be executed locally; their script/workflow/Compose configuration was validated statically.
+- `git diff --check` passed, and no existing test file changed.
 
 

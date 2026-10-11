@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-11
+# Scope: Added static-matrix drift validation, isolated system-test stacks, Chromium UAT, console-only test output, and a dependency-only final gate.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
 # Scope: Added independent lint and production-build jobs with locked dependency installation and Prisma generation.
 # Author review: <to be completed by ngkhengyang>
@@ -51,8 +55,6 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Lint
         run: npm run lint
 
@@ -70,8 +72,6 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Build all workspaces
         run: npm run build
 
@@ -89,10 +89,25 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Type-check all workspaces
         run: npm run typecheck
+
+  test-config:
+    name: Test matrix consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies and generate Prisma clients
+        run: npm ci
+      - name: Validate package scripts against static CI matrices
+        run: npm run ci:validate-tests
 
   unit-tests:
     name: Unit | ${{ matrix.name }}
@@ -103,17 +118,25 @@ jobs:
       matrix:
         include:
           - name: notification-service
-            script: test
-            workspaceArg: --workspace=@campus-errand/notification-service
+            workspace: '@campus-errand/notification-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: order-service
-            script: test
-            workspaceArg: --workspace=@campus-errand/order-service
+            workspace: '@campus-errand/order-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: supplier-service
-            script: test
-            workspaceArg: --workspace=@campus-errand/supplier-service
+            workspace: '@campus-errand/supplier-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: user-service
-            script: test
-            workspaceArg: --workspace=@campus-errand/user-service
+            workspace: '@campus-errand/user-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -124,21 +147,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Run configured unit suite
-        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
-      - name: Upload available unit-test reports
-        if: failure()
-        uses: actions/upload-artifact@v6
-        with:
-          name: unit-${{ matrix.name }}-failure
-          path: |
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
-          if-no-files-found: ignore
+        run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
 
   integration-tests:
     name: Integration | ${{ matrix.name }}
@@ -149,17 +159,20 @@ jobs:
       matrix:
         include:
           - name: credit-service
+            workspace: '@campus-errand/credit-service'
             script: test:integration
-            workspaceArg: --workspace=@campus-errand/credit-service
-            deployDatabase: true
+            database: deploy
+            rabbitmq: false
           - name: notification-service
+            workspace: '@campus-errand/notification-service'
             script: test:integration
-            workspaceArg: --workspace=@campus-errand/notification-service
-            deployDatabase: true
+            database: deploy
+            rabbitmq: false
           - name: user-service
+            workspace: '@campus-errand/user-service'
             script: test:integration
-            workspaceArg: --workspace=@campus-errand/user-service
-            deployDatabase: false
+            database: schema
+            rabbitmq: false
     services:
       postgres:
         image: postgres:16-alpine
@@ -182,20 +195,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Create isolated test database
         run: node scripts/ci/create-test-database.mjs
         env:
           POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_NAME: ci_test
       - name: Deploy workspace migrations
-        if: matrix.deployDatabase
-        run: npm run db:deploy ${{ matrix.workspaceArg }}
+        if: matrix.database == 'deploy'
+        run: npm run db:deploy --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
       - name: Run configured integration suite
-        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
@@ -207,17 +218,12 @@ jobs:
         run: |
           mkdir -p ci-logs
           docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
-      - name: Upload integration failure artifacts
+      - name: Upload integration failure logs
         if: failure()
         uses: actions/upload-artifact@v6
         with:
           name: integration-${{ matrix.name }}-failure
-          path: |
-            ci-logs/**
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
+          path: ci-logs/**
           if-no-files-found: ignore
 
   messaging-tests:
@@ -229,13 +235,15 @@ jobs:
       matrix:
         include:
           - name: credit-service
+            workspace: '@campus-errand/credit-service'
             script: test:messaging
-            workspaceArg: --workspace=@campus-errand/credit-service
-            deployDatabase: true
+            database: deploy
+            rabbitmq: true
           - name: notification-service
+            workspace: '@campus-errand/notification-service'
             script: test:messaging
-            workspaceArg: --workspace=@campus-errand/notification-service
-            deployDatabase: true
+            database: deploy
+            rabbitmq: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -271,20 +279,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Create isolated test database
         run: node scripts/ci/create-test-database.mjs
         env:
           POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_NAME: ci_test
       - name: Deploy workspace migrations
-        if: matrix.deployDatabase
-        run: npm run db:deploy ${{ matrix.workspaceArg }}
+        if: matrix.database == 'deploy'
+        run: npm run db:deploy --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
       - name: Run configured messaging suite
-        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
@@ -300,17 +306,12 @@ jobs:
           mkdir -p ci-logs
           docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
           docker logs "${{ job.services.rabbitmq.id }}" > ci-logs/rabbitmq.log 2>&1 || true
-      - name: Upload messaging failure artifacts
+      - name: Upload messaging failure logs
         if: failure()
         uses: actions/upload-artifact@v6
         with:
           name: messaging-${{ matrix.name }}-failure
-          path: |
-            ci-logs/**
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
+          path: ci-logs/**
           if-no-files-found: ignore
 
   migration-tests:
@@ -322,8 +323,10 @@ jobs:
       matrix:
         include:
           - name: credit-service
+            workspace: '@campus-errand/credit-service'
             script: test:migration
-            workspaceArg: --workspace=@campus-errand/credit-service
+            database: schema
+            rabbitmq: false
     services:
       postgres:
         image: postgres:16-alpine
@@ -346,15 +349,13 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Create isolated test database
         run: node scripts/ci/create-test-database.mjs
         env:
           POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_NAME: ci_test
       - name: Run configured migration suite
-        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
@@ -364,17 +365,12 @@ jobs:
         run: |
           mkdir -p ci-logs
           docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
-      - name: Upload migration failure artifacts
+      - name: Upload migration failure logs
         if: failure()
         uses: actions/upload-artifact@v6
         with:
           name: migration-${{ matrix.name }}-failure
-          path: |
-            ci-logs/**
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
+          path: ci-logs/**
           if-no-files-found: ignore
 
   seed-tests:
@@ -386,9 +382,10 @@ jobs:
       matrix:
         include:
           - name: credit-service
+            workspace: '@campus-errand/credit-service'
             script: test:seed
-            workspaceArg: --workspace=@campus-errand/credit-service
-            deployDatabase: true
+            database: deploy
+            rabbitmq: false
     services:
       postgres:
         image: postgres:16-alpine
@@ -411,20 +408,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Create isolated test database
         run: node scripts/ci/create-test-database.mjs
         env:
           POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_NAME: ci_test
       - name: Deploy workspace migrations
-        if: matrix.deployDatabase
-        run: npm run db:deploy ${{ matrix.workspaceArg }}
+        if: matrix.database == 'deploy'
+        run: npm run db:deploy --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
       - name: Run configured seed suite
-        run: npm run "${{ matrix.script }}" ${{ matrix.workspaceArg }}
+        run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
@@ -434,23 +429,20 @@ jobs:
         run: |
           mkdir -p ci-logs
           docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
-      - name: Upload seed failure artifacts
+      - name: Upload seed failure logs
         if: failure()
         uses: actions/upload-artifact@v6
         with:
           name: seed-${{ matrix.name }}-failure
-          path: |
-            ci-logs/**
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
+          path: ci-logs/**
           if-no-files-found: ignore
 
   acceptance-tests:
     name: Acceptance | API and notifications
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    env:
+      COMPOSE_PROJECT_NAME: foc-ci-${{ github.run_id }}-acceptance
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -461,21 +453,21 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print > .env
-      - name: Build and start the Compose stack
-        run: docker compose up --build -d --wait --wait-timeout 300
+        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+      - name: Create acceptance artifact directory
+        run: mkdir -p ci-artifacts/acceptance
+      - name: Build and start isolated Compose stack
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run acceptance suite
         run: npm run test:acceptance
         env:
-          UAT_OUT: uat-d2-api-results.json
+          UAT_OUT: ci-artifacts/acceptance/uat-d2-api-results.json
       - name: Credential exposure review
         run: |
-          docker compose exec -T postgres psql -U postgres -d user_db -Atc \
+          docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T postgres psql -U postgres -d user_db -Atc \
             "select count(*) from users where left(password_hash, 8) <> chr(36) || 'scrypt' || chr(36)" | grep -qx 0
-          if docker compose logs --no-color | grep -E 'Password123!|eyJ[A-Za-z0-9_-]{10,}\.|refresh_token=[A-Za-z0-9_-]{8,}|Bearer [A-Za-z0-9_-]{8,}' | cut -d'|' -f1 | sort | uniq -c | grep .; then
+          if docker compose -f docker-compose.yml -f docker-compose.test.yml logs --no-color | grep -E 'Password123!|eyJ[A-Za-z0-9_-]{10,}\.|refresh_token=[A-Za-z0-9_-]{8,}|Bearer [A-Za-z0-9_-]{8,}' | cut -d'|' -f1 | sort | uniq -c | grep .; then
             echo "A credential appears in the logs of the services listed above."
             exit 1
           fi
@@ -483,29 +475,27 @@ jobs:
         if: failure()
         run: |
           mkdir -p ci-logs
-          docker compose ps -a > ci-logs/docker-compose-ps.log
-          docker compose logs --no-color > ci-logs/docker-compose.log 2>&1
+          docker compose -f docker-compose.yml -f docker-compose.test.yml ps -a > ci-logs/docker-compose-ps.log
+          docker compose -f docker-compose.yml -f docker-compose.test.yml logs --no-color > ci-logs/docker-compose.log 2>&1
       - name: Upload acceptance results and failure logs
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: acceptance-results
           path: |
-            uat-d2-api-results.json
+            ci-artifacts/acceptance/**
             ci-logs/**
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
           if-no-files-found: ignore
-      - name: Stop the Compose stack
+      - name: Stop isolated Compose stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans
 
-  e2e-tests:
-    name: E2E | D2
+  e2e-api-tests:
+    name: E2E | D2 API
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    env:
+      COMPOSE_PROJECT_NAME: foc-ci-${{ github.run_id }}-e2e-api
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -516,37 +506,78 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print > .env
-      - name: Build and start the Compose stack
-        run: docker compose up --build -d --wait --wait-timeout 300
-      - name: Stop services spawned by the E2E suite
-        run: docker compose stop user-service supplier-service
-      - name: Run D2 E2E suite
-        run: npm run test:d2
+        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+      - name: Build and start isolated Compose stack
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
+      - name: Stop services spawned by the API E2E suite
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml stop user-service supplier-service
+      - name: Run API E2E suite
+        run: npm run test:e2e:api
       - name: Collect Compose logs
         if: failure()
         run: |
           mkdir -p ci-logs
-          docker compose ps -a > ci-logs/docker-compose-ps.log
-          docker compose logs --no-color > ci-logs/docker-compose.log 2>&1
-      - name: Upload E2E failure artifacts
+          docker compose -f docker-compose.yml -f docker-compose.test.yml ps -a > ci-logs/docker-compose-ps.log
+          docker compose -f docker-compose.yml -f docker-compose.test.yml logs --no-color > ci-logs/docker-compose.log 2>&1
+      - name: Upload API E2E failure logs
         if: failure()
         uses: actions/upload-artifact@v6
         with:
-          name: e2e-d2-failure
-          path: |
-            ci-logs/**
-            **/test-results/**
-            **/coverage/**
-            **/*.tap
-            **/junit*.xml
+          name: e2e-api-failure
+          path: ci-logs/**
           if-no-files-found: ignore
-      - name: Stop the Compose stack
+      - name: Stop isolated Compose stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans
+
+  browser-uat:
+    name: Browser UAT | Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      COMPOSE_PROJECT_NAME: foc-ci-${{ github.run_id }}-browser
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies and generate Prisma clients
+        run: npm ci
+      - name: Install Chromium and operating-system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Generate throwaway JWT keys
+        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+      - name: Create browser artifact directories
+        run: mkdir -p ci-artifacts/browser/screenshots
+      - name: Build and start isolated Compose stack
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
+      - name: Run Chromium browser UAT
+        run: npm run test:e2e:ui
+        env:
+          UAT_OUT: ci-artifacts/browser/uat-d2-ui-results.json
+          SHOTS: ci-artifacts/browser/screenshots
+      - name: Collect Compose logs
+        if: failure()
+        run: |
+          mkdir -p ci-logs
+          docker compose -f docker-compose.yml -f docker-compose.test.yml ps -a > ci-logs/docker-compose-ps.log
+          docker compose -f docker-compose.yml -f docker-compose.test.yml logs --no-color > ci-logs/docker-compose.log 2>&1
+      - name: Upload browser results, screenshots, and failure logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: browser-uat-results
+          path: |
+            ci-artifacts/browser/**
+            ci-logs/**
+          if-no-files-found: ignore
+      - name: Stop isolated Compose stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans
 
   test-gate:
     name: Test gate
@@ -555,52 +586,47 @@ jobs:
       - lint
       - build
       - typecheck
+      - test-config
       - unit-tests
       - integration-tests
       - messaging-tests
       - migration-tests
       - seed-tests
       - acceptance-tests
-      - e2e-tests
+      - e2e-api-tests
+      - browser-uat
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Generate Prisma clients
-        run: npm run db:generate
       - name: Require every CI category to succeed
         env:
           LINT_RESULT: ${{ needs.lint.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
+          CONFIG_RESULT: ${{ needs.test-config.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
           INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
           MESSAGING_RESULT: ${{ needs.messaging-tests.result }}
           MIGRATION_RESULT: ${{ needs.migration-tests.result }}
           SEED_RESULT: ${{ needs.seed-tests.result }}
           ACCEPTANCE_RESULT: ${{ needs.acceptance-tests.result }}
-          E2E_RESULT: ${{ needs.e2e-tests.result }}
+          E2E_API_RESULT: ${{ needs.e2e-api-tests.result }}
+          BROWSER_RESULT: ${{ needs.browser-uat.result }}
         run: |
           failed=0
           for result in \
             "lint=$LINT_RESULT" \
             "build=$BUILD_RESULT" \
             "typecheck=$TYPECHECK_RESULT" \
+            "test-config=$CONFIG_RESULT" \
             "unit=$UNIT_RESULT" \
             "integration=$INTEGRATION_RESULT" \
             "messaging=$MESSAGING_RESULT" \
             "migration=$MIGRATION_RESULT" \
             "seed=$SEED_RESULT" \
             "acceptance=$ACCEPTANCE_RESULT" \
-            "e2e=$E2E_RESULT"
+            "e2e-api=$E2E_API_RESULT" \
+            "browser-uat=$BROWSER_RESULT"
           do
             if [ "${result#*=}" != "success" ]; then
               echo "Required job did not succeed: $result"

@@ -24,11 +24,20 @@
     "lint:fix": "eslint . --fix",
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "node scripts/ci/run-all-tests.mjs",
+    "test:unit": "npm run test:unit --workspaces --if-present",
+    "test:integration": "npm run test:integration --workspaces --if-present",
+    "test:messaging": "npm run test:messaging --workspaces --if-present",
+    "test:migration": "npm run test:migration --workspaces --if-present",
+    "test:seed": "npm run test:seed --workspaces --if-present",
     "test:acceptance": "node scripts/uat/uat-d2-api.mjs && node scripts/uat/uat-notifications.mjs",
+    "test:e2e:api": "npm run test:d2",
+    "test:e2e:ui": "node scripts/uat/uat-d2-ui.mjs",
+    "test:e2e": "node scripts/ci/run-all-tests.mjs --system-only",
+    "ci:validate-tests": "node scripts/ci/validate-test-matrix.mjs",
     "db:generate": "npm run db:generate --workspaces --if-present",
     "postinstall": "npm run db:generate --workspaces --if-present",
-    "test:d2": "npx tsx scripts/test-d2-e2e.ts"
+    "test:d2": "tsx scripts/test-d2-e2e.ts"
   },
   "overrides": {
     "qs": "^6.16.0"
@@ -40,6 +49,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
+    "playwright": "1.64.0",
     "typescript-eslint": "^8.71.1"
   }
 }

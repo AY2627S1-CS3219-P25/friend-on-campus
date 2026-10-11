@@ -1,0 +1,27 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-11
+# Scope: Remove fixed container names for isolated aggregate-test and CI Compose projects.
+# Author review: <to be completed by ngkhengyang>
+
+# AI-generated (edited by ngkhengyang)
+services:
+  api-gateway:
+    container_name: !reset null
+  student-app:
+    container_name: !reset null
+  admin-portal:
+    container_name: !reset null
+  user-service:
+    container_name: !reset null
+  supplier-service:
+    container_name: !reset null
+  order-service:
+    container_name: !reset null
+  credit-service:
+    container_name: !reset null
+  notification-service:
+    container_name: !reset null
+  postgres:
+    container_name: !reset null
+  rabbitmq:
+    container_name: !reset null
