@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Documented dynamic aggregate-test host ports and coexistence with the normal development Compose stack.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Documented the public test commands, aggregate runner, matrix validator, isolated system stacks, and Chromium UAT.
 Author review: <to be completed by ngkhengyang>
 
@@ -47,7 +51,9 @@ Every ordinary job runs its own checkout, Node 22 setup, and `npm ci`. The root 
 | `npm run test:e2e` | API E2E, then browser UAT | Docker engine; uses isolated system-test orchestration |
 | `npm test` | Every category above | Docker engine; the runner installs Chromium if needed |
 
-`npm test` is the self-contained path. `scripts/ci/run-all-tests.mjs` creates a uniquely named Compose project with its own containers and volumes, starts PostgreSQL and RabbitMQ, creates dedicated `_test` databases, deploys required migrations, runs the five package categories, builds the full stack, runs acceptance and API E2E, restores the stack, and runs Chromium UAT. Success, failure, SIGINT, and SIGTERM all clean only that isolated project; the default development Compose project is never taken down.
+`npm test` is the self-contained path. `scripts/ci/run-all-tests.mjs` creates a uniquely named Compose project with its own containers and volumes, selects available loopback ports for the gateway, PostgreSQL, RabbitMQ AMQP, User Service, and Supplier Service, and passes those endpoints to every test command. It then creates dedicated `_test` databases, deploys required migrations, runs the five package categories, builds the full stack, runs acceptance and API E2E, restores the stack, and runs Chromium UAT. `npm run test:e2e` uses the same port-isolated orchestration for the API and browser system suites.
+
+The dynamic host ports allow either aggregate command to run while the normal development `docker compose` stack still owns ports 80, 5432, 5672, and 8001–8002. Services not accessed directly by a host-side test are exposed only within the temporary Compose network. Success, failure, SIGINT, and SIGTERM all remove only the uniquely named test project's containers and volumes; the default development project is not stopped, inspected, restarted, or cleaned.
 
 ## Test-script convention
 

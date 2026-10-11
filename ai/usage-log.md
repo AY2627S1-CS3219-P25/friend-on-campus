@@ -2,6 +2,14 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded dynamic host-port isolation for aggregate Docker-backed test execution and its verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded expected GitHub Actions job and end-to-end runtimes for the completed CI workflow.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Recorded static CI matrix validation, isolated aggregate orchestration, Chromium UAT, command/documentation updates, and verification results.
 Author review: <to be completed by ngkhengyang>
 
@@ -2822,4 +2830,39 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `npm test` reached its Docker preflight and stopped because the local Docker Desktop engine was unavailable. Integration, messaging, migration, seed, acceptance, API E2E, and Chromium UAT therefore could not be executed locally; their script/workflow/Compose configuration was validated statically.
 - `git diff --check` passed, and no existing test file changed.
 
+## 2026-10-11 14:25 SGT — Estimate CI workflow runtimes
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Explain the expected runtimes of the GitHub Actions CI jobs and the overall parallel workflow.
+
+**Usage scenario:** Learning support and explanation of the implemented CI configuration (allowed use). The author retains review of real GitHub Actions timing data and any later timeout tuning.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory explanation-only usage record and updated its consolidated disclosure.
+
+## 2026-10-11 15:18 SGT — Isolate aggregate tests from development Compose ports
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Make `npm test` and `npm run test:e2e` coexist safely with an already-running development Docker Compose stack by selecting available host ports, passing those endpoints through every aggregate test command, retaining standalone CI defaults, and documenting and validating the behavior.
+
+**Usage scenario:** Implementation and verification support for test infrastructure (allowed use). The author retains responsibility for reviewing the generated configuration, scripts, documentation, and CI behavior.
+
+**Files changed:**
+- `docker-compose.test.yml` — parameterised required loopback bindings and removed unnecessary host publications from the test overlay.
+- `scripts/ci/run-all-tests.mjs` — selected distinct available ports and propagated database, RabbitMQ, API, WebSocket, acceptance, and browser endpoints through both aggregate execution paths.
+- `scripts/test-d2-e2e.ts` — accepted configurable user, supplier, and PostgreSQL host ports while preserving existing defaults.
+- `docs/ci.md` — documented aggregate-run isolation, endpoint selection, cleanup ownership, and coexistence with the development stack.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- `docker compose --project-name foc-port-config -f docker-compose.yml -f docker-compose.test.yml config --quiet` passed with custom and default ports; resolved configuration confirmed only gateway, PostgreSQL, RabbitMQ AMQP, User Service, and Supplier Service publish loopback ports.
+- `npm run lint` passed with 33 existing warnings and no errors; `npm run typecheck`, `npm run ci:validate-tests`, and `node --check scripts/ci/run-all-tests.mjs` passed.
+- `npm test` and `npm run test:e2e` each selected five distinct dynamic ports and reached the Docker preflight. Docker Desktop's Linux engine was unavailable, so live concurrent development/test stacks and Docker-backed suites could not be executed locally.
+- `git diff --check` passed before this entry, and the implementation diff contained no application-service implementation changes or test-case changes.
 
