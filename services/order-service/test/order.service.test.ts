@@ -1,5 +1,8 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Added unit test suite for Admin Order Management: force-cancel, force-complete, unassign, optimistic concurrency guards, and query search.
+ * Author review: (to be completed by author after review)
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
  * Scope: Removed an unused error import identified by the root lint configuration.
  * Author review: <to be completed by ngkhengyang>
@@ -29,6 +32,7 @@ import {
 const REQUESTER_ID = '20000000-0000-4000-8000-000000000001';
 const COURIER_1_ID = '20000000-0000-4000-8000-000000000002';
 const COURIER_2_ID = '20000000-0000-4000-8000-000000000003';
+const ADMIN_ID = '90000000-0000-4000-8000-000000000001';
 const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 
 describe('Order Service Lifecycle and Concurrency', () => {
@@ -677,6 +681,224 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       assert.equal(aliceActivity.history.length, 1);
       assert.equal(aliceActivity.history[0].id, o2.id);
+    });
+  });
+
+  describe('Admin Order Management & Concurrency Guards', () => {
+    it('allows admin to cancel an OPEN order with valid reason and records order.cancelled outbox event', async () => {
+      const { service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Late Night Waffles',
+        dropoffLocation: 'Eusoff Hall',
+        rewardCredits: 12,
+      });
+
+      const cancelled = await service.adminCancelOrder(order.id, ADMIN_ID, {
+        reason: 'User reported mistaken duplicate submission',
+      });
+
+      assert.equal(cancelled.status, 'CANCELLED');
+      assert.ok(cancelled.specialNotes?.includes('Admin Cancel'));
+      assert.equal(cancelled.version, 2);
+
+      const cancelEvent = fakeRepo.outboxEvents.find(
+        (e) => e.eventType === 'order.cancelled' && JSON.parse(e.payload).orderId === order.id
+      );
+      assert.ok(cancelEvent, 'Expected order.cancelled outbox event for escrow refund');
+    });
+
+    it('allows admin to cancel an ACCEPTED or IN_TRANSIT order with reason', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Bubble Tea',
+        dropoffLocation: 'PGPR Block 20',
+        rewardCredits: 10,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.pickupOrder(order.id, COURIER_1_ID);
+
+      const inTransit = await service.getOrderById(order.id);
+      assert.equal(inTransit.status, 'IN_TRANSIT');
+
+      const cancelled = await service.adminCancelOrder(order.id, ADMIN_ID, {
+        reason: 'Courier bicycle broke down midway, order unfulfillable',
+      });
+
+      assert.equal(cancelled.status, 'CANCELLED');
+      assert.ok(cancelled.specialNotes?.includes('Courier bicycle broke down midway'));
+    });
+
+    it('rejects admin cancel if order is already in a terminal state (COMPLETED or CANCELLED)', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Salad Bowl',
+        dropoffLocation: 'Science LT27',
+        rewardCredits: 15,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.pickupOrder(order.id, COURIER_1_ID);
+      await service.deliverOrder(order.id, COURIER_1_ID);
+      await service.completeOrder(order.id, REQUESTER_ID);
+
+      await assert.rejects(
+        () => service.adminCancelOrder(order.id, ADMIN_ID, { reason: 'Try cancelling completed' }),
+        OrderStateConflictError
+      );
+    });
+
+    it('rejects admin cancel when expectedVersion does not match current version (F7.1.4.1)', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Coffee',
+        dropoffLocation: 'Biz School',
+        rewardCredits: 8,
+      });
+
+      // Another user accepts the order concurrently (version moves from 1 to 2)
+      await service.acceptOrder(order.id, COURIER_1_ID);
+
+      // Admin attempts to cancel with stale expectedVersion 1
+      await assert.rejects(
+        () => service.adminCancelOrder(order.id, ADMIN_ID, {
+          reason: 'Stale admin action',
+          expectedVersion: 1,
+        }),
+        OrderStateConflictError
+      );
+    });
+
+    it('rejects admin operations without a valid non-empty reason', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Sandwich',
+        dropoffLocation: 'UTown ERC',
+        rewardCredits: 5,
+      });
+
+      await assert.rejects(
+        () => service.adminCancelOrder(order.id, ADMIN_ID, { reason: '   ' }),
+        (err: Error) => err instanceof OrderValidationError && err.message.includes('reason cannot be empty')
+      );
+    });
+
+    it('allows admin to force-complete a DELIVERED order and releases escrow via order.completed event', async () => {
+      const { service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Subway Sandwich',
+        dropoffLocation: 'Ridge View Residential College',
+        rewardCredits: 10,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.pickupOrder(order.id, COURIER_1_ID);
+      await service.deliverOrder(order.id, COURIER_1_ID);
+
+      const completed = await service.adminCompleteOrder(order.id, ADMIN_ID, {
+        reason: 'Requester uncontactable after photo confirmation',
+        expectedVersion: 4,
+      });
+
+      assert.equal(completed.status, 'COMPLETED');
+      assert.ok(completed.completedAt);
+      assert.ok(completed.specialNotes?.includes('Admin Force-Complete'));
+
+      const completeEvent = fakeRepo.outboxEvents.find(
+        (e) => e.eventType === 'order.completed' && JSON.parse(e.payload).orderId === order.id
+      );
+      assert.ok(completeEvent, 'Expected order.completed outbox event for courier escrow payout');
+    });
+
+    it('rejects admin force-complete if order is not in DELIVERED state', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Chicken Rice',
+        dropoffLocation: 'YIH',
+        rewardCredits: 10,
+      });
+
+      // Still OPEN
+      await assert.rejects(
+        () => service.adminCompleteOrder(order.id, ADMIN_ID, { reason: 'Force complete premature' }),
+        OrderStateConflictError
+      );
+    });
+
+    it('allows admin to unassign courier from ACCEPTED order and reverts status to OPEN', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Fruit Juice',
+        dropoffLocation: 'Kent Ridge Hall',
+        rewardCredits: 7,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID);
+
+      const unassigned = await service.adminUnassignOrder(order.id, ADMIN_ID, {
+        reason: 'Courier requested unassignment due to emergency',
+      });
+
+      assert.equal(unassigned.status, 'OPEN');
+      assert.equal(unassigned.courierId, null);
+      assert.equal(unassigned.acceptedAt, null);
+      assert.ok(unassigned.specialNotes?.includes('emergency'));
+    });
+
+    it('rejects admin unassign if order is not in ACCEPTED state', async () => {
+      const { service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Snack',
+        dropoffLocation: 'PGP',
+        rewardCredits: 5,
+      });
+
+      // Still OPEN, cannot unassign
+      await assert.rejects(
+        () => service.adminUnassignOrder(order.id, ADMIN_ID, { reason: 'No courier assigned' }),
+        OrderStateConflictError
+      );
+    });
+
+    it('supports listing all orders with search text matching orderCode or description', async () => {
+      const { service } = setupTest();
+      const o1 = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Special Thai Basil Chicken',
+        dropoffLocation: 'Raffles Hall',
+        rewardCredits: 12,
+      });
+      const o2 = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Lemon Tea',
+        dropoffLocation: 'Utown Stephen Riady Centre',
+        rewardCredits: 5,
+      });
+
+      const resSearch = await service.listOrders({
+        status: 'ALL',
+        search: 'Thai Basil',
+      });
+
+      assert.equal(resSearch.total, 1);
+      assert.equal(resSearch.orders[0].id, o1.id);
+
+      const resCode = await service.listOrders({
+        status: 'ALL',
+        search: o2.orderCode,
+      });
+
+      assert.equal(resCode.total, 1);
+      assert.equal(resCode.orders[0].id, o2.id);
     });
   });
 });
