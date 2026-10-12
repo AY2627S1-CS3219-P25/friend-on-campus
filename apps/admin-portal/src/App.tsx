@@ -1124,7 +1124,7 @@ export default function App() {
   };
 
   const filteredAndSortedOrders = useMemo(() => {
-    let result = orders.filter((o) => {
+    const result = orders.filter((o) => {
       const query = searchQueryOrders.toLowerCase().trim();
       const matchesSearch =
         !query ||
