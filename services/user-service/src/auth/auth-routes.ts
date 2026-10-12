@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+ * Scope: Removed an unused authentication error import identified by the root lint configuration.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Share refresh-cookie clearing between logout and successful self-deletion.
  * Author review: <to be completed by huangjiaxi1111>
@@ -19,7 +23,7 @@
 // AI-generated (edited by ngkhengyang)
 import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
-import { AuthError, AuthModule } from './auth-module';
+import { AuthModule } from './auth-module';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
 

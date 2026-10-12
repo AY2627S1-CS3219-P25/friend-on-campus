@@ -1,5 +1,17 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Updated test commands, static-matrix maintenance, Chromium CI coverage, lint facts, and removed references to the deleted dev branch.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Replaced dynamic test-discovery facts with the mandatory static CI matrix maintenance rule.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Updated the CI repo facts for package-script discovery and category-specific automated test jobs.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 Scope: Repo map: notification-service is no longer a mock; postgres-init creates five databases; npm test covers three services.
 Author review: <to be completed by Reallyeasy1>
@@ -150,7 +162,14 @@ npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:stude
 npm run db:migrate --workspace=@campus-errand/<service>
 npm run db:seed    --workspace=@campus-errand/<service>
 npm run typecheck                             # all workspaces — run after every code change
-npm run test                                  # unit tests: user-, supplier- and notification-service (node:test + tsx, no database)
+npm run test:unit                             # all workspace unit suites (Node only)
+npm run test:integration                      # PostgreSQL-backed integration suites; see docs/ci.md
+npm run test:messaging                        # PostgreSQL + RabbitMQ integration suites
+npm run test:migration | test:seed            # credit migration and seed validation
+npm run test:acceptance                       # API and notification UAT against the full Compose stack
+npm run test:e2e:api | test:e2e:ui            # D2 API E2E or Chromium UI UAT
+npm run test:e2e                              # API E2E then Chromium UI UAT against a prepared stack
+npm test                                      # full isolated suite; provisions Docker infrastructure and Chromium
 npm run test:d2                               # D2 end-to-end suite — see note below
 docker exec -it campuserrand-postgres psql -U postgres
 ```
@@ -163,16 +182,18 @@ docker exec -it campuserrand-postgres psql -U postgres
 
 **Code intelligence:** the `typescript-lsp` plugin is enabled for this project (`.claude/settings.json`). It needs the server on your PATH once per machine — `npm install -g typescript-language-server typescript` — and `npm install` in the repo so imports and the generated Prisma clients resolve. With it, prefer the `LSP` tool (go to definition, find references, hover) over grepping when tracing a type or function across workspaces, e.g. who uses a `common-dtos` type. It does not replace `npm run typecheck` before reporting.
 
-Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed; needs Node 22.3+, pinned in the root `package.json` `engines`; the Dockerfiles stay on `node:20-alpine` because containers do not run the tests): `services/<name>/test/*.test.ts`, run with `npm test` at the root or in the workspace. They need no database: user-service tests use in-memory repositories, supplier-service tests replace the Prisma client and the repository with `mock.module` (hence `--experimental-test-module-mocks` in its script). Each service's `typecheck` script uses `tsconfig.test.json`, which includes `src/**` and `test/**`, so `npm run typecheck` covers the tests too (`build` still uses `tsconfig.json`, src only). There is no lint script (tracked in issue #68). Do not add a test framework or linter unprompted.
+Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed; needs Node 22.3+, pinned in the root `package.json` `engines`; the Dockerfiles stay on `node:20-alpine` because containers do not run the tests). Run them with `npm run test:unit`; user-service and notification-service list their unit files explicitly so their `*.integration.test.ts` suites are not selected. User-service tests use in-memory repositories, and supplier-service tests replace the Prisma client and repository with `mock.module` (hence `--experimental-test-module-mocks`). Each service's `typecheck` script uses `tsconfig.test.json`, which includes `src/**` and `test/**`, so `npm run typecheck` covers the tests too (`build` still uses `tsconfig.json`, src only). The root `lint` script runs ESLint across the repository. Do not add another test framework or linter unprompted.
 
-Before saying a change works: run `npm run typecheck` and `npm test`, and `npm run test:d2` if user-service, supplier-service or either app was touched. Report the real output, including failures.
+Before saying a change works: run `npm run typecheck` and the directly relevant root test categories. Run the full `npm test` when Docker and Chromium are available; it creates a uniquely named Compose project, runs every category, and removes only that project's containers and volumes. Report the real output and any unavailable infrastructure.
 
-CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm run typecheck` and `npm test` with a PostgreSQL service (`ADMIN_GUARD_TEST_DATABASE_URL` set, so the user-service admin-guard tests run), then the whole Compose stack with `scripts/uat/uat-d2-api.mjs`, the notification-service broker test and `scripts/uat/uat-notifications.mjs`, and `npm run test:d2`. The browser driver `scripts/uat/uat-d2-ui.mjs` is not in CI: Playwright is not a dependency of this repo.
+CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`. Static matrices run unit, PostgreSQL integration, PostgreSQL/RabbitMQ messaging, migration, and seed scripts as separate checks. Compose-backed API/notification acceptance, D2 API E2E, and Chromium browser UAT are separate system-test jobs. A matrix-consistency job checks package scripts against the workflow, and the final gate requires every category to succeed. The naming convention, prerequisites, and infrastructure mapping are documented in `docs/ci.md`.
+
+**Mandatory test-suite maintenance:** whenever adding, renaming, moving, or removing a test suite or its `package.json` script, update the matching static matrix entry or system-test command in `.github/workflows/ci.yml` in the same change, then run `npm run ci:validate-tests`. Use the documented `test:<category>` name and infrastructure metadata; keep watch-mode commands outside CI.
 
 ## 6. Git and GitHub
 
 - Team repo: `AY2627S1-CS3219-P25/friend-on-campus`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/friend-on-campus`** to `gh issue` / `gh pr` commands.
-- Branches: `main` (releases), `dev` (integration), `milestone-d2` (D2 demo baseline), feature branches off `dev`.
+- Branches: `main` (releases) and `milestone-d2` (D2 demo baseline). The former `dev` branch no longer exists.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
 - **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this. The `Claude PR review` workflow (`.github/workflows/claude-pr-review.yml`) checks it on every push: it reads the linked issues, compares their acceptance criteria with the diff, searches open issues for related work the PR does not link, and reports all of this in a **Linked issues** section of its summary comment with `Closes #<n>` lines to paste. It does not fail the PR or edit its body; the author decides which issues a PR closes. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
 - Never commit, push, merge, force-push, or open/close issues and PRs yourself.

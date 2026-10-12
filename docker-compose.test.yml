@@ -1,0 +1,46 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-11
+# Scope: Isolate aggregate-test host ports while retaining existing port defaults for standalone CI jobs.
+# Author review: <to be completed by ngkhengyang>
+#
+# Tool: Codex (model: GPT-5), date: 2026-10-11
+# Scope: Remove fixed container names for isolated aggregate-test and CI Compose projects.
+# Author review: <to be completed by ngkhengyang>
+
+# AI-generated (edited by ngkhengyang)
+services:
+  api-gateway:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:${TEST_GATEWAY_PORT:-80}:80"
+  student-app:
+    container_name: !reset null
+    ports: !reset []
+  admin-portal:
+    container_name: !reset null
+    ports: !reset []
+  user-service:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:${TEST_USER_PORT:-8001}:8001"
+  supplier-service:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:${TEST_SUPPLIER_PORT:-8002}:8002"
+  order-service:
+    container_name: !reset null
+    ports: !reset []
+  credit-service:
+    container_name: !reset null
+    ports: !reset []
+  notification-service:
+    container_name: !reset null
+    ports: !reset []
+  postgres:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:${TEST_POSTGRES_PORT:-5432}:5432"
+  rabbitmq:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:${TEST_RABBITMQ_PORT:-5672}:5672"

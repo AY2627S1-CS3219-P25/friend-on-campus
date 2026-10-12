@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+ * Scope: Removed an unused logout error binding identified by the root lint configuration.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: Notifications per the author's Notification Service Design (third pull request): the socket opens after login
  * and sends the AUTH frame (src/notifications/useNotifications.ts), an Alerts bell with the unread badge in the top nav
@@ -513,7 +517,7 @@ export default function App() {
     setIsLoggingOut(true);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (err) {
+    } catch {
       // Network failure logging out server-side shouldn't block clearing the local session below.
     } finally {
       clearLocalSession();

@@ -12,7 +12,7 @@
     "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema src/database/prisma/schema.prisma",
     "db:seed": "tsx src/database/seed.ts",
-    "test": "node --import tsx --test \"test/**/*.test.ts\""
+    "test:unit": "node --import tsx --test \"test/**/*.test.ts\""
   },
   "dependencies": {
     "@campus-errand/auth": "*",

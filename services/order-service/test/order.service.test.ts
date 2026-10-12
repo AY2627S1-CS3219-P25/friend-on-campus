@@ -3,6 +3,9 @@
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added unit test suite for Admin Order Management: force-cancel, force-complete, unassign, optimistic concurrency guards, and query search.
  * Author review: (to be completed by author after review)
+ * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+ * Scope: Removed an unused error import identified by the root lint configuration.
+ * Author review: <to be completed by ngkhengyang>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Unit test suite for Order Service core lifecycle state machine, escrow reservation, single-winner concurrency, and sweeper.
@@ -15,7 +18,6 @@ import { createOrderService } from '../src/orders/order.service';
 import { createExpirySweeper } from '../src/orders/expiry.sweeper';
 import {
   OrderAuthorizationError,
-  OrderNotFoundError,
   OrderStateConflictError,
   OrderValidationError,
   SelfAcceptForbiddenError,

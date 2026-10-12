@@ -6,7 +6,7 @@ COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY apps/admin-portal/package.json ./apps/admin-portal/
 
-RUN npm install
+RUN npm install --workspace=@campus-errand/admin-portal --include-workspace-root=false
 
 COPY apps/admin-portal ./apps/admin-portal
 
