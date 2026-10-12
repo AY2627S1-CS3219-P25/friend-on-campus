@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Codex (model: GPT-5), date: 2026-10-11
+ * Scope: Allow isolated aggregate runs to configure user, supplier, and PostgreSQL host ports while retaining manual defaults.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: On Linux and macOS the two services are spawned in their own process group and the group is killed, so the
  * suite exits when it finishes; before, only the npx wrapper was killed and the run hung (first seen in CI).
@@ -50,10 +54,23 @@ import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import path from 'path';
 
-const USER_SERVICE_PORT = 8001;
-const SUPPLIER_SERVICE_PORT = 8002;
+// AI-generated (edited by ngkhengyang)
+function configuredPort(name: string, fallback: number): number {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`${name} must be an integer from 1 to 65535`);
+  }
+  return port;
+}
+
+const USER_SERVICE_PORT = configuredPort('TEST_USER_PORT', 8001);
+const SUPPLIER_SERVICE_PORT = configuredPort('TEST_SUPPLIER_PORT', 8002);
+const POSTGRES_PORT = configuredPort('TEST_POSTGRES_PORT', 5432);
 const USER_API = `http://localhost:${USER_SERVICE_PORT}`;
 const SUPPLIER_API = `http://localhost:${SUPPLIER_SERVICE_PORT}`;
+const databaseUrl = (database: string) => `postgresql://postgres:postgres@localhost:${POSTGRES_PORT}/${database}`;
 
 let userProcess: ChildProcess | null = null;
 let supplierProcess: ChildProcess | null = null;
@@ -115,14 +132,14 @@ async function runTests() {
   console.log('======================================================\n');
 
   // 1. Start User Service
-  console.log('1. Starting User Service on port 8001...');
+  console.log(`1. Starting User Service on port ${USER_SERVICE_PORT}...`);
   userProcess = spawn('npx', ['tsx', 'src/index.ts'], {
     cwd: path.resolve(__dirname, '../services/user-service'),
     env: {
       ...process.env,
       ...testJwtEnvironment,
       PORT: String(USER_SERVICE_PORT),
-      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/user_db',
+      DATABASE_URL: databaseUrl('user_db'),
     },
     stdio: 'pipe',
     shell: SPAWN_THROUGH_SHELL,
@@ -130,13 +147,13 @@ async function runTests() {
   });
 
   // 2. Start Supplier Service
-  console.log('2. Starting Supplier Service on port 8002...');
+  console.log(`2. Starting Supplier Service on port ${SUPPLIER_SERVICE_PORT}...`);
   supplierProcess = spawn('npx', ['tsx', 'src/index.ts'], {
     cwd: path.resolve(__dirname, '../services/supplier-service'),
     env: {
       ...process.env,
       PORT: String(SUPPLIER_SERVICE_PORT),
-      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/supplier_db',
+      DATABASE_URL: databaseUrl('supplier_db'),
       JWT_PUBLIC_KEY: testJwtEnvironment.JWT_PUBLIC_KEY,
       JWT_ISSUER: testJwtEnvironment.JWT_ISSUER,
       JWT_AUDIENCE: testJwtEnvironment.JWT_AUDIENCE,

@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-12
+# Scope: Restricted dependency installation to the User Service workspace and its local dependencies.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
 # Scope: Implemented the User Service container build with workspace dependencies, Prisma generation, and a production start command.
 # Author review: <to be completed by ngkhengyang>
@@ -22,7 +26,7 @@ COPY services/user-service/package.json ./services/user-service/
 COPY services/user-service/src/database/prisma ./services/user-service/src/database/prisma
 
 # Install dependencies using npm workspace
-RUN npm install
+RUN npm install --workspace=@campus-errand/user-service --include-workspace-root=false
 
 # Copy service source code
 COPY services/user-service ./services/user-service

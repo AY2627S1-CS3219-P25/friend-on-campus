@@ -1,6 +1,46 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Recorded fixes for PR #115 review findings covering test-file coverage, container dependency scope, and root CI dependencies.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded dynamic host-port isolation for aggregate Docker-backed test execution and its verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded expected GitHub Actions job and end-to-end runtimes for the completed CI workflow.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded static CI matrix validation, isolated aggregate orchestration, Chromium UAT, command/documentation updates, and verification results.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded an explanation of the final GitHub Actions test gate.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded a summary of the final static test CI behavior.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded replacement of dynamic test discovery with explicit static CI matrices and agent maintenance instructions.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded an explanation of the CI discovery, database provisioning, and package-script entry points.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-11
+Scope: Recorded package-script test discovery, category-specific GitHub Actions matrices, CI infrastructure, documentation, and validation.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+Scope: Recorded root ESLint, exhaustive workspace builds, CI validation jobs, lint-driven corrections, and verification results.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Google Antigravity Agent, date: 2026-10-08
 Scope: Recorded addressing Claude PR #112 review findings: authentication hardening, compensating refund outbox emission, optimistic concurrency locking, 32-bit order codes, and documentation alignment.
 Author review: (to be completed by author after review)
@@ -2641,4 +2681,216 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Full monorepo typecheck passed cleanly (`npm run typecheck`).
 - Supplier Service unit test suite passed 48/48 tests (`npm test --workspace=@campus-errand/supplier-service`).
 
+## 2026-10-11 02:00 SGT — Add monorepo lint and build validation
+
+**Tool:** Codex (model: GPT-5.6 Sol)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Configure root ESLint for the TypeScript services and React applications, make the root build cover every workspace, add independent lint and build CI jobs, and validate lint, Prisma generation, builds, type checks, and tests without committing or pushing.
+
+**Usage scenario:** Boilerplate/configuration generation, implementation, debugging, and localized lint refactoring (allowed uses). The author retains review of the ESLint policy, the remaining warnings, CI evidence, and the final commit/PR.
+
+**Files changed:**
+- `eslint.config.mjs` — added flat ESLint configuration for JavaScript, TypeScript, React, and React Hooks, with generated/build output ignored.
+- `package.json`, `package-lock.json` — added root lint scripts and compatible lint dependencies; made the root build strict across workspaces.
+- `packages/auth/package.json`, `packages/common-dtos/package.json` — added real TypeScript build scripts so shared packages cannot be skipped.
+- `.github/workflows/ci.yml` — added independent `Lint` and `Build` jobs with checkout, Node 22, locked installation, Prisma generation, and validation.
+- `docs/ci.md` — documented required CI check names and how new workspaces join validation.
+- `apps/admin-portal/src/App.tsx`, `apps/student-app/src/App.tsx` — removed unused bindings and used `const` where lint proved values were not reassigned.
+- `services/credit-service/src/database/seed.ts` — retained logout cleanup while avoiding a throw from `finally` that could mask identity errors.
+- `services/order-service/test/order.service.test.ts`, `services/supplier-service/src/suppliers/supplierRoutes.ts`, `services/user-service/src/auth/auth-routes.ts` — removed unused imports surfaced by lint.
+- `ai/usage-log.md` — appended this entry and updated its consolidated disclosure.
+
+**Verification:**
+- `npm run lint` passed with 0 errors and 33 warnings (30 pre-existing explicit-`any` uses and 3 React Hooks dependency warnings).
+- `npm run db:generate` passed for all five Prisma services.
+- `npm run build` passed for all nine workspaces: two apps, five services, and two shared packages.
+- `npm run typecheck` passed across all nine workspaces.
+- `npm test` passed: 229 tests passed across the four workspaces with unit-test scripts; 3 database/broker integration tests were skipped without opt-in environment variables.
+- `npm run test:d2` started both services but failed 7 of its first 10 checks because the local PostgreSQL data/schema preconditions were not satisfied; registration and seeded-admin login failed, after which the suite attempted to decode a missing token.
+
+## 2026-10-11 04:14 SGT — Discover and run every automated test suite in CI
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Inventory all existing automated tests and wire package-script discovery into GitHub Actions, with separate unit, integration, messaging, migration, seed, acceptance, and E2E jobs; category-specific infrastructure; failure artifacts; automatic future-suite discovery; and a final test gate, without adding tests or committing.
+
+**Usage scenario:** CI boilerplate/configuration, implementation, debugging, and documentation under the author's specified test categories (allowed uses). The author retains review of the CI policy, infrastructure credentials, required-check configuration, workflow execution evidence, and final commit/PR.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — replaced the opaque combined test job with package-script discovery, category matrices, isolated PostgreSQL/RabbitMQ services, separate Compose acceptance and E2E jobs, failure log/report uploads, timeouts, and a final gate while preserving the concurrent lint/build jobs.
+- `scripts/ci/discover-tests.mjs` — added root/workspace manifest scanning, category matrix generation, explicit watch/aggregator exclusions, and actionable failure for unknown `test:*` names.
+- `scripts/ci/create-test-database.mjs` — added safe creation of the isolated `_test` PostgreSQL database used by database-backed matrices.
+- `package.json` — exposed the existing API and notification UAT drivers through the conventional `test:acceptance` system-test script.
+- `services/user-service/package.json` — exposed the existing admin-guard PostgreSQL suite through `test:integration`.
+- `services/notification-service/package.json` — exposed the existing store/routes and broker suites through `test:integration` and `test:messaging`.
+- `docs/ci.md` — documented discovery, naming conventions, infrastructure, exclusions, artifacts, and the final gate.
+- `CLAUDE.md` — aligned the repository's CI description with the discovered category jobs.
+- `ai/usage-log.md` — appended this entry and updated its consolidated disclosure.
+
+**Verification:**
+- `node scripts/ci/discover-tests.mjs` found 4 unit, 3 integration, 2 messaging, 1 migration, 1 seed, 1 acceptance, and 1 E2E suite; the root `test` aggregator was explicitly reported as excluded.
+- A temporary `test:unit` alias for the existing Order Service suite appeared automatically in the unit matrix and superseded its `test` entry; the alias was then removed and `git diff -- services/order-service/package.json` was empty.
+- The workflow parsed with the installed `js-yaml`; all 12 expected jobs were present. `docker compose config --quiet` also passed with throwaway JWT values.
+- `npm ci` passed and generated all five Prisma clients; npm reported 12 dependency audit findings already present in the lockfile (2 moderate, 9 high, 1 critical).
+- `npm run lint` passed with 0 errors and 33 existing warnings; `npm run db:generate`, `npm run build`, and `npm run typecheck` passed across the monorepo.
+- `npm test` passed all 229 locally executable tests. The User PostgreSQL suite and Notification PostgreSQL/RabbitMQ suites were skipped by their existing opt-in guards.
+- Docker-backed integration, messaging, migration, seed, acceptance, and E2E commands could not run because the local Docker Desktop engine was unavailable; their workflow and Compose configuration were validated statically instead.
+
+## 2026-10-11 04:24 SGT — Explain CI helper and package scripts
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Explain the purpose of the scripts added for automated test execution.
+
+**Usage scenario:** Learning support and explanation of existing implementation (allowed use). The author retains review of the implementation and final commit/PR.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory explanation-only usage record and updated its consolidated disclosure.
+
+## 2026-10-11 05:09 SGT — Explain the CI test gate
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Explain the purpose and behavior of the GitHub Actions test gate.
+
+**Usage scenario:** Learning support and explanation of existing CI implementation (allowed use). The author retains review of the CI configuration and final commit/PR.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory explanation-only usage record and updated its consolidated disclosure.
+
+## 2026-10-11 04:43 SGT — Simplify CI to static test matrices
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Replace automatic package-script discovery with a simpler static CI approach, and instruct future agents to update CI manually whenever test suites change.
+
+**Usage scenario:** CI configuration refactoring and agent-context documentation under the author's explicit direction (allowed uses). The author retains review of the static suite list, required checks, and final commit/PR.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — removed the discovery job and generated outputs; added explicit static entries for all current unit, integration, messaging, migration, and seed suites; made acceptance and D2 E2E direct system-test jobs; removed discovery from the final gate.
+- `scripts/ci/discover-tests.mjs` — removed because suite registration is now intentionally static.
+- `CLAUDE.md` — added a mandatory rule to update the matching CI matrix or system-test command in the same change as any test-suite or package-script addition, rename, move, or removal.
+- `docs/ci.md` — documented static matrix maintenance and removed automatic-discovery guidance.
+- `ai/usage-log.md` — appended this entry and updated its consolidated disclosure.
+
+**Verification:**
+- Parsed `.github/workflows/ci.yml` with `js-yaml` and confirmed no `discover-tests` job remains.
+- Confirmed static matrix sizes: 4 unit, 3 integration, 2 messaging, 1 migration, and 1 seed entry; acceptance and D2 E2E are direct jobs.
+- Confirmed `fail-fast: false` remains on every static matrix and the final gate no longer depends on discovery.
+- `docker compose config --quiet` and `git diff --check` passed.
+- `npm run lint` passed with 0 errors and 33 existing warnings; `npm run typecheck` passed; `npm test` passed all 229 locally executable tests.
+
+## 2026-10-11 04:50 SGT — Summarise static test CI behavior
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Summarise what the final test CI configuration does.
+
+**Usage scenario:** Learning support and explanation of existing CI implementation (allowed use). The author retains review of the CI configuration and final commit/PR.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory explanation-only usage record and updated its consolidated disclosure.
+
+## 2026-10-11 14:13 SGT — Complete static test CI orchestration
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Complete the static GitHub Actions test setup without changing tests: expose every root test category, separate unit files from integration files, add an isolated full-suite runner, validate matrix/package-script drift, add Chromium UAT, simplify setup and the final gate, update agent/CI documentation, and verify all practical commands without committing or pushing.
+
+**Usage scenario:** CI boilerplate/configuration, implementation, debugging, and documentation under the author's fully specified design (allowed uses). The author retains review of CI policy, workflow execution on GitHub-hosted runners, branch protection, dependency audit findings, and the final commit/PR.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — added the matrix-consistency and Chromium UAT jobs, isolated all Compose system jobs, removed redundant Prisma steps and file-report globs, added explicit infrastructure metadata, and reduced the final gate to dependency results.
+- `docker-compose.test.yml` — added an isolated test overlay that removes fixed container names without changing the normal development Compose file.
+- `scripts/ci/run-all-tests.mjs` — added cross-platform full and system-only orchestration with dedicated databases, RabbitMQ, isolated Compose resources, Chromium, timeouts, diagnostics, and signal-safe cleanup.
+- `scripts/ci/validate-test-matrix.mjs` — added package/workflow drift checks for missing, stale, duplicate, unknown, watch-mode, metadata, system-job, and final-gate errors without adding a YAML dependency.
+- `package.json`, `package-lock.json` — exposed all public test-category commands, made `npm test` the aggregate runner, preserved `test:d2`, and pinned Playwright 1.64.0.
+- `services/notification-service/package.json`, `services/order-service/package.json`, `services/supplier-service/package.json`, `services/user-service/package.json` — renamed unit entry points to `test:unit`; user and notification now select only unit files.
+- `scripts/uat/uat-d2-ui.mjs` — updated only the manual Chromium run note for the locked Playwright dependency.
+- `CLAUDE.md` — documented test commands, matrix maintenance/validation, current lint/browser coverage, isolated aggregate behavior, and removal of the former `dev` branch.
+- `docs/ci.md` — documented commands, prerequisites, naming, infrastructure metadata, orchestration, artifacts, and static-matrix maintenance.
+- `ai/usage-log.md` — appended this record and updated its consolidated disclosure.
+
+**Verification:**
+- `npm ci` passed and generated Prisma clients for all five database services; npm reported 12 audit findings (2 moderate, 9 high, 1 critical).
+- `npm run ci:validate-tests` passed with 11 workspace suites and 3 system commands. Temporary missing-suite and stale-entry mismatches both failed with actionable messages and were removed.
+- Workflow YAML parsed with 13 jobs; the isolated Compose overlay passed `docker compose config --quiet` and emitted no `container_name` values.
+- `npm run lint` passed with 0 errors and 33 existing warnings; `npm run build` and `npm run typecheck` passed across all workspaces.
+- `npm run test:unit` passed all 229 unit tests across notification, order, supplier, and user services; the explicit user/notification unit commands did not select integration files.
+- `npm test` reached its Docker preflight and stopped because the local Docker Desktop engine was unavailable. Integration, messaging, migration, seed, acceptance, API E2E, and Chromium UAT therefore could not be executed locally; their script/workflow/Compose configuration was validated statically.
+- `git diff --check` passed, and no existing test file changed.
+
+## 2026-10-11 14:25 SGT — Estimate CI workflow runtimes
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Explain the expected runtimes of the GitHub Actions CI jobs and the overall parallel workflow.
+
+**Usage scenario:** Learning support and explanation of the implemented CI configuration (allowed use). The author retains review of real GitHub Actions timing data and any later timeout tuning.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory explanation-only usage record and updated its consolidated disclosure.
+
+## 2026-10-11 15:18 SGT — Isolate aggregate tests from development Compose ports
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Make `npm test` and `npm run test:e2e` coexist safely with an already-running development Docker Compose stack by selecting available host ports, passing those endpoints through every aggregate test command, retaining standalone CI defaults, and documenting and validating the behavior.
+
+**Usage scenario:** Implementation and verification support for test infrastructure (allowed use). The author retains responsibility for reviewing the generated configuration, scripts, documentation, and CI behavior.
+
+**Files changed:**
+- `docker-compose.test.yml` — parameterised required loopback bindings and removed unnecessary host publications from the test overlay.
+- `scripts/ci/run-all-tests.mjs` — selected distinct available ports and propagated database, RabbitMQ, API, WebSocket, acceptance, and browser endpoints through both aggregate execution paths.
+- `scripts/test-d2-e2e.ts` — accepted configurable user, supplier, and PostgreSQL host ports while preserving existing defaults.
+- `docs/ci.md` — documented aggregate-run isolation, endpoint selection, cleanup ownership, and coexistence with the development stack.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- `docker compose --project-name foc-port-config -f docker-compose.yml -f docker-compose.test.yml config --quiet` passed with custom and default ports; resolved configuration confirmed only gateway, PostgreSQL, RabbitMQ AMQP, User Service, and Supplier Service publish loopback ports.
+- `npm run lint` passed with 33 existing warnings and no errors; `npm run typecheck`, `npm run ci:validate-tests`, and `node --check scripts/ci/run-all-tests.mjs` passed.
+- `npm test` and `npm run test:e2e` each selected five distinct dynamic ports and reached the Docker preflight. Docker Desktop's Linux engine was unavailable, so live concurrent development/test stacks and Docker-backed suites could not be executed locally.
+- `git diff --check` passed before this entry, and the implementation diff contained no application-service implementation changes or test-case changes.
+
+## 2026-10-12 12:29 SGT — Address PR #115 CI review findings
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Review Claude's comments on PR #115, address the actionable CI findings, preserve unrelated work, and report the changes without committing or pushing.
+
+**Usage scenario:** CI implementation, debugging, documentation, and verification support (allowed uses). The author retains responsibility for reviewing the dependency policy, GitHub Actions results, and final commit/PR discussion.
+
+**Files changed:**
+- `scripts/ci/validate-test-matrix.mjs` — added recursive workspace test-file coverage validation so classified scripts cannot silently omit a `*.test.*` file.
+- `docs/ci.md` — documented the enforced test-file selection rule and actionable validation failure.
+- `apps/admin-portal/Dockerfile`, `apps/student-app/Dockerfile`, and all five service Dockerfiles — restricted installation to each image's workspace and local dependencies, excluding root-only lint and browser packages.
+- `package.json`, `package-lock.json` — declared `pg` and `tsx` at the root because root-owned CI scripts import/invoke them directly.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- A temporary unselected `services/user-service/test/validator-probe.test.ts` file made `npm run ci:validate-tests` fail with the expected actionable message; the temporary file was removed, and validation then passed with 11 workspace suites and 3 system commands.
+- `npm ci`, `npm run lint` (0 errors, 33 existing warnings), `npm run typecheck`, and `npm run build` passed.
+- All seven Docker images built with workspace-only dependency installs; checks confirmed that root-only `eslint` and `playwright` packages were absent from every image.
+- `npm test` passed unit, integration, messaging, migration, seed, acceptance (62/62 API and 17/17 notification checks), API E2E (56/56), and Chromium UI (34/34) suites, then removed its isolated containers, network, and volumes.
+- `npm ls pg tsx --depth=0` confirmed both packages are direct root dependencies, `git diff --check` passed before this entry, and no test file was added or modified.
 
