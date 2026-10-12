@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Documented validation that every workspace test file is selected by a classified test script.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Documented dynamic aggregate-test host ports and coexistence with the normal development Compose stack.
 Author review: <to be completed by ngkhengyang>
@@ -73,7 +77,7 @@ Test commands follow these names:
 
 Use `test:watch` or `test:<category>:watch` only for persistent local watch commands; never add a watch command to CI.
 
-The matrices are intentionally static. Whenever a test script is added, renamed, moved, or removed, update the matching matrix or system-test command in `.github/workflows/ci.yml` in the same change and run `npm run ci:validate-tests`. The validator fails with an actionable message for recognised scripts missing from CI, stale or duplicate entries, unknown `test:*` names, watch commands, and invalid database/RabbitMQ metadata. Workspaces with no test script are valid.
+The matrices are intentionally static. Whenever a test script is added, renamed, moved, or removed, update the matching matrix or system-test command in `.github/workflows/ci.yml` in the same change and run `npm run ci:validate-tests`. Every workspace file named `*.test.js`, `*.test.jsx`, `*.test.ts`, or `*.test.tsx` (including the `c`/`m` module variants) must be selected by at least one classified package script, either explicitly or through a glob. The validator fails with an actionable message for unselected test files, recognised scripts missing from CI, stale or duplicate entries, unknown `test:*` names, watch commands, and invalid database/RabbitMQ metadata. Workspaces with no test files or test scripts are valid.
 
 Matrix metadata uses `database: none`, `schema`, or `deploy`, plus `rabbitmq: true|false`. Database-backed jobs provide shared and service-specific test URLs; messaging jobs also provide broker URLs. Tests remain console-only. On failure, infrastructure jobs upload PostgreSQL, RabbitMQ, or Compose logs; acceptance and browser jobs also upload their existing JSON results, and browser UAT uploads screenshots.
 

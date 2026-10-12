@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-12
+# Scope: Restricted dependency installation to the Credit Service workspace and its local dependencies.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-6), date: 2026-10-03
 # Scope: Initialize matching development credit wallets after migrations and before serving.
 # Author review: <to be completed by huangjiaxi1111>
@@ -18,7 +22,7 @@ COPY packages/ packages/
 COPY services/credit-service/package.json ./services/credit-service/
 COPY services/credit-service/src/database/prisma ./services/credit-service/src/database/prisma
 
-RUN npm install
+RUN npm install --workspace=@campus-errand/credit-service --include-workspace-root=false
 
 COPY services/credit-service ./services/credit-service
 

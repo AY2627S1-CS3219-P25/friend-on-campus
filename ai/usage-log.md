@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Recorded fixes for PR #115 review findings covering test-file coverage, container dependency scope, and root CI dependencies.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Recorded dynamic host-port isolation for aggregate Docker-backed test execution and its verification.
 Author review: <to be completed by ngkhengyang>
@@ -2865,4 +2869,28 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `npm run lint` passed with 33 existing warnings and no errors; `npm run typecheck`, `npm run ci:validate-tests`, and `node --check scripts/ci/run-all-tests.mjs` passed.
 - `npm test` and `npm run test:e2e` each selected five distinct dynamic ports and reached the Docker preflight. Docker Desktop's Linux engine was unavailable, so live concurrent development/test stacks and Docker-backed suites could not be executed locally.
 - `git diff --check` passed before this entry, and the implementation diff contained no application-service implementation changes or test-case changes.
+
+## 2026-10-12 12:29 SGT — Address PR #115 CI review findings
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Review Claude's comments on PR #115, address the actionable CI findings, preserve unrelated work, and report the changes without committing or pushing.
+
+**Usage scenario:** CI implementation, debugging, documentation, and verification support (allowed uses). The author retains responsibility for reviewing the dependency policy, GitHub Actions results, and final commit/PR discussion.
+
+**Files changed:**
+- `scripts/ci/validate-test-matrix.mjs` — added recursive workspace test-file coverage validation so classified scripts cannot silently omit a `*.test.*` file.
+- `docs/ci.md` — documented the enforced test-file selection rule and actionable validation failure.
+- `apps/admin-portal/Dockerfile`, `apps/student-app/Dockerfile`, and all five service Dockerfiles — restricted installation to each image's workspace and local dependencies, excluding root-only lint and browser packages.
+- `package.json`, `package-lock.json` — declared `pg` and `tsx` at the root because root-owned CI scripts import/invoke them directly.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- A temporary unselected `services/user-service/test/validator-probe.test.ts` file made `npm run ci:validate-tests` fail with the expected actionable message; the temporary file was removed, and validation then passed with 11 workspace suites and 3 system commands.
+- `npm ci`, `npm run lint` (0 errors, 33 existing warnings), `npm run typecheck`, and `npm run build` passed.
+- All seven Docker images built with workspace-only dependency installs; checks confirmed that root-only `eslint` and `playwright` packages were absent from every image.
+- `npm test` passed unit, integration, messaging, migration, seed, acceptance (62/62 API and 17/17 notification checks), API E2E (56/56), and Chromium UI (34/34) suites, then removed its isolated containers, network, and volumes.
+- `npm ls pg tsx --depth=0` confirmed both packages are direct root dependencies, `git diff --check` passed before this entry, and no test file was added or modified.
 

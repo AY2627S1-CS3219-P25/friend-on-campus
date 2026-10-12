@@ -6,7 +6,7 @@ COPY package.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY apps/student-app/package.json ./apps/student-app/
 
-RUN npm install
+RUN npm install --workspace=@campus-errand/student-app --include-workspace-root=false
 
 COPY apps/student-app ./apps/student-app
 

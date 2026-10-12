@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-5), date: 2026-10-12
+ * Scope: Fail validation when a workspace test file is not selected by any classified test script.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-11
  * Scope: Validate static GitHub Actions test matrices against root/workspace package scripts without a YAML dependency.
  * Author review: <to be completed by ngkhengyang>
@@ -35,6 +39,8 @@ const rootSystemScripts = new Set([
   'test:d2',
 ]);
 const requiredRootScripts = [...rootSystemScripts].filter((script) => script !== 'test:d2');
+const testFilePattern = /\.test\.(?:[cm]?[jt]sx?)$/;
+const ignoredTestDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', 'generated']);
 const errors = [];
 
 function fail(message) {
@@ -112,6 +118,62 @@ function validateTestScriptNames(label, scripts, allowed) {
   }
 }
 
+function commandTestPatterns(command) {
+  const patterns = [];
+  const tokenPattern = /"([^"]+)"|'([^']+)'|([^\s]+)/g;
+  for (const match of command.matchAll(tokenPattern)) {
+    const token = match[1] ?? match[2] ?? match[3];
+    if (testFilePattern.test(token)) patterns.push(token.replace(/^\.\//, '').replaceAll('\\', '/'));
+  }
+  return patterns;
+}
+
+function globToRegExp(pattern) {
+  let source = '^';
+  for (let index = 0; index < pattern.length;) {
+    if (pattern.startsWith('**/', index)) {
+      source += '(?:.*/)?';
+      index += 3;
+      continue;
+    }
+    if (pattern.startsWith('**', index)) {
+      source += '.*';
+      index += 2;
+      continue;
+    }
+    const character = pattern[index];
+    if (character === '*') source += '[^/]*';
+    else if (character === '?') source += '[^/]';
+    else source += character.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+    index += 1;
+  }
+  return new RegExp(`${source}$`);
+}
+
+async function workspaceTestFiles(directory, prefix = '') {
+  const files = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.isDirectory() && ignoredTestDirectories.has(entry.name)) continue;
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...await workspaceTestFiles(absolute, relative));
+    else if (entry.isFile() && testFilePattern.test(entry.name)) files.push(relative);
+  }
+  return files;
+}
+
+async function validateTestFileCoverage(label, packagePath, scripts) {
+  const classifiedCommands = [...categoryScripts.keys()]
+    .map((script) => scripts?.[script])
+    .filter(Boolean);
+  const selectors = classifiedCommands.flatMap(commandTestPatterns).map(globToRegExp);
+  for (const testFile of await workspaceTestFiles(path.dirname(packagePath))) {
+    if (!selectors.some((selector) => selector.test(testFile))) {
+      fail(`${label} has test file "${testFile}" that is not selected by any classified test script. Add it to the appropriate test:unit, test:integration, test:messaging, test:migration, or test:seed command.`);
+    }
+  }
+}
+
 function validateInfrastructure(entry) {
   const allowedDatabase = {
     unit: new Set(['none']),
@@ -160,6 +222,7 @@ for (const { packagePath, packageJson } of packages) {
   }
   knownWorkspaces.set(packageJson.name, packageJson);
   validateTestScriptNames(relative, packageJson.scripts, new Set(categoryScripts.keys()));
+  await validateTestFileCoverage(relative, packagePath, packageJson.scripts);
   for (const [script, category] of categoryScripts) {
     if (!packageJson.scripts?.[script]) continue;
     const key = `${category}|${packageJson.name}|${script}`;
