@@ -1,12 +1,17 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-13
+# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
+# Author review: <to be completed by ngkhengyang>
 FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json tsconfig.base.json ./
+# AI-generated (edited by ngkhengyang)
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY apps/admin-portal/package.json ./apps/admin-portal/
 
-RUN npm install --workspace=@campus-errand/admin-portal --include-workspace-root=false
+RUN npm ci --workspace=@campus-errand/admin-portal --include-workspace-root=false
 
 COPY apps/admin-portal ./apps/admin-portal
 

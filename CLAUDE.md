@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Updated the Dockerfile repository fact to describe lockfile-based npm ci installation.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Updated test commands, static-matrix maintenance, Chromium CI coverage, lint facts, and removed references to the deleted dev branch.
 Author review: <to be completed by ngkhengyang>
@@ -150,7 +154,7 @@ Things that are easy to get wrong:
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
 - Vite dev proxies: Compose sets `GATEWAY_URL` for both apps, so API and WebSocket requests go through nginx. Without it, host-based development sends user, supplier and notification requests directly to their localhost ports. The student app sends `/admin` to `ADMIN_PORTAL_URL` (default `http://localhost:5174`); Compose sets that variable to the admin portal container.
-- Dockerfiles copy only the root `package.json`, `packages/` and the service's own folder, then `npm install`. A new npm dependency in that service's `package.json` needs no Dockerfile edit; a new shared folder, a native/system package, or a new env var does (Dockerfile and/or `docker-compose.yml`). `.dockerignore` excludes `*.md`.
+- Dockerfiles copy the root `package.json` and `package-lock.json`, `packages/`, and the service or app's own folder, then run workspace-scoped `npm ci` with the workspace root excluded. A new npm dependency in that workspace's `package.json` and the root lockfile needs no Dockerfile edit; a new shared folder, a native/system package, or a new env var does (Dockerfile and/or `docker-compose.yml`). `.dockerignore` excludes `*.md`.
 
 ## 5. Commands
 

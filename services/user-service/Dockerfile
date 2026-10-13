@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-13
+# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-12
 # Scope: Restricted dependency installation to the User Service workspace and its local dependencies.
 # Author review: <to be completed by ngkhengyang>
@@ -20,13 +24,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy root configurations and workspace manifests
-COPY package.json tsconfig.base.json ./
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY services/user-service/package.json ./services/user-service/
 COPY services/user-service/src/database/prisma ./services/user-service/src/database/prisma
 
-# Install dependencies using npm workspace
-RUN npm install --workspace=@campus-errand/user-service --include-workspace-root=false
+# Install dependencies using the npm workspace lockfile
+RUN npm ci --workspace=@campus-errand/user-service --include-workspace-root=false
 
 # Copy service source code
 COPY services/user-service ./services/user-service

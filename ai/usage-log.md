@@ -1,6 +1,22 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Recorded reproducible, lockfile-based Docker dependency installation and its verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Formatted the three PR #115 inline-review replies as copy-ready Markdown.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Retrieved the three inline Claude comments on PR #115 and drafted thread-specific replies.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Drafted responses to the three actionable Claude review comments on PR #115.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-12
 Scope: Recorded fixes for PR #115 review findings covering test-file coverage, container dependency scope, and root CI dependencies.
 Author review: <to be completed by ngkhengyang>
@@ -2893,4 +2909,65 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - All seven Docker images built with workspace-only dependency installs; checks confirmed that root-only `eslint` and `playwright` packages were absent from every image.
 - `npm test` passed unit, integration, messaging, migration, seed, acceptance (62/62 API and 17/17 notification checks), API E2E (56/56), and Chromium UI (34/34) suites, then removed its isolated containers, network, and volumes.
 - `npm ls pg tsx --depth=0` confirmed both packages are direct root dependencies, `git diff --check` passed before this entry, and no test file was added or modified.
+
+## 2026-10-12 12:43 SGT — Draft PR #115 review replies
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Provide concise replies for the three addressed Claude review comments on PR #115.
+
+**Usage scenario:** Communication support for explaining reviewed CI changes (allowed use). The author retains responsibility for reviewing and posting the replies on GitHub.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory communication-support record and updated its consolidated disclosure.
+
+## 2026-10-12 12:55 SGT — Format PR #115 replies as Markdown
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Format the three previously drafted PR #115 inline-comment replies as copy-ready Markdown.
+
+**Usage scenario:** Communication and formatting support (allowed use). The author retains responsibility for reviewing and posting the replies on GitHub.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory formatting-support record and updated its consolidated disclosure.
+
+## 2026-10-12 12:54 SGT — Draft thread-specific PR #115 replies
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Review the three linked inline Claude comments on PR #115 and provide a specific reply for each thread.
+
+**Usage scenario:** Communication support for explaining reviewed CI changes (allowed use). The author retains responsibility for reviewing and posting the replies on GitHub.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory communication-support record and updated its consolidated disclosure.
+
+## 2026-10-13 00:49 SGT — Make Docker installs reproducible with npm ci
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Update all application Dockerfiles to copy the root lockfile and use workspace-scoped `npm ci` without adding dependencies or changing the application architecture.
+
+**Usage scenario:** Infrastructure implementation and verification support (allowed boilerplate/configuration work). The author retains responsibility for reviewing the Dockerfile and documentation changes and for running full image builds when Docker Desktop is available.
+
+**Files changed:**
+- `apps/admin-portal/Dockerfile`, `apps/student-app/Dockerfile` — copied `package-lock.json` and replaced workspace-scoped `npm install` with `npm ci`.
+- `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile`, `services/order-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/user-service/Dockerfile` — copied `package-lock.json` and replaced workspace-scoped `npm install` with `npm ci`.
+- `CLAUDE.md` — updated the Dockerfile repository fact to match lockfile-based installation.
+- `ai/usage-log.md` — appended this record and updated its consolidated disclosure.
+
+**Verification:**
+- All seven Docker-style partial build contexts passed workspace-scoped `npm ci --dry-run` against the root lockfile.
+- `npm run typecheck` passed across all workspaces.
+- Docker Compose resolved all services, but full image builds could not run because the Docker Desktop Linux engine was unavailable.
+
 

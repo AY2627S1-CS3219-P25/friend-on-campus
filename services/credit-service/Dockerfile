@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-13
+# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-12
 # Scope: Restricted dependency installation to the Credit Service workspace and its local dependencies.
 # Author review: <to be completed by ngkhengyang>
@@ -17,12 +21,12 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-COPY package.json tsconfig.base.json ./
+COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/ packages/
 COPY services/credit-service/package.json ./services/credit-service/
 COPY services/credit-service/src/database/prisma ./services/credit-service/src/database/prisma
 
-RUN npm install --workspace=@campus-errand/credit-service --include-workspace-root=false
+RUN npm ci --workspace=@campus-errand/credit-service --include-workspace-root=false
 
 COPY services/credit-service ./services/credit-service
 
