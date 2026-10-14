@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 //
+// Tool: Codex (model: GPT-5), date: 2026-10-11
+// Scope: Updated the manual run note now that Chromium Playwright is a locked repository dependency.
+// Author review: <to be completed by ngkhengyang>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
 // Scope: UD2-UD5: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address). UD4 finds the step inside its errand card.
 // Author review: <to be completed by Reallyeasy1>
@@ -13,8 +17,7 @@
 // Author review: <to be completed by Reallyeasy1>
 
 // AI-generated (edited by Reallyeasy1)
-// Run: npm i --no-save playwright@1.63.0 && npx playwright install chromium && node scripts/uat/uat-d2-ui.mjs
-// (playwright is deliberately not a repo dependency; --no-save keeps package.json unchanged)
+// Run: npx playwright install chromium && npm run test:e2e:ui
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
 // Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;

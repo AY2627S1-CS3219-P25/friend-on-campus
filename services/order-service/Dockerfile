@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-12
+# Scope: Restricted dependency installation to the Order Service workspace and its local dependencies.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Google Antigravity Agent, date: 2026-10-07
 # Scope: Configured Dockerfile for Order Service with OpenSSL, Prisma client generation, database migration deployment, and tsx execution.
 # Author review: (to be completed by author after review)
@@ -13,7 +17,8 @@ COPY packages/ packages/
 COPY services/order-service/package.json ./services/order-service/
 COPY services/order-service/src/database/prisma ./services/order-service/src/database/prisma
 
-RUN npm install
+# AI-generated (edited by ngkhengyang)
+RUN npm install --workspace=@campus-errand/order-service --include-workspace-root=false
 
 COPY services/order-service ./services/order-service
 

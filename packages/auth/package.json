@@ -8,6 +8,7 @@
     "@campus-errand/common-dtos": "*"
   },
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

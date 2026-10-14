@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Implemented Admin Order State Management dashboard, live order auditing, KPI metrics, search & status filters, and state intervention dialogs (force-cancel, force-complete, unassign) with optimistic concurrency error recovery.
+ * Author review: (to be completed by author after review)
+ * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
+ * Scope: Resolved localized lint findings without changing dashboard behavior.
+ * Author review: <to be completed by ngkhengyang>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Return directly to login after successful self-deletion and clear account-deletion UI state.
  * Author review: <to be completed by huangjiaxi1111>
@@ -161,6 +168,10 @@ import {
   Users,
   Menu,
   LogOut,
+  Package,
+  AlertTriangle,
+  CheckSquare,
+  UserX,
 } from 'lucide-react';
 import {
   SupplierDTO,
@@ -169,6 +180,8 @@ import {
   UpdateSupplierRequest,
   UserDTO,
   UserRole,
+  OrderDTO,
+  OrderStatus,
 } from '@campus-errand/common-dtos';
 
 const CATEGORIES: SupplierCategory[] = [
@@ -217,7 +230,7 @@ interface SupplierLocationConflict {
 }
 
 export default function App() {
-  const [activeNav, setActiveNav] = useState<'suppliers' | 'health' | 'audit' | 'users'>('suppliers');
+  const [activeNav, setActiveNav] = useState<'suppliers' | 'orders' | 'health' | 'audit' | 'users'>('suppliers');
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -320,6 +333,28 @@ export default function App() {
   const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
   const [currentPageUsers, setCurrentPageUsers] = useState(1);
 
+  // ----------------------------------------------------
+  // Orders & Errands Management state (Admin-only)
+  // ----------------------------------------------------
+  const [orders, setOrders] = useState<OrderDTO[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [errorOrders, setErrorOrders] = useState<string | null>(null);
+
+  const [searchQueryOrders, setSearchQueryOrders] = useState('');
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState<OrderStatus | 'ALL'>('ALL');
+  const [selectedOrderZone, setSelectedOrderZone] = useState<string>('ALL');
+  const [sortFieldOrders, setSortFieldOrders] = useState<keyof OrderDTO>('createdAt');
+  const [sortDirectionOrders, setSortDirectionOrders] = useState<'asc' | 'desc'>('desc');
+  const [currentPageOrders, setCurrentPageOrders] = useState(1);
+
+  // Admin Order Action Modal state
+  const [targetOrderForAction, setTargetOrderForAction] = useState<OrderDTO | null>(null);
+  const [orderActionType, setOrderActionType] = useState<'cancel' | 'complete' | 'unassign' | null>(null);
+  const [orderActionReason, setOrderActionReason] = useState('');
+  const [isSubmittingOrderAction, setIsSubmittingOrderAction] = useState(false);
+  const [orderActionError, setOrderActionError] = useState<string | null>(null);
+  const [isConflictError, setIsConflictError] = useState(false);
+
   // Admin Login Gate handlers
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -378,13 +413,19 @@ export default function App() {
     setDeleteUserConfirmed(false);
     setDeleteUserError(null);
     setDeletedUserSuccess(null);
+    setOrders([]);
+    setTargetOrderForAction(null);
+    setOrderActionType(null);
+    setOrderActionReason('');
+    setOrderActionError(null);
+    setIsConflictError(false);
   };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (err) {
+    } catch {
       // Network failure logging out server-side shouldn't block clearing the local session below.
     } finally {
       clearLocalSession();
@@ -559,6 +600,103 @@ export default function App() {
       setUsers([]);
     } finally {
       setIsLoadingUsers(false);
+    }
+  };
+
+  // Fetch all orders for Admin Order Management, via the API Gateway to order-service
+  const fetchOrders = async () => {
+    setIsLoadingOrders(true);
+    setErrorOrders(null);
+    try {
+      const res = await authFetch('/api/orders?status=ALL&limit=100');
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+      }
+      const json = await res.json();
+      if (json.success && json.data) {
+        const list: OrderDTO[] = Array.isArray(json.data) ? json.data : json.data.orders || [];
+        setOrders(list);
+      } else {
+        throw new Error(json.error || 'Failed to parse orders payload');
+      }
+    } catch (err: any) {
+      console.warn('API error fetching orders:', err.message);
+      setErrorOrders('Could not connect to live Order Service API (/api/orders).');
+      setOrders([]);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const openOrderAction = (order: OrderDTO, type: 'cancel' | 'complete' | 'unassign') => {
+    setTargetOrderForAction(order);
+    setOrderActionType(type);
+    setOrderActionReason('');
+    setOrderActionError(null);
+    setIsConflictError(false);
+  };
+
+  const closeOrderActionModal = () => {
+    setTargetOrderForAction(null);
+    setOrderActionType(null);
+    setOrderActionReason('');
+    setOrderActionError(null);
+    setIsConflictError(false);
+  };
+
+  const handleExecuteOrderAction = async () => {
+    if (!targetOrderForAction || !orderActionType) return;
+    const trimmedReason = orderActionReason.trim();
+    if (!trimmedReason) {
+      setOrderActionError('An administrative audit reason is required.');
+      return;
+    }
+
+    setIsSubmittingOrderAction(true);
+    setOrderActionError(null);
+    setIsConflictError(false);
+
+    try {
+      const endpoint =
+        orderActionType === 'cancel'
+          ? `/api/orders/${targetOrderForAction.id}/admin/cancel`
+          : orderActionType === 'complete'
+          ? `/api/orders/${targetOrderForAction.id}/admin/complete`
+          : `/api/orders/${targetOrderForAction.id}/admin/unassign`;
+
+      const res = await authFetch(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({
+          reason: trimmedReason,
+          expectedVersion: targetOrderForAction.version,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        if (res.status === 409) {
+          setIsConflictError(true);
+          setOrderActionError(
+            data.error || 'Concurrent conflict: Order state or version changed while this dialog was open.'
+          );
+          fetchOrders();
+          return;
+        }
+        throw new Error(data.error || `Action failed with status ${res.status}`);
+      }
+
+      const updatedOrder: OrderDTO = data.data;
+      setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
+      setActionAlert({
+        type: 'success',
+        message: data.message || `Order ${updatedOrder.orderCode} successfully updated.`,
+      });
+      closeOrderActionModal();
+    } catch (err: any) {
+      setOrderActionError(err.message || 'An error occurred executing order state action.');
+    } finally {
+      setIsSubmittingOrderAction(false);
     }
   };
 
@@ -861,7 +999,7 @@ export default function App() {
 
   // Filter & Sort Pipeline
   const filteredAndSorted = useMemo(() => {
-    let result = suppliers.filter((s) => {
+    const result = suppliers.filter((s) => {
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !query ||
@@ -930,7 +1068,7 @@ export default function App() {
   const activeUserFilterCount = selectedUserRoles.length > 0 ? 1 : 0;
 
   const filteredAndSortedUsers = useMemo(() => {
-    let result = users.filter((u) => {
+    const result = users.filter((u) => {
       const query = searchQueryUsers.toLowerCase().trim();
       const matchesSearch =
         !query ||
@@ -972,6 +1110,134 @@ export default function App() {
     const students = users.filter((u) => u.userRole === 'STUDENT').length;
     return { admins, students };
   }, [users]);
+
+  // ----------------------------------------------------
+  // Orders & Errands: sort, filter, pagination
+  // ----------------------------------------------------
+  const handleSortOrders = (field: keyof OrderDTO) => {
+    if (sortFieldOrders === field) {
+      setSortDirectionOrders((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortFieldOrders(field);
+      setSortDirectionOrders('asc');
+    }
+  };
+
+  const filteredAndSortedOrders = useMemo(() => {
+    const result = orders.filter((o) => {
+      const query = searchQueryOrders.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        o.orderCode.toLowerCase().includes(query) ||
+        o.itemDescription.toLowerCase().includes(query) ||
+        o.dropoffLocation.toLowerCase().includes(query) ||
+        (o.supplierName && o.supplierName.toLowerCase().includes(query)) ||
+        o.requesterId.toLowerCase().includes(query) ||
+        (o.courierId && o.courierId.toLowerCase().includes(query));
+
+      const matchesStatus = selectedOrderStatus === 'ALL' || o.status === selectedOrderStatus;
+      const matchesZone = selectedOrderZone === 'ALL' || o.campusZone === selectedOrderZone;
+
+      return matchesSearch && matchesStatus && matchesZone;
+    });
+
+    result.sort((a, b) => {
+      let valA = a[sortFieldOrders];
+      let valB = b[sortFieldOrders];
+
+      if (valA === undefined || valA === null) valA = '';
+      if (valB === undefined || valB === null) valB = '';
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortDirectionOrders === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        return sortDirectionOrders === 'asc' ? valA - valB : valB - valA;
+      }
+      return 0;
+    });
+
+    return result;
+  }, [orders, searchQueryOrders, selectedOrderStatus, selectedOrderZone, sortFieldOrders, sortDirectionOrders]);
+
+  const totalPagesOrders = Math.max(1, Math.ceil(filteredAndSortedOrders.length / pageSize));
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPageOrders - 1) * pageSize;
+    return filteredAndSortedOrders.slice(start, start + pageSize);
+  }, [filteredAndSortedOrders, currentPageOrders, pageSize]);
+
+  const orderStats = useMemo(() => {
+    const total = orders.length;
+    const open = orders.filter((o) => o.status === 'OPEN').length;
+    const accepted = orders.filter((o) => o.status === 'ACCEPTED').length;
+    const inTransit = orders.filter((o) => o.status === 'IN_TRANSIT').length;
+    const delivered = orders.filter((o) => o.status === 'DELIVERED').length;
+    const completed = orders.filter((o) => o.status === 'COMPLETED').length;
+    const cancelledOrExpired = orders.filter((o) => o.status === 'CANCELLED' || o.status === 'EXPIRED').length;
+    const totalRewardCredits = orders.reduce((sum, o) => sum + (o.rewardCredits || 0), 0);
+
+    return { total, open, accepted, inTransit, delivered, completed, cancelledOrExpired, totalRewardCredits };
+  }, [orders]);
+
+  const renderOrderStatusBadge = (status: OrderStatus) => {
+    switch (status) {
+      case 'OPEN':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+            <Clock className="w-3 h-3 mr-1" />
+            OPEN
+          </span>
+        );
+      case 'ACCEPTED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-300">
+            <Activity className="w-3 h-3 mr-1" />
+            ACCEPTED
+          </span>
+        );
+      case 'IN_TRANSIT':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
+            <Activity className="w-3 h-3 mr-1" />
+            IN TRANSIT
+          </span>
+        );
+      case 'DELIVERED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-300">
+            <CheckSquare className="w-3 h-3 mr-1" />
+            DELIVERED
+          </span>
+        );
+      case 'COMPLETED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            COMPLETED
+          </span>
+        );
+      case 'CANCELLED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+            <XCircle className="w-3 h-3 mr-1" />
+            CANCELLED
+          </span>
+        );
+      case 'EXPIRED':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+            <Clock className="w-3 h-3 mr-1" />
+            EXPIRED
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+            {status}
+          </span>
+        );
+    }
+  };
 
   if (isCheckingSession) {
     return (
@@ -1090,6 +1356,21 @@ export default function App() {
 
           <button
             onClick={() => {
+              setActiveNav('orders');
+              fetchOrders();
+            }}
+            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
+              activeNav === 'orders'
+                ? 'bg-blue-600 text-white shadow'
+                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>Errands & Orders</span>
+          </button>
+
+          <button
+            onClick={() => {
               setActiveNav('users');
               fetchUsers();
             }}
@@ -1168,6 +1449,8 @@ export default function App() {
                   ? 'Campus Suppliers Directory'
                   : activeNav === 'users'
                   ? 'User Directory'
+                  : activeNav === 'orders'
+                  ? 'Errands & Order Management'
                   : activeNav === 'health'
                   ? 'System Health & Services'
                   : 'Audit Log & Resolution'}
@@ -1197,12 +1480,30 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => (activeNav === 'users' ? fetchUsers() : fetchSuppliers())}
+              onClick={() => {
+                if (activeNav === 'orders') fetchOrders();
+                else if (activeNav === 'users') fetchUsers();
+                else fetchSuppliers();
+              }}
               className="admin-square-button p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-              title={activeNav === 'users' ? 'Refresh users list' : 'Refresh suppliers list'}
+              title={
+                activeNav === 'orders'
+                  ? 'Refresh orders list'
+                  : activeNav === 'users'
+                  ? 'Refresh users list'
+                  : 'Refresh suppliers list'
+              }
             >
               <RefreshCw
-                className={`w-4 h-4 ${(activeNav === 'users' ? isLoadingUsers : isLoading) ? 'animate-spin' : ''}`}
+                className={`w-4 h-4 ${
+                  (activeNav === 'orders'
+                    ? isLoadingOrders
+                    : activeNav === 'users'
+                    ? isLoadingUsers
+                    : isLoading)
+                    ? 'animate-spin'
+                    : ''
+                }`}
               />
             </button>
 
@@ -1233,6 +1534,18 @@ export default function App() {
               }`}
             >
               Campus Suppliers (M3)
+            </button>
+            <button
+              onClick={() => {
+                setActiveNav('orders');
+                fetchOrders();
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
+                activeNav === 'orders' ? 'bg-blue-600 text-white' : 'text-slate-300'
+              }`}
+            >
+              Errands & Orders
             </button>
             <button
               onClick={() => {
@@ -1308,10 +1621,10 @@ export default function App() {
 
         {/* Scrollable Viewport */}
         <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
-          {(activeNav === 'users' ? errorUsers : error) && (
+          {(activeNav === 'users' ? errorUsers : activeNav === 'orders' ? errorOrders : error) && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>{activeNav === 'users' ? errorUsers : error}</span>
+              <span>{activeNav === 'users' ? errorUsers : activeNav === 'orders' ? errorOrders : error}</span>
             </div>
           )}
 
@@ -1971,6 +2284,419 @@ export default function App() {
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeNav === 'orders' && (
+            <div className="space-y-4">
+              {/* KPI Cards Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Errands</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">{orderStats.total}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">All order records</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Package className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Open & Claimed</p>
+                    <p className="text-2xl font-black text-amber-600 mt-1">{orderStats.open + orderStats.accepted}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{orderStats.open} open • {orderStats.accepted} claimed</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">In Transit & Delivered</p>
+                    <p className="text-2xl font-black text-purple-600 mt-1">{orderStats.inTransit + orderStats.delivered}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{orderStats.inTransit} active • {orderStats.delivered} awaiting confirm</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <Activity className="w-5 h-5" />
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Settled & Closed</p>
+                    <p className="text-2xl font-black text-emerald-600 mt-1">{orderStats.completed}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{orderStats.cancelledOrExpired} cancelled/expired</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter, Search & Controls Bar */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                  {/* Search Bar */}
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchQueryOrders}
+                      onChange={(e) => {
+                        setSearchQueryOrders(e.target.value);
+                        setCurrentPageOrders(1);
+                      }}
+                      placeholder="Search by order code, items, dropoff location, requester or courier ID..."
+                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    {searchQueryOrders && (
+                      <button
+                        onClick={() => {
+                          setSearchQueryOrders('');
+                          setCurrentPageOrders(1);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Zone Filter */}
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <span className="text-xs font-semibold text-slate-500">Zone:</span>
+                    <select
+                      value={selectedOrderZone}
+                      onChange={(e) => {
+                        setSelectedOrderZone(e.target.value);
+                        setCurrentPageOrders(1);
+                      }}
+                      className="text-sm border border-slate-200 rounded-lg px-2.5 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    >
+                      <option value="ALL">All Campus Zones</option>
+                      {CAMPUS_ZONES.map((z) => (
+                        <option key={z} value={z}>{z}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+                  <span className="text-xs font-semibold text-slate-500 mr-1">Status:</span>
+                  {(['ALL', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED'] as const).map(
+                    (st) => {
+                      const isSelected = selectedOrderStatus === st;
+                      const count =
+                        st === 'ALL'
+                          ? orders.length
+                          : orders.filter((o) => o.status === st).length;
+                      return (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderStatus(st);
+                            setCurrentPageOrders(1);
+                          }}
+                          className={`text-xs px-2.5 py-1 rounded-full font-bold transition flex items-center space-x-1 ${
+                            isSelected
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          <span>{st === 'ALL' ? 'All Orders' : st}</span>
+                          <span
+                            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                              isSelected ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+
+              {/* Orders Table Container */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                {isLoadingOrders ? (
+                  <div className="p-12 text-center text-slate-500">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-400" />
+                    <p className="text-sm font-semibold">Loading orders from Order Service...</p>
+                  </div>
+                ) : filteredAndSortedOrders.length === 0 ? (
+                  <div className="p-12 text-center text-slate-500">
+                    <Package className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="text-base font-bold text-slate-700">No errands found</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {searchQueryOrders || selectedOrderStatus !== 'ALL' || selectedOrderZone !== 'ALL'
+                        ? 'Try clearing your filters or search query.'
+                        : 'No orders have been placed in the system yet.'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          <tr>
+                            <th className="p-4 cursor-pointer hover:text-slate-900" onClick={() => handleSortOrders('orderCode')}>
+                              <div className="flex items-center space-x-1">
+                                <span>Order Code</span>
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </th>
+                            <th className="p-4">Item & Dropoff</th>
+                            <th className="p-4">Requester & Courier</th>
+                            <th className="p-4 cursor-pointer hover:text-slate-900" onClick={() => handleSortOrders('rewardCredits')}>
+                              <div className="flex items-center space-x-1">
+                                <span>Escrow Reward</span>
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </th>
+                            <th className="p-4">Status & Version</th>
+                            <th className="p-4 text-right">Admin Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {paginatedOrders.map((order) => {
+                            const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED' || order.status === 'EXPIRED';
+                            return (
+                              <tr key={order.id} className="hover:bg-slate-50/80 transition">
+                                <td className="p-4 align-top">
+                                  <div className="font-mono font-bold text-slate-900">{order.orderCode}</div>
+                                  <div className="text-[11px] text-slate-400 mt-0.5">
+                                    {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                  {order.specialNotes && (
+                                    <div className="text-[11px] text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 mt-1 border border-amber-200 max-w-xs truncate" title={order.specialNotes}>
+                                      Note: {order.specialNotes}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="p-4 align-top">
+                                  <div className="font-semibold text-slate-800">{order.itemDescription}</div>
+                                  <div className="text-xs text-slate-500 mt-0.5">
+                                    📍 To: <span className="font-medium text-slate-700">{order.dropoffLocation}</span>
+                                  </div>
+                                  <div className="text-xs text-slate-400 mt-0.5">
+                                    Zone: <span className="font-medium text-slate-600">{order.campusZone}</span>
+                                    {order.supplierName && ` • ${order.supplierName}`}
+                                  </div>
+                                </td>
+                                <td className="p-4 align-top">
+                                  <div className="text-xs text-slate-600">
+                                    <span className="font-semibold text-slate-700">Req:</span>{' '}
+                                    <span className="font-mono text-[11px]">{order.requesterId.slice(0, 8)}...</span>
+                                  </div>
+                                  <div className="text-xs text-slate-600 mt-1">
+                                    <span className="font-semibold text-slate-700">Courier:</span>{' '}
+                                    {order.courierId ? (
+                                      <span className="font-mono text-[11px] text-blue-700">{order.courierId.slice(0, 8)}...</span>
+                                    ) : (
+                                      <span className="italic text-slate-400 text-xs">Unassigned</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-4 align-top">
+                                  <div className="font-bold text-slate-900">{order.rewardCredits} pts</div>
+                                  <div className="text-[11px] text-slate-400">
+                                    {order.status === 'COMPLETED' ? 'Settled' : order.status === 'CANCELLED' ? 'Refunded' : 'Held in Escrow'}
+                                  </div>
+                                </td>
+                                <td className="p-4 align-top">
+                                  <div>{renderOrderStatusBadge(order.status)}</div>
+                                  <div className="text-[11px] font-mono text-slate-400 mt-1">
+                                    v{order.version}
+                                  </div>
+                                </td>
+                                <td className="p-4 align-top text-right">
+                                  <div className="flex flex-col items-end gap-1.5">
+                                    {order.status === 'OPEN' && (
+                                      <button
+                                        onClick={() => openOrderAction(order, 'cancel')}
+                                        className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                      >
+                                        Force Cancel
+                                      </button>
+                                    )}
+
+                                    {order.status === 'ACCEPTED' && (
+                                      <div className="flex items-center space-x-1.5">
+                                        <button
+                                          onClick={() => openOrderAction(order, 'unassign')}
+                                          className="text-xs font-bold text-amber-600 hover:text-white hover:bg-amber-600 border border-amber-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                          title="Unassign courier and revert to OPEN"
+                                        >
+                                          Unassign Courier
+                                        </button>
+                                        <button
+                                          onClick={() => openOrderAction(order, 'cancel')}
+                                          className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {order.status === 'IN_TRANSIT' && (
+                                      <button
+                                        onClick={() => openOrderAction(order, 'cancel')}
+                                        className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                        title="Cancel order during transit with refund"
+                                      >
+                                        Dispute Cancel
+                                      </button>
+                                    )}
+
+                                    {order.status === 'DELIVERED' && (
+                                      <button
+                                        onClick={() => openOrderAction(order, 'complete')}
+                                        className="text-xs font-bold text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                        title="Resolve delivery dispute by releasing escrow to courier"
+                                      >
+                                        Force Complete
+                                      </button>
+                                    )}
+
+                                    {isTerminal && (
+                                      <span className="text-xs font-semibold text-slate-400 italic">No actions needed</span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                      {paginatedOrders.map((order) => {
+                        const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED' || order.status === 'EXPIRED';
+                        return (
+                          <div key={order.id} className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono font-bold text-slate-900">{order.orderCode}</span>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-[10px] font-mono text-slate-400">v{order.version}</span>
+                                {renderOrderStatusBadge(order.status)}
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="font-semibold text-slate-800 text-sm">{order.itemDescription}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">📍 Dropoff: {order.dropoffLocation}</p>
+                              <p className="text-xs text-slate-400">Zone: {order.campusZone} • {order.rewardCredits} pts escrow</p>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-50">
+                              <span>Req: {order.requesterId.slice(0, 8)}...</span>
+                              <span>Courier: {order.courierId ? `${order.courierId.slice(0, 8)}...` : 'Unassigned'}</span>
+                            </div>
+
+                            {!isTerminal && (
+                              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 justify-end">
+                                {order.status === 'OPEN' && (
+                                  <button
+                                    onClick={() => openOrderAction(order, 'cancel')}
+                                    className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
+                                  >
+                                    Force Cancel
+                                  </button>
+                                )}
+                                {order.status === 'ACCEPTED' && (
+                                  <>
+                                    <button
+                                      onClick={() => openOrderAction(order, 'unassign')}
+                                      className="text-xs font-bold text-amber-600 border border-amber-300 rounded-lg px-3 py-1.5"
+                                    >
+                                      Unassign
+                                    </button>
+                                    <button
+                                      onClick={() => openOrderAction(order, 'cancel')}
+                                      className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </>
+                                )}
+                                {order.status === 'IN_TRANSIT' && (
+                                  <button
+                                    onClick={() => openOrderAction(order, 'cancel')}
+                                    className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
+                                  >
+                                    Dispute Cancel
+                                  </button>
+                                )}
+                                {order.status === 'DELIVERED' && (
+                                  <button
+                                    onClick={() => openOrderAction(order, 'complete')}
+                                    className="text-xs font-bold text-emerald-600 border border-emerald-300 rounded-lg px-3 py-1.5"
+                                  >
+                                    Force Complete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Pagination Bar */}
+                    <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+                      <div>
+                        Showing <span className="font-bold text-slate-700">{(currentPageOrders - 1) * pageSize + 1}</span> to{' '}
+                        <span className="font-bold text-slate-700">
+                          {Math.min(currentPageOrders * pageSize, filteredAndSortedOrders.length)}
+                        </span>{' '}
+                        of <span className="font-bold text-slate-700">{filteredAndSortedOrders.length}</span> orders
+                      </div>
+
+                      <div className="flex items-center space-x-1">
+                        <button
+                          disabled={currentPageOrders <= 1}
+                          onClick={() => setCurrentPageOrders((p) => Math.max(1, p - 1))}
+                          className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+
+                        {Array.from({ length: totalPagesOrders }, (_, i) => i + 1).map((page) => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPageOrders(page)}
+                            className={`admin-square-button rounded-lg text-xs font-bold transition px-2.5 py-1 ${
+                              currentPageOrders === page
+                                ? 'bg-slate-900 text-white'
+                                : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+
+                        <button
+                          disabled={currentPageOrders >= totalPagesOrders}
+                          onClick={() => setCurrentPageOrders((p) => Math.min(totalPagesOrders, p + 1))}
+                          className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -2950,6 +3676,175 @@ export default function App() {
                 className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg"
               >
                 Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Order Action Modal */}
+      {targetOrderForAction && orderActionType && (
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    orderActionType === 'cancel'
+                      ? 'bg-rose-100 text-rose-600'
+                      : orderActionType === 'complete'
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : 'bg-amber-100 text-amber-600'
+                  }`}
+                >
+                  {orderActionType === 'cancel' ? (
+                    <AlertTriangle className="w-5 h-5" />
+                  ) : orderActionType === 'complete' ? (
+                    <CheckSquare className="w-5 h-5" />
+                  ) : (
+                    <UserX className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900">
+                    {orderActionType === 'cancel'
+                      ? 'Admin Force Cancel Errand'
+                      : orderActionType === 'complete'
+                      ? 'Admin Force Complete Errand'
+                      : 'Admin Unassign Courier'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Order: <span className="font-mono font-bold text-slate-700">{targetOrderForAction.orderCode}</span> (v{targetOrderForAction.version})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={closeOrderActionModal}
+                disabled={isSubmittingOrderAction}
+                className="admin-square-button text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Invariant Explanation Banner */}
+            <div
+              className={`p-3.5 rounded-xl text-xs space-y-1.5 border ${
+                orderActionType === 'cancel'
+                  ? 'bg-rose-50 border-rose-200 text-rose-800'
+                  : orderActionType === 'complete'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}
+            >
+              <p className="font-bold">
+                {orderActionType === 'cancel'
+                  ? '⚠️ Escrow Refund Guarantee'
+                  : orderActionType === 'complete'
+                  ? '💰 Escrow Payout Transfer'
+                  : '🔄 Courier State Reset'}
+              </p>
+              <p>
+                {orderActionType === 'cancel'
+                  ? `Cancelling will set status to CANCELLED and immediately publish an order.cancelled event to refund ${targetOrderForAction.rewardCredits} held credits back to the requester.`
+                  : orderActionType === 'complete'
+                  ? `Force-completing sets status to COMPLETED and publishes an order.completed event to release ${targetOrderForAction.rewardCredits} credits to courier ${targetOrderForAction.courierId ? targetOrderForAction.courierId.slice(0, 8) + '...' : 'assigned courier'}.`
+                  : `Unassigning will revert status to OPEN and clear the courier assignment, allowing another student to accept the errand. Requester escrow remains safely held.`}
+              </p>
+            </div>
+
+            {/* Concurrency Guard Notice */}
+            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
+              <span>Optimistic Concurrency Lock:</span>
+              <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
+                Expected Version {targetOrderForAction.version}
+              </span>
+            </div>
+
+            {/* Conflict / Error Banner */}
+            {orderActionError && (
+              <div
+                className={`p-3 rounded-xl text-sm border space-y-2 ${
+                  isConflictError
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-700'
+                }`}
+              >
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold">{isConflictError ? 'Version Conflict (HTTP 409)' : 'Action Error'}</p>
+                    <p className="text-xs mt-0.5">{orderActionError}</p>
+                  </div>
+                </div>
+                {isConflictError && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchOrders();
+                      closeOrderActionModal();
+                    }}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-1.5 rounded-lg transition"
+                  >
+                    Refresh Order List & Close
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Mandatory Reason Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
+                Administrative Audit Reason <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                required
+                rows={3}
+                maxLength={500}
+                value={orderActionReason}
+                onChange={(e) => setOrderActionReason(e.target.value)}
+                placeholder="Explain why admin intervention is required (e.g. Courier emergency uncontactable, Student dispute resolved, Errand duplicate)..."
+                disabled={isSubmittingOrderAction}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1">
+                <span>Reason will be immutably recorded in the order audit notes.</span>
+                <span>{orderActionReason.length}/500</span>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isSubmittingOrderAction}
+                onClick={closeOrderActionModal}
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingOrderAction || !orderActionReason.trim()}
+                onClick={handleExecuteOrderAction}
+                className={`flex items-center justify-center space-x-2 font-bold text-sm px-4 py-2 rounded-lg shadow transition disabled:opacity-50 text-white ${
+                  orderActionType === 'cancel'
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : orderActionType === 'complete'
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {isSubmittingOrderAction && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>
+                  {isSubmittingOrderAction
+                    ? 'Executing…'
+                    : orderActionType === 'cancel'
+                    ? 'Confirm Cancellation'
+                    : orderActionType === 'complete'
+                    ? 'Force Complete & Pay Escrow'
+                    : 'Unassign Courier'}
+                </span>
               </button>
             </div>
           </div>

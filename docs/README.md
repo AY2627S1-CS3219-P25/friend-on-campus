@@ -20,6 +20,7 @@ This documentation is organized into focused, authoritative specifications that 
 | **[`architecture.md`](./architecture.md)** | **System Architecture & Infrastructure**: High-level component topology diagram, microservice responsibilities, database-per-service isolation, synchronous HTTP vs asynchronous RabbitMQ event choreography, and Docker Compose orchestration. |
 | **[`errand-specification.md`](./errand-specification.md)** | **Errand Domain & Credit Economy**: Complete errand lifecycle state machine (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`), credit escrow holds/settlement/refunds, atomic single-winner claiming under concurrency, background expiry sweeper, and RabbitMQ domain event matrix. |
 | **[`security.md`](./security.md)** | **Security & Access Control**: Asymmetric Ed25519 token issuance and offline verification, HttpOnly refresh token session management, Role-Based Access Control (`STUDENT` vs `ADMIN`), resource ownership rules, and atomic last-administrator safety guard. |
+| **[`ci.md`](./ci.md)** | **Continuous Integration & Testing**: GitHub Actions workflow structure, public test commands, isolated aggregate orchestration, static test matrix maintenance, and containerized acceptance/E2E test pipelines. |
 
 ---
 

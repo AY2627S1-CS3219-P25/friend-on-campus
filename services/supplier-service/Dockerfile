@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-12
+# Scope: Restricted dependency installation to the Supplier Service workspace and its local dependencies.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Google Antigravity Agent, date: 2026-09-24
 # Scope: Copied seed CSV data into container and updated startup command to deploy Prisma migrations and seed suppliers on boot.
 # Author review: (to be completed by author after review)
@@ -14,7 +18,7 @@ COPY services/supplier-service/package.json ./services/supplier-service/
 COPY services/supplier-service/src/database/prisma ./services/supplier-service/src/database/prisma
 COPY data/csv ./data/csv
 
-RUN npm install
+RUN npm install --workspace=@campus-errand/supplier-service --include-workspace-root=false
 
 COPY services/supplier-service ./services/supplier-service
 
