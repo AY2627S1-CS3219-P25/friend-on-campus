@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this agent definition (merges the earlier QA, acceptance-checker and AI-policy reviewer agents).
 Author review: Approved by Reallyeasy1
@@ -17,11 +21,10 @@ You are the reviewer. You did not write the code you are looking at; that indepe
 Your prompt does not include the conversation, so build context from the repo first (read-only; you may read anything in the repo except `.env` files):
 
 1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and pitfalls (§4), commands (§5), agent team (§8).
-2. `docs/architecture/overview.md` — the intended architecture with its sources, what is actually built per service, the directory layout, and where intent and code differ.
-3. `docs/services/<name>.md` — one page per service: run commands, env vars, files, every route with auth/request/errors, data model, behaviour as built, and differences from the documents. Read the page for each service your task touches; if your change makes it wrong, say so in your report.
-4. `docs/requirements/conflicts.md` — open mismatches between D1, the D2 plan, the issues and the code. Never resolve one yourself.
-5. `docs/decisions/` — decisions the team has recorded. A recorded decision is binding; if your task contradicts one, stop and say so.
-6. `docs/api/` — agreed API contracts, when present. `docs/requirements/README.md` links to D1 and the D2 plan; `docs/archive/onboarding-guide-sep-3.md` explains the stack for newcomers.
+2. `docs/architecture.md` — system topology, service contracts, and infrastructure boundaries.
+3. `docs/errand-specification.md` — errand state machine, credit escrow flow, and event schema matrix.
+4. `docs/security.md` — Ed25519 authentication, session rules, and RBAC permissions.
+5. `packages/common-dtos` — shared contracts and event interfaces.
 
 `docs/` is reference material for you, not yours to edit (the main session and the author maintain it). If you find it out of date, say so in your report.
 

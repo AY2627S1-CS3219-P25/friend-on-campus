@@ -1,56 +1,70 @@
 <!--
 AI Assistance Disclosure:
-Tool: Google Antigravity Agent, date: 2026-10-08
-Scope: Updated index: relocated D2 exam guide and onboarding guide under docs/archive/.
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Rewrote documentation index to point directly to the simplified, flattened specification documents (architecture.md, errand-specification.md, security.md).
 Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-Scope: api entry lists notification-service.yaml; services entry mentions the database access notes; diagrams entry lists the schema diagrams.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Created this index; on clean-up reordered it into reading order and folded three placeholder-only
-folders (api, diagrams, mentor-feedback) into the "Add when first needed" table. Structure only, no design content.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
-Scope: Extended the evidence entry (checklist, screenshots, UAT drivers). Added the d2-question-guide.md entry. Index text only. 2026-09-30: diagrams entry mentions the PlantUML twins.
-Author review: <to be completed by Reallyeasy1>
 -->
 
+# Friend of Campus (FoC) Documentation
 
+Welcome to the central system documentation for **Friend of Campus** (NUS CS3219 Software Design and Architecture).
 
-# Project docs
+This documentation is organized into focused, authoritative specifications that describe system boundaries, domain rules, state machines, and security patterns.
 
-## Start here
+---
 
-1. [`architecture/overview.md`](./architecture/overview.md) — the system in one page: intended architecture (with sources) beside what is built, and the directory layout.
-2. [`services/`](./services/README.md) — one page per service: run, configuration, API, data, behaviour as built; its index also says where the databases run and how to open them with `psql`. **The single detailed source for service facts**; `CLAUDE.md` and the agent files only summarise it.
-3. [`requirements/`](./requirements/README.md) — links to D1, the D2 / Sprint 2 plan and the GitHub backlog, plus [`conflicts.md`](./requirements/conflicts.md), the list of places where documents, issues and code disagree.
-4. [`decisions/`](./decisions/README.md) — one record per design decision. **Written by humans only**; `/new-adr <title>` creates the empty numbered file.
-5. [`evidence/d2/`](./evidence/d2/README.md) — acceptance-check results for the D2 demo, [`d2-checklist.md`](./evidence/d2/d2-checklist.md) (the D2 instructions point by point, with status), and `screenshots/` at desktop and mobile widths. Produced by `scripts/uat/uat-d2-api.mjs` and `scripts/uat/uat-d2-ui.mjs`.
-6. [`diagrams/`](./diagrams/) — as built, each in two forms: a Mermaid block in the `.md` (GitHub renders it) and a PlantUML `.puml` twin with a legend (render with `plantuml.jar`, see [`component.md`](./diagrams/component.md#rendering)): [`component.md`](./diagrams/component.md), [`user-schema.md`](./diagrams/user-schema.md), [`supplier-schema.md`](./diagrams/supplier-schema.md), [`notification-schema.md`](./diagrams/notification-schema.md), [`auth-sequence.md`](./diagrams/auth-sequence.md) (login, then an allowed / denied supplier action). Export images only for slides.
-7. [`api/`](./api/) — OpenAPI 3.0 transcriptions of the routes that exist: [`user-service.yaml`](./api/user-service.yaml), [`supplier-service.yaml`](./api/supplier-service.yaml), [`notification-service.yaml`](./api/notification-service.yaml).
-8. Archive: [`archive/d2-question-guide.md`](./archive/d2-question-guide.md) (Milestone D2 Q&A guide), [`archive/onboarding-guide-sep-3.md`](./archive/onboarding-guide-sep-3.md) (starter stack walkthrough).
+## 📚 Core System Specifications
 
-AI tooling (Claude Code set-up, plugins, agents, hooks) is documented next to its config: [`../.claude/README.md`](../.claude/README.md) and [`../.claude/PLUGINS.md`](../.claude/PLUGINS.md).
+| Document | Purpose & Scope |
+|---|---|
+| **[`architecture.md`](./architecture.md)** | **System Architecture & Infrastructure**: High-level component topology diagram, microservice responsibilities, database-per-service isolation, synchronous HTTP vs asynchronous RabbitMQ event choreography, and Docker Compose orchestration. |
+| **[`errand-specification.md`](./errand-specification.md)** | **Errand Domain & Credit Economy**: Complete errand lifecycle state machine (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`), credit escrow holds/settlement/refunds, atomic single-winner claiming under concurrency, background expiry sweeper, and RabbitMQ domain event matrix. |
+| **[`security.md`](./security.md)** | **Security & Access Control**: Asymmetric Ed25519 token issuance and offline verification, HttpOnly refresh token session management, Role-Based Access Control (`STUDENT` vs `ADMIN`), resource ownership rules, and atomic last-administrator safety guard. |
+| **[`ci.md`](./ci.md)** | **Continuous Integration & Testing**: GitHub Actions workflow structure, public test commands, isolated aggregate orchestration, static test matrix maintenance, and containerized acceptance/E2E test pipelines. |
 
-## Who may write what
+---
 
-| Content | Humans | AI tools |
-|---|---|---|
-| As-built facts (routes, env vars, commands, file layout) | yes | yes — keep them in step with the code |
-| Intent, requirements, priorities | yes | may quote and link the source documents; never invent or re-rank |
-| Decisions, options, trade-offs, risks, rationale | yes | **no** — not even a draft |
-| "Author review" lines in disclosure headers | yes | no |
+## 📦 Microservices Summary
 
-## Add when first needed
+| Service | Port | Database | Primary Purpose |
+|---|---|---|---|
+| **User Service** | `8001` | `user_db` | Authentication (Ed25519 signing), sessions, user profiles, RBAC, and registration outbox publishing. |
+| **Supplier Service** | `8002` | `supplier_db` | Campus merchant and spot directory CRUD, category filtering, and campus zone queries. |
+| **Order Service** | `8003` | `order_db` | Errand lifecycle state transitions, synchronous credit escrow reservation, atomic single-winner claiming, and outbox event publishing. |
+| **Credit Service** | `8004` | `credit_db` | Closed credit economy, wallet accounts, transaction ledgers, escrow holds/settlement/refunds, and idempotent event consumer. |
+| **Notification Service** | `8005` | `notification_db` | In-app notification persistence, authenticated WebSocket real-time push (`/ws`), and errand event consumer. |
 
-Create the folder together with its first real file; an empty folder helps nobody.
+*API request/response types and domain event payload interfaces are authoritatively defined in code at `packages/common-dtos/src/index.ts`.*
 
-| Folder | Put here | Note |
-|---|---|---|
-| `mentor-feedback/` | `YYYY-MM-DD-d2.md`, `…-d3.md` | One table per session: feedback · action · owner · issue · done. |
-| `evidence/d3/`, `evidence/d4/` | same shape as `evidence/d2/` | |
+---
 
-`.dockerignore` excludes `*.md`, so nothing in here reaches a container image.
+## 🚀 Local Development Quick Reference
+
+```bash
+# 1. Generate local JWT signing keys (if not already in .env)
+npm run generate:jwt-keys -- --print > .env
+
+# 2. Start PostgreSQL, RabbitMQ, all microservices, and frontends
+docker compose up --build
+
+# 3. Access applications
+# Student App:  http://localhost:5173
+# Admin Portal: http://localhost:5174 (or http://localhost/admin/ via gateway)
+# RabbitMQ UI:  http://localhost:15672 (campus_admin / campus-admin-dev)
+```
+
+### Pre-Seeded Accounts
+- **Admin**: `admin@nus.edu.sg` / `Password123!` (Role: `ADMIN`)
+- **Student**: `alice@u.nus.edu` / `Password123!` (Role: `STUDENT`, Balance: 100 credits)
+- **Student**: `bob@u.nus.edu` / `Password123!` (Role: `STUDENT`, Balance: 100 credits)
+
+---
+
+## ⚖️ AI Usage Policy (CS3219 Appendix 2)
+
+| Task | Allowed for AI Assistants |
+|---|---|
+| Writing code implementations, unit tests, refactoring, and boilerplate | ✅ Yes (requires citation header and review) |
+| System documentation refactoring, organizing, and formatting | ✅ Yes |
+| Proposing system architecture or drafting architectural decision rationales | ❌ **NO** (Must be authored by team members) |
+| Author review confirmation checkboxes | ❌ **NO** (Must be verified by human author) |

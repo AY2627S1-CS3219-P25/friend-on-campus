@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Removed reference to retired new-adr skill.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: Prerequisite row: Node 22.3+ because npm test uses node --test with module mocking.
 Author review: <to be completed by Reallyeasy1>
@@ -99,14 +103,13 @@ Restart Claude Code from the repo root, then:
 | `hooks/check-disclosure.js` | After each edit: reminds **Claude** if the file lacks the "AI Assistance Disclosure" header. Its `SKIP` list names exempt file types |
 | `hooks/hooks.test.js` | Self-check for both |
 | `skills/usage-log` | `/usage-log` — appends the log entry in the team's format |
-| `skills/new-adr` | `/new-adr <title>` — creates the next numbered record in `docs/decisions/` with metadata only; you write the content |
 | `skills/issue-start` | `/issue-start <n>` — fetches the issue from the right repo and lists its acceptance criteria and the code it touches |
 | `agents/` | Four subagents; when and when not to use them is in `CLAUDE.md` §8 |
 | `PLUGINS.md` | The team's plugin list |
 
 ## 7. Working day to day
 
-1. **You** decide the design (record it with `/new-adr` if it is a real decision). Claude will stop and ask rather than choose a schema, interface or pattern — that is intended, not a malfunction.
+1. **You** decide the design and architecture. Claude will stop and ask rather than choose a schema, interface or pattern — that is intended, not a malfunction.
 2. `/issue-start <n>` for the facts and the checklist.
 3. Ask for the implementation, stating your decided design in the prompt. Most tasks need no subagent; Claude picks `backend` / `frontend` / `infrastructure` only for independent or context-heavy pieces.
 4. Ask the `reviewer` agent for tests, an acceptance-evidence table, or the AI-policy check before you commit.
