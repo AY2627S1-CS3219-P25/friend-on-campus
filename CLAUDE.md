@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-14
+Scope: Documented that all application runtime stages use their base image's built-in non-root user.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-13
 Scope: Updated container runtime facts for compiled backend and static NGINX multi-stage images.
 Author review: <to be completed by ngkhengyang>
@@ -158,7 +162,7 @@ Things that are easy to get wrong:
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
 - Vite dev proxies are only for host-based development and send user, supplier and notification requests to their localhost ports. Compose builds static frontend assets and serves them with per-app NGINX configs; those configs preserve direct-port `/api`, `/ws`, and `/admin` proxy behaviour through the Compose gateway. `VITE_SHOW_WS_STATUS` is a student-app build argument, so changing it requires rebuilding that image.
-- Application Dockerfiles use multi-stage builds. Dependency/build stages copy the root lockfile and run workspace-scoped `npm ci` with the workspace root excluded. Backend runtime stages contain production dependencies, compiled workspace/service output, generated Prisma clients, and migration/seed inputs; frontend runtime stages contain only NGINX and built static assets. A new npm dependency still requires updating that workspace's manifest and the root lockfile; runtime-required tooling must be in `dependencies`, while build-only tooling stays in `devDependencies`. `.dockerignore` excludes `*.md`.
+- Application Dockerfiles use multi-stage builds. Dependency/build stages copy the root lockfile and run workspace-scoped `npm ci` with the workspace root excluded. Backend runtime stages contain production dependencies, compiled workspace/service output, generated Prisma clients, and migration/seed inputs; frontend runtime stages contain only NGINX and built static assets. Every application runtime stage switches to its base image's built-in non-root user (`node` or `nginx`) after privileged setup. A new npm dependency still requires updating that workspace's manifest and the root lockfile; runtime-required tooling must be in `dependencies`, while build-only tooling stays in `devDependencies`. `.dockerignore` excludes `*.md`.
 
 ## 5. Commands
 

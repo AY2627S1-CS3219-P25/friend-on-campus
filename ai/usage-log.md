@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-14
+Scope: Recorded the non-root application-container implementation and available verification.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-13
 Scope: Recorded the author-approved compiled Node/static NGINX multi-stage Docker implementation and verification.
 Author review: <to be completed by ngkhengyang>
@@ -3023,5 +3027,28 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Isolated production installs passed for all five backends with Prisma and compiled shared-package resolution present and `tsx`, `tsc`, ESLint, and Playwright absent.
 - Static stage/runtime assertions, `docker compose config --quiet`, disclosure-count checks, and `git diff --check` passed.
 - Full image builds, NGINX `-t` inside the images, and Docker-backed suites were unavailable because the Docker Desktop Linux engine was not running.
+
+## 2026-10-14 16:31 SGT — Run application containers as non-root users
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Make all seven application runtime images use non-root Linux users while preserving ports, interfaces, migrations, seeds, health checks, readiness checks, workspace-scoped `npm ci`, and multi-stage builds.
+
+**Usage scenario:** Infrastructure implementation and verification support (allowed boilerplate/configuration work). The author retains responsibility for reviewing the generated Docker/NGINX configuration and validating built containers when Docker Desktop is available.
+
+**Files changed:**
+- `services/user-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/order-service/Dockerfile`, `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile` — assigned runtime files to `node:node` and switched to `USER node` before the unchanged migration, seed, and service startup commands.
+- `apps/student-app/Dockerfile`, `apps/admin-portal/Dockerfile` — prepared NGINX-owned temporary directories, assigned runtime files to `nginx:nginx`, and switched to `USER nginx`.
+- `apps/student-app/nginx.conf`, `apps/admin-portal/nginx.conf` — placed NGINX PID and temporary files under the writable `/tmp/nginx` tree without changing routes or ports.
+- `CLAUDE.md` — documented the repository's non-root application runtime convention.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- `npm run typecheck` passed across all workspaces.
+- `npm run build` passed for both frontends, all five backends, and both shared packages when rerun outside the host sandbox; the initial sandboxed Vite builds were blocked by `EPERM` while resolving the frontend entry files.
+- `docker compose config --quiet`, static ownership/`USER` ordering and writable-path assertions, disclosure-count checks, and `git diff --check` passed.
+- Full image builds, in-image NGINX validation, runtime UID checks, startup migrations/seeds, and container health checks could not run because the Docker Desktop Linux engine was unavailable.
 
 

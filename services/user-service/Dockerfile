@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-14
+# Scope: Assigned runtime files to the built-in node user and run migrations, seeding, and the service without root privileges.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-13
 # Scope: Split dependency installation, TypeScript/Prisma generation, and the compiled Node runtime into separate stages.
 # Author review: <to be completed by ngkhengyang>
@@ -64,21 +68,24 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-COPY --from=production-deps /app/node_modules ./node_modules
-COPY --from=build /app/packages/auth/package.json ./packages/auth/package.json
-COPY --from=build /app/packages/auth/dist ./packages/auth/dist
-COPY --from=build /app/packages/common-dtos/package.json ./packages/common-dtos/package.json
-COPY --from=build /app/packages/common-dtos/dist ./packages/common-dtos/dist
-COPY --from=build /app/services/user-service/package.json ./services/user-service/package.json
-COPY --from=build /app/services/user-service/dist ./services/user-service/dist
-COPY --from=build /app/services/user-service/src/database/generated ./services/user-service/dist/database/generated
-COPY --from=build /app/services/user-service/src/database/prisma ./services/user-service/src/database/prisma
+COPY --chown=node:node --from=production-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/packages/auth/package.json ./packages/auth/package.json
+COPY --chown=node:node --from=build /app/packages/auth/dist ./packages/auth/dist
+COPY --chown=node:node --from=build /app/packages/common-dtos/package.json ./packages/common-dtos/package.json
+COPY --chown=node:node --from=build /app/packages/common-dtos/dist ./packages/common-dtos/dist
+COPY --chown=node:node --from=build /app/services/user-service/package.json ./services/user-service/package.json
+COPY --chown=node:node --from=build /app/services/user-service/dist ./services/user-service/dist
+COPY --chown=node:node --from=build /app/services/user-service/src/database/generated ./services/user-service/dist/database/generated
+COPY --chown=node:node --from=build /app/services/user-service/src/database/prisma ./services/user-service/src/database/prisma
 
 RUN sed -i 's#"main": "src/index.ts"#"main": "dist/index.js"#' \
-    packages/auth/package.json packages/common-dtos/package.json
+    packages/auth/package.json packages/common-dtos/package.json \
+    && chown node:node packages/auth/package.json packages/common-dtos/package.json
 
 WORKDIR /app/services/user-service
 
 EXPOSE 8001
+
+USER node
 
 CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema src/database/prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
