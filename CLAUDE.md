@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Updated container runtime facts for compiled backend and static NGINX multi-stage images.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-13
 Scope: Updated the Dockerfile repository fact to describe lockfile-based npm ci installation.
 Author review: <to be completed by ngkhengyang>
 
@@ -119,8 +123,8 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ## 3. Tech stack (do not add anything outside this)
 
-- Backend: Node.js, Express, TypeScript (run with `tsx`), Prisma for PostgreSQL access
-- Frontend: TypeScript, React, Vite, Tailwind (Bun is the agreed frontend runtime; the repo currently runs on npm workspaces — follow what the repo does, do not migrate on your own)
+- Backend: Node.js, Express, TypeScript (`tsx` for development/tests; compiled JavaScript on Node in containers), Prisma for PostgreSQL access
+- Frontend: TypeScript, React, Vite, Tailwind (Vite builds static container assets served by NGINX; Bun is the agreed frontend runtime, while the repo currently runs on npm workspaces — follow what the repo does, do not migrate on your own)
 - Database: PostgreSQL 16, one database per service
 - Messaging: RabbitMQ 3.13
 - New dependency needed? Ask first. If approved, add it to that workspace's `package.json` **and** automatically update the Dockerfile(s)/`docker-compose.yml` so the container build still works.
@@ -153,8 +157,8 @@ Things that are easy to get wrong:
 - `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
 - A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
-- Vite dev proxies: Compose sets `GATEWAY_URL` for both apps, so API and WebSocket requests go through nginx. Without it, host-based development sends user, supplier and notification requests directly to their localhost ports. The student app sends `/admin` to `ADMIN_PORTAL_URL` (default `http://localhost:5174`); Compose sets that variable to the admin portal container.
-- Dockerfiles copy the root `package.json` and `package-lock.json`, `packages/`, and the service or app's own folder, then run workspace-scoped `npm ci` with the workspace root excluded. A new npm dependency in that workspace's `package.json` and the root lockfile needs no Dockerfile edit; a new shared folder, a native/system package, or a new env var does (Dockerfile and/or `docker-compose.yml`). `.dockerignore` excludes `*.md`.
+- Vite dev proxies are only for host-based development and send user, supplier and notification requests to their localhost ports. Compose builds static frontend assets and serves them with per-app NGINX configs; those configs preserve direct-port `/api`, `/ws`, and `/admin` proxy behaviour through the Compose gateway. `VITE_SHOW_WS_STATUS` is a student-app build argument, so changing it requires rebuilding that image.
+- Application Dockerfiles use multi-stage builds. Dependency/build stages copy the root lockfile and run workspace-scoped `npm ci` with the workspace root excluded. Backend runtime stages contain production dependencies, compiled workspace/service output, generated Prisma clients, and migration/seed inputs; frontend runtime stages contain only NGINX and built static assets. A new npm dependency still requires updating that workspace's manifest and the root lockfile; runtime-required tooling must be in `dependencies`, while build-only tooling stays in `devDependencies`. `.dockerignore` excludes `*.md`.
 
 ## 5. Commands
 

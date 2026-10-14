@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-5), date: 2026-10-13
+# Scope: Split dependency installation, TypeScript/Prisma generation, and the compiled Node runtime into separate stages.
+# Author review: <to be completed by ngkhengyang>
+#
+# Tool: Codex (model: GPT-5), date: 2026-10-13
 # Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
 # Author review: <to be completed by ngkhengyang>
 #
@@ -12,27 +16,64 @@
 # the image, and the container applies migrations before starting.
 # Author review: <to be completed by Reallyeasy1>
 
-FROM node:20-alpine
+# AI-generated (edited by ngkhengyang)
+FROM node:20-alpine AS build
 
 RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# AI-generated (edited by ngkhengyang)
 COPY package.json package-lock.json tsconfig.base.json ./
-COPY packages/ packages/
+COPY packages/auth/package.json ./packages/auth/
+COPY packages/common-dtos/package.json ./packages/common-dtos/
 COPY services/notification-service/package.json ./services/notification-service/
 COPY services/notification-service/src/database/prisma ./services/notification-service/src/database/prisma
 
-# AI-generated (edited by ngkhengyang)
 RUN npm ci --workspace=@campus-errand/notification-service --include-workspace-root=false
 
+COPY packages/auth ./packages/auth
+COPY packages/common-dtos ./packages/common-dtos
 COPY services/notification-service ./services/notification-service
+
+RUN npm run db:generate --workspace=@campus-errand/notification-service \
+    && npm run build --workspace=@campus-errand/common-dtos \
+    && npm run build --workspace=@campus-errand/auth \
+    && npm run build --workspace=@campus-errand/notification-service
+
+FROM node:20-alpine AS production-deps
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/auth/package.json ./packages/auth/
+COPY packages/common-dtos/package.json ./packages/common-dtos/
+COPY services/notification-service/package.json ./services/notification-service/
+
+RUN npm ci --omit=dev --omit=optional --ignore-scripts \
+    --workspace=@campus-errand/notification-service \
+    --include-workspace-root=false
+
+FROM node:20-alpine AS runtime
+
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+COPY --from=production-deps /app/node_modules ./node_modules
+COPY --from=build /app/packages/auth/package.json ./packages/auth/package.json
+COPY --from=build /app/packages/auth/dist ./packages/auth/dist
+COPY --from=build /app/packages/common-dtos/package.json ./packages/common-dtos/package.json
+COPY --from=build /app/packages/common-dtos/dist ./packages/common-dtos/dist
+COPY --from=build /app/services/notification-service/package.json ./services/notification-service/package.json
+COPY --from=build /app/services/notification-service/dist ./services/notification-service/dist
+COPY --from=build /app/services/notification-service/src/database/generated ./services/notification-service/dist/database/generated
+COPY --from=build /app/services/notification-service/src/database/prisma ./services/notification-service/src/database/prisma
+
+RUN sed -i 's#"main": "src/index.ts"#"main": "dist/index.js"#' \
+    packages/auth/package.json packages/common-dtos/package.json
 
 WORKDIR /app/services/notification-service
 
-RUN npm run db:generate
-
 EXPOSE 8005
 
-CMD ["sh", "-c", "npm run db:deploy && exec /app/node_modules/.bin/tsx src/index.ts"]
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema src/database/prisma/schema.prisma && exec node dist/index.js"]

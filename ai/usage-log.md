@@ -2,6 +2,14 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Recorded the author-approved compiled Node/static NGINX multi-stage Docker implementation and verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Recorded the multi-stage Docker runtime investigation and the unresolved author-owned runtime-model decision.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-13
 Scope: Recorded reproducible, lockfile-based Docker dependency installation and its verification.
 Author review: <to be completed by ngkhengyang>
 
@@ -2969,5 +2977,51 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - All seven Docker-style partial build contexts passed workspace-scoped `npm ci --dry-run` against the root lockfile.
 - `npm run typecheck` passed across all workspaces.
 - Docker Compose resolved all services, but full image builds could not run because the Docker Desktop Linux engine was unavailable.
+
+## 2026-10-13 12:16 SGT — Investigate multi-stage Docker runtime models
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Convert all seven application Dockerfiles to multi-stage builds while preserving startup behaviour, workspace-scoped `npm ci`, service boundaries, and public interfaces.
+
+**Usage scenario:** Infrastructure investigation and debugging support (allowed use). Implementation paused because the existing repository permits either retaining the current `tsx`/Vite runtime processes or changing to compiled Node/static NGINX runtimes; the author retains the required runtime-model decision.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory investigation record and updated its consolidated disclosure.
+
+**Verification:**
+- Confirmed all seven Dockerfiles already copy `package-lock.json` and use workspace-scoped `npm ci`.
+- Confirmed backend TypeScript builds emit `dist/`, but runtime resolution of `@campus-errand/auth` still follows its source-based package entry.
+- Confirmed frontend Compose behaviour currently depends on Vite runtime proxy environment variables and Node-based healthchecks.
+- `npm run build` compiled the backend and shared workspaces, but both frontend Vite builds encountered a host sandbox `EPERM` while resolving `src/main.tsx`; no tracked build output changed.
+
+## 2026-10-13 13:36 SGT — Implement approved multi-stage application images
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Implement the author-approved runtime model: compiled JavaScript on Node for backend images and built static assets on NGINX for frontend images, preserving migrations, startup seeds, routes, ports, and direct-container proxy behaviour.
+
+**Usage scenario:** Infrastructure implementation, refactoring, and verification support (allowed use) following the author's explicit runtime-model decision. The author retains responsibility for reviewing the generated Docker/NGINX configuration and validating full images when Docker Desktop is available.
+
+**Files changed:**
+- `services/user-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/order-service/Dockerfile`, `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile` — added build, production-dependency, and compiled Node runtime stages while preserving each migration and seed sequence.
+- `apps/student-app/Dockerfile`, `apps/admin-portal/Dockerfile` — added Vite build stages and minimal NGINX runtime stages.
+- `apps/student-app/nginx.conf`, `apps/admin-portal/nginx.conf` — served built assets and preserved direct-port API, WebSocket, and admin routing with deferred Docker DNS resolution.
+- `docker-compose.yml` — moved the student feature flag to a build argument, replaced Node frontend healthchecks with `wget`, and documented the compiled/static runtimes.
+- `services/user-service/package.json`, `services/supplier-service/package.json`, `services/order-service/package.json`, `services/credit-service/package.json`, `services/notification-service/package.json`, `package-lock.json` — classified the existing Prisma CLI as a runtime dependency; no dependency was added.
+- `CLAUDE.md` — updated repository facts for the multi-stage runtime layout and frontend proxy/build-argument behaviour.
+- `ai/usage-log.md` — appended this implementation record and updated its consolidated disclosure.
+
+**Verification:**
+- `npm run build` passed for both frontends, all five backends, and both shared packages when rerun outside the host sandbox.
+- `npm run typecheck` passed across all workspaces.
+- `npm run test:unit` passed all 229 tests when rerun outside the host sandbox; the initial sandboxed run was blocked from loopback connections with `EACCES`.
+- Isolated production installs passed for all five backends with Prisma and compiled shared-package resolution present and `tsx`, `tsc`, ESLint, and Playwright absent.
+- Static stage/runtime assertions, `docker compose config --quiet`, disclosure-count checks, and `git diff --check` passed.
+- Full image builds, NGINX `-t` inside the images, and Docker-backed suites were unavailable because the Docker Desktop Linux engine was not running.
 
 
