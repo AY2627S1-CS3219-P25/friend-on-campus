@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-15
+# Scope: Pinned the Node 20 Alpine base image to an exact release tag and verified registry digest.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-14
 # Scope: Assigned runtime files to the built-in node user and run migrations, optional seeding, and the service without root privileges.
 # Author review: <to be completed by ngkhengyang>
@@ -23,7 +27,7 @@
 # Scope: Generated Prisma client and deployed Credit Service migrations before startup.
 # Author review: <to be completed by huangjiaxi1111>
 # AI-generated (edited by ngkhengyang)
-FROM node:20-alpine AS build
+FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 RUN apk add --no-cache openssl
 
@@ -46,7 +50,7 @@ RUN npm run db:generate --workspace=@campus-errand/credit-service \
     && npm run build --workspace=@campus-errand/auth \
     && npm run build --workspace=@campus-errand/credit-service
 
-FROM node:20-alpine AS production-deps
+FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS production-deps
 
 WORKDIR /app
 
@@ -59,7 +63,7 @@ RUN npm ci --omit=dev --omit=optional --ignore-scripts \
     --workspace=@campus-errand/credit-service \
     --include-workspace-root=false
 
-FROM node:20-alpine AS runtime
+FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runtime
 
 RUN apk add --no-cache openssl
 

@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-15
+# Scope: Pinned the NGINX gateway, PostgreSQL 16, and RabbitMQ 3.13 images to exact release tags and verified registry digests.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-13
 # Scope: Pass the student feature flag at image build time and use NGINX-compatible frontend health checks.
 # Author review: <to be completed by ngkhengyang>
@@ -69,7 +73,7 @@ services:
   # Ingress API Gateway & Reverse Proxy (Nginx)
   # ----------------------------------------------------
   api-gateway:
-    image: nginx:alpine
+    image: nginx:1.31.7-alpine3.24@sha256:42c36dfd0b3503b7966771550a91521262b4750665929821abf5069715610e20
     container_name: campuserrand-gateway
     ports:
       - "80:80"
@@ -310,7 +314,7 @@ services:
   # Infrastructure: PostgreSQL & RabbitMQ
   # ----------------------------------------------------
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.15-alpine3.24@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     container_name: campuserrand-postgres
     ports:
       - "5432:5432"
@@ -327,7 +331,7 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    image: rabbitmq:3.13.7-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
     container_name: campuserrand-rabbitmq
     ports:
       - "5672:5672"    # AMQP protocol

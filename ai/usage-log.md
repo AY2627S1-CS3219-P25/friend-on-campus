@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-15
+Scope: Recorded exact Docker image tag and digest pinning with registry and repository verification.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-14
 Scope: Recorded the non-root application-container implementation and available verification.
 Author review: <to be completed by ngkhengyang>
@@ -3050,5 +3054,28 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `npm run build` passed for both frontends, all five backends, and both shared packages when rerun outside the host sandbox; the initial sandboxed Vite builds were blocked by `EPERM` while resolving the frontend entry files.
 - `docker compose config --quiet`, static ownership/`USER` ordering and writable-path assertions, disclosure-count checks, and `git diff --check` passed.
 - Full image builds, in-image NGINX validation, runtime UID checks, startup migrations/seeds, and container health checks could not run because the Docker Desktop Linux engine was unavailable.
+
+## 2026-10-15 20:40 SGT — Pin Docker base and infrastructure images
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Replace mutable application and infrastructure image references with exact release tags and verified immutable SHA-256 digests, without changing approved major versions or disturbing the existing reproducible, multi-stage, non-root container work.
+
+**Usage scenario:** Infrastructure configuration implementation and verification support (allowed boilerplate/configuration work). The author retains responsibility for reviewing future image refreshes and deciding whether to resolve the existing root Node `>=22.3` versus container Node 20 mismatch.
+
+**Files changed:**
+- `services/user-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/order-service/Dockerfile`, `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile` — pinned every build, production-dependency, and runtime stage to `node:20.20.2-alpine3.23` and its verified multi-platform digest.
+- `apps/student-app/Dockerfile`, `apps/admin-portal/Dockerfile` — pinned the Node build stage and `nginx:1.31.7-alpine3.24` runtime stage to verified multi-platform digests.
+- `docker-compose.yml` — pinned the NGINX gateway, `postgres:16.15-alpine3.24`, and `rabbitmq:3.13.7-management-alpine` to verified multi-platform digests.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- Docker Hub and Docker Registry API responses confirmed all four exact tags, immutable digests, Linux/amd64 child manifests, and embedded runtime versions; all 22 active references resolve to the four verified official images.
+- `npm run typecheck` passed across all workspaces.
+- `docker compose config --quiet`, preservation assertions for `npm ci`, multi-stage builds and non-root `USER` directives, disclosure-count checks, and `git diff --check` passed.
+- `docker-compose.test.yml` was unchanged because it declares no independent image reference.
+- Full image builds and container tests could not run because the Docker Desktop Linux engine was unavailable.
 
 
