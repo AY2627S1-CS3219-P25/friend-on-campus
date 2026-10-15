@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-11
+ * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder handlers for administrative state interventions.
+ * Author review: (to be completed by author after review)
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored Order Service orchestrator into modular, extracted domain handler functions and a lightweight factory function.
  * Author review: (to be completed by author after review)
@@ -8,6 +12,9 @@
 import crypto from 'node:crypto';
 import type {
   AcceptOrderRequest,
+  AdminCancelOrderRequest,
+  AdminCompleteOrderRequest,
+  AdminUnassignOrderRequest,
   CreateOrderRequest,
   OrderAcceptedEvent,
   OrderCancelledEvent,
@@ -33,6 +40,9 @@ export interface OrderService {
   deliverOrder(orderId: string, courierId: string): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
+  adminCancelOrder(orderId: string, adminUserId: string, req: AdminCancelOrderRequest): Promise<OrderDTO>;
+  adminCompleteOrder(orderId: string, adminUserId: string, req: AdminCompleteOrderRequest): Promise<OrderDTO>;
+  adminUnassignOrder(orderId: string, adminUserId: string, req: AdminUnassignOrderRequest): Promise<OrderDTO>;
 }
 
 export interface OrderServiceDependencies {
@@ -408,6 +418,109 @@ async function handleCancelOrder(
   return cancelled;
 }
 
+async function handleAdminCancelOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  adminUserId: string,
+  req: AdminCancelOrderRequest
+): Promise<OrderDTO> {
+  const { repository, outboxRelay } = deps;
+  const reason = validateRequiredText(req?.reason, 'reason', 500);
+
+  const existing = await repository.findOrderById(orderId);
+  if (!existing) {
+    throw new OrderNotFoundError();
+  }
+
+  const event: OrderCancelledEvent = {
+    eventType: 'order.cancelled',
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    orderId: existing.id,
+    orderCode: existing.orderCode,
+    requesterId: existing.requesterId,
+    rewardCredits: existing.rewardCredits,
+  };
+
+  const cancelled = await repository.adminCancelOrder(
+    existing.id,
+    adminUserId,
+    reason,
+    event,
+    req?.expectedVersion
+  );
+
+  if (outboxRelay) {
+    void outboxRelay.trigger();
+  }
+
+  return cancelled;
+}
+
+async function handleAdminCompleteOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  adminUserId: string,
+  req: AdminCompleteOrderRequest
+): Promise<OrderDTO> {
+  const { repository, outboxRelay } = deps;
+  const reason = validateRequiredText(req?.reason, 'reason', 500);
+
+  const existing = await repository.findOrderById(orderId);
+  if (!existing) {
+    throw new OrderNotFoundError();
+  }
+
+  const event: OrderCompletedEvent = {
+    eventType: 'order.completed',
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    orderId: existing.id,
+    orderCode: existing.orderCode,
+    requesterId: existing.requesterId,
+    courierId: existing.courierId ?? '',
+    rewardCredits: existing.rewardCredits,
+  };
+
+  const completed = await repository.adminCompleteOrder(
+    existing.id,
+    adminUserId,
+    reason,
+    event,
+    req?.expectedVersion
+  );
+
+  if (outboxRelay) {
+    void outboxRelay.trigger();
+  }
+
+  return completed;
+}
+
+async function handleAdminUnassignOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  adminUserId: string,
+  req: AdminUnassignOrderRequest
+): Promise<OrderDTO> {
+  const { repository } = deps;
+  const reason = validateRequiredText(req?.reason, 'reason', 500);
+
+  const existing = await repository.findOrderById(orderId);
+  if (!existing) {
+    throw new OrderNotFoundError();
+  }
+
+  const unassigned = await repository.adminUnassignOrder(
+    existing.id,
+    adminUserId,
+    reason,
+    req?.expectedVersion
+  );
+
+  return unassigned;
+}
+
 // ---------------------------------------------------------------------------
 // Lightweight Factory Function
 // ---------------------------------------------------------------------------
@@ -429,5 +542,11 @@ export function createOrderService(deps: OrderServiceDependencies): OrderService
     deliverOrder: (orderId, courierId) => handleDeliverOrder(deps, orderId, courierId),
     completeOrder: (orderId, requesterId) => handleCompleteOrder(deps, orderId, requesterId),
     cancelOrder: (orderId, requesterId) => handleCancelOrder(deps, orderId, requesterId),
+    adminCancelOrder: (orderId, adminUserId, req) =>
+      handleAdminCancelOrder(deps, orderId, adminUserId, req),
+    adminCompleteOrder: (orderId, adminUserId, req) =>
+      handleAdminCompleteOrder(deps, orderId, adminUserId, req),
+    adminUnassignOrder: (orderId, adminUserId, req) =>
+      handleAdminUnassignOrder(deps, orderId, adminUserId, req),
   };
 }

@@ -12,6 +12,10 @@ Tool: Codex (model: GPT-5), date: 2026-10-13
 Scope: Updated the Dockerfile repository fact to describe lockfile-based npm ci installation.
 Author review: <to be completed by ngkhengyang>
 
+Tool: Google Antigravity Agent, date: 2026-10-11
+Scope: Updated documentation pointers to the flattened system specifications in docs/ (architecture.md, errand-specification.md, security.md), and clarified in Section 1 and Section 6 that git commits/pushes/PRs require explicit user approval.
+Author review: <to be completed by author after review>
+
 Tool: Codex (model: GPT-5), date: 2026-10-11
 Scope: Updated test commands, static-matrix maintenance, Chromium CI coverage, lint facts, and removed references to the deleted dev branch.
 Author review: <to be completed by ngkhengyang>
@@ -74,7 +78,7 @@ Author review: <to be completed by huangjiaxi1111>
 
 ## 1. AI usage policy (course rules — these override everything else in this file)
 
-**Do not make any commits on your own!!** Do not push either. Leave changes in the working tree for the author to review and commit.
+**Do not make any commits on your own!!** Do not push either. Leave changes in the working tree for the author to review and commit, unless the human user explicitly approves or requests you to do so.
 
 Things you are allowed to do:
 - Requirements work: discovering, interpreting, formatting, specific style writing
@@ -135,7 +139,7 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ## 4. Repo map
 
-Compact map (state as of 2026-09-21; if the code differs, trust the code and fix the docs). **Detail lives in `docs/` — read it instead of re-exploring:** per-service pages in `docs/services/<name>.md` (routes, env vars, data, behaviour as built), the system picture and full directory tree in `docs/architecture/overview.md`.
+Compact map. **System specifications live in `docs/`:** high-level system topology in `docs/architecture.md`, errand lifecycle and credit rules in `docs/errand-specification.md`, and security/auth in `docs/security.md`. Code remains the source of truth for implementation.
 
 ```
 services/user-service          :8001  real (Prisma, user_db)      entry src/index.ts
@@ -208,16 +212,18 @@ CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `mai
 - Branches: `main` (releases) and `milestone-d2` (D2 demo baseline). The former `dev` branch no longer exists.
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
 - **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this. The `Claude PR review` workflow (`.github/workflows/claude-pr-review.yml`) checks it on every push: it reads the linked issues, compares their acceptance criteria with the diff, searches open issues for related work the PR does not link, and reports all of this in a **Linked issues** section of its summary comment with `Closes #<n>` lines to paste. It does not fail the PR or edit its body; the author decides which issues a PR closes. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
-- Never commit, push, merge, force-push, or open/close issues and PRs yourself.
+- Never commit, push, merge, force-push, or open/close issues and PRs yourself, unless the human user explicitly approves or requests you to do so.
 
 ## 7. Source documents
 
 - D1 (requirements F1–F9, NFRs, sprint plan, state diagram): https://docs.google.com/document/d/1pGy36fN4PxwMNIlgRTL3MW0ZTM3tERtG15KpUSY3c3M
 - D2 / Sprint 2 plan (work packages, acceptance checks, API sketch): https://docs.google.com/document/d/1I8sma-xUGapxvc6mSDyOLj8kihsAhL5erxinlP82pv8
-- Architecture overview (intended vs built, per service, with sources; directory layout): `docs/architecture/overview.md` — read it before any cross-service work
-- Per-service documentation (run, config, API, data, behaviour as built): `docs/services/<name>.md` — update the page in the same change that alters a service's routes, env vars, data model or mock/real status
-- Open conflicts: `docs/requirements/conflicts.md` · Recorded decisions: `docs/decisions/` · API contracts: `docs/api/` (created when the first contract is written)
-- Onboarding: `docs/archive/onboarding-guide-sep-3.md`
+- System specifications:
+  - System architecture: `docs/architecture.md`
+  - Errand lifecycle & credit economy: `docs/errand-specification.md`
+  - Security & access control: `docs/security.md`
+  - Central docs index: `docs/README.md`
+- Data transfer objects and API schemas: `packages/common-dtos` (TypeScript source of truth)
 
 Where the documents, the issues and the code disagree, do not pick a side silently: point out the conflict and let the author decide.
 
@@ -243,4 +249,4 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 - Every agent stops and returns a question when it needs a design decision the author has not stated. Relay it to the author verbatim; do not answer it yourself and re-launch.
 - Put the author's decided design **in the task text** — agents do not see this conversation.
 - Agents report files changed; the main session writes **one** `ai/usage-log.md` entry per prompt.
-- Service facts have one home: `docs/services/<name>.md`. When a change makes a page wrong (e.g. a mock becomes real), update the page in the same change, and the one-line summaries in section 4 and `.claude/agents/backend.md` only if they became false.
+- System specifications live in `docs/architecture.md`, `docs/errand-specification.md`, and `docs/security.md`. When architectural rules or domain state transitions change, keep the specifications aligned.
