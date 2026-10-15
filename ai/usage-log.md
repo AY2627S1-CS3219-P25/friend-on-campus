@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-16
+Scope: Recorded the IPv4 frontend health-check fix and successful full-stack verification.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Codex (model: GPT-5), date: 2026-10-15
 Scope: Recorded exact Docker image tag and digest pinning with registry and repository verification.
 Author review: <to be completed by ngkhengyang>
@@ -3077,5 +3081,25 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docker compose config --quiet`, preservation assertions for `npm ci`, multi-stage builds and non-root `USER` directives, disclosure-count checks, and `git diff --check` passed.
 - `docker-compose.test.yml` was unchanged because it declares no independent image reference.
 - Full image builds and container tests could not run because the Docker Desktop Linux engine was unavailable.
+
+## 2026-10-16 04:18 SGT — Fix frontend container health checks
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Implement the diagnosed fix for frontend containers becoming unhealthy because BusyBox `wget` resolved `localhost` to IPv6 while NGINX listened on IPv4.
+
+**Usage scenario:** Infrastructure debugging and configuration implementation (allowed use). The author retains responsibility for reviewing the Compose change and committing it.
+
+**Files changed:**
+- `docker-compose.yml` — changed the student and admin health-check targets from `localhost` to IPv4 loopback `127.0.0.1` without altering ports, paths, or retry timing.
+- `ai/usage-log.md` — appended this mandatory implementation record and updated its consolidated disclosure.
+
+**Verification:**
+- `docker compose config --quiet` passed.
+- `docker compose up -d --wait` recreated both frontend containers; student-app, admin-portal, all backend and infrastructure health checks, and the gateway reached healthy/running state.
+- Five consecutive health probes for each frontend exited successfully after recreation.
+- `npm run typecheck` passed across all workspaces.
 
 

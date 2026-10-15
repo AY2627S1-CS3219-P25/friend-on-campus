@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-16
+# Scope: Made frontend health checks use IPv4 loopback so BusyBox wget reaches the IPv4-only NGINX listeners.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-15
 # Scope: Pinned the NGINX gateway, PostgreSQL 16, and RabbitMQ 3.13 images to exact release tags and verified registry digests.
 # Author review: <to be completed by ngkhengyang>
@@ -114,7 +118,7 @@ services:
         - -q
         - -O
         - /dev/null
-        - http://localhost:5173/
+        - http://127.0.0.1:5173/
       interval: 5s
       timeout: 5s
       retries: 10
@@ -134,7 +138,7 @@ services:
         - -q
         - -O
         - /dev/null
-        - http://localhost:5174/admin/
+        - http://127.0.0.1:5174/admin/
       interval: 5s
       timeout: 5s
       retries: 10
