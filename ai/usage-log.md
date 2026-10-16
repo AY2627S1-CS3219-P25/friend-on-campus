@@ -1,6 +1,46 @@
 <!--
 AI Assistance Disclosure:
 
+Tool: Codex (model: GPT-5), date: 2026-10-16
+Scope: Recorded the Prisma runtime-engine fix made in response to the PR #118 inline review.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-16
+Scope: Recorded the IPv4 frontend health-check fix and successful full-stack verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-15
+Scope: Recorded exact Docker image tag and digest pinning with registry and repository verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-14
+Scope: Recorded the non-root application-container implementation and available verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Recorded the author-approved compiled Node/static NGINX multi-stage Docker implementation and verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Recorded the multi-stage Docker runtime investigation and the unresolved author-owned runtime-model decision.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-13
+Scope: Recorded reproducible, lockfile-based Docker dependency installation and its verification.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Formatted the three PR #115 inline-review replies as copy-ready Markdown.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Retrieved the three inline Claude comments on PR #115 and drafted thread-specific replies.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-12
+Scope: Drafted responses to the three actionable Claude review comments on PR #115.
+Author review: <to be completed by ngkhengyang>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Recorded documentation pruning, consolidation, and purpose-driven reorganization ("Less is more") across docs/.
 Author review: (to be completed by author after review)
@@ -2931,6 +2971,177 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `npm test` passed unit, integration, messaging, migration, seed, acceptance (62/62 API and 17/17 notification checks), API E2E (56/56), and Chromium UI (34/34) suites, then removed its isolated containers, network, and volumes.
 - `npm ls pg tsx --depth=0` confirmed both packages are direct root dependencies, `git diff --check` passed before this entry, and no test file was added or modified.
 
+## 2026-10-12 12:43 SGT — Draft PR #115 review replies
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Provide concise replies for the three addressed Claude review comments on PR #115.
+
+**Usage scenario:** Communication support for explaining reviewed CI changes (allowed use). The author retains responsibility for reviewing and posting the replies on GitHub.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory communication-support record and updated its consolidated disclosure.
+
+## 2026-10-12 12:55 SGT — Format PR #115 replies as Markdown
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Format the three previously drafted PR #115 inline-comment replies as copy-ready Markdown.
+
+**Usage scenario:** Communication and formatting support (allowed use). The author retains responsibility for reviewing and posting the replies on GitHub.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory formatting-support record and updated its consolidated disclosure.
+
+## 2026-10-12 12:54 SGT — Draft thread-specific PR #115 replies
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Review the three linked inline Claude comments on PR #115 and provide a specific reply for each thread.
+
+**Usage scenario:** Communication support for explaining reviewed CI changes (allowed use). The author retains responsibility for reviewing and posting the replies on GitHub.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory communication-support record and updated its consolidated disclosure.
+
+## 2026-10-13 00:49 SGT — Make Docker installs reproducible with npm ci
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Update all application Dockerfiles to copy the root lockfile and use workspace-scoped `npm ci` without adding dependencies or changing the application architecture.
+
+**Usage scenario:** Infrastructure implementation and verification support (allowed boilerplate/configuration work). The author retains responsibility for reviewing the Dockerfile and documentation changes and for running full image builds when Docker Desktop is available.
+
+**Files changed:**
+- `apps/admin-portal/Dockerfile`, `apps/student-app/Dockerfile` — copied `package-lock.json` and replaced workspace-scoped `npm install` with `npm ci`.
+- `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile`, `services/order-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/user-service/Dockerfile` — copied `package-lock.json` and replaced workspace-scoped `npm install` with `npm ci`.
+- `CLAUDE.md` — updated the Dockerfile repository fact to match lockfile-based installation.
+- `ai/usage-log.md` — appended this record and updated its consolidated disclosure.
+
+**Verification:**
+- All seven Docker-style partial build contexts passed workspace-scoped `npm ci --dry-run` against the root lockfile.
+- `npm run typecheck` passed across all workspaces.
+- Docker Compose resolved all services, but full image builds could not run because the Docker Desktop Linux engine was unavailable.
+
+## 2026-10-13 12:16 SGT — Investigate multi-stage Docker runtime models
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Convert all seven application Dockerfiles to multi-stage builds while preserving startup behaviour, workspace-scoped `npm ci`, service boundaries, and public interfaces.
+
+**Usage scenario:** Infrastructure investigation and debugging support (allowed use). Implementation paused because the existing repository permits either retaining the current `tsx`/Vite runtime processes or changing to compiled Node/static NGINX runtimes; the author retains the required runtime-model decision.
+
+**Files changed:**
+- `ai/usage-log.md` — appended this mandatory investigation record and updated its consolidated disclosure.
+
+**Verification:**
+- Confirmed all seven Dockerfiles already copy `package-lock.json` and use workspace-scoped `npm ci`.
+- Confirmed backend TypeScript builds emit `dist/`, but runtime resolution of `@campus-errand/auth` still follows its source-based package entry.
+- Confirmed frontend Compose behaviour currently depends on Vite runtime proxy environment variables and Node-based healthchecks.
+- `npm run build` compiled the backend and shared workspaces, but both frontend Vite builds encountered a host sandbox `EPERM` while resolving `src/main.tsx`; no tracked build output changed.
+
+## 2026-10-13 13:36 SGT — Implement approved multi-stage application images
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Implement the author-approved runtime model: compiled JavaScript on Node for backend images and built static assets on NGINX for frontend images, preserving migrations, startup seeds, routes, ports, and direct-container proxy behaviour.
+
+**Usage scenario:** Infrastructure implementation, refactoring, and verification support (allowed use) following the author's explicit runtime-model decision. The author retains responsibility for reviewing the generated Docker/NGINX configuration and validating full images when Docker Desktop is available.
+
+**Files changed:**
+- `services/user-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/order-service/Dockerfile`, `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile` — added build, production-dependency, and compiled Node runtime stages while preserving each migration and seed sequence.
+- `apps/student-app/Dockerfile`, `apps/admin-portal/Dockerfile` — added Vite build stages and minimal NGINX runtime stages.
+- `apps/student-app/nginx.conf`, `apps/admin-portal/nginx.conf` — served built assets and preserved direct-port API, WebSocket, and admin routing with deferred Docker DNS resolution.
+- `docker-compose.yml` — moved the student feature flag to a build argument, replaced Node frontend healthchecks with `wget`, and documented the compiled/static runtimes.
+- `services/user-service/package.json`, `services/supplier-service/package.json`, `services/order-service/package.json`, `services/credit-service/package.json`, `services/notification-service/package.json`, `package-lock.json` — classified the existing Prisma CLI as a runtime dependency; no dependency was added.
+- `CLAUDE.md` — updated repository facts for the multi-stage runtime layout and frontend proxy/build-argument behaviour.
+- `ai/usage-log.md` — appended this implementation record and updated its consolidated disclosure.
+
+**Verification:**
+- `npm run build` passed for both frontends, all five backends, and both shared packages when rerun outside the host sandbox.
+- `npm run typecheck` passed across all workspaces.
+- `npm run test:unit` passed all 229 tests when rerun outside the host sandbox; the initial sandboxed run was blocked from loopback connections with `EACCES`.
+- Isolated production installs passed for all five backends with Prisma and compiled shared-package resolution present and `tsx`, `tsc`, ESLint, and Playwright absent.
+- Static stage/runtime assertions, `docker compose config --quiet`, disclosure-count checks, and `git diff --check` passed.
+- Full image builds, NGINX `-t` inside the images, and Docker-backed suites were unavailable because the Docker Desktop Linux engine was not running.
+
+## 2026-10-14 16:31 SGT — Run application containers as non-root users
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Make all seven application runtime images use non-root Linux users while preserving ports, interfaces, migrations, seeds, health checks, readiness checks, workspace-scoped `npm ci`, and multi-stage builds.
+
+**Usage scenario:** Infrastructure implementation and verification support (allowed boilerplate/configuration work). The author retains responsibility for reviewing the generated Docker/NGINX configuration and validating built containers when Docker Desktop is available.
+
+**Files changed:**
+- `services/user-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/order-service/Dockerfile`, `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile` — assigned runtime files to `node:node` and switched to `USER node` before the unchanged migration, seed, and service startup commands.
+- `apps/student-app/Dockerfile`, `apps/admin-portal/Dockerfile` — prepared NGINX-owned temporary directories, assigned runtime files to `nginx:nginx`, and switched to `USER nginx`.
+- `apps/student-app/nginx.conf`, `apps/admin-portal/nginx.conf` — placed NGINX PID and temporary files under the writable `/tmp/nginx` tree without changing routes or ports.
+- `CLAUDE.md` — documented the repository's non-root application runtime convention.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- `npm run typecheck` passed across all workspaces.
+- `npm run build` passed for both frontends, all five backends, and both shared packages when rerun outside the host sandbox; the initial sandboxed Vite builds were blocked by `EPERM` while resolving the frontend entry files.
+- `docker compose config --quiet`, static ownership/`USER` ordering and writable-path assertions, disclosure-count checks, and `git diff --check` passed.
+- Full image builds, in-image NGINX validation, runtime UID checks, startup migrations/seeds, and container health checks could not run because the Docker Desktop Linux engine was unavailable.
+
+## 2026-10-15 20:40 SGT — Pin Docker base and infrastructure images
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Replace mutable application and infrastructure image references with exact release tags and verified immutable SHA-256 digests, without changing approved major versions or disturbing the existing reproducible, multi-stage, non-root container work.
+
+**Usage scenario:** Infrastructure configuration implementation and verification support (allowed boilerplate/configuration work). The author retains responsibility for reviewing future image refreshes and deciding whether to resolve the existing root Node `>=22.3` versus container Node 20 mismatch.
+
+**Files changed:**
+- `services/user-service/Dockerfile`, `services/supplier-service/Dockerfile`, `services/order-service/Dockerfile`, `services/credit-service/Dockerfile`, `services/notification-service/Dockerfile` — pinned every build, production-dependency, and runtime stage to `node:20.20.2-alpine3.23` and its verified multi-platform digest.
+- `apps/student-app/Dockerfile`, `apps/admin-portal/Dockerfile` — pinned the Node build stage and `nginx:1.31.7-alpine3.24` runtime stage to verified multi-platform digests.
+- `docker-compose.yml` — pinned the NGINX gateway, `postgres:16.15-alpine3.24`, and `rabbitmq:3.13.7-management-alpine` to verified multi-platform digests.
+- `ai/usage-log.md` — appended this mandatory usage record and updated its consolidated disclosure.
+
+**Verification:**
+- Docker Hub and Docker Registry API responses confirmed all four exact tags, immutable digests, Linux/amd64 child manifests, and embedded runtime versions; all 22 active references resolve to the four verified official images.
+- `npm run typecheck` passed across all workspaces.
+- `docker compose config --quiet`, preservation assertions for `npm ci`, multi-stage builds and non-root `USER` directives, disclosure-count checks, and `git diff --check` passed.
+- `docker-compose.test.yml` was unchanged because it declares no independent image reference.
+- Full image builds and container tests could not run because the Docker Desktop Linux engine was unavailable.
+
+## 2026-10-16 04:18 SGT — Fix frontend container health checks
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Implement the diagnosed fix for frontend containers becoming unhealthy because BusyBox `wget` resolved `localhost` to IPv6 while NGINX listened on IPv4.
+
+**Usage scenario:** Infrastructure debugging and configuration implementation (allowed use). The author retains responsibility for reviewing the Compose change and committing it.
+
+**Files changed:**
+- `docker-compose.yml` — changed the student and admin health-check targets from `localhost` to IPv4 loopback `127.0.0.1` without altering ports, paths, or retry timing.
+- `ai/usage-log.md` — appended this mandatory implementation record and updated its consolidated disclosure.
+
+**Verification:**
+- `docker compose config --quiet` passed.
+- `docker compose up -d --wait` recreated both frontend containers; student-app, admin-portal, all backend and infrastructure health checks, and the gateway reached healthy/running state.
+- Five consecutive health probes for each frontend exited successfully after recreation.
+- `npm run typecheck` passed across all workspaces.
 ## 2026-10-11 19:20 SGT — System documentation tidy-up and consolidation ("Less is more")
 
 **Tool:** Google Antigravity Agent
@@ -3016,6 +3227,30 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Verified all Mermaid diagrams across all docs using `@mermaid-js/mermaid-cli` (`mmdc`): 6/6 diagrams compiled with 0 errors.
 - Verified hooks pass (`node .claude/hooks/hooks.test.js`: hooks ok).
 - Clean `docs/` structure with exactly 4 files: `README.md`, `architecture.md`, `errand-specification.md`, and `security.md`.
+
+## 2026-10-16 04:59 SGT — Bundle Prisma migration engines in backend runtime images
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Address the PR #118 inline review comment that production runtime images may omit Prisma's schema engine because their dependency stage uses `--ignore-scripts`, and provide a reply for the reviewed lines.
+
+**Usage scenario:** Debugging assistance and repetitive Dockerfile implementation under author direction. The existing multi-stage runtime design was preserved; the generated Prisma engine package from the build stage is copied over the production dependency tree for each backend. The author retains review, commit, push, and PR-thread response responsibility.
+
+**Files changed:**
+- `services/user-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/supplier-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/order-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/credit-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/notification-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `ai/usage-log.md` — recorded this implementation and maintained its consolidated disclosure block.
+
+**Verification:**
+- `git diff --check` passed.
+- Confirmed all five backend runtime stages contain the build-stage `@prisma/engines` copy and that the lockfile marks `@prisma/engines` 6.19.3 with an install script.
+- Docker image builds could not be run because Docker is unavailable in this environment.
+- `npm run typecheck` could not be run because this environment provides Node.js but no npm executable.
 
 
 
