@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 #
+# Tool: Codex (model: GPT-5), date: 2026-10-16
+# Scope: Copied the build-stage Prisma engines into the production runtime so migrations do not download binaries at startup.
+# Author review: <to be completed by ngkhengyang>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-15
 # Scope: Pinned the Node 20 Alpine base image to an exact release tag and verified registry digest.
 # Author review: <to be completed by ngkhengyang>
@@ -73,6 +77,7 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 
 COPY --chown=node:node --from=production-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 COPY --chown=node:node --from=build /app/packages/auth/package.json ./packages/auth/package.json
 COPY --chown=node:node --from=build /app/packages/auth/dist ./packages/auth/dist
 COPY --chown=node:node --from=build /app/packages/common-dtos/package.json ./packages/common-dtos/package.json

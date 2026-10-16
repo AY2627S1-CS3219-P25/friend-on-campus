@@ -2,6 +2,10 @@
 AI Assistance Disclosure:
 
 Tool: Codex (model: GPT-5), date: 2026-10-16
+Scope: Recorded the Prisma runtime-engine fix made in response to the PR #118 inline review.
+Author review: <to be completed by ngkhengyang>
+
+Tool: Codex (model: GPT-5), date: 2026-10-16
 Scope: Recorded the IPv4 frontend health-check fix and successful full-stack verification.
 Author review: <to be completed by ngkhengyang>
 
@@ -3223,6 +3227,30 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Verified all Mermaid diagrams across all docs using `@mermaid-js/mermaid-cli` (`mmdc`): 6/6 diagrams compiled with 0 errors.
 - Verified hooks pass (`node .claude/hooks/hooks.test.js`: hooks ok).
 - Clean `docs/` structure with exactly 4 files: `README.md`, `architecture.md`, `errand-specification.md`, and `security.md`.
+
+## 2026-10-16 04:59 SGT — Bundle Prisma migration engines in backend runtime images
+
+**Tool:** Codex (model: GPT-5)
+**Author:** ngkhengyang
+**Branch:** d3-ci-cd
+
+**Prompt (summarised):** Address the PR #118 inline review comment that production runtime images may omit Prisma's schema engine because their dependency stage uses `--ignore-scripts`, and provide a reply for the reviewed lines.
+
+**Usage scenario:** Debugging assistance and repetitive Dockerfile implementation under author direction. The existing multi-stage runtime design was preserved; the generated Prisma engine package from the build stage is copied over the production dependency tree for each backend. The author retains review, commit, push, and PR-thread response responsibility.
+
+**Files changed:**
+- `services/user-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/supplier-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/order-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/credit-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `services/notification-service/Dockerfile` — copied the build-stage `@prisma/engines` directory into the runtime dependency tree.
+- `ai/usage-log.md` — recorded this implementation and maintained its consolidated disclosure block.
+
+**Verification:**
+- `git diff --check` passed.
+- Confirmed all five backend runtime stages contain the build-stage `@prisma/engines` copy and that the lockfile marks `@prisma/engines` 6.19.3 with an install script.
+- Docker image builds could not be run because Docker is unavailable in this environment.
+- `npm run typecheck` could not be run because this environment provides Node.js but no npm executable.
 
 
 
