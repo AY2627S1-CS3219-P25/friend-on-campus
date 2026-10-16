@@ -1,5 +1,13 @@
 # AI Assistance Disclosure:
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
+# Scope: Backend services get `init: true` so SIGTERM reaches node (as PID 1 it ignored the signal and `docker stop` fell
+# back to SIGKILL after 10s); the rabbitmq health probe runs through `su-exec rabbitmq` so a root-run probe can no longer
+# create a root-owned .erlang.cookie before the server does (cold-boot `eacces` crash seen while testing PR #118). The
+# container stays root so the entrypoint's ownership repair of /var/lib/rabbitmq still heals already-poisoned volumes
+# (PR #120 review).
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-16
 # Scope: Made frontend health checks use IPv4 loopback so BusyBox wget reaches the IPv4-only NGINX listeners.
 # Author review: <to be completed by ngkhengyang>
@@ -153,6 +161,7 @@ services:
       context: .
       dockerfile: services/user-service/Dockerfile
     container_name: campuserrand-user-service
+    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8001:8001"
     environment:
@@ -189,6 +198,7 @@ services:
       context: .
       dockerfile: services/supplier-service/Dockerfile
     container_name: campuserrand-supplier-service
+    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8002:8002"
     environment:
@@ -218,6 +228,7 @@ services:
       context: .
       dockerfile: services/order-service/Dockerfile
     container_name: campuserrand-order-service
+    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8003:8003"
     environment:
@@ -251,6 +262,7 @@ services:
       context: .
       dockerfile: services/credit-service/Dockerfile
     container_name: campuserrand-credit-service
+    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     restart: unless-stopped
     ports:
       - "8004:8004"
@@ -286,6 +298,7 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     container_name: campuserrand-notification-service
+    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     # The service exits when its broker connection fails and relies on this to come back.
     restart: unless-stopped
     ports:
@@ -345,7 +358,9 @@ services:
       - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      # AI-generated (edited by Reallyeasy1): probe as the server user, otherwise a root-run probe can create a root-owned
+      # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
+      test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
       timeout: 5s
       retries: 5
