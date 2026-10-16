@@ -3252,5 +3252,27 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Docker image builds could not be run because Docker is unavailable in this environment.
 - `npm run typecheck` could not be run because this environment provides Node.js but no npm executable.
 
+## 2026-10-16 18:37 SGT — Fix container shutdown and RabbitMQ cold-boot failures found while testing PR #118
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/container-runtime-signals
+
+**Prompt (summarised):** First, pull merged PR #118 into a fresh clone, build every image with `--no-cache`, start the stack and assert the PR's claims (non-root users, compiled runtime, bundled Prisma engines, gateway routing, signal-safe startup). Then fix what the test turned up.
+
+**Usage scenario:** Debugging assistance (reproducing and root-causing two container failures) and boilerplate configuration (two Compose settings). No architecture, dependency or schema changes. The root `engines` Node 22 vs container Node 20 mismatch was left alone because CLAUDE.md section 5 documents it as intended. The author decides whether to commit and open the PR, and whether `init: true` should also go on the frontend services (not needed: NGINX handles SIGTERM itself).
+
+**Files changed:**
+- `docker-compose.yml` — `init: true` on user, supplier, order, credit and notification services; `user: rabbitmq` on rabbitmq; disclosure entry.
+- `CLAUDE.md` — section 4 fact explaining why both settings must stay; disclosure entry.
+- `ai/usage-log.md` — this entry.
+
+**Verification (fresh clone of main at 586cd52, then this worktree; Docker Desktop 28.1.1, Compose v2.35.1):**
+- Before: `docker compose up -d --wait` on a fresh volume failed with `Error when reading /var/lib/rabbitmq/.erlang.cookie: eacces`. Container metadata showed the first health probe (root) ran 5.7 s after start, timed out, and left a root-owned 0400 cookie; the server (uid 100) read it 6 s later and exited 1. The pinned digest is identical to the previous `3.13-management-alpine` tag, so this is a latent race on main, not a PR #118 regression.
+- Before: `docker stop` on supplier-service and notification-service took 12.6–13.5 s and exited 137 (SIGKILL after the 10 s grace); `node` was PID 1 with no SIGTERM handler.
+- After: all 10 containers healthy on first cold boot; rabbitmq runs as uid 100 and owns its cookie; `rabbitmq-diagnostics` and the definitions import still work; `/sbin/docker-init` is PID 1 in all five backends with `node dist/index.js` as its child, still uid 1000; `docker stop` on supplier, notification and credit finished in 2.5–7.0 s with exit 143 (credit exits 0 through its own graceful handler); direct `/health` and `/ready`, gateway `/`, `/admin/`, `/api/users` and a seeded login through the gateway all pass. Baseline `docker stop` on a trivial init-wrapped alpine container is 1.8 s on this machine.
+- Test-only port/name overrides and the generated `.env` were kept outside the repo; the test stack, volumes and images were removed afterwards.
+- `npm run typecheck` not run: no TypeScript changed.
+
 
 
