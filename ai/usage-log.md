@@ -3274,5 +3274,25 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Test-only port/name overrides and the generated `.env` were kept outside the repo; the test stack, volumes and images were removed afterwards.
 - `npm run typecheck` not run: no TypeScript changed.
 
+## 2026-10-16 19:05 SGT — Address the Claude review on PR #120 and merge
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/container-runtime-signals
+
+**Prompt (summarised):** Fix the two Claude review comments on PR #120, then merge the PR.
+
+**Usage scenario:** Debugging assistance and configuration under author direction. Both review findings were verified before acting: user, order and credit services do register `process.once('SIGTERM')` (the earlier grep only matched `process.on(`), and the RabbitMQ entrypoint only chowns `/var/lib/rabbitmq` when it starts as root. The author approved the commit and merge explicitly.
+
+**Files changed:**
+- `docker-compose.yml` — dropped `user: rabbitmq`; the health check now runs `su-exec rabbitmq rabbitmq-diagnostics check_port_connectivity` so the probe is uid 100 while the container stays root and keeps the entrypoint's ownership repair; disclosure scope updated.
+- `CLAUDE.md` — section 4 bullet corrected: only supplier-service and notification-service lack a SIGTERM handler; describes the `su-exec` probe and why the container stays root.
+- `ai/usage-log.md` — this entry.
+
+**Verification (rabbitmq service only, pinned image, Compose v2.35.1):**
+- Fresh volume: healthy; container uid 0; `su-exec rabbitmq id -u` is 100; cookie owned by rabbitmq mode 400; five consecutive probes exit 0.
+- Pre-poisoned volume (root-owned 0400 `.erlang.cookie` written before first start): `up --wait` healthy; the entrypoint chowned the existing cookie to rabbitmq without replacing its content. With the previous `user: rabbitmq` approach this volume would have failed on every start.
+- `docker compose config --quiet` passes; test containers and volumes removed afterwards.
+
 
 

@@ -2,8 +2,10 @@
 #
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
 # Scope: Backend services get `init: true` so SIGTERM reaches node (as PID 1 it ignored the signal and `docker stop` fell
-# back to SIGKILL after 10s); rabbitmq runs as `user: rabbitmq` so its root-run health probe can no longer create a
-# root-owned .erlang.cookie before the server does (cold-boot `eacces` crash seen while testing PR #118).
+# back to SIGKILL after 10s); the rabbitmq health probe runs through `su-exec rabbitmq` so a root-run probe can no longer
+# create a root-owned .erlang.cookie before the server does (cold-boot `eacces` crash seen while testing PR #118). The
+# container stays root so the entrypoint's ownership repair of /var/lib/rabbitmq still heals already-poisoned volumes
+# (PR #120 review).
 # Author review: <to be completed by Reallyeasy1>
 #
 # Tool: Codex (model: GPT-5), date: 2026-10-16
@@ -348,7 +350,6 @@ services:
   rabbitmq:
     image: rabbitmq:3.13.7-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
     container_name: campuserrand-rabbitmq
-    user: rabbitmq # AI-generated (edited by Reallyeasy1): keep the root health probe from creating a root-owned .erlang.cookie
     ports:
       - "5672:5672"    # AMQP protocol
       - "15672:15672"  # Management Web Dashboard
@@ -357,7 +358,9 @@ services:
       - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      # AI-generated (edited by Reallyeasy1): probe as the server user, otherwise a root-run probe can create a root-owned
+      # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
+      test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
       timeout: 5s
       retries: 5
