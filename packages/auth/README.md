@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+Scope: Documented the optional username claim and principal.username (F5.1.1).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-08
 Scope: Moved authentication-for-services.md from services/user-service/docs to packages/auth/README.md to serve as the official package documentation.
 Author review: <to be completed by author after review>
@@ -50,6 +54,7 @@ An access token issued by the User Service contains this payload:
   "sub": "a-user-id",
   "sid": "a-session-id",
   "role": "STUDENT",
+  "username": "alice",
   "iat": 1789870000,
   "exp": 1789870900,
   "iss": "friend-on-campus-user-service",
@@ -65,6 +70,7 @@ expiry, issuer and audience if a service ever verifies a token without `@campus-
 | `sub` | ID of the authenticated user. Use this for ownership checks. |
 | `sid` | ID of the login session that issued the token. Other services do not need to query or store the session. |
 | `role` | Platform role: `STUDENT` or `ADMIN`. |
+| `username` | Optional. The user's display name when the token was issued (1–50 characters). Carried into order events so notifications can name the courier; tokens issued before this claim existed do not have it. |
 | `iat` | Time the token was issued, as Unix time in seconds. |
 | `exp` | Time the token expires, as Unix time in seconds. |
 | `iss` | Service that issued the token. It must match the middleware configuration. |
@@ -101,7 +107,7 @@ After authentication, use the verified identity:
 const { userId, sessionId, role } = res.locals.auth;
 ```
 
-Only `userId` (the `sub` claim), `sessionId` (the `sid` claim), and `role` are exposed to route handlers. The remaining claims are used internally by the middleware to validate the token.
+Only `userId` (the `sub` claim), `sessionId` (the `sid` claim), `role` and the optional `username` are exposed to route handlers. The remaining claims are used internally by the middleware to validate the token.
 
 Use `userId` from `res.locals.auth` for ownership checks. Treat user IDs supplied through request bodies, query parameters, or client-provided identity headers as untrusted.
 

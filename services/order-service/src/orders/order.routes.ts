@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: accept, pickup and deliver pass the caller's username from the verified token to the service (F5.1.1).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added admin force-cancel, force-complete, and courier unassign endpoints with RBAC checks and query search.
  * Author review: (to be completed by author after review)
@@ -36,12 +40,17 @@ function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): Re
   };
 }
 
-function resolveUserId(_req: Request, res: Response): string {
+// AI-generated (edited by Reallyeasy1)
+function resolvePrincipal(res: Response): AuthenticatedPrincipal {
   const auth = res.locals.auth as AuthenticatedPrincipal | undefined;
   if (auth && auth.userId) {
-    return auth.userId;
+    return auth;
   }
   throw new OrderError('Authentication required: user ID could not be identified', 401);
+}
+
+function resolveUserId(_req: Request, res: Response): string {
+  return resolvePrincipal(res).userId;
 }
 
 const ensureAdminRole: RequestHandler = (_req, res, next) => {
@@ -135,8 +144,9 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 5. Accept Errand (Single courier assignment, self-accept check)
   router.post('/:id/accept', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    const courierId = resolveUserId(req, res);
-    const order = await orderService.acceptOrder(req.params.id, courierId, req.body);
+    // AI-generated (edited by Reallyeasy1)
+    const courier = resolvePrincipal(res);
+    const order = await orderService.acceptOrder(req.params.id, courier.userId, req.body, courier.username);
     res.json({
       success: true,
       data: order,
@@ -146,8 +156,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 6. Pickup Item (Assigned Courier only)
   router.post('/:id/pickup', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    const courierId = resolveUserId(req, res);
-    const order = await orderService.pickupOrder(req.params.id, courierId);
+    const courier = resolvePrincipal(res);
+    const order = await orderService.pickupOrder(req.params.id, courier.userId, courier.username);
     res.json({
       success: true,
       data: order,
@@ -157,8 +167,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 7. Deliver Item (Assigned Courier only)
   router.post('/:id/deliver', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    const courierId = resolveUserId(req, res);
-    const order = await orderService.deliverOrder(req.params.id, courierId);
+    const courier = resolvePrincipal(res);
+    const order = await orderService.deliverOrder(req.params.id, courier.userId, courier.username);
     res.json({
       success: true,
       data: order,

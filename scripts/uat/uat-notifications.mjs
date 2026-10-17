@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+// Scope: The published events carry courierUsername and N4 asserts the acceptance body names the courier (F5.1.1).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 // Scope: Acceptance driver for the Notification Service (issue #52, F5): logs in through the gateway, opens the WebSocket, publishes order events to RabbitMQ as Order Service will, and checks the pushed frames and the REST API.
 // Author review: <to be completed by Reallyeasy1>
@@ -90,7 +94,7 @@ const orderId = randomUUID();
 const orderCode = `UAT-${Date.now().toString(36).slice(-5).toUpperCase()}`;
 const event = (eventType, at) => ({
   eventId: randomUUID(), eventType, timestamp: new Date(Date.now() + at).toISOString(),
-  orderId, orderCode, requesterId: alice.userId, courierId: bob.userId,
+  orderId, orderCode, requesterId: alice.userId, courierId: bob.userId, courierUsername: 'bob',
 });
 const acceptedEvent = event('order.accepted', 0);
 await publish(event('order.created', -1000));
@@ -104,7 +108,7 @@ await until(() => mine().length >= 3);
 const kinds = mine().map((f) => f.data.kind).join(',');
 record('N3', 'accepted, picked up and delivered are pushed to the requester in order (F5.1, F5.2, F5.3)', kinds === 'ORDER_ACCEPTED,ORDER_PICKED_UP,ORDER_DELIVERED', kinds);
 const first = mine()[0]?.data;
-record('N4', 'the acceptance notification names the errand and carries the courier id (F5.1.1)', first?.title === `Your errand ${orderCode} was accepted` && first?.courierId === bob.userId, first?.title);
+record('N4', 'the acceptance notification names the errand and the courier and carries the courier id (F5.1.1)', first?.title === `Your errand ${orderCode} was accepted` && first?.body === 'bob accepted your errand and will pick the items up next.' && first?.courierId === bob.userId, `${first?.title} / ${first?.body}`);
 record('N5', 'the delivery notification asks the requester to confirm (F5.3.1)', /confirm/i.test(mine()[2]?.data.body ?? ''), mine()[2]?.data.body);
 await delay(300);
 record('N6', 'order.created and order.completed produce no notification', mine().length === 3, `${mine().length} frames for this errand`);

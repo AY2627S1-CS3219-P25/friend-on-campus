@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: accept, pickup and deliver take the caller's optional username and put it on the outbox event as
+ * courierUsername (F5.1.1), per the author's design.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder handlers for administrative state interventions.
  * Author review: (to be completed by author after review)
@@ -35,9 +40,11 @@ export interface OrderService {
   getOrderById(id: string): Promise<OrderDTO>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
-  acceptOrder(orderId: string, courierId: string, req?: AcceptOrderRequest): Promise<OrderDTO>;
-  pickupOrder(orderId: string, courierId: string): Promise<OrderDTO>;
-  deliverOrder(orderId: string, courierId: string): Promise<OrderDTO>;
+  // AI-generated (edited by Reallyeasy1)
+  // courierUsername comes from the caller's access token; undefined when the token predates the claim (F5.1.1).
+  acceptOrder(orderId: string, courierId: string, req?: AcceptOrderRequest, courierUsername?: string): Promise<OrderDTO>;
+  pickupOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
+  deliverOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, req: AdminCancelOrderRequest): Promise<OrderDTO>;
@@ -263,7 +270,8 @@ async function handleAcceptOrder(
   deps: OrderServiceDependencies,
   orderId: string,
   courierId: string,
-  req?: AcceptOrderRequest
+  req?: AcceptOrderRequest,
+  courierUsername?: string
 ): Promise<OrderDTO> {
   const { repository, outboxRelay } = deps;
 
@@ -282,6 +290,7 @@ async function handleAcceptOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     courierId,
+    ...(courierUsername !== undefined && { courierUsername }),
   };
 
   const accepted = await repository.acceptOrder(existing.id, courierId, courierContactNote, event);
@@ -296,7 +305,8 @@ async function handleAcceptOrder(
 async function handlePickupOrder(
   deps: OrderServiceDependencies,
   orderId: string,
-  courierId: string
+  courierId: string,
+  courierUsername?: string
 ): Promise<OrderDTO> {
   const { repository, outboxRelay } = deps;
 
@@ -313,6 +323,7 @@ async function handlePickupOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     courierId,
+    ...(courierUsername !== undefined && { courierUsername }),
   };
 
   const inTransit = await repository.pickupOrder(existing.id, courierId, event);
@@ -327,7 +338,8 @@ async function handlePickupOrder(
 async function handleDeliverOrder(
   deps: OrderServiceDependencies,
   orderId: string,
-  courierId: string
+  courierId: string,
+  courierUsername?: string
 ): Promise<OrderDTO> {
   const { repository, outboxRelay } = deps;
 
@@ -344,6 +356,7 @@ async function handleDeliverOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     courierId,
+    ...(courierUsername !== undefined && { courierUsername }),
   };
 
   const delivered = await repository.deliverOrder(existing.id, courierId, event);
@@ -537,9 +550,9 @@ export function createOrderService(deps: OrderServiceDependencies): OrderService
     },
     listOrders: (options) => deps.repository.listOrders(options),
     getUserActivity: (userId) => deps.repository.getUserActivity(userId),
-    acceptOrder: (orderId, courierId, req) => handleAcceptOrder(deps, orderId, courierId, req),
-    pickupOrder: (orderId, courierId) => handlePickupOrder(deps, orderId, courierId),
-    deliverOrder: (orderId, courierId) => handleDeliverOrder(deps, orderId, courierId),
+    acceptOrder: (orderId, courierId, req, courierUsername) => handleAcceptOrder(deps, orderId, courierId, req, courierUsername),
+    pickupOrder: (orderId, courierId, courierUsername) => handlePickupOrder(deps, orderId, courierId, courierUsername),
+    deliverOrder: (orderId, courierId, courierUsername) => handleDeliverOrder(deps, orderId, courierId, courierUsername),
     completeOrder: (orderId, requesterId) => handleCompleteOrder(deps, orderId, requesterId),
     cancelOrder: (orderId, requesterId) => handleCancelOrder(deps, orderId, requesterId),
     adminCancelOrder: (orderId, adminUserId, req) =>

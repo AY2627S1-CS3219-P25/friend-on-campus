@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+Scope: Access-token claims example: replaced the never-issued `email` claim with the optional `username` claim (F5.1.1).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Authored unified Security & Access Control specification, documenting Ed25519 asymmetric authentication, refresh token session lifecycle, RBAC enforcement, and last-admin guards.
 Author review: <to be completed by author after review>
@@ -38,7 +42,7 @@ sequenceDiagram
   ```json
   {
     "sub": "b2c9a1d4-8392-4f11-9a74-9fbb34e12345",
-    "email": "alice@u.nus.edu",
+    "username": "alice",
     "role": "STUDENT",
     "sid": "e81f5c6b-3129-4d6a-8b29-123456789abc",
     "iss": "friend-on-campus-user-service",

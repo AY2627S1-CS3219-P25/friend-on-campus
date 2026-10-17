@@ -3296,3 +3296,26 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 
 
+
+## 2026-10-17 14:55 SGT — F5.1.1 courier name in the acceptance notification; D3 wiki page
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/f5-courier-username
+
+**Prompt (summarised):** Implement the author-approved design doc for issues #52 (F5.1.1, the only open F5 criterion) and #63 (D3 readiness): carry the courier's username from the access token through the order events to the notification body, and write the Milestone D3 wiki page.
+
+**Usage scenario:** Writing implementation code and unit tests for a design the author decided (token claim `username`, optional `courierUsername` on the accepted / in-transit / delivered events, the acceptance wording and its fallback) and documentation. Left to the author: review, commit, PR (`Part of #52`, `Part of #63`), the D3 appointment date, and whether to move #41/#74/#50 to Sprint 4.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `JWTPayload.username?`; `courierUsername?` on `OrderAcceptedEvent`, `OrderInTransitEvent`, `OrderDeliveredEvent`.
+- `services/user-service/src/auth/tokens.ts`, `src/auth/auth-module.ts` — `issueAccessToken(..., username?)`; login and refresh pass `user.username`.
+- `packages/auth/src/index.ts`, `packages/auth/README.md`, `docs/security.md` — optional claim validated (1–50 chars), exposed as `principal.username`; docs updated (security.md example had a non-existent `email` claim; now `username`).
+- `services/order-service/src/orders/order.routes.ts`, `src/orders/order.service.ts` — accept, pickup, deliver pass the principal's username; event builders add `courierUsername` when present.
+- `services/notification-service/src/notifications/events.ts` — `parseOrderEvent` validates `courierUsername`; `toNotification` renders "<name> accepted your errand and will pick the items up next." with the old sentence as fallback.
+- Tests: `services/user-service/test/{tokens,auth-module}.test.ts`, `test/helpers.ts`; `services/order-service/test/order.service.test.ts`; `services/notification-service/test/{events,messaging.integration}.test.ts`.
+- `scripts/uat/uat-notifications.mjs` (N4 asserts the body), `scripts/uat/uat-d2-ui.mjs` (UD3 event carries the name).
+- Wiki (separate repo, `wiki-checkout/`): new `Milestone-D3.md`; `Roadmap.md`, `Home.md`, `_Sidebar.md` updated.
+- `ai/usage-log.md` — this entry.
+
+**Verification:** `npm run typecheck` clean; `npm run lint` clean; unit suites user-service 124/124, order-service 49/49, notification-service 32/32, supplier-service 48/48. Local stack (isolated Compose project `f5`, ports remapped, gateway on :8085): notification-service `test:messaging` + `test:integration` 12/12; `uat-notifications.mjs` 17/17 (N4 shows "bob accepted your errand and will pick the items up next."); `uat-d2-api.mjs` 62/62; `uat-d2-ui.mjs` 34/34; plus a throwaway real-flow check (login → post → accept via `POST /api/orders/:id/accept` → alice's WebSocket frame names bob → pickup, deliver, confirm settle 2 credits to bob) 13/13. After the review pass: 2026-10-17 disclosure records added to `packages/auth/README.md` and `docs/security.md`, marker on `resolvePrincipal`.
