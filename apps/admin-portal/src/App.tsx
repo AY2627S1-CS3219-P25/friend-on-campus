@@ -139,6 +139,15 @@
  * hidden behind the modal's backdrop while it's open) naming the specific conflicting supplier's
  * name/category/building/floor. Reset at every existing open/cancel/close touchpoint for both modals.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: Add Supplier modal: Latitude and Longitude are now required fields (red asterisk, validateSupplierForm
+ * check, no API call sent until both are filled with a valid number), matching the supplier-service DB columns
+ * being made NOT NULL in the same change. Not added as visible inputs to the Edit Supplier modal (out of scope
+ * for this change), but openEditModal now carries the existing supplier's latitude/longitude into editFormData
+ * so the shared validateSupplierForm check (reused by both modals) doesn't block editing an existing supplier
+ * that already has coordinates.
+ * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by huangjiaxi1111)
@@ -270,7 +279,12 @@ export default function App() {
   // Add Supplier Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newSupplier, setNewSupplier] = useState<CreateSupplierRequest>({
+  // AI-generated (edited by jagdeepsh)
+  // latitude/longitude are typed number | '' here (not CreateSupplierRequest's plain `number`) so an empty
+  // number input can be represented and caught by validateSupplierForm before the request is ever sent.
+  const [newSupplier, setNewSupplier] = useState<
+    Omit<CreateSupplierRequest, 'latitude' | 'longitude'> & { latitude: number | ''; longitude: number | '' }
+  >({
     supplierCode: '',
     name: '',
     campusZone: 'COM3',
@@ -279,6 +293,8 @@ export default function App() {
     description: '',
     building: '',
     floor: '',
+    latitude: '',
+    longitude: '',
     startingTime: '0800hrs',
     closingTime: '2000hrs',
   });
@@ -701,6 +717,7 @@ export default function App() {
   };
 
   // Shared required-field validation for Add/Edit Supplier forms
+  // AI-generated (edited by jagdeepsh)
   const validateSupplierForm = (data: {
     name?: string;
     campusZone?: string;
@@ -708,6 +725,8 @@ export default function App() {
     exactLocation?: string;
     building?: string;
     floor?: string;
+    latitude?: number | '';
+    longitude?: number | '';
   }) => {
     const errors: Record<string, string> = {};
     if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
@@ -716,6 +735,12 @@ export default function App() {
     if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
     if (!data.building?.trim()) errors.building = 'Building is required.';
     if (!data.floor?.trim()) errors.floor = 'Floor is required.';
+    if (data.latitude === undefined || data.latitude === null || data.latitude === '' || Number.isNaN(Number(data.latitude))) {
+      errors.latitude = 'Latitude is required.';
+    }
+    if (data.longitude === undefined || data.longitude === null || data.longitude === '' || Number.isNaN(Number(data.longitude))) {
+      errors.longitude = 'Longitude is required.';
+    }
     return errors;
   };
 
@@ -750,6 +775,8 @@ export default function App() {
           description: '',
           building: '',
           floor: '',
+          latitude: '',
+          longitude: '',
           startingTime: '0800hrs',
           closingTime: '2000hrs',
         });
@@ -778,6 +805,8 @@ export default function App() {
       description: supplier.description || '',
       building: supplier.building || '',
       floor: supplier.floor || '',
+      latitude: supplier.latitude,
+      longitude: supplier.longitude,
       startingTime: supplier.startingTime || '',
       closingTime: supplier.closingTime || '',
       isActive: supplier.isActive,
@@ -3058,6 +3087,51 @@ export default function App() {
                   value={newSupplier.floor || ''}
                   onChange={(e) => setNewSupplier({ ...newSupplier, floor: e.target.value })}
                   className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* AI-generated (edited by jagdeepsh) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  Latitude <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.latitude && <p className="text-xs text-rose-600 mb-1">{addFormErrors.latitude}</p>}
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 1.2966"
+                  value={newSupplier.latitude}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewSupplier({ ...newSupplier, latitude: val === '' ? '' : Number(val) });
+                    if (addFormErrors.latitude) setAddFormErrors({ ...addFormErrors, latitude: '' });
+                  }}
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.latitude ? 'border-rose-400' : 'border-slate-300'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  Longitude <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.longitude && <p className="text-xs text-rose-600 mb-1">{addFormErrors.longitude}</p>}
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 103.7764"
+                  value={newSupplier.longitude}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewSupplier({ ...newSupplier, longitude: val === '' ? '' : Number(val) });
+                    if (addFormErrors.longitude) setAddFormErrors({ ...addFormErrors, longitude: '' });
+                  }}
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.longitude ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 />
               </div>
             </div>

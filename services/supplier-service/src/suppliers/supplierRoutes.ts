@@ -31,6 +31,12 @@
  * when name, category, building or floor is sent empty. createSupplier treats whitespace-only required
  * fields as missing.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: latitude/longitude added to createSupplier's required-field check and validated as finite numbers;
+ * updateSupplier rejects latitude/longitude sent as null or a non-finite value, matching the DB columns
+ * being made NOT NULL in this same change.
+ * Author review: (to be completed by author after review)
  */
 
 
@@ -111,11 +117,20 @@ export async function createSupplier(req: Request, res: Response) {
     const body: CreateSupplierRequest = req.body;
 
     // Whitespace-only counts as missing, the same as in updateSupplier.
-    const required = ['name', 'campusZone', 'exactLocation', 'category', 'building', 'floor'] as const;
+    const required = ['name', 'campusZone', 'exactLocation', 'category', 'building', 'floor', 'latitude', 'longitude'] as const;
     if (required.some((key) => !String(body[key] ?? '').trim())) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor',
+        error: 'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor, latitude, longitude',
+      });
+    }
+
+    // AI-generated (edited by jagdeepsh)
+    if (typeof body.latitude !== 'number' || !Number.isFinite(body.latitude)
+      || typeof body.longitude !== 'number' || !Number.isFinite(body.longitude)) {
+      return res.status(400).json({
+        success: false,
+        error: 'latitude and longitude must be valid numbers',
       });
     }
 
@@ -168,6 +183,15 @@ export async function updateSupplier(req: Request, res: Response) {
     for (const key of ['name', 'category', 'building', 'floor'] as const) {
       if (body[key] !== undefined && !String(body[key]).trim()) {
         return res.status(400).json({ success: false, error: `${key} cannot be empty` });
+      }
+    }
+
+    // AI-generated (edited by jagdeepsh)
+    // latitude/longitude may be left out of a PUT, but if sent must be a valid number — never null/NaN,
+    // since the column is NOT NULL.
+    for (const key of ['latitude', 'longitude'] as const) {
+      if (body[key] !== undefined && (typeof body[key] !== 'number' || !Number.isFinite(body[key]))) {
+        return res.status(400).json({ success: false, error: `${key} must be a valid number` });
       }
     }
 

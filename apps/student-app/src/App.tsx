@@ -77,6 +77,14 @@
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
  * Scope: Added a responsive desktop layout (top nav bar, wide multi-column content grids) gated on Tailwind's md: (768px) breakpoint, alongside the existing mobile phone-card layout.
  * Author review: [left for the human author to fill in]
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: Added a Map icon button beside the Post Errand pickup dropdown. Opens a new interactive map modal
+ * (src/map/SupplierPickupMap.tsx, React Leaflet + OpenStreetMap tiles) dropping a pin for every active
+ * supplier with coordinates; clicking a pin selects that supplier in formData (same fields the dropdown's
+ * onChange already sets) and closes the map. New dependencies: leaflet, react-leaflet, @types/leaflet
+ * (student-app package.json only — no Dockerfile change needed per CLAUDE.md).
+ * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by yanhwee)
@@ -88,6 +96,7 @@ import {
   Clock,
   UserCircle,
   MapPin,
+  Map as MapIcon,
   ArrowRight,
   AlertCircle,
   Coins,
@@ -100,6 +109,7 @@ import {
 import { OrderDTO, CreditWalletDTO, CreditTransactionDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 import { NotificationBell, NotificationPanel } from './notifications/NotificationBell';
 import { useNotifications } from './notifications/useNotifications';
+import { SupplierPickupMap } from './map/SupplierPickupMap';
 
 export default function App() {
   // Login / Sign Up Gate state
@@ -148,6 +158,8 @@ export default function App() {
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
+  // AI-generated (edited by jagdeepsh)
+  const [isPickupMapOpen, setIsPickupMapOpen] = useState(false);
 
   // Credit Wallet & Ledger State
   const [wallet, setWallet] = useState<CreditWalletDTO | null>(null);
@@ -1081,27 +1093,39 @@ export default function App() {
                       {activeSuppliers.length} active spots
                     </span>
                   </div>
-                  <select
-                    value={formData.supplierId}
-                    onChange={(e) => {
-                      const chosen = suppliers.find((s) => s.id === e.target.value);
-                      if (chosen) {
-                        setFormData({
-                          ...formData,
-                          supplierId: chosen.id,
-                          supplierName: chosen.name,
-                          campusZone: chosen.campusZone,
-                        });
-                      }
-                    }}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  >
-                    {activeSuppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.campusZone} - {s.category})
-                      </option>
-                    ))}
-                  </select>
+                  {/* AI-generated (edited by jagdeepsh) */}
+                  <div className="flex items-stretch gap-2">
+                    <select
+                      value={formData.supplierId}
+                      onChange={(e) => {
+                        const chosen = suppliers.find((s) => s.id === e.target.value);
+                        if (chosen) {
+                          setFormData({
+                            ...formData,
+                            supplierId: chosen.id,
+                            supplierName: chosen.name,
+                            campusZone: chosen.campusZone,
+                          });
+                        }
+                      }}
+                      className="flex-1 min-w-0 text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
+                    >
+                      {activeSuppliers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.campusZone} - {s.category})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setIsPickupMapOpen(true)}
+                      title="Pick a spot on the map"
+                      aria-label="Pick a spot on the map"
+                      className="shrink-0 px-3 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-nus-blue flex items-center justify-center"
+                    >
+                      <MapIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                   <p className="text-xs text-slate-400 mt-1">
                     Selected Zone: <span className="font-bold text-slate-600">{formData.campusZone}</span>
                   </p>
@@ -1697,6 +1721,24 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* AI-generated (edited by jagdeepsh) */}
+      {/* Pickup Spot Map Modal */}
+      {isPickupMapOpen && (
+        <SupplierPickupMap
+          suppliers={activeSuppliers}
+          selectedSupplierId={formData.supplierId}
+          onSelect={(chosen) => {
+            setFormData({
+              ...formData,
+              supplierId: chosen.id,
+              supplierName: chosen.name,
+              campusZone: chosen.campusZone,
+            });
+          }}
+          onClose={() => setIsPickupMapOpen(false)}
+        />
       )}
     </div>
   );

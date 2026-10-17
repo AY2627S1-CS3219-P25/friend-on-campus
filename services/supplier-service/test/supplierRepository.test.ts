@@ -10,6 +10,11 @@
  * (node:test module mock): where-clause and orderBy construction, pagination arithmetic and clamping, the
  * duplicate lookup, trimming and null defaults on create and update, supplier-code generation, toggle and delete.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: createSupplier's base test fixture now includes latitude/longitude (no longer optional), and its
+ * assertion expects them passed straight through instead of defaulted to null.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by Reallyeasy1)
 import { describe, it, before, beforeEach, mock } from 'node:test';
@@ -194,6 +199,7 @@ describe('lookups', () => {
 });
 
 describe('createSupplier', () => {
+  // AI-generated (edited by jagdeepsh)
   const body = {
     name: '  Demo Cafe ',
     campusZone: ' COM3',
@@ -202,6 +208,8 @@ describe('createSupplier', () => {
     building: ' COM3 ',
     floor: ' 1',
     description: '   ',
+    latitude: 1.2966,
+    longitude: 103.7764,
     startingTime: '0900',
     imageUrl: '',
   };
@@ -222,8 +230,8 @@ describe('createSupplier', () => {
       description: null,
       building: 'COM3',
       floor: '1',
-      latitude: null,
-      longitude: null,
+      latitude: 1.2966,
+      longitude: 103.7764,
       startingTime: '0900',
       closingTime: null,
       imageUrl: null,

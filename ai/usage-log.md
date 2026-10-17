@@ -3294,5 +3294,52 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Pre-poisoned volume (root-owned 0400 `.erlang.cookie` written before first start): `up --wait` healthy; the entrypoint chowned the existing cookie to rabbitmq without replacing its content. With the previous `user: rabbitmq` approach this volume would have failed on every start.
 - `docker compose config --quiet` passes; test containers and volumes removed afterwards.
 
+## 2026-10-17 18:33 SGT — Mandatory Latitude/Longitude on supplier creation
+
+**Tool:** Claude Code (model: Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** In the admin dashboard's Campus Suppliers tab, add Latitude and Longitude fields to the Add Supplier form, mandatory with the same client-side-only validation style as the other required fields (no backend round-trip for a missing value), and make the two columns NOT NULL in the supplier-service DB.
+
+**Usage scenario:** Implementation of an already-decided requirement (mandatory coordinates), following the existing precedent set by the earlier building/floor required-field change — same four-file shape (common-dtos, Prisma schema + migration, supplierRoutes.ts, supplierRepository.ts, admin-portal form). Left for the author: confirming whether the Edit Supplier modal should also expose visible Latitude/Longitude inputs (not added — out of the literal scope asked, and not required functionally since existing suppliers already carry real coordinates into the edit form state).
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `CreateSupplierRequest.latitude`/`.longitude` changed from optional to required.
+- `services/supplier-service/src/database/prisma/schema.prisma` — `latitude`/`longitude` changed from `Float?` to `Float`.
+- `services/supplier-service/src/database/prisma/migrations/20261017102809_make_coordinates_required/` — new migration, `ALTER COLUMN ... SET NOT NULL` on both columns.
+- `services/supplier-service/src/database/seed.ts` — `parseCoordinate()` now throws on a blank CSV value instead of returning `null`, matching the `requireField()` precedent for building/floor.
+- `services/supplier-service/src/suppliers/supplierRoutes.ts` — `createSupplier` adds latitude/longitude to the required-field check plus a finite-number check; `updateSupplier` rejects latitude/longitude sent as null/non-finite (may still be omitted).
+- `services/supplier-service/src/suppliers/supplierRepository.ts` — `createSupplier` no longer falls back latitude/longitude to `null`.
+- `services/supplier-service/test/supplierRoutes.test.ts`, `services/supplier-service/test/supplierRepository.test.ts` — fixtures updated to include latitude/longitude now that they're required.
+- `apps/admin-portal/src/App.tsx` — Add Supplier modal: two new required Latitude/Longitude number inputs, `validateSupplierForm` extended to block submission on a missing/invalid value before any API call, `newSupplier`/reset-state updated, `openEditModal` now carries forward the existing supplier's coordinates so the shared validator doesn't block editing.
+
+**Verification:**
+- `npm run typecheck` (common-dtos, supplier-service, admin-portal workspaces) — clean.
+- `npm run test:unit --workspace=@campus-errand/supplier-service` (under Node 22.23.1, as required by `engines`) — 48/48 passing.
+- Confirmed via live Postgres query that the existing `supplier_db` had zero rows with a null latitude/longitude before migrating, so `docker compose down -v` was not needed — a normal `prisma migrate dev` applied the `NOT NULL` constraint cleanly against live data.
+- Rebuilt and restarted the `supplier-service` and `admin-portal` containers; live-tested `POST /api/suppliers` through the gateway as the seeded admin: missing coordinates → 400, non-numeric coordinates → 400, valid coordinates → 201 (then deleted the test row). Confirmed the rebuilt admin-portal bundle actually contains the new field labels/validation strings. Did not visually click through the form in a browser (no browser tool available in this environment that can reach the local stack).
+
+## 2026-10-17 19:29 SGT — Interactive pickup-spot map on Post Errand (student-app)
+
+**Tool:** Claude Code (model: Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** On the student app's Post Errand page, add a map icon button beside the existing pickup-spot dropdown. Clicking it opens an interactive map (author specified React Leaflet + OpenStreetMap tiles) dropping a pin for every supplier using their latitude/longitude; clicking a pin should auto-select that supplier in the existing dropdown.
+
+**Usage scenario:** Implementation of an already-decided design — the author named the exact library (React Leaflet) and tile provider (OpenStreetMap) and the exact interaction (pin click selects the dropdown value), so no architecture/library choice was made here, only the implementation of their decision. Scoped entirely to `apps/student-app` as the author expected.
+
+**Files changed:**
+- `apps/student-app/package.json` — added `leaflet`, `react-leaflet` (dependencies) and `@types/leaflet` (devDependency). No Dockerfile change needed (new dependency in an existing workspace's `package.json` only, per `CLAUDE.md`).
+- `package-lock.json` — updated by `npm install` for the new dependencies.
+- `apps/student-app/src/map/SupplierPickupMap.tsx` (new) — the map modal: `MapContainer`/`TileLayer` (OSM tiles with attribution), a `Marker` + `Popup` per active supplier with valid coordinates, a `FitBoundsToMarkers` helper (via `useMap()`) that fits the view to all pins instead of a fixed zoom, and the standard Leaflet-under-a-bundler marker-icon fix (`L.Icon.Default.mergeOptions` with bundled asset imports). Clicking a marker selects that supplier and closes the map.
+- `apps/student-app/src/App.tsx` — new `Map` icon button beside the Pickup Store dropdown (opens the modal), `isPickupMapOpen` state, and the modal's render wired to the same `setFormData` fields the dropdown's own `onChange` already sets (`supplierId`/`supplierName`/`campusZone`), so selecting via map or dropdown behaves identically.
+
+**Verification:**
+- `npm run typecheck --workspace=@campus-errand/student-app` — clean.
+- `npm run build --workspace=@campus-errand/student-app` (full `tsc && vite build`) — succeeds; confirmed the marker icon PNG imports resolved correctly and were inlined as base64 by Vite (not left as broken references, the classic Leaflet-plus-bundler pitfall).
+- Rebuilt and restarted the `student-app` container; confirmed the live served bundle actually contains the new map modal's strings ("Pick a Spot on the Map", the OpenStreetMap tile URL). Did not visually click through the map in a browser (no browser tool available in this environment that can reach the local stack) — a live check (opening the map, confirming pins land on the right buildings, clicking one updates the dropdown) is worth doing before merging.
+
 
 

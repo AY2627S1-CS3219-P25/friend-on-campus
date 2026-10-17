@@ -38,6 +38,12 @@
  * constraint on suppliers to be meaningful (a null building/floor can't be compared for duplicates).
  * UpdateSupplierRequest and SupplierDTO are unchanged (partial-update and read shapes stay flexible).
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: CreateSupplierRequest.latitude/.longitude changed from optional to required, matching the
+ * supplier-service DB columns being made NOT NULL in the same change. UpdateSupplierRequest and SupplierDTO
+ * stay optional (same precedent as building/floor above — partial-update and read shapes stay flexible).
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
@@ -142,8 +148,8 @@ export interface CreateSupplierRequest {
   description?: string;
   building: string;
   floor: string;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
   startingTime?: string;
   closingTime?: string;
   imageUrl?: string;

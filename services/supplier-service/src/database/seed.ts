@@ -6,6 +6,11 @@
  * that the database would then reject. Every current seed row already has both, so this is a safety net for
  * future CSV edits, not a fix for a live problem.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: latitude/longitude are now required columns too. parseCoordinate() now throws on a blank value
+ * instead of returning null, same reasoning and precedent as requireField() above for building/floor.
+ * Author review: (to be completed by author after review)
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -103,8 +108,10 @@ function toRecords(rows: string[][]): CsvRow[] {
   });
 }
 
-function parseCoordinate(value: string, label: string, name: string): number | null {
-  if (value === '') return null;
+function parseCoordinate(value: string, label: string, name: string): number {
+  if (value.trim() === '') {
+    throw new Error(`Missing required ${label} for supplier "${name}"`);
+  }
   const n = Number(value);
   if (Number.isNaN(n)) {
     throw new Error(`Invalid ${label} "${value}" for supplier "${name}"`);

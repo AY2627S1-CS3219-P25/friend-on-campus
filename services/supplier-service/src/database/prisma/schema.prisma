@@ -9,6 +9,10 @@
 // case-insensitively unique via a raw SQL expression index in migrations/ — Prisma cannot declare LOWER() in
 // a @@unique, so it is deliberately not declared here (same reasoning as user-service's username/email).
 // Author review: (to be completed by author after review)
+//
+// Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+// Scope: latitude/longitude changed from optional to required (every supplier must have map coordinates).
+// Author review: (to be completed by author after review)
 
 // AI-generated (edited by jagdeepsh)
 //
@@ -40,8 +44,8 @@ model Supplier {
   description   String?
   building      String
   floor         String
-  latitude      Float?
-  longitude     Float?
+  latitude      Float
+  longitude     Float
   startingTime  String?  @map("starting_time")
   closingTime   String?  @map("closing_time")
   imageUrl      String?  @map("image_url")

@@ -7,6 +7,10 @@
  * duplicate rule on create and update including the unique-index fallback, toggle, soft and permanent delete,
  * and the 500 path.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: Added latitude/longitude to the shared VALID fixture now that createSupplier requires them.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by Reallyeasy1)
 import { describe, it, before, after, beforeEach, mock } from 'node:test';
@@ -126,7 +130,8 @@ function seed(overrides: Row = {}): Row {
   return row;
 }
 
-const VALID = { name: 'Demo Cafe', campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', building: 'COM3', floor: '1' };
+// AI-generated (edited by jagdeepsh)
+const VALID = { name: 'Demo Cafe', campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', building: 'COM3', floor: '1', latitude: 1.2966, longitude: 103.7764 };
 
 // ---------------------------------------------------------------- app under test
 let base = '';
