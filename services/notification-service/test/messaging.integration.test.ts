@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: The accepted event carries courierUsername and the pushed frame's body is asserted (F5.1.1).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: End-to-end test of the consumer with a real broker and database: an order.accepted event becomes one row
  * and one pushed frame, a redelivery adds neither, and a malformed message is dead-lettered without blocking the queue.
@@ -54,6 +58,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     orderCode: 'ORD-0042',
     requesterId: ALICE,
     courierId: BOB,
+    courierUsername: 'bob',
     ...overrides,
   });
   const publish = (content: Buffer, routingKey = 'order.accepted') =>
@@ -101,6 +106,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     await publishEvent(event);
     const frame = await alice.frame('NOTIFICATION');
     assert.equal(frame.data.title, 'Your errand ORD-0042 was accepted');
+    assert.equal(frame.data.body, 'bob accepted your errand and will pick the items up next.');
     assert.equal(frame.data.orderId, event.orderId);
     assert.equal(frame.data.courierId, BOB);
     assert.equal(frame.data.createdAt, event.timestamp);

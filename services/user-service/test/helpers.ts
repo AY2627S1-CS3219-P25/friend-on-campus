@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: The fake token manager records the username passed to issueAccessToken.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: The fakes mirror the repositories: rotateSession refuses a disabled account and toggleStatus refuses
  * to disable the last enabled admin.
@@ -56,13 +60,13 @@ export function makeKeyPair(): { privateKey: string; publicKey: string } {
 }
 
 /** Records every call and returns predictable tokens; no cryptography. */
-export function makeFakeTokens(): TokenManager & { issued: Array<{ userId: string; sessionId: string; role: string }> } {
+export function makeFakeTokens(): TokenManager & { issued: Array<{ userId: string; sessionId: string; role: string; username?: string }> } {
   let counter = 0;
-  const issued: Array<{ userId: string; sessionId: string; role: string }> = [];
+  const issued: Array<{ userId: string; sessionId: string; role: string; username?: string }> = [];
   return {
     issued,
-    issueAccessToken(userId, sessionId, role) {
-      issued.push({ userId, sessionId, role });
+    issueAccessToken(userId, sessionId, role, username) {
+      issued.push({ userId, sessionId, role, username });
       return `access-token-for-${userId}-${sessionId}-${role}`;
     },
     generateRefreshToken() {

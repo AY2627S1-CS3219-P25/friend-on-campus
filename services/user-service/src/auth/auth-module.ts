@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Login and refresh pass the user's username into the access token (F5.1.1 courier name).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Persisted user.registered event in transactional outbox during registration and integrated outbox relay.
  * Author review: <to be completed by huangjiaxi1111>
@@ -186,6 +190,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       session.user.id,
       session.sessionId,
       session.user.role,
+      session.user.username,
     );
   }
 

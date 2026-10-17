@@ -1,6 +1,11 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Optional username claim on JWTPayload and optional courierUsername on the accepted, in-transit and
+ * delivered order events, per the author's F5.1.1 design.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added AdminCancelOrderRequest, AdminCompleteOrderRequest, and AdminUnassignOrderRequest for administrative order lifecycle management.
  * Author review: (to be completed by author after review)
@@ -87,12 +92,14 @@ export interface RefreshTokenResponse {
 
 /**
  * Access-token claims (RFC 7519 registered names so standard JWT libraries enforce exp/iss/aud).
- * sub = user id, sid = login session id.
+ * sub = user id, sid = login session id. username is the display name at issue time (F5.1.1);
+ * optional so tokens minted before it existed still verify.
  */
 export interface JWTPayload {
   sub: string;
   sid: string;
   role: UserRole;
+  username?: string;
   iat: number;
   exp: number;
   iss: string;
@@ -315,12 +322,16 @@ export interface OrderCreatedEvent extends BaseEvent {
   expiresAt: string;
 }
 
+// AI-generated (edited by Reallyeasy1)
+// courierUsername is the courier's display name from their access token at the time of the call (F5.1.1).
+// Optional: events already queued, and calls made with a token that predates the claim, omit it.
 export interface OrderAcceptedEvent extends BaseEvent {
   eventType: 'order.accepted';
   orderId: string;
   orderCode: string;
   requesterId: string;
   courierId: string;
+  courierUsername?: string;
 }
 
 export interface OrderInTransitEvent extends BaseEvent {
@@ -329,6 +340,7 @@ export interface OrderInTransitEvent extends BaseEvent {
   orderCode?: string;
   requesterId: string;
   courierId: string;
+  courierUsername?: string;
 }
 
 // AI-generated (edited by Reallyeasy1)
@@ -338,6 +350,7 @@ export interface OrderDeliveredEvent extends BaseEvent {
   orderCode: string;
   requesterId: string;
   courierId: string;
+  courierUsername?: string;
 }
 
 export interface OrderCompletedEvent extends BaseEvent {

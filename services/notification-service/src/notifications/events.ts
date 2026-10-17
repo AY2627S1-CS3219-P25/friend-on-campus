@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: parseOrderEvent validates the optional courierUsername (1–50 characters) and toNotification names the
+ * courier in the acceptance body, falling back to the previous wording (F5.1.1, author's design and copy).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Per the author's Notification Service Design: order.delivered is bound and validated, toNotification maps
  * accepted, in_transit and delivered to a notification (titles from the design, body text added), and createDeliver
@@ -40,6 +45,8 @@ export interface OrderEvent {
   orderCode?: string;
   requesterId: string;
   courierId?: string;
+  /** The courier's display name from their access token; absent on events from tokens that predate it (F5.1.1). */
+  courierUsername?: string;
 }
 
 // Will move to @campus-errand/common-dtos as NotificationKind in the shared-contract PR.
@@ -96,6 +103,15 @@ export function parseOrderEvent(content: Buffer, routingKey: string): OrderEvent
   if (eventType === 'order.accepted' || eventType === 'order.in_transit' || eventType === 'order.delivered' || eventType === 'order.completed') {
     event.courierId = uuid(input.courierId, 'courierId');
   }
+  // AI-generated (edited by Reallyeasy1)
+  // Optional: order service calls made with a token that predates the username claim omit it. Same bounds as users.username.
+  if (input.courierUsername !== undefined) {
+    const name = input.courierUsername;
+    if (typeof name !== 'string' || name.length === 0 || name.length > 50) {
+      throw new InvalidNotificationEvent('courierUsername must be a string of 1 to 50 characters');
+    }
+    event.courierUsername = name;
+  }
   return event;
 }
 
@@ -116,7 +132,14 @@ export function toNotification(event: OrderEvent): NotificationDraft | null {
   const errand = event.orderCode ? `Your errand ${event.orderCode}` : 'Your errand';
   switch (event.eventType) {
     case 'order.accepted':
-      return { kind: 'ORDER_ACCEPTED', title: `${errand} was accepted`, body: 'A courier has been assigned to your errand.' };
+      return {
+        kind: 'ORDER_ACCEPTED',
+        title: `${errand} was accepted`,
+        // F5.1.1: name the courier when the event carries it; rows stored before the field existed keep the generic text.
+        body: event.courierUsername
+          ? `${event.courierUsername} accepted your errand and will pick the items up next.`
+          : 'A courier has been assigned to your errand.',
+      };
     case 'order.in_transit':
       return { kind: 'ORDER_PICKED_UP', title: `${errand} was picked up`, body: 'Your courier has the items and is on the way.' };
     case 'order.delivered':

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Tests that accept, pickup and deliver put the caller's username on the outbox event when present (F5.1.1).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added unit test suite for Admin Order Management: force-cancel, force-complete, unassign, optimistic concurrency guards, and query search.
  * Author review: (to be completed by author after review)
@@ -361,6 +365,21 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(payload.courierId, COURIER_1_ID);
     });
 
+    // AI-generated (edited by Reallyeasy1)
+    it('puts the courier username on order.accepted when the caller has one, and omits it otherwise (F5.1.1)', async () => {
+      const { service, fakeRepo } = setupTest();
+      const request = { supplierId: SUPPLIER_ID, itemDescription: 'Kaya toast', dropoffLocation: 'COM1', rewardCredits: 5 };
+      const lastPayload = () => JSON.parse(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].payload);
+
+      const named = await service.createOrder(REQUESTER_ID, request);
+      await service.acceptOrder(named.id, COURIER_1_ID, undefined, 'bob');
+      assert.equal(lastPayload().courierUsername, 'bob');
+
+      const anonymous = await service.createOrder(REQUESTER_ID, request);
+      await service.acceptOrder(anonymous.id, COURIER_1_ID);
+      assert.equal('courierUsername' in lastPayload(), false);
+    });
+
     it('rejects self-fulfillment when requester attempts to claim their own errand', async () => {
       const { service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
@@ -450,14 +469,16 @@ describe('Order Service Lifecycle and Concurrency', () => {
       await service.acceptOrder(order.id, COURIER_1_ID);
 
       // 1. Pickup
-      const inTransit = await service.pickupOrder(order.id, COURIER_1_ID);
+      const inTransit = await service.pickupOrder(order.id, COURIER_1_ID, 'bob');
       assert.equal(inTransit.status, 'IN_TRANSIT');
       assert.ok(inTransit.pickedUpAt);
+      assert.equal(JSON.parse(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].payload).courierUsername, 'bob');
 
       // 2. Deliver
-      const delivered = await service.deliverOrder(order.id, COURIER_1_ID);
+      const delivered = await service.deliverOrder(order.id, COURIER_1_ID, 'bob');
       assert.equal(delivered.status, 'DELIVERED');
       assert.ok(delivered.deliveredAt);
+      assert.equal(JSON.parse(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].payload).courierUsername, 'bob');
 
       // 3. Complete (confirmed by requester)
       const completed = await service.completeOrder(order.id, REQUESTER_ID);

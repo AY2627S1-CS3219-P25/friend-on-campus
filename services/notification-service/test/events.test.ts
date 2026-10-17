@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Tests for courierUsername (F5.1.1): validated on parse, rendered in the acceptance body, generic fallback
+ * without it, pickup and delivery wording unchanged.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Tests for the event-to-notification mapping, order.delivered, and store-before-push delivery.
  * Author review: <to be completed by Reallyeasy1>
@@ -66,12 +71,28 @@ test('anything else is transient', () => {
 const draft = (overrides: Record<string, unknown>, key: string) =>
   toNotification(parseOrderEvent(body({ ...accepted, eventType: key, ...overrides }), key));
 
-test('order.accepted becomes ORDER_ACCEPTED and names the errand (F5.1.1)', () => {
-  assert.deepEqual(draft({}, 'order.accepted'), {
+test('order.accepted becomes ORDER_ACCEPTED and names the errand and the courier (F5.1.1)', () => {
+  assert.deepEqual(draft({ courierUsername: 'bob' }, 'order.accepted'), {
     kind: 'ORDER_ACCEPTED',
     title: 'Your errand ORD-0001 was accepted',
-    body: 'A courier has been assigned to your errand.',
+    body: 'bob accepted your errand and will pick the items up next.',
   });
+});
+
+test('order.accepted without a courier name keeps the generic wording (F5.1.1 fallback)', () => {
+  assert.equal(draft({}, 'order.accepted')?.body, 'A courier has been assigned to your errand.');
+});
+
+test('courierUsername is kept when valid and rejected when empty, over-long or not a string', () => {
+  assert.equal(parseOrderEvent(body({ ...accepted, courierUsername: 'bob' }), 'order.accepted').courierUsername, 'bob');
+  for (const courierUsername of ['', 'x'.repeat(51), 7, null]) {
+    assert.throws(() => parseOrderEvent(body({ ...accepted, courierUsername }), 'order.accepted'), InvalidNotificationEvent);
+  }
+});
+
+test('the courier name does not change the pickup and delivery wording', () => {
+  assert.equal(draft({ courierUsername: 'bob' }, 'order.in_transit')?.body, 'Your courier has the items and is on the way.');
+  assert.equal(draft({ courierUsername: 'bob' }, 'order.delivered')?.body, 'Review the delivery and confirm it.');
 });
 
 test('order.in_transit becomes ORDER_PICKED_UP, with the order code when the event carries one (F5.2.1)', () => {
@@ -106,7 +127,7 @@ test('delivery stores the notification for the requester before pushing it, stam
     { insert: async (row) => { steps.push('insert'); stored.push(row); return saved; } },
     (userId, notification) => { steps.push(`push ${userId}`); assert.equal(notification, saved); },
   );
-  const event = parseOrderEvent(body(accepted), 'order.accepted');
+  const event = parseOrderEvent(body({ ...accepted, courierUsername: 'bob' }), 'order.accepted');
   await deliver(event, toNotification(event)!);
   assert.deepEqual(steps, ['insert', `push ${accepted.requesterId}`]);
   assert.deepEqual(stored[0], {
@@ -117,7 +138,7 @@ test('delivery stores the notification for the requester before pushing it, stam
     orderCode: 'ORD-0001',
     courierId: accepted.courierId,
     title: 'Your errand ORD-0001 was accepted',
-    body: 'A courier has been assigned to your errand.',
+    body: 'bob accepted your errand and will pick the items up next.',
     createdAt: accepted.timestamp,
   });
 });

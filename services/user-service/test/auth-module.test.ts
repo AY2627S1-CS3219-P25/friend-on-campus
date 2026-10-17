@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: The login test expects the username to be passed to the token manager.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Added registration event publisher integration tests and error isolation checks.
  * Author review: <to be completed by huangjiaxi1111>
@@ -159,7 +163,7 @@ describe('login', () => {
     assert.equal(result.user.username, 'alice');
     assert.equal(result.accessTokenExpiresInSeconds, 900);
     assert.equal(result.refreshToken, 'refresh-1');
-    assert.deepEqual(tokens.issued, [{ userId: makeUser().id, sessionId: 'session-1', role: 'STUDENT' }]);
+    assert.deepEqual(tokens.issued, [{ userId: makeUser().id, sessionId: 'session-1', role: 'STUDENT', username: 'alice' }]);
     const stored = fake.sessions.get(tokens.hashRefreshToken('refresh-1'));
     assert.ok(stored, 'session stored under the hash, not the raw token');
     assert.equal(stored.persistent, false);

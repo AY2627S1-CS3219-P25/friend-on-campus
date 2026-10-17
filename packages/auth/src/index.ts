@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Optional username claim (1–50 characters) accepted and exposed as principal.username (F5.1.1); a token
+ * without it still verifies and every other check is unchanged.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Exported readPublicKey and verifyAccessToken so the Notification Service's WebSocket hub can verify a token
  * outside an HTTP request. No behaviour change for the middleware.
@@ -25,6 +30,8 @@ export interface AuthenticatedPrincipal {
   userId: string;
   sessionId: string;
   role: UserRole;
+  /** Display name at token issue time; absent on tokens minted before the claim existed. */
+  username?: string;
 }
 
 export interface AuthMiddlewareOptions {
@@ -61,6 +68,9 @@ function isJwtPayload(value: unknown): value is JWTPayload {
     typeof claims.sid === 'string' &&
     claims.sid.length > 0 &&
     (claims.role === 'STUDENT' || claims.role === 'ADMIN') &&
+    // AI-generated (edited by Reallyeasy1)
+    (claims.username === undefined ||
+      (typeof claims.username === 'string' && claims.username.length >= 1 && claims.username.length <= 50)) &&
     Number.isInteger(claims.iat) &&
     Number.isInteger(claims.exp) &&
     typeof claims.iss === 'string' &&
@@ -130,6 +140,7 @@ export function verifyAccessToken(
       userId: claims.sub,
       sessionId: claims.sid,
       role: claims.role,
+      ...(claims.username !== undefined && { username: claims.username }),
     };
   } catch (error) {
     if (error instanceof AuthenticationError) {

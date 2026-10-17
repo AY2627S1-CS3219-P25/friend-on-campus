@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 //
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+// Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Codex (model: GPT-5), date: 2026-10-11
 // Scope: Updated the manual run note now that Chromium Playwright is a locked repository dependency.
 // Author review: <to be completed by ngkhengyang>
@@ -398,7 +402,7 @@ const browser = await chromium.launch();
   await step('UD3', 'student (desktop): an order.accepted event for this user shows a toast and a badge of 1', async () => {
     const connection = await amqp.connect(AMQP_URL);
     const channel = await connection.createConfirmChannel();
-    const event = { eventId: randomUUID(), eventType: 'order.accepted', timestamp: new Date().toISOString(), orderId: randomUUID(), orderCode, requesterId: bobId, courierId: randomUUID() };
+    const event = { eventId: randomUUID(), eventType: 'order.accepted', timestamp: new Date().toISOString(), orderId: randomUUID(), orderCode, requesterId: bobId, courierId: randomUUID(), courierUsername: 'alice' };
     await new Promise((resolve, reject) => channel.publish('campus.events', 'order.accepted', Buffer.from(JSON.stringify(event)), { persistent: true }, (e) => (e ? reject(e) : resolve())));
     await channel.close();
     await connection.close();
