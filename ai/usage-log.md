@@ -3319,3 +3319,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `ai/usage-log.md` — this entry.
 
 **Verification:** `npm run typecheck` clean; `npm run lint` clean; unit suites user-service 124/124, order-service 49/49, notification-service 32/32, supplier-service 48/48. Local stack (isolated Compose project `f5`, ports remapped, gateway on :8085): notification-service `test:messaging` + `test:integration` 12/12; `uat-notifications.mjs` 17/17 (N4 shows "bob accepted your errand and will pick the items up next."); `uat-d2-api.mjs` 62/62; `uat-d2-ui.mjs` 34/34; plus a throwaway real-flow check (login → post → accept via `POST /api/orders/:id/accept` → alice's WebSocket frame names bob → pickup, deliver, confirm settle 2 credits to bob) 13/13. After the review pass: 2026-10-17 disclosure records added to `packages/auth/README.md` and `docs/security.md`, marker on `resolvePrincipal`.
+
+## 2026-10-17 23:55 SGT — Attend to the Claude PR review on #121
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/f5-courier-username
+
+**Prompt (summarised):** Open the PR for the F5.1.1 branch, then attend to the Claude PR review comments on it.
+
+**Usage scenario:** Documentation and debugging assistance. The author explicitly approved the commit, push and PR (#121). The review reported no substantive issues; its one note (the username is a snapshot at token issue time) was answered on the PR with the decision already recorded in the author's design doc, and the three Compose-backed CI jobs were confirmed green. No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
