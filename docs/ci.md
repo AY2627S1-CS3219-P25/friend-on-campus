@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
+Scope: Verified the job list and command table against .github/workflows/ci.yml and package.json on main @ 7f2d972; added the acceptance driver names and the separate Claude PR review workflow.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-5), date: 2026-10-12
 Scope: Documented validation that every workspace test file is selected by a classified test script.
 Author review: <to be completed by ngkhengyang>
@@ -40,6 +44,10 @@ Pull requests and pushes to `main` run these required GitHub Actions jobs:
 
 Every ordinary job runs its own checkout, Node 22 setup, and `npm ci`. The root `postinstall` script generates Prisma clients, so jobs do not repeat that command explicitly.
 
+## Claude PR review (separate workflow)
+
+`.github/workflows/claude-pr-review.yml` (`Claude PR review`) runs on `pull_request` `opened`, `synchronize`, `reopened` and `ready_for_review`, skipping drafts and fork pull requests; a new push cancels a review still running for the same PR. It runs `anthropics/claude-code-action@v1`, authenticated with the `CLAUDE_CODE_OAUTH_TOKEN` repository secret, and posts inline review comments plus one summary comment. The summary has a **Linked issues** section that compares the PR's `Closes #<n>` lines and the linked issues' acceptance criteria with the diff and lists related open issues. It does not fail the PR or edit its body, and it is not part of the test gate.
+
 ## Public test commands
 
 | Command | Scope | Direct-use prerequisites |
@@ -49,9 +57,9 @@ Every ordinary job runs its own checkout, Node 22 setup, and `npm ci`. The root 
 | `npm run test:messaging` | All messaging suites | PostgreSQL, RabbitMQ, migrations, and test variables |
 | `npm run test:migration` | Credit migration validation | PostgreSQL and `CREDIT_TEST_DATABASE_URL` ending in `_test` |
 | `npm run test:seed` | Credit seed validation | Migrated PostgreSQL test database |
-| `npm run test:acceptance` | API and notification UAT | Healthy full Compose stack |
-| `npm run test:e2e:api` | D2 API E2E | Seeded PostgreSQL; ports 8001/8002 free |
-| `npm run test:e2e:ui` | Chromium browser UAT | Healthy full Compose stack and installed Chromium |
+| `npm run test:acceptance` | API and notification UAT (`scripts/uat/uat-d2-api.mjs`, then `scripts/uat/uat-notifications.mjs`) | Healthy full Compose stack |
+| `npm run test:e2e:api` | D2 API E2E (`npm run test:d2`, `scripts/test-d2-e2e.ts`) | Seeded PostgreSQL; ports 8001/8002 free |
+| `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright 1.64.0) | Healthy full Compose stack and installed Chromium |
 | `npm run test:e2e` | API E2E, then browser UAT | Docker engine; uses isolated system-test orchestration |
 | `npm test` | Every category above | Docker engine; the runner installs Chromium if needed |
 
