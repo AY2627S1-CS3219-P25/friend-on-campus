@@ -47,7 +47,7 @@ stateDiagram-v2
 
 ### Asynchronous submission contract
 
-`POST /api/orders` returns HTTP `202` with `data: { id, status: "PENDING" }` and `Location: /api/orders/submissions/{id}`. The ID identifies the outbox submission and the future order. Only its requester may poll the Location endpoint. No `orders` row exists while pending, so couriers cannot discover or accept it and order cancellation endpoints do not apply yet. The student app's existing mock posting flow is not connected to this API.
+`POST /api/orders` returns HTTP `202` with `data: { id, status: "PENDING" }` and `Location: /api/orders/submissions/{id}`. The ID identifies the outbox submission and the future order. Only its requester may poll the Location endpoint. No `orders` row exists while pending, so couriers cannot discover or accept it and order cancellation endpoints do not apply yet. The student app posts through this endpoint, displays pending/rejection/refund outcomes, and polls until a terminal result. It retains the pending submission ID per signed-in user in session storage so a tab reload resumes polling without another POST. Confirmed orders and wallet balances are fetched from the services.
 
 The existing Order `outbox_events` row stores the full submission in `payload.submission`. The RabbitMQ request contains only `eventId`, `eventType`, `timestamp`, `correlationId`, `orderId`, `requesterId`, `rewardCredits`, and `expiresAt`; item and contact details stay local. Credit results carry the same IDs/amount, a new event ID/timestamp, and `reason` on failure.
 

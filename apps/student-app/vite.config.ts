@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Proxy Order Service endpoints during host-based development.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: /api/notifications proxy entry for host-based development (the Notification Service over HTTP).
  * Author review: <to be completed by Reallyeasy1>
@@ -31,6 +35,7 @@ import react from '@vitejs/plugin-react';
 const gatewayTarget = process.env.GATEWAY_URL;
 const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';
 const userTarget = gatewayTarget ?? process.env.USER_SERVICE_URL ?? 'http://localhost:8001';
+const orderTarget = gatewayTarget ?? process.env.ORDER_SERVICE_URL ?? 'http://localhost:8003';
 const creditTarget = gatewayTarget ?? process.env.CREDIT_SERVICE_URL ?? 'http://localhost:8004';
 const notificationTarget = gatewayTarget ?? process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
 // AI-generated (edited by Reallyeasy1): the same service over HTTP for /api/notifications.
@@ -58,6 +63,10 @@ export default defineConfig({
       },
       '/api/users': {
         target: userTarget,
+        changeOrigin: true,
+      },
+      '/api/orders': {
+        target: orderTarget,
         changeOrigin: true,
       },
       '/api/credits': {

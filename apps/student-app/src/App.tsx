@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Connect posting to the async reservation API; display saga outcomes and refresh real feed, activity and credits; remove mock suppliers and order mutations.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Restore the two original sample errand cards alongside live orders for demos; prevent sample IDs from reaching backend actions.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  *
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
  * Scope: Removed an unused logout error binding identified by the root lint configuration.
@@ -81,25 +89,26 @@
 
 // AI-generated (edited by yanhwee)
 
-import React, { useState, useEffect, useRef } from 'react';
+import { CreditTransactionDTO, CreditWalletDTO, OrderDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 import {
-  Compass,
-  PlusCircle,
-  Clock,
-  UserCircle,
-  MapPin,
-  ArrowRight,
   AlertCircle,
+  ArrowRight,
+  CheckCircle,
+  Clock,
   Coins,
+  Compass,
+  MapPin,
+  PlusCircle,
+  RefreshCw,
+  Search,
   ShieldCheck,
   Store,
-  Search,
-  RefreshCw,
-  CheckCircle,
+  UserCircle,
 } from 'lucide-react';
-import { OrderDTO, CreditWalletDTO, CreditTransactionDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
+import React, { useEffect, useRef, useState } from 'react';
 import { NotificationBell, NotificationPanel } from './notifications/NotificationBell';
 import { useNotifications } from './notifications/useNotifications';
+import { tokenUserId, useOrderSubmission } from './orders/useOrderSubmission';
 
 export default function App() {
   // Login / Sign Up Gate state
@@ -156,8 +165,7 @@ export default function App() {
   const [creditError, setCreditError] = useState<string | null>(null);
   const creditRequestId = useRef(0);
 
-  // Open Orders State
-  const [orders, setOrders] = useState<OrderDTO[]>([
+  const [demoOrders] = useState<OrderDTO[]>(() => [
     {
       id: 'ord-1001',
       orderCode: 'E-1042',
@@ -194,12 +202,20 @@ export default function App() {
       version: 1,
     },
   ]);
+  const isDemoOrder = (orderId: string) => demoOrders.some(order => order.id === orderId);
+  const [orders, setOrders] = useState<OrderDTO[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
+  const orderRequestId = useRef(0);
+  const currentUserId = isAuthenticated ? tokenUserId(authToken) : null;
+  const [supplierError, setSupplierError] = useState<string | null>(null);
 
   // Post Form State
   const [formData, setFormData] = useState({
     supplierId: '',
-    supplierName: 'CoffeeBean @ COM3',
-    campusZone: 'COM3',
+    supplierName: '',
+    campusZone: '',
     itemDescription: '',
     specialNotes: '',
     dropoffLocation: '',
@@ -412,6 +428,48 @@ export default function App() {
     return () => { creditRequestId.current++; };
   }, [isAuthenticated, activeTab]);
 
+  // AI-generated (edited by huangjiaxi1111)
+  const fetchOrders = async () => {
+    const requestId = ++orderRequestId.current;
+    setOrdersLoading(true);
+    setOrdersError(null);
+    try {
+      const [feedResponse, activityResponse] = await Promise.all([
+        authFetch('/api/orders?status=OPEN&limit=100'), authFetch('/api/orders/user/activity'),
+      ]);
+      const [feed, activity] = await Promise.all([feedResponse.json(), activityResponse.json()]);
+      if (requestId !== orderRequestId.current) return;
+      if (!feedResponse.ok || !activityResponse.ok || !feed.success || !activity.success) throw new Error('Order API unavailable');
+      const combined: OrderDTO[] = [...feed.data, ...activity.data.requested, ...activity.data.delivering];
+      setOrders([...new Map(combined.map(order => [order.id, order])).values()]);
+    } catch {
+      if (requestId === orderRequestId.current) setOrdersError('Unable to load errands. Please try again.');
+    } finally {
+      if (requestId === orderRequestId.current) setOrdersLoading(false);
+    }
+  };
+
+  const loadOrders = useRef(fetchOrders);
+  loadOrders.current = fetchOrders;
+  useEffect(() => {
+    const requests = orderRequestId;
+    if (currentUserId) void loadOrders.current();
+    return () => { requests.current++; };
+  }, [currentUserId, activeTab]);
+
+  const submission = useOrderSubmission({
+    userId: currentUserId, authFetch,
+    onSettled: receipt => {
+      void fetchCredits();
+      void fetchOrders();
+      if (receipt.status === 'OPEN' && receipt.order) {
+        setNotification(`Errand ${receipt.order.orderCode} posted. Credits reserved.`);
+        setFormData(current => ({ ...current, itemDescription: '', specialNotes: '', dropoffLocation: '', rewardCredits: 15 }));
+        if (activeTab === 'post') setActiveTab('feed');
+      }
+    },
+  });
+
   // Fetch the logged-in user's own profile (GET /api/users/me)
   const fetchProfile = async () => {
     setIsLoadingProfile(true);
@@ -498,6 +556,11 @@ export default function App() {
   // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
   const clearLocalSession = () => {
     creditRequestId.current++;
+    orderRequestId.current++;
+    setOrders([]);
+    setOrdersError(null);
+    setOrdersLoading(false);
+    setNotification(null);
     setWallet(null);
     setLedger([]);
     setCreditError(null);
@@ -525,138 +588,57 @@ export default function App() {
     }
   };
 
-  // Fetch all campus suppliers (active and inactive) from Supplier Service
   const fetchLiveSuppliers = async () => {
     setIsSuppliersLoading(true);
+    setSupplierError(null);
     try {
-      const res = await fetch('/api/suppliers', {
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      const res = await fetch('/api/suppliers');
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error('Supplier API unavailable');
+      const items: SupplierDTO[] = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];
+      setSuppliers(items);
+      setFormData(current => {
+        const selected = items.find(item => item.id === current.supplierId && item.isActive) ?? items.find(item => item.isActive);
+        return { ...current, supplierId: selected?.id ?? '', supplierName: selected?.name ?? '', campusZone: selected?.campusZone ?? '' };
       });
-      if (res.ok) {
-        const json = await res.json();
-        const items = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];
-        if (items.length > 0) {
-          setSuppliers(items);
-          const firstActive = items.find((it: SupplierDTO) => it.isActive) || items[0];
-          setFormData((prev) => ({
-            ...prev,
-            supplierId: firstActive.id,
-            supplierName: firstActive.name,
-            campusZone: firstActive.campusZone,
-          }));
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Could not fetch live suppliers, falling back:', e);
-    } finally {
-      setIsSuppliersLoading(false);
-    }
-
-    // Fallback campus spots if gateway is connecting
-    setSuppliers([
-      {
-        id: 's1',
-        supplierCode: 'SUP-001',
-        name: 'CoffeeBean @ COM3',
-        campusZone: 'COM3',
-        exactLocation: 'COM3 Level 1 Lobby',
-        category: 'Beverages',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 's2',
-        supplierCode: 'SUP-002',
-        name: 'Printers @ PCCommons',
-        campusZone: 'UTown',
-        exactLocation: 'Stephen Riady Centre Level 1',
-        category: 'Printing',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 's3',
-        supplierCode: 'SUP-003',
-        name: 'PGP Mailroom & Smart Lockers',
-        campusZone: 'PGPR',
-        exactLocation: "Prince George's Park Residences Foyer",
-        category: 'Parcels',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 's4',
-        supplierCode: 'SUP-004',
-        name: 'Fine Food Canteen (UTown)',
-        campusZone: 'UTown',
-        exactLocation: 'Town Plaza Level 1',
-        category: 'Food',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    } catch {
+      setSuppliers([]);
+      setSupplierError('Unable to load pickup spots. Please try again.');
+    } finally { setIsSuppliersLoading(false); }
   };
 
-  useEffect(() => {
-    fetchLiveSuppliers();
-  }, []);
+  useEffect(() => { void fetchLiveSuppliers(); }, []);
 
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!wallet) return;
-    if (wallet.availableCredits < formData.rewardCredits) {
-      alert('Insufficient available credits to post errand.');
-      return;
-    }
-
-    const newOrder: OrderDTO = {
-      id: `ord-${Date.now()}`,
-      orderCode: `E-${Math.floor(1000 + Math.random() * 9000)}`,
-      requesterId: wallet.userId,
-      courierId: null,
-      supplierId: formData.supplierId || 's1',
-      supplierName: formData.supplierName,
-      campusZone: formData.campusZone,
-      itemDescription: formData.itemDescription,
-      specialNotes: formData.specialNotes,
-      dropoffLocation: formData.dropoffLocation,
-      rewardCredits: formData.rewardCredits,
-      status: 'OPEN',
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      version: 1,
-    };
-
-    setOrders([newOrder, ...orders]);
-    setNotification(`Errand ${newOrder.orderCode} preview created. No credits reserved.`);
-    setActiveTab('feed');
-
-    setFormData({
-      supplierId: suppliers[0]?.id || '',
-      supplierName: suppliers[0]?.name || 'CoffeeBean @ COM3',
-      campusZone: suppliers[0]?.campusZone || 'COM3',
-      itemDescription: '',
-      specialNotes: '',
-      dropoffLocation: '',
-      rewardCredits: 15,
+    if (submission.busy || !suppliers.some(s => s.id === formData.supplierId && s.isActive)) return;
+    setNotification(null);
+    void submission.submit({
+      supplierId: formData.supplierId, itemDescription: formData.itemDescription,
+      specialNotes: formData.specialNotes, dropoffLocation: formData.dropoffLocation,
+      rewardCredits: formData.rewardCredits, durationMinutes: 30,
     });
   };
 
-  const handleAcceptOrder = (orderId: string) => {
-    if (!wallet) return;
-    setOrders((prev) =>
-      prev.map((ord) =>
-        ord.id === orderId
-          ? { ...ord, status: 'ACCEPTED', courierId: wallet.userId, version: ord.version + 1 }
-          : ord
-      )
-    );
-    setNotification('Errand accepted! Head to the pickup location.');
+  const handleAcceptOrder = async (orderId: string) => {
+    if (acceptingOrder || isDemoOrder(orderId)) return;
+    const requestId = orderRequestId.current;
+    setAcceptingOrder(orderId);
+    setOrdersError(null);
+    try {
+      const res = await authFetch(`/api/orders/${orderId}/accept`, { method: 'POST', body: '{}' });
+      const body = await res.json();
+      if (requestId !== orderRequestId.current) return;
+      if (!res.ok || !body.success) throw new Error(body.error || 'Unable to accept this errand.');
+      setOrders(current => current.map(order => order.id === orderId ? body.data : order));
+      setNotification('Errand accepted! Head to the pickup location.');
+    } catch (error) {
+      if (requestId === orderRequestId.current) setOrdersError(error instanceof Error ? error.message : 'Unable to accept this errand.');
+    } finally { setAcceptingOrder(null); }
   };
 
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = [...orders, ...demoOrders].filter((o) => {
+    if (o.status !== 'OPEN') return false;
     if (selectedZone === 'ALL') return true;
     return o.campusZone === selectedZone;
   });
@@ -974,6 +956,25 @@ export default function App() {
       {/* Main Content Area */}
       {/* AI-generated (edited by jagdeepsh) - relax bottom padding at md: since the fixed bottom nav is hidden there */}
       <main className="student-main flex-1 min-w-0 px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
+        {submission.receipt && submission.receipt.status !== 'OPEN' && (
+          <div role="status" data-testid="order-submission-status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            {submission.receipt.status === 'PENDING' && 'Reserving credits… Your errand will appear once the reservation is confirmed.'}
+            {submission.receipt.status === 'COMPENSATING' && 'Your submission expired. Returning your reserved credits…'}
+            {submission.receipt.status === 'COMPENSATED' && 'Your submission expired and your reserved credits have been returned. You can submit a new errand.'}
+            {submission.receipt.status === 'REJECTED' && `Errand not posted: ${submission.receipt.reason || 'Credit reservation was declined.'}`}
+          </div>
+        )}
+        {submission.error && <div role="alert" className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">{submission.error}</div>}
+        {ordersError && (activeTab === 'feed' || activeTab === 'tasks') && (
+          <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
+            {ordersError} <button onClick={() => void fetchOrders()} className="font-bold underline">Retry loading errands</button>
+          </div>
+        )}
+        {supplierError && (activeTab === 'post' || activeTab === 'spots') && (
+          <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
+            {supplierError} <button onClick={() => void fetchLiveSuppliers()} className="font-bold underline">Retry loading pickup spots</button>
+          </div>
+        )}
         {/* TAB 1: Errand Feed */}
         {activeTab === 'feed' && (
           <div className="space-y-4">
@@ -1004,7 +1005,8 @@ export default function App() {
             {/* Errand Cards List */}
             {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
             <div className="responsive-card-grid">
-              {filteredOrders.length === 0 && (
+              {ordersLoading && <p role="status">Loading errands…</p>}
+              {!ordersLoading && !ordersError && filteredOrders.length === 0 && (
                 <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No open errands in this zone.</p>
               )}
               {filteredOrders.map((order) => (
@@ -1043,16 +1045,16 @@ export default function App() {
                   <div className="mt-3.5 flex items-center justify-between pt-2 border-t border-slate-100">
                     <span className="text-xs text-slate-400 flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
-                      <span>Expires in ~25m</span>
+                      <span>Expires {new Date(order.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </span>
 
                     {order.status === 'OPEN' ? (
                       <button
                         onClick={() => handleAcceptOrder(order.id)}
-                        disabled={!wallet || isLoadingCredits}
+                        disabled={isDemoOrder(order.id) || !!acceptingOrder || order.requesterId === currentUserId}
                         className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span>Accept Errand</span>
+                        <span>{isDemoOrder(order.id) ? 'Demo errand' : order.requesterId === currentUserId ? 'Your errand' : acceptingOrder === order.id ? 'Accepting…' : 'Accept Errand'}</span>
                       </button>
                     ) : (
                       <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
@@ -1070,7 +1072,7 @@ export default function App() {
         {activeTab === 'post' && (
           <div className="space-y-4">
             <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Post New Errand</h2>
-            <form onSubmit={handlePostSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
+            <form onSubmit={handlePostSubmit}><fieldset disabled={submission.busy} className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
               <div className="min-w-0 bg-white rounded-xl p-4 md:p-6 shadow-sm border border-slate-200 space-y-5">
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -1082,6 +1084,8 @@ export default function App() {
                     </span>
                   </div>
                   <select
+                    required
+                    aria-label="Pickup spot"
                     value={formData.supplierId}
                     onChange={(e) => {
                       const chosen = suppliers.find((s) => s.id === e.target.value);
@@ -1096,6 +1100,7 @@ export default function App() {
                     }}
                     className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
                   >
+                    {activeSuppliers.length === 0 && <option value="">{isSuppliersLoading ? 'Loading pickup spots…' : 'No pickup spots available'}</option>}
                     {activeSuppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({s.campusZone} - {s.category})
@@ -1112,6 +1117,7 @@ export default function App() {
                   <input
                     type="text"
                     required
+                    maxLength={1000}
                     placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
                     value={formData.itemDescription}
                     onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
@@ -1124,6 +1130,7 @@ export default function App() {
                   <input
                     type="text"
                     required
+                    maxLength={255}
                     placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
                     value={formData.dropoffLocation}
                     onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
@@ -1135,6 +1142,7 @@ export default function App() {
                   <label className="block text-sm font-bold text-slate-700 mb-1">Special Delivery Notes (Optional)</label>
                   <textarea
                     rows={2}
+                    maxLength={1000}
                     placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
                     value={formData.specialNotes}
                     onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
@@ -1160,7 +1168,7 @@ export default function App() {
                       <button
                         type="button"
                         aria-label="Increase reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: f.rewardCredits + 5 }))}
+                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.min(2147483647, f.rewardCredits + 5) }))}
                         className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
                       >
                         +
@@ -1168,19 +1176,19 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 mt-1">
-                    Available: {wallet ? `${wallet.availableCredits} C` : '—'}. This preview does not reserve credits.
+                    Available: {wallet ? `${wallet.availableCredits} C` : '—'}. Credits are reserved before your errand is posted.
                   </p>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={!wallet || isLoadingCredits}
+                  disabled={submission.busy || isSuppliersLoading || !activeSuppliers.some(s => s.id === formData.supplierId)}
                   className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Preview Errand
+                  {submission.posting ? 'Submitting…' : submission.busy ? 'Reserving credits…' : 'Post Errand'}
                 </button>
               </aside>
-            </form>
+            </fieldset></form>
           </div>
         )}
 
@@ -1283,11 +1291,11 @@ export default function App() {
             <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Active Tasks</h2>
             {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
             <div className="responsive-card-grid">
-              {!orders.some((o) => wallet && (o.courierId === wallet.userId || o.requesterId === wallet.userId)) && (
+              {!orders.some((o) => currentUserId && (o.courierId === currentUserId || o.requesterId === currentUserId)) && (
                 <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No active tasks yet.</p>
               )}
               {orders
-                .filter((o) => wallet && (o.courierId === wallet.userId || o.requesterId === wallet.userId))
+                .filter((o) => currentUserId && (o.courierId === currentUserId || o.requesterId === currentUserId))
                 .map((task) => (
                   <div key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
                     <div className="flex justify-between items-center">
