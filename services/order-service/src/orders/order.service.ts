@@ -130,8 +130,8 @@ function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrd
   const specialNotes = validateOptionalText(req.specialNotes, 'specialNotes', 1000);
   const requesterContactNote = validateOptionalText(req.requesterContactNote, 'requesterContactNote', 255);
 
-  if (typeof req.rewardCredits !== 'number' || !Number.isInteger(req.rewardCredits) || req.rewardCredits <= 0) {
-    throw new OrderValidationError('rewardCredits must be a positive integer');
+  if (typeof req.rewardCredits !== 'number' || !Number.isInteger(req.rewardCredits) || req.rewardCredits <= 0 || req.rewardCredits > 2147483647) {
+    throw new OrderValidationError('rewardCredits must be an integer between 1 and 2147483647');
   }
 
   let durationMinutes = 30;

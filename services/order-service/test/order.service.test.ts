@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Update creation tests for outbox submissions while preserving funded lifecycle coverage.
+ * Scope: Update creation tests for outbox submissions while preserving funded lifecycle coverage; cover the inclusive reward limit and reject overflow before persistence.
  * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
@@ -21,10 +21,10 @@
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createOrderService } from '../src/orders/order.service';
+import { describe, it } from 'node:test';
 import { createExpirySweeper } from '../src/orders/expiry.sweeper';
+import { createOrderService } from '../src/orders/order.service';
 import {
   OrderAuthorizationError,
   OrderStateConflictError,
@@ -32,9 +32,9 @@ import {
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
 import {
-  makeFakeReservationSaga,
   makeFakeOrderRepository,
   makeFakePublisher,
+  makeFakeReservationSaga,
   makeFakeSupplierClient,
 } from './helpers';
 
@@ -105,6 +105,27 @@ describe('Order Service Lifecycle and Concurrency', () => {
         }),
         OrderValidationError,
       );
+    });
+
+    it('rejects oversized rewards before persisting a submission', async () => {
+      const { service, fakeSaga, fakeRepo } = setupTest();
+      for (const rewardCredits of [2147483648, Number.MAX_SAFE_INTEGER]) {
+        await assert.rejects(service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits,
+        }), (error: Error) => error instanceof OrderValidationError && error.status === 400);
+      }
+      assert.equal(fakeSaga.submissions.size, 0);
+      assert.equal(fakeRepo.orders.length, 0);
+      assert.equal(fakeRepo.outboxEvents.length, 0);
+    });
+
+    it('accepts the maximum supported reward for asynchronous credit checking', async () => {
+      const { service, fakeSaga } = setupTest();
+      const receipt = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits: 2147483647,
+      });
+      assert.equal(receipt.status, 'PENDING');
+      assert.equal(fakeSaga.submissions.get(receipt.id)?.rewardCredits, 2147483647);
     });
 
     it('rejects order creation if requesterId or supplierId is not a valid UUID', async () => {
