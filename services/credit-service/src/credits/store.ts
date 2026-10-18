@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Add transaction savepoints and Credit result outbox writes.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Added serializable transactions and persistent grant, escrow and event access.
  * Author review: <to be completed by huangjiaxi1111>
@@ -36,6 +40,13 @@ function transactionDTO(transaction: CreditTransaction): CreditTransactionDTO {
 
 function queries(db: Prisma.TransactionClient) {
   return {
+    // AI-generated (edited by huangjiaxi1111)
+    savepoint: () => db.$executeRawUnsafe('SAVEPOINT reservation_attempt'),
+    rollbackAttempt: () => db.$executeRawUnsafe('ROLLBACK TO SAVEPOINT reservation_attempt'),
+    releaseSavepoint: () => db.$executeRawUnsafe('RELEASE SAVEPOINT reservation_attempt'),
+    addOutbox: (event: { eventId: string; eventType: string }) => db.creditOutboxEvent.create({
+      data: { id: event.eventId, eventType: event.eventType, payload: JSON.stringify(event) },
+    }),
     findGrant: (userId: string) => db.creditGrant.findUnique({ where: { userId } }),
     createGrant: (userId: string, amount: number) => db.creditGrant.create({ data: { userId, amount } }),
     findEscrow: (orderId: string) => db.creditEscrow.findUnique({ where: { orderId } }),

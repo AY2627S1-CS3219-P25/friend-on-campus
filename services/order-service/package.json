@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
     "build": "tsc",
     "db:generate": "prisma generate --schema src/database/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema src/database/prisma/schema.prisma",
     "db:seed": "tsx src/database/seed.ts",
-    "test:unit": "node --import tsx --test \"test/**/*.test.ts\""
+    "test:unit": "node --import tsx --test test/app.test.ts test/order.service.test.ts test/outbox.relay.test.ts",
+    "test:messaging": "tsx test/reservation.messaging.test.ts"
   },
   "dependencies": {
     "@campus-errand/auth": "*",

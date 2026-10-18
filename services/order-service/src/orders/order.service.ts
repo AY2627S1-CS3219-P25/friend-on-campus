@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Replace synchronous reserve/create calls with durable outbox submission.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
  * Scope: accept, pickup and deliver take the caller's optional username and put it on the outbox event as
  * courierUsername (F5.1.1), per the author's design.
@@ -14,7 +18,6 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import crypto from 'node:crypto';
 import type {
   AcceptOrderRequest,
   AdminCancelOrderRequest,
@@ -24,19 +27,21 @@ import type {
   OrderAcceptedEvent,
   OrderCancelledEvent,
   OrderCompletedEvent,
-  OrderCreatedEvent,
-  OrderDTO,
   OrderDeliveredEvent,
+  OrderDTO,
   OrderInTransitEvent,
+  OrderSubmissionDTO,
 } from '@campus-errand/common-dtos';
-import type { CreditClient } from '../clients/credit.client';
+import crypto from 'node:crypto';
 import type { SupplierClient } from '../clients/supplier.client';
-import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import type { OutboxRelay } from '../messaging/outbox.relay';
+import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
+import type { ReservationSaga } from './reservation.saga';
 
 export interface OrderService {
-  createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderDTO>;
+  createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderSubmissionDTO>;
+  getSubmission(id: string, requesterId: string): Promise<OrderSubmissionDTO>;
   getOrderById(id: string): Promise<OrderDTO>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
@@ -54,7 +59,7 @@ export interface OrderService {
 
 export interface OrderServiceDependencies {
   repository: OrderRepository;
-  creditClient: CreditClient;
+  reservationSaga: ReservationSaga;
   supplierClient: SupplierClient;
   outboxRelay?: OutboxRelay;
 }
@@ -156,8 +161,8 @@ async function handleCreateOrder(
   deps: OrderServiceDependencies,
   requesterId: string,
   req: CreateOrderRequest
-): Promise<OrderDTO> {
-  const { repository, creditClient, supplierClient, outboxRelay } = deps;
+): Promise<OrderSubmissionDTO> {
+  const { reservationSaga, supplierClient, outboxRelay } = deps;
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(requesterId)) {
@@ -181,89 +186,17 @@ async function handleCreateOrder(
   const supplierName = supplierLookup.supplier.name;
   const campusZone = supplierLookup.supplier.campusZone || 'Campus';
 
-  // 3. Reserve credit escrow synchronously before order becomes OPEN
-  const orderId = crypto.randomUUID();
-  const orderCode = generateOrderCode();
-  const expiresAt = new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000);
-
-  const reservation = await creditClient.reserveEscrow({
-    orderId,
-    requesterId,
-    amount: validatedInput.rewardCredits,
-  });
-
-  if (!reservation.success) {
-    throw new OrderValidationError(reservation.error || 'Failed to reserve escrow credits');
-  }
-
-  // 4. Create Order & Outbox event atomically with compensation
-  const event: OrderCreatedEvent = {
-    eventType: 'order.created',
-    eventId: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    orderId,
-    orderCode,
-    requesterId,
+  // Save only the submission/outbox. The credit result consumer creates the actual Order.
+  const submission = await reservationSaga.submit({
+    id: crypto.randomUUID(), orderCode: generateOrderCode(), requesterId,
+    supplierId: validatedInput.supplierId, supplierName, campusZone,
+    itemDescription: validatedInput.itemDescription, specialNotes: validatedInput.specialNotes,
+    dropoffLocation: validatedInput.dropoffLocation, requesterContactNote: validatedInput.requesterContactNote,
     rewardCredits: validatedInput.rewardCredits,
-    campusZone,
-    expiresAt: expiresAt.toISOString(),
-  };
-
-  let created: OrderDTO;
-  try {
-    created = await repository.createOrderWithOutbox({
-      id: orderId,
-      orderCode,
-      requesterId,
-      supplierId: validatedInput.supplierId,
-      supplierName,
-      campusZone,
-      itemDescription: validatedInput.itemDescription,
-      specialNotes: validatedInput.specialNotes,
-      dropoffLocation: validatedInput.dropoffLocation,
-      requesterContactNote: validatedInput.requesterContactNote,
-      rewardCredits: validatedInput.rewardCredits,
-      expiresAt,
-    }, event);
-  } catch (insertErr) {
-    console.error('[create_order_failed_after_escrow_hold] Recording compensating cancellation refund outbox event', {
-      orderId,
-      requesterId,
-      insertErr,
-    });
-
-    let refundRecorded = false;
-    const maxRetries = 5;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await repository.recordCompensatingRefund(orderId, requesterId, validatedInput.rewardCredits);
-        refundRecorded = true;
-        break;
-      } catch (refundErr) {
-        if (attempt === maxRetries) {
-          console.error('[compensating_refund_lost]', {
-            orderId,
-            requesterId,
-            amount: validatedInput.rewardCredits,
-            error: refundErr,
-          });
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
-        }
-      }
-    }
-
-    if (refundRecorded && outboxRelay) {
-      void outboxRelay.trigger();
-    }
-    throw insertErr;
-  }
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return created;
+    expiresAt: new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000),
+  });
+  if (outboxRelay) void outboxRelay.trigger();
+  return submission;
 }
 
 async function handleAcceptOrder(
@@ -541,6 +474,7 @@ async function handleAdminUnassignOrder(
 export function createOrderService(deps: OrderServiceDependencies): OrderService {
   return {
     createOrder: (requesterId, req) => handleCreateOrder(deps, requesterId, req),
+    getSubmission: (id, requesterId) => deps.reservationSaga.get(id, requesterId),
     getOrderById: async (id) => {
       const order = await deps.repository.findOrderById(id);
       if (!order) {

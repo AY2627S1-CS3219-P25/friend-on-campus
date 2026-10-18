@@ -1,24 +1,30 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Wire the reservation saga and result consumer into startup, readiness and shutdown.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Main entrypoint for Order Service initializing database, outbox publisher, expiry sweeper, authenticated Express server, and graceful shutdown handlers.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import type { Server } from 'node:http';
-import type { Request, Response, NextFunction } from 'express';
 import { authMiddleware } from '@campus-errand/auth';
+import type { NextFunction, Request, Response } from 'express';
+import type { Server } from 'node:http';
 import { createApp } from './app';
+import { createSupplierClient } from './clients/supplier.client';
 import { config } from './config';
 import { prisma } from './database/client';
-import { createOrderRepository } from './repositories/order.repository';
-import { createCreditClient } from './clients/credit.client';
-import { createSupplierClient } from './clients/supplier.client';
-import { createOrderService } from './orders/order.service';
-import { createExpirySweeper, type ExpirySweeper } from './orders/expiry.sweeper';
 import { createRabbitMQPublisher, type OrderEventPublisher } from './messaging/event.publisher';
 import { createOutboxRelay, type OutboxRelay } from './messaging/outbox.relay';
+import { startReservationConsumer } from './messaging/reservation.consumer';
+import { createExpirySweeper, type ExpirySweeper } from './orders/expiry.sweeper';
+import { createOrderService } from './orders/order.service';
+import { createReservationSaga } from './orders/reservation.saga';
+import { createOrderRepository } from './repositories/order.repository';
 
+let consumer: Awaited<ReturnType<typeof startReservationConsumer>> | undefined;
 let server: Server | undefined;
 let publisher: OrderEventPublisher | undefined;
 let outboxRelay: OutboxRelay | undefined;
@@ -64,6 +70,7 @@ function shutdown(failed = false): Promise<void> {
 
   shutdownPromise = (async () => {
     console.log('[Order Service] Shutting down gracefully...');
+    await consumer?.close();
     if (expirySweeper) {
       await expirySweeper.stop();
     }
@@ -115,11 +122,13 @@ async function main() {
   });
 
   const orderRepo = createOrderRepository(prisma);
-  const creditClient = createCreditClient(config.creditServiceUrl);
+  const reservationSaga = createReservationSaga(prisma);
+  consumer = await startReservationConsumer(config.rabbitmq, reservationSaga, () => { void shutdown(true); });
+  if (stopping) { await consumer.close(); return; }
   const supplierClient = createSupplierClient(config.supplierServiceUrl);
   const orderService = createOrderService({
     repository: orderRepo,
-    creditClient,
+    reservationSaga,
     supplierClient,
     outboxRelay,
   });
@@ -140,7 +149,7 @@ async function main() {
     authenticate,
     port: config.port,
     isReady: async () => {
-      if (stopping) return false;
+      if (stopping || !consumer?.isReady()) return false;
       try {
         await prisma.$queryRaw`SELECT 1`;
         return true;

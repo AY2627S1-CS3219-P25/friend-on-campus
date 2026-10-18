@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-18
+Scope: Document outbox-only submissions, reservation results, receipt polling, and late-success compensation.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Authored unified Errand Lifecycle & Credit Economy domain specification, formalizing the state machine, escrow interactions, atomic concurrency rules, and event choreography.
 Author review: <to be completed by author after review>
@@ -18,7 +22,13 @@ An errand progresses through a deterministic series of states from creation to f
 ```mermaid
 stateDiagram-v2
   [*] --> DRAFT: Student prepares errand
-  DRAFT --> OPEN: Post errand (reserves escrow credits)
+  DRAFT --> PENDING: Submit (outbox only, no order row)
+  PENDING --> OPEN: Credit reservation confirmed
+  PENDING --> REJECTED: Reservation failed
+  PENDING --> COMPENSATING: Success arrives after deadline
+  COMPENSATING --> COMPENSATED: Credit refund confirmed
+  REJECTED --> [*]
+  COMPENSATED --> [*]
   
   OPEN --> ACCEPTED: Courier claims errand (atomic single-winner)
   OPEN --> CANCELLED: Requester cancels errand (refunds escrow)
@@ -34,6 +44,24 @@ stateDiagram-v2
   CANCELLED --> [*]
   EXPIRED --> [*]
 ```
+
+### Asynchronous submission contract
+
+`POST /api/orders` returns HTTP `202` with `data: { id, status: "PENDING" }` and `Location: /api/orders/submissions/{id}`. The ID identifies the outbox submission and the future order. Only its requester may poll the Location endpoint. No `orders` row exists while pending, so couriers cannot discover or accept it and order cancellation endpoints do not apply yet. The student app's existing mock posting flow is not connected to this API.
+
+The existing Order `outbox_events` row stores the full submission in `payload.submission`. The RabbitMQ request contains only `eventId`, `eventType`, `timestamp`, `correlationId`, `orderId`, `requesterId`, `rewardCredits`, and `expiresAt`; item and contact details stay local. Credit results carry the same IDs/amount, a new event ID/timestamp, and `reason` on failure.
+
+| Submission result | Persisted behavior |
+| --- | --- |
+| `PENDING` | Request is awaiting confirmed Credit outcome; only the outbox row exists. |
+| `OPEN` | Credit succeeded; one transaction inserts the order and `order.created` outbox event and marks the submission `COMPLETED`. Polling also returns the order, including its current lifecycle status. |
+| `REJECTED` | Credit refused the reservation, including insufficient funds or an already expired request. No order is inserted; a reason is returned. |
+| `COMPENSATING` | Credit succeeded but the deadline passed before Order handled the result. Order atomically writes `order.reservation.release_requested` and records compensation in progress. |
+| `COMPENSATED` | Credit refunded the hold and returned `credit.reservation.released`. No order is inserted. |
+
+Credit commits the processed-event marker, balance/escrow/ledger changes, and a result in `credit_outbox_events` in one transaction. A business rejection rolls attempted reservation writes back to a savepoint and commits the failure result with the marker. An infrastructure error rolls back the entire transaction for retry. Order locks the submission row when handling results; duplicate confirmations cannot insert duplicate orders or compensation commands. Both relays use persistent messages, mandatory routing, and publisher confirms; delivery remains at least once.
+
+Consumer failures use the existing retry queues and dead-letter queues (`credit-service.events.dlq` and `order-service.events.dlq`). Exhausted or invalid messages need operator investigation and replay after repair; pending submissions are not automatically marked rejected on transport failure. Retain submission outbox rows, including delivered/completed rows: they hold recovery data and the durable result consumed by polling. There is no automated DLQ replay or pending-submission cancellation endpoint in this change.
 
 ### State Definitions
 
@@ -56,7 +84,7 @@ Every state transition enforces strict authorization, credit financial rules, an
 
 | Transition | Allowed Caller | Preconditions & Validation | Credit Service Action | Domain Event Emitted |
 |---|---|---|---|---|
-| `DRAFT` &rarr; `OPEN` | Requester | Requester available balance $\ge$ reward credits; valid deadline in the future. | Synchronous HTTP call `POST /api/credits/escrow/reserve`. Holds credits in escrow. | `order.created` |
+| Submission &rarr; `OPEN` | Requester submits; Credit result completes creation | Valid submission; reservation succeeds before the deadline is processed by Order. | `order.reservation.requested` holds credits; `credit.reservation.succeeded` permits Order insertion. | `order.created` after confirmation |
 | `OPEN` &rarr; `ACCEPTED` | Any Student (except Requester) | Order status is `OPEN`; caller $\ne$ requester; caller is active student. | None (credits remain held in escrow). | `order.accepted` |
 | `ACCEPTED` &rarr; `IN_TRANSIT` | Assigned Courier | Order status is `ACCEPTED`; caller equals assigned `courierId`. | None. | `order.in_transit` |
 | `IN_TRANSIT` &rarr; `DELIVERED` | Assigned Courier | Order status is `IN_TRANSIT`; caller equals assigned `courierId`. | None. | `order.delivered` |
@@ -95,10 +123,14 @@ sequenceDiagram
   actor Courier
 
   Requester->>Order: POST /api/orders (Create Errand, reward: 20)
-  Order->>Credit: POST /api/credits/escrow/reserve (amount: 20)
-  Note over Credit: Lock 20 credits in escrow<br/>available -= 20, escrow += 20
-  Credit-->>Order: 200 OK (Reservation Confirmed)
-  Order-->>Requester: 201 Created (Order OPEN)
+  Order->>Order: Save submitted details + reservation command in outbox (no order)
+  Order-->>Requester: 202 Accepted (submission ID, PENDING)
+  Order-)Credit: RabbitMQ: order.reservation.requested
+  Note over Credit: One transaction: hold 20 credits + dedup marker + result outbox
+  Credit-)Order: RabbitMQ: credit.reservation.succeeded
+  Order->>Order: One transaction: insert OPEN order + order.created + finish submission
+  Requester->>Order: GET /api/orders/submissions/{id}
+  Order-->>Requester: 200 OK (OPEN, order)
 
   Courier->>Order: POST /api/orders/{id}/accept
   Order-->>Courier: 200 OK (Assigned as Courier)

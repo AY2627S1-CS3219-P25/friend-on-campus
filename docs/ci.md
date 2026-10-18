@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-18
+Scope: Document the reservation messaging suite and its two service-owned test databases.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-5), date: 2026-10-12
 Scope: Documented validation that every workspace test file is selected by a classified test script.
 Author review: <to be completed by ngkhengyang>
@@ -86,3 +90,9 @@ Matrix metadata uses `database: none`, `schema`, or `deploy`, plus `rabbitmq: tr
 Place the workspace under an existing root workspace glob (`apps/*`, `services/*`, or `packages/*`) and add a real `build` script to its `package.json`. The root build intentionally omits `--if-present`, so CI fails instead of silently skipping a workspace without a build.
 
 Add `typecheck` and convention-compliant test scripts when they apply, then add each test command to the appropriate static matrix or system-test job in `.github/workflows/ci.yml`. Database-backed services must also expose `db:generate`; a suite that needs application tables should expose `db:deploy` and use `database: deploy`. Run `npm install` at the repository root to update `package-lock.json`, then verify `npm run ci:validate-tests`, `npm run lint`, `npm run build`, `npm run typecheck`, the practical category commands, and `npm test` when Docker is available.
+
+## Reservation saga messaging test
+
+Order Service's `test:messaging` runs against two separate migrated databases: `ORDER_TEST_DATABASE_URL` (Order schema) and `CREDIT_TEST_DATABASE_URL` (Credit schema), both ending in `_test`. `CREDIT_TEST_RABBITMQ_URL` selects the existing `credit_test` broker account and isolated `credit-test.*` resources. The aggregate runner provisions both databases; the Order messaging CI job also deploys Credit migrations into `saga_credit_test`.
+
+The suite covers outbox-only pending submissions, offline consumers, restart recovery, duplicate messages, insufficient funds, expiry and late-success refunds, and rollback when either service cannot write its outbox.

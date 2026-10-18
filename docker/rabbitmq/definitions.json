@@ -80,15 +80,15 @@
     {
       "user": "order_service",
       "vhost": "campus",
-      "configure": "^$",
-      "write": "^campus\\.events$",
-      "read": "^$"
+      "configure": "^(campus\\.events|order-service\\.events(?:\\.retry|\\.dlq)?)$",
+      "write": "^(amq\\.default|campus\\.events|order-service\\.events(?:\\.retry|\\.dlq)?)$",
+      "read": "^(campus\\.events|order-service\\.events(?:\\.retry|\\.dlq)?)$"
     },
     {
       "user": "credit_service",
       "vhost": "campus",
       "configure": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
-      "write": "^(amq\\.default|campus\\.events\\.dlx|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
+      "write": "^(amq\\.default|campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
       "read": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$"
     },
     {
@@ -118,15 +118,15 @@
       "user": "order_service",
       "vhost": "campus",
       "exchange": "campus.events",
-      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired)$",
-      "read": "^$"
+      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired|reservation\\.(requested|release_requested))$",
+      "read": "^credit\\.reservation\\.(succeeded|failed|released)$"
     },
     {
       "user": "credit_service",
       "vhost": "campus",
       "exchange": "campus.events",
-      "write": "^$",
-      "read": "^(user\\.registered|order\\.(completed|cancelled|expired))$"
+      "write": "^credit\\.reservation\\.(succeeded|failed|released)$",
+      "read": "^(user\\.registered|order\\.(completed|cancelled|expired|reservation\\.(requested|release_requested)))$"
     },
     {
       "user": "notification_service",
@@ -134,6 +134,96 @@
       "exchange": "campus.events",
       "write": "^$",
       "read": "^(order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired))$"
+    }
+  ],
+  "queues": [
+    {
+      "name": "credit-service.events",
+      "vhost": "campus",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "order-service.events",
+      "vhost": "campus",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "credit-service.events",
+      "destination_type": "queue",
+      "routing_key": "user.registered",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "credit-service.events",
+      "destination_type": "queue",
+      "routing_key": "order.completed",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "credit-service.events",
+      "destination_type": "queue",
+      "routing_key": "order.cancelled",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "credit-service.events",
+      "destination_type": "queue",
+      "routing_key": "order.expired",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "credit-service.events",
+      "destination_type": "queue",
+      "routing_key": "order.reservation.requested",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "credit-service.events",
+      "destination_type": "queue",
+      "routing_key": "order.reservation.release_requested",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "order-service.events",
+      "destination_type": "queue",
+      "routing_key": "credit.reservation.succeeded",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "order-service.events",
+      "destination_type": "queue",
+      "routing_key": "credit.reservation.failed",
+      "arguments": {}
+    },
+    {
+      "source": "campus.events",
+      "vhost": "campus",
+      "destination": "order-service.events",
+      "destination_type": "queue",
+      "routing_key": "credit.reservation.released",
+      "arguments": {}
     }
   ]
 }

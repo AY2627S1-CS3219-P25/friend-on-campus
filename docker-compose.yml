@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-10-18
+# Scope: Restart Order after fatal consumer failures and remove the synchronous Credit URL.
+# Author review: <to be completed by huangjiaxi1111>
+#
 #
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
 # Scope: Backend services get `init: true` so SIGTERM reaches node (as PID 1 it ignored the signal and `docker stop` fell
@@ -228,6 +232,7 @@ services:
       context: .
       dockerfile: services/order-service/Dockerfile
     container_name: campuserrand-order-service
+    restart: unless-stopped
     init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8003:8003"
@@ -235,7 +240,6 @@ services:
       - PORT=8003
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/order_db
       - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
-      - CREDIT_SERVICE_URL=http://credit-service:8004
       - SUPPLIER_SERVICE_URL=http://supplier-service:8002
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}

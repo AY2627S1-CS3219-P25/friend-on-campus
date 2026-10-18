@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Return asynchronous submission receipts and expose owner-authorized submission polling.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
  * Scope: accept, pickup and deliver pass the caller's username from the verified token to the service (F5.1.1).
  * Author review: <to be completed by Reallyeasy1>
@@ -13,9 +17,9 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import { Router, type Request, type Response, type RequestHandler, type ErrorRequestHandler } from 'express';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
-import type { ApiResponse, CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
+import type { ApiResponse, CreateOrderRequest, OrderDTO, OrderSubmissionDTO } from '@campus-errand/common-dtos';
+import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
 import type { OrderService } from './order.service';
 import { OrderError, OrderValidationError } from './order.types';
 
@@ -120,6 +124,15 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
+  // AI-generated (edited by huangjiaxi1111)
+  router.get('/submissions/:id', authenticate, asyncRoute(async (req, res) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+      throw new OrderValidationError('Submission id must be a UUID');
+    }
+    const submission = await orderService.getSubmission(req.params.id, resolveUserId(req, res));
+    res.json({ success: true, data: submission });
+  }));
+
   // 3. Get Errand Details by ID or Code (authenticated)
   router.get('/:id', authenticate, asyncRoute(async (req: Request, res: Response) => {
     const order = await orderService.getOrderById(req.params.id);
@@ -129,16 +142,16 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
-  // 4. Create Errand Request (Requester only, synchronous escrow reservation)
-  router.post('/', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+  // 4. Submit Errand Request (credit reservation completes asynchronously)
+  router.post('/', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderSubmissionDTO>>) => {
     const requesterId = resolveUserId(req, res);
     const body = req.body as CreateOrderRequest;
 
     const newOrder = await orderService.createOrder(requesterId, body);
-    res.status(201).json({
+    res.location(`/api/orders/submissions/${newOrder.id}`).status(202).json({
       success: true,
       data: newOrder,
-      message: 'Order created and escrow reserved successfully',
+      message: 'Submission received. Awaiting credit reservation.',
     });
   }));
 

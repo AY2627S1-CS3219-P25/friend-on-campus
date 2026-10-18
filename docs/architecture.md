@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-18
+Scope: Align service interactions and outbox facts with the author-approved asynchronous reservation flow.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Authored unified System Architecture specification, consolidating system topology, component diagram, microservices breakdown, database-per-service pattern, and async event choreography.
 Author review: <to be completed by author after review>
@@ -48,7 +52,8 @@ flowchart TB
   GW -->|"/api/credits"| CS
   GW -->|"/api/notifications, /ws"| NS
 
-  OS -->|"Sync HTTP Escrow Reserve<br/>POST /api/credits/escrow/reserve"| CS
+  CS -.->|"Publish credit.reservation.*"| MQ
+  MQ -.->|"Consume credit.reservation.*"| OS
 
   US --> UDB
   SS --> SDB
@@ -70,27 +75,25 @@ flowchart TB
 |---|---|---|---|---|
 | **User Service** | `8001` | `user_db` | User registration, password hashing (scrypt), Ed25519 token signing, opaque refresh sessions, user profile management, RBAC, and last-admin safety guard. | Publishes `user.registered` to RabbitMQ via Transactional Outbox upon new student sign-up. |
 | **Supplier Service** | `8002` | `supplier_db` | Directory of campus merchants, dining outlets, and collection points. Search, category filtering, campus zone queries, and Admin-only CRUD. | Verifies Ed25519 JWTs offline. Queried by clients when creating errand requests. |
-| **Order Service** | `8003` | `order_db` | Complete lifecycle state machine for errands (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`, `CANCELLED`, `EXPIRED`). Atomic single-winner courier claiming and background expiry sweeper. | Synchronous HTTP call to Credit Service to reserve escrow during errand creation. Publishes order lifecycle events via Transactional Outbox. |
-| **Credit Service** | `8004` | `credit_db` | Closed credit economy wallet accounts, transaction ledger, and per-order escrow holds, settlements, and refunds. | Exposes `POST /api/credits/escrow/reserve`. Consumes `user.registered` (grants 100 credits), `order.completed` (settles escrow), and `order.cancelled` / `order.expired` (refunds escrow). |
+| **Order Service** | `8003` | `order_db` | Complete lifecycle state machine for errands (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`, `CANCELLED`, `EXPIRED`). Atomic single-winner courier claiming and background expiry sweeper. | Stores pending submissions only in the outbox, requests escrow over RabbitMQ, and inserts OPEN orders only after reservation success. Publishes lifecycle events via Transactional Outbox. |
+| **Credit Service** | `8004` | `credit_db` | Closed credit economy wallet accounts, transaction ledger, and per-order escrow holds, settlements, and refunds. | Reserves/refunds credit for `order.reservation.*` commands and writes results to `credit_outbox_events` atomically with balance changes. Retains the legacy HTTP reserve endpoint. Consumes `user.registered` (grants 100 credits), `order.completed` (settles escrow), and `order.cancelled` / `order.expired` (refunds escrow). |
 | **Notification Service** | `8005` | `notification_db` | Real-time push notifications over authenticated WebSockets (`/ws`), unread notification badge counts, and user notification history. | Consumes `order.*` events from RabbitMQ to construct localized errand alerts. |
 
 ---
 
 ## 3. Communication Patterns
 
-### A. Synchronous HTTP (Strong Consistency)
-Synchronous REST calls are reserved for workflows where immediate consistency and caller feedback are non-negotiable:
-- **Order Creation & Escrow Hold**: When a student posts an errand, `order-service` calls `POST /api/credits/escrow/reserve` on `credit-service`.
-  - If the requester lacks sufficient available credits, Credit Service returns `400 INSUFFICIENT_CREDITS`, and Order Service aborts the errand creation immediately.
-  - If Credit Service is unreachable, Order Service fails fast with `503 SERVICE_UNAVAILABLE`, preventing orphaned errand postings.
+### A. Synchronous HTTP
+Order validates supplier details through Supplier Service before accepting a submission. Clients submit through HTTP and poll the owner-protected submission endpoint; escrow reservation runs through RabbitMQ.
 
 ### B. Asynchronous Event Choreography (Eventual Consistency)
 Cross-service workflows that do not require blocking the user response are decoupled using RabbitMQ 3.13:
 - **Exchange**: Durable topic exchange `campus.events` in the `campus` vhost.
 - **Transactional Outbox Pattern**:
-  - `user-service` and `order-service` persist state transitions and domain events within the same atomic PostgreSQL transaction (writing to `outbox_events`).
-  - An asynchronous publisher worker continuously polls `outbox_events`, publishes to RabbitMQ with publisher confirms, and marks events as `PUBLISHED`.
-  - This guarantees **at-least-once delivery** without distributed 2-phase commits (2PC) and ensures no events are lost if the process crashes.
+  - `user-service`, `order-service`, and `credit-service` persist state transitions and domain events within the same atomic PostgreSQL transaction (writing to service-owned outbox tables).
+  - An asynchronous publisher worker continuously polls `outbox_events`, publishes to RabbitMQ with publisher confirms, and marks confirmed publications as `DELIVERED`.
+  - Unconfirmed publications remain pending and retry. A crash after broker confirmation can cause duplicate delivery; consumers must be idempotent. Order reservation rows also retain submission data and saga outcome after publication.
+- **Reservation Saga**: See [the submission contract and failure handling](errand-specification.md#asynchronous-submission-contract). Durable Order/Credit queues and bindings are predeclared in RabbitMQ definitions.
 - **Idempotent Consumers**:
   - `credit-service` and `notification-service` maintain tables (`processed_credit_events`, `notifications`) recording unique `eventId` values.
   - Replayed or duplicate deliveries are recognized and acknowledged safely without double-charging or duplicate alerts.
