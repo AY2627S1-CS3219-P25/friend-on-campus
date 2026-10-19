@@ -3337,7 +3337,7 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Tool:** Claude Code (model: Claude Fable 5.1; page rewrites drafted by Claude Opus 5.5 and Claude Sonnet 5.5 subagents, reviewed in the main session)
 **Author:** Reallyeasy1
-**Branch:** main (changes left uncommitted for review)
+**Branch:** docs/refresh-as-built-2026-10-18 (PR #122)
 
 **Prompt (summarised):** Update the repository documentation and every page of the GitHub wiki so they describe the system as built on main @ 7f2d972 (after PR #121).
 
@@ -3359,3 +3359,17 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `ai/usage-log.md` — this entry.
 
 **Files changed (wiki, `wiki-checkout/`):** rewritten to the as-built system: `Home.md`, `_Sidebar.md`, `Architecture.md`, `Services.md`, `Data-Model.md`, `Mock-Services.md` (historical note), `Getting-Started.md`, `Deployment-and-Configuration.md`, `Testing-and-Evidence.md`, `Team-Conventions.md`, `Decisions-and-Open-Questions.md`, `Frontend-Apps.md`, `Authentication-and-Roles.md`, `User-Service.md`, `Supplier-Service.md`, `Roadmap.md`; new `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `Milestone-D3.md`; the nine D2 pages marked as the historical Week 7 record with dead repo links rewritten.
+
+## 2026-10-19 — PR #122 review follow-up
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/refresh-as-built-2026-10-18 (PR #122)
+
+**Prompt (summarised):** Attend to the Claude PR review on #122 and merge.
+
+**Usage scenario:** Addressed the two non-blocking notes from the automated review, both verified against the code first: the usage-log **Branch** field, and the sentence after the transition matrix in `docs/errand-specification.md` §2 now says the sweeper's conditional update matches on `status` only (`handleExpireDueOrders` in `order.repository.ts`).
+
+**Files changed:**
+- `docs/errand-specification.md` — §2 sentence after the matrix.
+- `ai/usage-log.md` — previous entry's Branch field; this entry.

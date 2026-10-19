@@ -78,7 +78,7 @@ Every state transition enforces strict authorization, credit financial rules, an
 | `DELIVERED` &rarr; `COMPLETED` (`/:id/admin/complete`) | Admin | Role `ADMIN`; required `reason`; optional `expectedVersion`; status is `DELIVERED`. | Settlement, as above. | `order.completed` |
 | `ACCEPTED` &rarr; `OPEN` (`/:id/admin/unassign`) | Admin | Role `ADMIN`; required `reason`; optional `expectedVersion`; status is `ACCEPTED`. Clears `courierId`, `acceptedAt`, `courierContactNote`. | None. | none (no outbox event is written) |
 
-Every transition runs in one database transaction that reads the row, checks the rules above, applies a conditional `updateMany` on the expected `status` and `version`, increments `version`, and (except unassign) inserts the outbox event. Unknown order → `404`. `GET /api/orders/:id` accepts either the UUID or the `orderCode` (`ORD-` + 8 hex characters).
+Every route transition runs in one database transaction that reads the row, checks the rules above, applies a conditional `updateMany` on the expected `status` and `version`, increments `version`, and (except unassign) inserts the outbox event. The expiry sweeper matches on `status = OPEN` only (its row above). Unknown order → `404`. `GET /api/orders/:id` accepts either the UUID or the `orderCode` (`ORD-` + 8 hex characters).
 
 Read routes: `GET /api/orders` (default: `OPEN` and not yet expired, newest first; optional `status` (`ALL` for every status), `campusZone`, `search` over code, item, drop-off and supplier name, `page`, `limit` ≤ 100, default 50) and `GET /api/orders/user/activity` (the caller's `requested`, `delivering` and `history` lists). All order routes require an access token.
 
