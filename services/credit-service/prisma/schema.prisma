@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity, date: 2026-10-19
+// Scope: Added aggregateType and aggregateId to CreditOutboxEvent for Debezium Outbox Event Router compatibility.
+// Author review: Reviewed and verified by yanhwee.
+//
 // Tool: Codex (model: GPT-6), date: 2026-10-18
 // Scope: Add the persistent Credit result outbox used by the reservation saga.
 // Author review: <to be completed by huangjiaxi1111>
@@ -74,15 +78,17 @@ model ProcessedCreditEvent {
   @@map("processed_credit_events")
 }
 
-// AI-generated (edited by huangjiaxi1111)
+// AI-generated (edited by yanhwee)
 model CreditOutboxEvent {
-  id         String   @id @db.Uuid
-  eventType  String   @map("event_type") @db.VarChar(64)
-  payload    String   @db.Text
-  status     String   @default("PENDING") @db.VarChar(20)
-  retryCount Int      @default(0) @map("retry_count")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id            String   @id @db.Uuid
+  aggregateType String   @default("credit") @map("aggregate_type") @db.VarChar(64)
+  aggregateId   String   @default("") @map("aggregate_id") @db.VarChar(64)
+  eventType     String   @map("event_type") @db.VarChar(64)
+  payload       String   @db.Text
+  status        String   @default("PENDING") @db.VarChar(20)
+  retryCount    Int      @default(0) @map("retry_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([status, createdAt], map: "credit_outbox_status_created_at_idx")
   @@map("credit_outbox_events")

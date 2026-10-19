@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-19
+ * Scope: Refactored Order Saga contracts to Approach B2 (PENDING/REJECTED OrderStatus, rejectionReason on OrderDTO, removed OrderSubmissionDTO and release_requested/released events).
+ * Author review: Reviewed and verified by yanhwee.
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Add submission receipts and correlated reservation request/result DTOs for the author-approved saga.
  * Author review: <to be completed by huangjiaxi1111>
@@ -191,7 +195,9 @@ export interface SupplierQueryOptions {
 // ==========================================
 // 3. Order Service Types (M4)
 // ==========================================
+// AI-generated (edited by yanhwee)
 export type OrderStatus =
+  | 'PENDING'
   | 'OPEN'
   | 'ACCEPTED'
   | 'IN_TRANSIT'
@@ -199,6 +205,7 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'CANCELLED'
   | 'EXPIRED'
+  | 'REJECTED'
   | 'DISPUTED';
 
 export interface OrderDTO {
@@ -216,6 +223,7 @@ export interface OrderDTO {
   courierContactNote?: string | null;
   rewardCredits: number;
   status: OrderStatus;
+  rejectionReason?: string | null;
   expiresAt: string;
   acceptedAt?: string | null;
   pickedUpAt?: string | null;
@@ -327,25 +335,17 @@ export interface OrderCreatedEvent extends BaseEvent {
   expiresAt: string;
 }
 
-// A submission is not an order until its credit reservation succeeds.
-export interface OrderSubmissionDTO {
-  id: string;
-  status: 'PENDING' | 'OPEN' | 'REJECTED' | 'COMPENSATING' | 'COMPENSATED';
-  reason?: string;
-  order?: OrderDTO;
-}
-
+// AI-generated (edited by yanhwee)
 export interface CreditReservationRequestEvent extends BaseEvent {
-  eventType: 'order.reservation.requested' | 'order.reservation.release_requested';
+  eventType: 'order.reservation.requested';
   correlationId: string;
   orderId: string;
   requesterId: string;
   rewardCredits: number;
-  expiresAt: string;
 }
 
 export interface CreditReservationResultEvent extends BaseEvent {
-  eventType: 'credit.reservation.succeeded' | 'credit.reservation.failed' | 'credit.reservation.released';
+  eventType: 'credit.reservation.succeeded' | 'credit.reservation.failed';
   correlationId: string;
   orderId: string;
   requesterId: string;

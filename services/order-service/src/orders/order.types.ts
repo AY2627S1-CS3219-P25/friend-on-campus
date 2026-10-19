@@ -66,6 +66,7 @@ export function toOrderDTO(order: PrismaOrder): OrderDTO {
     courierContactNote: order.courierContactNote ?? undefined,
     rewardCredits: order.rewardCredits,
     status: order.status as OrderStatus,
+    rejectionReason: order.rejectionReason ?? null,
     expiresAt: order.expiresAt.toISOString(),
     acceptedAt: order.acceptedAt?.toISOString() ?? null,
     pickedUpAt: order.pickedUpAt?.toISOString() ?? null,

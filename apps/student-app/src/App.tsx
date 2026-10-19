@@ -466,9 +466,9 @@ export default function App() {
     onSettled: receipt => {
       void fetchCredits();
       void fetchOrders();
-      if (receipt.status === 'OPEN' && receipt.order) {
+      if (receipt.status === 'OPEN' && receipt.orderCode) {
         keepNoticeOnTabChange.current = activeTab === 'post';
-        setNotification(`Errand ${receipt.order.orderCode} posted. Credits reserved.`);
+        setNotification(`Errand ${receipt.orderCode} posted. Credits reserved.`);
         setFormData(current => ({ ...current, itemDescription: '', specialNotes: '', dropoffLocation: '', rewardCredits: 15 }));
         if (activeTab === 'post') setActiveTab('feed');
       }
@@ -967,9 +967,8 @@ export default function App() {
           <div role="status" data-testid="order-submission-status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             {submission.unconfirmed && 'Awaiting confirmation. Your errand may still be pending and could become open. We could not confirm its status because the submission response was not received. Please wait before trying again; submitting again could create a duplicate errand.'}
             {submission.receipt?.status === 'PENDING' && 'Pending — waiting to open. We are reserving your credits. Your errand will appear once the reservation is confirmed. Please wait and do not submit this errand again.'}
-            {submission.receipt?.status === 'COMPENSATING' && 'Your submission expired. Returning your reserved credits…'}
-            {submission.receipt?.status === 'COMPENSATED' && 'Your submission expired and your reserved credits have been returned. You can submit a new errand.'}
-            {submission.receipt?.status === 'REJECTED' && `Errand not posted: ${submission.receipt.reason || 'Credit reservation was declined.'}`}
+            {submission.receipt?.status === 'EXPIRED' && 'Your submission expired and your reserved credits are being returned. You can submit a new errand.'}
+            {submission.receipt?.status === 'REJECTED' && `Errand not posted: ${submission.receipt.rejectionReason || 'Credit reservation was declined.'}`}
           </div>
         )}
         {submission.error && <div role="alert" className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">{submission.error}</div>}

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
+ * Scope: Updated reservation messaging integration test for Saga Approach B2 (PENDING/OPEN/REJECTED/EXPIRED orders and order.expired late-reservation refund).
+ * Author review: Reviewed and verified by Yee Yan Hwee (yanhwee)
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Verify infrastructure recovery, release compensation, bounded event retries and immediate malformed-event dead-lettering.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,14 +12,15 @@
  * Scope: Real PostgreSQL/RabbitMQ reservation saga, restart, rollback, duplicate, rejection and compensation tests.
  * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by huangjiaxi1111)
+// AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import amqp from 'amqplib';
+import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
 import { PrismaClient as OrderPrisma } from '../src/database/client';
 import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
-import { createReservationSaga, type SubmissionPayload } from '../src/orders/reservation.saga';
+import { createOrderRepository } from '../src/repositories/order.repository';
 import { createRabbitMQPublisher } from '../src/messaging/event.publisher';
 import { createOutboxRelay } from '../src/messaging/outbox.relay';
 import { classifyReservationFailure, startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
@@ -66,7 +71,10 @@ async function main() {
   const publisher = createRabbitMQPublisher({ url, exchange });
   const relay = createOutboxRelay({ prisma: orders, publisher });
   const results = createCreditOutbox(credit, { url, exchange });
-  const saga = createReservationSaga(orders);
+  const orderRepo = createOrderRepository(orders);
+  const orderHandler = {
+    handleReservationResult: (event: CreditReservationResultEvent) => orderRepo.applyReservationResult(event),
+  };
   const store = createCreditStore(credit);
   const credits = createCreditService(store);
   const users: string[] = [];
@@ -79,8 +87,30 @@ async function main() {
     const requesterId = randomUUID(); users.push(requesterId);
     await credits.initializeWallet(requesterId);
     const id = randomUUID(); ids.push(id); commandIds.push(id);
-    await saga.submit({ id, orderCode: `ORD-${id.slice(0, 8)}`, requesterId, supplierId: randomUUID(),
-      supplierName: 'Saga test', campusZone: 'Campus', itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits, expiresAt });
+    const reservationEvent: CreditReservationRequestEvent = {
+      eventId: id,
+      correlationId: id,
+      timestamp: new Date().toISOString(),
+      eventType: 'order.reservation.requested',
+      orderId: id,
+      requesterId,
+      rewardCredits,
+    };
+    await orderRepo.createOrderWithOutbox(
+      {
+        id,
+        orderCode: `ORD-${id.slice(0, 8)}`,
+        requesterId,
+        supplierId: randomUUID(),
+        supplierName: 'Saga test',
+        campusZone: 'Campus',
+        itemDescription: 'Meal',
+        dropoffLocation: 'Hall',
+        rewardCredits,
+        expiresAt,
+      },
+      reservationEvent
+    );
     return { id, requesterId };
   }
   const getResult = async (id: string) => {
@@ -99,26 +129,23 @@ async function main() {
     await channel.bindQueue(`${prefix}.created`, exchange, 'order.created');
 
     const first = await submit();
-    assert.equal(await orders.order.count({ where: { id: first.id } }), 0);
-    assert.equal((await saga.get(first.id, first.requesterId)).status, 'PENDING');
-    await assert.rejects(saga.get(first.id, randomUUID()), /authorized/);
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     await relay.processPending();
     assert.equal((await channel.checkQueue(cc.queue)).messageCount, 1);
-    assert.equal(await orders.order.count({ where: { id: first.id } }), 0);
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     creditConsumer = await startCreditConsumer(cc, credits);
     await until(() => getResult(first.id), 'durable reservation result');
     assert.equal((await credits.getWallet(first.requesterId)).escrowCredits, 15);
-    assert.equal(await orders.order.count({ where: { id: first.id } }), 0);
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     // A restart after the credit commit cannot lose the result waiting in its outbox.
     await creditConsumer.close();
     await results.processPending();
     assert.equal((await channel.checkQueue(oc.queue)).messageCount, 1);
-    orderConsumer = await startReservationConsumer(oc, saga);
-    await until(() => orders.order.findUnique({ where: { id: first.id } }), 'confirmed order');
-    assert.equal((await saga.get(first.id, first.requesterId)).status, 'OPEN');
+    orderConsumer = await startReservationConsumer(oc, orderHandler);
+    await until(async () => (await orders.order.findUnique({ where: { id: first.id } }))?.status === 'OPEN', 'confirmed order');
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'OPEN');
     creditConsumer = await startCreditConsumer(cc, credits);
-    const request = JSON.parse((await orders.outboxEvent.findUniqueOrThrow({ where: { id: first.id } })).payload) as SubmissionPayload;
-    const { submission: _localDetails, ...command } = request;
+    const command = JSON.parse((await orders.outboxEvent.findUniqueOrThrow({ where: { id: first.id } })).payload) as CreditReservationRequestEvent;
     await Promise.all([emit(command), emit(command), emit(await getResult(first.id)), emit(await getResult(first.id))]);
     await delay(150);
     assert.equal(await credit.creditTransaction.count({ where: { orderId: first.id, transactionType: 'ESCROW_HOLD' } }), 1);
@@ -126,14 +153,12 @@ async function main() {
     assert.equal((await orders.outboxEvent.findMany({ where: { eventType: 'order.created' } })).filter(row => JSON.parse(row.payload).orderId === first.id).length, 1);
 
     const rejected = await submit(1000);
-    await until(async () => { await pump(); return (await saga.get(rejected.id, rejected.requesterId)).status === 'REJECTED'; }, 'insufficient funds rejection');
-    assert.equal(await orders.order.count({ where: { id: rejected.id } }), 0);
+    await until(async () => { await pump(); return (await orders.order.findUnique({ where: { id: rejected.id } }))?.status === 'REJECTED'; }, 'insufficient funds rejection');
+    const rejectedOrder = await orders.order.findUniqueOrThrow({ where: { id: rejected.id } });
+    assert.equal(rejectedOrder.status, 'REJECTED');
+    assert.ok(rejectedOrder.rejectionReason);
     assert.equal(await credit.creditEscrow.count({ where: { orderId: rejected.id } }), 0);
     assert.equal((await credits.getWallet(rejected.requesterId)).availableCredits, 100);
-
-    const expired = await submit(10, new Date(Date.now() - 1000));
-    await until(async () => { await pump(); return (await saga.get(expired.id, expired.requesterId)).status === 'REJECTED'; }, 'expired request rejection');
-    assert.equal(await credit.creditEscrow.count({ where: { orderId: expired.id } }), 0);
 
     // Funds were reserved in time, but the success reaches Order only after expiry.
     const late = await submit(12, new Date(Date.now() + 1200));
@@ -141,29 +166,29 @@ async function main() {
     await until(() => getResult(late.id), 'late reservation committed');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     await delay(1300);
-    // Release commands must also survive infrastructure failures beyond the event budget.
+    // Refund commands (order.expired) must survive infrastructure failures beyond the event budget.
     await creditConsumer.close();
-    let releaseAttempts = 0;
-    let releaseUnavailable = true;
-    creditConsumer = await startCreditConsumer(cc, { ...credits, applyEvent: async (identity, command) => {
-      if (command.kind === 'release-request' && command.event.orderId === late.id && releaseUnavailable) {
-        releaseAttempts++;
+    let refundAttempts = 0;
+    let refundUnavailable = true;
+    creditConsumer = await startCreditConsumer(cc, { ...credits, applyEvent: async (identity, cmd) => {
+      if (cmd.kind === 'refund' && cmd.body.orderId === late.id && refundUnavailable) {
+        refundAttempts++;
         throw Object.assign(new Error('Injected exhausted database pool'), { code: 'P2024' });
       }
-      return credits.applyEvent(identity, command);
+      return credits.applyEvent(identity, cmd);
     } });
-    await until(async () => { await pump(); return releaseAttempts >= 8; }, 'release retries past event limit');
-    assert.equal((await saga.get(late.id, late.requesterId)).status, 'COMPENSATING');
+    await until(async () => { await pump(); return refundAttempts >= 8; }, 'refund retries past event limit');
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: late.id } })).status, 'EXPIRED');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     assert.equal((await channel.checkQueue(cc.deadLetterQueue)).messageCount, 0);
-    releaseUnavailable = false;
-    await until(async () => { await pump(); return (await saga.get(late.id, late.requesterId)).status === 'COMPENSATED'; }, 'late-success refund');
-    assert.equal(await orders.order.count({ where: { id: late.id } }), 0);
+    refundUnavailable = false;
+    await until(async () => { await pump(); return (await credits.getWallet(late.requesterId)).availableCredits === 100; }, 'late-success refund');
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: late.id } })).status, 'EXPIRED');
     assert.equal((await credits.getWallet(late.requesterId)).availableCredits, 100);
     assert.equal(await credit.creditTransaction.count({ where: { orderId: late.id, transactionType: 'ESCROW_REFUND' } }), 1);
-    const release = (await orders.outboxEvent.findMany({ where: { eventType: 'order.reservation.release_requested' } })).find(row => JSON.parse(row.payload).orderId === late.id)!;
-    commandIds.push(release.id);
-    await emit(JSON.parse(release.payload)); await emit(await getResult(late.id)); await delay(100);
+    const expiredEvt = (await orders.outboxEvent.findMany({ where: { eventType: 'order.expired' } })).find(row => JSON.parse(row.payload).orderId === late.id)!;
+    commandIds.push(expiredEvt.id);
+    await emit(JSON.parse(expiredEvt.payload)); await emit(await getResult(late.id)); await delay(100);
     assert.equal(await credit.creditTransaction.count({ where: { orderId: late.id, transactionType: 'ESCROW_REFUND' } }), 1);
 
     // Credit's balance, dedup marker, and response must all roll back if the outbox insert fails.
@@ -177,7 +202,7 @@ async function main() {
     assert.equal(await credit.processedCreditEvent.count({ where: { eventId: rollback.id } }), 0);
     assert.equal((await credits.getWallet(rollback.requesterId)).availableCredits, 100);
 
-    // Order insertion and order.created publication are also one transaction.
+    // Order status transition (PENDING -> OPEN) and order.created publication are also one transaction.
     await orderConsumer.close(); orderConsumer = undefined;
     await relay.processPending();
     await until(() => getResult(rollback.id), 'result after retry');
@@ -190,37 +215,37 @@ async function main() {
       })));
       return Reflect.get(target, property);
     } });
-    await assert.rejects(createReservationSaga(faultDb).handleResult(await getResult(rollback.id)), /Injected/);
-    assert.equal(await orders.order.count({ where: { id: rollback.id } }), 0);
+    await assert.rejects(createOrderRepository(faultDb).applyReservationResult(await getResult(rollback.id)), /Injected/);
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: rollback.id } })).status, 'PENDING');
     await results.processPending();
-    orderConsumer = await startReservationConsumer(oc, saga);
-    await until(() => orders.order.findUnique({ where: { id: rollback.id } }), 'order after consumer restart');
+    orderConsumer = await startReservationConsumer(oc, orderHandler);
+    await until(async () => (await orders.order.findUnique({ where: { id: rollback.id } }))?.status === 'OPEN', 'order after consumer restart');
+
     // An Order database outage cannot exhaust the result retries or strand the hold.
     await orderConsumer.close();
     const recovering = await submit();
     let resultAttempts = 0;
-    orderConsumer = await startReservationConsumer(oc, { ...saga, handleResult: async event => {
+    orderConsumer = await startReservationConsumer(oc, { handleReservationResult: async event => {
       if (event.orderId === recovering.id) {
         resultAttempts++;
         throw Object.assign(new Error('Injected database restart'), { code: 'P2010', meta: { code: '57P01' } });
       }
-      await saga.handleResult(event);
+      await orderHandler.handleReservationResult(event);
     } });
     await until(async () => { await pump(); return resultAttempts >= 8; }, 'result retries past event limit');
-    assert.equal((await saga.get(recovering.id, recovering.requesterId)).status, 'PENDING');
-    assert.equal(await orders.order.count({ where: { id: recovering.id } }), 0);
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: recovering.id } })).status, 'PENDING');
     assert.equal((await credits.getWallet(recovering.requesterId)).escrowCredits, 15);
     assert.equal((await channel.checkQueue(oc.deadLetterQueue)).messageCount, 0);
     await orderConsumer.close();
-    orderConsumer = await startReservationConsumer(oc, saga);
-    await until(() => orders.order.findUnique({ where: { id: recovering.id } }), 'infrastructure recovery after restart');
-    assert.equal(await orders.order.count({ where: { id: recovering.id } }), 1);
+    orderConsumer = await startReservationConsumer(oc, orderHandler);
+    await until(async () => (await orders.order.findUnique({ where: { id: recovering.id } }))?.status === 'OPEN', 'infrastructure recovery after restart');
+    assert.equal((await orders.order.findUniqueOrThrow({ where: { id: recovering.id } })).status, 'OPEN');
     assert.equal(await credit.creditTransaction.count({ where: { orderId: recovering.id, transactionType: 'ESCROW_HOLD' } }), 1);
 
     // Unknown event failures remain bounded; malformed events skip retries entirely.
     await orderConsumer.close();
     let eventAttempts = 0;
-    orderConsumer = await startReservationConsumer(oc, { ...saga, handleResult: async () => {
+    orderConsumer = await startReservationConsumer(oc, { handleReservationResult: async () => {
       eventAttempts++; throw new Error('Injected processing bug');
     } });
     await emit(await getResult(recovering.id));
@@ -235,7 +260,7 @@ async function main() {
     assert(invalid);
     assert.equal(invalid.properties.headers!['x-order-retry-count'], 0);
     assert.equal(eventAttempts, 6);
-    console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, outbox-only submissions, offline consumers, persisted results, duplicate safety, insufficient funds, expiry compensation, atomic rollbacks and restart recovery');
+    console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, PENDING order saga, offline consumers, persisted results, duplicate safety, insufficient funds, late-success expiry refund, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
     await relay.stop(); await publisher.close(); await results.stop();

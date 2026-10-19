@@ -118,15 +118,15 @@
       "user": "order_service",
       "vhost": "campus",
       "exchange": "campus.events",
-      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired|reservation\\.(requested|release_requested))$",
-      "read": "^credit\\.reservation\\.(succeeded|failed|released)$"
+      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired|reservation\\.requested)$",
+      "read": "^credit\\.reservation\\.(succeeded|failed)$"
     },
     {
       "user": "credit_service",
       "vhost": "campus",
       "exchange": "campus.events",
-      "write": "^credit\\.reservation\\.(succeeded|failed|released)$",
-      "read": "^(user\\.registered|order\\.(completed|cancelled|expired|reservation\\.(requested|release_requested)))$"
+      "write": "^credit\\.reservation\\.(succeeded|failed)$",
+      "read": "^(user\\.registered|order\\.(completed|cancelled|expired|reservation\\.requested))$"
     },
     {
       "user": "notification_service",
@@ -196,14 +196,6 @@
     {
       "source": "campus.events",
       "vhost": "campus",
-      "destination": "credit-service.events",
-      "destination_type": "queue",
-      "routing_key": "order.reservation.release_requested",
-      "arguments": {}
-    },
-    {
-      "source": "campus.events",
-      "vhost": "campus",
       "destination": "order-service.events",
       "destination_type": "queue",
       "routing_key": "credit.reservation.succeeded",
@@ -215,14 +207,6 @@
       "destination": "order-service.events",
       "destination_type": "queue",
       "routing_key": "credit.reservation.failed",
-      "arguments": {}
-    },
-    {
-      "source": "campus.events",
-      "vhost": "campus",
-      "destination": "order-service.events",
-      "destination_type": "queue",
-      "routing_key": "credit.reservation.released",
       "arguments": {}
     }
   ]

@@ -8,13 +8,12 @@
  * Scope: Validate and consume correlated credit results with the existing durable retry/DLQ behavior.
  * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by huangjiaxi1111)
+// AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent } from '@campus-errand/common-dtos';
-import type { ReservationSaga } from '../orders/reservation.saga';
 import { OrderError, OrderValidationError } from '../orders/order.types';
 import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from './rabbitmq';
 
-export const reservationResultKeys = ['credit.reservation.succeeded', 'credit.reservation.failed', 'credit.reservation.released'] as const;
+export const reservationResultKeys = ['credit.reservation.succeeded', 'credit.reservation.failed'] as const;
 
 export function parseReservationResult(content: Buffer, routingKey: string): CreditReservationResultEvent {
   let event: CreditReservationResultEvent;
@@ -36,10 +35,16 @@ export function classifyReservationFailure(error: unknown): Failure {
   return { category: 'transient', reason: 'processing_failure' };
 }
 
-export function startReservationConsumer(config: MessagingConfig, saga: ReservationSaga, onFatal?: () => void) {
+export function startReservationConsumer(
+  config: MessagingConfig,
+  orderService: { handleReservationResult(event: CreditReservationResultEvent): Promise<unknown> },
+  onFatal?: () => void
+) {
   return startRabbitConsumer(config, {
     routingKeys: reservationResultKeys,
-    handle: (content, key) => saga.handleResult(parseReservationResult(content, key)),
+    handle: async (content, key) => {
+      await orderService.handleReservationResult(parseReservationResult(content, key));
+    },
     classify: classifyReservationFailure,
     onFatal,
   });

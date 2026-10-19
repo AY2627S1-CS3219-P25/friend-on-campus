@@ -20,7 +20,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { createApp } from '../src/app';
 import { createOrderService } from '../src/orders/order.service';
 import {
-  makeFakeReservationSaga,
   makeFakeOrderRepository,
   makeFakeSupplierClient,
   startTestServer,
@@ -34,7 +33,6 @@ const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 describe('Order Service HTTP Application & Routes', () => {
   function setupApp() {
     const fakeRepo = makeFakeOrderRepository();
-    const fakeSaga = makeFakeReservationSaga(fakeRepo);
     const fakeSupplier = makeFakeSupplierClient({
       [SUPPLIER_ID]: {
         id: SUPPLIER_ID,
@@ -46,7 +44,6 @@ describe('Order Service HTTP Application & Routes', () => {
 
     const orderService = createOrderService({
       repository: fakeRepo.repo,
-      reservationSaga: fakeSaga.saga,
       supplierClient: fakeSupplier.client,
     });
 
@@ -68,7 +65,7 @@ describe('Order Service HTTP Application & Routes', () => {
       isReady: async () => true,
     });
 
-    return { app, fakeRepo, fakeSaga, fakeSupplier };
+    return { app, fakeRepo, fakeSupplier, orderService };
   }
 
   it('responds with UP and READY on health and readiness endpoints', async () => {
@@ -133,10 +130,10 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('creates, claims, picks up, delivers, and completes an errand through HTTP endpoints', async () => {
-    const { app, fakeSaga } = setupApp();
+    const { app, fakeRepo } = setupApp();
     const server = await startTestServer(app);
     try {
-      // 1. Create order as Alice
+      // 1. Create order as Alice -> 202 Accepted with PENDING OrderDTO
       const createRes = await fetch(`${server.url}/api/orders`, {
         method: 'POST',
         headers: {
@@ -153,20 +150,30 @@ describe('Order Service HTTP Application & Routes', () => {
       });
       assert.equal(createRes.status, 202);
       const createdBody = await createRes.json() as any;
-      assert.equal(createRes.headers.get('location'), `/api/orders/submissions/${createdBody.data.id}`);
-      const receiptUrl = `${server.url}/api/orders/submissions/${createdBody.data.id}`;
-      const pending = await fetch(receiptUrl, { headers: { 'x-user-id': ALICE_ID } });
-      assert.equal(pending.status, 200);
-      assert.equal((await pending.json() as any).data.status, 'PENDING');
-      assert.equal((await fetch(receiptUrl, { headers: { 'x-user-id': BOB_ID } })).status, 403);
-      assert.equal((await fetch(receiptUrl)).status, 401);
-      assert.equal((await fetch(`${server.url}/api/orders/${createdBody.data.id}`, { headers: { 'x-user-id': ALICE_ID } })).status, 404);
-
       assert.equal(createdBody.success, true);
       const orderId = createdBody.data.id;
+      assert.equal(createRes.headers.get('location'), `/api/orders/${orderId}`);
       assert.equal(createdBody.data.status, 'PENDING');
-      await fakeSaga.approve(orderId);
-      assert.equal(createdBody.data.status, 'PENDING');
+
+      const orderUrl = `${server.url}/api/orders/${orderId}`;
+      const pending = await fetch(orderUrl, { headers: { 'x-user-id': ALICE_ID } });
+      assert.equal(pending.status, 200);
+      assert.equal((await pending.json() as any).data.status, 'PENDING');
+      assert.equal((await fetch(orderUrl)).status, 401);
+      assert.equal((await fetch(orderUrl, { headers: { 'x-user-id': BOB_ID } })).status, 403);
+
+      // PENDING orders are not visible in the open errand feed yet, nor to other non-admin users querying status=PENDING
+      const pendingFeedRes = await fetch(`${server.url}/api/orders`, {
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(((await pendingFeedRes.json() as any).data || []).length, 0);
+      const bobPendingListRes = await fetch(`${server.url}/api/orders?status=PENDING`, {
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(((await bobPendingListRes.json() as any).data || []).length, 0);
+
+      // Credit reservation succeeds -> order transitions PENDING -> OPEN
+      await fakeRepo.approve(orderId);
 
       // 2. Discover in feed (authenticated)
       const listRes = await fetch(`${server.url}/api/orders`, {
@@ -231,7 +238,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('returns 409 Conflict when a second user attempts to claim an already accepted errand', async () => {
-    const { app, fakeSaga } = setupApp();
+    const { app, fakeRepo } = setupApp();
     const server = await startTestServer(app);
     try {
       // Create order
@@ -249,7 +256,7 @@ describe('Order Service HTTP Application & Routes', () => {
         }),
       });
       const orderId = (await createRes.json() as any).data.id;
-      await fakeSaga.approve(orderId);
+      await fakeRepo.approve(orderId);
 
       // Bob accepts
       const bobRes = await fetch(`${server.url}/api/orders/${orderId}/accept`, {
@@ -307,7 +314,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('rejects over-length dropoffLocation or non-string specialNotes with 400 Bad Request without reserving escrow', async () => {
-    const { app, fakeSaga } = setupApp();
+    const { app, fakeRepo } = setupApp();
     const server = await startTestServer(app);
     try {
       // Over 255 chars dropoffLocation
@@ -349,8 +356,9 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.equal(nonStringBody.success, false);
       assert.match(nonStringBody.error, /specialNotes must be a string/);
 
-      // Verify that no escrow reservation was attempted
-      assert.equal(fakeSaga.submissions.size, 0);
+      // Verify that no order or outbox reservation event was persisted
+      assert.equal(fakeRepo.orders.length, 0);
+      assert.equal(fakeRepo.outboxEvents.length, 0);
     } finally {
       await server.close();
     }

@@ -21,7 +21,6 @@ import { createOutboxRelay, type OutboxRelay } from './messaging/outbox.relay';
 import { startReservationConsumer } from './messaging/reservation.consumer';
 import { createExpirySweeper, type ExpirySweeper } from './orders/expiry.sweeper';
 import { createOrderService } from './orders/order.service';
-import { createReservationSaga } from './orders/reservation.saga';
 import { createOrderRepository } from './repositories/order.repository';
 
 let consumer: Awaited<ReturnType<typeof startReservationConsumer>> | undefined;
@@ -122,16 +121,14 @@ async function main() {
   });
 
   const orderRepo = createOrderRepository(prisma);
-  const reservationSaga = createReservationSaga(prisma);
-  consumer = await startReservationConsumer(config.rabbitmq, reservationSaga, () => { void shutdown(true); });
-  if (stopping) { await consumer.close(); return; }
   const supplierClient = createSupplierClient(config.supplierServiceUrl);
   const orderService = createOrderService({
     repository: orderRepo,
-    reservationSaga,
     supplierClient,
     outboxRelay,
   });
+  consumer = await startReservationConsumer(config.rabbitmq, orderService, () => { void shutdown(true); });
+  if (stopping) { await consumer.close(); return; }
 
   expirySweeper = createExpirySweeper({
     repository: orderRepo,
@@ -139,8 +136,10 @@ async function main() {
     pollIntervalMs: config.expirySweeper.intervalMs,
   });
 
-  // Start background workers
-  outboxRelay.start();
+  // Start background workers (skip polling outbox relay when Debezium CDC is active)
+  if (process.env.OUTBOX_CDC_ENABLED !== 'true') {
+    outboxRelay.start();
+  }
   expirySweeper.start();
 
   // Create Express application
