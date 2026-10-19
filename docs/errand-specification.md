@@ -101,7 +101,7 @@ Every state transition enforces strict authorization, credit financial rules, an
 
 | Transition | Allowed Caller | Preconditions & Validation | Credit Service Action | Domain Event Emitted |
 |---|---|---|---|---|
-| `DRAFT` &rarr; `OPEN` (`POST /api/orders`) | Requester (any authenticated user) | Valid body: `supplierId` UUID of an existing, active supplier; `itemDescription` (≤ 1000), `dropoffLocation` (≤ 255); `rewardCredits` positive integer; `durationMinutes` 30–1440 (default 30) sets `expiresAt`. Requester available balance $\ge$ reward credits. | Synchronous HTTP call `POST /api/credits/escrow/reserve`. Holds credits in escrow. If the order insert then fails, a compensating `order.cancelled` is written so the hold is refunded. | `order.created` |
+| `DRAFT` &rarr; `OPEN` (`POST /api/orders`) | Requester (any authenticated user) | Valid body: `supplierId` UUID of an existing, active supplier; `itemDescription` (≤ 1000), `dropoffLocation` (≤ 255); `rewardCredits` positive integer; `durationMinutes` 30–1440 (default 30) sets `expiresAt`. Requester available balance $\ge$ reward credits. | Asynchronous event `order.reservation.requested` triggers Credit Service to hold credits in escrow and publish `credit.reservation.succeeded` or `credit.reservation.failed`. | `order.reservation.requested` &rarr; `order.created` |
 | `OPEN` &rarr; `ACCEPTED` (`/:id/accept`) | Any authenticated user except the requester (no role check) | Caller $\ne$ requester (`400`); status is `OPEN` and `expiresAt` in the future (`409` otherwise); conditional update on `status = OPEN` and `version` (`409` on a lost race). Optional `courierContactNote` (≤ 255). | None (credits remain held in escrow). | `order.accepted` |
 | `ACCEPTED` &rarr; `IN_TRANSIT` (`/:id/pickup`) | Assigned Courier | Caller equals `courierId` (`403` otherwise); status is `ACCEPTED` (`409` otherwise). | None. | `order.in_transit` |
 | `IN_TRANSIT` &rarr; `DELIVERED` (`/:id/deliver`) | Assigned Courier | Caller equals `courierId` (`403`); status is `IN_TRANSIT` (`409`). | None. | `order.delivered` |
@@ -127,7 +127,7 @@ Friend of Campus operates a closed credit economy where credits represent platfo
    - When a new student registers (`user-service`), a `user.registered` event is emitted.
    - Credit Service consumes this event and initializes the student's wallet with an initial balance of **100 credits** (`initialGrant: 100`, recorded once per user in `credit_grants`). The credit seed initializes wallets for the three seeded accounts.
 2. **Escrow Hold (Serializable transaction)**:
-   - `POST /api/credits/escrow/reserve` with `{ orderId, requesterId, amount }` creates one `credit_escrows` row per `orderId` (state `RESERVED`) and moves the amount in a `Serializable` transaction; an identical replay returns the wallet unchanged, a conflicting one returns `409`.
+   - Consuming `order.reservation.requested` with `{ orderId, requesterId, amount }` invokes `CreditService.reserve()`, which creates one `credit_escrows` row per `orderId` (state `RESERVED`) and moves the amount in a `Serializable` transaction; an identical replay returns the wallet unchanged, a conflicting one returns `409`. (The legacy `/api/credits/escrow/*` HTTP endpoints are removed on the service and blocked with `403` at the gateway.)
    - When creating an errand with reward $C$, Credit Service verifies: $\text{available\_credits} \ge C$.
    - $\text{available\_credits} \leftarrow \text{available\_credits} - C$
    - $\text{escrow\_credits} \leftarrow \text{escrow\_credits} + C$

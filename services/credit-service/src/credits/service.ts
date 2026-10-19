@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-19
+ * Scope: Validated positive 32-bit integer amount in reserve() domain service after removing HTTP reserve parser.
+ * Author review: Reviewed and verified by yanhwee.
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Atomically persist reservation/refund results, balance changes and deduplication; roll back rejected holds.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,6 +12,7 @@
  * Scope: Implemented the author-specified persistent credit messaging and idempotency contract.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
@@ -54,7 +59,11 @@ async function matchingEscrow(tx: CreditTransactionStore, body: EscrowReserveReq
   return escrow;
 }
 
+// AI-generated (edited by yanhwee)
 async function reserve(tx: CreditTransactionStore, body: EscrowReserveRequest): Promise<CreditWalletDTO> {
+  if (!Number.isInteger(body.amount) || body.amount <= 0 || body.amount > 2147483647) {
+    throw new CreditError('Amount must be a positive 32-bit integer');
+  }
   if (await tx.findEscrow(body.orderId)) {
     await matchingEscrow(tx, body);
     // An identical reserve replay never reopens a terminal reservation.

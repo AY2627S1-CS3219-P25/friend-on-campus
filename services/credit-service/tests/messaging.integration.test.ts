@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
+ * Scope: Replaced removed HTTP /api/credits/escrow/reserve calls with direct CreditService.reserve invocations (Issue #42).
+ * Author review: Validated by Yee Yan Hwee (yanhwee)
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Verify infrastructure failures preserve the event retry budget and delayed recovery mutates credit once.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,6 +12,7 @@
  * Scope: Exercised messaging using the isolated least-privilege RabbitMQ test identity.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -17,7 +22,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import amqp, { type GetMessage } from 'amqplib';
 import { PrismaClient } from '../src/database/client';
 import { createApp } from '../src/app';
-import { createCreditService } from '../src/credits/service';
+import { CreditError, createCreditService } from '../src/credits/service';
 import { createCreditStore, type CreditStore } from '../src/credits/store';
 import { createCreditEventHandler, creditRoutingKeys } from '../src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../src/credits/consumer';
@@ -124,13 +129,11 @@ async function main() {
 
     const orderId = randomUUID(); const courierId = user();
     const reservation = { orderId, requesterId: registered, amount: 20 };
-    const httpReserve = (body: unknown) => fetch(`${base}/api/credits/escrow/reserve`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
-    });
-    assert.equal((await httpReserve(reservation)).status, 200);
-    assert.equal((await httpReserve(reservation)).status, 200);
-    assert.equal((await httpReserve({ ...reservation, amount: 21 })).status, 409);
-    assert.equal((await httpReserve({ ...reservation, requesterId: user() })).status, 409);
+    const isConflict = (error: unknown) => error instanceof CreditError && error.status === 409;
+    await credits.reserve(reservation);
+    await credits.reserve(reservation);
+    await assert.rejects(credits.reserve({ ...reservation, amount: 21 }), isConflict);
+    await assert.rejects(credits.reserve({ ...reservation, requesterId: user() }), isConflict);
     assert.equal((await credits.getWallet(registered)).escrowCredits, 20);
     const completion = event('order.completed', { orderId, requesterId: registered, courierId, rewardCredits: 20 });
     await send(completion); await processed(completion);

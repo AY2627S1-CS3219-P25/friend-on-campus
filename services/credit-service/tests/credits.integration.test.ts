@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
+ * Scope: Updated integration tests to verify HTTP POST /api/credits/escrow/reserve returns 404 alongside settle and refund (Issue #42), exercising reservation logic directly via CreditService.
+ * Author review: Validated by Yee Yan Hwee (yanhwee)
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-03
  * Scope: Verify wallet reads never create or change wallets, grants or ledger entries; initialize fixtures explicitly.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,6 +12,7 @@
  * Scope: Tested JWT authentication and wallet ownership alongside HTTP and PostgreSQL regressions.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -105,25 +110,18 @@ async function main() {
     console.log('PASS: missing wallet reads return 404 without writes; existing wallet reads preserve all records');
     console.log('PASS: JWT validation, authenticated wallet/ledger ownership, spoofed identity rejection and public health endpoints');
 
-    for (const amount of [0, -1, 1.5, '10', null, 2147483648]) {
-      assert.equal((await request('/api/credits/escrow/reserve', { requesterId, orderId, amount })).status, 400);
+    const isBadRequest = (error: unknown) => error instanceof CreditError && error.status === 400;
+    const isConflict = (error: unknown) => error instanceof CreditError && error.status === 409;
+    for (const amount of [0, -1, 1.5, 2147483648]) {
+      await assert.rejects(credits.reserve({ requesterId, orderId, amount }), isBadRequest);
     }
-    for (const body of [{}, { requesterId, orderId: 'ord-1001', amount: 10 }]) {
-      assert.equal((await request('/api/credits/escrow/reserve', body)).status, 400);
-    }
-    const malformed = await fetch(`${base}/api/credits/escrow/reserve`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: '{',
-    });
-    assert.equal(malformed.status, 400);
-    assert.equal((await malformed.json() as any).success, false);
 
-    const reserve = await request('/api/credits/escrow/reserve', { requesterId, orderId, amount: 25 });
-    assert.equal(reserve.status, 200);
-    assert.equal(reserve.body.data.availableCredits, 75);
-    assert.equal(reserve.body.data.escrowCredits, 25);
+    const reserve = await credits.reserve({ requesterId, orderId, amount: 25 });
+    assert.equal(reserve.availableCredits, 75);
+    assert.equal(reserve.escrowCredits, 25);
     const beforeRemovedRoutes = await credits.getWallet(requesterId);
     const ledgerBeforeRemovedRoutes = await credits.getLedger(requesterId);
-    for (const operation of ['settle', 'refund']) {
+    for (const operation of ['reserve', 'settle', 'refund']) {
       for (const authorization of [undefined, `Bearer ${auth.token(requesterId)}`]) {
         const response = await fetch(`${base}/api/credits/escrow/${operation}`, {
           method: 'POST',
@@ -146,15 +144,13 @@ async function main() {
     const refund = await credits.refund({ requesterId, orderId: refundOrder, amount: 15 });
     assert.equal(refund.availableCredits, 75);
     assert.equal(refund.escrowCredits, 0);
-    assert.equal((await request('/api/credits/escrow/reserve', { requesterId, orderId: randomUUID(), amount: 1000 })).status, 400);
-    assert.equal((await request('/api/credits/escrow/reserve', { requesterId, orderId, amount: 1000 })).status, 409);
-    const isConflict = (error: unknown) => error instanceof CreditError && error.status === 409;
+    await assert.rejects(credits.reserve({ requesterId, orderId: randomUUID(), amount: 1000 }), isBadRequest);
+    await assert.rejects(credits.reserve({ requesterId, orderId, amount: 1000 }), isConflict);
     for (const operation of ['settle', 'refund'] as const) {
       await assert.rejects(credits[operation]({ requesterId, courierId, orderId, amount: 1000 }), isConflict);
     }
-    const replay = await request('/api/credits/escrow/reserve', { requesterId, orderId, amount: 25 });
-    assert.equal(replay.status, 200);
-    assert.equal(replay.body.data.escrowCredits, 0);
+    const replay = await credits.reserve({ requesterId, orderId, amount: 25 });
+    assert.equal(replay.escrowCredits, 0);
     await assert.rejects(credits.refund({ requesterId, orderId, amount: 25 }), isConflict);
     await assert.rejects(credits.settle({ requesterId, courierId, orderId: refundOrder, amount: 15 }), isConflict);
     for (const operation of ['settle', 'refund'] as const) {
@@ -180,11 +176,13 @@ async function main() {
     assert(initializations.every(w => w.availableCredits === 100));
     assert.equal(await db.creditWallet.count({ where: { userId: newRaceUser } }), 1);
     const raceOrders = Array.from({ length: 6 }, () => randomUUID());
-    const racing = await Promise.all(raceOrders.map(orderId => request('/api/credits/escrow/reserve', {
+    const racing = await Promise.allSettled(raceOrders.map(orderId => credits.reserve({
       requesterId: raceUser, orderId, amount: 30,
     })));
-    assert.equal(racing.filter(r => r.status === 200).length, 3);
-    assert.equal(racing.filter(r => r.status === 400).length, 3);
+    assert.equal(racing.filter(r => r.status === 'fulfilled').length, 3);
+    const rejectedReserves = racing.filter(r => r.status === 'rejected');
+    assert.equal(rejectedReserves.length, 3);
+    assert(rejectedReserves.every(r => isBadRequest(r.reason)));
     assert.equal((await credits.getWallet(raceUser)).availableCredits, 10);
     assert.equal((await credits.getWallet(raceUser)).escrowCredits, 90);
     assert.equal((await credits.getLedger(raceUser)).length, 4);
@@ -219,7 +217,7 @@ async function main() {
     await assert.rejects(failing.refund({ requesterId: rollbackUser, orderId: rollbackOrder, amount: 50 }));
     assert.deepEqual(await credits.getWallet(rollbackUser), before);
     assert.equal((await credits.getLedger(rollbackUser)).length, 2);
-    console.log('PASS: HTTP reservation, removed settlement/refund routes, validation, persistent lifecycle, concurrent creation/reserve/settle, and database-failure rollback');
+    console.log('PASS: removed escrow HTTP routes, validation, persistent lifecycle, concurrent creation/reserve/settle, and database-failure rollback');
   } finally {
     if (server.listening) await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve()));
     try {
