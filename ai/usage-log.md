@@ -3390,3 +3390,43 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `ai/usage-log.md` — this entry.
 
 **Verification:** `npm run ci:validate-tests` passed (`Test matrix validation passed: 12 workspace suites and 3 system-test commands are consistent.`).
+## 2026-10-18 13:30 SGT — Documentation refresh to main @ 7f2d972 (repo docs and GitHub wiki)
+
+**Tool:** Claude Code (model: Claude Fable 5.1; page rewrites drafted by Claude Opus 5.5 and Claude Sonnet 5.5 subagents, reviewed in the main session)
+**Author:** Reallyeasy1
+**Branch:** docs/refresh-as-built-2026-10-18 (PR #122)
+
+**Prompt (summarised):** Update the repository documentation and every page of the GitHub wiki so they describe the system as built on main @ 7f2d972 (after PR #121).
+
+**Usage scenario:** Documentation improvements: facts verified against the code (routes, config, schemas, compose, broker definitions, CI workflow). No architecture, rationale or trade-off text was written; human-authored statements were kept. Left to the author: review, commit and push (the wiki clone is a separate repository), and two findings below.
+
+**Findings while verifying (not fixed, for the author):**
+- The student app's Post, Feed and Tasks tabs are local previews and make no `/api/orders` call; only wallet, suppliers and Alerts are live. The D3 demo script now drives the order lifecycle through the API. No issue tracks the gap.
+- A failed escrow reserve at create returns 400 (the service wraps the credit client's 503 in a validation error). Documented as built.
+- `docs/security.md` said `SameSite=Strict`; the cookie is `Lax`. Corrected.
+
+**Files changed (repo):**
+- `README.md` — diagram, milestone status (D3 prepared, wiki link), ports and health endpoints, key generation, seeds, testing section, monorepo tree, doc links; merged the second disclosure block into the first.
+- `docs/README.md` — gateway URL, `npm test`, packages/auth pointer, wiki link.
+- `docs/architecture.md` — as-built topology, outbox/sweeper intervals, compensating refund, broker accounts/queues/retry/DLQ with real names, WebSocket protocol, per-database tables, container runtime facts, CI and PR review.
+- `docs/errand-specification.md` — transition matrix with real routes and status codes, admin overrides, claim SQL as built, escrow transaction semantics, event payloads incl. `courierUsername`, consumer actions, sweeper and retry numbers.
+- `docs/security.md` — cookie `SameSite=Lax`, `res.locals.auth`, error codes, `ORDER_DEV_AUTH`, per-route ownership table, last-admin guard with #109.
+- `docs/ci.md` — driver names, Claude PR review section.
+- `CLAUDE.md` — §4 repo map line counts and `packages/auth`.
+- `ai/usage-log.md` — this entry.
+
+**Files changed (wiki, `wiki-checkout/`):** rewritten to the as-built system: `Home.md`, `_Sidebar.md`, `Architecture.md`, `Services.md`, `Data-Model.md`, `Mock-Services.md` (historical note), `Getting-Started.md`, `Deployment-and-Configuration.md`, `Testing-and-Evidence.md`, `Team-Conventions.md`, `Decisions-and-Open-Questions.md`, `Frontend-Apps.md`, `Authentication-and-Roles.md`, `User-Service.md`, `Supplier-Service.md`, `Roadmap.md`; new `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `Milestone-D3.md`; the nine D2 pages marked as the historical Week 7 record with dead repo links rewritten.
+
+## 2026-10-19 16:15 SGT — PR #122 review follow-up
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/refresh-as-built-2026-10-18 (PR #122)
+
+**Prompt (summarised):** Attend to the Claude PR review on #122 and merge.
+
+**Usage scenario:** Addressed the two non-blocking notes from the automated review, both verified against the code first: the usage-log **Branch** field, and the sentence after the transition matrix in `docs/errand-specification.md` §2 now says the sweeper's conditional update matches on `status` only (`handleExpireDueOrders` in `order.repository.ts`).
+
+**Files changed:**
+- `docs/errand-specification.md` — §2 sentence after the matrix.
+- `ai/usage-log.md` — previous entry's Branch field; this entry.

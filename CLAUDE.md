@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
+Scope: Section 4 repo map only: App.tsx line counts updated to the real `wc -l` values (student-app 1703, admin-portal 3855) and `packages/auth` added.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
 Scope: Section 4: recorded why backend services run with `init: true` and the rabbitmq health probe runs via `su-exec rabbitmq` in Compose; corrected which services register SIGTERM handlers (PR #120 review).
 Author review: <to be completed by Reallyeasy1>
@@ -151,8 +155,9 @@ services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/inde
 services/order-service         :8003  real (Prisma, order_db)     entry src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
-apps/student-app               :5173  one src/App.tsx (~730 lines), no router
-apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
+apps/student-app               :5173  one src/App.tsx (~1700 lines), no router
+apps/admin-portal              :5174  one src/App.tsx (~3850 lines), no router
+packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
 docker/postgres-init/*.sql            creates the 5 databases (tables managed per-service by migrations)
