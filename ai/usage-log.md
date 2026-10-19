@@ -3430,3 +3430,33 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `docs/errand-specification.md` — §2 sentence after the matrix.
 - `ai/usage-log.md` — previous entry's Branch field; this entry.
+
+## 2026-10-19 17:10 SGT — Wiki: "How it works" diagrams for every service
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (wiki repository, pushed directly)
+
+**Prompt (summarised):** Add more diagrams, illustrations and descriptions of how each service works to the GitHub wiki.
+
+**Usage scenario:** Documentation improvements. Each service page gained a "How it works" section of Mermaid diagrams with short descriptions, every one drawn from the service source on main @ 6327aac (service code unchanged since 7f2d972) and rendered locally with mermaid-cli before pushing: Order (components, state machine, create with escrow and compensation, single-winner accept, outbox relay, expiry sweeper), Credit (components, escrow states, credit movement between wallet pockets, event consumption with dedupe and Serializable retry, failure classification and retry/dead-letter), Notification (components, event-to-notification mapping, WebSocket session, socket states), User (components, registration to welcome grant, login/refresh/logout, session lifecycle, last-admin guard), Supplier (components, list pipeline, create with the duplicate rule, availability states). Architecture gained an end-to-end errand sequence, the broker topology and the transactional-outbox sequence. No architecture, rationale or trade-off text was added.
+
+**Files changed (wiki, `wiki-checkout/`):** `Architecture.md`, `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `User-Service.md`, `Supplier-Service.md` (insertions only; disclosure record added to each page's block).
+
+**Files changed (repo):**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 20:05 SGT — Wiki: more "How it works" diagrams, sequence diagrams included
+
+**Tool:** Claude Code (model: Claude Fable 5.1, with Fable 5.1 fork subagents drafting one page each)
+**Author:** Reallyeasy1
+**Branch:** main (wiki repository, pushed directly)
+
+**Prompt (summarised):** Make more diagrams, illustrations and descriptions of how each service works on the GitHub wiki; include sequence diagrams as well.
+
+**Usage scenario:** Documentation improvements. 37 Mermaid diagrams (mostly sequence diagrams, plus state and flow diagrams) with short as-built descriptions were added to seven wiki pages, each drawn from the source on main @ 6327aac and rendered locally with mermaid-cli before pushing. Order Service: courier path, requester cancel, admin intervention, request pipeline, start-up and shutdown, listing and activity. Credit Service: HTTP escrow reserve, welcome grant, refund, wallet and ledger reads, start-up/readiness/shutdown. Notification Service: REST history and mark-read, transient failure and the retry queue, one user with several tabs, start-up and shutdown; the socket-states diagram's shutdown edge was corrected (hub.close is only called from the tests). User Service: profile and password change, account deletion, account states, token issue and verify, start-up/seed/shutdown. Supplier Service: read-one and the Order Service's use of it, update, delete/toggle, seed on every boot, request handling. Architecture: Compose start order, a request through the gateway, cancel/refund and expiry end to end, and a new "Failure cases" section (broker down, Credit Service down at creation, compensating refund). Frontend Apps: authFetch refresh-on-401, the student app session and socket from the client side, the admin order action with expectedVersion. No architecture, rationale or trade-off text was added; facts the drafts surfaced that differ from earlier wording (user- and supplier-service containers stop on a seed failure, reserve failures always answer 400, notification-service installs no signal handler) are stated as built.
+
+**Files changed (wiki, `wiki-checkout/`):** `Architecture.md`, `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `User-Service.md`, `Supplier-Service.md`, `Frontend-Apps.md` (insertions plus the one socket-states edge; disclosure record added to each page's block).
+
+**Files changed (repo):**
+- `ai/usage-log.md` — this entry.
