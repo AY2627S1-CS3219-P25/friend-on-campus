@@ -5,10 +5,10 @@
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
-import { useEffect, useRef, useState } from 'react';
 import type { CreateOrderRequest, OrderSubmissionDTO } from '@campus-errand/common-dtos';
+import { useEffect, useRef, useState } from 'react';
 
-type State = { owner: string | null; receipt: OrderSubmissionDTO | null; posting: boolean; error: string | null };
+type State = { owner: string | null; receipt: OrderSubmissionDTO | null; posting: boolean; error: string | null; unconfirmed?: boolean };
 const pending = (receipt: OrderSubmissionDTO | null) => receipt?.status === 'PENDING' || receipt?.status === 'COMPENSATING';
 const storageKey = (userId: string) => `order-submission:${userId}`;
 
@@ -108,7 +108,8 @@ export function useOrderSubmission(options: {
       setState({ owner: userId, receipt, posting: false, error: null });
     } catch {
       if (epoch === generation.current && latest.current.userId === userId) {
-        setState({ owner: userId, receipt: null, posting: false, error: 'We could not confirm whether your submission was received. Check your Tasks and feed before trying again.' });
+        // A lost response does not prove failure, and without its ID we cannot poll the submission.
+        setState({ owner: userId, receipt: null, posting: false, error: null, unconfirmed: true });
       }
     } finally {
       if (epoch === generation.current) posting.current = false;
