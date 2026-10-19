@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-19
+Scope: Clarify separate saga databases and broker credentials in GitHub CI versus the local runner.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-18
 Scope: Document the reservation messaging suite and its two service-owned test databases.
 Author review: <to be completed by huangjiaxi1111>
@@ -93,6 +97,8 @@ Add `typecheck` and convention-compliant test scripts when they apply, then add 
 
 ## Reservation saga messaging test
 
-Order Service's `test:messaging` runs against two separate migrated databases: `ORDER_TEST_DATABASE_URL` (Order schema) and `CREDIT_TEST_DATABASE_URL` (Credit schema), both ending in `_test`. `CREDIT_TEST_RABBITMQ_URL` selects the existing `credit_test` broker account and isolated `credit-test.*` resources. The aggregate runner provisions both databases; the Order messaging CI job also deploys Credit migrations into `saga_credit_test`.
+Order Service's `test:messaging` runs against two separate migrated databases: `ORDER_TEST_DATABASE_URL` (Order schema) and `CREDIT_TEST_DATABASE_URL` (Credit schema), both ending in `_test`. The aggregate runner provisions `order_messaging_test` and `credit_messaging_test`. The Order messaging CI job creates `ci_test` for Order and `saga_credit_test` for Credit, then deploys each service's migrations only into its own database. Each database has its own `_prisma_migrations` history. Other messaging matrix entries continue to use their job's isolated `ci_test` database.
+
+`CREDIT_TEST_RABBITMQ_URL` uses the `credit_test` account in the `campus` vhost locally, and the CI service container's `ci_test` account in the `ci` vhost on GitHub. The saga suite uses isolated `credit-test.*` broker resources in either environment.
 
 The suite covers outbox-only pending submissions, offline consumers, restart recovery, duplicate messages, insufficient funds, expiry and late-success refunds, and rollback when either service cannot write its outbox.
