@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Verify development sample seeding requires explicit opt-in.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Update creation tests for outbox submissions while preserving funded lifecycle coverage; cover the inclusive reward limit and reject overflow before persistence.
  * Author review: <to be completed by huangjiaxi1111>
@@ -23,6 +27,9 @@
 // AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+// AI-generated (edited by huangjiaxi1111)
+import { prisma } from '../src/database/client';
+import { seedOrders } from '../src/database/seed';
 import { createExpirySweeper } from '../src/orders/expiry.sweeper';
 import { createOrderService } from '../src/orders/order.service';
 import {
@@ -43,6 +50,29 @@ const COURIER_1_ID = '20000000-0000-4000-8000-000000000002';
 const COURIER_2_ID = '20000000-0000-4000-8000-000000000003';
 const ADMIN_ID = '90000000-0000-4000-8000-000000000001';
 const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
+
+// AI-generated (edited by huangjiaxi1111)
+it('sample seeding requires explicit true and does not access the database otherwise', async t => {
+  const original = process.env.SEED_SAMPLE_ORDERS;
+  const originalInsert = prisma.order.createMany;
+  const insert = t.mock.fn(async () => ({ count: 4 }));
+  prisma.order.createMany = insert as typeof originalInsert;
+  try {
+    for (const value of [undefined, 'false', 'TRUE', '1']) {
+      if (value === undefined) delete process.env.SEED_SAMPLE_ORDERS;
+      else process.env.SEED_SAMPLE_ORDERS = value;
+      await seedOrders();
+    }
+    assert.equal(insert.mock.callCount(), 0);
+    process.env.SEED_SAMPLE_ORDERS = 'true';
+    await seedOrders();
+    assert.equal(insert.mock.callCount(), 1);
+  } finally {
+    prisma.order.createMany = originalInsert;
+    if (original === undefined) delete process.env.SEED_SAMPLE_ORDERS;
+    else process.env.SEED_SAMPLE_ORDERS = original;
+  }
+});
 
 describe('Order Service Lifecycle and Concurrency', () => {
   function setupTest() {

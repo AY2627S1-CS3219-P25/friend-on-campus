@@ -8,7 +8,6 @@
  * Scope: Restore the two original sample errand cards alongside live orders for demos; prevent sample IDs from reaching backend actions.
  * Author review: <to be completed by huangjiaxi1111>
  *
- *
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
  * Scope: Removed an unused logout error binding identified by the root lint configuration.
  * Author review: <to be completed by ngkhengyang>
@@ -215,14 +214,20 @@ export default function App() {
   });
 
   const [notification, setNotification] = useState<string | null>(null);
+  const keepNoticeOnTabChange = useRef(false);
 
-  // AI-generated (edited by huangjiaxi1111)
   useEffect(() => {
     if (!notification) return;
     const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
   }, [notification]);
-  useEffect(() => { setNotification(null); }, [activeTab]);
+  useEffect(() => {
+    if (keepNoticeOnTabChange.current) {
+      keepNoticeOnTabChange.current = false;
+      return;
+    }
+    setNotification(null);
+  }, [activeTab]);
 
   // AI-generated (edited by ngkhengyang)
   // User Service contract (PR #76): POST /api/auth/login { email, password } -> { accessToken, user };
@@ -462,6 +467,7 @@ export default function App() {
       void fetchCredits();
       void fetchOrders();
       if (receipt.status === 'OPEN' && receipt.order) {
+        keepNoticeOnTabChange.current = activeTab === 'post';
         setNotification(`Errand ${receipt.order.orderCode} posted. Credits reserved.`);
         setFormData(current => ({ ...current, itemDescription: '', specialNotes: '', dropoffLocation: '', rewardCredits: 15 }));
         if (activeTab === 'post') setActiveTab('feed');

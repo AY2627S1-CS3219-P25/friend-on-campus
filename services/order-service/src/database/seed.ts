@@ -12,6 +12,11 @@
 import { prisma } from './client';
 
 export async function seedOrders() {
+  if (process.env.SEED_SAMPLE_ORDERS !== 'true') {
+    console.log('[order-seed] Sample orders disabled. Set SEED_SAMPLE_ORDERS=true for development demos.');
+    return;
+  }
+
   const sampleOrders = [
     {
       orderCode: 'ORD-98214',

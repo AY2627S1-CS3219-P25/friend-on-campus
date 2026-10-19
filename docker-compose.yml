@@ -238,6 +238,8 @@ services:
       - "8003:8003"
     environment:
       - PORT=8003
+      # AI-generated (edited by huangjiaxi1111): Local demo default; set false for deployments with real orders.
+      - SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/order_db
       - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
       - SUPPLIER_SERVICE_URL=http://supplier-service:8002
