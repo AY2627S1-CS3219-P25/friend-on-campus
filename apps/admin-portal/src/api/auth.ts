@@ -1,0 +1,33 @@
+/**
+ * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-19
+ * Scope: Extracted admin authentication API calls into src/api/auth.ts.
+ * Author review: Verified by yanhwee on 2026-10-19
+ */
+
+// AI-generated (edited by yanhwee)
+
+export async function adminLoginApi(email: string, password: string, keepLoggedIn: boolean) {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, keepLoggedIn }),
+  });
+  const data = await res.json();
+  return { res, data };
+}
+
+export async function adminLogoutApi() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+}
+
+export async function adminRefreshTokenApi(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/auth/refresh', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || !data.success) return null;
+    return data.data.accessToken as string;
+  } catch {
+    return null;
+  }
+}

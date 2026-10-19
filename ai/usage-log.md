@@ -3490,3 +3490,26 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/student-app/src/orders/useOrderSubmission.ts`, `apps/student-app/src/App.tsx` — updated student app to poll `/api/orders/:id` using `OrderDTO`.
 - `docs/errand-specification.md`, `tests/postman/reservation_collection.json` — updated state machine documentation and Postman collection for Approach B2.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-20 00:00 SGT — Modular Frontend Refactoring for student-app and admin-portal
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/frontend-modular-refactor
+
+**Prompt (summarised):** Implement Workstream 4 (`feat/frontend-modular-refactor`): decompose the monolithic single-file React applications (`apps/student-app/src/App.tsx` at 3,262 lines and `apps/admin-portal/src/App.tsx` at 3,856 lines) into modular `api/`, `hooks/`, `components/`, and `pages/` directories while preserving 100% of existing UI behavior, Tailwind styling, and E2E/Playwright selectors.
+
+**Usage scenario:** Code modularization and structural refactoring (allowed use). The author defined the target directory layout (`api/`, `hooks/`, `components/`, `pages/`) and thin `App.tsx` orchestrator structure for both frontend workspaces.
+
+**Files changed / created:**
+- `apps/student-app/src/api/{client.ts,auth.ts,suppliers.ts,orders.ts,credits.ts,users.ts,notifications.ts}` [NEW] — extracted typed HTTP API client helpers for student-app domains.
+- `apps/student-app/src/hooks/{useAuth.ts,useNotifications.ts}` [NEW] — extracted authentication/session state and Socket.IO notification hooks.
+- `apps/student-app/src/components/{AppHeader.tsx,BottomNav.tsx,ToastContainer.tsx,OrderProgressStepper.tsx,ConfirmActionModal.tsx,ReportDisputeModal.tsx}` [NEW] — extracted shared UI shell, navigation, and modal components.
+- `apps/student-app/src/pages/{AuthPage.tsx,FeedPage.tsx,PostErrandPage.tsx,DirectoryPage.tsx,MyTasksPage.tsx,AlertsPage.tsx,ProfileWalletPage.tsx}` [NEW] — extracted student-app views into page modules.
+- `apps/student-app/src/App.tsx` — simplified from 3,262 lines to a 266-line top-level orchestrator.
+- `apps/admin-portal/src/constants.ts`, `apps/admin-portal/src/api/{auth.ts,suppliers.ts,users.ts,orders.ts}` [NEW] — extracted shared constants and typed admin API client helpers.
+- `apps/admin-portal/src/hooks/useAdminAuth.ts` [NEW] — extracted admin JWT authentication, silent session restore, and logout hook.
+- `apps/admin-portal/src/components/{AdminSidebar.tsx,AdminHeader.tsx,OrderStatusBadge.tsx,SupplierModals.tsx,UserModals.tsx,OrderActionModal.tsx}` [NEW] — extracted admin navigation, header, status badge, and CRUD modal components.
+- `apps/admin-portal/src/pages/{AdminLoginPage.tsx,SuppliersPage.tsx,UsersPage.tsx,OrdersPage.tsx,HealthPage.tsx,AuditPage.tsx}` [NEW] — extracted admin portal views into dedicated page modules.
+- `apps/admin-portal/src/App.tsx` — simplified from 3,856 lines to a 462-line top-level orchestrator.
+- `ai/usage-log.md` — this entry.
