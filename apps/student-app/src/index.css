@@ -58,3 +58,13 @@ body {
     .student-top-nav { grid-column: 2; grid-row: 1; }
   }
 }
+
+.reward-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.reward-input::-webkit-inner-spin-button,
+.reward-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

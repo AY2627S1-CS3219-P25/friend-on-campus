@@ -110,6 +110,36 @@ import { NotificationBell, NotificationPanel } from './notifications/Notificatio
 import { useNotifications } from './notifications/useNotifications';
 import { tokenUserId, useOrderSubmission } from './orders/useOrderSubmission';
 
+// AI-generated (edited by huangjiaxi1111)
+function ExpandableNotes({ notes }: { notes?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const preview = useRef<HTMLParagraphElement>(null);
+  const notesId = React.useId();
+  useEffect(() => {
+    if (expanded || !preview.current) return;
+    const element = preview.current;
+    const measure = () => setOverflows(element.scrollHeight > element.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [notes, expanded]);
+  return (
+    <div className="mt-1 text-sm text-slate-500" data-testid="special-notes">
+      <p id={notesId} ref={preview} className={`whitespace-pre-wrap break-words leading-5 ${expanded ? 'max-h-40 overflow-y-auto' : 'line-clamp-2 h-10'}`}>
+        {notes || 'No special notes.'}
+      </p>
+      <div className="h-11">
+        {(overflows || expanded) && <button type="button" aria-expanded={expanded} aria-controls={notesId}
+          onClick={() => setExpanded(value => !value)} className="text-sm font-semibold text-blue-700 hover:underline">
+          {expanded ? 'Show less' : 'Show more'}
+        </button>}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   // Login / Sign Up Gate state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -134,7 +164,7 @@ export default function App() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile' | 'wallet'>('feed');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
 
   // Profile Info state (GET/PATCH /api/users/me)
@@ -165,44 +195,6 @@ export default function App() {
   const [creditError, setCreditError] = useState<string | null>(null);
   const creditRequestId = useRef(0);
 
-  const [demoOrders] = useState<OrderDTO[]>(() => [
-    {
-      id: 'ord-1001',
-      orderCode: 'E-1042',
-      requesterId: 'u1111111-1111-1111-1111-111111111111',
-      courierId: null,
-      supplierId: 's1',
-      supplierName: 'CoffeeBean @ COM3',
-      campusZone: 'COM3',
-      itemDescription: '1x Large Iced Hazelnut Latte (Oat Milk, Less Ice)',
-      specialNotes: 'Table near staircase #01-02',
-      dropoffLocation: 'COM2 #02-04 Discussion Room',
-      requesterContactNote: 'Wearing blue NUS Computing hoodie',
-      rewardCredits: 15,
-      status: 'OPEN',
-      expiresAt: new Date(Date.now() + 25 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      version: 1,
-    },
-    {
-      id: 'ord-1003',
-      orderCode: 'E-1045',
-      requesterId: 'u3333333-3333-3333-3333-333333333333',
-      courierId: null,
-      supplierId: 's3',
-      supplierName: 'PGP Mailroom & Smart Lockers',
-      campusZone: 'PGPR',
-      itemDescription: 'Shopee Parcel Collection (Locker Box #412)',
-      specialNotes: 'OTP Code: 6631',
-      dropoffLocation: 'PGPR Block 20 Level 4 Lounge',
-      rewardCredits: 18,
-      status: 'OPEN',
-      expiresAt: new Date(Date.now() + 18 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      version: 1,
-    },
-  ]);
-  const isDemoOrder = (orderId: string) => demoOrders.some(order => order.id === orderId);
   const [orders, setOrders] = useState<OrderDTO[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
@@ -223,6 +215,14 @@ export default function App() {
   });
 
   const [notification, setNotification] = useState<string | null>(null);
+
+  // AI-generated (edited by huangjiaxi1111)
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+  useEffect(() => { setNotification(null); }, [activeTab]);
 
   // AI-generated (edited by ngkhengyang)
   // User Service contract (PR #76): POST /api/auth/login { email, password } -> { accessToken, user };
@@ -380,7 +380,6 @@ export default function App() {
     authFetch,
     onNotification: (n) => {
       setNotification(`🔔 ${n.title}`);
-      window.setTimeout(() => setNotification((current) => (current === `🔔 ${n.title}` ? null : current)), 6000);
     },
   });
   const wsStatus = notifications.status;
@@ -621,7 +620,7 @@ export default function App() {
   };
 
   const handleAcceptOrder = async (orderId: string) => {
-    if (acceptingOrder || isDemoOrder(orderId)) return;
+    if (acceptingOrder) return;
     const requestId = orderRequestId.current;
     setAcceptingOrder(orderId);
     setOrdersError(null);
@@ -637,8 +636,8 @@ export default function App() {
     } finally { setAcceptingOrder(null); }
   };
 
-  const filteredOrders = [...orders, ...demoOrders].filter((o) => {
-    if (o.status !== 'OPEN') return false;
+  const filteredOrders = orders.filter((o) => {
+    if (o.status !== 'OPEN' || o.requesterId === currentUserId) return false;
     if (selectedZone === 'ALL') return true;
     return o.campusZone === selectedZone;
   });
@@ -851,7 +850,7 @@ export default function App() {
                 STUDENT
               </span>
             </h1>
-            <p className="text-xs text-blue-200">Dual-Role Peer Network • Milestone D2</p>
+            <p className="text-xs text-blue-200">Dual-Role Peer Network • Milestone 3</p>
           </div>
 
           {/* AI-generated (edited by jagdeepsh) - desktop top nav bar, replaces the bottom tab bar at md: and up */}
@@ -916,12 +915,14 @@ export default function App() {
             <NotificationBell variant="top" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
           </nav>
 
-          <div className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">
+          <button type="button" aria-label="Open wallet" aria-current={activeTab === 'wallet' ? 'page' : undefined}
+            onClick={() => setActiveTab('wallet')}
+            className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30 hover:bg-blue-800 transition">
             <Coins className="w-3.5 h-3.5 text-amber-300" />
             <span className="text-sm font-bold text-amber-300" aria-live="polite">
               {wallet ? `${wallet.availableCredits} C` : isLoadingCredits ? 'Loading credits…' : 'Credits unavailable'}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Status Line */}
@@ -948,7 +949,7 @@ export default function App() {
 
       {/* Notification Toast */}
       {notification && (
-        <div className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all">
+        <div role="status" data-testid="action-notice" className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all">
           {notification}
         </div>
       )}
@@ -1025,21 +1026,19 @@ export default function App() {
                     </div>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-sm mt-2">{order.itemDescription}</h3>
-                  {order.specialNotes && (
-                    <p className="text-sm text-slate-500 italic mt-0.5">"{order.specialNotes}"</p>
-                  )}
+                  <h3 title={order.itemDescription} className="font-bold text-slate-900 text-sm mt-2 h-10 leading-5 line-clamp-2">{order.itemDescription}</h3>
+                  <ExpandableNotes notes={order.specialNotes} />
 
                   <div className="mt-3 bg-slate-50 rounded-lg p-2.5 space-y-1.5 text-sm text-slate-700">
-                    <div className="flex items-center space-x-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
-                      <span className="font-semibold text-slate-600">Pickup:</span>
-                      <span className="truncate">{order.supplierName}</span>
+                    <div className="grid grid-cols-[0.875rem_auto_minmax(0,1fr)] items-start gap-x-1.5">
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 text-nus-blue" />
+                      <span className="font-semibold text-slate-600 whitespace-nowrap">Pickup:</span>
+                      <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{order.supplierName}</span>
                     </div>
-                    <div className="flex items-center space-x-1.5">
-                      <ArrowRight className="w-3.5 h-3.5 text-nus-orange shrink-0" />
-                      <span className="font-semibold text-slate-600">Dropoff:</span>
-                      <span className="truncate">{order.dropoffLocation}</span>
+                    <div className="grid grid-cols-[0.875rem_auto_minmax(0,1fr)] items-start gap-x-1.5">
+                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-nus-orange" />
+                      <span className="font-semibold text-slate-600 whitespace-nowrap">Dropoff:</span>
+                      <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{order.dropoffLocation}</span>
                     </div>
                   </div>
 
@@ -1052,10 +1051,10 @@ export default function App() {
                     {order.status === 'OPEN' ? (
                       <button
                         onClick={() => handleAcceptOrder(order.id)}
-                        disabled={isDemoOrder(order.id) || !!acceptingOrder || order.requesterId === currentUserId}
+                        disabled={!!acceptingOrder || order.requesterId === currentUserId}
                         className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <span>{isDemoOrder(order.id) ? 'Demo errand' : order.requesterId === currentUserId ? 'Your errand' : acceptingOrder === order.id ? 'Accepting…' : 'Accept Errand'}</span>
+                        <span>{order.requesterId === currentUserId ? 'Your errand' : acceptingOrder === order.id ? 'Accepting…' : 'Accept Errand'}</span>
                       </button>
                     ) : (
                       <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
@@ -1160,16 +1159,19 @@ export default function App() {
                       <button
                         type="button"
                         aria-label="Decrease reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.max(5, f.rewardCredits - 5) }))}
+                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.max(1, (Number.isFinite(f.rewardCredits) ? f.rewardCredits : 1) - 1) }))}
                         className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
                       >
                         -
                       </button>
-                      <span className="font-black text-sm text-amber-900">{formData.rewardCredits} C</span>
+                      <input type="number" aria-label="Reward credits" required min={1} max={2147483647} step={1}
+                        value={Number.isFinite(formData.rewardCredits) ? formData.rewardCredits : ''}
+                        onChange={event => setFormData(current => ({ ...current, rewardCredits: event.target.valueAsNumber }))}
+                        className="reward-input w-24 rounded border border-amber-300 bg-white px-2 text-center font-bold text-amber-900" />
                       <button
                         type="button"
                         aria-label="Increase reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.min(2147483647, f.rewardCredits + 5) }))}
+                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.min(2147483647, (Number.isFinite(f.rewardCredits) ? f.rewardCredits : 0) + 1) }))}
                         className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
                       >
                         +
@@ -1177,7 +1179,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-amber-700 mt-1">
-                    Available: {wallet ? `${wallet.availableCredits} C` : '—'}. Credits are reserved before your errand is posted.
+                    Enter a whole number of at least 1 credit. Available: {wallet ? `${wallet.availableCredits} C` : '—'}. Credits are reserved before your errand is posted.
                   </p>
                 </div>
 
@@ -1286,33 +1288,37 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: My Tasks */}
+        {/* AI-generated (edited by huangjiaxi1111) */}
         {activeTab === 'tasks' && (
-          <div className="space-y-4">
-            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Active Tasks</h2>
-            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="responsive-card-grid">
-              {!orders.some((o) => currentUserId && (o.courierId === currentUserId || o.requesterId === currentUserId)) && (
-                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No active tasks yet.</p>
-              )}
-              {orders
-                .filter((o) => currentUserId && (o.courierId === currentUserId || o.requesterId === currentUserId))
-                .map((task) => (
-                  <div key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                        {task.orderCode}
-                      </span>
-                      <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-                        {task.status}
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-slate-800">{task.itemDescription}</p>
-                    <p className="text-xs text-slate-500">Pickup: {task.supplierName}</p>
-                    <p className="text-xs text-slate-500">Dropoff: {task.dropoffLocation}</p>
-                  </div>
-                ))}
-            </div>
+          <div className="space-y-8">
+            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Tasks</h2>
+            {[
+              { key: 'posted', title: 'Tasks posted', description: 'Errands you requested from other students.', tasks: orders.filter(task => currentUserId && task.requesterId === currentUserId) },
+              { key: 'accepted', title: 'Tasks accepted', description: 'Errands you are delivering for other students.', tasks: orders.filter(task => currentUserId && task.courierId === currentUserId) },
+            ].map(group => (
+              <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
+                <div>
+                  <h3 id={`tasks-${group.key}`} className="text-lg font-bold text-slate-800">{group.title} <span className="text-sm font-medium text-slate-500">({group.tasks.length})</span></h3>
+                  <p className="text-sm text-slate-500">{group.description}</p>
+                </div>
+                <div className="responsive-card-grid items-start">
+                  {group.tasks.length === 0 && <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">No {group.key} tasks yet.</p>}
+                  {group.tasks.map(task => (
+                    <article key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
+                      <div className="flex flex-wrap justify-between items-center gap-2">
+                        <span className="text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{task.orderCode}</span>
+                        <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded">{task.status.replace(/_/g, ' ')}</span>
+                      </div>
+                      <p title={task.itemDescription} className="text-sm font-bold text-slate-800 h-10 leading-5 line-clamp-2">{task.itemDescription}</p>
+                      <p className="flex items-center gap-1 text-sm font-bold text-amber-700"><Coins className="h-4 w-4" />{task.rewardCredits} credits</p>
+                      <ExpandableNotes notes={task.specialNotes} />
+                      <p title={task.supplierName} className="truncate text-xs text-slate-500">Pickup: {task.supplierName}</p>
+                      <p title={task.dropoffLocation} className="truncate text-xs text-slate-500">Dropoff: {task.dropoffLocation}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         )}
 
@@ -1337,9 +1343,9 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: Profile & Wallet */}
+        {/* Profile and wallet have separate destinations. */}
         {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="w-full">
             <section aria-labelledby="profile-heading" className="min-w-0 space-y-4">
               <h2 id="profile-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Profile Info</h2>
 
@@ -1358,8 +1364,8 @@ export default function App() {
               )}
 
               {profile && (
-                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3">
-                  <p className="text-xs text-slate-400">
+                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <p className="text-xs text-slate-400 md:col-span-2">
                     Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
                   </p>
 
@@ -1432,12 +1438,12 @@ export default function App() {
                   {!isEditingProfile ? (
                     <button
                       onClick={startEditingProfile}
-                      className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition"
+                      className="md:col-span-2 w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition"
                     >
                       Edit
                     </button>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         onClick={cancelEditingProfile}
                         disabled={isUpdatingProfile}
@@ -1458,6 +1464,7 @@ export default function App() {
                 </div>
               )}
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
@@ -1477,9 +1484,14 @@ export default function App() {
               >
                 <span>Delete Account</span>
               </button>
+              </div>
             </section>
-            <section aria-labelledby="credit-heading" className="min-w-0 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+          </div>
+        )}
+        {activeTab === 'wallet' && (
+          <div className="w-full">
+            <section aria-labelledby="credit-heading" className="min-w-0 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="lg:col-span-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Credit Wallet & Ledger</h2>
                 <button type="button" onClick={() => void fetchCredits()} disabled={isLoadingCredits}
                   className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
@@ -1487,8 +1499,8 @@ export default function App() {
                   {creditError ? 'Retry credits' : 'Refresh credits'}
                 </button>
               </div>
-              {isLoadingCredits && <p role="status" className="text-sm text-slate-500">Loading wallet and transactions…</p>}
-              {creditError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{creditError}</p>}
+              {isLoadingCredits && <p role="status" className="lg:col-span-2 text-sm text-slate-500">Loading wallet and transactions…</p>}
+              {creditError && <p role="alert" className="lg:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{creditError}</p>}
 
               {/* Balance Card */}
               {wallet && <>
@@ -1516,14 +1528,6 @@ export default function App() {
                   </div>
                 </div>
                 <p className="mt-3 text-sm text-blue-200">Total earned: {wallet.totalEarnedCredits} C</p>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900 flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Closed Economy Guarantee:</strong> Credits cannot be bought or withdrawn with real money.
-                  Complete errands for peers to earn more credits.
-                </span>
               </div>
 
               {/* Transaction Ledger */}

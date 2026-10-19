@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Add two sample errands and insert missing seeds without changing existing orders.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Seed initial development errands in Order Service if the database is empty.
  * Author review: (to be completed by author after review)
@@ -8,12 +12,6 @@
 import { prisma } from './client';
 
 export async function seedOrders() {
-  const existingCount = await prisma.order.count();
-  if (existingCount > 0) {
-    console.log(`[order-seed] Database already contains ${existingCount} orders. Skipping seed.`);
-    return;
-  }
-
   const sampleOrders = [
     {
       orderCode: 'ORD-98214',
@@ -49,13 +47,50 @@ export async function seedOrders() {
       createdAt: new Date(),
       version: 1,
     },
+    // AI-generated (edited by huangjiaxi1111)
+    {
+      orderCode: 'ORD-76128',
+      requesterId: '20000000-0000-4000-8000-000000000001',
+      courierId: null,
+      supplierId: '10000000-0000-4000-8000-000000000001',
+      supplierName: 'Fine Food (UTown)',
+      campusZone: 'UTown',
+      itemDescription: '1x Iced kopi and 2x kaya toast',
+      specialNotes: 'Less ice, please. Keep the toast separate from the drink.',
+      dropoffLocation: 'UTown Education Resource Centre Level 1 entrance',
+      requesterContactNote: 'Message me when you arrive at the entrance',
+      rewardCredits: 12,
+      status: 'OPEN',
+      expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(),
+      version: 1,
+    },
+    {
+      orderCode: 'ORD-86429',
+      requesterId: '20000000-0000-4000-8000-000000000002',
+      courierId: null,
+      supplierId: '10000000-0000-4000-8000-000000000002',
+      supplierName: 'The Deck (Arts Canteen)',
+      campusZone: 'Arts & Social Sciences',
+      itemDescription: '1x Vegetarian rice with tofu and two vegetable sides',
+      specialNotes: 'No egg, please. Ask for a spoon and fork.',
+      dropoffLocation: 'Central Library Level 1 main entrance',
+      requesterContactNote: 'Waiting beside the entrance with a blue backpack',
+      rewardCredits: 18,
+      status: 'OPEN',
+      expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(),
+      version: 1,
+    },
   ];
 
-  for (const order of sampleOrders) {
-    await prisma.order.create({ data: order });
-  }
+  // AI-generated (edited by huangjiaxi1111)
+  const result = await prisma.order.createMany({
+    data: sampleOrders,
+    skipDuplicates: true,
+  });
 
-  console.log(`[order-seed] Seeded ${sampleOrders.length} initial open orders.`);
+  console.log(`[order-seed] Added ${result.count} missing sample orders; existing orders were unchanged.`);
 }
 
 if (require.main === module) {
