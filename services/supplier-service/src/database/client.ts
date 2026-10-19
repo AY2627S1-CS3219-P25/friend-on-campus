@@ -13,7 +13,17 @@ import { PrismaClient } from './generated/client';
 // Load src/.env explicitly (relative to this file, not the caller's cwd) so
 // standalone scripts like seed.ts get DATABASE_URL too — only backend/server.ts
 // called dotenv.config() before, which app-entrypoint-only scripts miss.
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../.env'),
+    path.resolve(__dirname, '../../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.SUPPLIER_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.SUPPLIER_DATABASE_URL;
+}
 
 // Single shared Prisma client instance for the whole process.
 // Both the running application (backend -> supplierRepository) and the

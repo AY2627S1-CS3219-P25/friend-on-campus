@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-20
+Scope: Updated Prisma schema path reference from services/*/src/database/prisma/schema.prisma to services/*/prisma/schema.prisma.
+Author review: <to be completed by author after review>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
 Author review: <to be completed by author after review>
@@ -32,10 +36,10 @@ Directory, from your seat:
 
 ```
 scripts/test-d2-e2e.ts       the existing end-to-end suite; the pattern to follow (your file)
-services/*/src/              code under review; user- and supplier-service are real, the other three are in-memory mocks
+services/*/src/              code under review
 apps/*/src/App.tsx           UI under review
 packages/common-dtos/        the contract both sides must match
-docker/postgres-init/*.sql vs services/*/src/database/prisma/schema.prisma    duplicated table definitions to compare
+docker/postgres-init/*.sql vs services/*/prisma/schema.prisma    database provisioning and service schema definitions to compare
 gateway/nginx.conf, apps/*/vite.config.ts, docker-compose.yml                 routing and env to compare against the code
 docs/evidence/<milestone>/   where the author records results (you report; you do not edit docs)
 ai/usage-log.md              checked in AI-policy mode

@@ -39,20 +39,22 @@
 
 
 import { Router, Request, RequestHandler, Response } from 'express';
-import * as supplierRepository from './supplierRepository';
 import {
   CreateSupplierRequest,
   UpdateSupplierRequest,
   SupplierQueryOptions,
 } from '@campus-errand/common-dtos';
-
-// AI-generated (edited by jagdeepsh)
-const DUPLICATE_LOCATION_ERROR = 'A supplier already exists with this name, category, and location.';
-
-// Safety net for a duplicate that gets past the pre-check (e.g. two concurrent creates).
-function isUniqueViolation(err: any): boolean {
-  return err?.code === 'P2002';
-}
+import {
+  createNewSupplier,
+  findSupplierByIdOrCode,
+  listSuppliers,
+  removeSupplier,
+  SupplierConflictError,
+  SupplierNotFoundError,
+  SupplierValidationError,
+  toggleSupplierStatus,
+  updateExistingSupplier,
+} from './supplierService';
 
 // GET /api/suppliers
 export async function getSuppliers(req: Request, res: Response) {
@@ -74,7 +76,7 @@ export async function getSuppliers(req: Request, res: Response) {
       limit: limit !== undefined ? parseInt(String(limit), 10) : undefined,
     };
 
-    const result = await supplierRepository.getSuppliers(queryOptions);
+    const result = await listSuppliers(queryOptions);
 
     return res.json({ success: true, data: result });
   } catch (err: any) {
@@ -87,19 +89,12 @@ export async function getSuppliers(req: Request, res: Response) {
 export async function getSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    let supplier = await supplierRepository.getSupplierById(id);
-
-    // Also allow lookup by supplierCode if not found by UUID
-    if (!supplier) {
-      supplier = await supplierRepository.getSupplierByCode(id);
-    }
-
-    if (!supplier) {
-      return res.status(404).json({ success: false, error: `Supplier '${id}' not found` });
-    }
-
+    const supplier = await findSupplierByIdOrCode(id);
     return res.json({ success: true, data: supplier });
   } catch (err: any) {
+    if (err instanceof SupplierNotFoundError) {
+      return res.status(404).json({ success: false, error: err.message });
+    }
     console.error('Error fetching supplier:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -109,44 +104,22 @@ export async function getSupplier(req: Request, res: Response) {
 export async function createSupplier(req: Request, res: Response) {
   try {
     const body: CreateSupplierRequest = req.body;
-
-    // Whitespace-only counts as missing, the same as in updateSupplier.
-    const required = ['name', 'campusZone', 'exactLocation', 'category', 'building', 'floor'] as const;
-    if (required.some((key) => !String(body[key] ?? '').trim())) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor',
-      });
-    }
-
-    const duplicate = await supplierRepository.findDuplicateLocation(
-      String(body.name).trim(),
-      String(body.category).trim(),
-      String(body.building).trim(),
-      String(body.floor).trim(),
-    );
-    if (duplicate) {
-      return res.status(409).json({
-        success: false,
-        error: DUPLICATE_LOCATION_ERROR,
-        duplicate: {
-          name: duplicate.name,
-          category: duplicate.category,
-          building: duplicate.building,
-          floor: duplicate.floor,
-        },
-      });
-    }
-
-    const supplier = await supplierRepository.createSupplier(body);
+    const supplier = await createNewSupplier(body);
     return res.status(201).json({
       success: true,
       data: supplier,
       message: 'Supplier created successfully',
     });
   } catch (err: any) {
-    if (isUniqueViolation(err)) {
-      return res.status(409).json({ success: false, error: DUPLICATE_LOCATION_ERROR });
+    if (err instanceof SupplierValidationError) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    if (err instanceof SupplierConflictError) {
+      return res.status(409).json({
+        success: false,
+        error: err.message,
+        ...(err.duplicate ? { duplicate: err.duplicate } : {}),
+      });
     }
     console.error('Error creating supplier:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
@@ -158,54 +131,25 @@ export async function updateSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const body: UpdateSupplierRequest = req.body;
-
-    const existing = await supplierRepository.getSupplierById(id);
-    if (!existing) {
-      return res.status(404).json({ success: false, error: `Supplier '${id}' not found` });
-    }
-
-    // Same rule as createSupplier: these four fields may be left out of a PUT, but not blanked.
-    for (const key of ['name', 'category', 'building', 'floor'] as const) {
-      if (body[key] !== undefined && !String(body[key]).trim()) {
-        return res.status(400).json({ success: false, error: `${key} cannot be empty` });
-      }
-    }
-
-    const effective = {
-      name: String(body.name ?? existing.name).trim(),
-      category: String(body.category ?? existing.category).trim(),
-      building: String(body.building ?? existing.building).trim(),
-      floor: String(body.floor ?? existing.floor).trim(),
-    };
-    const duplicate = await supplierRepository.findDuplicateLocation(
-      effective.name,
-      effective.category,
-      effective.building,
-      effective.floor,
-      id,
-    );
-    if (duplicate) {
-      return res.status(409).json({
-        success: false,
-        error: DUPLICATE_LOCATION_ERROR,
-        duplicate: {
-          name: duplicate.name,
-          category: duplicate.category,
-          building: duplicate.building,
-          floor: duplicate.floor,
-        },
-      });
-    }
-
-    const updated = await supplierRepository.updateSupplier(id, body);
+    const updated = await updateExistingSupplier(id, body);
     return res.json({
       success: true,
       data: updated,
       message: 'Supplier updated successfully',
     });
   } catch (err: any) {
-    if (isUniqueViolation(err)) {
-      return res.status(409).json({ success: false, error: DUPLICATE_LOCATION_ERROR });
+    if (err instanceof SupplierNotFoundError) {
+      return res.status(404).json({ success: false, error: err.message });
+    }
+    if (err instanceof SupplierValidationError) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    if (err instanceof SupplierConflictError) {
+      return res.status(409).json({
+        success: false,
+        error: err.message,
+        ...(err.duplicate ? { duplicate: err.duplicate } : {}),
+      });
     }
     console.error('Error updating supplier:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
@@ -216,18 +160,16 @@ export async function updateSupplier(req: Request, res: Response) {
 export async function toggleSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const updated = await supplierRepository.toggleSupplierActive(id);
-
-    if (!updated) {
-      return res.status(404).json({ success: false, error: `Supplier '${id}' not found` });
-    }
-
+    const updated = await toggleSupplierStatus(id);
     return res.json({
       success: true,
       data: updated,
       message: `Supplier ${updated.isActive ? 'activated' : 'deactivated'} successfully`,
     });
   } catch (err: any) {
+    if (err instanceof SupplierNotFoundError) {
+      return res.status(404).json({ success: false, error: err.message });
+    }
     console.error('Error toggling supplier status:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
@@ -238,14 +180,7 @@ export async function deleteSupplier(req: Request, res: Response) {
   try {
     const { id } = req.params;
     const permanent = req.query.permanent === 'true';
-
-    const existing = await supplierRepository.getSupplierById(id);
-    if (!existing) {
-      return res.status(404).json({ success: false, error: `Supplier '${id}' not found` });
-    }
-
-    await supplierRepository.deleteSupplier(id, !permanent);
-
+    await removeSupplier(id, permanent);
     return res.json({
       success: true,
       message: permanent
@@ -253,6 +188,9 @@ export async function deleteSupplier(req: Request, res: Response) {
         : 'Supplier marked as inactive (soft delete to preserve order history)',
     });
   } catch (err: any) {
+    if (err instanceof SupplierNotFoundError) {
+      return res.status(404).json({ success: false, error: err.message });
+    }
     console.error('Error deleting supplier:', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }

@@ -39,7 +39,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/common-dtos/package.json ./packages/common-dtos/
 COPY services/notification-service/package.json ./services/notification-service/
-COPY services/notification-service/src/database/prisma ./services/notification-service/src/database/prisma
+COPY services/notification-service/prisma ./services/notification-service/prisma
 
 RUN npm ci --workspace=@campus-errand/notification-service --include-workspace-root=false
 
@@ -80,7 +80,7 @@ COPY --chown=node:node --from=build /app/packages/common-dtos/dist ./packages/co
 COPY --chown=node:node --from=build /app/services/notification-service/package.json ./services/notification-service/package.json
 COPY --chown=node:node --from=build /app/services/notification-service/dist ./services/notification-service/dist
 COPY --chown=node:node --from=build /app/services/notification-service/src/database/generated ./services/notification-service/dist/database/generated
-COPY --chown=node:node --from=build /app/services/notification-service/src/database/prisma ./services/notification-service/src/database/prisma
+COPY --chown=node:node --from=build /app/services/notification-service/prisma ./services/notification-service/prisma
 
 RUN sed -i 's#"main": "src/index.ts"#"main": "dist/index.js"#' \
     packages/auth/package.json packages/common-dtos/package.json \
@@ -92,4 +92,4 @@ EXPOSE 8005
 
 USER node
 
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema src/database/prisma/schema.prisma && exec node dist/index.js"]
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && exec node dist/index.js"]

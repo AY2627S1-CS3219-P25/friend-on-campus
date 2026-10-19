@@ -13,9 +13,19 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
+import path from 'node:path';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.ORDER_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.ORDER_DATABASE_URL;
+}
 
 function integer(name: string, fallback: number, minimum: number): number {
   const value = Number(process.env[name] ?? fallback);
@@ -26,8 +36,8 @@ function integer(name: string, fallback: number, minimum: number): number {
 }
 
 export const config = Object.freeze({
-  port: Number(process.env.PORT || 8003),
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/order_db',
+  port: Number(process.env.PORT || process.env.ORDER_SERVICE_PORT || 8003),
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://order_svc:order-service-dev@localhost:5432/order_db',
   supplierServiceUrl: process.env.SUPPLIER_SERVICE_URL || 'http://localhost:8002',
   auth: {
     publicKey: process.env.JWT_PUBLIC_KEY ?? '',

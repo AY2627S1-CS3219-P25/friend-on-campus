@@ -51,7 +51,7 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
     url.searchParams.set('schema', schema);
     for (let i = 0; i < 2; i++) databases.push(new PrismaClient({ datasources: { db: { url: url.toString() } } }));
     await databases[0].$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
-    const migrations = path.resolve(__dirname, '../src/database/prisma/migrations');
+    const migrations = path.resolve(__dirname, '../prisma/migrations');
     for (const dir of (await readdir(migrations, { withFileTypes: true })).filter((entry) => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
       const sql = await readFile(path.join(migrations, dir.name, 'migration.sql'), 'utf8');
       for (const statement of sql.split(';').filter((part) => part.trim())) {

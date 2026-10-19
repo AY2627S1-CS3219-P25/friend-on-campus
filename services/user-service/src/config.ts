@@ -9,12 +9,22 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+import path from 'node:path';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.USER_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.USER_DATABASE_URL;
+}
 
 const DEFAULT_PORT = 8001;
-const DEFAULT_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/user_db';
+const DEFAULT_DATABASE_URL = 'postgresql://user_svc:user-service-dev@localhost:5432/user_db';
 const DEFAULT_RABBITMQ_URL = 'amqp://user_service:user-service-dev@localhost:5672/campus';
 const DEFAULT_EVENTS_EXCHANGE = 'campus.events';
 
@@ -81,7 +91,7 @@ function readDurationSeconds(value: string | undefined, fallback: string): numbe
 const nodeEnvironment = process.env.NODE_ENV ?? 'development';
 
 export const config: AppConfig = Object.freeze({
-  port: readPort(process.env.PORT),
+  port: readPort(process.env.PORT ?? process.env.USER_SERVICE_PORT),
   databaseUrl: process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
   accessTokenPrivateKey: readRequiredKey('JWT_PRIVATE_KEY'),
   accessTokenPublicKey: readRequiredKey('JWT_PUBLIC_KEY'),

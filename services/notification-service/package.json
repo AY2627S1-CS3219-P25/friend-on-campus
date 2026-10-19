@@ -11,9 +11,9 @@
     "test:integration": "node --import tsx --test test/store-routes.integration.test.ts",
     "test:messaging": "node --import tsx --test test/messaging.integration.test.ts",
     "build": "tsc",
-    "db:generate": "prisma generate --schema src/database/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --schema src/database/prisma/schema.prisma",
-    "db:deploy": "prisma migrate deploy --schema src/database/prisma/schema.prisma"
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:migrate": "node -e \"require('dotenv').config({path:['.env','../../.env']});process.env.DATABASE_URL||=process.env.NOTIFICATION_DATABASE_URL||'postgresql://notification_svc:notification-service-dev@localhost:5432/notification_db';const r=require('node:child_process').spawnSync(process.execPath,[require.resolve('prisma/build/index.js'),'migrate','dev','--schema','prisma/schema.prisma',...process.argv.slice(1)],{stdio:'inherit'});process.exit(r.status??1)\"",
+    "db:deploy": "node -e \"require('dotenv').config({path:['.env','../../.env']});process.env.DATABASE_URL||=process.env.NOTIFICATION_DATABASE_URL||'postgresql://notification_svc:notification-service-dev@localhost:5432/notification_db';const r=require('node:child_process').spawnSync(process.execPath,[require.resolve('prisma/build/index.js'),'migrate','deploy','--schema','prisma/schema.prisma',...process.argv.slice(1)],{stdio:'inherit'});process.exit(r.status??1)\""
   },
   "dependencies": {
     "@campus-errand/auth": "*",
