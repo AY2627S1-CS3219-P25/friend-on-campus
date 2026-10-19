@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-19
+Scope: Recorded CI matrix consistency root-cause analysis and fix for the missing order-service messaging matrix entry.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-18
 Scope: Recorded asynchronous escrow saga implementation preparation, baseline checks, and the outstanding author-owned contract decisions.
 Author review: <to be completed by huangjiaxi1111>
@@ -3370,3 +3374,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Verification:** `npm ci` regenerated ignored Prisma clients. Fixed a test-fixture edit caught by the first unit run; sandbox HTTP `listen EPERM` was resolved by the approved outside-sandbox test execution. Root `npm run typecheck`, `npm run lint` (0 errors, 35 warnings), `npm run ci:validate-tests` (12 workspace suites / 3 system commands), and `git diff --check` passed. Full isolated `npm test` passed all unit, integration, messaging, migration, seed, acceptance, API E2E and Chromium suites (34/34 browser checks), including production container builds and the new real broker/database saga suite. After adding receipt authorization and relay/result-race assertions, the Order unit suite passed 47/47 and root type checks/lint passed again. Full-suite logs are at `/private/tmp/foc-saga-full-test.log`; its temporary Compose resources were cleaned by the runner.
 
 **Implementation boundaries:** Student posting remains the existing frontend mock and is not wired to the new receipt API. Exhausted consumer retries go to existing DLQs for operator repair/replay; automatic DLQ recovery and pending-submission cancellation are not implemented. Submission outbox records retain recovery data and must not be purged merely because their message was delivered. Rebuild/restart RabbitMQ to load updated definitions and rebuild Order/Credit; Compose deploys the Credit migration on startup. Author review remains pending.
+
+## 2026-10-19 13:54 SGT — Fix CI test matrix consistency failure for PR #123
+
+**Tool:** Codex (model: GPT-5)
+**Author:** huangjiaxi1111
+**Branch:** fix/reserve-credit-gap
+
+**Prompt (summarised):** Investigate failing GitHub Actions job `CI / Test matrix consistency (pull_request)` (job 117744138098), identify the root cause from logs, and implement the smallest fix.
+
+**Usage scenario:** Debugging assistance and implementation. Located the exact validator error in the job logs (`Package script is missing from CI: @campus-errand/order-service test:messaging (messaging)`), then aligned the static messaging test matrix with the existing workspace script by adding the missing `order-service` entry. No architecture or interface design changes were made.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — added `@campus-errand/order-service` to the `messaging-tests` matrix and updated the file disclosure block.
+- `ai/usage-log.md` — appended this entry and updated the consolidated disclosure block.
+
+**Verification:** `npm run ci:validate-tests` passed (`Test matrix validation passed: 12 workspace suites and 3 system-test commands are consistent.`).

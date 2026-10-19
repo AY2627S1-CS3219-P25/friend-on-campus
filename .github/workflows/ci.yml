@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-5), date: 2026-10-19
+# Scope: Added order-service test:messaging to the static messaging CI matrix so matrix consistency validation matches workspace scripts.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-11
 # Scope: Added static-matrix drift validation, isolated system-test stacks, Chromium UAT, console-only test output, and a dependency-only final gate.
 # Author review: <to be completed by ngkhengyang>
@@ -241,6 +245,11 @@ jobs:
             rabbitmq: true
           - name: notification-service
             workspace: '@campus-errand/notification-service'
+            script: test:messaging
+            database: deploy
+            rabbitmq: true
+          - name: order-service
+            workspace: '@campus-errand/order-service'
             script: test:messaging
             database: deploy
             rabbitmq: true
