@@ -3375,18 +3375,18 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Implementation boundaries:** Student posting remains the existing frontend mock and is not wired to the new receipt API. Exhausted consumer retries go to existing DLQs for operator repair/replay; automatic DLQ recovery and pending-submission cancellation are not implemented. Submission outbox records retain recovery data and must not be purged merely because their message was delivered. Rebuild/restart RabbitMQ to load updated definitions and rebuild Order/Credit; Compose deploys the Credit migration on startup. Author review remains pending.
 
-## 2026-10-19 13:54 SGT — Fix CI test matrix consistency failure for PR #123
+## 2026-10-19 13:57 SGT — Fix CI test gate failure on PR #123
 
 **Tool:** Codex (model: GPT-5)
 **Author:** huangjiaxi1111
 **Branch:** fix/reserve-credit-gap
 
-**Prompt (summarised):** Investigate failing GitHub Actions job `CI / Test matrix consistency (pull_request)` (job 117744138098), identify the root cause from logs, and implement the smallest fix.
+**Prompt (summarised):** Investigate the failing GitHub Actions job "CI / Test gate (pull_request)" for run 39150893456 (job 117744904346), find the root cause from logs, and implement a fix.
 
-**Usage scenario:** Debugging assistance and implementation. Located the exact validator error in the job logs (`Package script is missing from CI: @campus-errand/order-service test:messaging (messaging)`), then aligned the static messaging test matrix with the existing workspace script by adding the missing `order-service` entry. No architecture or interface design changes were made.
+**Usage scenario:** Debugging assistance and implementation code. I traced the failure to CI matrix drift (`test-config` missing `@campus-errand/order-service test:messaging`) and applied the smallest workflow fix; architecture and product decisions remained with the author.
 
 **Files changed:**
-- `.github/workflows/ci.yml` — added `@campus-errand/order-service` to the `messaging-tests` matrix and updated the file disclosure block.
-- `ai/usage-log.md` — appended this entry and updated the consolidated disclosure block.
+- `.github/workflows/ci.yml` — added the missing order-service messaging matrix entry plus required CI setup/env for its saga messaging test.
+- `ai/usage-log.md` — this entry.
 
 **Verification:** `npm run ci:validate-tests` passed (`Test matrix validation passed: 12 workspace suites and 3 system-test commands are consistent.`).
