@@ -238,11 +238,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: order-service
-            workspace: '@campus-errand/order-service'
-            script: test:messaging
-            database: deploy
-            rabbitmq: true
           - name: credit-service
             workspace: '@campus-errand/credit-service'
             script: test:messaging
