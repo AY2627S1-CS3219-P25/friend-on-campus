@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
+Scope: Verified the Quick Reference and seeded accounts against main @ 7f2d972; added the gateway URL, the `npm test` line and the wiki link.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Rewrote documentation index to point directly to the simplified, flattened specification documents (architecture.md, errand-specification.md, security.md).
 Author review: <to be completed by author after review>
@@ -34,7 +38,9 @@ This documentation is organized into focused, authoritative specifications that 
 | **Credit Service** | `8004` | `credit_db` | Closed credit economy, wallet accounts, transaction ledgers, escrow holds/settlement/refunds, and idempotent event consumer. |
 | **Notification Service** | `8005` | `notification_db` | In-app notification persistence, authenticated WebSocket real-time push (`/ws`), and errand event consumer. |
 
-*API request/response types and domain event payload interfaces are authoritatively defined in code at `packages/common-dtos/src/index.ts`.*
+*API request/response types and domain event payload interfaces are authoritatively defined in code at `packages/common-dtos/src/index.ts`. Access-token verification is shared through `packages/auth` (see its `README.md`).*
+
+Milestone pages (demo scripts, evidence) live on the project wiki: [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3).
 
 ---
 
@@ -48,9 +54,13 @@ npm run generate:jwt-keys -- --print > .env
 docker compose up --build
 
 # 3. Access applications
+# Gateway:      http://localhost (student app at /, admin portal at /admin/, APIs at /api/*, WebSocket at /ws/)
 # Student App:  http://localhost:5173
 # Admin Portal: http://localhost:5174 (or http://localhost/admin/ via gateway)
 # RabbitMQ UI:  http://localhost:15672 (campus_admin / campus-admin-dev)
+
+# 4. Run every test category in an isolated Compose project (see ci.md)
+npm test
 ```
 
 ### Pre-Seeded Accounts
