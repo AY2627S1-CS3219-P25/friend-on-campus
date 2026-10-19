@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-19
+Scope: Document infrastructure and event retry policies and manual DLQ recovery.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-18
 Scope: Document outbox-only submissions, reservation results, receipt polling, and late-success compensation.
 Author review: <to be completed by huangjiaxi1111>
@@ -61,7 +65,11 @@ The existing Order `outbox_events` row stores the full submission in `payload.su
 
 Credit commits the processed-event marker, balance/escrow/ledger changes, and a result in `credit_outbox_events` in one transaction. A business rejection rolls attempted reservation writes back to a savepoint and commits the failure result with the marker. An infrastructure error rolls back the entire transaction for retry. Order locks the submission row when handling results; duplicate confirmations cannot insert duplicate orders or compensation commands. Both relays use persistent messages, mandatory routing, and publisher confirms; delivery remains at least once.
 
-Consumer failures use the existing retry queues and dead-letter queues (`credit-service.events.dlq` and `order-service.events.dlq`). Exhausted or invalid messages need operator investigation and replay after repair; pending submissions are not automatically marked rejected on transport failure. Retain submission outbox rows, including delivered/completed rows: they hold recovery data and the durable result consumed by polling. There is no automated DLQ replay or pending-submission cancellation endpoint in this change.
+Consumer failures use the existing retry queues and dead-letter queues (`credit-service.events.dlq` and `order-service.events.dlq`).
+
+Recognized infrastructure failures (database connectivity, connection-pool exhaustion, transient transaction availability and wrapped network errors) retry indefinitely with a five-second delay, without consuming the event retry budget. Unknown processing failures receive five retries after the initial attempt, also five seconds apart; invalid events and permanent business conflicts go directly to the DLQ. `ORDER_RETRY_DELAY_MS` / `CREDIT_RETRY_DELAY_MS` override the delay for both categories; `ORDER_RETRY_LIMIT` / `CREDIT_RETRY_LIMIT` apply only to bounded event retries. Logs and message headers track infrastructure and event retry counts separately.
+
+Messages already in the DLQ stay there after infrastructure recovers. Exhausted or invalid messages need operator investigation. Replay valid messages after repairing their processing failure (preserve the original payload, event ID and routing key; reset the bounded retry count only after repair, and acknowledge the DLQ delivery only after confirmed republishing); pending submissions are not automatically marked rejected on transport failure. Retain submission outbox rows, including delivered/completed rows: they hold recovery data and the durable result consumed by polling. There is no automated DLQ replay or pending-submission cancellation endpoint in this change.
 
 ### State Definitions
 

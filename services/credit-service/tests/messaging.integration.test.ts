@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Verify infrastructure failures preserve the event retry budget and delayed recovery mutates credit once.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Exercised messaging using the isolated least-privilege RabbitMQ test identity.
  * Author review: <to be completed by huangjiaxi1111>
@@ -208,6 +212,7 @@ async function main() {
 
     // Inject temporary failures at the processing boundary, retaining real broker retry routing.
     const transient = event('user.registered', { userId: user(), email: 'retry@example.test', initialGrant: 45 });
+    const mixed = event('user.registered', { userId: user(), email: 'infra@example.test', initialGrant: 45 });
     const exhausted = event('user.registered', { userId: user(), email: 'exhausted@example.test', initialGrant: 45 });
     const rollbackUser = user(); const rollbackOrder = randomUUID();
     await credits.reserve({ requesterId: rollbackUser, orderId: rollbackOrder, amount: 10 });
@@ -224,6 +229,8 @@ async function main() {
       handle: async (body, key) => {
         const id = JSON.parse(body.toString()).eventId;
         const attempt = (attempts.get(id) ?? 0) + 1; attempts.set(id, attempt);
+        if (id === mixed.eventId && attempt <= 8) throw Object.assign(new Error('Injected unavailable database'), { errorCode: 'P1001' });
+        if (id === mixed.eventId && attempt <= 13) throw new Error('Injected processing failure');
         if (id === exhausted.eventId || (id === transient.eventId && attempt <= 2)) throw new Error('Injected temporary dependency failure');
         if (id === rollback.eventId && attempt === 1) {
           try { await failHandler(body, key); }
@@ -238,6 +245,13 @@ async function main() {
         await handle(body, key);
       },
     });
+    // Eight infrastructure failures must leave all five event retries available.
+    const retryStarted = Date.now();
+    await send(mixed); await processed(mixed);
+    assert.equal(attempts.get(mixed.eventId), 14);
+    assert(Date.now() - retryStarted >= 13 * config.retryDelayMs - 50, 'retries must be delayed');
+    assert.equal((await credits.getLedger(mixed.userId as string)).length, 1);
+    assert.equal((await channel.checkQueue(config.deadLetterQueue)).messageCount, 0);
     await send(transient); await processed(transient);
     assert.equal(attempts.get(transient.eventId), 3);
     await send(rollback); await processed(rollback);

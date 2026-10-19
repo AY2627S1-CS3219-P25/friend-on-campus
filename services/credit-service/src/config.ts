@@ -37,7 +37,7 @@ export const config = Object.freeze({
     retryQueue: process.env.CREDIT_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.CREDIT_DLX || `${exchange}.dlx`,
     deadLetterQueue: process.env.CREDIT_DLQ || `${queue}.dlq`,
-    retryDelayMs: integer('CREDIT_RETRY_DELAY_MS', 1000, 1),
+    retryDelayMs: integer('CREDIT_RETRY_DELAY_MS', 5000, 1),
     retryLimit: integer('CREDIT_RETRY_LIMIT', 5, 0),
   },
 });

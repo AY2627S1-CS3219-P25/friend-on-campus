@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Classify identified infrastructure failures for unlimited retry while retaining invalid-result rejection.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Validate and consume correlated credit results with the existing durable retry/DLQ behavior.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,7 +12,7 @@
 import type { CreditReservationResultEvent } from '@campus-errand/common-dtos';
 import type { ReservationSaga } from '../orders/reservation.saga';
 import { OrderError, OrderValidationError } from '../orders/order.types';
-import { startRabbitConsumer, type MessagingConfig } from './rabbitmq';
+import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from './rabbitmq';
 
 export const reservationResultKeys = ['credit.reservation.succeeded', 'credit.reservation.failed', 'credit.reservation.released'] as const;
 
@@ -26,13 +30,17 @@ export function parseReservationResult(content: Buffer, routingKey: string): Cre
   return { ...event, eventId: event.eventId.toLowerCase(), correlationId: event.correlationId.toLowerCase(), orderId: event.orderId.toLowerCase(), requesterId: event.requesterId.toLowerCase() };
 }
 
+export function classifyReservationFailure(error: unknown): Failure {
+  if (error instanceof OrderError) return { category: 'permanent', reason: 'invalid_reservation_result' };
+  if (isInfrastructureFailure(error)) return { category: 'infrastructure', reason: 'dependency_unavailable' };
+  return { category: 'transient', reason: 'processing_failure' };
+}
+
 export function startReservationConsumer(config: MessagingConfig, saga: ReservationSaga, onFatal?: () => void) {
   return startRabbitConsumer(config, {
     routingKeys: reservationResultKeys,
     handle: (content, key) => saga.handleResult(parseReservationResult(content, key)),
-    classify: error => error instanceof OrderError
-      ? { category: 'permanent', reason: 'invalid_reservation_result' }
-      : { category: 'transient', reason: 'processing_failure' },
+    classify: classifyReservationFailure,
     onFatal,
   });
 }

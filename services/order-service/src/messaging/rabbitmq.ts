@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Separate unlimited infrastructure retries from bounded event retries with durable delayed forwarding.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Reuse the existing Credit durable consumer implementation for Order results, with Order retry headers and logs.
  * Author review: <to be completed by huangjiaxi1111>
@@ -16,7 +20,30 @@ export type MessagingConfig = {
   url: string; exchange: string; queue: string; retryExchange: string; retryQueue: string;
   deadLetterExchange: string; deadLetterQueue: string; retryDelayMs: number; retryLimit: number;
 };
-export type Failure = { category: 'permanent' | 'transient'; reason: string };
+export type Failure = { category: 'permanent' | 'transient' | 'infrastructure'; reason: string };
+
+// AI-generated (edited by huangjiaxi1111)
+// Only identified connectivity/resource/transaction availability failures bypass the event budget.
+export function isInfrastructureFailure(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  let current = error;
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    const value = current as { code?: unknown; errorCode?: unknown; meta?: { code?: unknown }; cause?: unknown };
+    const code = value.code ?? value.errorCode;
+    if (typeof code === 'string' && [
+      'P1001', 'P1002', 'P1008', 'P1017', 'P2024', 'P2034', 'P2037',
+      'ECONNREFUSED', 'ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE',
+      'EHOSTUNREACH', 'ENETUNREACH', 'EAI_AGAIN',
+    ].includes(code)) return true;
+    // Prisma raw queries wrap PostgreSQL SQLSTATE in P2010 metadata.
+    const sqlState = code === 'P2010' ? value.meta?.code : code;
+    if (typeof sqlState === 'string' && (/^08[A-Z0-9]{3}$/.test(sqlState) ||
+      ['57P01', '57P02', '57P03', '53300', '40001', '40P01', '55P03'].includes(sqlState))) return true;
+    current = value.cause;
+  }
+  return false;
+}
 
 // Serialize this channel's publications so a mandatory return belongs to exactly one call.
 export function createConfirmedPublisher(channel: ConfirmChannel) {
@@ -128,7 +155,9 @@ export async function startRabbitConsumer(
       const routingKey = typeof originalKey === 'string' ? originalKey : message.fields.routingKey;
       const raw = headers['x-order-retry-count'];
       const count = Number.isSafeInteger(raw) && raw >= 0 ? raw as number : 0;
-      return { headers, routingKey, count };
+      const infrastructureRaw = headers['x-order-infrastructure-retry-count'];
+      const infrastructureCount = Number.isSafeInteger(infrastructureRaw) && infrastructureRaw >= 0 ? infrastructureRaw as number : 0;
+      return { headers, routingKey, count, infrastructureCount };
     }
     function properties(message: ConsumeMessage, headers: Record<string, unknown>): Options.Publish {
       // Expiration from an external producer must not expire forwarded messages.
@@ -136,12 +165,13 @@ export async function startRabbitConsumer(
       return { ...original, headers };
     }
     async function process(message: ConsumeMessage) {
-      const { headers, routingKey, count } = metadata(message);
+      const { headers, routingKey, count, infrastructureCount } = metadata(message);
       try {
         await options.handle(message.content, routingKey);
       } catch (error) {
         const failure = options.classify(error);
-        const retrying = failure.category === 'transient' && count < config.retryLimit;
+        const infrastructure = failure.category === 'infrastructure';
+        const retrying = infrastructure || (failure.category === 'transient' && count < config.retryLimit);
         let eventId = 'unknown';
         let eventType = /^[a-z0-9_.-]{1,64}$/.test(routingKey) ? routingKey : 'invalid';
         try {
@@ -149,7 +179,7 @@ export async function startRabbitConsumer(
           if (typeof body?.eventId === 'string' && /^[0-9a-f-]{36}$/i.test(body.eventId)) eventId = body.eventId;
           if (typeof body?.eventType === 'string' && /^[a-z0-9_.-]{1,64}$/.test(body.eventType)) eventType = body.eventType;
         } catch { /* Malformed JSON has no event identity. */ }
-        console.error(JSON.stringify({ service: 'order-service', eventId, eventType, retryCount: count,
+        console.error(JSON.stringify({ service: 'order-service', eventId, eventType, retryCount: count, infrastructureRetryCount: infrastructureCount,
           failureCategory: failure.category, reason: failure.reason, action: retrying ? 'retry' : 'dead-letter' }));
         await publish(
           retrying ? config.retryExchange : config.deadLetterExchange,
@@ -157,7 +187,8 @@ export async function startRabbitConsumer(
           message.content,
           properties(message, {
             ...headers, 'x-order-original-routing-key': routingKey,
-            'x-order-retry-count': retrying ? count + 1 : count,
+            'x-order-retry-count': retrying && !infrastructure ? count + 1 : count,
+            'x-order-infrastructure-retry-count': infrastructure ? Math.min(infrastructureCount + 1, Number.MAX_SAFE_INTEGER) : infrastructureCount,
             'x-order-failure-category': failure.category, 'x-order-failure-reason': failure.reason,
             'x-order-failed-at': new Date().toISOString(),
             ...(retrying ? { 'x-order-not-before': Date.now() + config.retryDelayMs } : {}),

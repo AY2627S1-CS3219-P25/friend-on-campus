@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Set the default delayed retry interval to five seconds.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Replace synchronous Credit configuration with reservation consumer retry/DLQ settings.
  * Author review: <to be completed by huangjiaxi1111>
@@ -38,7 +42,7 @@ export const config = Object.freeze({
     retryQueue: 'order-service.events.retry',
     deadLetterExchange: 'order-service.events.dlq',
     deadLetterQueue: 'order-service.events.dlq',
-    retryDelayMs: integer('ORDER_RETRY_DELAY_MS', 1000, 1),
+    retryDelayMs: integer('ORDER_RETRY_DELAY_MS', 5000, 1),
     retryLimit: integer('ORDER_RETRY_LIMIT', 5, 0),
     connectionTimeoutMs: integer('RABBITMQ_TIMEOUT_MS', 5000, 1000),
   },

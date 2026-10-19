@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Verify infrastructure recovery, release compensation, bounded event retries and immediate malformed-event dead-lettering.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Real PostgreSQL/RabbitMQ reservation saga, restart, rollback, duplicate, rejection and compensation tests.
  * Author review: <to be completed by huangjiaxi1111>
@@ -14,11 +18,11 @@ import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/
 import { createReservationSaga, type SubmissionPayload } from '../src/orders/reservation.saga';
 import { createRabbitMQPublisher } from '../src/messaging/event.publisher';
 import { createOutboxRelay } from '../src/messaging/outbox.relay';
-import { startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
+import { classifyReservationFailure, startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
 import { createCreditStore } from '../../credit-service/src/credits/store';
 import { createCreditService } from '../../credit-service/src/credits/service';
 import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
-import { startCreditConsumer } from '../../credit-service/src/credits/consumer';
+import { classifyCreditFailure, startCreditConsumer } from '../../credit-service/src/credits/consumer';
 import { createCreditOutbox } from '../../credit-service/src/messaging/outbox';
 import { createConfirmedPublisher } from '../../credit-service/src/messaging/rabbitmq';
 
@@ -34,6 +38,19 @@ async function until(check: () => Promise<unknown>, label: string) {
 }
 
 async function main() {
+  // Both services recognize Prisma connection, raw-query, pool and wrapped network failures.
+  for (const classify of [classifyReservationFailure, classifyCreditFailure]) {
+    for (const failure of [
+      { code: 'P1001' }, { errorCode: 'P1002' }, { code: 'P1008' }, { code: 'P1017' },
+      { code: 'P2024' }, { code: 'P2034' }, { code: 'P2037' },
+      { code: 'P2010', meta: { code: '57P01' } }, { code: '08006' },
+      new Error('wrapped', { cause: { code: 'ECONNRESET' } }),
+    ]) assert.equal(classify(failure).category, 'infrastructure');
+    for (const failure of [new Error('unknown'), { code: 'P2002' }, { code: 'P1000' },
+      { code: 'P2010', meta: { code: '42601' } }]) assert.notEqual(classify(failure).category, 'infrastructure');
+    const cyclic: { cause?: unknown } = {}; cyclic.cause = cyclic;
+    assert.equal(classify(cyclic).category, 'transient');
+  }
   const orders = new OrderPrisma({ datasources: { db: { url: testUrl('ORDER_TEST_DATABASE_URL') } } });
   const credit = new CreditPrisma({ datasources: { db: { url: testUrl('CREDIT_TEST_DATABASE_URL') } } });
   const url = process.env.CREDIT_TEST_RABBITMQ_URL ?? 'amqp://credit_test:credit-test-dev@localhost:5672/campus';
@@ -124,6 +141,22 @@ async function main() {
     await until(() => getResult(late.id), 'late reservation committed');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     await delay(1300);
+    // Release commands must also survive infrastructure failures beyond the event budget.
+    await creditConsumer.close();
+    let releaseAttempts = 0;
+    let releaseUnavailable = true;
+    creditConsumer = await startCreditConsumer(cc, { ...credits, applyEvent: async (identity, command) => {
+      if (command.kind === 'release-request' && command.event.orderId === late.id && releaseUnavailable) {
+        releaseAttempts++;
+        throw Object.assign(new Error('Injected exhausted database pool'), { code: 'P2024' });
+      }
+      return credits.applyEvent(identity, command);
+    } });
+    await until(async () => { await pump(); return releaseAttempts >= 8; }, 'release retries past event limit');
+    assert.equal((await saga.get(late.id, late.requesterId)).status, 'COMPENSATING');
+    assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
+    assert.equal((await channel.checkQueue(cc.deadLetterQueue)).messageCount, 0);
+    releaseUnavailable = false;
     await until(async () => { await pump(); return (await saga.get(late.id, late.requesterId)).status === 'COMPENSATED'; }, 'late-success refund');
     assert.equal(await orders.order.count({ where: { id: late.id } }), 0);
     assert.equal((await credits.getWallet(late.requesterId)).availableCredits, 100);
@@ -162,7 +195,47 @@ async function main() {
     await results.processPending();
     orderConsumer = await startReservationConsumer(oc, saga);
     await until(() => orders.order.findUnique({ where: { id: rollback.id } }), 'order after consumer restart');
-    console.log('PASS: outbox-only submissions, offline consumers, persisted results, duplicate safety, insufficient funds, expiry compensation, atomic rollbacks and restart recovery');
+    // An Order database outage cannot exhaust the result retries or strand the hold.
+    await orderConsumer.close();
+    const recovering = await submit();
+    let resultAttempts = 0;
+    orderConsumer = await startReservationConsumer(oc, { ...saga, handleResult: async event => {
+      if (event.orderId === recovering.id) {
+        resultAttempts++;
+        throw Object.assign(new Error('Injected database restart'), { code: 'P2010', meta: { code: '57P01' } });
+      }
+      await saga.handleResult(event);
+    } });
+    await until(async () => { await pump(); return resultAttempts >= 8; }, 'result retries past event limit');
+    assert.equal((await saga.get(recovering.id, recovering.requesterId)).status, 'PENDING');
+    assert.equal(await orders.order.count({ where: { id: recovering.id } }), 0);
+    assert.equal((await credits.getWallet(recovering.requesterId)).escrowCredits, 15);
+    assert.equal((await channel.checkQueue(oc.deadLetterQueue)).messageCount, 0);
+    await orderConsumer.close();
+    orderConsumer = await startReservationConsumer(oc, saga);
+    await until(() => orders.order.findUnique({ where: { id: recovering.id } }), 'infrastructure recovery after restart');
+    assert.equal(await orders.order.count({ where: { id: recovering.id } }), 1);
+    assert.equal(await credit.creditTransaction.count({ where: { orderId: recovering.id, transactionType: 'ESCROW_HOLD' } }), 1);
+
+    // Unknown event failures remain bounded; malformed events skip retries entirely.
+    await orderConsumer.close();
+    let eventAttempts = 0;
+    orderConsumer = await startReservationConsumer(oc, { ...saga, handleResult: async () => {
+      eventAttempts++; throw new Error('Injected processing bug');
+    } });
+    await emit(await getResult(recovering.id));
+    await until(async () => (await channel.checkQueue(oc.deadLetterQueue)).messageCount === 1, 'bounded Order retries');
+    const exhausted = await channel.get(oc.deadLetterQueue, { noAck: true });
+    assert(exhausted);
+    assert.equal(eventAttempts, 6);
+    assert.equal(exhausted.properties.headers!['x-order-retry-count'], 5);
+    await publish(exchange, 'credit.reservation.succeeded', Buffer.from('{invalid'));
+    await until(async () => (await channel.checkQueue(oc.deadLetterQueue)).messageCount === 1, 'invalid event DLQ');
+    const invalid = await channel.get(oc.deadLetterQueue, { noAck: true });
+    assert(invalid);
+    assert.equal(invalid.properties.headers!['x-order-retry-count'], 0);
+    assert.equal(eventAttempts, 6);
+    console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, outbox-only submissions, offline consumers, persisted results, duplicate safety, insufficient funds, expiry compensation, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
     await relay.stop(); await publisher.close(); await results.stop();
