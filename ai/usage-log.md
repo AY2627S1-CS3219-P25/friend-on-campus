@@ -3360,7 +3360,7 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed (wiki, `wiki-checkout/`):** rewritten to the as-built system: `Home.md`, `_Sidebar.md`, `Architecture.md`, `Services.md`, `Data-Model.md`, `Mock-Services.md` (historical note), `Getting-Started.md`, `Deployment-and-Configuration.md`, `Testing-and-Evidence.md`, `Team-Conventions.md`, `Decisions-and-Open-Questions.md`, `Frontend-Apps.md`, `Authentication-and-Roles.md`, `User-Service.md`, `Supplier-Service.md`, `Roadmap.md`; new `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `Milestone-D3.md`; the nine D2 pages marked as the historical Week 7 record with dead repo links rewritten.
 
-## 2026-10-19 — PR #122 review follow-up
+## 2026-10-19 16:15 SGT — PR #122 review follow-up
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
 **Author:** Reallyeasy1
