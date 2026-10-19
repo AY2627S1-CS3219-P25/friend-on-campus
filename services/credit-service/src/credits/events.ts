@@ -1,17 +1,21 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Validate and dispatch asynchronous reservation and release commands.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Reused shared credit event contracts and translated validated messages into transactional credit commands.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
 import { createHash } from 'node:crypto';
-import type { OrderCancelledEvent, OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
+import type { CreditReservationRequestEvent, OrderCancelledEvent, OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
 import type { CreditCommand, CreditService } from './service';
 import { InvalidCreditEvent } from './errors';
 
-export type CreditEvent = UserRegisteredEvent | OrderCompletedEvent | OrderExpiredEvent | OrderCancelledEvent;
-export const creditRoutingKeys = ['user.registered', 'order.completed', 'order.cancelled', 'order.expired'] as const;
+export type CreditEvent = CreditReservationRequestEvent | UserRegisteredEvent | OrderCompletedEvent | OrderExpiredEvent | OrderCancelledEvent;
+export const creditRoutingKeys = ['user.registered', 'order.completed', 'order.cancelled', 'order.expired', 'order.reservation.requested', 'order.reservation.release_requested'] as const;
 
 function uuid(value: unknown, field: string): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
@@ -55,6 +59,9 @@ export function parseCreditEvent(content: Buffer, routingKey: string): CreditEve
     return { ...base, eventType: 'user.registered', userId: uuid(input.userId, 'userId'), email: input.email, initialGrant: amount(input.initialGrant, 'initialGrant') };
   }
   const order = { ...base, orderId: uuid(input.orderId, 'orderId'), requesterId: uuid(input.requesterId, 'requesterId'), rewardCredits: amount(input.rewardCredits, 'rewardCredits') };
+  if (input.eventType === 'order.reservation.requested' || input.eventType === 'order.reservation.release_requested') {
+    return { ...order, eventType: input.eventType, correlationId: uuid(input.correlationId, 'correlationId'), expiresAt: timestamp(input.expiresAt) };
+  }
   if (input.eventType === 'order.completed') return { ...order, eventType: 'order.completed', courierId: uuid(input.courierId, 'courierId') };
   return { ...order, eventType: input.eventType as 'order.expired' | 'order.cancelled' };
 }
@@ -63,7 +70,9 @@ export function createCreditEventHandler(credits: CreditService) {
   return async (content: Buffer, routingKey: string) => {
     const event = parseCreditEvent(content, routingKey);
     let command: CreditCommand;
-    if (event.eventType === 'user.registered') command = { kind: 'register', userId: event.userId, initialGrant: event.initialGrant };
+    if (event.eventType === 'order.reservation.requested') command = { kind: 'reserve-request', event };
+    else if (event.eventType === 'order.reservation.release_requested') command = { kind: 'release-request', event };
+    else if (event.eventType === 'user.registered') command = { kind: 'register', userId: event.userId, initialGrant: event.initialGrant };
     else {
       const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits };
       command = event.eventType === 'order.completed'

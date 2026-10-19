@@ -1,4 +1,12 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-10-19
+# Scope: Repair malformed messaging database URLs and isolate Credit migrations from Order in the saga job.
+# Author review: <to be completed by huangjiaxi1111>
+#
+# Tool: Codex (model: GPT-5), date: 2026-10-19
+# Scope: Added order-service messaging suite coverage and order-saga credit migration setup in the CI messaging matrix.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-11
 # Scope: Added static-matrix drift validation, isolated system-test stacks, Chromium UAT, console-only test output, and a dependency-only final gate.
 # Author review: <to be completed by ngkhengyang>
@@ -244,6 +252,11 @@ jobs:
             script: test:messaging
             database: deploy
             rabbitmq: true
+          - name: order-service
+            workspace: '@campus-errand/order-service'
+            script: test:messaging
+            database: deploy
+            rabbitmq: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -289,14 +302,27 @@ jobs:
         run: npm run db:deploy --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      # AI-generated (edited by huangjiaxi1111)
+      - name: Create credit database for order saga messaging tests
+        if: matrix.workspace == '@campus-errand/order-service'
+        run: node scripts/ci/create-test-database.mjs
+        env:
+          POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DATABASE_NAME: saga_credit_test
+      - name: Deploy credit migrations for order saga messaging tests
+        if: matrix.workspace == '@campus-errand/order-service'
+        run: npm run db:deploy --workspace=@campus-errand/credit-service
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saga_credit_test
       - name: Run configured messaging suite
         run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          ORDER_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
           TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
-          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/${{ matrix.workspace == '@campus-errand/order-service' && 'saga_credit_test' || 'ci_test' }}
           CREDIT_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
           NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           NOTIFICATION_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci

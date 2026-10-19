@@ -1,5 +1,12 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-5), date: 2026-10-19
+Scope: Recorded CI matrix consistency root-cause analysis and fix for the missing order-service messaging matrix entry.
+Author review: <to be completed by huangjiaxi1111>
+
+Tool: Codex (model: GPT-6), date: 2026-10-18
+Scope: Recorded asynchronous escrow saga implementation preparation, baseline checks, and the outstanding author-owned contract decisions.
+Author review: <to be completed by huangjiaxi1111>
 
 Tool: Codex (model: GPT-5), date: 2026-10-16
 Scope: Recorded the Prisma runtime-engine fix made in response to the PR #118 inline review.
@@ -3333,6 +3340,56 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-18 22:38 SGT — Implement outbox-only asynchronous reservation saga
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** fix/reserve-credit-gap
+
+**Prompt (summarised):** Confirm that pending submission details belong in the outbox, while no order exists until Credit confirms successful reservation; continue the requested RabbitMQ transactional-outbox saga implementation.
+
+**Usage scenario:** Implementation, debugging, tests, and factual documentation for the author's chosen async messaging/outbox/saga flow and explicit outbox-only pending persistence. The creation path now submits durably, waits for correlated Credit results, and inserts an OPEN order only after success. Insufficient funds reject the submission without inserting an order; late success after the existing deadline uses an idempotent release command and refund result. This implements the reservation slice of issue #18 [F4.3] and issue #21 [F4.6.1.1] duplicate safety / [F4.6.2] correlated outcomes, without claiming completion of all criteria in either issue. No dependency, commit, push, issue, or PR was added.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — submission receipt and reservation request/result contracts.
+- `services/order-service/src/orders/reservation.saga.ts` — persist submitted data only in the existing outbox; atomically create confirmed orders and lifecycle events or request late-success compensation; serialize duplicate results.
+- `services/order-service/src/orders/order.service.ts`, `services/order-service/src/orders/order.routes.ts` — asynchronous creation with 202 receipt and owner-protected submission polling.
+- `services/order-service/src/clients/credit.client.ts` — removed obsolete synchronous Credit client.
+- `services/order-service/src/repositories/order.repository.ts` — removed obsolete synchronous reservation compensation helper.
+- `services/order-service/src/messaging/reservation.consumer.ts`, `services/order-service/src/messaging/rabbitmq.ts` — validate Credit results and reuse existing durable consumer/retry/DLQ behavior.
+- `services/order-service/src/messaging/event.publisher.ts`, `services/order-service/src/messaging/outbox.relay.ts` — keep submission details out of published commands and prevent publisher confirmations from overwriting saga results.
+- `services/order-service/src/config.ts`, `services/order-service/src/index.ts` — reservation consumer configuration, startup, readiness and shutdown.
+- `services/credit-service/src/credits/events.ts`, `services/credit-service/src/credits/service.ts`, `services/credit-service/src/credits/store.ts` — validated reserve/release commands, atomic balance/ledger/dedup/result transactions, business-rejection savepoint rollback.
+- `services/credit-service/src/database/prisma/schema.prisma`, `services/credit-service/src/database/prisma/migrations/20261018150000_reservation_outbox/migration.sql` — Credit result outbox persistence and migration.
+- `services/credit-service/src/messaging/outbox.ts`, `services/credit-service/src/index.ts` — confirmed persistent publication, retry/reconnect, startup and shutdown.
+- `services/order-service/test/reservation.messaging.test.ts` — PostgreSQL/RabbitMQ scenarios covering outbox-only submissions, offline consumers, restart, duplicate delivery, insufficient funds, deadline handling, compensation, and rollback on either service's outbox failure.
+- `services/order-service/test/app.test.ts`, `services/order-service/test/helpers.ts`, `services/order-service/test/order.service.test.ts`, `services/order-service/test/outbox.relay.test.ts` — asynchronous fixtures, receipt authorization, lifecycle regression coverage and relay/result race test; corrected old event fixtures exposed by test type checking.
+- `services/order-service/package.json`, `services/order-service/tsconfig.test.json` — explicit unit/messaging scripts and type checking for test sources (JSON disclosure recorded here).
+- `docker/rabbitmq/definitions.json` — durable Order/Credit queues, initial bindings and service permissions for saga request/results (JSON disclosure recorded here).
+- `docker-compose.yml` — Order restart policy and removal of synchronous Credit URL.
+- `.github/workflows/ci.yml`, `scripts/ci/run-all-tests.mjs` — messaging matrix and separate Order/Credit test databases.
+- `docs/architecture.md`, `docs/errand-specification.md`, `docs/ci.md` — implemented flow, API receipt, recovery behavior, outbox retention, DLQ operations, and test prerequisites.
+- `ai/usage-log.md` — this entry and consolidated disclosure record.
+
+**Verification:** `npm ci` regenerated ignored Prisma clients. Fixed a test-fixture edit caught by the first unit run; sandbox HTTP `listen EPERM` was resolved by the approved outside-sandbox test execution. Root `npm run typecheck`, `npm run lint` (0 errors, 35 warnings), `npm run ci:validate-tests` (12 workspace suites / 3 system commands), and `git diff --check` passed. Full isolated `npm test` passed all unit, integration, messaging, migration, seed, acceptance, API E2E and Chromium suites (34/34 browser checks), including production container builds and the new real broker/database saga suite. After adding receipt authorization and relay/result-race assertions, the Order unit suite passed 47/47 and root type checks/lint passed again. Full-suite logs are at `/private/tmp/foc-saga-full-test.log`; its temporary Compose resources were cleaned by the runner.
+
+**Implementation boundaries:** Student posting remains the existing frontend mock and is not wired to the new receipt API. Exhausted consumer retries go to existing DLQs for operator repair/replay; automatic DLQ recovery and pending-submission cancellation are not implemented. Submission outbox records retain recovery data and must not be purged merely because their message was delivered. Rebuild/restart RabbitMQ to load updated definitions and rebuild Order/Credit; Compose deploys the Credit migration on startup. Author review remains pending.
+
+## 2026-10-19 13:57 SGT — Fix CI test gate failure on PR #123
+
+**Tool:** Codex (model: GPT-5)
+**Author:** huangjiaxi1111
+**Branch:** fix/reserve-credit-gap
+
+**Prompt (summarised):** Investigate the failing GitHub Actions job "CI / Test gate (pull_request)" for run 39150893456 (job 117744904346), find the root cause from logs, and implement a fix.
+
+**Usage scenario:** Debugging assistance and implementation code. I traced the failure to CI matrix drift (`test-config` missing `@campus-errand/order-service test:messaging`) and applied the smallest workflow fix; architecture and product decisions remained with the author.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — added the missing order-service messaging matrix entry plus required CI setup/env for its saga messaging test.
+- `ai/usage-log.md` — this entry.
+
+**Verification:** `npm run ci:validate-tests` passed (`Test matrix validation passed: 12 workspace suites and 3 system-test commands are consistent.`).
 ## 2026-10-18 13:30 SGT — Documentation refresh to main @ 7f2d972 (repo docs and GitHub wiki)
 
 **Tool:** Claude Code (model: Claude Fable 5.1; page rewrites drafted by Claude Opus 5.5 and Claude Sonnet 5.5 subagents, reviewed in the main session)

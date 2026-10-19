@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Replace synchronous Credit fakes with reservation submission and confirmation fixtures.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder, and search filtering to fake repository.
  * Author review: (to be completed by author after review)
@@ -8,18 +12,18 @@
  * Scope: In-memory repository fakes, mock clients, and HTTP test server helpers for Order Service unit/integration testing.
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 import { generateKeyPairSync } from 'node:crypto';
 import type { Express } from 'express';
 import type { AddressInfo } from 'node:net';
 import type { OrderDTO } from '@campus-errand/common-dtos';
 import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
-import type { CreditClient, ReserveEscrowParams } from '../src/clients/credit.client';
 import type { SupplierClient, SupplierDetails } from '../src/clients/supplier.client';
 import type { OrderEventPublisher, OrderLifecycleEvent } from '../src/messaging/event.publisher';
 import {
-  OrderAuthorizationError,
   OrderNotFoundError,
+  OrderAuthorizationError,
   OrderStateConflictError,
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
@@ -450,52 +454,8 @@ export function makeFakeOrderRepository() {
       return count;
     },
 
-    async recordCompensatingRefund(orderId: string, requesterId: string, rewardCredits: number): Promise<void> {
-      outboxEvents.push({
-        id: crypto.randomUUID(),
-        eventType: 'order.cancelled',
-        payload: JSON.stringify({
-          eventId: crypto.randomUUID(),
-          eventType: 'order.cancelled',
-          timestamp: new Date().toISOString(),
-          orderId,
-          requesterId,
-          rewardCredits,
-        }),
-        status: 'PENDING',
-        retryCount: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    },
   };
-
   return { repo, orders, outboxEvents };
-}
-
-export function makeFakeCreditClient(opts: { defaultSuccess?: boolean; defaultError?: string } = {}) {
-  const reservations: ReserveEscrowParams[] = [];
-  let shouldSucceed = opts.defaultSuccess ?? true;
-  let customError = opts.defaultError;
-
-  const client: CreditClient = {
-    async reserveEscrow(params: ReserveEscrowParams) {
-      reservations.push(params);
-      if (shouldSucceed) {
-        return { success: true, status: 200 };
-      }
-      return { success: false, status: 400, error: customError || 'Insufficient available credits' };
-    },
-  };
-
-  return {
-    client,
-    reservations,
-    setSuccess(val: boolean, error?: string) {
-      shouldSucceed = val;
-      customError = error;
-    },
-  };
 }
 
 export function makeFakeSupplierClient(knownSuppliers: Record<string, SupplierDetails> = {}) {
@@ -568,4 +528,33 @@ export async function startTestServer(app: Express): Promise<{ url: string; clos
       });
     });
   });
+}
+
+// AI-generated (edited by huangjiaxi1111)
+export function makeFakeReservationSaga(fakeRepo: ReturnType<typeof makeFakeOrderRepository>) {
+  const submissions = new Map<string, CreateOrderParams>();
+  const saga: import('../src/orders/reservation.saga').ReservationSaga = {
+    async submit(data) {
+      const id = data.id!;
+      submissions.set(id, data);
+      return { id, status: 'PENDING' };
+    },
+    async get(id, requesterId) {
+      const data = submissions.get(id);
+      if (!data) throw new OrderNotFoundError('Submission not found');
+      if (data.requesterId !== requesterId) throw new OrderAuthorizationError();
+      const order = await fakeRepo.repo.findOrderById(id);
+      return order ? { id, status: 'OPEN', order } : { id, status: 'PENDING' };
+    },
+    async handleResult() { throw new Error('Use the real saga in messaging tests'); },
+  };
+  async function approve(id: string) {
+    const data = submissions.get(id)!;
+    return fakeRepo.repo.createOrderWithOutbox(data, {
+      eventId: crypto.randomUUID(), eventType: 'order.created', timestamp: new Date().toISOString(),
+      orderId: id, orderCode: data.orderCode, requesterId: data.requesterId,
+      rewardCredits: data.rewardCredits, campusZone: data.campusZone!, expiresAt: data.expiresAt.toISOString(),
+    });
+  }
+  return { saga, submissions, approve };
 }

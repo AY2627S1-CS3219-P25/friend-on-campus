@@ -1,5 +1,12 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-19
+Scope: Clarify separate saga databases and broker credentials in GitHub CI versus the local runner.
+Author review: <to be completed by huangjiaxi1111>
+
+Tool: Codex (model: GPT-6), date: 2026-10-18
+Scope: Document the reservation messaging suite and its two service-owned test databases.
+Author review: <to be completed by huangjiaxi1111>
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Verified the job list and command table against .github/workflows/ci.yml and package.json on main @ 7f2d972; added the acceptance driver names and the separate Claude PR review workflow.
 Author review: <to be completed by Reallyeasy1>
@@ -94,3 +101,11 @@ Matrix metadata uses `database: none`, `schema`, or `deploy`, plus `rabbitmq: tr
 Place the workspace under an existing root workspace glob (`apps/*`, `services/*`, or `packages/*`) and add a real `build` script to its `package.json`. The root build intentionally omits `--if-present`, so CI fails instead of silently skipping a workspace without a build.
 
 Add `typecheck` and convention-compliant test scripts when they apply, then add each test command to the appropriate static matrix or system-test job in `.github/workflows/ci.yml`. Database-backed services must also expose `db:generate`; a suite that needs application tables should expose `db:deploy` and use `database: deploy`. Run `npm install` at the repository root to update `package-lock.json`, then verify `npm run ci:validate-tests`, `npm run lint`, `npm run build`, `npm run typecheck`, the practical category commands, and `npm test` when Docker is available.
+
+## Reservation saga messaging test
+
+Order Service's `test:messaging` runs against two separate migrated databases: `ORDER_TEST_DATABASE_URL` (Order schema) and `CREDIT_TEST_DATABASE_URL` (Credit schema), both ending in `_test`. The aggregate runner provisions `order_messaging_test` and `credit_messaging_test`. The Order messaging CI job creates `ci_test` for Order and `saga_credit_test` for Credit, then deploys each service's migrations only into its own database. Each database has its own `_prisma_migrations` history. Other messaging matrix entries continue to use their job's isolated `ci_test` database.
+
+`CREDIT_TEST_RABBITMQ_URL` uses the `credit_test` account in the `campus` vhost locally, and the CI service container's `ci_test` account in the `ci` vhost on GitHub. The saga suite uses isolated `credit-test.*` broker resources in either environment.
+
+The suite covers outbox-only pending submissions, offline consumers, restart recovery, duplicate messages, insufficient funds, expiry and late-success refunds, and rollback when either service cannot write its outbox.

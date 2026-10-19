@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-10-18
+// Scope: Add the persistent Credit result outbox used by the reservation saga.
+// Author review: <to be completed by huangjiaxi1111>
+//
 // Tool: Codex (model: GPT-6), date: 2026-09-24
 // Scope: Added persistent grants, escrow state and processed event identities.
 // Author review: <to be completed by huangjiaxi1111>
@@ -68,4 +72,18 @@ model ProcessedCreditEvent {
   processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
 
   @@map("processed_credit_events")
+}
+
+// AI-generated (edited by huangjiaxi1111)
+model CreditOutboxEvent {
+  id         String   @id @db.Uuid
+  eventType  String   @map("event_type") @db.VarChar(64)
+  payload    String   @db.Text
+  status     String   @default("PENDING") @db.VarChar(20)
+  retryCount Int      @default(0) @map("retry_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt], map: "credit_outbox_status_created_at_idx")
+  @@map("credit_outbox_events")
 }

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Verify asynchronous creation receipts, polling authorization and existing lifecycle routes.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added integration tests for admin order endpoints, RBAC authorization (403), optimistic concurrency (409), and search.
  * Author review: (to be completed by author after review)
@@ -8,6 +12,7 @@
  * Scope: Integration test suite for Order Service HTTP application, authentication middleware, route handlers, and status codes.
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +20,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { createApp } from '../src/app';
 import { createOrderService } from '../src/orders/order.service';
 import {
-  makeFakeCreditClient,
+  makeFakeReservationSaga,
   makeFakeOrderRepository,
   makeFakeSupplierClient,
   startTestServer,
@@ -29,7 +34,7 @@ const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 describe('Order Service HTTP Application & Routes', () => {
   function setupApp() {
     const fakeRepo = makeFakeOrderRepository();
-    const fakeCredit = makeFakeCreditClient();
+    const fakeSaga = makeFakeReservationSaga(fakeRepo);
     const fakeSupplier = makeFakeSupplierClient({
       [SUPPLIER_ID]: {
         id: SUPPLIER_ID,
@@ -41,7 +46,7 @@ describe('Order Service HTTP Application & Routes', () => {
 
     const orderService = createOrderService({
       repository: fakeRepo.repo,
-      creditClient: fakeCredit.client,
+      reservationSaga: fakeSaga.saga,
       supplierClient: fakeSupplier.client,
     });
 
@@ -63,7 +68,7 @@ describe('Order Service HTTP Application & Routes', () => {
       isReady: async () => true,
     });
 
-    return { app, fakeRepo, fakeCredit, fakeSupplier };
+    return { app, fakeRepo, fakeSaga, fakeSupplier };
   }
 
   it('responds with UP and READY on health and readiness endpoints', async () => {
@@ -128,7 +133,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('creates, claims, picks up, delivers, and completes an errand through HTTP endpoints', async () => {
-    const { app } = setupApp();
+    const { app, fakeSaga } = setupApp();
     const server = await startTestServer(app);
     try {
       // 1. Create order as Alice
@@ -146,11 +151,22 @@ describe('Order Service HTTP Application & Routes', () => {
           durationMinutes: 45,
         }),
       });
-      assert.equal(createRes.status, 201);
+      assert.equal(createRes.status, 202);
       const createdBody = await createRes.json() as any;
+      assert.equal(createRes.headers.get('location'), `/api/orders/submissions/${createdBody.data.id}`);
+      const receiptUrl = `${server.url}/api/orders/submissions/${createdBody.data.id}`;
+      const pending = await fetch(receiptUrl, { headers: { 'x-user-id': ALICE_ID } });
+      assert.equal(pending.status, 200);
+      assert.equal((await pending.json() as any).data.status, 'PENDING');
+      assert.equal((await fetch(receiptUrl, { headers: { 'x-user-id': BOB_ID } })).status, 403);
+      assert.equal((await fetch(receiptUrl)).status, 401);
+      assert.equal((await fetch(`${server.url}/api/orders/${createdBody.data.id}`, { headers: { 'x-user-id': ALICE_ID } })).status, 404);
+
       assert.equal(createdBody.success, true);
       const orderId = createdBody.data.id;
-      assert.equal(createdBody.data.status, 'OPEN');
+      assert.equal(createdBody.data.status, 'PENDING');
+      await fakeSaga.approve(orderId);
+      assert.equal(createdBody.data.status, 'PENDING');
 
       // 2. Discover in feed (authenticated)
       const listRes = await fetch(`${server.url}/api/orders`, {
@@ -215,7 +231,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('returns 409 Conflict when a second user attempts to claim an already accepted errand', async () => {
-    const { app } = setupApp();
+    const { app, fakeSaga } = setupApp();
     const server = await startTestServer(app);
     try {
       // Create order
@@ -233,6 +249,7 @@ describe('Order Service HTTP Application & Routes', () => {
         }),
       });
       const orderId = (await createRes.json() as any).data.id;
+      await fakeSaga.approve(orderId);
 
       // Bob accepts
       const bobRes = await fetch(`${server.url}/api/orders/${orderId}/accept`, {
@@ -290,7 +307,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('rejects over-length dropoffLocation or non-string specialNotes with 400 Bad Request without reserving escrow', async () => {
-    const { app, fakeCredit } = setupApp();
+    const { app, fakeSaga } = setupApp();
     const server = await startTestServer(app);
     try {
       // Over 255 chars dropoffLocation
@@ -333,7 +350,7 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.match(nonStringBody.error, /specialNotes must be a string/);
 
       // Verify that no escrow reservation was attempted
-      assert.equal(fakeCredit.reservations.length, 0);
+      assert.equal(fakeSaga.submissions.size, 0);
     } finally {
       await server.close();
     }
@@ -358,7 +375,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST01',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 10,
       });
 
@@ -424,7 +442,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST02',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 8,
       });
 
@@ -472,7 +491,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST03',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 10,
       });
 
@@ -518,7 +538,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST04',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 15,
       });
 
@@ -531,7 +552,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 15,
       });
       await fakeRepo.repo.pickupOrder(order.id, BOB_ID, {
         eventType: 'order.in_transit',
@@ -541,7 +561,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 15,
       });
       await fakeRepo.repo.deliverOrder(order.id, BOB_ID, {
         eventType: 'order.delivered',
@@ -551,7 +570,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 15,
       });
 
       const res = await fetch(`${server.url}/api/orders/${order.id}/admin/complete`, {
@@ -598,7 +616,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST05',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 6,
       });
 
@@ -610,7 +629,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 6,
       });
 
       const res = await fetch(`${server.url}/api/orders/${order.id}/admin/unassign`, {

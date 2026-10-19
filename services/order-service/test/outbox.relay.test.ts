@@ -1,9 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Test conditional relay updates and the confirmation/result race.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Unit test suite for Transactional Outbox relay polling, publisher confirm retries, and poisoned payload isolation.
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,11 +27,11 @@ describe('Transactional Outbox Relay for Order Service', () => {
             .filter((e) => e.status === args.where.status)
             .slice(0, args.take ?? 20);
         },
-        async update(args: { where: { id: string }; data: any }) {
-          const item = events.find((e) => e.id === args.where.id);
-          if (!item) throw new Error('Not found');
+        async updateMany(args: { where: { id: string; status: string }; data: any }) {
+          const item = events.find((e) => e.id === args.where.id && e.status === args.where.status);
+          if (!item) return { count: 0 };
           Object.assign(item, args.data);
-          return item;
+          return { count: 1 };
         },
       },
     };
@@ -141,4 +146,18 @@ describe('Transactional Outbox Relay for Order Service', () => {
     assert.equal(count, 0);
     assert.equal(events[0].status, 'FAILED');
   });
+  it('does not overwrite a saga result that arrives before the publisher confirm', async () => {
+    const { prismaMock, events } = makeMockPrisma([{
+      id: 'submission', eventType: 'order.reservation.requested',
+      payload: JSON.stringify({ eventType: 'order.reservation.requested', eventId: 'submission' }),
+      status: 'PENDING', retryCount: 0, createdAt: new Date(), updatedAt: new Date(),
+    }]);
+    const relay = createOutboxRelay({ prisma: prismaMock as any, publisher: {
+      async publishOrderEvent() { events[0].status = 'COMPLETED'; return true; },
+      async close() {},
+    } });
+    await relay.processPending();
+    assert.equal(events[0].status, 'COMPLETED');
+  });
+
 });

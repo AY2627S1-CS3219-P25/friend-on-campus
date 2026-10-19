@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Condition relay writes on pending status so publisher confirms cannot overwrite saga outcomes.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored Transactional Outbox relay using extracted batch processing helpers and a lightweight factory function.
  * Author review: (to be completed by author after review)
@@ -50,8 +54,8 @@ async function processSingleOutboxRecord(
       id: record.id,
       eventType: record.eventType,
     });
-    await prisma.outboxEvent.update({
-      where: { id: record.id },
+    await prisma.outboxEvent.updateMany({
+      where: { id: record.id, status: 'PENDING' },
       data: { status: 'FAILED' },
     });
     return 'FAILED';
@@ -59,8 +63,8 @@ async function processSingleOutboxRecord(
 
   const success = await publisher.publishOrderEvent(parsed);
   if (success) {
-    await prisma.outboxEvent.update({
-      where: { id: record.id },
+    await prisma.outboxEvent.updateMany({
+      where: { id: record.id, status: 'PENDING' },
       data: { status: 'DELIVERED' },
     });
     return 'DELIVERED';
@@ -72,8 +76,8 @@ async function processSingleOutboxRecord(
       `[outbox_publish_warning] Broker publish failing repeatedly (${newRetryCount} attempts) for event ${record.id} (${record.eventType}); keeping PENDING until broker recovers.`
     );
   }
-  await prisma.outboxEvent.update({
-    where: { id: record.id },
+  await prisma.outboxEvent.updateMany({
+    where: { id: record.id, status: 'PENDING' },
     data: {
       retryCount: newRetryCount,
       status: 'PENDING',

@@ -1,22 +1,28 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Publish reservation commands while keeping submission details local to Order.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored confirmed RabbitMQ publisher using extracted channel/publishing handlers and a lightweight factory function.
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import amqp, { type ConfirmChannel, type Options } from 'amqplib';
 import type {
-  OrderCreatedEvent,
+  CreditReservationRequestEvent,
   OrderAcceptedEvent,
-  OrderInTransitEvent,
-  OrderDeliveredEvent,
-  OrderCompletedEvent,
-  OrderExpiredEvent,
   OrderCancelledEvent,
+  OrderCompletedEvent,
+  OrderCreatedEvent,
+  OrderDeliveredEvent,
+  OrderExpiredEvent,
+  OrderInTransitEvent,
 } from '@campus-errand/common-dtos';
+import amqp, { type ConfirmChannel, type Options } from 'amqplib';
 
 export type OrderLifecycleEvent =
+  | CreditReservationRequestEvent
   | OrderCreatedEvent
   | OrderAcceptedEvent
   | OrderInTransitEvent
@@ -92,7 +98,9 @@ async function handlePublishEvent(
     throw new Error('Publisher channel unavailable');
   }
 
-  const content = Buffer.from(JSON.stringify(event), 'utf8');
+  // Keep submitted item/contact details local to the Order outbox.
+  const { submission: _submission, reason: _reason, ...message } = event as OrderLifecycleEvent & { submission?: unknown; reason?: unknown };
+  const content = Buffer.from(JSON.stringify(message), 'utf8');
   await publishFn(exchange, event.eventType, content, {
     contentType: 'application/json',
     messageId: event.eventId,

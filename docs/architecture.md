@@ -1,5 +1,8 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-18
+Scope: Align service interactions and outbox facts with the author-approved asynchronous reservation flow.
+Author review: <to be completed by huangjiaxi1111>
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Verified against main @ 7f2d972 and corrected facts (frontend proxy path, notification consumption, escrow-reserve failure statuses, outbox status names, gateway image); added gateway route table, outbox relay and expiry sweeper intervals, compensating refund, queue/retry/DLQ topology, WebSocket protocol, container runtime facts, and CI / Claude PR review. Facts only, no rationale added.
 Author review: <to be completed by Reallyeasy1>
@@ -55,7 +58,8 @@ flowchart TB
   GW -->|"/api/notifications, /ws/"| NS
   OS -->|"Sync HTTP supplier lookup<br/>GET /api/suppliers/:id"| SS
 
-  OS -->|"Sync HTTP Escrow Reserve<br/>POST /api/credits/escrow/reserve"| CS
+  CS -.->|"Publish credit.reservation.*"| MQ
+  MQ -.->|"Consume credit.reservation.*"| OS
 
   US --> UDB
   SS --> SDB

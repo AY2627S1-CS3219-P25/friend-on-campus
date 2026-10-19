@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Add submission receipts and correlated reservation request/result DTOs for the author-approved saga.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
  * Scope: Optional username claim on JWTPayload and optional courierUsername on the accepted, in-transit and
@@ -44,6 +48,7 @@
  * UpdateSupplierRequest and SupplierDTO are unchanged (partial-update and read shapes stay flexible).
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
 // AI-generated (edited by ngkhengyang)
@@ -320,6 +325,32 @@ export interface OrderCreatedEvent extends BaseEvent {
   rewardCredits: number;
   campusZone: string;
   expiresAt: string;
+}
+
+// A submission is not an order until its credit reservation succeeds.
+export interface OrderSubmissionDTO {
+  id: string;
+  status: 'PENDING' | 'OPEN' | 'REJECTED' | 'COMPENSATING' | 'COMPENSATED';
+  reason?: string;
+  order?: OrderDTO;
+}
+
+export interface CreditReservationRequestEvent extends BaseEvent {
+  eventType: 'order.reservation.requested' | 'order.reservation.release_requested';
+  correlationId: string;
+  orderId: string;
+  requesterId: string;
+  rewardCredits: number;
+  expiresAt: string;
+}
+
+export interface CreditReservationResultEvent extends BaseEvent {
+  eventType: 'credit.reservation.succeeded' | 'credit.reservation.failed' | 'credit.reservation.released';
+  correlationId: string;
+  orderId: string;
+  requesterId: string;
+  rewardCredits: number;
+  reason?: string;
 }
 
 // AI-generated (edited by Reallyeasy1)

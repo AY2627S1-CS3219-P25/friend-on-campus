@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Provision an isolated Order database for the cross-service reservation messaging suite.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-11
  * Scope: Select isolated host ports, route every aggregate command through them, and invoke npm portably on Windows.
  * Author review: <to be completed by ngkhengyang>
@@ -8,6 +12,7 @@
  * Scope: Orchestrate the complete local test suite with isolated PostgreSQL, RabbitMQ, Compose, API E2E, and Chromium UAT resources.
  * Author review: <to be completed by ngkhengyang>
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by ngkhengyang)
 import { generateKeyPairSync } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
@@ -204,6 +209,7 @@ async function runDatabaseSuites() {
     notificationIntegration: 'notification_integration_test',
     userIntegration: 'user_integration_test',
     creditMessaging: 'credit_messaging_test',
+    orderMessaging: 'order_messaging_test',
     notificationMessaging: 'notification_messaging_test',
     creditMigration: 'credit_migration_test',
     creditSeed: 'credit_seed_test',
@@ -219,10 +225,12 @@ async function runDatabaseSuites() {
     ADMIN_GUARD_TEST_DATABASE_URL: databaseUrl(databases.userIntegration),
   }, 20);
 
+  await deployDatabase('@campus-errand/order-service', databaseUrl(databases.orderMessaging));
   await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.creditMessaging));
   await deployDatabase('@campus-errand/notification-service', databaseUrl(databases.notificationMessaging));
   await runNpm('test:messaging', {
     ...testEnvironment,
+    ORDER_TEST_DATABASE_URL: databaseUrl(databases.orderMessaging),
     CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMessaging),
     CREDIT_TEST_RABBITMQ_URL: rabbitmqUrl('credit_test', 'credit-test-dev'),
     NOTIFICATION_TEST_DATABASE_URL: databaseUrl(databases.notificationMessaging),

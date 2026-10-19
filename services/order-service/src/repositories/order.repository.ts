@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Remove obsolete synchronous reservation compensation bookkeeping.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder with optimistic version checks and search options.
  * Author review: (to be completed by author after review)
@@ -9,8 +13,8 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import crypto from 'node:crypto';
 import type { OrderDTO } from '@campus-errand/common-dtos';
+import crypto from 'node:crypto';
 import type { PrismaClient } from '../database/client';
 import type { OrderLifecycleEvent } from '../messaging/event.publisher';
 import {
@@ -58,7 +62,6 @@ export interface OrderRepository {
   adminCompleteOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
   adminUnassignOrder(orderId: string, adminUserId: string, reason: string, expectedVersion?: number): Promise<OrderDTO>;
   expireDueOrders(now: Date): Promise<number>;
-  recordCompensatingRefund(orderId: string, requesterId: string, rewardCredits: number): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -475,29 +478,6 @@ async function handleCancelOrder(
   });
 }
 
-async function handleRecordCompensatingRefund(
-  prisma: PrismaClient,
-  orderId: string,
-  requesterId: string,
-  rewardCredits: number
-): Promise<void> {
-  const event = {
-    eventId: crypto.randomUUID(),
-    eventType: 'order.cancelled',
-    timestamp: new Date().toISOString(),
-    orderId,
-    requesterId,
-    rewardCredits,
-  };
-  await prisma.outboxEvent.create({
-    data: {
-      eventType: 'order.cancelled',
-      payload: JSON.stringify(event),
-      status: 'PENDING',
-    },
-  });
-}
-
 async function handleExpireDueOrders(
   prisma: PrismaClient,
   now: Date
@@ -747,7 +727,5 @@ export function createOrderRepository(prisma: PrismaClient): OrderRepository {
     adminUnassignOrder: (orderId, adminUserId, reason, expectedVersion) =>
       handleAdminUnassignOrder(prisma, orderId, adminUserId, reason, expectedVersion),
     expireDueOrders: (now) => handleExpireDueOrders(prisma, now),
-    recordCompensatingRefund: (orderId, requesterId, rewardCredits) =>
-      handleRecordCompensatingRefund(prisma, orderId, requesterId, rewardCredits),
   };
 }
