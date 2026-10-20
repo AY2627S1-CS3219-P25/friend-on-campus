@@ -1,22 +1,36 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Each card of an accepted-or-later errand gains a Chat toggle that expands the conversation in place
+ * (author's D9, F8.1.1); OPEN errands have no conversation yet and show no toggle.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx.
  * Author review: Verified by yanhwee
  */
 
 // AI-generated (edited by yanhwee)
+// AI-generated (edited by Reallyeasy1)
 
+import { useState } from 'react';
 import { OrderDTO } from '@campus-errand/common-dtos';
-import { Coins } from 'lucide-react';
+import { Coins, MessageCircle } from 'lucide-react';
 import { ExpandableNotes } from '../components/ExpandableNotes';
+import { ChatPanel } from '../chat/ChatPanel';
+import type { ChatApi } from '../chat/useChat';
 
 interface TasksPageProps {
   orders: OrderDTO[];
   currentUserId: string | null;
+  chat: ChatApi;
 }
 
-export function TasksPage({ orders, currentUserId }: TasksPageProps) {
+/** A conversation exists from accept onwards (F8.1); before that the card has nothing to open. */
+const CHAT_STATUSES: ReadonlySet<OrderDTO['status']> = new Set(['ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'DISPUTED']);
+
+export function TasksPage({ orders, currentUserId, chat }: TasksPageProps) {
+  const [openChat, setOpenChat] = useState<string | null>(null);
   const groups = [
     {
       key: 'posted',
@@ -80,6 +94,20 @@ export function TasksPage({ orders, currentUserId }: TasksPageProps) {
                 <p title={task.dropoffLocation} className="truncate text-xs text-slate-500">
                   Dropoff: {task.dropoffLocation}
                 </p>
+                {CHAT_STATUSES.has(task.status) && (
+                  <>
+                    <button
+                      type="button"
+                      aria-expanded={openChat === task.id}
+                      onClick={() => setOpenChat((current) => (current === task.id ? null : task.id))}
+                      className="flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      {openChat === task.id ? 'Hide chat' : 'Chat'}
+                    </button>
+                    {openChat === task.id && <ChatPanel orderId={task.id} currentUserId={currentUserId} chat={chat} />}
+                  </>
+                )}
               </article>
             ))}
           </div>

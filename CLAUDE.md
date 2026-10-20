@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+Scope: Section 4 repo map: added services/chat-service (:8006, chat_db), the /ws/chat/ gateway route and the sixth database.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-20
 Scope: Updated Section 4 Prisma CLI and root .env loading notes.
 Author review: <to be completed by author after review>
@@ -159,12 +163,13 @@ services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/inde
 services/order-service         :8003  real (Prisma, order_db)     entry src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
+services/chat-service          :8006  Prisma, chat_db             entry src/index.ts, scaffold for F8 (consumer bound, no models yet)
 apps/student-app               :5173  one src/App.tsx (~1700 lines), no router
 apps/admin-portal              :5174  one src/App.tsx (~3850 lines), no router
 packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
-gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/postgres-init/*.sql            creates the 5 databases (tables managed per-service by migrations)
+gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /ws/chat/ -> chat, /admin/, /
+docker/postgres-init/*.sql            creates the 6 databases (tables managed per-service by migrations)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
 docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config

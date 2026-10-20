@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+Scope: Added the Chat Service row to the service table.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Verified the Quick Reference and seeded accounts against main @ 7f2d972; added the gateway URL, the `npm test` line and the wiki link.
 Author review: <to be completed by Reallyeasy1>
@@ -37,6 +41,7 @@ This documentation is organized into focused, authoritative specifications that 
 | **Order Service** | `8003` | `order_db` | Errand lifecycle state transitions, synchronous credit escrow reservation, atomic single-winner claiming, and outbox event publishing. |
 | **Credit Service** | `8004` | `credit_db` | Closed credit economy, wallet accounts, transaction ledgers, escrow holds/settlement/refunds, and idempotent event consumer. |
 | **Notification Service** | `8005` | `notification_db` | In-app notification persistence, authenticated WebSocket real-time push (`/ws`), and errand event consumer. |
+| **Chat Service** | `8006` | `chat_db` | F8 private conversation per accepted errand. Scaffold on `feature/chat-service`: health, readiness and the order-event consumer; the conversation model, socket protocol and routes follow the author's design brief. |
 
 *API request/response types and domain event payload interfaces are authoritatively defined in code at `packages/common-dtos/src/index.ts`. Access-token verification is shared through `packages/auth` (see its `README.md`).*
 

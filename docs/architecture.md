@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+Scope: Added the Chat Service (F8) to the gateway route table and the port list, and section 3E with its socket frames, history route and event projection; facts only.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-18
 Scope: Align service interactions and outbox facts with the author-approved asynchronous reservation flow.
 Author review: <to be completed by huangjiaxi1111>
@@ -133,6 +137,13 @@ Cross-service workflows that do not require blocking the user response are decou
 - The socket is closed with code `4401` when no valid AUTH frame arrives within 5 s, for an invalid token, and when the access token expires. A ping every 30 s evicts sockets that did not answer the previous one.
 - A notification row is stored before it is pushed; `notifications.eventId` is unique, which is the consumer's deduplication.
 
+### E. WebSocket and REST (Chat Service, F8)
+- The gateway forwards `/ws/chat/` to the root path of `chat-service` (port 8006) and `/api/chat` to its REST routes; both share one HTTP server.
+- Handshake as in D: first frame `{ "type": "AUTH", "token": "<access token>" }`, reply `{ "type": "AUTH_OK" }`, close `4401` on a missing, invalid or expired token, 30 s ping eviction. Sockets are filed by user id.
+- The client sends `{ "type": "SEND", "orderId", "text", "clientId"? }`. The server stores the message and pushes `{ "type": "MESSAGE", "orderId", "message" }` to every socket of both participants, or answers the sender with `{ "type": "ERROR", "orderId", "clientId", "code", "message" }` (`NOT_FOUND`, `FORBIDDEN`, `CLOSED`, `EMPTY`, `NO_USERNAME`, `BAD_FRAME`).
+- History: `GET /api/chat/:orderId?afterSequence=&limit=` returns the conversation and its messages in sequence order to the requester, the assigned courier and admins; when no conversation row exists it is created from `GET /api/orders/:id` on the Order Service (the caller's token forwarded), and a 404 or an unavailable Order Service answers 404 or 503.
+- Conversation rows are projected from `order.accepted` (create, or replace the courier), `order.in_transit` and `order.delivered` (timestamps) and `order.completed`, `order.cancelled`, `order.expired` (`closedAt`); events for an order with no row are acknowledged without effect. Messages may be sent only while `closedAt` is null; the sender's username and role are copied from the access token.
+
 ---
 
 ## 4. Data Architecture (Database-per-Service)
@@ -176,6 +187,8 @@ The entire platform is defined and orchestrated using `docker-compose.yml`:
 | `/api/credits`, `/api/credits/` | `credit-service:8004` |
 | `/api/notifications`, `/api/notifications/` | `notification-service:8005` |
 | `/ws/` | `notification-service:8005` root path (HTTP/1.1 upgrade, 86400 s read/send timeout) |
+| `/api/chat`, `/api/chat/` | `chat-service:8006` (F8 scaffold; routes to be defined) |
+| `/ws/chat/` | `chat-service:8006` root path (HTTP/1.1 upgrade, 86400 s read/send timeout; no socket server yet) |
 | `/admin` (301 → `/admin/`), `/admin/` | `admin-portal:5174` |
 | any other `/api` path | `404` |
 | `/` | `student-app:5173` |
@@ -186,7 +199,7 @@ The entire platform is defined and orchestrated using `docker-compose.yml`:
 |---|---|
 | api-gateway | 80 |
 | student-app / admin-portal | 5173 / 5174 |
-| user / supplier / order / credit / notification service | 8001 / 8002 / 8003 / 8004 / 8005 |
+| user / supplier / order / credit / notification / chat service | 8001 / 8002 / 8003 / 8004 / 8005 / 8006 |
 | postgres | 5432 |
 | rabbitmq | 5672 (AMQP), 15672 (management UI) |
 

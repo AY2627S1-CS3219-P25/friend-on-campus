@@ -1,4 +1,8 @@
 -- AI Assistance Disclosure:
+-- Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+-- Scope: Added the chat_svc role, chat_db and its grants for the Chat Service (F8), same shape as the other five.
+-- Author review: <to be completed by Reallyeasy1>
+--
 -- Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 -- Scope: Provisioned dedicated least-privilege PostgreSQL roles per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and revoked PUBLIC cross-database CONNECT privileges to enforce Database-per-Service isolation.
 -- Author review: Validated by Yee Yan Hwee (yanhwee)
@@ -22,24 +26,28 @@ CREATE ROLE supplier_svc WITH LOGIN PASSWORD 'supplier-service-dev';
 CREATE ROLE order_svc WITH LOGIN PASSWORD 'order-service-dev';
 CREATE ROLE credit_svc WITH LOGIN PASSWORD 'credit-service-dev';
 CREATE ROLE notification_svc WITH LOGIN PASSWORD 'notification-service-dev';
+CREATE ROLE chat_svc WITH LOGIN PASSWORD 'chat-service-dev';
 
 CREATE DATABASE user_db OWNER user_svc;
 CREATE DATABASE supplier_db OWNER supplier_svc;
 CREATE DATABASE order_db OWNER order_svc;
 CREATE DATABASE credit_db OWNER credit_svc;
 CREATE DATABASE notification_db OWNER notification_svc;
+CREATE DATABASE chat_db OWNER chat_svc;
 
 REVOKE CONNECT ON DATABASE user_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE supplier_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE order_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE credit_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE notification_db FROM PUBLIC;
+REVOKE CONNECT ON DATABASE chat_db FROM PUBLIC;
 
 GRANT ALL PRIVILEGES ON DATABASE user_db TO user_svc;
 GRANT ALL PRIVILEGES ON DATABASE supplier_db TO supplier_svc;
 GRANT ALL PRIVILEGES ON DATABASE order_db TO order_svc;
 GRANT ALL PRIVILEGES ON DATABASE credit_db TO credit_svc;
 GRANT ALL PRIVILEGES ON DATABASE notification_db TO notification_svc;
+GRANT ALL PRIVILEGES ON DATABASE chat_db TO chat_svc;
 
 \connect user_db
 GRANT ALL ON SCHEMA public TO user_svc;
@@ -65,3 +73,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENC
 GRANT ALL ON SCHEMA public TO notification_svc;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO notification_svc;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO notification_svc;
+
+\connect chat_db
+GRANT ALL ON SCHEMA public TO chat_svc;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO chat_svc;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO chat_svc;

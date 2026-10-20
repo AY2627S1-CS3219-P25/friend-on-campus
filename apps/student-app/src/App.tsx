@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Wires the chat socket hook (F8) and passes it to TasksPage.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic student-app App.tsx into modular api/, hooks/, components/, and pages/ architecture.
  * Author review: Verified by yanhwee
@@ -42,6 +46,7 @@ import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useNotifications } from './notifications/useNotifications';
+import { useChat } from './chat/useChat';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -145,6 +150,8 @@ export default function App() {
     },
   });
   const wsStatus = notifications.status;
+  // AI-generated (edited by Reallyeasy1): the chat socket (F8) beside the notification socket.
+  const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const fetchCredits = async () => {
@@ -525,7 +532,7 @@ export default function App() {
         )}
 
         {activeTab === 'tasks' && (
-          <TasksPage orders={orders} currentUserId={currentUserId} />
+          <TasksPage orders={orders} currentUserId={currentUserId} chat={chat} />
         )}
 
         {activeTab === 'alerts' && (

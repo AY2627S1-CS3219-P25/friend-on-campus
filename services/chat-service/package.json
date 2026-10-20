@@ -1,0 +1,39 @@
+{
+  "name": "@campus-errand/chat-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Private conversation per accepted errand (F8) for NUS CampusErrand",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test:unit": "node --import tsx --test test/app.test.ts test/events.test.ts test/service.test.ts test/hub.test.ts test/routes.test.ts",
+    "test:integration": "node --import tsx --test test/store.integration.test.ts",
+    "test:messaging": "node --import tsx --test test/messaging.integration.test.ts",
+    "build": "tsc",
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:migrate": "node -e \"require('dotenv').config({path:['.env','../../.env']});process.env.DATABASE_URL||=process.env.CHAT_DATABASE_URL||'postgresql://chat_svc:chat-service-dev@localhost:5432/chat_db';const r=require('node:child_process').spawnSync(process.execPath,[require.resolve('prisma/build/index.js'),'migrate','dev','--schema','prisma/schema.prisma',...process.argv.slice(1)],{stdio:'inherit'});process.exit(r.status??1)\"",
+    "db:deploy": "node -e \"require('dotenv').config({path:['.env','../../.env']});process.env.DATABASE_URL||=process.env.CHAT_DATABASE_URL||'postgresql://chat_svc:chat-service-dev@localhost:5432/chat_db';const r=require('node:child_process').spawnSync(process.execPath,[require.resolve('prisma/build/index.js'),'migrate','deploy','--schema','prisma/schema.prisma',...process.argv.slice(1)],{stdio:'inherit'});process.exit(r.status??1)\""
+  },
+  "dependencies": {
+    "@campus-errand/auth": "*",
+    "@campus-errand/common-dtos": "*",
+    "@prisma/client": "^6.7.0",
+    "amqplib": "^0.10.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "prisma": "^6.7.0",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.5"
+  }
+}
