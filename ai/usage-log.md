@@ -3596,3 +3596,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 01:00 SGT — Commit, push and PR for the notification tests and log entries
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Commit the usage-log entries and the notification-service test files, push both, and create a PR.
+
+**Usage scenario:** Bookkeeping and test delivery with the author's explicit approval. Branched off `origin/main` @ 6a8f871, rebased the two log commits, committed the four test files, re-ran the unit suite (34/34), created #139 so the PR can link an issue, pushed and opened PR #140. Local `main` reset to `origin/main`. Author review of the test files is still pending.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
