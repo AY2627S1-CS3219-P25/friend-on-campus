@@ -1,5 +1,8 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Imported Prisma, PrismaClient, and User from ../database/client instead of directly from generated folder.
+ * Author review: <to be completed by author after review>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: rotateSession returns null for a disabled account, so refresh is refused and the session is left as it
@@ -24,10 +27,9 @@
  * Author review: <to be completed by ngkhengyang>
  */
 
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
-
-// AI-generated (edited by ngkhengyang)
-import { Prisma, PrismaClient, User as PrismaUser } from '../database/generated/client';
+import { Prisma, PrismaClient, type User as PrismaUser } from '../database/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
 

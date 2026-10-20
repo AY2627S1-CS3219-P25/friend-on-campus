@@ -12,7 +12,7 @@ coverage/
 
 # Prisma Generated Clients & Native Binaries (dylib / wasm)
 **/generated/
-**/src/database/generated/
+**/src/generated/
 
 # Environment variables
 .env

@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity, date: 2026-10-20
+// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
+// Author review: <to be completed by author after review>
+//
 // Tool: Google Antigravity, date: 2026-10-19
 // Scope: Added aggregateType and aggregateId to CreditOutboxEvent for Debezium Outbox Event Router compatibility.
 // Author review: Reviewed and verified by yanhwee.
@@ -10,11 +14,11 @@
 // Tool: Codex (model: GPT-6), date: 2026-09-24
 // Scope: Added persistent grants, escrow state and processed event identities.
 // Author review: <to be completed by huangjiaxi1111>
-// AI-generated (edited by huangjiaxi1111)
+// AI-generated (edited by yanhwee)
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/database/generated/client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

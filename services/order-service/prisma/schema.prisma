@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity, date: 2026-10-20
+// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
+// Author review: <to be completed by author after review>
+//
 // Tool: Google Antigravity, date: 2026-10-19
 // Scope: Added rejectionReason and PENDING default status to Order for Saga Approach B2, and aggregateType/aggregateId to OutboxEvent for Debezium Outbox Event Router compatibility.
 // Author review: Reviewed and verified by yanhwee.
@@ -10,7 +14,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/database/generated/client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

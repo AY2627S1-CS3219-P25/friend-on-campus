@@ -1,12 +1,17 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity, date: 2026-10-20
+// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
+// Author review: <to be completed by author after review>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 // Scope: The notifications table from the author's Notification Service Design (data model section), in the
 // layout credit-service uses.
 // Author review: <to be completed by Reallyeasy1>
+// AI-generated (edited by yanhwee)
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/database/generated/client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

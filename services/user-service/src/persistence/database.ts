@@ -1,11 +1,16 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Imported PrismaClient from ../database/client instead of directly from generated folder.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
  * Scope: Implemented Prisma client readiness checks and graceful database shutdown handling for the User Service.
  * Author review: <to be completed by ngkhengyang>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
-import { PrismaClient } from '../database/generated/client';
+import { PrismaClient } from '../database/client';
 import { logError } from '../utils/logger';
 
 export interface Database {

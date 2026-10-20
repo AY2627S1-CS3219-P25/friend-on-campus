@@ -1,13 +1,18 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Imported PrismaClient type from ../database/client instead of directly from generated folder.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Persistence for notifications as the author's design specifies: one insert guarded by the unique event id,
  * listing newest first with an unread count, and mark-read operations scoped to the owning user.
  * Author review: <to be completed by Reallyeasy1>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by Reallyeasy1)
 import type { NotificationDTO, NotificationKind, PaginatedResponse } from '@campus-errand/common-dtos';
-import type { PrismaClient } from '../database/generated/client';
+import type { PrismaClient } from '../database/client';
 
 export interface NewNotification {
   userId: string;

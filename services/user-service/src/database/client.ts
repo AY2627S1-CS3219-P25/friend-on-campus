@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Standardized Prisma client module to import from ../generated/prisma, configure datasources.db.url with fallback, and re-export Prisma and model types.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Generated Prisma client singleton for the user service; added dotenv.config() so
  *        standalone scripts (seed.ts) also pick up src/.env, not just the app entrypoint.
@@ -8,23 +12,23 @@
 // AI-generated (edited by yanhwee)
 import path from 'node:path';
 import dotenv from 'dotenv';
-import { PrismaClient } from './generated/client';
+import { PrismaClient } from '../generated/prisma';
 
-// Load src/.env explicitly (relative to this file, not the caller's cwd) so
-// standalone scripts like seed.ts get DATABASE_URL too — only src/index.ts
-// called dotenv.config() before, which app-entrypoint-only scripts miss.
+export { Prisma, PrismaClient } from '../generated/prisma';
+export type { User, Session, OutboxEvent } from '../generated/prisma';
+
 dotenv.config({
   path: [
-    path.resolve(__dirname, '../.env'),
     path.resolve(__dirname, '../../.env'),
     path.resolve(__dirname, '../../../../.env'),
   ],
 });
 
-if (!process.env.DATABASE_URL && process.env.USER_DATABASE_URL) {
-  process.env.DATABASE_URL = process.env.USER_DATABASE_URL;
-}
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.USER_DATABASE_URL ||
+  'postgresql://user_svc:user-service-dev@localhost:5432/user_db';
 
-export const prisma = new PrismaClient();
+export const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
 
 export default prisma;

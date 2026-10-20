@@ -1,4 +1,7 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity, date: 2026-10-20
+// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
+// Author review: <to be completed by author after review>
 //
 // Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
 // Scope: Generated initial Prisma schema mirroring the columns of data/csv/supplier-seed-data.csv.
@@ -10,6 +13,7 @@
 // a @@unique, so it is deliberately not declared here (same reasoning as user-service's username/email).
 // Author review: (to be completed by author after review)
 
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by jagdeepsh)
 //
 // Prisma schema for the supplier-service PostgreSQL database.
@@ -17,7 +21,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/database/generated/client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

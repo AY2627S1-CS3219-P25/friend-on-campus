@@ -50,11 +50,11 @@ Directory, from your seat:
 
 ```
 services/<name>-service/   package.json, tsconfig.json, Dockerfile, prisma/{schema.prisma,migrations/}, src/
-  user-service/src/        {index,app,auth,users,persistence,database}/
-  supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts
-  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,generated}/
-  notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client,generated}/
-  order-service/src/       {index,app,config}.ts, orders/, messaging/, database/{client,seed,generated}/
+  user-service/src/        {index,app,auth,users,persistence,database,generated}/
+  supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts, generated/
+  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,seed}.ts, generated/
+  notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/client.ts, generated/
+  order-service/src/       {index,app,config}.ts, orders/, messaging/, database/{client,seed}.ts, generated/
 packages/common-dtos/src/index.ts      shared user/auth DTOs, OrderStatus, event types
 docker/postgres-init/01-init-databases.sql   the five databases and per-service roles, first boot only (tables come from each service's migrations)
 data/csv/supplier-seed-data.csv        supplier seed input

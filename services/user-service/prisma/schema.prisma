@@ -1,4 +1,7 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity, date: 2026-10-20
+// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
+// Author review: <to be completed by author after review>
 //
 // Tool: Google Antigravity Agent, date: 2026-10-03
 // Scope: Added OutboxEvent model for transactional outbox event delivery.
@@ -22,7 +25,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/database/generated/client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

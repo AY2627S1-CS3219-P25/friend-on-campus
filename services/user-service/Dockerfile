@@ -1,4 +1,7 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity, date: 2026-10-20
+# Scope: Updated runtime Prisma generated client copy path to src/generated -> dist/generated.
+# Author review: <to be completed by author after review>
 #
 # Tool: Codex (model: GPT-5), date: 2026-10-16
 # Scope: Copied the build-stage Prisma engines into the production runtime so migrations do not download binaries at startup.
@@ -84,7 +87,7 @@ COPY --chown=node:node --from=build /app/packages/common-dtos/package.json ./pac
 COPY --chown=node:node --from=build /app/packages/common-dtos/dist ./packages/common-dtos/dist
 COPY --chown=node:node --from=build /app/services/user-service/package.json ./services/user-service/package.json
 COPY --chown=node:node --from=build /app/services/user-service/dist ./services/user-service/dist
-COPY --chown=node:node --from=build /app/services/user-service/src/database/generated ./services/user-service/dist/database/generated
+COPY --chown=node:node --from=build /app/services/user-service/src/generated ./services/user-service/dist/generated
 COPY --chown=node:node --from=build /app/services/user-service/prisma ./services/user-service/prisma
 
 RUN sed -i 's#"main": "src/index.ts"#"main": "dist/index.js"#' \
