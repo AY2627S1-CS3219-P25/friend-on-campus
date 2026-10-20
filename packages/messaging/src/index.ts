@@ -1,13 +1,12 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Extracted shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client.
+ * Scope: Shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client.
  * Author review: <to be completed by yanhwee>
  */
 // AI-generated (edited by yanhwee)
 import { once } from 'node:events';
-import { setTimeout as delay } from 'node:timers/promises';
-import { type ConfirmChannel, type Options } from 'amqplib';
+import { setImmediate as immediate, setTimeout as delay } from 'node:timers/promises';
 import { Connection, ConsumerStatus } from 'rabbitmq-client';
 
 export interface MessagingConfig {
@@ -19,6 +18,12 @@ export interface MessagingConfig {
   retryDelayMs: number;
   retryLimit: number;
   connectionTimeoutMs?: number;
+}
+
+export interface PublishOptions {
+  messageId?: string;
+  contentType?: string;
+  headers?: Record<string, string>;
 }
 
 export interface Failure {
@@ -65,43 +70,56 @@ export function isInfrastructureFailure(error: unknown): boolean {
   return false;
 }
 
-// Serializes mandatory publishes on a confirm channel so an unroutable `return` frame correlates cleanly.
-export function createConfirmedPublisher(channel: ConfirmChannel) {
+export function createRabbitPublisher(config: { url: string; connectionTimeoutMs?: number }) {
+  const timeout = config.connectionTimeoutMs ?? 5000;
+  let connection: Connection | undefined;
+  let publisher: ReturnType<Connection['createPublisher']> | undefined;
   let tail: Promise<unknown> = Promise.resolve();
-  return (exchange: string, key: string, content: Buffer, options: Options.Publish = {}) => {
-    const attempt = tail.then(
-      () =>
-        new Promise<void>((resolve, reject) => {
-          let returned = false;
-          let settled = false;
-          const onReturn = () => { returned = true; };
-          const onClose = () => finish(new Error('RabbitMQ publish channel closed'));
-          const timer = setTimeout(() => {
-            finish(new Error('RabbitMQ publish confirm timed out'));
-            void channel.close().catch(() => {});
-          }, 5000);
-          const finish = (error?: Error | null) => {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timer);
-            channel.removeListener('return', onReturn);
-            channel.removeListener('close', onClose);
-            if (error) reject(error);
-            else if (returned) reject(new Error('RabbitMQ message was unroutable'));
-            else resolve();
-          };
-          channel.on('return', onReturn);
-          channel.once('close', onClose);
-          try {
-            channel.publish(exchange, key, content, { ...options, persistent: true, mandatory: true }, finish);
-          } catch {
-            finish(new Error('RabbitMQ publish failed'));
-          }
-        }),
-    );
+
+  const close = async () => {
+    const pub = publisher;
+    const conn = connection;
+    publisher = undefined;
+    connection = undefined;
+    await pub?.close().catch(() => {});
+    await conn?.close().catch(() => {});
+  };
+
+  const publish = (exchange: string, routingKey: string, body: unknown, options: PublishOptions = {}) => {
+    const attempt = tail.then(async () => {
+      if (!connection || !publisher) {
+        const conn = new Connection({ url: config.url, connectionTimeout: timeout, acquireTimeout: timeout });
+        const fail = once(conn, 'error').then(([err]) => { throw err; });
+        fail.catch(() => {});
+        conn.on('error', () => {});
+        try {
+          await Promise.race([conn.onConnect(timeout), fail]);
+        } catch (error) {
+          await conn.close().catch(() => {});
+          throw error;
+        }
+        connection = conn;
+        publisher = conn.createPublisher({ confirm: true, maxAttempts: 1 });
+      }
+      let returned = false;
+      const onReturn = () => { returned = true; };
+      publisher.once('basic.return', onReturn);
+      try {
+        await publisher.send({ exchange, routingKey, mandatory: true, durable: true, ...options }, body);
+        await immediate();
+        if (returned) throw new Error('RabbitMQ message was unroutable');
+      } catch (error) {
+        if (!connection?.ready) await close();
+        throw error;
+      } finally {
+        publisher?.removeListener('basic.return', onReturn);
+      }
+    });
     tail = attempt.catch(() => {});
     return attempt;
   };
+
+  return { publish, close };
 }
 
 export async function startRabbitConsumer(
@@ -120,18 +138,13 @@ export async function startRabbitConsumer(
   let failed = false;
   const abort = new AbortController();
 
-  // Prevent unhandled error event crashes before and after consumer setup.
+  const fail = once(connection, 'error').then(([err]) => { throw err; });
+  fail.catch(() => {});
   connection.on('error', () => {});
 
   try {
-    await connection.onConnect(timeout);
-    await connection.exchangeDeclare({ exchange: config.deadLetterExchange, type: 'direct', durable: true });
+    await Promise.race([connection.onConnect(timeout), fail]);
     await connection.queueDeclare({ queue: config.deadLetterQueue, durable: true });
-    await connection.queueBind({
-      queue: config.deadLetterQueue,
-      exchange: config.deadLetterExchange,
-      routingKey: config.deadLetterQueue,
-    });
 
     consumer = connection.createConsumer(
       {
@@ -139,12 +152,22 @@ export async function startRabbitConsumer(
         queueOptions: { durable: true, arguments: queueArguments(config) },
         qos: { prefetchCount: 1 },
         concurrency: 1,
-        exchanges: [{ exchange: config.exchange, type: 'topic', durable: true }],
-        queueBindings: handlers.routingKeys.map((routingKey) => ({
-          exchange: config.exchange,
-          queue: config.queue,
-          routingKey,
-        })),
+        exchanges: [
+          { exchange: config.exchange, type: 'topic', durable: true },
+          { exchange: config.deadLetterExchange, type: 'direct', durable: true },
+        ],
+        queueBindings: [
+          {
+            exchange: config.deadLetterExchange,
+            queue: config.deadLetterQueue,
+            routingKey: config.deadLetterQueue,
+          },
+          ...handlers.routingKeys.map((routingKey) => ({
+            exchange: config.exchange,
+            queue: config.queue,
+            routingKey,
+          })),
+        ],
       },
       async (msg) => {
         const deliveryCount = Number(msg.headers?.['x-delivery-count'] ?? 0);

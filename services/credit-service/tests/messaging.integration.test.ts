@@ -26,7 +26,7 @@ import { CreditError, createCreditService } from '../src/credits/service';
 import { createCreditStore, type CreditStore } from '../src/credits/store';
 import { createCreditEventHandler, creditRoutingKeys } from '../src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../src/credits/consumer';
-import { createConfirmedPublisher, startRabbitConsumer, type MessagingConfig } from '@campus-errand/messaging';
+import { createRabbitPublisher, startRabbitConsumer, type MessagingConfig } from '@campus-errand/messaging';
 import { createTestAuth } from './auth-fixture';
 
 async function until<T>(check: () => Promise<T>, label: string): Promise<NonNullable<T>> {
@@ -76,7 +76,8 @@ async function main() {
   connection.on('error', () => {});
   const channel = await connection.createConfirmChannel();
   channel.on('error', () => {});
-  const publish = createConfirmedPublisher(channel);
+  const rabbitPublisher = createRabbitPublisher({ url: config.url });
+  const publish = rabbitPublisher.publish;
   const users: string[] = [];
   const events: string[] = [];
   const user = () => { const id = randomUUID(); users.push(id); return id; };
@@ -307,6 +308,7 @@ async function main() {
       const exited = once(child, 'exit'); child.kill('SIGKILL'); await exited;
     }
     await consumer?.close();
+    await rabbitPublisher.close();
     await new Promise<void>(resolve => server.close(() => resolve()));
     try {
       for (const queue of [config.queue, config.deadLetterQueue]) await channel.deleteQueue(queue);

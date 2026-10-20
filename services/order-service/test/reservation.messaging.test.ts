@@ -27,7 +27,7 @@ import { createCreditService } from '../../credit-service/src/credits/service';
 import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../../credit-service/src/credits/consumer';
 import { createCreditOutbox } from '../../credit-service/src/messaging/outbox';
-import { createConfirmedPublisher, queueArguments } from '@campus-errand/messaging';
+import { createRabbitPublisher, queueArguments } from '@campus-errand/messaging';
 
 function testUrl(name: string) {
   const value = process.env[name];
@@ -65,7 +65,8 @@ async function main() {
   const connection = await amqp.connect(url);
   connection.on('error', () => {});
   const channel = await connection.createConfirmChannel();
-  const publish = createConfirmedPublisher(channel);
+  const rabbitPublisher = createRabbitPublisher({ url });
+  const publish = rabbitPublisher.publish;
   const results = createCreditOutbox(credit, { url, exchange });
   const orderRepo = createOrderRepository(orders);
   const orderHandler = {
@@ -273,6 +274,7 @@ async function main() {
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
     await results.stop();
+    await rabbitPublisher.close();
     for (const cfg of [cc, oc]) {
       for (const queue of [cfg.queue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
       await channel.deleteExchange(cfg.deadLetterExchange);
