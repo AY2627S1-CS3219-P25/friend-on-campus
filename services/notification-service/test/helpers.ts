@@ -74,7 +74,7 @@ export async function makeTestDatabase(databaseUrl: string) {
   url.searchParams.set('schema', schema);
   const db = new PrismaClient({ datasources: { db: { url: url.toString() } } });
   await db.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
-  const migrations = path.resolve(__dirname, '../src/database/prisma/migrations');
+  const migrations = path.resolve(__dirname, '../prisma/migrations');
   const dirs = (await readdir(migrations, { withFileTypes: true })).filter((entry) => entry.isDirectory());
   for (const dir of dirs.sort((a, b) => a.name.localeCompare(b.name))) {
     const sql = await readFile(path.join(migrations, dir.name, 'migration.sql'), 'utf8');

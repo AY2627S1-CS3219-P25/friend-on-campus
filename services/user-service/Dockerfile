@@ -44,7 +44,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/common-dtos/package.json ./packages/common-dtos/
 COPY services/user-service/package.json ./services/user-service/
-COPY services/user-service/src/database/prisma ./services/user-service/src/database/prisma
+COPY services/user-service/prisma ./services/user-service/prisma
 
 RUN npm ci --workspace=@campus-errand/user-service --include-workspace-root=false
 
@@ -85,7 +85,7 @@ COPY --chown=node:node --from=build /app/packages/common-dtos/dist ./packages/co
 COPY --chown=node:node --from=build /app/services/user-service/package.json ./services/user-service/package.json
 COPY --chown=node:node --from=build /app/services/user-service/dist ./services/user-service/dist
 COPY --chown=node:node --from=build /app/services/user-service/src/database/generated ./services/user-service/dist/database/generated
-COPY --chown=node:node --from=build /app/services/user-service/src/database/prisma ./services/user-service/src/database/prisma
+COPY --chown=node:node --from=build /app/services/user-service/prisma ./services/user-service/prisma
 
 RUN sed -i 's#"main": "src/index.ts"#"main": "dist/index.js"#' \
     packages/auth/package.json packages/common-dtos/package.json \
@@ -97,4 +97,4 @@ EXPOSE 8001
 
 USER node
 
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema src/database/prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]

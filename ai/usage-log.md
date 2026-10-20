@@ -3450,3 +3450,23 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `data/csv/supplier-seed-data.csv` — replaced GitHub HTML blob URLs with gateway-served `/images/<FILE>.jpeg` paths.
 - `docs/security.md` — updated route security table and documented PostgreSQL role isolation.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:45 SGT — Monorepo Standardization, Root .env Unification & Prisma Schema Relocation
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/repo-standardization
+
+**Prompt (summarised):** Implement Workstream 3 (`chore/repo-standardization`): unify `.env` configuration to the monorepo root (removing per-service `.env.example` files and loading root `.env` with `<SERVICE>_DATABASE_URL` and `<SERVICE>_SERVICE_PORT` fallbacks across all 5 microservices), relocate `src/database/prisma/` to `prisma/` at each service root while keeping generated clients isolated in `src/database/generated/client`, refactor `supplier-service` into `src/config.ts`, `src/app.ts`, `src/index.ts`, and `src/suppliers/supplierService.ts`, and add workspace-level `db:migrate`, `db:deploy`, `db:seed`, `dev:apps`, and `dev:services` scripts to root `package.json`.
+
+**Usage scenario:** Implementation code, configuration, refactoring, and documentation (allowed use). The author specified the target repository structure, `.env` consolidation strategy, and layered architecture conventions.
+
+**Files changed / created:**
+- `.env.example`, `services/{credit,notification,order,user}-service/.env.example` [DELETED] — consolidated all service environment variables into root `.env.example`.
+- `services/*/prisma/` — moved `src/database/prisma/` to `prisma/` across all 5 microservices and updated `generator client { output = "../src/database/generated/client" }`.
+- `services/*/Dockerfile`, `services/*/package.json`, `package.json` — updated Prisma schema paths (`prisma/schema.prisma`) and standardized workspace database/dev scripts.
+- `services/*/src/config.ts`, `services/*/src/database/client.ts` — added root `.env` fallback loading and `<SERVICE>_DATABASE_URL` / `<SERVICE>_SERVICE_PORT` fallback resolution.
+- `services/supplier-service/src/{config.ts,app.ts,index.ts}`, `services/supplier-service/src/suppliers/{supplierService.ts,supplierRoutes.ts}` — extracted Express `createApp()`, typed `config.ts`, and service-layer orchestration in `supplierService.ts` while preserving route handler exports for unit tests.
+- `services/credit-service/tests/migration.integration.test.ts`, `services/notification-service/test/helpers.ts`, `services/user-service/test/admin-guard.integration.test.ts` — updated relative migration directory paths to `../prisma/migrations`.
+- `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md`, `.claude/agents/reviewer.md` — updated Prisma schema paths and `.env` documentation.
+- `ai/usage-log.md` — this entry.

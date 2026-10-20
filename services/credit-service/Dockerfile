@@ -41,7 +41,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/common-dtos/package.json ./packages/common-dtos/
 COPY services/credit-service/package.json ./services/credit-service/
-COPY services/credit-service/src/database/prisma ./services/credit-service/src/database/prisma
+COPY services/credit-service/prisma ./services/credit-service/prisma
 
 RUN npm ci --workspace=@campus-errand/credit-service --include-workspace-root=false
 
@@ -82,7 +82,7 @@ COPY --chown=node:node --from=build /app/packages/common-dtos/dist ./packages/co
 COPY --chown=node:node --from=build /app/services/credit-service/package.json ./services/credit-service/package.json
 COPY --chown=node:node --from=build /app/services/credit-service/dist ./services/credit-service/dist
 COPY --chown=node:node --from=build /app/services/credit-service/src/database/generated ./services/credit-service/dist/database/generated
-COPY --chown=node:node --from=build /app/services/credit-service/src/database/prisma ./services/credit-service/src/database/prisma
+COPY --chown=node:node --from=build /app/services/credit-service/prisma ./services/credit-service/prisma
 
 RUN sed -i 's#"main": "src/index.ts"#"main": "dist/index.js"#' \
     packages/auth/package.json packages/common-dtos/package.json \
@@ -94,4 +94,4 @@ EXPOSE 8004
 
 USER node
 
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema src/database/prisma/schema.prisma && (node dist/database/seed.js || echo >&2 '[credit-seed] Automatic startup seed failed; continuing without development wallet seeding') && exec node dist/index.js"]
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && (node dist/database/seed.js || echo >&2 '[credit-seed] Automatic startup seed failed; continuing without development wallet seeding') && exec node dist/index.js"]

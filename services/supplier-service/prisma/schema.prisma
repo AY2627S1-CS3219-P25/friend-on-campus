@@ -13,14 +13,11 @@
 // AI-generated (edited by jagdeepsh)
 //
 // Prisma schema for the supplier-service PostgreSQL database.
-// Because this file does not live at the default ./prisma/schema.prisma,
-// pass it explicitly to the Prisma CLI, e.g.:
-//   npx prisma generate     --schema src/database/prisma/schema.prisma
-//   npx prisma migrate dev  --schema src/database/prisma/schema.prisma --name init
+// Lives at the standard ./prisma/schema.prisma location.
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/client"
+  output   = "../src/database/generated/client"
 }
 
 datasource db {

@@ -13,7 +13,17 @@ import { PrismaClient } from './generated/client';
 // Load src/.env explicitly (relative to this file, not the caller's cwd) so
 // standalone scripts like seed.ts get DATABASE_URL too — only src/index.ts
 // called dotenv.config() before, which app-entrypoint-only scripts miss.
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../.env'),
+    path.resolve(__dirname, '../../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.USER_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.USER_DATABASE_URL;
+}
 
 export const prisma = new PrismaClient();
 

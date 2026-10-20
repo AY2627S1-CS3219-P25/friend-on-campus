@@ -84,7 +84,7 @@ flowchart TB
 ```
 
 ### Key Design Highlight: Multi-Service Prisma Isolation
-To avoid client collisions in the root `node_modules/@prisma/client`, each microservice generates its client to an isolated internal path (`output = "../generated/client"`). This guarantees compile-time type safety and prevents engine dylib conflicts across services.
+To avoid client collisions in the root `node_modules/@prisma/client`, each microservice maintains its schema at `prisma/schema.prisma` and generates its client to an isolated internal path (`output = "../src/database/generated/client"`). This guarantees compile-time type safety and prevents engine dylib conflicts across services.
 
 ---
 

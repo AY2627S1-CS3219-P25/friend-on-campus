@@ -9,9 +9,19 @@
  * Author review: <to be completed by Jiaxi>
  */
 // AI-generated (edited by Jiaxi)
+import path from 'node:path';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.CREDIT_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.CREDIT_DATABASE_URL;
+}
 
 function integer(name: string, fallback: number, minimum: number) {
   const value = Number(process.env[name] ?? fallback);
@@ -21,8 +31,8 @@ function integer(name: string, fallback: number, minimum: number) {
 const queue = process.env.CREDIT_QUEUE || 'credit-service.events';
 const exchange = process.env.CREDIT_EXCHANGE || 'campus.events';
 export const config = Object.freeze({
-  port: process.env.PORT || 8004,
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/credit_db',
+  port: process.env.PORT || process.env.CREDIT_SERVICE_PORT || 8004,
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://credit_svc:credit-service-dev@localhost:5432/credit_db',
   seedUserServiceUrl: process.env.USER_SERVICE_URL || 'http://localhost:8001',
   auth: {
     // Validated by authMiddleware during startup, before opening connections.

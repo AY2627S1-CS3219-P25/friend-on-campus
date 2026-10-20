@@ -19,6 +19,8 @@
     "dev:order": "npm run dev --workspace=@campus-errand/order-service",
     "dev:credit": "npm run dev --workspace=@campus-errand/credit-service",
     "dev:notif": "npm run dev --workspace=@campus-errand/notification-service",
+    "dev:apps": "npm run dev:student & npm run dev:admin & wait",
+    "dev:services": "npm run dev:user & npm run dev:supplier & npm run dev:order & npm run dev:credit & npm run dev:notif & wait",
     "generate:jwt-keys": "node scripts/generate-jwt-keys.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -36,6 +38,9 @@
     "test:e2e": "node scripts/ci/run-all-tests.mjs --system-only",
     "ci:validate-tests": "node scripts/ci/validate-test-matrix.mjs",
     "db:generate": "npm run db:generate --workspaces --if-present",
+    "db:migrate": "npm run db:migrate --workspaces --if-present",
+    "db:deploy": "npm run db:deploy --workspaces --if-present",
+    "db:seed": "npm run db:seed --workspace=@campus-errand/user-service --workspace=@campus-errand/supplier-service --workspace=@campus-errand/order-service --if-present && npm run db:seed --workspace=@campus-errand/credit-service",
     "postinstall": "npm run db:generate --workspaces --if-present",
     "test:d2": "tsx scripts/test-d2-e2e.ts"
   },
