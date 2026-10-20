@@ -3460,3 +3460,139 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed (repo):**
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-19 20:40 SGT — Notification Service as-built review (facts only)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Look at the Notification Service's design and functionality, see how it can be improved, and create a design doc to evaluate.
+
+**Usage scenario:** The "how it can be improved" part is architecture and design-rationale work, which CLAUDE.md §1 reserves for the author, so it was declined. The allowed alternative was produced instead: a facts-only review of `services/notification-service` on main @ 6327aac as a shared Claude doc (https://claude.ai/code/artifact/d1bd45ac-a4f9-4397-84c1-8b11a75aefae), listing the behaviour and limits of delivery, the WebSocket hub, REST, messaging and retry, lifecycle, data, security and tests with file and function citations, the related issues (#51, #52, #56, #64, #119), and twenty open questions for the author with a decision column. No recommendation, trade-off or proposed design was written. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 21:20 SGT — Notification Service: tests for the untested paths (review row 19)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Look at the review's decisions, use judgement to pick which to work on, and do it.
+
+**Usage scenario:** Picking among the design decisions (what the courier is told, retention, reconnect strategy, schema constraints, security posture, scale-out) was left to the author per CLAUDE.md §1 and said so. Row 19 (automated evidence for untested behaviour, issue #64) is test writing with no design decision in it, so that was done: tests added to the existing suites only, so `.github/workflows/ci.yml` is unchanged. Hub unit suite: a socket that stops answering pings is terminated within two intervals while an answering one survives; a failing unread-count query closes 1011 before anything is filed. Messaging suite: a transient failure goes through the retry queue and is delivered once it clears; a failure that outlasts `retryLimit` is dead-lettered with the `x-notification-*` headers (retry count = limit, transient, original routing key, original content) while the main queue keeps draining; the consumer is started through a deliver wrapper that simulates the outage. Store suite: a later page returns the remainder, `totalPages` follows the filter while `unreadCount` does not, a page past the end is empty. Still without automated evidence: SIGTERM behaviour, `process.exit(1)` on broker loss and the container restart, token-expiry reconnect end to end, load.
+
+**Verification:** `npm run typecheck` (all workspaces) clean; `node --test` unit 13/13 hub + 20/20 events; `test:integration` 10/10 and `test:messaging` 5/5 run locally against a throwaway `postgres:16` container on 5440 (removed afterwards) and the native RabbitMQ as guest; eslint clean on the four test files.
+
+**Files changed:**
+- `services/notification-service/test/helpers.ts` — `openSocket` accepts ws client options (`autoPong: false`).
+- `services/notification-service/test/hub.test.ts` — "WebSocket hub liveness" suite (2 tests).
+- `services/notification-service/test/messaging.integration.test.ts` — deliver wrapper with a simulated outage; 2 tests (retry recovery, retry limit to DLQ with headers).
+- `services/notification-service/test/store-routes.integration.test.ts` — paging test.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:05 SGT — Milestone D3 gap assessment (facts only, no prioritisation)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Assert the project against the CS3219 D3 instructions (PDF supplied), see what should be worked on from here, and write a project plan.
+
+**Usage scenario:** Requirements work in the allowed sense: discovering, interpreting and formatting. The D3 instructions were checked item by item against main @ 6327aac, the wiki and the open issues, and written up as a shared Claude doc (https://claude.ai/code/artifact/46159a9a-387d-4902-a349-5edda85ebefb): what D3 asks, a status table with evidence per item, 13 named gaps, 14 candidate work items each tied to a gap, and the questions only the team can answer. The "project plan" part in the sense of prioritising the items, setting a sprint order or allocating people was declined under CLAUDE.md §1 and left as questions; the candidate list is unordered. No design was proposed for any gap. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:45 SGT — D3 Part 3.4 demo and observability runbook, OpenTelemetry facts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Create a design doc on how to handle D3 Part 3.4 (demonstrate duplicate-message or failure handling already implemented; present the observability mechanisms in place) and check whether OpenTelemetry is needed.
+
+**Usage scenario:** Documentation of as-built behaviour: a shared Claude doc (https://claude.ai/code/artifact/22ace0d5-602c-4d4c-b8a2-ab8bd97ecabc) mapping both 3.4 bullets to the implemented mechanisms, a duplicate-message demo (republish a completion event, show one settlement and the processed_credit_events row) and four failure demos (broker down with the outbox draining, Credit Service down at creation, poison message to the dead-letter queues, optional transient retry) with commands, expected output, code location and the automated test as fallback; an inventory of every log line, health field, broker view and audit table. The OpenTelemetry question was answered with facts only (3.4 names no tool; #73 lists metrics and correlation for Sprint 4; no telemetry library in the repo; what adding it would touch incl. the ask-first dependency rule and the outbox context break) and left as a team decision; no recommendation or design was written. Log text, reason strings and health fields were verified in the service sources. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:55 SGT — Can D3 Part 3.4 be handled without hardcoding or OpenTelemetry
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Check whether Part 3.4 can be handled completely without much hardcoding or OpenTelemetry.
+
+**Usage scenario:** Learning support / explanation from the facts already gathered for the 3.4 runbook: every demo step uses existing service behaviour, Docker stop/start, psql queries and one amqplib publish snippet outside the services; no demo mode, flag or test hook in any service, and no new dependency. Answered in chat; the decision on OpenTelemetry stays with the team.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:05 SGT — Where the logs are (RabbitMQ management UI question)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** How can the logs be seen from the RabbitMQ management UI at localhost:15672.
+
+**Usage scenario:** Learning support: identified that port 15672 on this machine is the native RabbitMQ 4.1.0 (vhost `/`, users guest and workato), not the project's container broker, and explained where broker and application logs actually live. No repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:20 SGT — RabbitMQ documentation: where the container broker's logs are
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Navigate the RabbitMQ documentation to see where the logs are for the broker behind localhost:15673.
+
+**Usage scenario:** Learning support: read rabbitmq.com/docs/logging and the official Docker image page, checked the project's `docker/rabbitmq/rabbitmq.conf` (definitions import only, no log settings), and verified in a throwaway `rabbitmq:3.13.7-management-alpine` container (removed afterwards) that the image logs to the console, so `docker logs` is the log and `rabbitmq-diagnostics log_tail` has no file. Answered in chat; no repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:30 SGT — Node page in the RabbitMQ UI: where to click for logs
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Screenshot of the native broker's node page; where to click next to see the logs.
+
+**Usage scenario:** Learning support: the management UI has no log viewer, the Log files field is informational; pointed at the file path shown and at `docker logs` for the container broker. No repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 00:10 SGT — GitHub issues for the D3 gaps
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Based on the Milestone D3 gap assessment doc, create GitHub issues for the deliverables that have gaps.
+
+**Usage scenario:** Documentation (issue write-ups of facts already established in the gap assessment and verified against `main` @ 4be192b). Created #129–#138 in `AY2627S1-CS3219-P25/friend-on-campus` with the author's explicit request. Gaps already tracked by an open issue were not duplicated (#42 escrow reserve auth, #63 demo logistics, #64 concurrency evidence, #73 monitoring). No priority label, milestone, assignee or ordering was set; the "Decision needed" sections name the team's design choices without proposing one.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry (the issues themselves live on GitHub)
+
+## 2026-10-20 00:40 SGT — Correct the N2H issues to the team's allocation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Shared the team's N2H allocation table (one feature per member) and the CS3219 project brief; use them for the N2H gaps.
+
+**Usage scenario:** Documentation. Rewrote #137 and #138 with the five allocated features, their brief categories (N1, N2, N4), their tracking issues and what is built versus written on `main`; corrected the earlier claim that one member had no N2H. The gap assessment doc's G12 and 5.2 rows corrected the same way. No design, approach or value statement was drafted; those remain the team's.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
