@@ -3534,6 +3534,27 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md` — updated documentation references to `src/generated/prisma`.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-20 17:35 SGT — Monorepo package.json Minimalism & Best-Practices Cleanup
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/package-json-cleanup
+
+**Prompt (summarised):** Audit and clean up root and workspace `package.json` files in a dedicated worktree so dependencies are minimal and follow monorepo best practices.
+
+**Usage scenario:** Dependency and manifest cleanup, configuration hygiene, and lockfile regeneration (allowed use).
+
+**Files changed:**
+- `package.json` — added explicit `amqplib` and `@types/amqplib` to root `devDependencies` for UAT/utility scripts, aligned `@types/node` to `^20.14.0` to deduplicate nested workspace installations, and preserved explicit `db:seed` workspace ordering (`user-service` before `credit-service`).
+- `packages/auth/package.json` — removed duplicate `dependencies` key and added `"private": true`.
+- `packages/common-dtos/package.json` — added `"private": true`.
+- `services/credit-service/package.json` — added `"private": true`, moved `pg` from production `dependencies` to `devDependencies` (used only in `tests/migration.integration.test.ts`), standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.
+- `services/order-service/package.json` — added `"private": true` and removed unused `pg` and `@types/pg` dependencies.
+- `services/supplier-service/package.json` — added `"private": true`, removed unused `pg` and `@types/pg` dependencies, standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.
+- `services/notification-service/package.json`, `services/user-service/package.json` — added `"private": true`, standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.
+- `package-lock.json` — regenerated lockfile after dependency cleanup.
+- `ai/usage-log.md` — this entry.
+
 ## 2026-10-20 17:46 SGT — Address PR #142 Review: Lazy JWT Getters in user-service config.ts and Uniform globalForPrisma Facades
 
 **Tool:** Google Antigravity Agent
@@ -3549,3 +3570,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `services/user-service/src/database/client.ts` — replaced duplicate `dotenv.config()` and `DEFAULT_DATABASE_URL` fallback with `config.databaseUrl`, `globalForPrisma` singleton guard, and `export type * from '../generated/prisma'`.
 - `services/notification-service/src/database/client.ts`, `services/supplier-service/src/database/client.ts` — added `globalForPrisma` singleton guard and `export type * from '../generated/prisma'` to match `credit-service` and `order-service`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:55 SGT — Resolve Merge Conflict with main on PR #142
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Resolve merge conflicts with `main` on `chore/prisma-client-standardization`.
+
+**Usage scenario:** Git merge and conflict resolution (allowed use). Merged `origin/main` (PR #143) into `chore/prisma-client-standardization` and preserved both branches' `ai/usage-log.md` entries in chronological order.
+
+**Files changed:**
+- `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/prisma-client-standardization` plus this record.
