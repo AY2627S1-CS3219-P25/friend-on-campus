@@ -3533,3 +3533,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `.gitignore`, `.dockerignore`, `eslint.config.mjs` — updated generated Prisma paths (`**/src/generated/`) and added standard `.dockerignore` exclusions.
 - `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md` — updated documentation references to `src/generated/prisma`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:46 SGT — Address PR #142 Review: Lazy JWT Getters in user-service config.ts and Uniform globalForPrisma Facades
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Address PR #142 review findings: convert `accessTokenPrivateKey` and `accessTokenPublicKey` in `services/user-service/src/config.ts` to lazy property getters so `services/user-service/src/database/client.ts` can import `config.databaseUrl` directly without breaking DB-only scripts/tests when JWT env vars are unset, and align `globalForPrisma` + `export type *` across all 5 `src/database/client.ts` facades.
+
+**Usage scenario:** Code review resolution and refactoring (allowed use). The author approved using lazy property getters on `user-service/src/config.ts` and aligning the 5 `client.ts` facades.
+
+**Files changed:**
+- `services/user-service/src/config.ts` — converted `accessTokenPrivateKey` and `accessTokenPublicKey` to property getters on `config`.
+- `services/user-service/src/database/client.ts` — replaced duplicate `dotenv.config()` and `DEFAULT_DATABASE_URL` fallback with `config.databaseUrl`, `globalForPrisma` singleton guard, and `export type * from '../generated/prisma'`.
+- `services/notification-service/src/database/client.ts`, `services/supplier-service/src/database/client.ts` — added `globalForPrisma` singleton guard and `export type * from '../generated/prisma'` to match `credit-service` and `order-service`.
+- `ai/usage-log.md` — this entry.

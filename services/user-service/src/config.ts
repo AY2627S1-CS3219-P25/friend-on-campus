@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Converted accessTokenPrivateKey and accessTokenPublicKey to lazy property getters on config so DB-only scripts and tests can read config.databaseUrl without requiring JWT keys in process.env.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Added RabbitMQ URL and exchange configuration for user registration event publishing.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,6 +12,7 @@
  * Scope: Implemented User Service environment loading and runtime configuration for the database, JWT, CORS, and service settings.
  * Author review: <to be completed by ngkhengyang>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
 import path from 'node:path';
 import dotenv from 'dotenv';
@@ -93,8 +98,12 @@ const nodeEnvironment = process.env.NODE_ENV ?? 'development';
 export const config: AppConfig = Object.freeze({
   port: readPort(process.env.PORT ?? process.env.USER_SERVICE_PORT),
   databaseUrl: process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL,
-  accessTokenPrivateKey: readRequiredKey('JWT_PRIVATE_KEY'),
-  accessTokenPublicKey: readRequiredKey('JWT_PUBLIC_KEY'),
+  get accessTokenPrivateKey(): string {
+    return readRequiredKey('JWT_PRIVATE_KEY');
+  },
+  get accessTokenPublicKey(): string {
+    return readRequiredKey('JWT_PUBLIC_KEY');
+  },
   accessTokenLifetimeSeconds: readDurationSeconds(process.env.JWT_ACCESS_TOKEN_TTL, '15m'),
   refreshTokenIdleLifetimeSeconds: readDurationSeconds(
     process.env.JWT_REFRESH_TOKEN_TTL,

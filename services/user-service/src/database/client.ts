@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Standardized Prisma client module to import from ../generated/prisma, configure datasources.db.url with fallback, and re-export Prisma and model types.
+ * Scope: Standardized Prisma client module to import from ../generated/prisma, use centralized config.databaseUrl with globalForPrisma singleton guard, and re-export Prisma and model types.
  * Author review: <to be completed by author after review>
  *
  * Tool: Google Antigravity Agent, date: 2026-09-20
@@ -10,25 +10,28 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import path from 'node:path';
-import dotenv from 'dotenv';
+import { config } from '../config';
 import { PrismaClient } from '../generated/prisma';
 
 export { Prisma, PrismaClient } from '../generated/prisma';
-export type { User, Session, OutboxEvent } from '../generated/prisma';
+export type * from '../generated/prisma';
 
-dotenv.config({
-  path: [
-    path.resolve(__dirname, '../../.env'),
-    path.resolve(__dirname, '../../../../.env'),
-  ],
-});
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-const databaseUrl =
-  process.env.DATABASE_URL ||
-  process.env.USER_DATABASE_URL ||
-  'postgresql://user_svc:user-service-dev@localhost:5432/user_db';
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    datasources: {
+      db: {
+        url: config.databaseUrl,
+      },
+    },
+  });
 
-export const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
 
 export default prisma;
