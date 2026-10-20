@@ -3430,3 +3430,23 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `docs/errand-specification.md` — §2 sentence after the matrix.
 - `ai/usage-log.md` — previous entry's Branch field; this entry.
+
+## 2026-10-19 22:10 SGT — Infrastructure Security & Database-per-Service Isolation (Issue #42, #63)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/infra-security-isolation
+
+**Prompt (summarised):** Implement W1 infrastructure security & isolation: remove the unauthenticated `POST /api/credits/escrow/reserve` endpoint from `credit-service` and block `/api/credits/escrow` at the Nginx API gateway (Issue #42), enforce least-privilege PostgreSQL service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`) with `REVOKE CONNECT ON DATABASE ... FROM PUBLIC` (Issue #63), and serve campus supplier images directly from the Nginx gateway at `/images/` instead of broken GitHub blob URLs.
+
+**Usage scenario:** Implementation code, configuration, test updates, and documentation (allowed use). The author defined the security and isolation requirements across the gateway, credit-service, PostgreSQL initialization script, and seed data.
+
+**Files changed:**
+- `docker/postgres-init/01-init-databases.sql` — provisioned dedicated least-privilege PostgreSQL roles for all 5 microservices, assigned database ownership, revoked public `CONNECT` privileges, and configured default schema grants.
+- `docker-compose.yml` — updated `DATABASE_URL` across all 5 backend services to connect with their dedicated PostgreSQL roles and mounted `./data/images` read-only into `api-gateway`.
+- `gateway/nginx.conf` — added `location /api/credits/escrow { return 403; }` to block external escrow ingress and `location /images/` to serve static supplier images.
+- `services/credit-service/src/credits/routes.ts` — removed the unauthenticated `POST /api/credits/escrow/reserve` HTTP route and unused `escrowRequest` helper (resolving Issue #42).
+- `services/credit-service/tests/credits.integration.test.ts`, `services/credit-service/tests/messaging.integration.test.ts` — updated integration tests to assert HTTP `404` on `/api/credits/escrow/reserve` alongside `settle` and `refund`, and invoked `CreditService.reserve` directly for unit/integration setup.
+- `data/csv/supplier-seed-data.csv` — replaced GitHub HTML blob URLs with gateway-served `/images/<FILE>.jpeg` paths.
+- `docs/security.md` — updated route security table and documented PostgreSQL role isolation.
+- `ai/usage-log.md` — this entry.
