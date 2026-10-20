@@ -3525,7 +3525,7 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Usage scenario:** Dependency and manifest cleanup, configuration hygiene, and lockfile regeneration (allowed use).
 
 **Files changed:**
-- `package.json` — simplified `db:seed` to `npm run db:seed --workspaces --if-present`, added explicit `amqplib` and `@types/amqplib` to root `devDependencies` for UAT/utility scripts, and aligned `@types/node` to `^20.14.0` to deduplicate nested workspace installations.
+- `package.json` — added explicit `amqplib` and `@types/amqplib` to root `devDependencies` for UAT/utility scripts, aligned `@types/node` to `^20.14.0` to deduplicate nested workspace installations, and preserved explicit `db:seed` workspace ordering (`user-service` before `credit-service`).
 - `packages/auth/package.json` — removed duplicate `dependencies` key and added `"private": true`.
 - `packages/common-dtos/package.json` — added `"private": true`.
 - `services/credit-service/package.json` — added `"private": true`, moved `pg` from production `dependencies` to `devDependencies` (used only in `tests/migration.integration.test.ts`), standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.

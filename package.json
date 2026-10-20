@@ -40,7 +40,7 @@
     "db:generate": "npm run db:generate --workspaces --if-present",
     "db:migrate": "npm run db:migrate --workspaces --if-present",
     "db:deploy": "npm run db:deploy --workspaces --if-present",
-    "db:seed": "npm run db:seed --workspaces --if-present",
+    "db:seed": "npm run db:seed --workspace=@campus-errand/user-service --workspace=@campus-errand/supplier-service --workspace=@campus-errand/order-service --if-present && npm run db:seed --workspace=@campus-errand/credit-service",
     "postinstall": "npm run db:generate --workspaces --if-present",
     "test:d2": "tsx scripts/test-d2-e2e.ts"
   },
