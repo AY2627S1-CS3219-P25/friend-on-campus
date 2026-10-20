@@ -3514,6 +3514,26 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/admin-portal/src/App.tsx` — simplified from 3,856 lines to a 462-line top-level orchestrator.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-20 17:28 SGT — Standardize Prisma Client Output Path, Database Client Facade, and Schema DDL Hygiene
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Standardize Prisma folder structure and database conventions across all 5 microservices: update `generator client` output from `../src/database/generated/client` to `../src/generated/prisma`, apply the `src/database/client.ts` facade/re-export best practice across all services, remove redundant `src/database/schema.sql` files, update `.dockerignore`, `.gitignore`, `eslint.config.mjs`, Dockerfiles, and documentation, and create a branch, commit, push, and open a PR via `gh`.
+
+**Usage scenario:** Codebase standardization, refactoring, and configuration alignment (allowed use). The author requested adopting Prisma's modern `../src/generated/prisma` output path, unifying `src/database/client.ts` as the single database entry point, removing stale hand-maintained `schema.sql` files in favor of Prisma migrations, and hardening `.dockerignore`.
+
+**Files changed / created:**
+- `services/{credit,notification,order,supplier,user}-service/prisma/schema.prisma` — updated `generator client { output = "../src/generated/prisma" }`.
+- `services/{credit,notification,order,supplier,user}-service/src/database/client.ts` — standardized all 5 database client modules to import from `../generated/prisma`, configure `datasources.db.url`, and re-export `Prisma`, `PrismaClient`, and model types.
+- `services/notification-service/src/notifications/store.ts`, `services/notification-service/test/helpers.ts`, `services/user-service/src/persistence/{database,auth-repository,user-repository}.ts`, `services/user-service/test/admin-guard.integration.test.ts` — routed Prisma imports through `src/database/client.ts` instead of importing directly from the generated directory.
+- `services/{credit,notification,order,supplier,user}-service/Dockerfile` — updated runtime stage `COPY` from `/app/services/<svc>/src/generated` to `./services/<svc>/dist/generated`.
+- `services/credit-service/src/database/schema.sql` [DELETED], `services/order-service/src/database/schema.sql` [DELETED] — removed stale hand-maintained SQL DDL files superseded by `prisma/migrations/`.
+- `.gitignore`, `.dockerignore`, `eslint.config.mjs` — updated generated Prisma paths (`**/src/generated/`) and added standard `.dockerignore` exclusions.
+- `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md` — updated documentation references to `src/generated/prisma`.
+- `ai/usage-log.md` — this entry.
+
 ## 2026-10-20 17:35 SGT — Monorepo package.json Minimalism & Best-Practices Cleanup
 
 **Tool:** Google Antigravity Agent
@@ -3535,3 +3555,31 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `package-lock.json` — regenerated lockfile after dependency cleanup.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-20 17:46 SGT — Address PR #142 Review: Lazy JWT Getters in user-service config.ts and Uniform globalForPrisma Facades
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Address PR #142 review findings: convert `accessTokenPrivateKey` and `accessTokenPublicKey` in `services/user-service/src/config.ts` to lazy property getters so `services/user-service/src/database/client.ts` can import `config.databaseUrl` directly without breaking DB-only scripts/tests when JWT env vars are unset, and align `globalForPrisma` + `export type *` across all 5 `src/database/client.ts` facades.
+
+**Usage scenario:** Code review resolution and refactoring (allowed use). The author approved using lazy property getters on `user-service/src/config.ts` and aligning the 5 `client.ts` facades.
+
+**Files changed:**
+- `services/user-service/src/config.ts` — converted `accessTokenPrivateKey` and `accessTokenPublicKey` to property getters on `config`.
+- `services/user-service/src/database/client.ts` — replaced duplicate `dotenv.config()` and `DEFAULT_DATABASE_URL` fallback with `config.databaseUrl`, `globalForPrisma` singleton guard, and `export type * from '../generated/prisma'`.
+- `services/notification-service/src/database/client.ts`, `services/supplier-service/src/database/client.ts` — added `globalForPrisma` singleton guard and `export type * from '../generated/prisma'` to match `credit-service` and `order-service`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:55 SGT — Resolve Merge Conflict with main on PR #142
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Resolve merge conflicts with `main` on `chore/prisma-client-standardization`.
+
+**Usage scenario:** Git merge and conflict resolution (allowed use). Merged `origin/main` (PR #143) into `chore/prisma-client-standardization` and preserved both branches' `ai/usage-log.md` entries in chronological order.
+
+**Files changed:**
+- `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/prisma-client-standardization` plus this record.

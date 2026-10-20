@@ -140,7 +140,7 @@ Cross-service workflows that do not require blocking the user response are decou
 Each microservice owns its data store exclusively:
 1. **Zero Cross-Database Queries**: No service directly reads or writes to another service's database. No cross-database SQL joins or foreign keys exist.
 2. **PostgreSQL 16 Instance**: For local development and containerized deployment, all 5 logical databases run inside a single containerized PostgreSQL 16 server (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`).
-3. **Prisma Schema Ownership**: Each microservice maintains its own Prisma schema (`prisma/schema.prisma`) and generates its isolated client (`output = "../src/database/generated/client"`) to avoid namespace collisions.
+3. **Prisma Schema Ownership**: Each microservice maintains its own Prisma schema (`prisma/schema.prisma`) and generates its isolated client (`output = "../src/generated/prisma"`), exposed via `src/database/client.ts` to avoid namespace collisions.
 4. **Tables per database** (Prisma `@@map` names; migrations under each service's `prisma/migrations/`; `docker/postgres-init/01-init-databases.sql` provisions the five logical databases along with five dedicated least-privilege PostgreSQL roles — `user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc` — and revokes `PUBLIC` connection privileges):
 
 | Database | Tables |

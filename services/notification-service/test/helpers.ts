@@ -1,18 +1,23 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Imported PrismaClient from ../src/database/client instead of directly from generated folder.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Test helpers: an Ed25519 access-token signer in the format @campus-errand/auth verifies, a WebSocket test
  * client that records frames and the close code, a polling wait, and a throwaway PostgreSQL schema with the
  * service's migrations applied.
  * Author review: <to be completed by Reallyeasy1>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by Reallyeasy1)
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { WebSocket } from 'ws';
-import { PrismaClient } from '../src/database/generated/client';
+import { PrismaClient } from '../src/database/client';
 
 export const ISSUER = 'notification-test-issuer';
 export const AUDIENCE = 'notification-test-audience';
