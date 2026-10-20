@@ -24,24 +24,24 @@ import type {
   AdminCompleteOrderRequest,
   AdminUnassignOrderRequest,
   CreateOrderRequest,
+  CreditReservationRequestEvent,
+  CreditReservationResultEvent,
   OrderAcceptedEvent,
   OrderCancelledEvent,
   OrderCompletedEvent,
   OrderDeliveredEvent,
   OrderDTO,
   OrderInTransitEvent,
-  OrderSubmissionDTO,
 } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { SupplierClient } from '../clients/supplier.client';
 import type { OutboxRelay } from '../messaging/outbox.relay';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
-import type { ReservationSaga } from './reservation.saga';
 
 export interface OrderService {
-  createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderSubmissionDTO>;
-  getSubmission(id: string, requesterId: string): Promise<OrderSubmissionDTO>;
+  createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderDTO>;
+  handleReservationResult(event: CreditReservationResultEvent): Promise<OrderDTO>;
   getOrderById(id: string): Promise<OrderDTO>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
@@ -59,7 +59,6 @@ export interface OrderService {
 
 export interface OrderServiceDependencies {
   repository: OrderRepository;
-  reservationSaga: ReservationSaga;
   supplierClient: SupplierClient;
   outboxRelay?: OutboxRelay;
 }
@@ -161,8 +160,8 @@ async function handleCreateOrder(
   deps: OrderServiceDependencies,
   requesterId: string,
   req: CreateOrderRequest
-): Promise<OrderSubmissionDTO> {
-  const { reservationSaga, supplierClient, outboxRelay } = deps;
+): Promise<OrderDTO> {
+  const { repository, supplierClient, outboxRelay } = deps;
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(requesterId)) {
@@ -186,17 +185,51 @@ async function handleCreateOrder(
   const supplierName = supplierLookup.supplier.name;
   const campusZone = supplierLookup.supplier.campusZone || 'Campus';
 
-  // Save only the submission/outbox. The credit result consumer creates the actual Order.
-  const submission = await reservationSaga.submit({
-    id: crypto.randomUUID(), orderCode: generateOrderCode(), requesterId,
-    supplierId: validatedInput.supplierId, supplierName, campusZone,
-    itemDescription: validatedInput.itemDescription, specialNotes: validatedInput.specialNotes,
-    dropoffLocation: validatedInput.dropoffLocation, requesterContactNote: validatedInput.requesterContactNote,
+  // 3. Persist PENDING order + order.reservation.requested outbox event atomically
+  const orderId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000);
+  const reservationEvent: CreditReservationRequestEvent = {
+    eventId: orderId,
+    correlationId: orderId,
+    timestamp: new Date().toISOString(),
+    eventType: 'order.reservation.requested',
+    orderId,
+    requesterId,
     rewardCredits: validatedInput.rewardCredits,
-    expiresAt: new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000),
-  });
+  };
+
+  const createdOrder = await repository.createOrderWithOutbox(
+    {
+      id: orderId,
+      orderCode: generateOrderCode(),
+      requesterId,
+      supplierId: validatedInput.supplierId,
+      supplierName,
+      campusZone,
+      itemDescription: validatedInput.itemDescription,
+      specialNotes: validatedInput.specialNotes,
+      dropoffLocation: validatedInput.dropoffLocation,
+      requesterContactNote: validatedInput.requesterContactNote,
+      rewardCredits: validatedInput.rewardCredits,
+      expiresAt,
+    },
+    reservationEvent
+  );
+
   if (outboxRelay) void outboxRelay.trigger();
-  return submission;
+  return createdOrder;
+}
+
+async function handleReservationResult(
+  deps: OrderServiceDependencies,
+  event: CreditReservationResultEvent
+): Promise<OrderDTO> {
+  const { repository, outboxRelay } = deps;
+  const result = await repository.applyReservationResult(event);
+  if (result.outboxEvent && outboxRelay) {
+    void outboxRelay.trigger();
+  }
+  return result.order;
 }
 
 async function handleAcceptOrder(
@@ -474,7 +507,7 @@ async function handleAdminUnassignOrder(
 export function createOrderService(deps: OrderServiceDependencies): OrderService {
   return {
     createOrder: (requesterId, req) => handleCreateOrder(deps, requesterId, req),
-    getSubmission: (id, requesterId) => deps.reservationSaga.get(id, requesterId),
+    handleReservationResult: (event) => handleReservationResult(deps, event),
     getOrderById: async (id) => {
       const order = await deps.repository.findOrderById(id);
       if (!order) {

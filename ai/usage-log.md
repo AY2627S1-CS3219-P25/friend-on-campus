@@ -3470,3 +3470,46 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `services/credit-service/tests/migration.integration.test.ts`, `services/notification-service/test/helpers.ts`, `services/user-service/test/admin-guard.integration.test.ts` — updated relative migration directory paths to `../prisma/migrations`.
 - `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md`, `.claude/agents/reviewer.md` — updated Prisma schema paths and `.env` documentation.
 - `ai/usage-log.md` — this entry.
+## 2026-10-19 23:35 SGT — Order Creation Choreography Saga (Approach B2) & Debezium Outbox CDC
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/saga-and-cdc
+
+**Prompt (summarised):** Refactor PR #123's outbox-only submission saga to Approach B2: insert `Order` directly into the `orders` table with `status = 'PENDING'` (and `rejectionReason`) alongside the `order.reservation.requested` outbox event in a single atomic transaction; return `202 Accepted` with `OrderDTO` (`Location: /api/orders/:id`) and remove `OrderSubmissionDTO`, `/api/orders/submissions/:id`, and `reservation.saga.ts`; transition `PENDING -> OPEN` on `credit.reservation.succeeded` (or `PENDING -> EXPIRED` with `order.expired` if `expiresAt` has elapsed) and `PENDING -> REJECTED` on `credit.reservation.failed`; remove redundant `COMPENSATING`, `COMPENSATED`, `order.reservation.release_requested`, `credit.reservation.released`, and `expiresAt` from `CreditReservationRequestEvent`; add `aggregate_type` and `aggregate_id` to outbox tables along with PostgreSQL `wal_level=logical` and Debezium Server Outbox Event Router (`docker/debezium/application.properties`).
+
+**Usage scenario:** Architectural refactoring, database schema evolution, asynchronous saga choreography, CDC outbox configuration, test updates, and specification updates (allowed use). The author designed the Approach B2 state machine and CDC outbox architecture.
+
+**Files changed / created:**
+- `packages/common-dtos/src/index.ts` — added `PENDING` and `REJECTED` to `OrderStatus`, added `rejectionReason` to `OrderDTO`, removed `OrderSubmissionDTO`, and simplified `CreditReservationRequestEvent` / `CreditReservationResultEvent`.
+- `services/order-service/prisma/schema.prisma`, `services/order-service/prisma/migrations/20261019150000_saga_b2_and_cdc/migration.sql` [NEW], `services/order-service/src/database/schema.sql` — added `rejection_reason` to `orders` and `aggregate_type` / `aggregate_id` to `outbox_events`.
+- `services/order-service/src/orders/reservation.saga.ts` [DELETED], `services/order-service/src/orders/{order.types.ts,order.repository.ts,order.service.ts,order.routes.ts,reservation.consumer.ts,event.publisher.ts}`, `services/order-service/src/index.ts` — replaced outbox-only submission storage with atomic `PENDING` order creation and `PENDING -> OPEN / REJECTED / EXPIRED` state transitions.
+- `services/order-service/test/{helpers.ts,app.test.ts,order.service.test.ts,reservation.messaging.test.ts}` — updated all 51 unit and route tests for Approach B2.
+- `services/credit-service/prisma/schema.prisma`, `services/credit-service/prisma/migrations/20261019150000_cdc_outbox_columns/migration.sql` [NEW], `services/credit-service/src/credits/{store.ts,events.ts,service.ts}`, `services/credit-service/src/index.ts` — removed redundant `expiresAt` check and `order.reservation.release_requested` / `credit.reservation.released` handling; added `aggregate_type` / `aggregate_id` to `credit_outbox_events`.
+- `docker/rabbitmq/definitions.json`, `docker-compose.yml`, `docker/debezium/application.properties` [NEW] — cleaned up RabbitMQ permissions/bindings, enabled `wal_level=logical` on PostgreSQL, and added Debezium Server 2.7 Outbox Event Router profile (`cdc`).
+- `apps/student-app/src/orders/useOrderSubmission.ts`, `apps/student-app/src/App.tsx` — updated student app to poll `/api/orders/:id` using `OrderDTO`.
+- `docs/errand-specification.md`, `tests/postman/reservation_collection.json` — updated state machine documentation and Postman collection for Approach B2.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 00:00 SGT — Modular Frontend Refactoring for student-app and admin-portal
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/frontend-modular-refactor
+
+**Prompt (summarised):** Implement Workstream 4 (`feat/frontend-modular-refactor`): decompose the monolithic single-file React applications (`apps/student-app/src/App.tsx` at 3,262 lines and `apps/admin-portal/src/App.tsx` at 3,856 lines) into modular `api/`, `hooks/`, `components/`, and `pages/` directories while preserving 100% of existing UI behavior, Tailwind styling, and E2E/Playwright selectors.
+
+**Usage scenario:** Code modularization and structural refactoring (allowed use). The author defined the target directory layout (`api/`, `hooks/`, `components/`, `pages/`) and thin `App.tsx` orchestrator structure for both frontend workspaces.
+
+**Files changed / created:**
+- `apps/student-app/src/api/{client.ts,auth.ts,suppliers.ts,orders.ts,credits.ts,users.ts,notifications.ts}` [NEW] — extracted typed HTTP API client helpers for student-app domains.
+- `apps/student-app/src/hooks/{useAuth.ts,useNotifications.ts}` [NEW] — extracted authentication/session state and Socket.IO notification hooks.
+- `apps/student-app/src/components/{AppHeader.tsx,BottomNav.tsx,ToastContainer.tsx,OrderProgressStepper.tsx,ConfirmActionModal.tsx,ReportDisputeModal.tsx}` [NEW] — extracted shared UI shell, navigation, and modal components.
+- `apps/student-app/src/pages/{AuthPage.tsx,FeedPage.tsx,PostErrandPage.tsx,DirectoryPage.tsx,MyTasksPage.tsx,AlertsPage.tsx,ProfileWalletPage.tsx}` [NEW] — extracted student-app views into page modules.
+- `apps/student-app/src/App.tsx` — simplified from 3,262 lines to a 266-line top-level orchestrator.
+- `apps/admin-portal/src/constants.ts`, `apps/admin-portal/src/api/{auth.ts,suppliers.ts,users.ts,orders.ts}` [NEW] — extracted shared constants and typed admin API client helpers.
+- `apps/admin-portal/src/hooks/useAdminAuth.ts` [NEW] — extracted admin JWT authentication, silent session restore, and logout hook.
+- `apps/admin-portal/src/components/{AdminSidebar.tsx,AdminHeader.tsx,OrderStatusBadge.tsx,SupplierModals.tsx,UserModals.tsx,OrderActionModal.tsx}` [NEW] — extracted admin navigation, header, status badge, and CRUD modal components.
+- `apps/admin-portal/src/pages/{AdminLoginPage.tsx,SuppliersPage.tsx,UsersPage.tsx,OrdersPage.tsx,HealthPage.tsx,AuditPage.tsx}` [NEW] — extracted admin portal views into dedicated page modules.
+- `apps/admin-portal/src/App.tsx` — simplified from 3,856 lines to a 462-line top-level orchestrator.
+- `ai/usage-log.md` — this entry.

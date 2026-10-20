@@ -18,10 +18,10 @@
  */
 // AI-generated (edited by yanhwee)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
-import type { ApiResponse, CreateOrderRequest, OrderDTO, OrderSubmissionDTO } from '@campus-errand/common-dtos';
+import type { ApiResponse, CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
 import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
 import type { OrderService } from './order.service';
-import { OrderError, OrderValidationError } from './order.types';
+import { OrderAuthorizationError, OrderError, OrderValidationError } from './order.types';
 
 // ---------------------------------------------------------------------------
 // Route & Authentication Helpers
@@ -95,6 +95,7 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 1. List / Discover Open Errands (authenticated)
   router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {
+    const principal = resolvePrincipal(res);
     const { status, campusZone, search, page, limit } = req.query;
     const parsedPage = parsePositiveInt(page, 'page');
     const parsedLimit = parsePositiveInt(limit, 'limit', 100);
@@ -105,6 +106,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
       search: typeof search === 'string' ? search : undefined,
       page: parsedPage,
       limit: parsedLimit,
+      viewerId: principal.userId,
+      isAdmin: principal.role === 'ADMIN',
     });
 
     res.json({
@@ -124,34 +127,33 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
-  // AI-generated (edited by huangjiaxi1111)
-  router.get('/submissions/:id', authenticate, asyncRoute(async (req, res) => {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
-      throw new OrderValidationError('Submission id must be a UUID');
-    }
-    const submission = await orderService.getSubmission(req.params.id, resolveUserId(req, res));
-    res.json({ success: true, data: submission });
-  }));
-
   // 3. Get Errand Details by ID or Code (authenticated)
   router.get('/:id', authenticate, asyncRoute(async (req: Request, res: Response) => {
+    const principal = resolvePrincipal(res);
     const order = await orderService.getOrderById(req.params.id);
+    if (
+      (order.status === 'PENDING' || order.status === 'REJECTED') &&
+      order.requesterId !== principal.userId &&
+      principal.role !== 'ADMIN'
+    ) {
+      throw new OrderAuthorizationError('Only the requester can view this order');
+    }
     res.json({
       success: true,
       data: order,
     });
   }));
 
-  // 4. Submit Errand Request (credit reservation completes asynchronously)
-  router.post('/', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderSubmissionDTO>>) => {
+  // 4. Submit Errand Request (creates PENDING order; credit reservation completes asynchronously)
+  router.post('/', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const requesterId = resolveUserId(req, res);
     const body = req.body as CreateOrderRequest;
 
     const newOrder = await orderService.createOrder(requesterId, body);
-    res.location(`/api/orders/submissions/${newOrder.id}`).status(202).json({
+    res.location(`/api/orders/${newOrder.id}`).status(202).json({
       success: true,
       data: newOrder,
-      message: 'Submission received. Awaiting credit reservation.',
+      message: 'Order received. Awaiting credit reservation.',
     });
   }));
 

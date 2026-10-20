@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-19
+ * Scope: Refactored monolithic student-app App.tsx into modular api/, hooks/, components/, and pages/ architecture.
+ * Author review: Verified by yanhwee
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Connect posting to the async reservation API; display saga outcomes and refresh real feed, activity and credits; remove mock suppliers and order mutations.
  * Author review: <to be completed by huangjiaxi1111>
@@ -18,152 +22,37 @@
  * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
  * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
  * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Display authenticated Credit Service wallet and ledger data, handle loading/errors, and remove simulated balance changes.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive layouts and an Admin Log In link on the student login page.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Connected Student App to live Supplier Service API (/api/suppliers), added dynamic supplier dropdown in errand creation, and added campus supplier directory browsing tab.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Added a Log In / Sign Up gate in front of the whole app. Log In posts to /api/auth/login through the gateway with a loading-spinner button and a red error box (code + message) on failure. Sign Up posts to /api/auth/register with 7 fields (5 required, marked with a red asterisk), client-side validation before any API call (required fields filled, retype-password matches password, password 8-24 characters), and auto-logs the user in on success using the token returned by the register response. "Sign up"/"Log in" links toggle between the two forms in place. No role restriction (unlike the admin portal's login gate) — any successfully authenticated account is let in. The rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet data) is unchanged.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Fixed the "Spots" tab hiding suppliers an admin has deactivated. fetchLiveSuppliers now fetches all suppliers (dropped the ?isActive=true query param) instead of only active ones. The Post Errand pickup dropdown still only ever offers active suppliers (new `activeSuppliers` derived list), so unavailable ones can't be selected as a pickup point, but the Spots tab now shows every supplier — inactive ones rendered dimmed (bg-slate-50, opacity-60) with a red "Unavailable" badge and a disabled, unclickable "Pick for Errand" button.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Merge of dev into the user-service PR: Log In posts { email, password } and reads data.data.accessToken;
- * Sign Up now sends the User Service (PR #76) registration contract { username, email, password } (the full name,
- * matric number, phone and Telegram fields were removed because the new user model has no such columns) and,
- * since registration no longer returns a token, auto-login is done with a follow-up /api/auth/login call.
- * Error boxes read the service's { error, code } shape.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Renamed the bottom-nav "Wallet" tab to "Profile" (UserCircle icon), keeping all existing wallet content unchanged but shifted below a new "Profile Info" section. Added GET /api/users/me (lazy-loaded when the tab opens) displaying User ID/Username/Email/Role/Status, all disabled by default with a "Loading users..." indicator and red error box on failure; red asterisks on Username/Email only (the two NOT NULL+unique fields per 01-init-databases.sql, per the author's choice — Role/Status are also NOT NULL but read-only here). "Edit" enables only the Username input and is replaced by a stacked "Cancel"/"Update" pair; "Update" shows a spinner and calls PATCH /api/users/me, updating the field from the server's returned value on success or showing an inline error (e.g. duplicate username) otherwise; "Cancel" discards the draft and reverts to view mode.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Removed the User ID field from Profile Info (now just Username/Email/Role/Status). Role and Status now render as colored badge divs instead of disabled text inputs: Role is emerald for STUDENT / blue for ADMIN, Status is emerald for Active / rose for Disabled — same "transparent tint + colored border" badge style already used in the admin portal.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Added a "Remember me?" checkbox to the Log In form, sent as keepLoggedIn in the /api/auth/login request (defaults to false everywhere else, e.g. Sign Up's auto-login call is unaffected) — this selects the backend's existing 30-day persistent session window instead of the standard 1-day one, verified live via the sessions table. Added a silent session-restore check on app load: a new mount effect calls POST /api/auth/refresh (the browser attaches the refresh_token cookie automatically) before deciding whether to show the login page; on success it restores the access token and logs the user back in without any interaction, on a 401 it falls through silently to the login page (expected for a first visit or an expired session, not an error). A brief spinner screen covers this check so a still-logged-in user never sees a flash of the login form.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Added a "Log Out" button (blue, full-width) at the bottom of the Profile page's Profile Info section, below the Transaction Ledger. Calls POST /api/auth/logout through the gateway (revokes the session server-side via the refresh_token cookie, no request body/headers needed); client-side auth state (isAuthenticated, authToken, login form fields, rememberMe, profile, activeTab reset to 'feed') is cleared unconditionally in a finally block, so a network failure calling the server never leaves the user stuck logged-in locally. Shows a spinner + "Logging out…" while in flight. Verified live with curl/cookie jars: logout returns 204, the matching sessions row is deleted, the refresh_token cookie is cleared server-side, and a subsequent /api/auth/refresh call correctly returns 401 INVALID_SESSION.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
- * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added a "Delete Account" button (red, full-width) below Log Out on the Profile page. Opens a
- * confirmation modal (warning text, inline error box on failure, a required "I understand this is
- * irreversible" checkbox gating the red confirm button) that calls DELETE /api/users/:id (via authFetch, same
- * 401-refresh-retry as every other authenticated call) for the logged-in user's own id. On success shows a
- * separate "Account Deleted" success modal whose "Return to Login" button calls the existing clearLocalSession()
- * and falls through to the login gate. No existing modal/overlay pattern existed in this file, so both modals
- * are new, styled to match this file's existing rose-error-box and RefreshCw-spinner conventions.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added a responsive desktop layout (top nav bar, wide multi-column content grids) gated on Tailwind's md: (768px) breakpoint, alongside the existing mobile phone-card layout.
- * Author review: [left for the human author to fill in]
  */
 
 // AI-generated (edited by yanhwee)
 
 import { CreditTransactionDTO, CreditWalletDTO, OrderDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
-import {
-  AlertCircle,
-  ArrowRight,
-  CheckCircle,
-  Clock,
-  Coins,
-  Compass,
-  MapPin,
-  PlusCircle,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Store,
-  UserCircle,
-} from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { NotificationBell, NotificationPanel } from './notifications/NotificationBell';
+import { fetchWalletAndLedger } from './api/credits';
+import { acceptOrderById, fetchCombinedOrders } from './api/orders';
+import { fetchAllSuppliers } from './api/suppliers';
+import {
+  deleteUserAccountById,
+  fetchCurrentUserProfile,
+  updateCurrentUsername,
+} from './api/users';
+import { BottomNav } from './components/BottomNav';
+import { DeleteAccountModal } from './components/DeleteAccountModal';
+import { HeaderNav, StudentTab } from './components/HeaderNav';
+import { useAuthSession } from './hooks/useAuthSession';
 import { useNotifications } from './notifications/useNotifications';
-import { tokenUserId, useOrderSubmission } from './orders/useOrderSubmission';
-
-// AI-generated (edited by huangjiaxi1111)
-function ExpandableNotes({ notes }: { notes?: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const [overflows, setOverflows] = useState(false);
-  const preview = useRef<HTMLParagraphElement>(null);
-  const notesId = React.useId();
-  useEffect(() => {
-    if (expanded || !preview.current) return;
-    const element = preview.current;
-    const measure = () => setOverflows(element.scrollHeight > element.clientHeight + 1);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [notes, expanded]);
-  return (
-    <div className="mt-1 text-sm text-slate-500" data-testid="special-notes">
-      <p id={notesId} ref={preview} className={`whitespace-pre-wrap break-words leading-5 ${expanded ? 'max-h-40 overflow-y-auto' : 'line-clamp-2 h-10'}`}>
-        {notes || 'No special notes.'}
-      </p>
-      <div className="h-11">
-        {(overflows || expanded) && <button type="button" aria-expanded={expanded} aria-controls={notesId}
-          onClick={() => setExpanded(value => !value)} className="text-sm font-semibold text-blue-700 hover:underline">
-          {expanded ? 'Show less' : 'Show more'}
-        </button>}
-      </div>
-    </div>
-  );
-}
+import { useOrderSubmission } from './orders/useOrderSubmission';
+import { AlertsPage } from './pages/AlertsPage';
+import { AuthGatePage } from './pages/AuthGatePage';
+import { FeedPage } from './pages/FeedPage';
+import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
+import { ProfileWalletPage } from './pages/ProfileWalletPage';
+import { SpotsPage } from './pages/SpotsPage';
+import { TasksPage } from './pages/TasksPage';
 
 export default function App() {
-  // Login / Sign Up Gate state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [authToken, setAuthToken] = useState('');
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
-
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
-
-  // AI-generated (edited by ngkhengyang)
-  const [signupData, setSignupData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    retypePassword: '',
-  });
-  const [isSigningUp, setIsSigningUp] = useState(false);
-  const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
-
-  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile' | 'wallet'>('feed');
+  const [activeTab, setActiveTab] = useState<StudentTab>('feed');
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
 
   // Profile Info state (GET/PATCH /api/users/me)
@@ -186,6 +75,7 @@ export default function App() {
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
+  const [supplierError, setSupplierError] = useState<string | null>(null);
 
   // Credit Wallet & Ledger State
   const [wallet, setWallet] = useState<CreditWalletDTO | null>(null);
@@ -199,11 +89,9 @@ export default function App() {
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
   const orderRequestId = useRef(0);
-  const currentUserId = isAuthenticated ? tokenUserId(authToken) : null;
-  const [supplierError, setSupplierError] = useState<string | null>(null);
 
   // Post Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PostErrandFormData>({
     supplierId: '',
     supplierName: '',
     campusZone: '',
@@ -229,155 +117,24 @@ export default function App() {
     setNotification(null);
   }, [activeTab]);
 
-  // AI-generated (edited by ngkhengyang)
-  // User Service contract (PR #76): POST /api/auth/login { email, password } -> { accessToken, user };
-  // errors are { error, code }.
-  const loginWithPassword = async (email: string, password: string, keepLoggedIn: boolean = false) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, keepLoggedIn }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      return { ok: false as const, code: data.code || `HTTP_${res.status}`, message: data.error };
-    }
-    return { ok: true as const, accessToken: data.data.accessToken as string };
-  };
+  const auth = useAuthSession(() => {
+    creditRequestId.current++;
+    orderRequestId.current++;
+    setOrders([]);
+    setOrdersError(null);
+    setOrdersLoading(false);
+    setNotification(null);
+    setWallet(null);
+    setLedger([]);
+    setCreditError(null);
+    setIsLoadingCredits(false);
+    setProfile(null);
+    setActiveTab('feed');
+  });
 
-  // Log In handler
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    setLoginError(null);
-    try {
-      const result = await loginWithPassword(loginEmail, loginPassword, rememberMe);
-      if (!result.ok) {
-        setLoginError({
-          code: result.code,
-          message: result.message || 'Login failed. Please check your credentials.',
-        });
-        return;
-      }
-      setAuthToken(result.accessToken);
-      setIsAuthenticated(true);
-    } catch (err: any) {
-      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
+  const { isAuthenticated, isCheckingSession, authToken, authFetch, refreshAccessToken, currentUserId } =
+    auth;
 
-  // Sign Up handler
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignupError(null);
-
-    if (
-      !signupData.username.trim() ||
-      !signupData.email ||
-      !signupData.password ||
-      !signupData.retypePassword
-    ) {
-      setSignupError({ code: 'VALIDATION_ERROR', message: 'Please fill in all required fields marked with *.' });
-      return;
-    }
-    if (signupData.password !== signupData.retypePassword) {
-      setSignupError({ code: 'PASSWORD_MISMATCH', message: 'Passwords do not match.' });
-      return;
-    }
-    if (signupData.password.length < 8 || signupData.password.length > 24) {
-      setSignupError({ code: 'INVALID_PASSWORD', message: 'Password must be between 8 and 24 characters long.' });
-      return;
-    }
-
-    setIsSigningUp(true);
-    try {
-      // AI-generated (edited by ngkhengyang)
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: signupData.username.trim(),
-          email: signupData.email,
-          password: signupData.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setSignupError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Sign up failed.' });
-        return;
-      }
-      // Registration creates the account only; log in to get a session.
-      const login = await loginWithPassword(signupData.email, signupData.password);
-      if (!login.ok) {
-        setSignupError({ code: login.code, message: login.message || 'Account created, but automatic login failed. Please log in.' });
-        setAuthView('login');
-        return;
-      }
-      setAuthToken(login.accessToken);
-      setIsAuthenticated(true);
-    } catch (err: any) {
-      setSignupError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the registration server.' });
-    } finally {
-      setIsSigningUp(false);
-    }
-  };
-
-  // AI-generated (edited by Reallyeasy1)
-  // Get a new access token from the refresh_token cookie (the browser attaches it). Shared by the
-  // mount-time session restore and the 401 retry in authFetch. Concurrent callers share one in-flight
-  // request so a burst of 401s cannot race the server-side refresh-token rotation.
-  const refreshInFlight = useRef<Promise<string | null> | null>(null);
-  const refreshAccessToken = (): Promise<string | null> => {
-    if (!refreshInFlight.current) {
-      refreshInFlight.current = (async () => {
-        try {
-          const res = await fetch('/api/auth/refresh', { method: 'POST' });
-          const data = await res.json();
-          if (!res.ok || !data.success) return null;
-          const token: string = data.data.accessToken;
-          setAuthToken(token);
-          return token;
-        } catch {
-          // Network failure: treated the same as "no session to restore".
-          return null;
-        } finally {
-          refreshInFlight.current = null;
-        }
-      })();
-    }
-    return refreshInFlight.current;
-  };
-
-  // Silently try to restore a session from the refresh_token cookie on load, so a page
-  // refresh doesn't always force the user back to the login page. A failure (e.g. 401) just
-  // means there's no valid session to restore, expected for a first visit or an expired cookie.
-  useEffect(() => {
-    refreshAccessToken()
-      .then((token) => {
-        if (token) setIsAuthenticated(true);
-      })
-      .finally(() => setIsCheckingSession(false));
-  }, []);
-
-  // Authenticated fetch: attaches the bearer token and, when the access token has expired
-  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
-  const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
-      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-    const res = await send(authToken);
-    if (res.status !== 401) return res;
-    const token = await refreshAccessToken();
-    if (token) return send(token);
-    clearLocalSession();
-    return res;
-  };
-
-  // AI-generated (edited by Reallyeasy1)
-  // Notification Service: the socket opens once logged in and authenticates with the access token; new
-  // notifications arrive as frames, history and read state go over REST. A pushed notification also shows a toast.
   const notifications = useNotifications({
     enabled: isAuthenticated,
     token: authToken,
@@ -388,7 +145,6 @@ export default function App() {
     },
   });
   const wsStatus = notifications.status;
-  // Feature flag: the connection status line is a development aid; VITE_SHOW_WS_STATUS=false hides it.
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const fetchCredits = async () => {
@@ -398,56 +154,38 @@ export default function App() {
     setWallet(null);
     setLedger([]);
     try {
-      // Both endpoints only read persisted credit data.
-      const walletResponse = await authFetch('/api/credits/wallet');
-      const walletResult = await walletResponse.json();
+      const result = await fetchWalletAndLedger(authFetch);
       if (requestId !== creditRequestId.current) return;
-      if (walletResponse.status === 404) {
-        setCreditError('Your credit wallet has not been initialized yet.');
-        return;
-      }
-      if (!walletResponse.ok || !walletResult.success || !walletResult.data) {
-        throw new Error('Unable to load your credits. Please try again.');
-      }
-      const ledgerResponse = await authFetch('/api/credits/ledger');
-      const ledgerResult = await ledgerResponse.json();
-      if (requestId !== creditRequestId.current) return;
-      if (!ledgerResponse.ok || !ledgerResult.success || !Array.isArray(ledgerResult.data)) {
-        throw new Error('Unable to load your transactions. Please try again.');
-      }
-      setWallet(walletResult.data);
-      setLedger(ledgerResult.data);
-    } catch {
-      if (requestId === creditRequestId.current) {
-        setCreditError('Unable to load your wallet and transactions. Please try again.');
+      if (result.status === 'ok') {
+        setWallet(result.wallet);
+        setLedger(result.ledger);
+      } else {
+        setCreditError(result.message);
       }
     } finally {
       if (requestId === creditRequestId.current) setIsLoadingCredits(false);
     }
   };
 
-  // Refresh on sign-in and tab navigation; ignore responses from previous sessions or requests.
   useEffect(() => {
     if (isAuthenticated) void fetchCredits();
-    return () => { creditRequestId.current++; };
+    return () => {
+      creditRequestId.current++;
+    };
   }, [isAuthenticated, activeTab]);
 
-  // AI-generated (edited by huangjiaxi1111)
   const fetchOrders = async () => {
     const requestId = ++orderRequestId.current;
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const [feedResponse, activityResponse] = await Promise.all([
-        authFetch('/api/orders?status=OPEN&limit=100'), authFetch('/api/orders/user/activity'),
-      ]);
-      const [feed, activity] = await Promise.all([feedResponse.json(), activityResponse.json()]);
+      const combined = await fetchCombinedOrders(authFetch);
       if (requestId !== orderRequestId.current) return;
-      if (!feedResponse.ok || !activityResponse.ok || !feed.success || !activity.success) throw new Error('Order API unavailable');
-      const combined: OrderDTO[] = [...feed.data, ...activity.data.requested, ...activity.data.delivering];
-      setOrders([...new Map(combined.map(order => [order.id, order])).values()]);
+      setOrders(combined);
     } catch {
-      if (requestId === orderRequestId.current) setOrdersError('Unable to load errands. Please try again.');
+      if (requestId === orderRequestId.current) {
+        setOrdersError('Unable to load errands. Please try again.');
+      }
     } finally {
       if (requestId === orderRequestId.current) setOrdersLoading(false);
     }
@@ -458,37 +196,42 @@ export default function App() {
   useEffect(() => {
     const requests = orderRequestId;
     if (currentUserId) void loadOrders.current();
-    return () => { requests.current++; };
+    return () => {
+      requests.current++;
+    };
   }, [currentUserId, activeTab]);
 
   const submission = useOrderSubmission({
-    userId: currentUserId, authFetch,
-    onSettled: receipt => {
+    userId: currentUserId,
+    authFetch,
+    onSettled: (receipt) => {
       void fetchCredits();
       void fetchOrders();
-      if (receipt.status === 'OPEN' && receipt.order) {
+      if (receipt.status === 'OPEN' && receipt.orderCode) {
         keepNoticeOnTabChange.current = activeTab === 'post';
-        setNotification(`Errand ${receipt.order.orderCode} posted. Credits reserved.`);
-        setFormData(current => ({ ...current, itemDescription: '', specialNotes: '', dropoffLocation: '', rewardCredits: 15 }));
+        setNotification(`Errand ${receipt.orderCode} posted. Credits reserved.`);
+        setFormData((current) => ({
+          ...current,
+          itemDescription: '',
+          specialNotes: '',
+          dropoffLocation: '',
+          rewardCredits: 15,
+        }));
         if (activeTab === 'post') setActiveTab('feed');
       }
     },
   });
 
-  // Fetch the logged-in user's own profile (GET /api/users/me)
   const fetchProfile = async () => {
     setIsLoadingProfile(true);
     setProfileError(null);
     try {
-      const res = await authFetch('/api/users/me');
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setProfile(data.data.user);
+      const res = await fetchCurrentUserProfile(authFetch);
+      if (res.ok) {
+        setProfile(res.data);
       } else {
-        setProfileError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to load profile.' });
+        setProfileError({ code: res.code, message: res.message });
       }
-    } catch (err: any) {
-      setProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsLoadingProfile(false);
     }
@@ -507,7 +250,6 @@ export default function App() {
     setEditUsernameDraft('');
   };
 
-  // Update the logged-in user's own username (PATCH /api/users/me)
   const handleUpdateProfile = async () => {
     if (!editUsernameDraft.trim()) {
       setUpdateProfileError({ code: 'VALIDATION_ERROR', message: 'Username is required.' });
@@ -516,80 +258,33 @@ export default function App() {
     setIsUpdatingProfile(true);
     setUpdateProfileError(null);
     try {
-      const res = await authFetch('/api/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ username: editUsernameDraft.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setProfile(data.data.user);
+      const res = await updateCurrentUsername(authFetch, editUsernameDraft.trim());
+      if (res.ok) {
+        setProfile(res.data);
         setIsEditingProfile(false);
       } else {
-        setUpdateProfileError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to update username.' });
+        setUpdateProfileError({ code: res.code, message: res.message });
       }
-    } catch (err: any) {
-      setUpdateProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsUpdatingProfile(false);
     }
   };
 
-  // Permanently delete the logged-in user's own account (DELETE /api/users/:id)
   const handleDeleteAccount = async () => {
     if (!profile) return;
     setIsDeletingAccount(true);
     setDeleteAccountError(null);
     try {
-      const res = await authFetch(`/api/users/${profile.userId}`, { method: 'DELETE' });
-      if (res.status === 204) {
+      const res = await deleteUserAccountById(authFetch, profile.userId);
+      if (res.ok) {
         setShowDeleteAccountModal(false);
         setDeleteAccountConfirmed(false);
         setDeleteAccountSuccess(true);
       } else {
-        const data = await res.json().catch(() => ({}));
-        setDeleteAccountError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to delete account.' });
+        setDeleteAccountError({ code: res.code, message: res.message });
       }
-    } catch (err: any) {
-      setDeleteAccountError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsDeletingAccount(false);
-    }
-  };
-
-  // Drop the client-side session without touching the server. Used by Log Out and by authFetch
-  // when a refresh fails: that 401 may be a lost rotation race, and the cookie may by then belong
-  // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
-  const clearLocalSession = () => {
-    creditRequestId.current++;
-    orderRequestId.current++;
-    setOrders([]);
-    setOrdersError(null);
-    setOrdersLoading(false);
-    setNotification(null);
-    setWallet(null);
-    setLedger([]);
-    setCreditError(null);
-    setIsLoadingCredits(false);
-    setIsAuthenticated(false);
-    setAuthToken('');
-    setLoginEmail('');
-    setLoginPassword('');
-    setLoginError(null);
-    setRememberMe(false);
-    setProfile(null);
-    setActiveTab('feed');
-  };
-
-  // Log out: revoke the session server-side, then clear client-side auth state regardless of outcome.
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {
-      // Network failure logging out server-side shouldn't block clearing the local session below.
-    } finally {
-      clearLocalSession();
-      setIsLoggingOut(false);
     }
   };
 
@@ -597,31 +292,44 @@ export default function App() {
     setIsSuppliersLoading(true);
     setSupplierError(null);
     try {
-      const res = await fetch('/api/suppliers');
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error('Supplier API unavailable');
-      const items: SupplierDTO[] = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];
+      const items = await fetchAllSuppliers();
       setSuppliers(items);
-      setFormData(current => {
-        const selected = items.find(item => item.id === current.supplierId && item.isActive) ?? items.find(item => item.isActive);
-        return { ...current, supplierId: selected?.id ?? '', supplierName: selected?.name ?? '', campusZone: selected?.campusZone ?? '' };
+      setFormData((current) => {
+        const selected =
+          items.find((item) => item.id === current.supplierId && item.isActive) ??
+          items.find((item) => item.isActive);
+        return {
+          ...current,
+          supplierId: selected?.id ?? '',
+          supplierName: selected?.name ?? '',
+          campusZone: selected?.campusZone ?? '',
+        };
       });
     } catch {
       setSuppliers([]);
       setSupplierError('Unable to load pickup spots. Please try again.');
-    } finally { setIsSuppliersLoading(false); }
+    } finally {
+      setIsSuppliersLoading(false);
+    }
   };
 
-  useEffect(() => { void fetchLiveSuppliers(); }, []);
+  useEffect(() => {
+    void fetchLiveSuppliers();
+  }, []);
 
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (submission.busy || !suppliers.some(s => s.id === formData.supplierId && s.isActive)) return;
+    if (submission.busy || !suppliers.some((s) => s.id === formData.supplierId && s.isActive)) {
+      return;
+    }
     setNotification(null);
     void submission.submit({
-      supplierId: formData.supplierId, itemDescription: formData.itemDescription,
-      specialNotes: formData.specialNotes, dropoffLocation: formData.dropoffLocation,
-      rewardCredits: formData.rewardCredits, durationMinutes: 30,
+      supplierId: formData.supplierId,
+      itemDescription: formData.itemDescription,
+      specialNotes: formData.specialNotes,
+      dropoffLocation: formData.dropoffLocation,
+      rewardCredits: formData.rewardCredits,
+      durationMinutes: 30,
     });
   };
 
@@ -631,15 +339,19 @@ export default function App() {
     setAcceptingOrder(orderId);
     setOrdersError(null);
     try {
-      const res = await authFetch(`/api/orders/${orderId}/accept`, { method: 'POST', body: '{}' });
-      const body = await res.json();
+      const updated = await acceptOrderById(authFetch, orderId);
       if (requestId !== orderRequestId.current) return;
-      if (!res.ok || !body.success) throw new Error(body.error || 'Unable to accept this errand.');
-      setOrders(current => current.map(order => order.id === orderId ? body.data : order));
+      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
       setNotification('Errand accepted! Head to the pickup location.');
     } catch (error) {
-      if (requestId === orderRequestId.current) setOrdersError(error instanceof Error ? error.message : 'Unable to accept this errand.');
-    } finally { setAcceptingOrder(null); }
+      if (requestId === orderRequestId.current) {
+        setOrdersError(
+          error instanceof Error ? error.message : 'Unable to accept this errand.'
+        );
+      }
+    } finally {
+      setAcceptingOrder(null);
+    }
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -648,7 +360,6 @@ export default function App() {
     return o.campusZone === selectedZone;
   });
 
-  // Only active suppliers can be picked as a pickup spot for a new errand
   const activeSuppliers = suppliers.filter((s) => s.isActive);
 
   const filteredSuppliers = suppliers.filter((s) => {
@@ -672,1051 +383,222 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 px-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-5">
-          <div className="text-center space-y-1">
-            <h1 className="font-extrabold text-lg text-nus-blue">NUS CampusErrand</h1>
-            <p className="text-xs text-slate-400">Dual-Role Peer Network</p>
-          </div>
-
-          {authView === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <h2 className="text-base font-bold text-slate-900 text-center">Log In</h2>
-              {loginError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                  <p className="font-bold">{loginError.code}</p>
-                  <p>{loginError.message}</p>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  disabled={isLoggingIn}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  disabled={isLoggingIn}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <label className="flex items-center space-x-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  disabled={isLoggingIn}
-                  className="rounded border-slate-300 text-nus-blue focus:ring-nus-blue"
-                />
-                <span>Keep me logged in</span>
-              </label>
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
-              </button>
-              <p className="text-center text-xs text-slate-500">
-                If you don't have an account,{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthView('signup');
-                    setLoginError(null);
-                  }}
-                  className="text-nus-orange font-bold underline"
-                >
-                  Sign up
-                </button>{' '}
-                with us
-              </p>
-              <div className="border-t border-slate-200 pt-4">
-                <a
-                  href="/admin/"
-                  className="flex min-h-11 w-full items-center justify-center rounded-lg border border-nus-blue px-4 py-2.5 text-sm font-bold text-nus-blue transition hover:bg-blue-50"
-                >
-                  Admin Log In
-                </a>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleSignup} className="space-y-3">
-              <h2 className="text-base font-bold text-slate-900 text-center">Sign Up</h2>
-              {signupError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                  <p className="font-bold">{signupError.code}</p>
-                  <p>{signupError.message}</p>
-                </div>
-              )}
-              {/* AI-generated (edited by ngkhengyang) */}
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Username <span className="text-rose-600">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-1">1-50 characters.</p>
-                <input
-                  type="text"
-                  value={signupData.username}
-                  onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Email <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={signupData.email}
-                  onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Password <span className="text-rose-600">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-1">Must be 8-24 characters long.</p>
-                <input
-                  type="password"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Re-type Password <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={signupData.retypePassword}
-                  onChange={(e) => setSignupData({ ...signupData, retypePassword: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <p className="text-xs text-slate-400">
-                Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
-              </p>
-              <button
-                type="submit"
-                disabled={isSigningUp}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-orange hover:bg-orange-600 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                {isSigningUp && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isSigningUp ? 'Signing up...' : 'Sign Up'}</span>
-              </button>
-              <p className="text-center text-xs text-slate-500">
-                Already have an account,{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthView('login');
-                    setSignupError(null);
-                  }}
-                  className="text-nus-blue font-bold underline"
-                >
-                  Log in
-                </button>
-              </p>
-            </form>
-          )}
-        </div>
-      </div>
+      <AuthGatePage
+        authView={auth.authView}
+        setAuthView={auth.setAuthView}
+        loginEmail={auth.loginEmail}
+        setLoginEmail={auth.setLoginEmail}
+        loginPassword={auth.loginPassword}
+        setLoginPassword={auth.setLoginPassword}
+        rememberMe={auth.rememberMe}
+        setRememberMe={auth.setRememberMe}
+        isLoggingIn={auth.isLoggingIn}
+        loginError={auth.loginError}
+        setLoginError={auth.setLoginError}
+        onLoginSubmit={auth.handleLogin}
+        signupData={auth.signupData}
+        setSignupData={auth.setSignupData}
+        isSigningUp={auth.isSigningUp}
+        signupError={auth.signupError}
+        setSignupError={auth.setSignupError}
+        onSignupSubmit={auth.handleSignup}
+      />
     );
   }
 
+  const openProfileTab = () => {
+    setActiveTab('profile');
+    void fetchProfile();
+  };
+
   return (
-    // AI-generated (edited by jagdeepsh) - original responsive shell
-    // AI-generated (edited by huangjiaxi1111) - fluid shell with viewport-based navigation
     <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
-      {/* Top Header */}
-      <header className="bg-nus-blue text-white px-4 py-4 md:px-6 lg:px-8 sticky top-0 z-30 shadow-md">
-        <div className="student-header-row">
-          <div>
-            <h1 className="font-extrabold text-base tracking-tight flex flex-wrap items-center gap-1.5">
-              <span>NUS CampusErrand</span>
-              <span className="bg-nus-orange text-xs font-black px-1.5 py-0.5 rounded tracking-normal">
-                STUDENT
-              </span>
-            </h1>
-            <p className="text-xs text-blue-200">Dual-Role Peer Network • Milestone 3</p>
-          </div>
+      <HeaderNav
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenProfile={openProfileTab}
+        unreadNotificationsCount={notifications.unreadCount}
+        wallet={wallet}
+        isLoadingCredits={isLoadingCredits}
+        showWsStatus={showWsStatus}
+        wsStatus={wsStatus}
+      />
 
-          {/* AI-generated (edited by jagdeepsh) - desktop top nav bar, replaces the bottom tab bar at md: and up */}
-          <nav aria-label="Main navigation" className="student-top-nav hidden md:flex flex-wrap items-center gap-1 bg-blue-900/40 rounded-2xl px-1.5 py-1 border border-blue-400/20">
-            <button
-              aria-current={activeTab === 'feed' ? 'page' : undefined}
-              onClick={() => setActiveTab('feed')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'feed' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              <span>Feed</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'post' ? 'page' : undefined}
-              onClick={() => setActiveTab('post')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'post' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Post</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'spots' ? 'page' : undefined}
-              onClick={() => setActiveTab('spots')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'spots' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <Store className="w-4 h-4" />
-              <span>Spots</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'tasks' ? 'page' : undefined}
-              onClick={() => setActiveTab('tasks')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'tasks' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Tasks</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'profile' ? 'page' : undefined}
-              onClick={() => {
-                setActiveTab('profile');
-                fetchProfile();
-              }}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'profile' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <UserCircle className="w-4 h-4" />
-              <span>Profile</span>
-            </button>
-            <NotificationBell variant="top" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
-          </nav>
-
-          <button type="button" aria-label="Open wallet" aria-current={activeTab === 'wallet' ? 'page' : undefined}
-            onClick={() => setActiveTab('wallet')}
-            className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30 hover:bg-blue-800 transition">
-            <Coins className="w-3.5 h-3.5 text-amber-300" />
-            <span className="text-sm font-bold text-amber-300" aria-live="polite">
-              {wallet ? `${wallet.availableCredits} C` : isLoadingCredits ? 'Loading credits…' : 'Credits unavailable'}
-            </span>
-          </button>
-        </div>
-
-        {/* Status Line */}
-        <div className="mt-2.5 pt-2 border-t border-blue-800 flex justify-between items-center text-xs">
-          {showWsStatus ? (
-            <span className="flex items-center space-x-1.5 text-blue-200">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  wsStatus === 'connected'
-                    ? 'bg-emerald-400 motion-safe:animate-pulse'
-                    : wsStatus === 'connecting'
-                    ? 'bg-amber-400'
-                    : 'bg-rose-400'
-                }`}
-              />
-              <span>WS Hub: {wsStatus}</span>
-            </span>
-          ) : (
-            <span />
-          )}
-          <span className="text-blue-300">Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}</span>
-        </div>
-      </header>
-
-      {/* Notification Toast */}
       {notification && (
-        <div role="status" data-testid="action-notice" className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all">
+        <div
+          role="status"
+          data-testid="action-notice"
+          className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all"
+        >
           {notification}
         </div>
       )}
 
-      {/* Main Content Area */}
-      {/* AI-generated (edited by jagdeepsh) - relax bottom padding at md: since the fixed bottom nav is hidden there */}
       <main className="student-main flex-1 min-w-0 px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
-        {(submission.unconfirmed || (submission.receipt && submission.receipt.status !== 'OPEN')) && (
-          <div role="status" data-testid="order-submission-status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            {submission.unconfirmed && 'Awaiting confirmation. Your errand may still be pending and could become open. We could not confirm its status because the submission response was not received. Please wait before trying again; submitting again could create a duplicate errand.'}
-            {submission.receipt?.status === 'PENDING' && 'Pending — waiting to open. We are reserving your credits. Your errand will appear once the reservation is confirmed. Please wait and do not submit this errand again.'}
-            {submission.receipt?.status === 'COMPENSATING' && 'Your submission expired. Returning your reserved credits…'}
-            {submission.receipt?.status === 'COMPENSATED' && 'Your submission expired and your reserved credits have been returned. You can submit a new errand.'}
-            {submission.receipt?.status === 'REJECTED' && `Errand not posted: ${submission.receipt.reason || 'Credit reservation was declined.'}`}
+        {(submission.unconfirmed ||
+          (submission.receipt && submission.receipt.status !== 'OPEN')) && (
+          <div
+            role="status"
+            data-testid="order-submission-status"
+            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            {submission.unconfirmed &&
+              'Awaiting confirmation. Your errand may still be pending and could become open. We could not confirm its status because the submission response was not received. Please wait before trying again; submitting again could create a duplicate errand.'}
+            {submission.receipt?.status === 'PENDING' &&
+              'Pending — waiting to open. We are reserving your credits. Your errand will appear once the reservation is confirmed. Please wait and do not submit this errand again.'}
+            {submission.receipt?.status === 'EXPIRED' &&
+              'Your submission expired and your reserved credits are being returned. You can submit a new errand.'}
+            {submission.receipt?.status === 'REJECTED' &&
+              `Errand not posted: ${
+                submission.receipt.rejectionReason || 'Credit reservation was declined.'
+              }`}
           </div>
         )}
-        {submission.error && <div role="alert" className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700">{submission.error}</div>}
+        {submission.error && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700"
+          >
+            {submission.error}
+          </div>
+        )}
         {ordersError && (activeTab === 'feed' || activeTab === 'tasks') && (
           <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
-            {ordersError} <button onClick={() => void fetchOrders()} className="font-bold underline">Retry loading errands</button>
+            {ordersError}{' '}
+            <button onClick={() => void fetchOrders()} className="font-bold underline">
+              Retry loading errands
+            </button>
           </div>
         )}
         {supplierError && (activeTab === 'post' || activeTab === 'spots') && (
           <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
-            {supplierError} <button onClick={() => void fetchLiveSuppliers()} className="font-bold underline">Retry loading pickup spots</button>
+            {supplierError}{' '}
+            <button onClick={() => void fetchLiveSuppliers()} className="font-bold underline">
+              Retry loading pickup spots
+            </button>
           </div>
         )}
-        {/* TAB 1: Errand Feed */}
+
         {activeTab === 'feed' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Errand Feed</h2>
-              <span className="text-sm bg-slate-200 px-2 py-0.5 rounded-full text-slate-700 font-semibold">
-                {filteredOrders.length} Open
-              </span>
-            </div>
-
-            {/* Campus Zone Filter Pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap">
-              {['ALL', 'COM3', 'UTown', 'PGPR', 'FASS', 'Science', 'Engineering'].map((zone) => (
-                <button
-                  key={zone}
-                  onClick={() => setSelectedZone(zone)}
-                  className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap transition ${
-                    selectedZone === zone
-                      ? 'bg-nus-orange text-white shadow-sm'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  {zone}
-                </button>
-              ))}
-            </div>
-
-            {/* Errand Cards List */}
-            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="responsive-card-grid">
-              {ordersLoading && <p role="status">Loading errands…</p>}
-              {!ordersLoading && !ordersError && filteredOrders.length === 0 && (
-                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No open errands in this zone.</p>
-              )}
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition"
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-nus-blue border border-blue-100">
-                      {order.campusZone}
-                    </span>
-                    <div className="flex items-center space-x-1 text-amber-600 font-black text-sm bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                      <Coins className="w-3.5 h-3.5" />
-                      <span>+{order.rewardCredits} Credits</span>
-                    </div>
-                  </div>
-
-                  <h3 title={order.itemDescription} className="font-bold text-slate-900 text-sm mt-2 h-10 leading-5 line-clamp-2">{order.itemDescription}</h3>
-                  <ExpandableNotes notes={order.specialNotes} />
-
-                  <div className="mt-3 bg-slate-50 rounded-lg p-2.5 space-y-1.5 text-sm text-slate-700">
-                    <div className="grid grid-cols-[0.875rem_auto_minmax(0,1fr)] items-start gap-x-1.5">
-                      <MapPin className="w-3.5 h-3.5 mt-0.5 text-nus-blue" />
-                      <span className="font-semibold text-slate-600 whitespace-nowrap">Pickup:</span>
-                      <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{order.supplierName}</span>
-                    </div>
-                    <div className="grid grid-cols-[0.875rem_auto_minmax(0,1fr)] items-start gap-x-1.5">
-                      <ArrowRight className="w-3.5 h-3.5 mt-0.5 text-nus-orange" />
-                      <span className="font-semibold text-slate-600 whitespace-nowrap">Dropoff:</span>
-                      <span className="min-w-0 whitespace-normal [overflow-wrap:anywhere]">{order.dropoffLocation}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3.5 flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-xs text-slate-400 flex items-center space-x-1">
-                      <Clock className="w-3 h-3" />
-                      <span>Expires {new Date(order.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </span>
-
-                    {order.status === 'OPEN' ? (
-                      <button
-                        onClick={() => handleAcceptOrder(order.id)}
-                        disabled={!!acceptingOrder || order.requesterId === currentUserId}
-                        className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <span>{order.requesterId === currentUserId ? 'Your errand' : acceptingOrder === order.id ? 'Accepting…' : 'Accept Errand'}</span>
-                      </button>
-                    ) : (
-                      <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
-                        Accepted by You
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <FeedPage
+            filteredOrders={filteredOrders}
+            selectedZone={selectedZone}
+            onSelectZone={setSelectedZone}
+            ordersLoading={ordersLoading}
+            ordersError={ordersError}
+            currentUserId={currentUserId}
+            acceptingOrderId={acceptingOrder}
+            onAcceptOrder={handleAcceptOrder}
+          />
         )}
 
-        {/* TAB 2: Post Errand */}
         {activeTab === 'post' && (
-          <div className="space-y-4">
-            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Post New Errand</h2>
-            <form onSubmit={handlePostSubmit}><fieldset disabled={submission.busy} className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
-              <div className="min-w-0 bg-white rounded-xl p-4 md:p-6 shadow-sm border border-slate-200 space-y-5">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-bold text-slate-700">
-                      Pickup Store / Spot (Live M3 Directory)
-                    </label>
-                    <span className="text-xs text-blue-600 font-semibold">
-                      {activeSuppliers.length} active spots
-                    </span>
-                  </div>
-                  <select
-                    required
-                    aria-label="Pickup spot"
-                    value={formData.supplierId}
-                    onChange={(e) => {
-                      const chosen = suppliers.find((s) => s.id === e.target.value);
-                      if (chosen) {
-                        setFormData({
-                          ...formData,
-                          supplierId: chosen.id,
-                          supplierName: chosen.name,
-                          campusZone: chosen.campusZone,
-                        });
-                      }
-                    }}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  >
-                    {activeSuppliers.length === 0 && <option value="">{isSuppliersLoading ? 'Loading pickup spots…' : 'No pickup spots available'}</option>}
-                    {activeSuppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.campusZone} - {s.category})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Selected Zone: <span className="font-bold text-slate-600">{formData.campusZone}</span>
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Item Description & Order Details</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={1000}
-                    placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
-                    value={formData.itemDescription}
-                    onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Drop-off Study Spot & Visual Cue</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={255}
-                    placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
-                    value={formData.dropoffLocation}
-                    onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Special Delivery Notes (Optional)</label>
-                  <textarea
-                    rows={2}
-                    maxLength={1000}
-                    placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
-                    value={formData.specialNotes}
-                    onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  />
-                </div>
-
-              </div>
-              <aside aria-label="Reward and posting" className="min-w-0 space-y-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-6">
-                  <div className="flex flex-wrap gap-3 items-center justify-between">
-                    <span className="text-sm font-bold text-amber-900">Courier Reward Credits:</span>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        aria-label="Decrease reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.max(1, (Number.isFinite(f.rewardCredits) ? f.rewardCredits : 1) - 1) }))}
-                        className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
-                      >
-                        -
-                      </button>
-                      <input type="number" aria-label="Reward credits" required min={1} max={2147483647} step={1}
-                        value={Number.isFinite(formData.rewardCredits) ? formData.rewardCredits : ''}
-                        onChange={event => setFormData(current => ({ ...current, rewardCredits: event.target.valueAsNumber }))}
-                        className="reward-input w-24 rounded border border-amber-300 bg-white px-2 text-center font-bold text-amber-900" />
-                      <button
-                        type="button"
-                        aria-label="Increase reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.min(2147483647, (Number.isFinite(f.rewardCredits) ? f.rewardCredits : 0) + 1) }))}
-                        className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Enter a whole number of at least 1 credit. Available: {wallet ? `${wallet.availableCredits} C` : '—'}. Credits are reserved before your errand is posted.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submission.busy || isSuppliersLoading || !activeSuppliers.some(s => s.id === formData.supplierId)}
-                  className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submission.posting ? 'Submitting…' : submission.busy ? 'Reserving credits…' : 'Post Errand'}
-                </button>
-              </aside>
-            </fieldset></form>
-          </div>
+          <PostErrandPage
+            formData={formData}
+            setFormData={setFormData}
+            suppliers={suppliers}
+            activeSuppliers={activeSuppliers}
+            isSuppliersLoading={isSuppliersLoading}
+            wallet={wallet}
+            submissionBusy={submission.busy}
+            submissionPosting={submission.posting}
+            onSubmit={handlePostSubmit}
+          />
         )}
 
-        {/* TAB 3: Campus Spots Directory (M3 Live Integration) */}
         {activeTab === 'spots' && (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Campus Spots (M3)</h2>
-                <p className="text-sm text-slate-500">Live directory fetched from Supplier Service</p>
-              </div>
-              <span className="text-sm bg-blue-50 text-blue-700 border border-blue-200 font-bold px-2 py-0.5 rounded-full">
-                {filteredSuppliers.length} Verified
-              </span>
-            </div>
-
-              {/* Spot Search Bar */}
-            <div className="relative w-full lg:max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search food, cafes, lockers, print hubs..."
-                value={supplierSearch}
-                onChange={(e) => setSupplierSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-nus-blue shadow-sm"
-              />
-            </div>
-
-            </div>
-
-            {/* Loading Indicator */}
-            {isSuppliersLoading && (
-              <div className="p-4 text-center text-sm text-slate-400">Loading campus spots...</div>
-            )}
-
-            {/* List of Verified Spots */}
-            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="responsive-card-grid">
-              {!isSuppliersLoading && filteredSuppliers.length === 0 && (
-                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No campus spots match your search.</p>
-              )}
-              {filteredSuppliers.map((s) => (
-                <div
-                  key={s.id}
-                  className={`rounded-xl p-3.5 border shadow-sm space-y-2 ${
-                    s.isActive ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                        {s.supplierCode}
-                      </span>
-                      <h3 className="font-bold text-sm text-slate-900 mt-1">{s.name}</h3>
-                      <p className="text-sm text-slate-500">{s.exactLocation}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
-                        {s.campusZone}
-                      </span>
-                      {!s.isActive && (
-                        <span className="text-xs bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded">
-                          Unavailable
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                      {s.category}
-                    </span>
-                    <button
-                      disabled={!s.isActive}
-                      onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          supplierId: s.id,
-                          supplierName: s.name,
-                          campusZone: s.campusZone,
-                        }));
-                        setActiveTab('post');
-                      }}
-                      className="text-sm font-bold text-nus-orange hover:text-orange-700 flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:text-slate-400"
-                    >
-                      <span>Pick for Errand</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <SpotsPage
+            filteredSuppliers={filteredSuppliers}
+            supplierSearch={supplierSearch}
+            onChangeSearch={setSupplierSearch}
+            isSuppliersLoading={isSuppliersLoading}
+            onPickForErrand={(s) => {
+              setFormData((prev) => ({
+                ...prev,
+                supplierId: s.id,
+                supplierName: s.name,
+                campusZone: s.campusZone,
+              }));
+              setActiveTab('post');
+            }}
+          />
         )}
 
-        {/* AI-generated (edited by huangjiaxi1111) */}
         {activeTab === 'tasks' && (
-          <div className="space-y-8">
-            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Tasks</h2>
-            {[
-              { key: 'posted', title: 'Tasks posted', description: 'Errands you requested from other students.', tasks: orders.filter(task => currentUserId && task.requesterId === currentUserId) },
-              { key: 'accepted', title: 'Tasks accepted', description: 'Errands you are delivering for other students.', tasks: orders.filter(task => currentUserId && task.courierId === currentUserId) },
-            ].map(group => (
-              <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
-                <div>
-                  <h3 id={`tasks-${group.key}`} className="text-lg font-bold text-slate-800">{group.title} <span className="text-sm font-medium text-slate-500">({group.tasks.length})</span></h3>
-                  <p className="text-sm text-slate-500">{group.description}</p>
-                </div>
-                <div className="responsive-card-grid items-start">
-                  {group.tasks.length === 0 && <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-500">No {group.key} tasks yet.</p>}
-                  {group.tasks.map(task => (
-                    <article key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
-                      <div className="flex flex-wrap justify-between items-center gap-2">
-                        <span className="text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{task.orderCode}</span>
-                        <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded">{task.status.replace(/_/g, ' ')}</span>
-                      </div>
-                      <p title={task.itemDescription} className="text-sm font-bold text-slate-800 h-10 leading-5 line-clamp-2">{task.itemDescription}</p>
-                      <p className="flex items-center gap-1 text-sm font-bold text-amber-700"><Coins className="h-4 w-4" />{task.rewardCredits} credits</p>
-                      <ExpandableNotes notes={task.specialNotes} />
-                      <p title={task.supplierName} className="truncate text-xs text-slate-500">Pickup: {task.supplierName}</p>
-                      <p title={task.dropoffLocation} className="truncate text-xs text-slate-500">Dropoff: {task.dropoffLocation}</p>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+          <TasksPage orders={orders} currentUserId={currentUserId} />
         )}
 
-        {/* Alerts: notifications from the Notification Service */}
         {activeTab === 'alerts' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Alerts</h2>
-              <p className="text-sm text-slate-500 mt-1">Every errand a courier has acted on, newest first. Open one to see its stages; unread alerts wait here until you do.</p>
-            </div>
-            <NotificationPanel
-              items={notifications.items}
-              unreadCount={notifications.unreadCount}
-              isLoading={notifications.isLoading}
-              error={notifications.error}
-              onMarkRead={notifications.markRead}
-              onMarkAllRead={notifications.markAllRead}
-              onRefresh={notifications.refresh}
-              // The errand's confirm-delivery action lives in Tasks once Order Service is real; today Tasks shows the local previews.
-              onOpenErrand={(n) => { if (!n.readAt) notifications.markRead(n.id); setActiveTab('tasks'); }}
-            />
-          </div>
+          <AlertsPage
+            items={notifications.items}
+            unreadCount={notifications.unreadCount}
+            isLoading={notifications.isLoading}
+            error={notifications.error}
+            onMarkRead={notifications.markRead}
+            onMarkAllRead={notifications.markAllRead}
+            onRefresh={notifications.refresh}
+            onOpenErrand={(n) => {
+              if (!n.readAt) notifications.markRead(n.id);
+              setActiveTab('tasks');
+            }}
+          />
         )}
 
-        {/* Profile and wallet have separate destinations. */}
-        {activeTab === 'profile' && (
-          <div className="w-full">
-            <section aria-labelledby="profile-heading" className="min-w-0 space-y-4">
-              <h2 id="profile-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Profile Info</h2>
-
-              {isLoadingProfile && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center space-x-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Loading profile…</span>
-                </div>
-              )}
-
-              {profileError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                  <p className="font-bold">{profileError.code}</p>
-                  <p>{profileError.message}</p>
-                </div>
-              )}
-
-              {profile && (
-                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <p className="text-xs text-slate-400 md:col-span-2">
-                    Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
-                  </p>
-
-                  <div>
-                    <label htmlFor="profile-username" className="block text-sm font-bold text-slate-700 mb-1">
-                      Username: <span className="text-rose-600">*</span>
-                    </label>
-                    <p className="text-xs text-slate-400 mb-1">
-                      Must be 1-50 characters and unique (case-insensitive).
-                    </p>
-                    {updateProfileError && (
-                      <p className="text-xs text-rose-600 mb-1">{updateProfileError.message}</p>
-                    )}
-                    <input
-                      type="text"
-                      id="profile-username"
-                      value={isEditingProfile ? editUsernameDraft : profile.username}
-                      disabled={!isEditingProfile || isUpdatingProfile}
-                      onChange={(e) => setEditUsernameDraft(e.target.value)}
-                      className={`w-full text-sm p-2.5 rounded-lg border ${
-                        isEditingProfile ? 'border-nus-blue bg-white' : 'border-slate-200 bg-slate-50 text-slate-500'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="profile-email" className="block text-sm font-bold text-slate-700 mb-1">
-                      Email: <span className="text-rose-600">*</span>
-                    </label>
-                    <p className="text-xs text-slate-400 mb-1">
-                      Read-only here. Must be a valid, unique email address.
-                    </p>
-                    <input
-                      type="text"
-                      id="profile-email"
-                      value={profile.email}
-                      disabled
-                      className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Role:</label>
-                    <p className="text-xs text-slate-400 mb-1">Read-only. Set by an administrator.</p>
-                    <div
-                      className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
-                        profile.userRole === 'ADMIN'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      }`}
-                    >
-                      {profile.userRole}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Status:</label>
-                    <p className="text-xs text-slate-400 mb-1">Read-only. Whether your account is active.</p>
-                    <div
-                      className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
-                        profile.status
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
-                    >
-                      {profile.status ? 'Active' : 'Disabled'}
-                    </div>
-                  </div>
-
-                  {!isEditingProfile ? (
-                    <button
-                      onClick={startEditingProfile}
-                      className="md:col-span-2 w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition"
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button
-                        onClick={cancelEditingProfile}
-                        disabled={isUpdatingProfile}
-                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-2 rounded-lg transition disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleUpdateProfile}
-                        disabled={isUpdatingProfile}
-                        className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition disabled:opacity-60"
-                      >
-                        {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                        <span>{isUpdatingProfile ? 'Updating…' : 'Update'}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowDeleteAccountModal(true);
-                  setDeleteAccountConfirmed(false);
-                  setDeleteAccountError(null);
-                }}
-                className="w-full flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                <span>Delete Account</span>
-              </button>
-              </div>
-            </section>
-          </div>
-        )}
-        {activeTab === 'wallet' && (
-          <div className="w-full">
-            <section aria-labelledby="credit-heading" className="min-w-0 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              <div className="lg:col-span-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Credit Wallet & Ledger</h2>
-                <button type="button" onClick={() => void fetchCredits()} disabled={isLoadingCredits}
-                  className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
-                  <RefreshCw className={`h-4 w-4 ${isLoadingCredits ? 'animate-spin' : ''}`} />
-                  {creditError ? 'Retry credits' : 'Refresh credits'}
-                </button>
-              </div>
-              {isLoadingCredits && <p role="status" className="lg:col-span-2 text-sm text-slate-500">Loading wallet and transactions…</p>}
-              {creditError && <p role="alert" className="lg:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{creditError}</p>}
-
-              {/* Balance Card */}
-              {wallet && <>
-              <div className="bg-gradient-to-br from-nus-blue to-blue-950 text-white rounded-2xl p-5 shadow-lg">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-bold tracking-wider text-blue-200 uppercase">NUS Closed Economy</span>
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                </div>
-                <p className="text-sm text-blue-200 font-semibold">Total Account Balance</p>
-                <div className="flex items-baseline space-x-1 mt-1">
-                  <span className="text-3xl font-black text-amber-300">
-                    {wallet.availableCredits + wallet.escrowCredits}
-                  </span>
-                  <span className="text-sm text-blue-200 font-bold">Credits</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-blue-800/80">
-                  <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                    <span className="text-xs text-blue-200 block">Available to Spend</span>
-                    <span className="text-base font-bold text-emerald-400">{wallet.availableCredits} C</span>
-                  </div>
-                  <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                    <span className="text-xs text-blue-200 block">Held in Escrow</span>
-                    <span className="text-base font-bold text-amber-300">{wallet.escrowCredits} C</span>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm text-blue-200">Total earned: {wallet.totalEarnedCredits} C</p>
-              </div>
-
-              {/* Transaction Ledger */}
-              <div>
-                <h3 className="font-bold text-sm text-slate-800 mb-2">Recent Ledger Transactions</h3>
-                <div className="space-y-2">
-                  {ledger.length === 0 && <p className="text-sm text-slate-500">No credit transactions yet.</p>}
-                  {ledger.map(transaction => {
-                    const labels = { WELCOME_GRANT: 'Welcome Grant', ESCROW_HOLD: 'Escrow Hold',
-                      ESCROW_RELEASE: 'Escrow Settlement', ESCROW_REFUND: 'Escrow Refund' };
-                    const incoming = transaction.transactionType === 'ESCROW_REFUND' || transaction.toUserId === wallet.userId;
-                    return (
-                      <div key={transaction.id} className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-start gap-3">
-                        <div className="min-w-0">
-                          <p className="font-bold text-slate-800">{labels[transaction.transactionType]}</p>
-                          <p className="text-xs text-slate-500 break-words">{transaction.description}</p>
-                          <p className="text-xs text-slate-400 break-all">{transaction.transactionCode}</p>
-                          <time className="text-xs text-slate-400" dateTime={transaction.createdAt}>{new Date(transaction.createdAt).toLocaleString()}</time>
-                        </div>
-                        <span className={`shrink-0 font-bold ${incoming ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          {incoming ? '+' : '−'}{transaction.amount} C
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              </>}
-            </section>
-          </div>
+        {(activeTab === 'profile' || activeTab === 'wallet') && (
+          <ProfileWalletPage
+            mode={activeTab}
+            profile={profile}
+            isLoadingProfile={isLoadingProfile}
+            profileError={profileError}
+            isEditingProfile={isEditingProfile}
+            editUsernameDraft={editUsernameDraft}
+            onChangeUsernameDraft={setEditUsernameDraft}
+            isUpdatingProfile={isUpdatingProfile}
+            updateProfileError={updateProfileError}
+            onStartEditingProfile={startEditingProfile}
+            onCancelEditingProfile={cancelEditingProfile}
+            onUpdateProfile={handleUpdateProfile}
+            onLogout={auth.handleLogout}
+            isLoggingOut={auth.isLoggingOut}
+            onOpenDeleteAccountModal={() => {
+              setShowDeleteAccountModal(true);
+              setDeleteAccountConfirmed(false);
+              setDeleteAccountError(null);
+            }}
+            wallet={wallet}
+            ledger={ledger}
+            isLoadingCredits={isLoadingCredits}
+            creditError={creditError}
+            onRefreshCredits={() => void fetchCredits()}
+          />
         )}
       </main>
 
-      {/* Bottom Navigation Bar */}
-      {/* AI-generated (edited by jagdeepsh) - hidden at md: and up, replaced by the top nav bar in the header */}
-      <nav aria-label="Main navigation" className="student-bottom-nav fixed inset-x-0 bottom-0 w-full bg-white border-t border-slate-200 px-3 pt-2 flex justify-around items-center z-40 md:hidden">
-        <button
-          aria-current={activeTab === 'feed' ? 'page' : undefined}
-              onClick={() => setActiveTab('feed')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'feed' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Compass className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Feed</span>
-        </button>
+      <BottomNav
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenProfile={openProfileTab}
+        unreadNotificationsCount={notifications.unreadCount}
+      />
 
-        <button
-          aria-current={activeTab === 'post' ? 'page' : undefined}
-              onClick={() => setActiveTab('post')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'post' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <PlusCircle className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Post</span>
-        </button>
-
-        <button
-          aria-current={activeTab === 'spots' ? 'page' : undefined}
-              onClick={() => setActiveTab('spots')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'spots' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Store className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Spots</span>
-        </button>
-
-        <button
-          aria-current={activeTab === 'tasks' ? 'page' : undefined}
-              onClick={() => setActiveTab('tasks')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'tasks' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Clock className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Tasks</span>
-        </button>
-
-        <NotificationBell variant="tab" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
-
-        <button
-          aria-current={activeTab === 'profile' ? 'page' : undefined}
-          onClick={() => {
-            setActiveTab('profile');
-            fetchProfile();
-          }}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'profile' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <UserCircle className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Profile</span>
-        </button>
-      </nav>
-
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteAccountModal && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-rose-600">
-              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Delete Account</h3>
-                <p className="text-sm text-slate-500">This action is permanent</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              Deleting your account will permanently remove your profile and cannot be undone. You will be logged out immediately.
-            </p>
-
-            {deleteAccountError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                <p className="font-bold">{deleteAccountError.code}</p>
-                <p>{deleteAccountError.message}</p>
-              </div>
-            )}
-
-            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={deleteAccountConfirmed}
-                onChange={(e) => setDeleteAccountConfirmed(e.target.checked)}
-                disabled={isDeletingAccount}
-                className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
-              />
-              <span>I understand this action is irreversible and my account will be permanently deleted.</span>
-            </label>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isDeletingAccount}
-                onClick={() => {
-                  setShowDeleteAccountModal(false);
-                  setDeleteAccountConfirmed(false);
-                  setDeleteAccountError(null);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!deleteAccountConfirmed || isDeletingAccount}
-                onClick={handleDeleteAccount}
-                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                {isDeletingAccount && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Account Success Modal */}
-      {deleteAccountSuccess && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
-              <p className="text-sm text-slate-500 mt-1">Your account has been permanently deleted.</p>
-            </div>
-            <button
-              onClick={() => {
-                setDeleteAccountSuccess(false);
-                clearLocalSession();
-              }}
-              className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-            >
-              Return to Login
-            </button>
-          </div>
-        </div>
-      )}
+      <DeleteAccountModal
+        showConfirmModal={showDeleteAccountModal}
+        confirmed={deleteAccountConfirmed}
+        onToggleConfirmed={setDeleteAccountConfirmed}
+        isDeleting={isDeletingAccount}
+        error={deleteAccountError}
+        onCancel={() => {
+          setShowDeleteAccountModal(false);
+          setDeleteAccountConfirmed(false);
+          setDeleteAccountError(null);
+        }}
+        onConfirmDelete={handleDeleteAccount}
+        showSuccessModal={deleteAccountSuccess}
+        onReturnToLogin={() => {
+          setDeleteAccountSuccess(false);
+          auth.clearLocalSession();
+        }}
+      />
     </div>
   );
 }

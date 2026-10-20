@@ -1,263 +1,69 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Implemented Admin Order State Management dashboard, live order auditing, KPI metrics, search & status filters, and state intervention dialogs (force-cancel, force-complete, unassign) with optimistic concurrency error recovery.
- * Author review: (to be completed by author after review)
- * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
- * Scope: Resolved localized lint findings without changing dashboard behavior.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Return directly to login after successful self-deletion and clear account-deletion UI state.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive shell, adaptive navigation, card grids, control sizing, scrollable dialogs, a student login return link hidden on the direct admin port, and square pagination and icon buttons.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Implemented Milestone D2 Admin Portal with Edit/Delete/Details modals, table sorting, pagination, mobile layout per Screen 6 wireframe, and demo RBAC switcher.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Removed redundant quick-category filter chips next to the Filter button; changed the Advanced Filter modal so category/zone chip selections are held as draft state and only applied to the supplier list when "Apply Filters" is clicked (previously filtered live on every chip click); reset now also clears pagination.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Fixed the "Permanent Hard Delete" checkbox in the Delete Supplier modal not resetting between delete attempts (now reset when opening the modal for a supplier and when cancelling). Added client-side RBAC gating so the "Add Location" button and per-row Deactivate/Edit/Delete controls (desktop table and mobile card views) only render for the ADMIN demo role; Student/Guest roles now only see the "view details" (Eye) icon.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
- * Scope: Aligned demo login requests and access-token handling with the approved User Service contract and seed credentials.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Merge of dev into the user-service PR: the login gate now posts { email, password } and reads
- * data.data.accessToken (the User Service contract from PR #76); error boxes read the service's { error, code }
- * shape. The Users directory page keeps its UI but is typed against a local AdminUserListItem instead of the
- * shared UserDTO, because GET /api/users is a 501 placeholder in PR #76 and the page's columns (matric, rating,
- * completed orders, phone, Telegram) are not part of the new UserDTO; the page shows a "not implemented yet"
- * message until the endpoint exists (issue #70).
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Added a new admin-only "Users" directory page (sidebar nav, KPI cards, search, filter, sortable table/card list, pagination), fetching from GET /api/users through the existing API Gateway proxy path (no gateway/vite config changes needed, both already route /api/users to user-service). Read-only: no add/edit/delete controls. Search covers nusEmail/fullName/matricNumber/phoneNumber/telegramHandle case-insensitively; filters (role, min rating, min completed orders) follow the same draft-until-"Apply Filters" pattern as the Suppliers page.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Added a real login gate in front of the whole admin dashboard: a login page (NUS email + password) posts to /api/auth/login through the gateway, shows a loading spinner while in flight, decodes the returned JWT's role claim client-side and only proceeds into the dashboard if it is ADMIN (a valid Student login is explicitly rejected with a red error box showing the error code/message). Removed the mount-time auto-login and the "Demo RBAC Role" Admin/Student/Guest switcher (both sidebar and mobile drawer) since the login gate now guarantees only Admins reach the dashboard; replaced with a client-side-only "Log Out" button (no logout endpoint exists on the backend, and none is needed since the JWT is stateless). Removed the now-redundant isAdmin role checks that previously hid the Add Location/Deactivate/Edit/Delete buttons and the Users nav item — since only Admins can log in at all now, those controls render unconditionally.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Added the missing Description textarea to the Add Supplier modal (previously only editable via a follow-up Edit). Added a shared validateSupplierForm() check (Name, Campus Zone, Category, Exact Pickup Spot Description) run client-side before either the create or update API call, with inline red error messages shown under each invalid field and no request sent until they're fixed. Turned the plain "*" required-field markers red in both modals and added a "fields marked with * are required" legend to each. Added the missing asterisk + required check on the Edit modal's "Exact Pickup Spot Description" field, which was previously the only one of the four core fields not marked required there, unlike the Add modal.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
- * Scope: Synced the Users directory page to the real, now-implemented UserDTO ({userId, username, email, userRole}) instead of the interim local AdminUserListItem placeholder — removed matric/rating/completed-orders/phone/Telegram/joined-date fields throughout (KPI cards, search predicate, filter modal, table columns, mobile card) since they no longer exist on the User model, and dropped the Min Rating / Min Completed Orders filter inputs along with their state. Search now checks username/email only; the Filter modal keeps only the Role chips. The login gate and student-app login/signup were already aligned to the new contract by teammates during the same merge, so no changes were needed there.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
- * Scope: Wired fetchUsers() to the now-implemented GET /api/users (removed the dead 501-stub special case, fixed response parsing from json.data.items to json.data.users). Added a visible "Loading users…" indicator inside the Users content area (previously only the small header refresh icon spun), and an empty-state message on the mobile card view to match the desktop table's existing one; both now wait for loading to finish before showing "No users found" so it doesn't flash mid-fetch.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-23
- * Scope: Added a Status column (Active/Disabled badge) and a red "Disable" / green "Reinstate" button to the Users table (desktop) and card (mobile), calling the new admin-only PATCH /api/users/:id/admin endpoint via a new toggleUserStatus() handler (mirrors the existing supplier toggleStatus()). Added a togglingUserIds Set to disable a row's button while its request is in flight, preventing double-click races; the button's label/color is derived solely from the server's returned user object, never flipped optimistically, so it can't drift out of sync with the account's real state.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: handleLogout now calls the real POST /api/auth/logout through the gateway (confirmed already implemented and unauthenticated — it revokes the session via the refresh_token cookie already set at login) before clearing local session state, instead of only clearing client-side state. Added isLoggingOut state; both Log Out buttons (sidebar footer, mobile drawer) show a spinning RefreshCw icon and "Logging out…" label while the request is in flight, and are disabled to prevent double-clicks. Local state is always cleared in a finally block regardless of whether the network call succeeds, so a logout can't get stuck if the server is unreachable.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Mirrored the student app's "Remember me" + silent session-restore feature into the admin login gate. Added a "Keep me logged in" checkbox to the login form, sent as keepLoggedIn in the /api/auth/login request (selects the backend's 30-day persistent session window instead of the standard 1-day one). Added a silent session-restore effect on app load: calls POST /api/auth/refresh (browser auto-attaches the refresh_token cookie); on success it decodes the restored token's role and only auto-authenticates if it's ADMIN (falls through silently to the login page otherwise, matching how a non-admin password login is already handled), on failure it falls through to the login page. A brief spinner screen covers this check. handleLogout now also resets rememberMe and returns activeNav to its default ('suppliers').
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
- * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchUsers, supplier create/update/delete/toggle and toggleUserStatus now go through authFetch; getAuthHeaders removed. The public GET /api/suppliers is unchanged.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added a delete (Trash2) button beside each user row's Disable/Reinstate button on the Users page
- * (desktop table and mobile card), mirroring the existing Delete Supplier button/modal pattern but simplified:
- * a single "I understand this is irreversible" checkbox gates a red confirm button (no soft/permanent-delete
- * toggle, since user deletion via DELETE /api/users/:id is always a hard delete). Calls authFetch the same way
- * toggleUserStatus does. On success the deleted user is filtered out of local state (no refetch, same pattern as
- * handleDeleteSupplier) and a dismissible "Account Deleted" success modal names the deleted username; closing it
- * returns to the dashboard. On failure the error is shown inline in the confirmation modal itself.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: toggleUserStatus() now calls PATCH /api/users/:id/toggle-status instead of the old .../admin path
- * (backend route renamed to stop implying it changes the ADMIN role, which it never did — it only ever flips
- * the status boolean).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Fixed a mobile-nav parity bug — added the missing "Audit & Disputes" item to the sub-768px hamburger drawer nav so it matches the desktop sidebar's 4 sections.
- * Author review: [left for the human author to fill in]
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: Added an Upgrade/Downgrade role-toggle button to each user row (desktop table + mobile card), right
- * beside Disable/Reinstate — green "Upgrade" for a STUDENT, red "Downgrade" for an ADMIN. Opens a confirmation
- * modal modeled on the existing Delete User modal (same backdrop/card/checkbox/spinner shape, colored per
- * action) calling the existing PATCH /api/users/:id/toggle-role via authFetch. On success the row updates in
- * place from the server's returned user (no popup, no refetch, same silent-update convention as
- * toggleUserStatus); on failure the error shows inline in the still-open modal, which also naturally surfaces
- * the backend's "Admins cannot change their own role" message if the admin targets their own row — no
- * client-side self-id check needed, the backend already enforces and reports it.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: Added a client-side self-targeting check to handleToggleUserRole, ahead of the previous round's
- * backend-only enforcement — added a new decodeJwtUserId() helper (reads the JWT's `sub` claim, same pattern as
- * the existing decodeJwtRole) and a currentAdminUserId state, set at login and on session-restore, cleared on
- * logout. If the row being toggled matches the logged-in admin's own id, the exact same error message the
- * backend would return ("Admins cannot change their own role") is shown instantly, with no API call made — a
- * pure UX optimization to avoid a wasted round-trip for an action that was already guaranteed to fail; the
- * backend's own SELF_ACTION_FORBIDDEN check remains the actual enforcement and is unchanged.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: Reverted the client-side self-targeting check above (author-requested) — removed decodeJwtUserId(),
- * currentAdminUserId state, and handleToggleUserRole's early-return short-circuit. Self-downgrade is once again
- * caught only by the backend's SELF_ACTION_FORBIDDEN check, surfaced via the confirmation modal's existing
- * inline error box exactly as it was before this round. Everything else from the previous round (the
- * Upgrade/Downgrade button, confirmation modal, and handleToggleUserRole's API call itself) is unchanged.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: Add/Edit Supplier modals: Building and Floor are now required (red asterisk, validateSupplierForm
- * check, no API call sent until both are filled), matching the new backend uniqueness rule on
- * (name, category, building, floor). Added a new legend line under each modal's existing "Fields marked with *"
- * text warning that duplicate suppliers of the same category/location are rejected. When POST/PUT /api/suppliers
- * returns 409 with a `duplicate` object, it's now captured into new addDuplicateConflict/editDuplicateConflict
- * state and shown as its own inline box inside the modal (not the top-level actionAlert banner, which would be
- * hidden behind the modal's backdrop while it's open) naming the specific conflicting supplier's
- * name/category/building/floor. Reset at every existing open/cancel/close touchpoint for both modals.
- * Author review: (to be completed by author after review)
+ * Tool: Google Antigravity Agent, date: 2026-10-19
+ * Scope: Refactored monolithic 3856-line Admin Portal App.tsx into modular pages, components, hooks, constants, and API modules while preserving 100% UI behavior and UAT selectors.
+ * Author review: Verified by yanhwee on 2026-10-19
  */
 
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
-  Building2,
-  Plus,
-  Search,
-  Shield,
-  Activity,
-  CheckCircle,
-  XCircle,
-  SlidersHorizontal,
-  RefreshCw,
-  Clock,
-  X,
-  AlertCircle,
-  Edit2,
-  Trash2,
-  Eye,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  ShieldCheck,
-  Users,
-  Menu,
-  LogOut,
-  Package,
-  AlertTriangle,
-  CheckSquare,
-  UserX,
-} from 'lucide-react';
-import {
-  SupplierDTO,
-  SupplierCategory,
   CreateSupplierRequest,
-  UpdateSupplierRequest,
-  UserDTO,
-  UserRole,
   OrderDTO,
   OrderStatus,
+  SupplierDTO,
+  UpdateSupplierRequest,
+  UserDTO,
 } from '@campus-errand/common-dtos';
-
-const CATEGORIES: SupplierCategory[] = [
-  'Beverages',
-  'Food',
-  'Printing',
-  'Parcels',
-  'Shopping',
-  'General',
-];
-
-const CAMPUS_ZONES = ['COM3', 'UTown', 'PGPR', 'FASS', 'Central Lib', 'Science', 'Engineering'];
-
-const USER_ROLES: UserRole[] = ['STUDENT', 'ADMIN'];
-
-// Reads the `role` claim out of a JWT payload without verifying its signature
-// (signature verification happens server-side; this is just a client-side gate).
-function decodeJwtRole(token: string): string | null {
-  try {
-    const payload = token.split('.')[1];
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(json).role ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function decodeJwtUserId(token: string): string | null {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.sub === 'string' ? payload.sub.toLowerCase() : null;
-  } catch {
-    return null;
-  }
-}
-
-// Demo tokens for live mentor evaluation
-type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
-
-// The conflicting record returned by POST/PUT /api/suppliers on a 409 (same name/category/building/floor).
-interface SupplierLocationConflict {
-  name: string;
-  category: string;
-  building: string;
-  floor: string;
-}
+import {
+  AdminNavSection,
+  decodeJwtUserId,
+  SupplierLocationConflict,
+  validateSupplierForm,
+} from './constants';
+import {
+  createSupplierApi,
+  deleteSupplierApi,
+  FALLBACK_SUPPLIERS,
+  fetchSuppliersApi,
+  toggleSupplierStatusApi,
+  updateSupplierApi,
+} from './api/suppliers';
+import {
+  deleteUserApi,
+  fetchUsersApi,
+  toggleUserRoleApi,
+  toggleUserStatusApi,
+} from './api/users';
+import { executeAdminOrderActionApi, fetchOrdersApi } from './api/orders';
+import { useAdminAuth } from './hooks/useAdminAuth';
+import { AdminSidebar } from './components/AdminSidebar';
+import { AdminHeader } from './components/AdminHeader';
+import { SupplierModals } from './components/SupplierModals';
+import { UserModals } from './components/UserModals';
+import { OrderActionModal } from './components/OrderActionModal';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { SuppliersPage } from './pages/SuppliersPage';
+import { UsersPage } from './pages/UsersPage';
+import { OrdersPage } from './pages/OrdersPage';
+import { HealthPage } from './pages/HealthPage';
+import { AuditPage } from './pages/AuditPage';
 
 export default function App() {
-  const [activeNav, setActiveNav] = useState<'suppliers' | 'orders' | 'health' | 'audit' | 'users'>('suppliers');
+  const [activeNav, setActiveNav] = useState<AdminNavSection>('suppliers');
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionAlert, setActionAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Demo Auth Role Switcher state
-  const [currentRole, setCurrentRole] = useState<DemoRole>('ADMIN');
-  const [authToken, setAuthToken] = useState<string>('');
-
-  // Admin Login Gate state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [rememberMe, setRememberMe] = useState(false);
-
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  // Applied filters — what the supplier list is actually filtered by
   const [selectedZones, setSelectedZones] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  // Draft filters — mutated live by chip clicks inside the modal, only
-  // copied into the applied state above when "Apply Filters" is clicked
   const [draftSelectedZones, setDraftSelectedZones] = useState<string[]>([]);
   const [draftSelectedCategories, setDraftSelectedCategories] = useState<string[]>([]);
 
@@ -301,9 +107,7 @@ export default function App() {
   // Mobile menu drawer toggle
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ----------------------------------------------------
-  // Users Directory state (Admin-only, read-only feature)
-  // ----------------------------------------------------
+  // Users Directory state
   const [users, setUsers] = useState<UserDTO[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState<string | null>(null);
@@ -324,18 +128,13 @@ export default function App() {
 
   const [searchQueryUsers, setSearchQueryUsers] = useState('');
   const [isUserFilterModalOpen, setIsUserFilterModalOpen] = useState(false);
-  // Applied filters — what the user list is actually filtered by
   const [selectedUserRoles, setSelectedUserRoles] = useState<string[]>([]);
-  // Draft filters — mutated live by the modal, only committed on "Apply Filters"
   const [draftSelectedUserRoles, setDraftSelectedUserRoles] = useState<string[]>([]);
-
   const [sortFieldUsers, setSortFieldUsers] = useState<keyof UserDTO>('username');
   const [sortDirectionUsers, setSortDirectionUsers] = useState<'asc' | 'desc'>('asc');
   const [currentPageUsers, setCurrentPageUsers] = useState(1);
 
-  // ----------------------------------------------------
-  // Orders & Errands Management state (Admin-only)
-  // ----------------------------------------------------
+  // Orders & Errands Management state
   const [orders, setOrders] = useState<OrderDTO[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [errorOrders, setErrorOrders] = useState<string | null>(null);
@@ -355,59 +154,26 @@ export default function App() {
   const [orderActionError, setOrderActionError] = useState<string | null>(null);
   const [isConflictError, setIsConflictError] = useState(false);
 
-  // Admin Login Gate handlers
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    setLoginError(null);
-    try {
-      // AI-generated (edited by ngkhengyang)
-      // User Service contract (PR #76): { email, password } in, { accessToken, user } out; errors are { error, code }.
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword, keepLoggedIn: rememberMe }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setLoginError({
-          code: data.code || `HTTP_${res.status}`,
-          message: data.error || 'Login failed. Please check your credentials.',
-        });
-        return;
-      }
-      const token: string = data.data.accessToken;
-      const role = decodeJwtRole(token);
-      if (role !== 'ADMIN') {
-        setLoginError({
-          code: 'FORBIDDEN_ROLE',
-          message: `Access denied — this portal is for Administrators only. Your account role is ${role ?? 'UNKNOWN'}.`,
-        });
-        return;
-      }
-      setAuthToken(token);
-      setCurrentRole('ADMIN');
-      setIsAuthenticated(true);
-      setLoginPassword('');
-    } catch (err: any) {
-      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  // Drop the client-side session without touching the server. Used by Log Out and by authFetch
-  // when a refresh fails: that 401 may be a lost rotation race, and the cookie may by then belong
-  // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
-  const clearLocalSession = () => {
-    setIsAuthenticated(false);
-    setAuthToken('');
-    setLoginEmail('');
-    setLoginPassword('');
-    setLoginError(null);
-    setRememberMe(false);
+  const {
+    currentRole,
+    authToken,
+    isAuthenticated,
+    loginEmail,
+    setLoginEmail,
+    loginPassword,
+    setLoginPassword,
+    isLoggingIn,
+    loginError,
+    isLoggingOut,
+    isCheckingSession,
+    rememberMe,
+    setRememberMe,
+    handleAdminLogin,
+    handleLogout,
+    clearLocalSession,
+    authFetch,
+  } = useAdminAuth(() => {
     setActiveNav('suppliers');
-    setCurrentRole('GUEST');
     setUsers([]);
     setDeletingUser(null);
     setDeleteUserConfirmed(false);
@@ -419,101 +185,18 @@ export default function App() {
     setOrderActionReason('');
     setOrderActionError(null);
     setIsConflictError(false);
-  };
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {
-      // Network failure logging out server-side shouldn't block clearing the local session below.
-    } finally {
-      clearLocalSession();
-      setIsLoggingOut(false);
-    }
-  };
+  });
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/suppliers');
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
-      }
-      const json = await res.json();
-      if (json.success && json.data) {
-        const items = Array.isArray(json.data) ? json.data : json.data.suppliers || [];
-        setSuppliers(items);
-      } else {
-        throw new Error(json.error || 'Failed to parse suppliers payload');
-      }
+      const items = await fetchSuppliersApi();
+      setSuppliers(items);
     } catch (err: any) {
       console.warn('API error, falling back to cached list:', err.message);
       setError('Could not connect to live Supplier Service API (/api/suppliers). Showing cached records.');
-      // Fallback defaults
-      setSuppliers([
-        {
-          id: 's1',
-          supplierCode: 'SUP-001',
-          name: 'CoffeeBean @ COM3',
-          campusZone: 'COM3',
-          exactLocation: 'COM3 Level 1 Lobby',
-          category: 'Beverages',
-          description: 'Specialty coffee, pastries, and sandwiches',
-          building: 'COM3',
-          floor: '1',
-          startingTime: '0800hrs',
-          closingTime: '2000hrs',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 's2',
-          supplierCode: 'SUP-002',
-          name: 'Printers @ PCCommons',
-          campusZone: 'UTown',
-          exactLocation: 'Stephen Riady Centre Level 1',
-          category: 'Printing',
-          description: 'Fast printing & lecture note pickup hub',
-          building: 'Stephen Riady Centre',
-          floor: '1',
-          startingTime: '0000hrs',
-          closingTime: '2359hrs',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 's3',
-          supplierCode: 'SUP-003',
-          name: 'PGP Mailroom & Smart Lockers',
-          campusZone: 'PGPR',
-          exactLocation: "Prince George's Park Residences Foyer",
-          category: 'Parcels',
-          description: 'Courier parcel lockers and delivery collection point',
-          building: "Prince George's Park",
-          floor: '1',
-          startingTime: '0000hrs',
-          closingTime: '2359hrs',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 's4',
-          supplierCode: 'SUP-004',
-          name: 'Fine Food Canteen (UTown)',
-          campusZone: 'UTown',
-          exactLocation: 'Town Plaza Level 1',
-          category: 'Food',
-          description: 'Mala Xiang Guo, Chicken Rice, and Drinks',
-          building: 'Town Plaza',
-          floor: '1',
-          startingTime: '0730hrs',
-          closingTime: '2100hrs',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setSuppliers(FALLBACK_SUPPLIERS);
     } finally {
       setIsLoading(false);
     }
@@ -523,77 +206,12 @@ export default function App() {
     fetchSuppliers();
   }, []);
 
-  // AI-generated (edited by Reallyeasy1)
-  // Get a new access token from the refresh_token cookie (the browser attaches it). Shared by the
-  // mount-time session restore and the 401 retry in authFetch. Concurrent callers share one in-flight
-  // request so a burst of 401s cannot race the server-side refresh-token rotation.
-  const refreshInFlight = useRef<Promise<string | null> | null>(null);
-  const refreshAccessToken = (): Promise<string | null> => {
-    if (!refreshInFlight.current) {
-      refreshInFlight.current = (async () => {
-        try {
-          const res = await fetch('/api/auth/refresh', { method: 'POST' });
-          const data = await res.json();
-          if (!res.ok || !data.success) return null;
-          const token: string = data.data.accessToken;
-          setAuthToken(token);
-          return token;
-        } catch {
-          // Network failure: treated the same as "no session to restore".
-          return null;
-        } finally {
-          refreshInFlight.current = null;
-        }
-      })();
-    }
-    return refreshInFlight.current;
-  };
-
-  // Silently try to restore a session from the refresh_token cookie on load, so a page
-  // refresh doesn't always force the admin back to the login page. A failure (e.g. 401) just
-  // means there's no valid session to restore, expected for a first visit or an expired cookie.
-  useEffect(() => {
-    refreshAccessToken()
-      .then((token) => {
-        // Non-admin restored session: fall through silently to the login page,
-        // same as a non-admin's password login today (no error, no auto-logout).
-        if (token && decodeJwtRole(token) === 'ADMIN') {
-          setCurrentRole('ADMIN');
-          setIsAuthenticated(true);
-        }
-      })
-      .finally(() => setIsCheckingSession(false));
-  }, []);
-
-  // Authenticated fetch: attaches the bearer token and, when the access token has expired
-  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
-  const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
-      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-    const res = await send(authToken);
-    if (res.status !== 401) return res;
-    const token = await refreshAccessToken();
-    if (token) return send(token);
-    clearLocalSession();
-    return res;
-  };
-
-  // Fetch all users for the Users Directory (Admin-only), via the API Gateway
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     setErrorUsers(null);
     try {
-      const res = await authFetch('/api/users?limit=100');
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
-      }
-      const json = await res.json();
-      if (json.success && json.data) {
-        setUsers(json.data.users || []);
-      } else {
-        throw new Error(json.error || 'Failed to parse users payload');
-      }
+      const items = await fetchUsersApi(authFetch);
+      setUsers(items);
     } catch (err: any) {
       console.warn('API error fetching users:', err.message);
       setErrorUsers('Could not connect to live User Service API (/api/users).');
@@ -603,22 +221,12 @@ export default function App() {
     }
   };
 
-  // Fetch all orders for Admin Order Management, via the API Gateway to order-service
   const fetchOrders = async () => {
     setIsLoadingOrders(true);
     setErrorOrders(null);
     try {
-      const res = await authFetch('/api/orders?status=ALL&limit=100');
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
-      }
-      const json = await res.json();
-      if (json.success && json.data) {
-        const list: OrderDTO[] = Array.isArray(json.data) ? json.data : json.data.orders || [];
-        setOrders(list);
-      } else {
-        throw new Error(json.error || 'Failed to parse orders payload');
-      }
+      const list = await fetchOrdersApi(authFetch);
+      setOrders(list);
     } catch (err: any) {
       console.warn('API error fetching orders:', err.message);
       setErrorOrders('Could not connect to live Order Service API (/api/orders).');
@@ -657,22 +265,13 @@ export default function App() {
     setIsConflictError(false);
 
     try {
-      const endpoint =
-        orderActionType === 'cancel'
-          ? `/api/orders/${targetOrderForAction.id}/admin/cancel`
-          : orderActionType === 'complete'
-          ? `/api/orders/${targetOrderForAction.id}/admin/complete`
-          : `/api/orders/${targetOrderForAction.id}/admin/unassign`;
-
-      const res = await authFetch(endpoint, {
-        method: 'POST',
-        body: JSON.stringify({
-          reason: trimmedReason,
-          expectedVersion: targetOrderForAction.version,
-        }),
-      });
-
-      const data = await res.json();
+      const { res, data } = await executeAdminOrderActionApi(
+        authFetch,
+        targetOrderForAction.id,
+        orderActionType,
+        trimmedReason,
+        targetOrderForAction.version
+      );
 
       if (!res.ok || !data.success) {
         if (res.status === 409) {
@@ -700,26 +299,6 @@ export default function App() {
     }
   };
 
-  // Shared required-field validation for Add/Edit Supplier forms
-  const validateSupplierForm = (data: {
-    name?: string;
-    campusZone?: string;
-    category?: string;
-    exactLocation?: string;
-    building?: string;
-    floor?: string;
-  }) => {
-    const errors: Record<string, string> = {};
-    if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
-    if (!data.campusZone?.trim()) errors.campusZone = 'Campus Zone is required.';
-    if (!data.category?.trim()) errors.category = 'Category is required.';
-    if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
-    if (!data.building?.trim()) errors.building = 'Building is required.';
-    if (!data.floor?.trim()) errors.floor = 'Floor is required.';
-    return errors;
-  };
-
-  // 1. Create Supplier Handler
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors = validateSupplierForm(newSupplier);
@@ -732,11 +311,7 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const res = await authFetch('/api/suppliers', {
-        method: 'POST',
-        body: JSON.stringify(newSupplier),
-      });
-      const data = await res.json();
+      const { res, data } = await createSupplierApi(authFetch, newSupplier);
       if (res.ok && data.success) {
         setSuppliers((prev) => [data.data, ...prev]);
         setIsAddOpen(false);
@@ -767,7 +342,6 @@ export default function App() {
     }
   };
 
-  // 2. Open Edit Modal
   const openEditModal = (supplier: SupplierDTO) => {
     setEditingSupplier(supplier);
     setEditFormData({
@@ -786,7 +360,6 @@ export default function App() {
     setEditDuplicateConflict(null);
   };
 
-  // 3. Save Edit Supplier Handler
   const handleUpdateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSupplier) return;
@@ -800,11 +373,7 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const res = await authFetch(`/api/suppliers/${editingSupplier.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(editFormData),
-      });
-      const data = await res.json();
+      const { res, data } = await updateSupplierApi(authFetch, editingSupplier.id, editFormData);
       if (res.ok && data.success) {
         setSuppliers((prev) => prev.map((s) => (s.id === editingSupplier.id ? data.data : s)));
         setEditingSupplier(null);
@@ -823,17 +392,12 @@ export default function App() {
     }
   };
 
-  // 4. Confirm Delete Supplier Handler
   const handleDeleteSupplier = async () => {
     if (!deletingSupplier) return;
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const url = `/api/suppliers/${deletingSupplier.id}${isPermanentDelete ? '?permanent=true' : ''}`;
-      const res = await authFetch(url, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+      const { res, data } = await deleteSupplierApi(authFetch, deletingSupplier.id, isPermanentDelete);
       if (res.ok && data.success) {
         if (isPermanentDelete) {
           setSuppliers((prev) => prev.filter((s) => s.id !== deletingSupplier.id));
@@ -862,14 +426,10 @@ export default function App() {
     }
   };
 
-  // 5. Toggle Active Status
   const toggleStatus = async (id: string) => {
     setActionAlert(null);
     try {
-      const res = await authFetch(`/api/suppliers/${id}/toggle`, {
-        method: 'PATCH',
-      });
-      const data = await res.json();
+      const { res, data } = await toggleSupplierStatusApi(authFetch, id);
       if (res.ok && data.success) {
         setSuppliers((prev) => prev.map((s) => (s.id === id ? data.data : s)));
         setActionAlert({
@@ -889,15 +449,11 @@ export default function App() {
     }
   };
 
-  // 6. Toggle User Status (Admin-only, via PATCH /api/users/:id/toggle-status)
   const toggleUserStatus = async (userId: string) => {
     setTogglingUserIds((prev) => new Set(prev).add(userId));
     setActionAlert(null);
     try {
-      const res = await authFetch(`/api/users/${userId}/toggle-status`, {
-        method: 'PATCH',
-      });
-      const data = await res.json();
+      const { res, data } = await toggleUserStatusApi(authFetch, userId);
       if (res.ok && data.success) {
         const updatedUser: UserDTO = data.data.user;
         setUsers((prev) => prev.map((u) => (u.userId === userId ? updatedUser : u)));
@@ -922,13 +478,12 @@ export default function App() {
     }
   };
 
-  // 7. Delete User (Admin, via DELETE /api/users/:id)
   const handleDeleteUser = async () => {
     if (!deletingUser) return;
     setIsDeletingUser(true);
     setDeleteUserError(null);
     try {
-      const res = await authFetch(`/api/users/${deletingUser.userId}`, { method: 'DELETE' });
+      const res = await deleteUserApi(authFetch, deletingUser.userId);
       if (res.status === 204) {
         if (deletingUser.userId.toLowerCase() === decodeJwtUserId(authToken)) {
           clearLocalSession();
@@ -949,14 +504,12 @@ export default function App() {
     }
   };
 
-  // 8. Upgrade/Downgrade User Role (Admin-only, via PATCH /api/users/:id/toggle-role)
   const handleToggleUserRole = async () => {
     if (!togglingRoleUser) return;
     setIsTogglingRole(true);
     setToggleRoleError(null);
     try {
-      const res = await authFetch(`/api/users/${togglingRoleUser.userId}/toggle-role`, { method: 'PATCH' });
-      const data = await res.json();
+      const { res, data } = await toggleUserRoleApi(authFetch, togglingRoleUser.userId);
       if (res.ok && data.success) {
         const updatedUser: UserDTO = data.data.user;
         setUsers((prev) => prev.map((u) => (u.userId === updatedUser.userId ? updatedUser : u)));
@@ -972,7 +525,6 @@ export default function App() {
     }
   };
 
-  // Sorting handler
   const handleSort = (field: keyof SupplierDTO) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -997,7 +549,6 @@ export default function App() {
 
   const activeFilterCount = (selectedZones.length > 0 ? 1 : 0) + (selectedCategories.length > 0 ? 1 : 0);
 
-  // Filter & Sort Pipeline
   const filteredAndSorted = useMemo(() => {
     const result = suppliers.filter((s) => {
       const query = searchQuery.toLowerCase().trim();
@@ -1034,7 +585,6 @@ export default function App() {
     return result;
   }, [suppliers, searchQuery, selectedCategories, selectedZones, sortField, sortDirection]);
 
-  // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / pageSize));
   const paginatedSuppliers = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -1046,9 +596,7 @@ export default function App() {
     return set.size;
   }, [suppliers]);
 
-  // ----------------------------------------------------
   // Users Directory: sort, filter, pagination
-  // ----------------------------------------------------
   const handleSortUsers = (field: keyof UserDTO) => {
     if (sortFieldUsers === field) {
       setSortDirectionUsers((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -1111,9 +659,7 @@ export default function App() {
     return { admins, students };
   }, [users]);
 
-  // ----------------------------------------------------
   // Orders & Errands: sort, filter, pagination
-  // ----------------------------------------------------
   const handleSortOrders = (field: keyof OrderDTO) => {
     if (sortFieldOrders === field) {
       setSortDirectionOrders((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -1173,71 +719,13 @@ export default function App() {
     const inTransit = orders.filter((o) => o.status === 'IN_TRANSIT').length;
     const delivered = orders.filter((o) => o.status === 'DELIVERED').length;
     const completed = orders.filter((o) => o.status === 'COMPLETED').length;
-    const cancelledOrExpired = orders.filter((o) => o.status === 'CANCELLED' || o.status === 'EXPIRED').length;
+    const cancelledOrExpired = orders.filter(
+      (o) => o.status === 'CANCELLED' || o.status === 'EXPIRED' || o.status === 'REJECTED'
+    ).length;
     const totalRewardCredits = orders.reduce((sum, o) => sum + (o.rewardCredits || 0), 0);
 
     return { total, open, accepted, inTransit, delivered, completed, cancelledOrExpired, totalRewardCredits };
   }, [orders]);
-
-  const renderOrderStatusBadge = (status: OrderStatus) => {
-    switch (status) {
-      case 'OPEN':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3 h-3 mr-1" />
-            OPEN
-          </span>
-        );
-      case 'ACCEPTED':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-300">
-            <Activity className="w-3 h-3 mr-1" />
-            ACCEPTED
-          </span>
-        );
-      case 'IN_TRANSIT':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
-            <Activity className="w-3 h-3 mr-1" />
-            IN TRANSIT
-          </span>
-        );
-      case 'DELIVERED':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-300">
-            <CheckSquare className="w-3 h-3 mr-1" />
-            DELIVERED
-          </span>
-        );
-      case 'COMPLETED':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            COMPLETED
-          </span>
-        );
-      case 'CANCELLED':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-300">
-            <XCircle className="w-3 h-3 mr-1" />
-            CANCELLED
-          </span>
-        );
-      case 'EXPIRED':
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
-            <Clock className="w-3 h-3 mr-1" />
-            EXPIRED
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
-            {status}
-          </span>
-        );
-    }
-  };
 
   if (isCheckingSession) {
     return (
@@ -1249,2607 +737,232 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-100">
-        <form onSubmit={handleAdminLogin} className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm space-y-5">
-          <div className="text-center space-y-1">
-            <div className="w-10 h-10 mx-auto rounded-lg bg-orange-500 flex items-center justify-center font-black text-white text-xl">
-              A
-            </div>
-            <h1 className="text-lg font-bold text-slate-900">Admin Log In</h1>
-            <p className="text-sm text-slate-500">NUS CampusErrand Admin Control Portal</p>
-          </div>
-
-          {loginError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-              <p className="font-bold">{loginError.code}</p>
-              <p>{loginError.message}</p>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
-              <input
-                type="email"
-                required
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                disabled={isLoggingIn}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="example@nus.edu.sg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                disabled={isLoggingIn}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center space-x-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              disabled={isLoggingIn}
-              className="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
-            />
-            <span>Keep me logged in</span>
-          </label>
-
-          <button
-            type="submit"
-            disabled={isLoggingIn}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-          >
-            {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
-            <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
-          </button>
-          {window.location.port !== '5174' && (
-            <div className="border-t border-slate-200 pt-4">
-              <a
-                href="/"
-                className="flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-900 px-4 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
-              >
-                Student Log In
-              </a>
-            </div>
-          )}
-        </form>
-      </div>
+      <AdminLoginPage
+        handleAdminLogin={handleAdminLogin}
+        loginError={loginError}
+        loginEmail={loginEmail}
+        setLoginEmail={setLoginEmail}
+        loginPassword={loginPassword}
+        setLoginPassword={setLoginPassword}
+        isLoggingIn={isLoggingIn}
+        rememberMe={rememberMe}
+        setRememberMe={setRememberMe}
+      />
     );
   }
 
   return (
     <div className="admin-shell flex h-dvh w-full bg-slate-100 text-slate-800 font-sans overflow-hidden">
-      {/* Desktop Left Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-slate-900 text-white flex-col shrink-0 overflow-y-auto">
-        <div className="p-5 border-b border-slate-800 flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-lg bg-orange-500 flex items-center justify-center font-black text-white text-xl">
-            A
-          </div>
-          <div>
-            <h1 className="font-bold text-sm tracking-wide">NUS CampusErrand</h1>
-            <p className="text-xs text-slate-400">Admin Control Portal</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1 text-sm font-medium">
-          <button
-            onClick={() => setActiveNav('suppliers')}
-            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-              activeNav === 'suppliers'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>Campus Suppliers (M3)</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveNav('orders');
-              fetchOrders();
-            }}
-            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-              activeNav === 'orders'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>Errands & Orders</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveNav('users');
-              fetchUsers();
-            }}
-            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-              activeNav === 'users'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Users</span>
-          </button>
-
-          <button
-            onClick={() => setActiveNav('health')}
-            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-              activeNav === 'health'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            <span>Microservice Health</span>
-          </button>
-
-          <button
-            onClick={() => setActiveNav('audit')}
-            className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-              activeNav === 'audit'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Shield className="w-4 h-4" />
-            <span>Audit & Disputes</span>
-          </button>
-        </nav>
-
-        {/* Session Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/60">
-          <div className="flex items-center space-x-2 mb-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-sm font-bold text-slate-300 truncate">{loginEmail || 'Admin'}</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-sm font-bold py-2 rounded-lg transition disabled:opacity-60"
-          >
-            {isLoggingOut ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <LogOut className="w-3.5 h-3.5" />
-            )}
-            <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
-          </button>
-        </div>
-      </aside>
+      <AdminSidebar
+        activeNav={activeNav}
+        setActiveNav={setActiveNav}
+        fetchOrders={fetchOrders}
+        fetchUsers={fetchUsers}
+        handleLogout={handleLogout}
+        isLoggingOut={isLoggingOut}
+      />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Navbar */}
-        <header className="bg-white border-b border-slate-200 px-4 md:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-3 shadow-sm shrink-0">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle navigation"
-              aria-expanded={mobileMenuOpen}
-              className="admin-square-button lg:hidden text-slate-600 hover:text-slate-900 p-2"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <div>
-              <h2 className="text-base md:text-lg font-bold text-slate-900 leading-tight">
-                {activeNav === 'suppliers'
-                  ? 'Campus Suppliers Directory'
-                  : activeNav === 'users'
-                  ? 'User Directory'
-                  : activeNav === 'orders'
-                  ? 'Errands & Order Management'
-                  : activeNav === 'health'
-                  ? 'System Health & Services'
-                  : 'Audit Log & Resolution'}
-              </h2>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                Milestone D2 Verified • PostgreSQL & Microservices Integration
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Active Session Badge */}
-            <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  currentRole === 'ADMIN'
-                    ? 'bg-emerald-500 animate-pulse'
-                    : currentRole === 'STUDENT'
-                    ? 'bg-amber-500'
-                    : 'bg-rose-500'
-                }`}
-              />
-              <span className="text-sm font-bold text-slate-700 hidden sm:inline">
-                {currentRole === 'ADMIN' ? 'Admin: admin@nus.edu.sg' : currentRole === 'STUDENT' ? 'Student: alice@u.nus.edu' : 'Guest'}
-              </span>
-              <span className="text-sm font-bold text-slate-700 sm:hidden">{currentRole === 'ADMIN' ? 'Admin' : currentRole === 'STUDENT' ? 'Student' : 'Guest'}</span>
-            </div>
-
-            <button
-              onClick={() => {
-                if (activeNav === 'orders') fetchOrders();
-                else if (activeNav === 'users') fetchUsers();
-                else fetchSuppliers();
-              }}
-              className="admin-square-button p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-              title={
-                activeNav === 'orders'
-                  ? 'Refresh orders list'
-                  : activeNav === 'users'
-                  ? 'Refresh users list'
-                  : 'Refresh suppliers list'
-              }
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${
-                  (activeNav === 'orders'
-                    ? isLoadingOrders
-                    : activeNav === 'users'
-                    ? isLoadingUsers
-                    : isLoading)
-                    ? 'animate-spin'
-                    : ''
-                }`}
-              />
-            </button>
-
-            {activeNav === 'suppliers' && (
-              <button
-                onClick={() => {
-                  setAddFormErrors({});
-                  setAddDuplicateConflict(null);
-                  setIsAddOpen(true);
-                }}
-                className="flex items-center space-x-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-2 rounded-lg shadow transition"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Location</span>
-                <span className="sm:hidden">Add</span>
-              </button>
-            )}
-          </div>
-        </header>
-
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-slate-900 text-white p-4 space-y-2 border-b border-slate-800">
-            <button
-              onClick={() => { setActiveNav('suppliers'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
-                activeNav === 'suppliers' ? 'bg-blue-600 text-white' : 'text-slate-300'
-              }`}
-            >
-              Campus Suppliers (M3)
-            </button>
-            <button
-              onClick={() => {
-                setActiveNav('orders');
-                fetchOrders();
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
-                activeNav === 'orders' ? 'bg-blue-600 text-white' : 'text-slate-300'
-              }`}
-            >
-              Errands & Orders
-            </button>
-            <button
-              onClick={() => {
-                setActiveNav('users');
-                fetchUsers();
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
-                activeNav === 'users' ? 'bg-blue-600 text-white' : 'text-slate-300'
-              }`}
-            >
-              Users
-            </button>
-            <button
-              onClick={() => { setActiveNav('health'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
-                activeNav === 'health' ? 'bg-blue-600 text-white' : 'text-slate-300'
-              }`}
-            >
-              Microservice Health
-            </button>
-            {/* AI-generated (edited by jagdeepsh) */}
-            <button
-              onClick={() => { setActiveNav('audit'); setMobileMenuOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
-                activeNav === 'audit' ? 'bg-blue-600 text-white' : 'text-slate-300'
-              }`}
-            >
-              Audit & Disputes
-            </button>
-            <div className="pt-2 border-t border-slate-800">
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white text-sm font-bold py-2 rounded-lg transition disabled:opacity-60"
-              >
-                {isLoggingOut ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <LogOut className="w-3.5 h-3.5" />
-                )}
-                <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Action Alert Banner */}
-        {actionAlert && (
-          <div
-            className={`px-4 py-2.5 text-sm font-medium flex items-center justify-between border-b ${
-              actionAlert.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-rose-50 text-rose-800 border-rose-200'
-            }`}
-          >
-            <div className="flex items-center space-x-2">
-              {actionAlert.type === 'success' ? (
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-              )}
-              <span>{actionAlert.message}</span>
-            </div>
-            <button
-              onClick={() => setActionAlert(null)}
-              className="admin-square-button text-slate-400 hover:text-slate-600 ml-4"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <AdminHeader
+          activeNav={activeNav}
+          setActiveNav={setActiveNav}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+          currentRole={currentRole}
+          isLoading={isLoading}
+          isLoadingOrders={isLoadingOrders}
+          isLoadingUsers={isLoadingUsers}
+          fetchSuppliers={fetchSuppliers}
+          fetchOrders={fetchOrders}
+          fetchUsers={fetchUsers}
+          setAddFormErrors={setAddFormErrors}
+          setAddDuplicateConflict={setAddDuplicateConflict}
+          setIsAddOpen={setIsAddOpen}
+          handleLogout={handleLogout}
+          isLoggingOut={isLoggingOut}
+          actionAlert={actionAlert}
+          setActionAlert={setActionAlert}
+        />
 
         {/* Scrollable Viewport */}
-        <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-5">
           {(activeNav === 'users' ? errorUsers : activeNav === 'orders' ? errorOrders : error) && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>{activeNav === 'users' ? errorUsers : activeNav === 'orders' ? errorOrders : error}</span>
             </div>
           )}
 
           {activeNav === 'suppliers' && (
-            <div className="space-y-4">
-              {/* Desktop KPI Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Total Suppliers</span>
-                  <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{suppliers.length}</p>
-                </div>
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Active Locations</span>
-                  <p className="text-xl md:text-2xl font-black text-emerald-600 mt-1">
-                    {suppliers.filter((s) => s.isActive).length}
-                  </p>
-                </div>
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Campus Zones</span>
-                  <p className="text-xl md:text-2xl font-black text-blue-600 mt-1">{uniqueZones} Zones</p>
-                </div>
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Categories</span>
-                  <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{CATEGORIES.length} Types</p>
-                </div>
-              </div>
-
-              {/* Filters & Search Row */}
-              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-md flex items-center">
-                  <Search className="w-4 h-4 absolute left-3 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, building, code, or zone..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full pl-9 pr-12 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="admin-square-button absolute right-0 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setDraftSelectedCategories(selectedCategories);
-                      setDraftSelectedZones(selectedZones);
-                      setIsFilterModalOpen(true);
-                    }}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border shrink-0 transition ${
-                      activeFilterCount > 0
-                        ? 'bg-blue-50 border-blue-300 text-blue-700'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Filter</span>
-                    {activeFilterCount > 0 && (
-                      <span className="ml-1 bg-blue-600 text-white rounded-full text-xs w-4 h-4 inline-flex items-center justify-center font-bold">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Mobile Card List View (Visible below the desktop table breakpoint) */}
-              <div className="block xl:hidden space-y-3">
-                {paginatedSuppliers.map((s) => (
-                  <div
-                    key={s.id}
-                    className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2.5"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                          {s.supplierCode}
-                        </span>
-                        <h3 className="font-bold text-sm text-slate-900 mt-1">{s.name}</h3>
-                        <p className="text-sm text-slate-500 mt-0.5">{s.exactLocation}</p>
-                      </div>
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          s.isActive
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}
-                      >
-                        {s.isActive ? 'Active' : 'Unavailable'}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-                      <span className="bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded">
-                        Zone: {s.campusZone}
-                      </span>
-                      <span className="bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded">
-                        {s.category}
-                      </span>
-                      {s.startingTime && s.closingTime && (
-                        <span className="inline-flex items-center space-x-1 font-mono text-slate-500">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          <span>{s.startingTime} - {s.closingTime}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {s.description && (
-                      <p className="text-xs text-slate-400 italic line-clamp-2">{s.description}</p>
-                    )}
-
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <button
-                        onClick={() => toggleStatus(s.id)}
-                        className={`text-sm font-semibold px-2.5 py-1 rounded transition ${
-                          s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                      >
-                        {s.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => setViewingSupplier(s)}
-                          className="admin-square-button p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openEditModal(s)}
-                          className="admin-square-button p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
-                          title="Edit Location"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeletingSupplier(s);
-                            setIsPermanentDelete(false);
-                          }}
-                          className="admin-square-button p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
-                          title="Delete Location"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Desktop Data Table View (Visible when the desktop content area can accommodate a table) */}
-              <div className="hidden xl:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-                <table className="w-full min-w-[1100px] text-left border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
-                      <th
-                        onClick={() => handleSort('supplierCode')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Code</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('name')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Store / Facility Name</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('campusZone')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Campus Zone</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th className="p-3.5">Building & Location</th>
-                      <th
-                        onClick={() => handleSort('category')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Category</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th className="p-3.5">Operating Hours</th>
-                      <th
-                        onClick={() => handleSort('isActive')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Status</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th className="p-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedSuppliers.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3.5 font-mono font-bold text-slate-700">{s.supplierCode}</td>
-                        <td className="p-3.5">
-                          <div className="font-semibold text-slate-900">{s.name}</div>
-                          {s.description && (
-                            <div className="text-xs text-slate-400 truncate max-w-xs">{s.description}</div>
-                          )}
-                        </td>
-                        <td className="p-3.5">
-                          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">
-                            {s.campusZone}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-slate-600">
-                          <div>{s.exactLocation}</div>
-                          {s.building && (
-                            <span className="text-xs text-slate-400">
-                              {s.building} {s.floor ? `· L${s.floor}` : ''}
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3.5">
-                          <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">
-                            {s.category}
-                          </span>
-                        </td>
-                        <td className="p-3.5 text-slate-600">
-                          {s.startingTime && s.closingTime ? (
-                            <span className="inline-flex items-center space-x-1 font-mono text-xs text-slate-500">
-                              <Clock className="w-3 h-3 text-slate-400" />
-                              <span>{s.startingTime} - {s.closingTime}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 italic text-xs">Unspecified</span>
-                          )}
-                        </td>
-                        <td className="p-3.5">
-                          {s.isActive ? (
-                            <span className="inline-flex items-center space-x-1 text-emerald-600 font-semibold">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span>Active</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center space-x-1 text-rose-500 font-semibold">
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>Unavailable</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-right whitespace-nowrap space-x-1">
-                          <button
-                            onClick={() => toggleStatus(s.id)}
-                            className={`text-sm font-semibold px-2 py-1 rounded transition ${
-                              s.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                            title={s.isActive ? 'Deactivate supplier' : 'Activate supplier'}
-                          >
-                            {s.isActive ? 'Deactivate' : 'Activate'}
-                          </button>
-                          <button
-                            onClick={() => setViewingSupplier(s)}
-                            className="admin-square-button p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"
-                            title="View full details"
-                          >
-                            <Eye className="w-3.5 h-3.5 inline" />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(s)}
-                            className="admin-square-button p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
-                            title="Edit details"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 inline" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDeletingSupplier(s);
-                              setIsPermanentDelete(false);
-                            }}
-                            className="admin-square-button p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
-                            title="Delete supplier"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {paginatedSuppliers.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-400">
-                          No campus suppliers found matching your query.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Unified Pagination Bar */}
-              <div className="p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
-                <span>
-                  Showing {Math.min(filteredAndSorted.length, (currentPage - 1) * pageSize + 1)} to{' '}
-                  {Math.min(filteredAndSorted.length, currentPage * pageSize)} of {filteredAndSorted.length} campus locations
-                </span>
-
-                <div className="flex max-w-full flex-wrap items-center justify-center gap-1">
-                  <button
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`admin-square-button rounded-lg text-sm font-bold transition ${
-                        currentPage === page
-                          ? 'bg-slate-900 text-white'
-                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SuppliersPage
+              suppliers={suppliers}
+              uniqueZones={uniqueZones}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              setCurrentPage={setCurrentPage}
+              selectedZones={selectedZones}
+              selectedCategories={selectedCategories}
+              setDraftSelectedZones={setDraftSelectedZones}
+              setDraftSelectedCategories={setDraftSelectedCategories}
+              setIsFilterModalOpen={setIsFilterModalOpen}
+              activeFilterCount={activeFilterCount}
+              pageSize={pageSize}
+              paginatedSuppliers={paginatedSuppliers}
+              filteredAndSorted={filteredAndSorted}
+              setViewingSupplier={setViewingSupplier}
+              toggleStatus={toggleStatus}
+              openEditModal={openEditModal}
+              setIsPermanentDelete={setIsPermanentDelete}
+              setDeletingSupplier={setDeletingSupplier}
+              handleSort={handleSort}
+              currentPage={currentPage}
+              totalPages={totalPages}
+            />
           )}
 
           {activeNav === 'users' && (
-            <div className="space-y-4">
-              {isLoadingUsers && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center space-x-2">
-                  <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
-                  <span>Loading users…</span>
-                </div>
-              )}
-
-              {/* Desktop KPI Stats Grid */}
-              <div className="grid grid-cols-3 gap-3 md:gap-4">
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Total Users</span>
-                  <p className="text-xl md:text-2xl font-black text-slate-900 mt-1">{users.length}</p>
-                </div>
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Admins</span>
-                  <p className="text-xl md:text-2xl font-black text-blue-600 mt-1">{userStats.admins}</p>
-                </div>
-                <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm">
-                  <span className="text-xs md:text-sm text-slate-500 font-semibold">Students</span>
-                  <p className="text-xl md:text-2xl font-black text-amber-600 mt-1">{userStats.students}</p>
-                </div>
-              </div>
-
-              {/* Filters & Search Row */}
-              <div className="bg-white p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-md flex items-center">
-                  <Search className="w-4 h-4 absolute left-3 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by username or email..."
-                    value={searchQueryUsers}
-                    onChange={(e) => {
-                      setSearchQueryUsers(e.target.value);
-                      setCurrentPageUsers(1);
-                    }}
-                    className="w-full pl-9 pr-12 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {searchQueryUsers && (
-                    <button
-                      onClick={() => setSearchQueryUsers('')}
-                      className="admin-square-button absolute right-0 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setDraftSelectedUserRoles(selectedUserRoles);
-                      setIsUserFilterModalOpen(true);
-                    }}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border shrink-0 transition ${
-                      activeUserFilterCount > 0
-                        ? 'bg-blue-50 border-blue-300 text-blue-700'
-                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Filter</span>
-                    {activeUserFilterCount > 0 && (
-                      <span className="ml-1 bg-blue-600 text-white rounded-full text-xs w-4 h-4 inline-flex items-center justify-center font-bold">
-                        {activeUserFilterCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Mobile Card List View */}
-              <div className="block xl:hidden space-y-3">
-                {paginatedUsers.map((u) => (
-                  <div
-                    key={u.userId}
-                    className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2.5"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-bold text-sm text-slate-900">{u.username}</h3>
-                        <p className="text-sm text-slate-500 mt-0.5">{u.email}</p>
-                      </div>
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          u.userRole === 'ADMIN'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {u.userRole}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span
-                        className={`text-xs font-semibold ${u.status ? 'text-emerald-600' : 'text-rose-500'}`}
-                      >
-                        {u.status ? 'Active' : 'Disabled'}
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        <button
-                          disabled={togglingUserIds.has(u.userId)}
-                          onClick={() => toggleUserStatus(u.userId)}
-                          className={`text-sm font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                            u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                        >
-                          {togglingUserIds.has(u.userId) ? 'Working…' : u.status ? 'Disable' : 'Reinstate'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setTogglingRoleUser(u);
-                            setToggleRoleConfirmed(false);
-                            setToggleRoleError(null);
-                          }}
-                          className={`text-sm font-bold px-2.5 py-1 rounded transition ${
-                            u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                        >
-                          {u.userRole === 'ADMIN' ? 'Downgrade' : 'Upgrade'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeletingUser(u);
-                            setDeleteUserConfirmed(false);
-                            setDeleteUserError(null);
-                          }}
-                          className="admin-square-button p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
-                          title="Delete user"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {paginatedUsers.length === 0 && !isLoadingUsers && (
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
-                    No users found matching your query.
-                  </div>
-                )}
-              </div>
-
-              {/* Desktop Data Table View */}
-              <div className="hidden xl:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-                <table className="w-full min-w-[1100px] text-left border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider select-none">
-                      <th
-                        onClick={() => handleSortUsers('username')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Username</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSortUsers('email')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Email</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSortUsers('userRole')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Role</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSortUsers('status')}
-                        className="p-3.5 cursor-pointer hover:bg-slate-100 transition"
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Status</span>
-                          <ArrowUpDown className="w-3 h-3 text-slate-400" />
-                        </div>
-                      </th>
-                      <th className="p-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {paginatedUsers.map((u) => (
-                      <tr key={u.userId} className="hover:bg-slate-50 transition">
-                        <td className="p-3.5 font-semibold text-slate-900">{u.username}</td>
-                        <td className="p-3.5 text-slate-600">{u.email}</td>
-                        <td className="p-3.5">
-                          <span
-                            className={`px-2 py-0.5 rounded font-bold ${
-                              u.userRole === 'ADMIN' ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {u.userRole}
-                          </span>
-                        </td>
-                        <td className="p-3.5">
-                          {u.status ? (
-                            <span className="inline-flex items-center space-x-1 text-emerald-600 font-semibold">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span>Active</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center space-x-1 text-rose-500 font-semibold">
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>Disabled</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-right whitespace-nowrap space-x-1">
-                          <button
-                            disabled={togglingUserIds.has(u.userId)}
-                            onClick={() => toggleUserStatus(u.userId)}
-                            className={`text-sm font-bold px-2.5 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                              u.status ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                          >
-                            {togglingUserIds.has(u.userId) ? '...' : u.status ? 'Disable' : 'Reinstate'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setTogglingRoleUser(u);
-                              setToggleRoleConfirmed(false);
-                              setToggleRoleError(null);
-                            }}
-                            className={`text-sm font-bold px-2.5 py-1 rounded transition ${
-                              u.userRole === 'ADMIN' ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                          >
-                            {u.userRole === 'ADMIN' ? 'Downgrade' : 'Upgrade'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDeletingUser(u);
-                              setDeleteUserConfirmed(false);
-                              setDeleteUserError(null);
-                            }}
-                            className="admin-square-button p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded"
-                            title="Delete user"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 inline" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {paginatedUsers.length === 0 && !isLoadingUsers && (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-400">
-                          No users found matching your query.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Unified Pagination Bar */}
-              <div className="p-3 bg-white rounded-xl border border-slate-200 text-sm text-slate-600 flex flex-col sm:flex-row justify-between items-center gap-2">
-                <span>
-                  Showing {Math.min(filteredAndSortedUsers.length, (currentPageUsers - 1) * pageSize + 1)} to{' '}
-                  {Math.min(filteredAndSortedUsers.length, currentPageUsers * pageSize)} of{' '}
-                  {filteredAndSortedUsers.length} users
-                </span>
-
-                <div className="flex max-w-full flex-wrap items-center justify-center gap-1">
-                  <button
-                    disabled={currentPageUsers <= 1}
-                    onClick={() => setCurrentPageUsers((p) => Math.max(1, p - 1))}
-                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  {Array.from({ length: totalPagesUsers }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPageUsers(page)}
-                      className={`admin-square-button rounded-lg text-sm font-bold transition ${
-                        currentPageUsers === page
-                          ? 'bg-slate-900 text-white'
-                          : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    disabled={currentPageUsers >= totalPagesUsers}
-                    onClick={() => setCurrentPageUsers((p) => Math.min(totalPagesUsers, p + 1))}
-                    className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <UsersPage
+              isLoadingUsers={isLoadingUsers}
+              users={users}
+              userStats={userStats}
+              searchQueryUsers={searchQueryUsers}
+              setSearchQueryUsers={setSearchQueryUsers}
+              setCurrentPageUsers={setCurrentPageUsers}
+              selectedUserRoles={selectedUserRoles}
+              setDraftSelectedUserRoles={setDraftSelectedUserRoles}
+              setIsUserFilterModalOpen={setIsUserFilterModalOpen}
+              activeUserFilterCount={activeUserFilterCount}
+              pageSize={pageSize}
+              paginatedUsers={paginatedUsers}
+              filteredAndSortedUsers={filteredAndSortedUsers}
+              togglingUserIds={togglingUserIds}
+              toggleUserStatus={toggleUserStatus}
+              setToggleRoleConfirmed={setToggleRoleConfirmed}
+              setToggleRoleError={setToggleRoleError}
+              setTogglingRoleUser={setTogglingRoleUser}
+              setDeleteUserConfirmed={setDeleteUserConfirmed}
+              setDeleteUserError={setDeleteUserError}
+              setDeletingUser={setDeletingUser}
+              handleSortUsers={handleSortUsers}
+              currentPageUsers={currentPageUsers}
+              totalPagesUsers={totalPagesUsers}
+            />
           )}
 
           {activeNav === 'orders' && (
-            <div className="space-y-4">
-              {/* KPI Cards Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Errands</p>
-                    <p className="text-2xl font-black text-slate-900 mt-1">{orderStats.total}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">All order records</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Package className="w-5 h-5" />
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Open & Claimed</p>
-                    <p className="text-2xl font-black text-amber-600 mt-1">{orderStats.open + orderStats.accepted}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{orderStats.open} open • {orderStats.accepted} claimed</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">In Transit & Delivered</p>
-                    <p className="text-2xl font-black text-purple-600 mt-1">{orderStats.inTransit + orderStats.delivered}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{orderStats.inTransit} active • {orderStats.delivered} awaiting confirm</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Settled & Closed</p>
-                    <p className="text-2xl font-black text-emerald-600 mt-1">{orderStats.completed}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{orderStats.cancelledOrExpired} cancelled/expired</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Filter, Search & Controls Bar */}
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-                  {/* Search Bar */}
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={searchQueryOrders}
-                      onChange={(e) => {
-                        setSearchQueryOrders(e.target.value);
-                        setCurrentPageOrders(1);
-                      }}
-                      placeholder="Search by order code, items, dropoff location, requester or courier ID..."
-                      className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    {searchQueryOrders && (
-                      <button
-                        onClick={() => {
-                          setSearchQueryOrders('');
-                          setCurrentPageOrders(1);
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Zone Filter */}
-                  <div className="flex items-center space-x-2 shrink-0">
-                    <span className="text-xs font-semibold text-slate-500">Zone:</span>
-                    <select
-                      value={selectedOrderZone}
-                      onChange={(e) => {
-                        setSelectedOrderZone(e.target.value);
-                        setCurrentPageOrders(1);
-                      }}
-                      className="text-sm border border-slate-200 rounded-lg px-2.5 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                    >
-                      <option value="ALL">All Campus Zones</option>
-                      {CAMPUS_ZONES.map((z) => (
-                        <option key={z} value={z}>{z}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Status Filter Chips */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
-                  <span className="text-xs font-semibold text-slate-500 mr-1">Status:</span>
-                  {(['ALL', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED'] as const).map(
-                    (st) => {
-                      const isSelected = selectedOrderStatus === st;
-                      const count =
-                        st === 'ALL'
-                          ? orders.length
-                          : orders.filter((o) => o.status === st).length;
-                      return (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => {
-                            setSelectedOrderStatus(st);
-                            setCurrentPageOrders(1);
-                          }}
-                          className={`text-xs px-2.5 py-1 rounded-full font-bold transition flex items-center space-x-1 ${
-                            isSelected
-                              ? 'bg-slate-900 text-white shadow-sm'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          <span>{st === 'ALL' ? 'All Orders' : st}</span>
-                          <span
-                            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                              isSelected ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
-                            }`}
-                          >
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    }
-                  )}
-                </div>
-              </div>
-
-              {/* Orders Table Container */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                {isLoadingOrders ? (
-                  <div className="p-12 text-center text-slate-500">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-400" />
-                    <p className="text-sm font-semibold">Loading orders from Order Service...</p>
-                  </div>
-                ) : filteredAndSortedOrders.length === 0 ? (
-                  <div className="p-12 text-center text-slate-500">
-                    <Package className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                    <p className="text-base font-bold text-slate-700">No errands found</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {searchQueryOrders || selectedOrderStatus !== 'ALL' || selectedOrderZone !== 'ALL'
-                        ? 'Try clearing your filters or search query.'
-                        : 'No orders have been placed in the system yet.'}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                          <tr>
-                            <th className="p-4 cursor-pointer hover:text-slate-900" onClick={() => handleSortOrders('orderCode')}>
-                              <div className="flex items-center space-x-1">
-                                <span>Order Code</span>
-                                <ArrowUpDown className="w-3 h-3" />
-                              </div>
-                            </th>
-                            <th className="p-4">Item & Dropoff</th>
-                            <th className="p-4">Requester & Courier</th>
-                            <th className="p-4 cursor-pointer hover:text-slate-900" onClick={() => handleSortOrders('rewardCredits')}>
-                              <div className="flex items-center space-x-1">
-                                <span>Escrow Reward</span>
-                                <ArrowUpDown className="w-3 h-3" />
-                              </div>
-                            </th>
-                            <th className="p-4">Status & Version</th>
-                            <th className="p-4 text-right">Admin Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {paginatedOrders.map((order) => {
-                            const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED' || order.status === 'EXPIRED';
-                            return (
-                              <tr key={order.id} className="hover:bg-slate-50/80 transition">
-                                <td className="p-4 align-top">
-                                  <div className="font-mono font-bold text-slate-900">{order.orderCode}</div>
-                                  <div className="text-[11px] text-slate-400 mt-0.5">
-                                    {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </div>
-                                  {order.specialNotes && (
-                                    <div className="text-[11px] text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 mt-1 border border-amber-200 max-w-xs truncate" title={order.specialNotes}>
-                                      Note: {order.specialNotes}
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="p-4 align-top">
-                                  <div className="font-semibold text-slate-800">{order.itemDescription}</div>
-                                  <div className="text-xs text-slate-500 mt-0.5">
-                                    📍 To: <span className="font-medium text-slate-700">{order.dropoffLocation}</span>
-                                  </div>
-                                  <div className="text-xs text-slate-400 mt-0.5">
-                                    Zone: <span className="font-medium text-slate-600">{order.campusZone}</span>
-                                    {order.supplierName && ` • ${order.supplierName}`}
-                                  </div>
-                                </td>
-                                <td className="p-4 align-top">
-                                  <div className="text-xs text-slate-600">
-                                    <span className="font-semibold text-slate-700">Req:</span>{' '}
-                                    <span className="font-mono text-[11px]">{order.requesterId.slice(0, 8)}...</span>
-                                  </div>
-                                  <div className="text-xs text-slate-600 mt-1">
-                                    <span className="font-semibold text-slate-700">Courier:</span>{' '}
-                                    {order.courierId ? (
-                                      <span className="font-mono text-[11px] text-blue-700">{order.courierId.slice(0, 8)}...</span>
-                                    ) : (
-                                      <span className="italic text-slate-400 text-xs">Unassigned</span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-4 align-top">
-                                  <div className="font-bold text-slate-900">{order.rewardCredits} pts</div>
-                                  <div className="text-[11px] text-slate-400">
-                                    {order.status === 'COMPLETED' ? 'Settled' : order.status === 'CANCELLED' ? 'Refunded' : 'Held in Escrow'}
-                                  </div>
-                                </td>
-                                <td className="p-4 align-top">
-                                  <div>{renderOrderStatusBadge(order.status)}</div>
-                                  <div className="text-[11px] font-mono text-slate-400 mt-1">
-                                    v{order.version}
-                                  </div>
-                                </td>
-                                <td className="p-4 align-top text-right">
-                                  <div className="flex flex-col items-end gap-1.5">
-                                    {order.status === 'OPEN' && (
-                                      <button
-                                        onClick={() => openOrderAction(order, 'cancel')}
-                                        className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
-                                      >
-                                        Force Cancel
-                                      </button>
-                                    )}
-
-                                    {order.status === 'ACCEPTED' && (
-                                      <div className="flex items-center space-x-1.5">
-                                        <button
-                                          onClick={() => openOrderAction(order, 'unassign')}
-                                          className="text-xs font-bold text-amber-600 hover:text-white hover:bg-amber-600 border border-amber-300 rounded-lg px-2.5 py-1 transition shadow-sm"
-                                          title="Unassign courier and revert to OPEN"
-                                        >
-                                          Unassign Courier
-                                        </button>
-                                        <button
-                                          onClick={() => openOrderAction(order, 'cancel')}
-                                          className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
-                                        >
-                                          Cancel
-                                        </button>
-                                      </div>
-                                    )}
-
-                                    {order.status === 'IN_TRANSIT' && (
-                                      <button
-                                        onClick={() => openOrderAction(order, 'cancel')}
-                                        className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
-                                        title="Cancel order during transit with refund"
-                                      >
-                                        Dispute Cancel
-                                      </button>
-                                    )}
-
-                                    {order.status === 'DELIVERED' && (
-                                      <button
-                                        onClick={() => openOrderAction(order, 'complete')}
-                                        className="text-xs font-bold text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-300 rounded-lg px-2.5 py-1 transition shadow-sm"
-                                        title="Resolve delivery dispute by releasing escrow to courier"
-                                      >
-                                        Force Complete
-                                      </button>
-                                    )}
-
-                                    {isTerminal && (
-                                      <span className="text-xs font-semibold text-slate-400 italic">No actions needed</span>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Mobile Card View */}
-                    <div className="md:hidden divide-y divide-slate-100">
-                      {paginatedOrders.map((order) => {
-                        const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED' || order.status === 'EXPIRED';
-                        return (
-                          <div key={order.id} className="p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono font-bold text-slate-900">{order.orderCode}</span>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-[10px] font-mono text-slate-400">v{order.version}</span>
-                                {renderOrderStatusBadge(order.status)}
-                              </div>
-                            </div>
-
-                            <div>
-                              <p className="font-semibold text-slate-800 text-sm">{order.itemDescription}</p>
-                              <p className="text-xs text-slate-500 mt-0.5">📍 Dropoff: {order.dropoffLocation}</p>
-                              <p className="text-xs text-slate-400">Zone: {order.campusZone} • {order.rewardCredits} pts escrow</p>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs text-slate-500 pt-1 border-t border-slate-50">
-                              <span>Req: {order.requesterId.slice(0, 8)}...</span>
-                              <span>Courier: {order.courierId ? `${order.courierId.slice(0, 8)}...` : 'Unassigned'}</span>
-                            </div>
-
-                            {!isTerminal && (
-                              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 justify-end">
-                                {order.status === 'OPEN' && (
-                                  <button
-                                    onClick={() => openOrderAction(order, 'cancel')}
-                                    className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
-                                  >
-                                    Force Cancel
-                                  </button>
-                                )}
-                                {order.status === 'ACCEPTED' && (
-                                  <>
-                                    <button
-                                      onClick={() => openOrderAction(order, 'unassign')}
-                                      className="text-xs font-bold text-amber-600 border border-amber-300 rounded-lg px-3 py-1.5"
-                                    >
-                                      Unassign
-                                    </button>
-                                    <button
-                                      onClick={() => openOrderAction(order, 'cancel')}
-                                      className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </>
-                                )}
-                                {order.status === 'IN_TRANSIT' && (
-                                  <button
-                                    onClick={() => openOrderAction(order, 'cancel')}
-                                    className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
-                                  >
-                                    Dispute Cancel
-                                  </button>
-                                )}
-                                {order.status === 'DELIVERED' && (
-                                  <button
-                                    onClick={() => openOrderAction(order, 'complete')}
-                                    className="text-xs font-bold text-emerald-600 border border-emerald-300 rounded-lg px-3 py-1.5"
-                                  >
-                                    Force Complete
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Pagination Bar */}
-                    <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-                      <div>
-                        Showing <span className="font-bold text-slate-700">{(currentPageOrders - 1) * pageSize + 1}</span> to{' '}
-                        <span className="font-bold text-slate-700">
-                          {Math.min(currentPageOrders * pageSize, filteredAndSortedOrders.length)}
-                        </span>{' '}
-                        of <span className="font-bold text-slate-700">{filteredAndSortedOrders.length}</span> orders
-                      </div>
-
-                      <div className="flex items-center space-x-1">
-                        <button
-                          disabled={currentPageOrders <= 1}
-                          onClick={() => setCurrentPageOrders((p) => Math.max(1, p - 1))}
-                          className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-
-                        {Array.from({ length: totalPagesOrders }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPageOrders(page)}
-                            className={`admin-square-button rounded-lg text-xs font-bold transition px-2.5 py-1 ${
-                              currentPageOrders === page
-                                ? 'bg-slate-900 text-white'
-                                : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-
-                        <button
-                          disabled={currentPageOrders >= totalPagesOrders}
-                          onClick={() => setCurrentPageOrders((p) => Math.min(totalPagesOrders, p + 1))}
-                          className="admin-square-button p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+            <OrdersPage
+              orders={orders}
+              pageSize={pageSize}
+              orderStats={orderStats}
+              searchQueryOrders={searchQueryOrders}
+              setSearchQueryOrders={setSearchQueryOrders}
+              setCurrentPageOrders={setCurrentPageOrders}
+              selectedOrderZone={selectedOrderZone}
+              setSelectedOrderZone={setSelectedOrderZone}
+              selectedOrderStatus={selectedOrderStatus}
+              setSelectedOrderStatus={setSelectedOrderStatus}
+              isLoadingOrders={isLoadingOrders}
+              filteredAndSortedOrders={filteredAndSortedOrders}
+              paginatedOrders={paginatedOrders}
+              handleSortOrders={handleSortOrders}
+              openOrderAction={openOrderAction}
+              currentPageOrders={currentPageOrders}
+              totalPagesOrders={totalPagesOrders}
+            />
           )}
 
-          {activeNav === 'health' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { name: 'User Service (M2)', port: 8001, db: 'user_db (PostgreSQL)' },
-                { name: 'Supplier Service (M3)', port: 8002, db: 'supplier_db (PostgreSQL)' },
-                { name: 'Order Service (M4)', port: 8003, db: 'order_db (PostgreSQL)' },
-                { name: 'Credit Service (M5)', port: 8004, db: 'credit_db (PostgreSQL)' },
-                { name: 'Notification Service (M6)', port: 8005, db: 'RabbitMQ Message Broker' },
-              ].map((svc) => (
-                <div
-                  key={svc.name}
-                  className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"
-                >
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900">{svc.name}</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">Port: {svc.port} | Runtime: Node (tsx)</p>
-                    <p className="text-sm text-slate-400 font-mono mt-1">Storage: {svc.db}</p>
-                  </div>
-                  <span className="inline-flex items-center space-x-1 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold border border-emerald-200">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>ONLINE</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          {activeNav === 'health' && <HealthPage />}
 
-          {activeNav === 'audit' && (
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Audit Trail & Dispute Resolution</h3>
-                <p className="text-sm text-slate-500 mt-1">
-                  Immutable ledger of supplier modifications, administrative status toggles, and errand activity.
-                </p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-lg text-sm font-mono text-slate-600 space-y-2">
-                <div className="text-emerald-700 font-bold">
-                  [AUDIT LOG READY] All supplier status updates are persisted with timestamped audit records.
-                </div>
-                <div>• Storage: PostgreSQL table `suppliers` in database `supplier_db`</div>
-                <div>• RBAC Enforcement: Authenticated JWT with role checking (ADMIN only)</div>
-                <div>• Soft Delete Guarantee: Record retains historical references while isActive = false</div>
-              </div>
-            </div>
-          )}
+          {activeNav === 'audit' && <AuditPage />}
         </main>
       </div>
 
       {/* -------------------- MODALS -------------------- */}
+      <SupplierModals
+        isFilterModalOpen={isFilterModalOpen}
+        setIsFilterModalOpen={setIsFilterModalOpen}
+        draftSelectedZones={draftSelectedZones}
+        setDraftSelectedZones={setDraftSelectedZones}
+        draftSelectedCategories={draftSelectedCategories}
+        setDraftSelectedCategories={setDraftSelectedCategories}
+        toggleFilterChip={toggleFilterChip}
+        resetAdvancedFilters={resetAdvancedFilters}
+        selectedZones={selectedZones}
+        selectedCategories={selectedCategories}
+        setSelectedZones={setSelectedZones}
+        setSelectedCategories={setSelectedCategories}
+        setCurrentPage={setCurrentPage}
+        isAddOpen={isAddOpen}
+        setIsAddOpen={setIsAddOpen}
+        handleCreateSupplier={handleCreateSupplier}
+        setAddFormErrors={setAddFormErrors}
+        setAddDuplicateConflict={setAddDuplicateConflict}
+        addDuplicateConflict={addDuplicateConflict}
+        newSupplier={newSupplier}
+        setNewSupplier={setNewSupplier}
+        addFormErrors={addFormErrors}
+        isSubmitting={isSubmitting}
+        editingSupplier={editingSupplier}
+        setEditingSupplier={setEditingSupplier}
+        handleUpdateSupplier={handleUpdateSupplier}
+        setEditFormErrors={setEditFormErrors}
+        setEditDuplicateConflict={setEditDuplicateConflict}
+        editDuplicateConflict={editDuplicateConflict}
+        editFormData={editFormData}
+        setEditFormData={setEditFormData}
+        editFormErrors={editFormErrors}
+        deletingSupplier={deletingSupplier}
+        setDeletingSupplier={setDeletingSupplier}
+        isPermanentDelete={isPermanentDelete}
+        setIsPermanentDelete={setIsPermanentDelete}
+        handleDeleteSupplier={handleDeleteSupplier}
+        viewingSupplier={viewingSupplier}
+        setViewingSupplier={setViewingSupplier}
+      />
 
-      {/* Advanced Filter Modal */}
-      {isFilterModalOpen && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-base text-slate-900">Filter Campus Suppliers</h3>
-              <button
-                onClick={() => {
-                  setDraftSelectedCategories(selectedCategories);
-                  setDraftSelectedZones(selectedZones);
-                  setIsFilterModalOpen(false);
-                }}
-                className="admin-square-button text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <UserModals
+        isUserFilterModalOpen={isUserFilterModalOpen}
+        setIsUserFilterModalOpen={setIsUserFilterModalOpen}
+        draftSelectedUserRoles={draftSelectedUserRoles}
+        setDraftSelectedUserRoles={setDraftSelectedUserRoles}
+        toggleFilterChip={toggleFilterChip}
+        resetUserFilters={resetUserFilters}
+        selectedUserRoles={selectedUserRoles}
+        setSelectedUserRoles={setSelectedUserRoles}
+        setCurrentPageUsers={setCurrentPageUsers}
+        deletingUser={deletingUser}
+        setDeletingUser={setDeletingUser}
+        deleteUserConfirmed={deleteUserConfirmed}
+        setDeleteUserConfirmed={setDeleteUserConfirmed}
+        isDeletingUser={isDeletingUser}
+        deleteUserError={deleteUserError}
+        setDeleteUserError={setDeleteUserError}
+        handleDeleteUser={handleDeleteUser}
+        deletedUserSuccess={deletedUserSuccess}
+        setDeletedUserSuccess={setDeletedUserSuccess}
+        togglingRoleUser={togglingRoleUser}
+        setTogglingRoleUser={setTogglingRoleUser}
+        toggleRoleConfirmed={toggleRoleConfirmed}
+        setToggleRoleConfirmed={setToggleRoleConfirmed}
+        isTogglingRole={isTogglingRole}
+        toggleRoleError={toggleRoleError}
+        setToggleRoleError={setToggleRoleError}
+        handleToggleUserRole={handleToggleUserRole}
+      />
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Category / Type</label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => {
-                  const active = draftSelectedCategories.includes(cat);
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => toggleFilterChip(draftSelectedCategories, cat, setDraftSelectedCategories)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
-                        active
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Campus Zone</label>
-              <div className="flex flex-wrap gap-2">
-                {CAMPUS_ZONES.map((zone) => {
-                  const active = draftSelectedZones.includes(zone);
-                  return (
-                    <button
-                      key={zone}
-                      type="button"
-                      onClick={() => toggleFilterChip(draftSelectedZones, zone, setDraftSelectedZones)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
-                        active
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {zone}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={resetAdvancedFilters}
-                className="text-sm font-bold text-slate-600 hover:text-slate-900"
-              >
-                Reset All Filters
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategories(draftSelectedCategories);
-                  setSelectedZones(draftSelectedZones);
-                  setIsFilterModalOpen(false);
-                  setCurrentPage(1);
-                }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Users Filter Modal */}
-      {isUserFilterModalOpen && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-base text-slate-900">Filter Users</h3>
-              <button
-                onClick={() => {
-                  setDraftSelectedUserRoles(selectedUserRoles);
-                  setIsUserFilterModalOpen(false);
-                }}
-                className="admin-square-button text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Role</label>
-              <div className="flex flex-wrap gap-2">
-                {USER_ROLES.map((role) => {
-                  const active = draftSelectedUserRoles.includes(role);
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => toggleFilterChip(draftSelectedUserRoles, role, setDraftSelectedUserRoles)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition border ${
-                        active
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      {role}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={resetUserFilters}
-                className="text-sm font-bold text-slate-600 hover:text-slate-900"
-              >
-                Reset All Filters
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedUserRoles(draftSelectedUserRoles);
-                  setIsUserFilterModalOpen(false);
-                  setCurrentPageUsers(1);
-                }}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Supplier Modal */}
-      {isAddOpen && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <form
-            onSubmit={handleCreateSupplier}
-            className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-base text-slate-900">Add New Campus Supplier</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setAddFormErrors({});
-                  setAddDuplicateConflict(null);
-                  setIsAddOpen(false);
-                }}
-                className="admin-square-button text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
-            </p>
-            <p className="text-xs text-slate-400">
-              Admins are not allowed to create duplicate suppliers of the same category and location.
-            </p>
-
-            {addDuplicateConflict && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-1">
-                <p className="font-bold">Duplicate supplier found</p>
-                <p>An existing supplier already occupies this exact spot:</p>
-                <ul className="list-disc list-inside">
-                  <li>Name: {addDuplicateConflict.name}</li>
-                  <li>Category: {addDuplicateConflict.category}</li>
-                  <li>Building: {addDuplicateConflict.building}</li>
-                  <li>Floor: {addDuplicateConflict.floor}</li>
-                </ul>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">
-                Store / Spot Name <span className="text-rose-600">*</span>
-              </label>
-              {addFormErrors.name && <p className="text-xs text-rose-600 mb-1">{addFormErrors.name}</p>}
-              <input
-                type="text"
-                placeholder="e.g. LiHO Tea @ UTown"
-                value={newSupplier.name}
-                onChange={(e) => {
-                  setNewSupplier({ ...newSupplier, name: e.target.value });
-                  if (addFormErrors.name) setAddFormErrors({ ...addFormErrors, name: '' });
-                }}
-                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                  addFormErrors.name ? 'border-rose-400' : 'border-slate-300'
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Campus Zone <span className="text-rose-600">*</span>
-                </label>
-                {addFormErrors.campusZone && (
-                  <p className="text-xs text-rose-600 mb-1">{addFormErrors.campusZone}</p>
-                )}
-                <select
-                  value={newSupplier.campusZone}
-                  onChange={(e) => {
-                    setNewSupplier({ ...newSupplier, campusZone: e.target.value });
-                    if (addFormErrors.campusZone) setAddFormErrors({ ...addFormErrors, campusZone: '' });
-                  }}
-                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                    addFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
-                  }`}
-                >
-                  {CAMPUS_ZONES.map((z) => (
-                    <option key={z} value={z}>{z}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Category <span className="text-rose-600">*</span>
-                </label>
-                {addFormErrors.category && <p className="text-xs text-rose-600 mb-1">{addFormErrors.category}</p>}
-                <select
-                  value={newSupplier.category}
-                  onChange={(e) => {
-                    setNewSupplier({ ...newSupplier, category: e.target.value as SupplierCategory });
-                    if (addFormErrors.category) setAddFormErrors({ ...addFormErrors, category: '' });
-                  }}
-                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                    addFormErrors.category ? 'border-rose-400' : 'border-slate-300'
-                  }`}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">
-                Exact Pickup Spot Description <span className="text-rose-600">*</span>
-              </label>
-              {addFormErrors.exactLocation && (
-                <p className="text-xs text-rose-600 mb-1">{addFormErrors.exactLocation}</p>
-              )}
-              <input
-                type="text"
-                placeholder="e.g. Stephen Riady Centre Level 1 next to FairPrice"
-                value={newSupplier.exactLocation}
-                onChange={(e) => {
-                  setNewSupplier({ ...newSupplier, exactLocation: e.target.value });
-                  if (addFormErrors.exactLocation) setAddFormErrors({ ...addFormErrors, exactLocation: '' });
-                }}
-                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                  addFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Building <span className="text-rose-600">*</span>
-                </label>
-                {addFormErrors.building && <p className="text-xs text-rose-600 mb-1">{addFormErrors.building}</p>}
-                <input
-                  type="text"
-                  placeholder="e.g. COM3"
-                  value={newSupplier.building || ''}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, building: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Floor <span className="text-rose-600">*</span>
-                </label>
-                {addFormErrors.floor && <p className="text-xs text-rose-600 mb-1">{addFormErrors.floor}</p>}
-                <input
-                  type="text"
-                  placeholder="e.g. 1"
-                  value={newSupplier.floor || ''}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, floor: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Opening Time</label>
-                <input
-                  type="text"
-                  placeholder="0800hrs"
-                  value={newSupplier.startingTime || ''}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, startingTime: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Closing Time</label>
-                <input
-                  type="text"
-                  placeholder="2000hrs"
-                  value={newSupplier.closingTime || ''}
-                  onChange={(e) => setNewSupplier({ ...newSupplier, closingTime: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
-              <textarea
-                rows={4}
-                placeholder="e.g. Specialty coffee, pastries, and sandwiches"
-                value={newSupplier.description || ''}
-                onChange={(e) => setNewSupplier({ ...newSupplier, description: e.target.value })}
-                className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setAddFormErrors({});
-                  setAddDuplicateConflict(null);
-                  setIsAddOpen(false);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                {isSubmitting ? 'Saving...' : 'Save Location'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Edit Supplier Modal */}
-      {editingSupplier && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <form
-            onSubmit={handleUpdateSupplier}
-            className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Edit Campus Location</h3>
-                <span className="text-xs font-mono font-bold text-slate-400">
-                  Code: {editingSupplier.supplierCode}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditFormErrors({});
-                  setEditDuplicateConflict(null);
-                  setEditingSupplier(null);
-                }}
-                className="admin-square-button text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Fields marked with <span className="text-rose-600 font-bold">*</span> are required.
-            </p>
-            <p className="text-xs text-slate-400">
-              Admins are not allowed to create duplicate suppliers of the same category and location.
-            </p>
-
-            {editDuplicateConflict && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-1">
-                <p className="font-bold">Duplicate supplier found</p>
-                <p>An existing supplier already occupies this exact spot:</p>
-                <ul className="list-disc list-inside">
-                  <li>Name: {editDuplicateConflict.name}</li>
-                  <li>Category: {editDuplicateConflict.category}</li>
-                  <li>Building: {editDuplicateConflict.building}</li>
-                  <li>Floor: {editDuplicateConflict.floor}</li>
-                </ul>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">
-                Store / Spot Name <span className="text-rose-600">*</span>
-              </label>
-              {editFormErrors.name && <p className="text-xs text-rose-600 mb-1">{editFormErrors.name}</p>}
-              <input
-                type="text"
-                value={editFormData.name || ''}
-                onChange={(e) => {
-                  setEditFormData({ ...editFormData, name: e.target.value });
-                  if (editFormErrors.name) setEditFormErrors({ ...editFormErrors, name: '' });
-                }}
-                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                  editFormErrors.name ? 'border-rose-400' : 'border-slate-300'
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Campus Zone <span className="text-rose-600">*</span>
-                </label>
-                {editFormErrors.campusZone && (
-                  <p className="text-xs text-rose-600 mb-1">{editFormErrors.campusZone}</p>
-                )}
-                <select
-                  value={editFormData.campusZone}
-                  onChange={(e) => {
-                    setEditFormData({ ...editFormData, campusZone: e.target.value });
-                    if (editFormErrors.campusZone) setEditFormErrors({ ...editFormErrors, campusZone: '' });
-                  }}
-                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                    editFormErrors.campusZone ? 'border-rose-400' : 'border-slate-300'
-                  }`}
-                >
-                  {CAMPUS_ZONES.map((z) => (
-                    <option key={z} value={z}>{z}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Category <span className="text-rose-600">*</span>
-                </label>
-                {editFormErrors.category && (
-                  <p className="text-xs text-rose-600 mb-1">{editFormErrors.category}</p>
-                )}
-                <select
-                  value={editFormData.category}
-                  onChange={(e) => {
-                    setEditFormData({ ...editFormData, category: e.target.value as SupplierCategory });
-                    if (editFormErrors.category) setEditFormErrors({ ...editFormErrors, category: '' });
-                  }}
-                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                    editFormErrors.category ? 'border-rose-400' : 'border-slate-300'
-                  }`}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">
-                Exact Pickup Spot Description <span className="text-rose-600">*</span>
-              </label>
-              {editFormErrors.exactLocation && (
-                <p className="text-xs text-rose-600 mb-1">{editFormErrors.exactLocation}</p>
-              )}
-              <input
-                type="text"
-                value={editFormData.exactLocation || ''}
-                onChange={(e) => {
-                  setEditFormData({ ...editFormData, exactLocation: e.target.value });
-                  if (editFormErrors.exactLocation) setEditFormErrors({ ...editFormErrors, exactLocation: '' });
-                }}
-                className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
-                  editFormErrors.exactLocation ? 'border-rose-400' : 'border-slate-300'
-                }`}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Building <span className="text-rose-600">*</span>
-                </label>
-                {editFormErrors.building && <p className="text-xs text-rose-600 mb-1">{editFormErrors.building}</p>}
-                <input
-                  type="text"
-                  value={editFormData.building || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, building: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Floor <span className="text-rose-600">*</span>
-                </label>
-                {editFormErrors.floor && <p className="text-xs text-rose-600 mb-1">{editFormErrors.floor}</p>}
-                <input
-                  type="text"
-                  value={editFormData.floor || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Opening Time</label>
-                <input
-                  type="text"
-                  value={editFormData.startingTime || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, startingTime: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Closing Time</label>
-                <input
-                  type="text"
-                  value={editFormData.closingTime || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, closingTime: e.target.value })}
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Description</label>
-              <textarea
-                rows={4}
-                value={editFormData.description || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                className="w-full text-sm p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditFormErrors({});
-                  setEditDuplicateConflict(null);
-                  setEditingSupplier(null);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                {isSubmitting ? 'Updating...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Delete Supplier Confirmation Modal */}
-      {deletingSupplier && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-rose-600">
-              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Delete Campus Supplier</h3>
-                <p className="text-sm text-slate-500">Confirm removal of supplier location</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-sm space-y-1">
-              <div className="font-bold text-slate-900">{deletingSupplier.name}</div>
-              <div className="text-slate-500">{deletingSupplier.exactLocation} ({deletingSupplier.campusZone})</div>
-              <div className="font-mono text-xs text-slate-400">Code: {deletingSupplier.supplierCode}</div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isPermanentDelete}
-                  onChange={(e) => setIsPermanentDelete(e.target.checked)}
-                  className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
-                />
-                <div>
-                  <span className="font-bold text-slate-900">Permanent Hard Delete</span>
-                  <p className="text-xs text-slate-500">
-                    Default is a soft-delete (marked inactive) to preserve student errand history. Checking this completely purges the record from the database.
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setDeletingSupplier(null);
-                  setIsPermanentDelete(false);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                onClick={handleDeleteSupplier}
-                className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                {isSubmitting ? 'Deleting...' : isPermanentDelete ? 'Permanently Delete' : 'Deactivate Supplier'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete User Confirmation Modal */}
-      {deletingUser && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-rose-600">
-              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Delete User Account</h3>
-                <p className="text-sm text-slate-500">This action is permanent and cannot be undone</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-sm space-y-1">
-              <div className="font-bold text-slate-900">{deletingUser.username}</div>
-              <div className="text-slate-500">{deletingUser.email}</div>
-            </div>
-
-            {deleteUserError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">
-                {deleteUserError}
-              </div>
-            )}
-
-            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={deleteUserConfirmed}
-                onChange={(e) => setDeleteUserConfirmed(e.target.checked)}
-                disabled={isDeletingUser}
-                className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
-              />
-              <span>I understand this action is irreversible and this account will be permanently deleted.</span>
-            </label>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isDeletingUser}
-                onClick={() => {
-                  setDeletingUser(null);
-                  setDeleteUserConfirmed(false);
-                  setDeleteUserError(null);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!deleteUserConfirmed || isDeletingUser}
-                onClick={handleDeleteUser}
-                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                {isDeletingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>{isDeletingUser ? 'Deleting…' : 'Delete Account'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete User Success Modal */}
-      {deletedUserSuccess && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
-              <p className="text-sm text-slate-500 mt-1">"{deletedUserSuccess}"'s account has been permanently deleted.</p>
-            </div>
-            <button
-              onClick={() => setDeletedUserSuccess(null)}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Upgrade/Downgrade User Role Confirmation Modal */}
-      {togglingRoleUser && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div
-              className={`flex items-center space-x-3 ${
-                togglingRoleUser.userRole === 'ADMIN' ? 'text-rose-600' : 'text-emerald-600'
-              }`}
-            >
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                  togglingRoleUser.userRole === 'ADMIN' ? 'bg-rose-50' : 'bg-emerald-50'
-                }`}
-              >
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-slate-900">
-                  {togglingRoleUser.userRole === 'ADMIN' ? 'Downgrade to Student' : 'Upgrade to Admin'}
-                </h3>
-                <p className="text-sm text-slate-500">
-                  {togglingRoleUser.userRole === 'ADMIN'
-                    ? 'This account will lose Administrator access.'
-                    : 'This account will gain full Administrator access.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-sm space-y-1">
-              <div className="font-bold text-slate-900">{togglingRoleUser.username}</div>
-              <div className="text-slate-500">{togglingRoleUser.email}</div>
-            </div>
-
-            {toggleRoleError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">
-                {toggleRoleError}
-              </div>
-            )}
-
-            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={toggleRoleConfirmed}
-                onChange={(e) => setToggleRoleConfirmed(e.target.checked)}
-                disabled={isTogglingRole}
-                className={`rounded mt-0.5 ${
-                  togglingRoleUser.userRole === 'ADMIN'
-                    ? 'text-rose-600 focus:ring-rose-500'
-                    : 'text-emerald-600 focus:ring-emerald-500'
-                }`}
-              />
-              <span>
-                Yes, I am sure I want to{' '}
-                {togglingRoleUser.userRole === 'ADMIN'
-                  ? 'downgrade this admin to a student'
-                  : 'upgrade this student to an admin'}
-                .
-              </span>
-            </label>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isTogglingRole}
-                onClick={() => {
-                  setTogglingRoleUser(null);
-                  setToggleRoleConfirmed(false);
-                  setToggleRoleError(null);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!toggleRoleConfirmed || isTogglingRole}
-                onClick={handleToggleUserRole}
-                className={`flex items-center justify-center space-x-2 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow ${
-                  togglingRoleUser.userRole === 'ADMIN'
-                    ? 'bg-rose-600 hover:bg-rose-700'
-                    : 'bg-emerald-600 hover:bg-emerald-700'
-                }`}
-              >
-                {isTogglingRole && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>
-                  {isTogglingRole
-                    ? togglingRoleUser.userRole === 'ADMIN'
-                      ? 'Downgrading…'
-                      : 'Upgrading…'
-                    : togglingRoleUser.userRole === 'ADMIN'
-                      ? 'Downgrade'
-                      : 'Upgrade'}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Supplier Details Inspection Modal */}
-      {viewingSupplier && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <span className="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                  {viewingSupplier.supplierCode}
-                </span>
-                <h3 className="font-bold text-lg text-slate-900 mt-1">{viewingSupplier.name}</h3>
-              </div>
-              <button
-                onClick={() => setViewingSupplier(null)}
-                className="admin-square-button text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-xs uppercase">Campus Zone</span>
-                <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewingSupplier.campusZone}</span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-xs uppercase">Category</span>
-                <span className="font-bold text-slate-800 text-sm mt-0.5 block">{viewingSupplier.category}</span>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-2 text-sm">
-              <div>
-                <span className="text-slate-400 font-semibold block text-xs uppercase">Exact Pickup Spot</span>
-                <span className="font-semibold text-slate-800">{viewingSupplier.exactLocation}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-1">
-                <div>
-                  <span className="text-slate-400">Building:</span>{' '}
-                  <span className="font-medium">{viewingSupplier.building || 'Not specified'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400">Floor / Level:</span>{' '}
-                  <span className="font-medium">{viewingSupplier.floor || 'Not specified'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-xs uppercase">Operating Hours</span>
-                <span className="font-mono font-semibold text-slate-700 mt-0.5 block">
-                  {viewingSupplier.startingTime && viewingSupplier.closingTime
-                    ? `${viewingSupplier.startingTime} - ${viewingSupplier.closingTime}`
-                    : '24 / 7 or Unspecified'}
-                </span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 font-semibold block text-xs uppercase">Availability Status</span>
-                <span className="mt-0.5 block">
-                  {viewingSupplier.isActive ? (
-                    <span className="text-emerald-600 font-bold inline-flex items-center space-x-1">
-                      <CheckCircle className="w-3.5 h-3.5" />
-                      <span>Active</span>
-                    </span>
-                  ) : (
-                    <span className="text-rose-600 font-bold inline-flex items-center space-x-1">
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Unavailable</span>
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            {viewingSupplier.description && (
-              <div className="text-sm">
-                <span className="text-slate-400 font-semibold block text-xs uppercase mb-1">Description</span>
-                <p className="text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 italic">
-                  {viewingSupplier.description}
-                </p>
-              </div>
-            )}
-
-            <div className="pt-2 text-xs text-slate-400 flex justify-between items-center font-mono">
-              <span>ID: {viewingSupplier.id}</span>
-              <span>Added: {new Date(viewingSupplier.createdAt).toLocaleDateString()}</span>
-            </div>
-
-            <div className="flex justify-end pt-3 border-t border-slate-100">
-              <button
-                onClick={() => setViewingSupplier(null)}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-4 py-2 rounded-lg"
-              >
-                Close Details
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Admin Order Action Modal */}
-      {targetOrderForAction && orderActionType && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center space-x-2">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                    orderActionType === 'cancel'
-                      ? 'bg-rose-100 text-rose-600'
-                      : orderActionType === 'complete'
-                      ? 'bg-emerald-100 text-emerald-600'
-                      : 'bg-amber-100 text-amber-600'
-                  }`}
-                >
-                  {orderActionType === 'cancel' ? (
-                    <AlertTriangle className="w-5 h-5" />
-                  ) : orderActionType === 'complete' ? (
-                    <CheckSquare className="w-5 h-5" />
-                  ) : (
-                    <UserX className="w-5 h-5" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900">
-                    {orderActionType === 'cancel'
-                      ? 'Admin Force Cancel Errand'
-                      : orderActionType === 'complete'
-                      ? 'Admin Force Complete Errand'
-                      : 'Admin Unassign Courier'}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Order: <span className="font-mono font-bold text-slate-700">{targetOrderForAction.orderCode}</span> (v{targetOrderForAction.version})
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={closeOrderActionModal}
-                disabled={isSubmittingOrderAction}
-                className="admin-square-button text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Invariant Explanation Banner */}
-            <div
-              className={`p-3.5 rounded-xl text-xs space-y-1.5 border ${
-                orderActionType === 'cancel'
-                  ? 'bg-rose-50 border-rose-200 text-rose-800'
-                  : orderActionType === 'complete'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  : 'bg-amber-50 border-amber-200 text-amber-800'
-              }`}
-            >
-              <p className="font-bold">
-                {orderActionType === 'cancel'
-                  ? '⚠️ Escrow Refund Guarantee'
-                  : orderActionType === 'complete'
-                  ? '💰 Escrow Payout Transfer'
-                  : '🔄 Courier State Reset'}
-              </p>
-              <p>
-                {orderActionType === 'cancel'
-                  ? `Cancelling will set status to CANCELLED and immediately publish an order.cancelled event to refund ${targetOrderForAction.rewardCredits} held credits back to the requester.`
-                  : orderActionType === 'complete'
-                  ? `Force-completing sets status to COMPLETED and publishes an order.completed event to release ${targetOrderForAction.rewardCredits} credits to courier ${targetOrderForAction.courierId ? targetOrderForAction.courierId.slice(0, 8) + '...' : 'assigned courier'}.`
-                  : `Unassigning will revert status to OPEN and clear the courier assignment, allowing another student to accept the errand. Requester escrow remains safely held.`}
-              </p>
-            </div>
-
-            {/* Concurrency Guard Notice */}
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
-              <span>Optimistic Concurrency Lock:</span>
-              <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
-                Expected Version {targetOrderForAction.version}
-              </span>
-            </div>
-
-            {/* Conflict / Error Banner */}
-            {orderActionError && (
-              <div
-                className={`p-3 rounded-xl text-sm border space-y-2 ${
-                  isConflictError
-                    ? 'bg-amber-50 border-amber-200 text-amber-800'
-                    : 'bg-rose-50 border-rose-200 text-rose-700'
-                }`}
-              >
-                <div className="flex items-start space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-bold">{isConflictError ? 'Version Conflict (HTTP 409)' : 'Action Error'}</p>
-                    <p className="text-xs mt-0.5">{orderActionError}</p>
-                  </div>
-                </div>
-                {isConflictError && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      fetchOrders();
-                      closeOrderActionModal();
-                    }}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-1.5 rounded-lg transition"
-                  >
-                    Refresh Order List & Close
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Mandatory Reason Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1">
-                Administrative Audit Reason <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                required
-                rows={3}
-                maxLength={500}
-                value={orderActionReason}
-                onChange={(e) => setOrderActionReason(e.target.value)}
-                placeholder="Explain why admin intervention is required (e.g. Courier emergency uncontactable, Student dispute resolved, Errand duplicate)..."
-                disabled={isSubmittingOrderAction}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1">
-                <span>Reason will be immutably recorded in the order audit notes.</span>
-                <span>{orderActionReason.length}/500</span>
-              </div>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isSubmittingOrderAction}
-                onClick={closeOrderActionModal}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isSubmittingOrderAction || !orderActionReason.trim()}
-                onClick={handleExecuteOrderAction}
-                className={`flex items-center justify-center space-x-2 font-bold text-sm px-4 py-2 rounded-lg shadow transition disabled:opacity-50 text-white ${
-                  orderActionType === 'cancel'
-                    ? 'bg-rose-600 hover:bg-rose-700'
-                    : orderActionType === 'complete'
-                    ? 'bg-emerald-600 hover:bg-emerald-700'
-                    : 'bg-amber-600 hover:bg-amber-700'
-                }`}
-              >
-                {isSubmittingOrderAction && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>
-                  {isSubmittingOrderAction
-                    ? 'Executing…'
-                    : orderActionType === 'cancel'
-                    ? 'Confirm Cancellation'
-                    : orderActionType === 'complete'
-                    ? 'Force Complete & Pay Escrow'
-                    : 'Unassign Courier'}
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <OrderActionModal
+        targetOrderForAction={targetOrderForAction}
+        orderActionType={orderActionType}
+        closeOrderActionModal={closeOrderActionModal}
+        isConflictError={isConflictError}
+        orderActionError={orderActionError}
+        fetchOrders={fetchOrders}
+        orderActionReason={orderActionReason}
+        setOrderActionReason={setOrderActionReason}
+        isSubmittingOrderAction={isSubmittingOrderAction}
+        handleExecuteOrderAction={handleExecuteOrderAction}
+      />
     </div>
   );
 }

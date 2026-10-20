@@ -40,12 +40,18 @@ function transactionDTO(transaction: CreditTransaction): CreditTransactionDTO {
 
 function queries(db: Prisma.TransactionClient) {
   return {
-    // AI-generated (edited by huangjiaxi1111)
+    // AI-generated (edited by yanhwee)
     savepoint: () => db.$executeRawUnsafe('SAVEPOINT reservation_attempt'),
     rollbackAttempt: () => db.$executeRawUnsafe('ROLLBACK TO SAVEPOINT reservation_attempt'),
     releaseSavepoint: () => db.$executeRawUnsafe('RELEASE SAVEPOINT reservation_attempt'),
-    addOutbox: (event: { eventId: string; eventType: string }) => db.creditOutboxEvent.create({
-      data: { id: event.eventId, eventType: event.eventType, payload: JSON.stringify(event) },
+    addOutbox: (event: { eventId: string; eventType: string; orderId: string }) => db.creditOutboxEvent.create({
+      data: {
+        id: event.eventId,
+        aggregateType: 'credit',
+        aggregateId: event.orderId,
+        eventType: event.eventType,
+        payload: JSON.stringify(event),
+      },
     }),
     findGrant: (userId: string) => db.creditGrant.findUnique({ where: { userId } }),
     createGrant: (userId: string, amount: number) => db.creditGrant.create({ data: { userId, amount } }),

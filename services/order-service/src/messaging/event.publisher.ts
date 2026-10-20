@@ -98,9 +98,7 @@ async function handlePublishEvent(
     throw new Error('Publisher channel unavailable');
   }
 
-  // Keep submitted item/contact details local to the Order outbox.
-  const { submission: _submission, reason: _reason, ...message } = event as OrderLifecycleEvent & { submission?: unknown; reason?: unknown };
-  const content = Buffer.from(JSON.stringify(message), 'utf8');
+  const content = Buffer.from(JSON.stringify(event), 'utf8');
   await publishFn(exchange, event.eventType, content, {
     contentType: 'application/json',
     messageId: event.eventId,

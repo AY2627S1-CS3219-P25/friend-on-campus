@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-19
+ * Scope: Implemented Saga Approach B2 state transitions (PENDING -> OPEN / REJECTED / EXPIRED) directly in OrderRepository with Debezium CDC outbox metadata.
+ * Author review: Reviewed and verified by yanhwee.
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Remove obsolete synchronous reservation compensation bookkeeping.
  * Author review: <to be completed by huangjiaxi1111>
@@ -13,7 +17,7 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import type { OrderDTO } from '@campus-errand/common-dtos';
+import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { PrismaClient } from '../database/client';
 import type { OrderLifecycleEvent } from '../messaging/event.publisher';
@@ -21,6 +25,7 @@ import {
   OrderAuthorizationError,
   OrderNotFoundError,
   OrderStateConflictError,
+  OrderValidationError,
   SelfAcceptForbiddenError,
   toOrderDTO,
 } from '../orders/order.types';
@@ -46,10 +51,13 @@ export interface ListOrdersOptions {
   search?: string;
   page?: number;
   limit?: number;
+  viewerId?: string;
+  isAdmin?: boolean;
 }
 
 export interface OrderRepository {
   createOrderWithOutbox(data: CreateOrderParams, event: OrderLifecycleEvent): Promise<OrderDTO>;
+  applyReservationResult(event: CreditReservationResultEvent): Promise<{ order: OrderDTO; outboxEvent?: OrderLifecycleEvent }>;
   findOrderById(id: string): Promise<OrderDTO | null>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
@@ -73,6 +81,7 @@ async function handleCreateOrderWithOutbox(
   data: CreateOrderParams,
   event: OrderLifecycleEvent
 ): Promise<OrderDTO> {
+  const initialStatus = event.eventType === 'order.reservation.requested' ? 'PENDING' : 'OPEN';
   const created = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
@@ -87,7 +96,7 @@ async function handleCreateOrderWithOutbox(
         dropoffLocation: data.dropoffLocation,
         requesterContactNote: data.requesterContactNote,
         rewardCredits: data.rewardCredits,
-        status: 'OPEN',
+        status: initialStatus,
         expiresAt: data.expiresAt,
         version: 1,
       },
@@ -95,6 +104,9 @@ async function handleCreateOrderWithOutbox(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: order.id,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -105,6 +117,107 @@ async function handleCreateOrderWithOutbox(
   });
 
   return toOrderDTO(created);
+}
+
+async function handleApplyReservationResult(
+  prisma: PrismaClient,
+  event: CreditReservationResultEvent
+): Promise<{ order: OrderDTO; outboxEvent?: OrderLifecycleEvent }> {
+  return await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${event.orderId}::uuid FOR UPDATE`;
+    const order = await tx.order.findUnique({ where: { id: event.orderId } });
+    if (!order) {
+      throw new OrderValidationError('Unknown reservation order');
+    }
+
+    if (order.requesterId !== event.requesterId || order.rewardCredits !== event.rewardCredits) {
+      throw new OrderValidationError('Reservation result does not match order');
+    }
+
+    // Idempotent no-op for duplicate/replayed reservation results
+    if (order.status !== 'PENDING') {
+      return { order: toOrderDTO(order) };
+    }
+
+    if (event.eventType === 'credit.reservation.failed') {
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: event.reason ?? 'Credit reservation failed',
+          version: { increment: 1 },
+        },
+      });
+      return { order: toOrderDTO(updated) };
+    }
+
+    // credit.reservation.succeeded
+    if (order.expiresAt.getTime() <= Date.now()) {
+      const expiredEvent: OrderLifecycleEvent = {
+        eventId: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        eventType: 'order.expired',
+        orderId: order.id,
+        orderCode: order.orderCode,
+        requesterId: order.requesterId,
+        rewardCredits: order.rewardCredits,
+      };
+
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'EXPIRED',
+          version: { increment: 1 },
+        },
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          id: expiredEvent.eventId,
+          aggregateType: 'order',
+          aggregateId: order.id,
+          eventType: expiredEvent.eventType,
+          payload: JSON.stringify(expiredEvent),
+          status: 'PENDING',
+        },
+      });
+
+      return { order: toOrderDTO(updated), outboxEvent: expiredEvent };
+    }
+
+    const createdEvent: OrderLifecycleEvent = {
+      eventId: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      eventType: 'order.created',
+      orderId: order.id,
+      orderCode: order.orderCode,
+      requesterId: order.requesterId,
+      rewardCredits: order.rewardCredits,
+      campusZone: order.campusZone ?? 'Campus',
+      expiresAt: order.expiresAt.toISOString(),
+    };
+
+    const updated = await tx.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'OPEN',
+        version: { increment: 1 },
+      },
+    });
+
+    await tx.outboxEvent.create({
+      data: {
+        id: createdEvent.eventId,
+        aggregateType: 'order',
+        aggregateId: order.id,
+        eventType: createdEvent.eventType,
+        payload: JSON.stringify(createdEvent),
+        status: 'PENDING',
+      },
+    });
+
+    return { order: toOrderDTO(updated), outboxEvent: createdEvent };
+  });
 }
 
 async function handleFindOrderById(
@@ -124,16 +237,29 @@ async function handleListOrders(
   prisma: PrismaClient,
   options: ListOrdersOptions
 ): Promise<{ orders: OrderDTO[]; total: number }> {
-  const { status, campusZone, search, page = 1, limit = 50 } = options;
+  const { status, campusZone, search, page = 1, limit = 50, viewerId, isAdmin } = options;
   const skip = Math.max(0, (page - 1) * limit);
 
   const where: Record<string, any> = {};
+  const normalizedStatus = status ? status.toUpperCase() : 'OPEN';
 
-  if (!status || status.toUpperCase() === 'OPEN') {
+  if (normalizedStatus === 'OPEN') {
     where.status = 'OPEN';
     where.expiresAt = { gt: new Date() };
-  } else if (status.toUpperCase() !== 'ALL') {
-    where.status = status.toUpperCase();
+  } else if (normalizedStatus !== 'ALL') {
+    where.status = normalizedStatus;
+    if (!isAdmin && viewerId && (normalizedStatus === 'PENDING' || normalizedStatus === 'REJECTED')) {
+      where.requesterId = viewerId;
+    }
+  } else if (!isAdmin && viewerId) {
+    where.AND = [
+      {
+        OR: [
+          { status: { notIn: ['PENDING', 'REJECTED'] } },
+          { requesterId: viewerId },
+        ],
+      },
+    ];
   }
 
   if (campusZone && campusZone.trim() !== '') {
@@ -190,7 +316,7 @@ async function handleGetUserActivity(
     const isExpired = order.status === 'OPEN' && order.expiresAt <= now;
 
     if (order.requesterId === userId) {
-      if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status) || isExpired) {
+      if (['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status) || isExpired) {
         history.push(dto);
       } else {
         requested.push(dto);
@@ -259,6 +385,9 @@ async function handleAcceptOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -310,6 +439,9 @@ async function handlePickupOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -361,6 +493,9 @@ async function handleDeliverOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -412,6 +547,9 @@ async function handleCompleteOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -439,11 +577,15 @@ async function handleCancelOrder(
       throw new OrderAuthorizationError('Only the requester can cancel this errand');
     }
 
+    if (order.status === 'PENDING') {
+      throw new OrderStateConflictError('Cannot cancel an errand while credit reservation is still pending');
+    }
+
     if (['IN_TRANSIT', 'DELIVERED', 'COMPLETED'].includes(order.status)) {
       throw new OrderStateConflictError('Cannot cancel an errand that has already been picked up or completed');
     }
 
-    if (['CANCELLED', 'EXPIRED'].includes(order.status)) {
+    if (['CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status)) {
       throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
     }
 
@@ -467,6 +609,9 @@ async function handleCancelOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -518,6 +663,9 @@ async function handleExpireDueOrders(
 
           await tx.outboxEvent.create({
             data: {
+              id: event.eventId,
+              aggregateType: 'order',
+              aggregateId: candidate.id,
               eventType: event.eventType,
               payload: JSON.stringify(event),
               status: 'PENDING',
@@ -548,7 +696,11 @@ async function handleAdminCancelOrder(
       throw new OrderNotFoundError();
     }
 
-    if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status)) {
+    if (order.status === 'PENDING') {
+      throw new OrderStateConflictError('Cannot cancel an errand while credit reservation is still pending');
+    }
+
+    if (['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status)) {
       throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
     }
 
@@ -580,6 +732,9 @@ async function handleAdminCancelOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -640,6 +795,9 @@ async function handleAdminCompleteOrder(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -711,6 +869,7 @@ async function handleAdminUnassignOrder(
 export function createOrderRepository(prisma: PrismaClient): OrderRepository {
   return {
     createOrderWithOutbox: (data, event) => handleCreateOrderWithOutbox(prisma, data, event),
+    applyReservationResult: (event) => handleApplyReservationResult(prisma, event),
     findOrderById: (id) => handleFindOrderById(prisma, id),
     listOrders: (options) => handleListOrders(prisma, options),
     getUserActivity: (userId) => handleGetUserActivity(prisma, userId),

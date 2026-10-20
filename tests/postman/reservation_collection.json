@@ -641,7 +641,7 @@
               "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
               "const d=pm.response.json().data;",
               "pm.test('Pending receipt',()=>pm.expect(d.status).to.eql('PENDING'));",
-              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/submissions/'+d.id));",
+              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/'+d.id));",
               "pm.collectionVariables.set('successId',d.id);"
             ]
           }
@@ -658,7 +658,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{successId}}"
+        "url": "{{baseUrl}}/api/orders/{{successId}}"
       },
       "event": [
         {
@@ -673,8 +673,8 @@
               " pm.collectionVariables.set('poll_'+pm.info.requestName,attempts); pm.execution.setNextRequest(pm.info.requestName);",
               "} else {",
               " pm.collectionVariables.unset('poll_'+pm.info.requestName);",
-              " pm.test('Submission OPEN',()=>pm.expect(d.status).to.eql('OPEN'));",
-              " pm.test(\"Confirmed order\",()=>{pm.expect(d.order.id).to.eql(d.id);pm.expect(d.order.status).to.eql(\"OPEN\");});",
+              " pm.test('Order OPEN',()=>pm.expect(d.status).to.eql('OPEN'));",
+              " pm.test(\"Confirmed order\",()=>{pm.expect(d.id).to.eql(pm.collectionVariables.get('successId'));pm.expect(d.orderCode).to.be.a('string');});",
               "}"
             ]
           }
@@ -760,11 +760,11 @@
       ]
     },
     {
-      "name": "22 Submission requires authentication",
+      "name": "22 Order polling requires authentication",
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/api/orders/submissions/{{successId}}"
+        "url": "{{baseUrl}}/api/orders/{{successId}}"
       },
       "event": [
         {
@@ -779,16 +779,24 @@
       ]
     },
     {
-      "name": "23 Different user cannot poll submission",
+      "name": "23 Different user cannot cancel requester order",
       "request": {
-        "method": "GET",
+        "method": "POST",
         "header": [
           {
             "key": "Authorization",
             "value": "Bearer {{otherToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{successId}}"
+        "url": "{{baseUrl}}/api/orders/{{successId}}/cancel",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
       },
       "event": [
         {
@@ -803,7 +811,7 @@
       ]
     },
     {
-      "name": "24 Unknown submission",
+      "name": "24 Unknown order",
       "request": {
         "method": "GET",
         "header": [
@@ -812,7 +820,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/00000000-0000-4000-8000-000000000099"
+        "url": "{{baseUrl}}/api/orders/00000000-0000-4000-8000-000000000099"
       },
       "event": [
         {
@@ -827,7 +835,7 @@
       ]
     },
     {
-      "name": "25 Malformed submission ID",
+      "name": "25 Unknown non-UUID order code",
       "request": {
         "method": "GET",
         "header": [
@@ -836,7 +844,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/not-a-uuid"
+        "url": "{{baseUrl}}/api/orders/not-a-uuid"
       },
       "event": [
         {
@@ -844,7 +852,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
             ]
           }
         }
@@ -884,7 +892,7 @@
               "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
               "const d=pm.response.json().data;",
               "pm.test('Pending receipt',()=>pm.expect(d.status).to.eql('PENDING'));",
-              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/submissions/'+d.id));",
+              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/'+d.id));",
               "pm.collectionVariables.set('rejectedId',d.id);"
             ]
           }
@@ -901,7 +909,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{rejectedId}}"
+        "url": "{{baseUrl}}/api/orders/{{rejectedId}}"
       },
       "event": [
         {
@@ -916,8 +924,8 @@
               " pm.collectionVariables.set('poll_'+pm.info.requestName,attempts); pm.execution.setNextRequest(pm.info.requestName);",
               "} else {",
               " pm.collectionVariables.unset('poll_'+pm.info.requestName);",
-              " pm.test('Submission REJECTED',()=>pm.expect(d.status).to.eql('REJECTED'));",
-              " pm.test(\"Rejection reason\",()=>pm.expect(d.reason).to.be.a(\"string\").and.not.empty);",
+              " pm.test('Order REJECTED',()=>pm.expect(d.status).to.eql('REJECTED'));",
+              " pm.test(\"Rejection reason\",()=>pm.expect(d.rejectionReason).to.be.a(\"string\").and.not.empty);",
               "}"
             ]
           }
@@ -925,7 +933,7 @@
       ]
     },
     {
-      "name": "28 Rejected submission has no order",
+      "name": "28 Rejected order is persisted in REJECTED status",
       "request": {
         "method": "GET",
         "header": [
@@ -942,14 +950,39 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Order is REJECTED',()=>pm.expect(pm.response.json().data.status).to.eql('REJECTED'));"
             ]
           }
         }
       ]
     },
     {
-      "name": "29 Rejected submission cannot be accepted",
+      "name": "28b Different user cannot view rejected order",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{otherToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/orders/{{rejectedId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "29 Rejected order cannot be accepted",
       "request": {
         "method": "POST",
         "header": [
@@ -979,7 +1012,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));"
             ]
           }
         }
@@ -1072,7 +1105,7 @@
               "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
               "const d=pm.response.json().data;",
               "pm.test('Pending receipt',()=>pm.expect(d.status).to.eql('PENDING'));",
-              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/submissions/'+d.id));",
+              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/'+d.id));",
               "pm.collectionVariables.set('exactId',d.id);"
             ]
           }
@@ -1089,7 +1122,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{exactId}}"
+        "url": "{{baseUrl}}/api/orders/{{exactId}}"
       },
       "event": [
         {
@@ -1104,8 +1137,8 @@
               " pm.collectionVariables.set('poll_'+pm.info.requestName,attempts); pm.execution.setNextRequest(pm.info.requestName);",
               "} else {",
               " pm.collectionVariables.unset('poll_'+pm.info.requestName);",
-              " pm.test('Submission OPEN',()=>pm.expect(d.status).to.eql('OPEN'));",
-              " pm.test(\"Confirmed order\",()=>{pm.expect(d.order.id).to.eql(d.id);pm.expect(d.order.status).to.eql(\"OPEN\");});",
+              " pm.test('Order OPEN',()=>pm.expect(d.status).to.eql('OPEN'));",
+              " pm.test(\"Confirmed order\",()=>{pm.expect(d.id).to.eql(pm.collectionVariables.get('exactId'));pm.expect(d.orderCode).to.be.a('string');});",
               "}"
             ]
           }
@@ -1174,7 +1207,7 @@
               "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
               "const d=pm.response.json().data;",
               "pm.test('Pending receipt',()=>pm.expect(d.status).to.eql('PENDING'));",
-              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/submissions/'+d.id));",
+              "pm.test('Polling Location',()=>pm.expect(pm.response.headers.get('Location')).to.eql('/api/orders/'+d.id));",
               "pm.collectionVariables.set('zeroId',d.id);"
             ]
           }
@@ -1191,7 +1224,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{zeroId}}"
+        "url": "{{baseUrl}}/api/orders/{{zeroId}}"
       },
       "event": [
         {
@@ -1206,8 +1239,8 @@
               " pm.collectionVariables.set('poll_'+pm.info.requestName,attempts); pm.execution.setNextRequest(pm.info.requestName);",
               "} else {",
               " pm.collectionVariables.unset('poll_'+pm.info.requestName);",
-              " pm.test('Submission REJECTED',()=>pm.expect(d.status).to.eql('REJECTED'));",
-              " pm.test(\"Rejection reason\",()=>pm.expect(d.reason).to.be.a(\"string\").and.not.empty);",
+              " pm.test('Order REJECTED',()=>pm.expect(d.status).to.eql('REJECTED'));",
+              " pm.test(\"Rejection reason\",()=>pm.expect(d.rejectionReason).to.be.a(\"string\").and.not.empty);",
               "}"
             ]
           }
@@ -1381,7 +1414,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{concurrentA}}"
+        "url": "{{baseUrl}}/api/orders/{{concurrentA}}"
       },
       "event": [
         {
@@ -1408,7 +1441,7 @@
             "value": "Bearer {{token}}"
           }
         ],
-        "url": "{{baseUrl}}/api/orders/submissions/{{concurrentB}}"
+        "url": "{{baseUrl}}/api/orders/{{concurrentB}}"
       },
       "event": [
         {

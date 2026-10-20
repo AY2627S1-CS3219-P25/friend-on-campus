@@ -252,6 +252,7 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
+      - OUTBOX_CDC_ENABLED=${OUTBOX_CDC_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -345,6 +346,8 @@ services:
   postgres:
     image: postgres:16.15-alpine3.24@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     container_name: campuserrand-postgres
+    # AI-generated (edited by yanhwee): enable logical WAL decoding for Debezium CDC Outbox Event Router
+    command: ["postgres", "-c", "wal_level=logical"]
     ports:
       - "5432:5432"
     environment:
@@ -378,6 +381,21 @@ services:
       retries: 5
       start_period: 60s
 
+  # AI-generated (edited by yanhwee): optional log-based Debezium Server Outbox CDC connector (enable with --profile cdc)
+  debezium:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium
+    profiles: ["cdc"]
+    volumes:
+      - ./docker/debezium/application.properties:/debezium/conf/application.properties:ro
+      - debezium_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   rabbitmq_data:
+  debezium_data:
