@@ -3662,3 +3662,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 16:20 SGT — F8 brief: decision record asked for suggestions
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Look at the decision record (every row filled with "give suggestion") and update the design document accordingly.
+
+**Usage scenario:** Learning support. Declined to pick the options under CLAUDE.md section 1 (architecture and design decisions, trade-off reasoning). Added a section "Concepts, precedents and the questions that settle each decision" to the F8 brief: per decision, the concepts in plain terms, the places in this repo that already use each pattern (facts), and the questions whose answers decide the row. The nine "Your choice" cells were left as the author wrote them.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
