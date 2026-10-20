@@ -1,4 +1,9 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+# Scope: Raised the rabbitmq health-probe timeout from 5 s to 20 s; the probe measured 3.7-18.7 s on a loaded Windows
+# host and the resulting "unhealthy" state aborted `docker compose up --wait` in npm test although the broker worked.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 # Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
 # Author review: Validated by Yee Yan Hwee (yanhwee)
@@ -377,7 +382,10 @@ services:
       # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
       test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
-      timeout: 5s
+      # AI-generated (edited by Reallyeasy1): each probe boots a throwaway Erlang VM; measured 3.7-18.7 s on a loaded
+      # Windows host, so 5 s produced false "unhealthy" states that abort `compose up --wait` (and npm test) while the
+      # broker was serving fine. 20 s covers the observed worst case.
+      timeout: 20s
       retries: 5
       start_period: 60s
 

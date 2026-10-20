@@ -1,6 +1,12 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Readiness wait for the two spawned services raised from 30 s to 120 s. A cold `npx tsx src/index.ts` boot
+ * of user-service measured 8 s idle and exceeded 30 s while the full Compose stack was running beside it, which
+ * failed `npm test` with "User Ready: false" although nothing was wrong with the service.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-11
  * Scope: Allow isolated aggregate runs to configure user, supplier, and PostgreSQL host ports while retaining manual defaults.
  * Author review: <to be completed by ngkhengyang>
@@ -112,7 +118,8 @@ function decodeJwtClaims(token: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
 }
 
-async function waitReady(url: string, timeoutMs = 30000): Promise<boolean> {
+// AI-generated (edited by Reallyeasy1): a cold `npx tsx` boot takes ~8 s idle and >30 s beside a running Compose stack.
+async function waitReady(url: string, timeoutMs = 120000): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {

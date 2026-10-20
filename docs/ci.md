@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+Scope: Documented the `npm run coverage` command (Node built-in coverage, lcov per service, not a CI check).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-19
 Scope: Clarify separate saga databases and broker credentials in GitHub CI versus the local runner.
 Author review: <to be completed by huangjiaxi1111>
@@ -69,6 +73,7 @@ Every ordinary job runs its own checkout, Node 22 setup, and `npm ci`. The root 
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright 1.64.0) | Healthy full Compose stack and installed Chromium |
 | `npm run test:e2e` | API E2E, then browser UAT | Docker engine; uses isolated system-test orchestration |
 | `npm test` | Every category above | Docker engine; the runner installs Chromium if needed |
+| `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters | Node dependencies only; not a CI check |
 
 `npm test` is the self-contained path. `scripts/ci/run-all-tests.mjs` creates a uniquely named Compose project with its own containers and volumes, selects available loopback ports for the gateway, PostgreSQL, RabbitMQ AMQP, User Service, and Supplier Service, and passes those endpoints to every test command. It then creates dedicated `_test` databases, deploys required migrations, runs the five package categories, builds the full stack, runs acceptance and API E2E, restores the stack, and runs Chromium UAT. `npm run test:e2e` uses the same port-isolated orchestration for the API and browser system suites.
 

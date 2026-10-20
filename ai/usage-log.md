@@ -3583,3 +3583,21 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/prisma-client-standardization` plus this record.
+
+## 2026-10-20 23:17 SGT — Service UAT run, per-service coverage, rabbitmq probe timeout
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** (a) Run extensive UAT on the services and report anything wrong; (b) report code coverage per service and which tools/extensions show it; (c) locate the Postman script and explain a stray `nus-campus-errand` directory; (d) pull from GitHub and resolve conflicts; (e) explain why `compose up --wait` refused to proceed, then apply the fix.
+
+**Usage scenario:** Debugging assistance, test execution and facts; one config edit the author approved. (a) `npm run typecheck`, `npm run lint` (0 errors, 33 `no-explicit-any` warnings), `npm run ci:validate-tests` and `npm test` (isolated Compose project). Unit: 283 pass. Integration/messaging/migration/seed: 267 pass. Every application image built and went healthy; the run aborted before acceptance because rabbitmq flipped to "unhealthy" (probe timeouts), not because of a service failure. (b) Coverage measured with Node's built-in `--experimental-test-coverage` (no dependency added), per service with unit + DB-backed suites merged in one `node --test` invocation against a throwaway Compose project `foc-cov` (removed afterwards): user 93.9 % lines, supplier 96.5 % (unit only), order 82.0 % (`order.repository.ts` 52.8 %), credit 94.5 %, notification 96.8 %, chat 97.6 %. Recommended the Coverage Gutters VS Code extension on Node's lcov reporter; `c8` only if merged/HTML reports are wanted (new dependency, not added). (c) Postman collection is `tests/postman/`; the stray directory was created by Docker Desktop when I started the old clone's rabbitmq container whose bind mounts pointed at the deleted path (empty folders only; author asked to delete it, permission classifier blocked `rm`). (d) `git fetch`/`pull --ff-only`: branch equals origin/main, nothing to merge. (e) Timed the probe at 3.7-18.7 s vs the 5 s timeout; author approved raising it. The rerun then passed acceptance (62/62 API, 17/17 notification UAT) and failed D2 API E2E with "User Ready: false": a cold `npx tsx` boot of user-service measured 8 s idle and exceeded the script's 30 s wait beside the running stack, so the wait was raised (test script, same class of fix) and the system suites rerun: D2 API E2E 56/56, Chromium UI UAT 34/34. Author then asked for the follow-ups: the two timeout edits plus this entry were staged with partial hunks (the rest of the working tree is unrelated F8 work) but the commit itself was declined by the session's permission prompt, so it is left staged for the author; the empty directory was removed with `rmdir`; removing the stale `campuserrand-*`/`f5-*` containers was blocked by the permission classifier and is left to the author; a root `npm run coverage` command was added (boilerplate: reruns each service's existing `test:unit` under Node's built-in coverage and writes `coverage/lcov.info`, which `.gitignore` already covers). Verified: `npm run coverage` exit 0 with five lcov files, eslint on both scripts, `npm run ci:validate-tests` passes.
+
+**Files changed:**
+- `docker-compose.yml` — rabbitmq healthcheck `timeout: 5s` → `20s` with inline rationale; disclosure block entry
+- `scripts/test-d2-e2e.ts` — `waitReady` default `30000` → `120000` with inline rationale; disclosure block entry
+- `scripts/coverage.mjs` (new) — runs each service's `test:unit` with `--experimental-test-coverage` and the lcov reporter
+- `package.json` — root `coverage` script (JSON, no disclosure header)
+- `docs/ci.md` — `npm run coverage` row in the public test commands table; disclosure block entry
+- `ai/usage-log.md` — this entry
