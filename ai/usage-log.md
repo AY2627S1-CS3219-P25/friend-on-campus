@@ -3636,3 +3636,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 10:40 SGT — Which assigned issue to prioritise
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** List the open issues assigned to me and tell me which one to prioritise.
+
+**Usage scenario:** Learning support / facts only. Listed the nine open issues assigned to Reallyeasy1 with milestone, due date, dependency and the label-versus-body priority mismatches. Declined the "which first" part under CLAUDE.md section 1 (prioritising requirements and sprint planning stay with the team).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
