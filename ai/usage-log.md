@@ -3649,3 +3649,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 11:30 SGT — F8 private conversation: design brief (facts and decision points)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Focus on F8 (private conversation per accepted errand) and produce a design doc.
+
+**Usage scenario:** Documentation and learning support. Wrote a Claude Doc "F8 private conversation per accepted errand: design brief" with the #56 criteria, what the code already provides (hub, store, consumer, gateway, order facts, usernames, student app, Compose and CI), the CLAUDE.md constraints, nine decision points with the facts and files each touches, the follow-on work items and a decision-record table. Declined the design itself under CLAUDE.md section 1: no service boundary, schema, transport or authorisation mechanism was chosen, and no reasoning was drafted. Recorded three source conflicts for the author (FAILED status absent from the code, admin read access versus F8.1.2, unassign publishes no event).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
