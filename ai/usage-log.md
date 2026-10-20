@@ -3688,3 +3688,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - none
+
+## 2026-10-20 17:05 SGT — F8 options listed by number
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** List the F8 choices again, indexed by number, and say which are more recommended.
+
+**Usage scenario:** Learning support. Listed the options per decision with the one fact from the brief that bears on each. Did not rank or recommend (course AI policy Appendix 2; CLAUDE.md section 1).
+
+**Files changed:**
+- none
