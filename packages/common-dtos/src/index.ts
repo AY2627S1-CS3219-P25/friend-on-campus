@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Chat Service contract (F8) per the author's S1 to S6 answers: ConversationDTO, ChatMessageDTO, the
+ * ChatClientFrame and ChatServerFrame unions and ChatHistoryResponse.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity, date: 2026-10-19
  * Scope: Refactored Order Saga contracts to Approach B2 (PENDING/REJECTED OrderStatus, rejectionReason on OrderDTO, removed OrderSubmissionDTO and release_requested/released events).
  * Author review: Reviewed and verified by yanhwee.
@@ -433,6 +438,52 @@ export interface NotificationDTO {
   body: string;
   readAt?: string | null;
   createdAt: string;
+}
+
+// AI-generated (edited by Reallyeasy1)
+// Chat Service (F8): one conversation per accepted errand, its messages, and the frames on /ws/chat/.
+// The socket protocol mirrors the Notification Service's: AUTH first, then SEND from the client; AUTH_OK, MESSAGE
+// and ERROR from the server. History is read over REST (GET /api/chat/:orderId).
+export interface ConversationDTO {
+  id: string;
+  orderId: string;
+  requesterId: string;
+  courierId: string;
+  createdAt: string;
+  pickedUpAt: string | null;
+  deliveredAt: string | null;
+  /** Null while messages may still be sent. */
+  closedAt: string | null;
+}
+
+export interface ChatMessageDTO {
+  id: string;
+  conversationId: string;
+  /** Per-conversation order; the client sorts and pages by it. */
+  sequence: number;
+  senderId: string;
+  /** The sender's username as it was in their access token when the message was sent. */
+  senderUsername: string;
+  senderRole: UserRole;
+  text: string;
+  /** Server receive time. */
+  sentAt: string;
+}
+
+export type ChatErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CLOSED' | 'EMPTY' | 'NO_USERNAME' | 'BAD_FRAME';
+
+export type ChatClientFrame =
+  | { type: 'AUTH'; token: string }
+  | { type: 'SEND'; orderId: string; text: string; clientId?: string };
+
+export type ChatServerFrame =
+  | { type: 'AUTH_OK' }
+  | { type: 'MESSAGE'; orderId: string; message: ChatMessageDTO }
+  | { type: 'ERROR'; orderId?: string; clientId?: string; code: ChatErrorCode; message: string };
+
+export interface ChatHistoryResponse {
+  conversation: ConversationDTO;
+  messages: ChatMessageDTO[];
 }
 
 // ==========================================

@@ -1,4 +1,9 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+# Scope: Raised the rabbitmq health-probe timeout from 5 s to 20 s; the probe measured 3.7-18.7 s on a loaded Windows
+# host and the resulting "unhealthy" state aborted `docker compose up --wait` in npm test although the broker worked.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 # Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
 # Author review: Validated by Yee Yan Hwee (yanhwee)
@@ -115,6 +120,8 @@ services:
       credit-service:
         condition: service_healthy
       notification-service:
+        condition: service_healthy
+      chat-service:
         condition: service_healthy
 
   # ----------------------------------------------------
@@ -340,6 +347,42 @@ services:
       retries: 10
       start_period: 10s
 
+  # AI-generated (edited by Reallyeasy1): Chat Service (F8), same shape as notification-service.
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: campuserrand-chat-service
+    init: true # node is PID 1 and ignores SIGTERM without an init
+    # The service exits when its broker connection fails and relies on this to come back.
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      - PORT=8006
+      - DATABASE_URL=postgresql://chat_svc:chat-service-dev@postgres:5432/chat_db
+      - RABBITMQ_URL=amqp://chat_service:chat-service-dev@rabbitmq:5672/campus
+      - ORDER_SERVICE_URL=http://order-service:8003
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8006/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   # ----------------------------------------------------
   # Infrastructure: PostgreSQL & RabbitMQ
   # ----------------------------------------------------
@@ -377,7 +420,10 @@ services:
       # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
       test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
-      timeout: 5s
+      # AI-generated (edited by Reallyeasy1): each probe boots a throwaway Erlang VM; measured 3.7-18.7 s on a loaded
+      # Windows host, so 5 s produced false "unhealthy" states that abort `compose up --wait` (and npm test) while the
+      # broker was serving fine. 20 s covers the observed worst case.
+      timeout: 20s
       retries: 5
       start_period: 60s
 

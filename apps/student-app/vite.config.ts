@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: /api/chat and /ws/chat proxy entries for the Chat Service (F8) in host-based development.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Proxy Order Service endpoints during host-based development.
  * Author review: <to be completed by huangjiaxi1111>
@@ -41,6 +45,9 @@ const notificationTarget = gatewayTarget ?? process.env.NOTIFICATION_SERVICE_URL
 // AI-generated (edited by Reallyeasy1): the same service over HTTP for /api/notifications.
 const notificationApiTarget = gatewayTarget ?? notificationTarget.replace(/^ws/, 'http');
 const adminTarget = process.env.ADMIN_PORTAL_URL ?? 'http://localhost:5174';
+// AI-generated (edited by Reallyeasy1): the Chat Service (F8) over WebSocket and HTTP.
+const chatTarget = gatewayTarget ?? process.env.CHAT_SERVICE_URL ?? 'ws://localhost:8006';
+const chatApiTarget = gatewayTarget ?? chatTarget.replace(/^ws/, 'http');
 
 export default defineConfig({
   plugins: [react()],
@@ -76,6 +83,14 @@ export default defineConfig({
       '/api/notifications': {
         target: notificationApiTarget,
         changeOrigin: true,
+      },
+      '/api/chat': {
+        target: chatApiTarget,
+        changeOrigin: true,
+      },
+      '/ws/chat': {
+        target: chatTarget,
+        ws: true,
       },
       '/api': {
         target: gatewayTarget ?? supplierTarget,

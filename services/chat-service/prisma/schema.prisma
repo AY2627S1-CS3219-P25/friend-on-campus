@@ -1,0 +1,55 @@
+// AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+// Scope: The conversation and message tables as the author specified them in the F8 brief (S1, S2, answered in chat
+// on 2026-10-20): one conversation per order created on order.accepted, courier kept until the next accept, closed by
+// a timestamp, own uuid with a unique order id; messages with sender id, username and role from the token, a
+// per-conversation sequence and the server receive time, text unlimited. Transcribed into Prisma in the layout the
+// other services use.
+// Author review: <to be completed by Reallyeasy1>
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// S1: created by the consumer when order.accepted arrives; a redelivered or repeated accept finds the row by order id.
+model Conversation {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId     String    @unique @map("order_id") @db.Uuid
+  requesterId String    @map("requester_id") @db.Uuid
+  // Kept after an admin unassign until the next order.accepted replaces it (author's S1 answer 2).
+  courierId   String    @map("courier_id") @db.Uuid
+  createdAt   DateTime  @map("created_at") @db.Timestamptz(6)
+  // S3 answer 1: order.in_transit and order.delivered are recorded on the row (names as in OrderDTO).
+  pickedUpAt  DateTime? @map("picked_up_at") @db.Timestamptz(6)
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(6)
+  // Null means open; set by order.completed, order.cancelled or order.expired (S1 answers 3 and 4).
+  closedAt    DateTime? @map("closed_at") @db.Timestamptz(6)
+  messages    Message[]
+
+  @@map("conversations")
+}
+
+// S2: append-only; ordered by sequence within a conversation.
+model Message {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  // Per-conversation sequence number, the ordering tiebreaker (S2 answer 3).
+  sequence       Int
+  senderId       String       @map("sender_id") @db.Uuid
+  // Copied from the access token at send time (D6, S2 answer 2).
+  senderUsername String       @map("sender_username")
+  senderRole     String       @map("sender_role")
+  text           String
+  // Server receive time (F8.2.2).
+  sentAt         DateTime     @map("sent_at") @db.Timestamptz(6)
+
+  @@unique([conversationId, sequence])
+  @@map("messages")
+}
