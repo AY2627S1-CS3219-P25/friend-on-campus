@@ -3623,3 +3623,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `services/notification-service/test/hub.test.ts` — liveness suite timings widened
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 10:20 SGT — Milestone for the D3 gap issues
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Put the newly created issues on a milestone.
+
+**Usage scenario:** Bookkeeping on the author's request. #129–#139 set to the existing "D3 progress check" milestone (the one #63 is on). No priority labels or ordering set.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
