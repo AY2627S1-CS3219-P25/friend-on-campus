@@ -80,16 +80,16 @@
     {
       "user": "order_service",
       "vhost": "campus",
-      "configure": "^(campus\\.events|order-service\\.events(?:\\.retry|\\.dlq)?)$",
-      "write": "^(amq\\.default|campus\\.events|order-service\\.events(?:\\.retry|\\.dlq)?)$",
-      "read": "^(campus\\.events|order-service\\.events(?:\\.retry|\\.dlq)?)$"
+      "configure": "^(campus\\.events|order-service\\.events(?:\\.dlq)?)$",
+      "write": "^(amq\\.default|campus\\.events|order-service\\.events(?:\\.dlq)?)$",
+      "read": "^(campus\\.events|order-service\\.events(?:\\.dlq)?)$"
     },
     {
       "user": "credit_service",
       "vhost": "campus",
-      "configure": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
-      "write": "^(amq\\.default|campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$",
-      "read": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.retry|\\.dlq)?)$"
+      "configure": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.dlq)?)$",
+      "write": "^(amq\\.default|campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.dlq)?)$",
+      "read": "^(campus\\.events(?:\\.dlx)?|credit-service\\.events(?:\\.dlq)?)$"
     },
     {
       "user": "notification_service",
@@ -142,14 +142,22 @@
       "vhost": "campus",
       "durable": true,
       "auto_delete": false,
-      "arguments": {}
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "campus.events.dlx",
+        "x-dead-letter-routing-key": "credit-service.events.dlq"
+      }
     },
     {
       "name": "order-service.events",
       "vhost": "campus",
       "durable": true,
       "auto_delete": false,
-      "arguments": {}
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "order-service.events.dlq",
+        "x-dead-letter-routing-key": "order-service.events.dlq"
+      }
     }
   ],
   "bindings": [

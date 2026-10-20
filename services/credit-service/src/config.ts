@@ -43,8 +43,6 @@ export const config = Object.freeze({
   rabbitmq: {
     url: process.env.RABBITMQ_URL || 'amqp://credit_service:credit-service-dev@localhost:5672/campus',
     exchange, queue,
-    retryExchange: process.env.CREDIT_RETRY_EXCHANGE || `${queue}.retry`,
-    retryQueue: process.env.CREDIT_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.CREDIT_DLX || `${exchange}.dlx`,
     deadLetterQueue: process.env.CREDIT_DLQ || `${queue}.dlq`,
     retryDelayMs: integer('CREDIT_RETRY_DELAY_MS', 5000, 1),

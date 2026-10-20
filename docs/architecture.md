@@ -107,25 +107,28 @@ Cross-service workflows that do not require blocking the user response are decou
   - Replayed or duplicate deliveries are recognized and acknowledged safely without double-charging or duplicate alerts.
   - Credit Service applies each event in a `Serializable` transaction, retried up to 9 times on Prisma `P2034`/`P2002`.
 
-### C. Broker Topology (`docker/rabbitmq/definitions.json` + consumer code)
-`definitions.json` is imported at broker boot and defines the `campus` vhost, the durable topic exchange `campus.events`, the durable direct exchange `campus.events.dlx`, and one account per service. Each consumer asserts its own queues, retry exchange and bindings on startup (`src/messaging/rabbitmq.ts`, settings in `src/config.ts`).
+### C. Broker Topology (`docker/rabbitmq/definitions.json` + `@campus-errand/messaging`)
+`definitions.json` is imported at broker boot and defines the `campus` vhost, the durable topic exchange `campus.events`, the durable direct exchange `campus.events.dlx`, and one account per service. Each consumer asserts its own quorum queue, dead-letter exchange, and bindings on startup via the shared `@campus-errand/messaging` package (`packages/messaging/src/index.ts`, settings in each service's `src/config.ts`).
 
 | Account | Publishes (topic permission on `campus.events`) | Reads |
 |---|---|---|
 | `user_service` | `user.registered` | nothing |
-| `order_service` | `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | nothing |
-| `credit_service` | nothing on `campus.events` | `user.registered`, `order.completed`, `order.cancelled`, `order.expired` |
+| `order_service` | `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reserved`, `credit.reservation_failed` |
+| `credit_service` | `credit.reserved`, `credit.reservation_failed` | `user.registered`, `order.created`, `order.completed`, `order.cancelled`, `order.expired` |
 | `notification_service` | nothing on `campus.events` | all seven `order.*` keys |
 | `campus_admin` | management UI (`administrator` tag, password `campus-admin-dev`) | everything in `campus` |
 | `credit_test` | test queues `credit-test.*` only | test queues `credit-test.*` only |
 
-| Consumer | Main queue (bound to `campus.events`) | Retry exchange / queue | Retry delay × limit | Dead-letter exchange → queue |
-|---|---|---|---|---|
-| credit-service | `credit-service.events` | `credit-service.events.retry` (direct) | 1 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
-| notification-service | `notification-service.events` | `notification-service.events.retry` (direct) | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
+| Consumer | Main quorum queue (`x-queue-type: quorum`, bound to `campus.events`) | Retry delay × limit (`x-delivery-count`) | Dead-letter exchange → queue |
+|---|---|---|---|
+| order-service | `order-service.events` | 1 s × 5 (`ORDER_RETRY_DELAY_MS`, `ORDER_RETRY_LIMIT`) | `campus.events.dlx` → `order-service.events.dlq` |
+| credit-service | `credit-service.events` | 1 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
+| notification-service | `notification-service.events` | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
 
-- All queues and exchanges are durable; prefetch is 1 on the main and retry channels.
-- A failed message is classified. A transient failure under the retry limit is republished (with confirms) to the retry queue with a retry-count header; a retry worker waits out the delay and republishes it through the default exchange to the consumer's own main queue only. A permanent failure, or a transient one past the limit, is republished to the dead-letter queue. The original delivery is then acknowledged.
+- All queues and exchanges are durable; main consumer queues are RabbitMQ **Quorum Queues** (`x-queue-type: quorum`) with `x-dead-letter-exchange` and `x-dead-letter-routing-key` configured natively, and prefetch is 1.
+- A failed message is classified by the consumer's `classifyError` callback:
+  - A **transient** failure with native `x-delivery-count < retryLimit` (or an **infrastructure** failure) waits `retryDelayMs` and calls `channel.nack(message, false, true)` to requeue the delivery on the quorum queue (which natively increments `x-delivery-count`).
+  - A **permanent** failure, or a transient failure that has reached `x-delivery-count >= retryLimit`, calls `channel.nack(message, false, false)`, causing RabbitMQ to natively dead-letter the message to the configured Dead-Letter Exchange (`x-dead-letter-exchange` → `deadLetterQueue`).
 
 ### D. WebSocket (Notification Service)
 - The gateway forwards `/ws/` to the root path of `notification-service`, which serves REST and WebSocket on one HTTP server (port 8005).

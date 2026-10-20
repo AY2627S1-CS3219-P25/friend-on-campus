@@ -48,8 +48,6 @@ export const config = Object.freeze({
     url: process.env.RABBITMQ_URL || 'amqp://order_service:order-service-dev@localhost:5672/campus',
     exchange: process.env.EVENTS_EXCHANGE || 'campus.events',
     queue: 'order-service.events',
-    retryExchange: 'order-service.events.retry',
-    retryQueue: 'order-service.events.retry',
     deadLetterExchange: 'order-service.events.dlq',
     deadLetterQueue: 'order-service.events.dlq',
     retryDelayMs: integer('ORDER_RETRY_DELAY_MS', 5000, 1),

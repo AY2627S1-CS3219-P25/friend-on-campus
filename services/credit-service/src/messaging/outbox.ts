@@ -7,7 +7,7 @@
 // AI-generated (edited by huangjiaxi1111)
 import amqp, { type ConfirmChannel } from 'amqplib';
 import type { PrismaClient } from '../database/client';
-import { createConfirmedPublisher } from './rabbitmq';
+import { createConfirmedPublisher } from '@campus-errand/messaging';
 
 export function createCreditOutbox(prisma: PrismaClient, config: { url: string; exchange: string; intervalMs?: number }) {
   let connection: Awaited<ReturnType<typeof amqp.connect>> | undefined;

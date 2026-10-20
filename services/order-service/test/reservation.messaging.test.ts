@@ -27,7 +27,7 @@ import { createCreditService } from '../../credit-service/src/credits/service';
 import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../../credit-service/src/credits/consumer';
 import { createCreditOutbox } from '../../credit-service/src/messaging/outbox';
-import { createConfirmedPublisher } from '../../credit-service/src/messaging/rabbitmq';
+import { createConfirmedPublisher, queueArguments } from '@campus-errand/messaging';
 
 function testUrl(name: string) {
   const value = process.env[name];
@@ -59,8 +59,8 @@ async function main() {
   const url = process.env.CREDIT_TEST_RABBITMQ_URL ?? 'amqp://credit_test:credit-test-dev@localhost:5672/campus';
   const prefix = `credit-test.saga-${randomUUID()}`;
   const exchange = `${prefix}.events`;
-  const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`, retryExchange: `${prefix}.${side}.retry`,
-    retryQueue: `${prefix}.${side}.retry`, deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
+  const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`,
+    deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
   const cc = config('credit'); const oc = config('order');
   const connection = await amqp.connect(url);
   connection.on('error', () => {});
@@ -129,7 +129,7 @@ async function main() {
     // Provision durable routes before consumers start, just as definitions.json does in Compose.
     await channel.assertExchange(exchange, 'topic', { durable: true });
     for (const [cfg, keys] of [[cc, creditRoutingKeys], [oc, reservationResultKeys]] as const) {
-      await channel.assertQueue(cfg.queue, { durable: true });
+      await channel.assertQueue(cfg.queue, { durable: true, arguments: queueArguments(cfg) });
       for (const key of keys) await channel.bindQueue(cfg.queue, exchange, key);
     }
     await channel.assertQueue(`${prefix}.created`, { durable: true });
@@ -260,20 +260,22 @@ async function main() {
     const exhausted = await channel.get(oc.deadLetterQueue, { noAck: true });
     assert(exhausted);
     assert.equal(eventAttempts, 6);
-    assert.equal(exhausted.properties.headers!['x-order-retry-count'], 5);
+    assert.equal(exhausted.properties.headers?.['x-first-death-queue'], oc.queue);
+    assert.equal(exhausted.properties.headers?.['x-first-death-reason'], 'rejected');
     await publish(exchange, 'credit.reservation.succeeded', Buffer.from('{invalid'));
     await until(async () => (await channel.checkQueue(oc.deadLetterQueue)).messageCount === 1, 'invalid event DLQ');
     const invalid = await channel.get(oc.deadLetterQueue, { noAck: true });
     assert(invalid);
-    assert.equal(invalid.properties.headers!['x-order-retry-count'], 0);
+    assert.equal(invalid.properties.headers?.['x-first-death-queue'], oc.queue);
+    assert.equal(invalid.properties.headers?.['x-first-death-reason'], 'rejected');
     assert.equal(eventAttempts, 6);
     console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, PENDING order saga, offline consumers, persisted results, duplicate safety, insufficient funds, late-success expiry refund, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
     await results.stop();
     for (const cfg of [cc, oc]) {
-      for (const queue of [cfg.queue, cfg.retryQueue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
-      for (const ex of [cfg.retryExchange, cfg.deadLetterExchange]) await channel.deleteExchange(ex);
+      for (const queue of [cfg.queue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
+      await channel.deleteExchange(cfg.deadLetterExchange);
     }
     await channel.deleteQueue(`${prefix}.created`); await channel.deleteExchange(exchange);
     await channel.close(); await connection.close();

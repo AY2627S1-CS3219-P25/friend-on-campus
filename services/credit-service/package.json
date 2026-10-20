@@ -21,6 +21,7 @@
   "dependencies": {
     "@campus-errand/auth": "*",
     "@campus-errand/common-dtos": "*",
+    "@campus-errand/messaging": "*",
     "@prisma/client": "^6.7.0",
     "amqplib": "^0.10.4",
     "cors": "^2.8.5",
