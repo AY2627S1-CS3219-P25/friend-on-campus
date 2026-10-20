@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "amqplib": "^0.10.4"
+    "amqplib": "^0.10.4",
+    "rabbitmq-client": "^5.1.0"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.5",

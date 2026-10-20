@@ -1,12 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Extracted shared RabbitMQ publisher and native quorum-queue/DLX consumer into @campus-errand/messaging.
+ * Scope: Extracted shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client.
  * Author review: <to be completed by yanhwee>
  */
 // AI-generated (edited by yanhwee)
+import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
-import amqp, { type Channel, type ConfirmChannel, type ConsumeMessage, type Options } from 'amqplib';
+import { type ConfirmChannel, type Options } from 'amqplib';
+import { Connection, ConsumerStatus } from 'rabbitmq-client';
 
 export interface MessagingConfig {
   url: string;
@@ -26,7 +28,7 @@ export interface Failure {
 
 export function queueArguments(config: Pick<MessagingConfig, 'deadLetterExchange' | 'deadLetterQueue'>) {
   return {
-    'x-queue-type': 'quorum',
+    'x-queue-type': 'quorum' as const,
     'x-dead-letter-exchange': config.deadLetterExchange,
     'x-dead-letter-routing-key': config.deadLetterQueue,
   };
@@ -72,9 +74,7 @@ export function createConfirmedPublisher(channel: ConfirmChannel) {
         new Promise<void>((resolve, reject) => {
           let returned = false;
           let settled = false;
-          const onReturn = () => {
-            returned = true;
-          };
+          const onReturn = () => { returned = true; };
           const onClose = () => finish(new Error('RabbitMQ publish channel closed'));
           const timer = setTimeout(() => {
             finish(new Error('RabbitMQ publish confirm timed out'));
@@ -113,82 +113,46 @@ export async function startRabbitConsumer(
     onFatal?: () => void;
   },
 ) {
-  const connection = await amqp.connect(config.url, { timeout: config.connectionTimeoutMs ?? 5000 });
-  let ready = false;
+  const timeout = config.connectionTimeoutMs ?? 5000;
+  const connection = new Connection({ url: config.url, connectionTimeout: timeout, acquireTimeout: timeout });
+  let consumer: ReturnType<Connection['createConsumer']> | undefined;
   let closing = false;
   let failed = false;
-  let consume: Channel | undefined;
-  let consumerTag: string | undefined;
   const abort = new AbortController();
-  const pending = new Set<Promise<void>>();
 
-  const fatal = () => {
-    ready = false;
-    if (closing || failed) return;
-    failed = true;
-    abort.abort();
-    void close().finally(() => handlers.onFatal?.());
-  };
-
-  connection.on('error', fatal);
-  connection.on('close', fatal);
-  connection.on('blocked', () => {
-    ready = false;
-  });
-  connection.on('unblocked', () => {
-    if (!failed && !closing) ready = true;
-  });
-
-  function track(work: () => Promise<void>) {
-    const task = work().finally(() => pending.delete(task));
-    pending.add(task);
-  }
-
-  async function close() {
-    closing = true;
-    ready = false;
-    abort.abort();
-    if (consume && consumerTag) {
-      await consume.cancel(consumerTag).catch(() => {});
-    }
-    await Promise.allSettled([...pending]);
-    await consume?.close().catch(() => {});
-    await connection.close().catch(() => {});
-  }
+  // Prevent unhandled error event crashes before and after consumer setup.
+  connection.on('error', () => {});
 
   try {
-    consume = await connection.createChannel();
-    consume.on('error', fatal);
-    consume.on('close', fatal);
-    await consume.prefetch(1);
-
-    await consume.assertExchange(config.exchange, 'topic', { durable: true });
-    await consume.assertExchange(config.deadLetterExchange, 'direct', { durable: true });
-    await consume.assertQueue(config.deadLetterQueue, { durable: true });
-    await consume.bindQueue(config.deadLetterQueue, config.deadLetterExchange, config.deadLetterQueue);
-
-    await consume.assertQueue(config.queue, {
-      durable: true,
-      arguments: queueArguments(config),
+    await connection.onConnect(timeout);
+    await connection.exchangeDeclare({ exchange: config.deadLetterExchange, type: 'direct', durable: true });
+    await connection.queueDeclare({ queue: config.deadLetterQueue, durable: true });
+    await connection.queueBind({
+      queue: config.deadLetterQueue,
+      exchange: config.deadLetterExchange,
+      routingKey: config.deadLetterQueue,
     });
-    for (const key of handlers.routingKeys) {
-      await consume.bindQueue(config.queue, config.exchange, key);
-    }
 
-    const active = consume;
-    const subscribed = await active.consume(config.queue, (message: ConsumeMessage | null) => {
-      if (!message) {
-        fatal();
-        return;
-      }
-      track(async () => {
-        const routingKey = message.fields.routingKey;
-        const deliveryCount = Number(message.properties.headers?.['x-delivery-count'] ?? 0);
+    consumer = connection.createConsumer(
+      {
+        queue: config.queue,
+        queueOptions: { durable: true, arguments: queueArguments(config) },
+        qos: { prefetchCount: 1 },
+        concurrency: 1,
+        exchanges: [{ exchange: config.exchange, type: 'topic', durable: true }],
+        queueBindings: handlers.routingKeys.map((routingKey) => ({
+          exchange: config.exchange,
+          queue: config.queue,
+          routingKey,
+        })),
+      },
+      async (msg) => {
+        const deliveryCount = Number(msg.headers?.['x-delivery-count'] ?? 0);
         try {
-          await handlers.handle(message.content, routingKey);
-          if (!closing && !failed) active.ack(message);
+          await handlers.handle(msg.rawBody, msg.routingKey);
+          return ConsumerStatus.ACK;
         } catch (error) {
-          if (closing || failed) return;
+          if (closing || failed) return ConsumerStatus.REQUEUE;
           const failure = handlers.classify(error);
           const retrying =
             failure.category === 'infrastructure' ||
@@ -197,32 +161,52 @@ export async function startRabbitConsumer(
             JSON.stringify({
               event: 'rabbitmq_consumer_failure',
               queue: config.queue,
-              routingKey,
-              messageId: typeof message.properties.messageId === 'string' ? message.properties.messageId : undefined,
+              routingKey: msg.routingKey,
+              messageId: msg.messageId,
               category: failure.category,
               reason: failure.reason,
               deliveryCount,
               action: retrying ? 'retry' : 'dlq',
             }),
           );
-          try {
-            if (retrying) {
-              await delay(config.retryDelayMs, undefined, { signal: abort.signal });
-              if (!closing && !failed) active.nack(message, false, true);
-            } else {
-              active.nack(message, false, false);
-            }
-          } catch {
-            if (!closing) fatal();
-          }
+          if (!retrying) return ConsumerStatus.DROP;
+          await delay(config.retryDelayMs, undefined, { signal: abort.signal }).catch(() => {});
+          return ConsumerStatus.REQUEUE;
         }
-      });
-    });
-    consumerTag = subscribed.consumerTag;
-    ready = !failed;
-    return { isReady: () => ready && !closing && !failed, close };
+      },
+    );
+
+    await once(consumer, 'ready');
+    consumer.on('error', () => {});
+
+    const close = async () => {
+      if (closing) return;
+      closing = true;
+      abort.abort();
+      await consumer?.close().catch(() => {});
+      await connection.close().catch(() => {});
+    };
+
+    const fatal = () => {
+      if (closing || failed) return;
+      failed = true;
+      abort.abort();
+      void close().finally(() => handlers.onFatal?.());
+    };
+
+    connection.on('error', fatal);
+    consumer.on('error', fatal);
+
+    return {
+      isReady: () => !closing && !failed && connection.ready,
+      close,
+    };
   } catch (error) {
-    await close();
+    closing = true;
+    abort.abort();
+    consumer?.on('error', () => {});
+    await consumer?.close().catch(() => {});
+    await connection.close().catch(() => {});
     throw error;
   }
 }
