@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
+ * Scope: Added the retry path: a transient failure is retried through the retry queue and delivered once it clears, and a failure that outlasts retryLimit is dead-lettered with the x-notification-* headers while the main queue keeps draining; the consumer is started through a deliver wrapper that can simulate the outage.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
  * Scope: The accepted event carries courierUsername and the pushed frame's body is asserted (F5.1.1).
  * Author review: <to be completed by Reallyeasy1>
@@ -49,6 +53,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
   let connection: Awaited<ReturnType<typeof amqp.connect>>;
   let channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createConfirmChannel']>>;
   let alice: Awaited<ReturnType<typeof openSocket>>;
+  const outage = { remaining: 0 };
 
   const accepted = (overrides: Record<string, unknown> = {}) => ({
     eventId: randomUUID(),
@@ -82,7 +87,16 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     alice.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
     await alice.frame('AUTH_OK');
 
-    consumer = await startNotificationConsumer(config, createDeliver(store, hub.push));
+    // AI-generated (edited by Reallyeasy1)
+    // outage.remaining > 0 makes the next deliveries throw a transient error, standing in for a database outage.
+    const deliver = createDeliver(store, hub.push);
+    consumer = await startNotificationConsumer(config, async (event, draft) => {
+      if (outage.remaining > 0) {
+        outage.remaining -= 1;
+        throw new Error('simulated database outage');
+      }
+      await deliver(event, draft);
+    });
     connection = await amqp.connect(config.url);
     channel = await connection.createConfirmChannel();
   });
@@ -132,6 +146,54 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     await until(async () => (await channel.checkQueue(config.deadLetterQueue)).messageCount === 1, 'the dead-lettered message');
     await publishEvent(accepted());
     await until(async () => (await rowsFor(ALICE)) === 2, 'the event after the malformed one');
+    assert.equal((await channel.checkQueue(config.queue)).messageCount, 0);
+    assert.equal(consumer.isReady(), true);
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('retries a transient failure through the retry queue and delivers once it clears', async () => {
+    outage.remaining = 1;
+    const event = accepted();
+    await publishEvent(event);
+    const frame = await until(() => alice.frames.find((f) => f.type === 'NOTIFICATION' && f.data.orderId === event.orderId), 'the retried notification');
+    assert.equal(frame.data.title, 'Your errand ORD-0042 was accepted');
+    assert.equal(outage.remaining, 0, 'the first attempt failed');
+    assert.equal(await rowsFor(ALICE), 3);
+    assert.equal((await channel.checkQueue(config.retryQueue)).messageCount, 0);
+    assert.equal((await channel.checkQueue(config.deadLetterQueue)).messageCount, 1, 'only the malformed message is dead-lettered');
+    assert.equal(consumer.isReady(), true);
+  });
+
+  it('dead-letters after the retry limit with the retry headers and keeps draining the queue', async () => {
+    outage.remaining = 10;
+    const event = accepted();
+    try {
+      await publishEvent(event);
+      await until(async () => (await channel.checkQueue(config.deadLetterQueue)).messageCount === 2, 'the second dead-lettered message');
+    } finally {
+      outage.remaining = 0;
+    }
+    assert.equal(await rowsFor(ALICE), 3, 'nothing was stored');
+    assert.equal(alice.frames.some((f) => f.type === 'NOTIFICATION' && f.data.orderId === event.orderId), false, 'nothing was pushed');
+
+    const malformed = await channel.get(config.deadLetterQueue, { noAck: true });
+    assert.ok(malformed, 'the malformed message from the earlier test comes first');
+    assert.equal(malformed.content.toString(), 'not json');
+    assert.equal(malformed.properties.headers?.['x-notification-failure-category'], 'permanent');
+    assert.equal(malformed.properties.headers?.['x-notification-retry-count'], 0);
+
+    const exhausted = await channel.get(config.deadLetterQueue, { noAck: true });
+    assert.ok(exhausted, 'the exhausted message');
+    assert.deepEqual(JSON.parse(exhausted.content.toString()), event, 'the original content is kept');
+    const headers = exhausted.properties.headers ?? {};
+    assert.equal(headers['x-notification-retry-count'], config.retryLimit, 'retried exactly retryLimit times');
+    assert.equal(headers['x-notification-failure-category'], 'transient');
+    assert.equal(headers['x-notification-failure-reason'], 'processing_failure');
+    assert.equal(headers['x-notification-original-routing-key'], 'order.accepted');
+    assert.equal((await channel.checkQueue(config.deadLetterQueue)).messageCount, 0);
+
+    await publishEvent(accepted());
+    await until(async () => (await rowsFor(ALICE)) === 4, 'the event after the exhausted one');
     assert.equal((await channel.checkQueue(config.queue)).messageCount, 0);
     assert.equal(consumer.isReady(), true);
   });
