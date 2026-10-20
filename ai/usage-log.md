@@ -3609,3 +3609,17 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 09:50 SGT — Act on the Claude PR review of #140
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Check PR #140 against the AI review before merging.
+
+**Usage scenario:** Debugging assistance. The review's single Low finding (the 100 ms ping interval leaves the liveness test's handshake a narrow window on a slow runner) was verified against `src/ws/hub.ts`: the pinger walks every socket, authenticated or not, so a dead socket can be terminated 100 to 200 ms after it opens. Applied the suggested widening (250 ms interval, 2 s close wait, 800 ms survival wait); unit suite 34/34. Merge is the author's call.
+
+**Files changed:**
+- `services/notification-service/test/hub.test.ts` — liveness suite timings widened
+- `ai/usage-log.md` — this entry

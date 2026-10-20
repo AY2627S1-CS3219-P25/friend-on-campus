@@ -139,7 +139,7 @@ describe('WebSocket hub liveness', () => {
       return 0;
     },
     authTimeoutMs: 150,
-    pingIntervalMs: 100,
+    pingIntervalMs: 250,
   });
 
   before(async () => {
@@ -163,9 +163,9 @@ describe('WebSocket hub liveness', () => {
     assert.equal(hub.connectionCount(ALICE), 2);
 
     // Tick one sends the ping, tick two finds it unanswered: gone within two intervals, no close frame (1006).
-    assert.equal(await dead.closed(1000), 1006);
+    assert.equal(await dead.closed(2000), 1006);
     await until(() => hub.connectionCount(ALICE) === 1, 'dead socket evicted');
-    await delay(350);
+    await delay(800);
     assert.equal(live.isOpen(), true, 'a socket that answers pings survives several intervals');
     assert.equal(hub.push(ALICE, notification), 1);
     live.ws.close();
