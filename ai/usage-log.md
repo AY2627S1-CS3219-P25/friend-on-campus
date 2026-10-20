@@ -3675,3 +3675,16 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 16:50 SGT — F8 decision record: asked to pick the options
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** What to write in the "Your choice" cells; then "pick the most recommended ones for each of them".
+
+**Usage scenario:** Learning support. Listed the options each row allows (as already stated in the brief) and the size of a filled row. Declined to pick: the course AI policy (project brief Appendix 2) prohibits AI proposals on architecture, boundaries, schemas and interfaces, and CLAUDE.md section 1 mirrors it. Offered to walk the settling questions row by row and to implement once the author marks a row Decided.
+
+**Files changed:**
+- none
