@@ -35,7 +35,6 @@ import type {
 } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { SupplierClient } from '../clients/supplier.client';
-import type { OutboxRelay } from '../messaging/outbox.relay';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
 
@@ -60,7 +59,6 @@ export interface OrderService {
 export interface OrderServiceDependencies {
   repository: OrderRepository;
   supplierClient: SupplierClient;
-  outboxRelay?: OutboxRelay;
 }
 
 // ---------------------------------------------------------------------------
@@ -161,7 +159,7 @@ async function handleCreateOrder(
   requesterId: string,
   req: CreateOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, supplierClient, outboxRelay } = deps;
+  const { repository, supplierClient } = deps;
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(requesterId)) {
@@ -198,7 +196,7 @@ async function handleCreateOrder(
     rewardCredits: validatedInput.rewardCredits,
   };
 
-  const createdOrder = await repository.createOrderWithOutbox(
+  return repository.createOrderWithOutbox(
     {
       id: orderId,
       orderCode: generateOrderCode(),
@@ -215,20 +213,14 @@ async function handleCreateOrder(
     },
     reservationEvent
   );
-
-  if (outboxRelay) void outboxRelay.trigger();
-  return createdOrder;
 }
 
 async function handleReservationResult(
   deps: OrderServiceDependencies,
   event: CreditReservationResultEvent
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const result = await repository.applyReservationResult(event);
-  if (result.outboxEvent && outboxRelay) {
-    void outboxRelay.trigger();
-  }
   return result.order;
 }
 
@@ -239,7 +231,7 @@ async function handleAcceptOrder(
   req?: AcceptOrderRequest,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const courierContactNote = validateOptionalText(req?.courierContactNote, 'courierContactNote', 255);
 
@@ -259,13 +251,7 @@ async function handleAcceptOrder(
     ...(courierUsername !== undefined && { courierUsername }),
   };
 
-  const accepted = await repository.acceptOrder(existing.id, courierId, courierContactNote, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return accepted;
+  return repository.acceptOrder(existing.id, courierId, courierContactNote, event);
 }
 
 async function handlePickupOrder(
@@ -274,7 +260,7 @@ async function handlePickupOrder(
   courierId: string,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -292,13 +278,7 @@ async function handlePickupOrder(
     ...(courierUsername !== undefined && { courierUsername }),
   };
 
-  const inTransit = await repository.pickupOrder(existing.id, courierId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return inTransit;
+  return repository.pickupOrder(existing.id, courierId, event);
 }
 
 async function handleDeliverOrder(
@@ -307,7 +287,7 @@ async function handleDeliverOrder(
   courierId: string,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -325,13 +305,7 @@ async function handleDeliverOrder(
     ...(courierUsername !== undefined && { courierUsername }),
   };
 
-  const delivered = await repository.deliverOrder(existing.id, courierId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return delivered;
+  return repository.deliverOrder(existing.id, courierId, event);
 }
 
 async function handleCompleteOrder(
@@ -339,7 +313,7 @@ async function handleCompleteOrder(
   orderId: string,
   requesterId: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -357,13 +331,7 @@ async function handleCompleteOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const completed = await repository.completeOrder(existing.id, requesterId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return completed;
+  return repository.completeOrder(existing.id, requesterId, event);
 }
 
 async function handleCancelOrder(
@@ -371,7 +339,7 @@ async function handleCancelOrder(
   orderId: string,
   requesterId: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -388,13 +356,7 @@ async function handleCancelOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const cancelled = await repository.cancelOrder(existing.id, requesterId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return cancelled;
+  return repository.cancelOrder(existing.id, requesterId, event);
 }
 
 async function handleAdminCancelOrder(
@@ -403,7 +365,7 @@ async function handleAdminCancelOrder(
   adminUserId: string,
   req: AdminCancelOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const reason = validateRequiredText(req?.reason, 'reason', 500);
 
   const existing = await repository.findOrderById(orderId);
@@ -421,19 +383,13 @@ async function handleAdminCancelOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const cancelled = await repository.adminCancelOrder(
+  return repository.adminCancelOrder(
     existing.id,
     adminUserId,
     reason,
     event,
     req?.expectedVersion
   );
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return cancelled;
 }
 
 async function handleAdminCompleteOrder(
@@ -442,7 +398,7 @@ async function handleAdminCompleteOrder(
   adminUserId: string,
   req: AdminCompleteOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const reason = validateRequiredText(req?.reason, 'reason', 500);
 
   const existing = await repository.findOrderById(orderId);
@@ -461,19 +417,13 @@ async function handleAdminCompleteOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const completed = await repository.adminCompleteOrder(
+  return repository.adminCompleteOrder(
     existing.id,
     adminUserId,
     reason,
     event,
     req?.expectedVersion
   );
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return completed;
 }
 
 async function handleAdminUnassignOrder(

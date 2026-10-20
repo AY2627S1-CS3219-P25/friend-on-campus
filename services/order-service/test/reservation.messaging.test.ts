@@ -21,8 +21,6 @@ import type { CreditReservationRequestEvent, CreditReservationResultEvent } from
 import { PrismaClient as OrderPrisma } from '../src/database/client';
 import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
 import { createOrderRepository } from '../src/repositories/order.repository';
-import { createRabbitMQPublisher } from '../src/messaging/event.publisher';
-import { createOutboxRelay } from '../src/messaging/outbox.relay';
 import { classifyReservationFailure, startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
 import { createCreditStore } from '../../credit-service/src/credits/store';
 import { createCreditService } from '../../credit-service/src/credits/service';
@@ -68,8 +66,6 @@ async function main() {
   connection.on('error', () => {});
   const channel = await connection.createConfirmChannel();
   const publish = createConfirmedPublisher(channel);
-  const publisher = createRabbitMQPublisher({ url, exchange });
-  const relay = createOutboxRelay({ prisma: orders, publisher });
   const results = createCreditOutbox(credit, { url, exchange });
   const orderRepo = createOrderRepository(orders);
   const orderHandler = {
@@ -83,6 +79,17 @@ async function main() {
   let creditConsumer: Awaited<ReturnType<typeof startCreditConsumer>> | undefined;
   let orderConsumer: Awaited<ReturnType<typeof startReservationConsumer>> | undefined;
   const emit = (event: { eventType: string; eventId: string }) => publish(exchange, event.eventType, Buffer.from(JSON.stringify(event)), { messageId: event.eventId });
+  async function flushOrderOutbox() {
+    const pending = await orders.outboxEvent.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+    });
+    for (const row of pending) {
+      if (!ids.includes(row.aggregateId)) continue;
+      await emit(JSON.parse(row.payload));
+      await orders.outboxEvent.update({ where: { id: row.id }, data: { status: 'DELIVERED' } });
+    }
+  }
   async function submit(rewardCredits = 15, expiresAt = new Date(Date.now() + 600000)) {
     const requesterId = randomUUID(); users.push(requesterId);
     await credits.initializeWallet(requesterId);
@@ -117,7 +124,7 @@ async function main() {
     const rows = await credit.creditOutboxEvent.findMany();
     return rows.map(row => JSON.parse(row.payload)).find(event => event.correlationId === id);
   };
-  async function pump() { await relay.processPending(); await results.processPending(); }
+  async function pump() { await flushOrderOutbox(); await results.processPending(); }
   try {
     // Provision durable routes before consumers start, just as definitions.json does in Compose.
     await channel.assertExchange(exchange, 'topic', { durable: true });
@@ -130,7 +137,7 @@ async function main() {
 
     const first = await submit();
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
-    await relay.processPending();
+    await flushOrderOutbox();
     assert.equal((await channel.checkQueue(cc.queue)).messageCount, 1);
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     creditConsumer = await startCreditConsumer(cc, credits);
@@ -162,7 +169,7 @@ async function main() {
 
     // Funds were reserved in time, but the success reaches Order only after expiry.
     const late = await submit(12, new Date(Date.now() + 1200));
-    await relay.processPending();
+    await flushOrderOutbox();
     await until(() => getResult(late.id), 'late reservation committed');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     await delay(1300);
@@ -204,7 +211,7 @@ async function main() {
 
     // Order status transition (PENDING -> OPEN) and order.created publication are also one transaction.
     await orderConsumer.close(); orderConsumer = undefined;
-    await relay.processPending();
+    await flushOrderOutbox();
     await until(() => getResult(rollback.id), 'result after retry');
     const faultDb = new Proxy(orders, { get(target, property) {
       if (property === '$transaction') return (operation: (tx: unknown) => Promise<unknown>) => target.$transaction(tx => operation(new Proxy(tx, {
@@ -263,7 +270,7 @@ async function main() {
     console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, PENDING order saga, offline consumers, persisted results, duplicate safety, insufficient funds, late-success expiry refund, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
-    await relay.stop(); await publisher.close(); await results.stop();
+    await results.stop();
     for (const cfg of [cc, oc]) {
       for (const queue of [cfg.queue, cfg.retryQueue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
       for (const ex of [cfg.retryExchange, cfg.deadLetterExchange]) await channel.deleteExchange(ex);

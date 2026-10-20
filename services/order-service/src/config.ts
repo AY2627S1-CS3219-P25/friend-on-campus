@@ -59,8 +59,4 @@ export const config = Object.freeze({
   expirySweeper: {
     intervalMs: integer('EXPIRY_SWEEPER_INTERVAL_MS', 30000, 5000),
   },
-  outboxRelay: {
-    intervalMs: integer('OUTBOX_RELAY_INTERVAL_MS', 2000, 500),
-    batchSize: integer('OUTBOX_BATCH_SIZE', 20, 1),
-  },
 });
