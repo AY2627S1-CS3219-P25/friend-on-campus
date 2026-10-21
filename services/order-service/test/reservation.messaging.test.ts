@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Exercise Credit result publication through Debezium and keep late-delivery cases behind an offline Order consumer.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
  * Scope: Updated reservation messaging integration test for Saga Approach B2 (PENDING/OPEN/REJECTED/EXPIRED orders and order.expired late-reservation refund).
  * Author review: Reviewed and verified by Yee Yan Hwee (yanhwee)
@@ -13,21 +17,20 @@
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by yanhwee)
+import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
+import { createRabbitPublisher, queueArguments } from '@campus-errand/messaging';
+import amqp from 'amqplib';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import amqp from 'amqplib';
-import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
-import { PrismaClient as OrderPrisma } from '../src/database/client';
-import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
-import { createOrderRepository } from '../src/repositories/order.repository';
-import { classifyReservationFailure, startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
-import { createCreditStore } from '../../credit-service/src/credits/store';
-import { createCreditService } from '../../credit-service/src/credits/service';
-import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../../credit-service/src/credits/consumer';
-import { createCreditOutbox } from '../../credit-service/src/messaging/outbox';
-import { createRabbitPublisher, queueArguments } from '@campus-errand/messaging';
+import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
+import { createCreditService } from '../../credit-service/src/credits/service';
+import { createCreditStore } from '../../credit-service/src/credits/store';
+import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
+import { PrismaClient as OrderPrisma } from '../src/database/client';
+import { classifyReservationFailure, reservationResultKeys, startReservationConsumer } from '../src/messaging/reservation.consumer';
+import { createOrderRepository } from '../src/repositories/order.repository';
 
 function testUrl(name: string) {
   const value = process.env[name];
@@ -58,7 +61,7 @@ async function main() {
   const credit = new CreditPrisma({ datasources: { db: { url: testUrl('CREDIT_TEST_DATABASE_URL') } } });
   const url = process.env.CREDIT_TEST_RABBITMQ_URL ?? 'amqp://credit_test:credit-test-dev@localhost:5672/campus';
   const prefix = `credit-test.saga-${randomUUID()}`;
-  const exchange = `${prefix}.events`;
+  const exchange = process.env.SAGA_TEST_EXCHANGE ?? 'credit-test.saga-cdc.events';
   const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`,
     deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
   const cc = config('credit'); const oc = config('order');
@@ -67,7 +70,6 @@ async function main() {
   const channel = await connection.createConfirmChannel();
   const rabbitPublisher = createRabbitPublisher({ url });
   const publish = rabbitPublisher.publish;
-  const results = createCreditOutbox(credit, { url, exchange });
   const orderRepo = createOrderRepository(orders);
   const orderHandler = {
     handleReservationResult: (event: CreditReservationResultEvent) => orderRepo.applyReservationResult(event),
@@ -125,7 +127,7 @@ async function main() {
     const rows = await credit.creditOutboxEvent.findMany();
     return rows.map(row => JSON.parse(row.payload)).find(event => event.correlationId === id);
   };
-  async function pump() { await flushOrderOutbox(); await results.processPending(); }
+  async function pump() { await flushOrderOutbox(); }
   try {
     // Provision durable routes before consumers start, just as definitions.json does in Compose.
     await channel.assertExchange(exchange, 'topic', { durable: true });
@@ -147,7 +149,7 @@ async function main() {
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     // A restart after the credit commit cannot lose the result waiting in its outbox.
     await creditConsumer.close();
-    await results.processPending();
+    await until(async () => (await channel.checkQueue(oc.queue)).messageCount === 1, 'CDC publishes the committed result');
     assert.equal((await channel.checkQueue(oc.queue)).messageCount, 1);
     orderConsumer = await startReservationConsumer(oc, orderHandler);
     await until(async () => (await orders.order.findUnique({ where: { id: first.id } }))?.status === 'OPEN', 'confirmed order');
@@ -169,11 +171,13 @@ async function main() {
     assert.equal((await credits.getWallet(rejected.requesterId)).availableCredits, 100);
 
     // Funds were reserved in time, but the success reaches Order only after expiry.
+    await orderConsumer.close(); orderConsumer = undefined;
     const late = await submit(12, new Date(Date.now() + 1200));
     await flushOrderOutbox();
     await until(() => getResult(late.id), 'late reservation committed');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     await delay(1300);
+    orderConsumer = await startReservationConsumer(oc, orderHandler);
     // Refund commands (order.expired) must survive infrastructure failures beyond the event budget.
     await creditConsumer.close();
     let refundAttempts = 0;
@@ -225,7 +229,6 @@ async function main() {
     } });
     await assert.rejects(createOrderRepository(faultDb).applyReservationResult(await getResult(rollback.id)), /Injected/);
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: rollback.id } })).status, 'PENDING');
-    await results.processPending();
     orderConsumer = await startReservationConsumer(oc, orderHandler);
     await until(async () => (await orders.order.findUnique({ where: { id: rollback.id } }))?.status === 'OPEN', 'order after consumer restart');
 
@@ -273,7 +276,6 @@ async function main() {
     console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, PENDING order saga, offline consumers, persisted results, duplicate safety, insufficient funds, late-success expiry refund, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
-    await results.stop();
     await rabbitPublisher.close();
     for (const cfg of [cc, oc]) {
       for (const queue of [cfg.queue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);

@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Recorded removal of clipboard copying logic from scripts/generate-jwt-keys.mjs and corresponding README/.env.example/CI updates.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Recorded student-app order lifecycle actions (Issue #132), D1 F3.1.5 durationMinutes input, admin DELIVERED dispute-cancel button, courier cancelled history inclusion, and UO1-UO6 E2E UI checks.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-5), date: 2026-10-19
 Scope: Recorded CI matrix consistency root-cause analysis and fix for the missing order-service messaging matrix entry.
 Author review: <to be completed by huangjiaxi1111>
@@ -3942,3 +3950,138 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `services/notification-service/test/messaging.integration.test.ts` — retry-path tests rewritten for native requeue; disclosure record added
 - `services/notification-service/test/helpers.ts` — merge: both disclosure records kept
 - `ai/usage-log.md` — merge: both sets of entries kept; this entry
+## 2026-10-21 18:42 SGT — Consolidate Documentation into `README.md` & Wiki, Remove `docs/`, and Slim Down `CLAUDE.md`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/consolidate-docs-and-slim-claude
+
+**Prompt (summarised):** Consolidate documentation so the team does not maintain duplicate docs across `docs/`, `README.md`, `CLAUDE.md`, and `friend-on-campus.wiki`: port CI/testing operational details from `docs/ci.md` into `README.md`, sync the newer D3/recent specifications from `docs/` into `friend-on-campus.wiki`, slim down `CLAUDE.md` and `.claude/agents/*.md` so they focus strictly on agent behavioral rules and repo orientation rather than duplicating system documentation, and remove `docs/`.
+
+**Usage scenario:** Documentation consolidation and agent configuration cleanup (allowed use).
+
+**Files changed / deleted:**
+- `README.md` — folded CI test-naming, static matrix validation, direct test environment variables (`*_TEST_DATABASE_URL`, `*_TEST_RABBITMQ_URL`), and `test-results/` artifact conventions from `docs/ci.md` into `Testing & Verification`, updated workspace count to 10 (2 apps, 5 services, 3 packages), removed `docs/` from the monorepo structure tree, and updated `System Documentation` links (`IN_TRANSIT` order status) to point to the project Wiki.
+- `CLAUDE.md` — slimmed down Sections 4, 5, 7, and 8 to focus on agent behavioral rules and verification requirements, updated workspace count to 10 and `backend` scope to `packages/**`, and removed duplicated system prose and `docs/` pointers.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes (`notifications/{events,store,routes}.ts` and `IN_TRANSIT` / `DISPUTED` in `OrderStatus`).
+- `docs/{README,architecture,ci,errand-specification,security}.md` [DELETED] — removed duplicate in-repo `docs/` directory after migrating content to `README.md` and `friend-on-campus.wiki`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 19:25 SGT — Fix Debezium Server Outbox Topic Replacement Property Escaping During D3 UAT
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/debezium-outbox-topic-replacement
+
+**Prompt (summarised):** Conduct comprehensive UAT and smoke testing for the upcoming Milestone D3 presentation across Docker Compose, `npm run dev`, API, messaging, and browser E2E flows, and address PR #155 review comments on `\\${routedByValue}` escaping documentation.
+
+**Usage scenario:** Debugging and bug fix during UAT verification (allowed use). Discovered that `campuserrand-debezium` (`quay.io/debezium/server:2.7`) was crash-looping with `java.lang.NullPointerException` at `io.debezium.server.DebeziumServer.configToProperties(DebeziumServer.java:202)` because Quarkus/SmallRye Config interpolated `${routedByValue}` in `debezium.transforms.outbox.route.topic.replacement=${routedByValue}` as a configuration expression and resolved `null`, preventing Order Service CDC outbox events from reaching RabbitMQ. Escaped the literal placeholder as `\\${routedByValue}` (`Properties.load` consumes one backslash, leaving `\${routedByValue}` for SmallRye Config).
+
+**Files changed:**
+- `docker/debezium/application.properties` — escaped `\\${routedByValue}` on `debezium.transforms.outbox.route.topic.replacement` and added an explanatory inline comment so `Properties.load` and SmallRye Config pass the literal `${routedByValue}` token to Debezium's `EventRouter` SMT.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 19:29 SGT — Standardize Outbox Publishing on Debezium and Trace Registration
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** main
+
+**Prompt (summarised):** Use Debezium instead of application outbox workers and check how User Service knows registration completed.
+
+**Usage scenario:** Implementation of the author's selected publishing mechanism and learning support (allowed use). Extended the existing Order CDC setup to User and Credit without schema changes. Removed their application polling publishers and User's direct RabbitMQ dependency. Traced registration: the User transaction commits account and outbox, then returns HTTP 201; Credit processes the registration separately and sends no wallet-ready outcome back to User. Independent infrastructure and registration/test work followed CLAUDE.md delegation rules. Read issue #21 acceptance criteria F4.6.1, F4.6.1.1 and F4.6.2 before implementation; full compliance is not claimed without runtime verification.
+
+**Files changed:**
+- `docker-compose.yml`, `docker-compose.test.yml`, `docker/debezium/{application,user,credit}.properties` — independent CDC connector state, User/Credit initial PENDING snapshots, and isolated saga connector configuration.
+- `scripts/ci/{run-all-tests,wait-for-cdc}.mjs`, `.github/workflows/ci.yml` — start and await isolated Credit CDC for reservation messaging tests.
+- `services/user-service/src/{index,config}.ts`, `src/auth/auth-module.ts`, `src/persistence/auth-repository.ts` — keep transactional event persistence and remove application publication paths and polling operations.
+- `services/user-service/src/messaging/{outbox,publisher}.ts`, `test/{outbox,publisher}.test.ts` — removed obsolete application publisher code and corresponding worker tests.
+- `services/user-service/test/{helpers,auth-module.test,admin-guard.integration.test}.ts` — retain event persistence fakes, verify registration event contents, and add real database commit/rollback coverage.
+- `services/user-service/{package.json,Dockerfile}`, `package-lock.json` — remove User messaging dependency and its container build/copy steps; sync lockfile offline.
+- `services/credit-service/src/index.ts`, `src/messaging/outbox.ts` — remove Credit polling publisher lifecycle and implementation.
+- `services/order-service/test/reservation.messaging.test.ts` — use actual Credit CDC and hold the Order consumer offline for delayed-result tests.
+- `scripts/uat/uat-cdc.mjs`, `package.json` — add HTTP-only registration, welcome-grant, reservation and refund CDC acceptance coverage to the existing acceptance category.
+- `README.md`, `CLAUDE.md`, `docs/{architecture,errand-specification}.md` — document implemented CDC publishing and existing registration completion semantics.
+- `ai/usage-log.md` — disclosure and this entry.
+
+**Validation:** JavaScript syntax, Compose configuration, whitespace and static CI matrix checks passed (12 workspace suites, 3 system-test commands). Initial typecheck and unit suites failed because the local RabbitMQ dependency and generated Prisma clients were missing. `npm ci` failed with restricted-network ENOTFOUND; escalated installation was declined by the user. No install workaround, image pull/build or full Docker suite was attempted after that denial. Application migration remains uncommitted and unverified at runtime.
+
+## 2026-10-21 21:23 SGT — Resolve Merge Conflicts on Debezium Refactor PR
+
+**Tool:** Codex (model: GPT-5)
+**Author:** huangjiaxi1111
+**Branch:** fix/standardize-debezium
+
+**Prompt (summarised):** Resolve merge conflicts in the pull request for Debezium outbox standardization.
+
+**Usage scenario:** Git merge conflict resolution and debugging assistance (allowed use). Merged `origin/main` into the PR branch, resolved file conflicts to preserve current upstream documentation consolidation and Debezium escaping fix, and kept this PR’s Debezium refactor usage-log record. Author still decides final review/approval.
+
+**Files changed:**
+- `CLAUDE.md` — resolved merge conflict by keeping upstream consolidated guidance.
+- `ai/usage-log.md` — resolved conflict by keeping both branches' log history and appended this entry.
+- `docker/debezium/application.properties` — resolved conflict in outbox routing replacement with escaped `\\${routedByValue}`.
+- `docs/{README,architecture,ci,errand-specification,security}.md` — kept upstream deletions from `main` during merge.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md`, `README.md` — merged upstream updates from `main`.
+
+## 2026-10-21 22:28 SGT — Complete Order Lifecycle UI, D1 F3.1.5 Acceptance Duration, Admin Dispute Cancel, and E2E Browser UI Checks (Issue #132)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-order-lifecycle-actions
+
+**Prompt (summarised):** Check whether Order functionality (frontend and backend) is complete across the entire lifecycle against the Milestone D1 specification (`F3`, `F4`, `F5`, `F7.1`), implement the missing student-app order lifecycle actions (`pickup`, `deliver`, `complete`, `cancel`, and history inclusion) tracked in Issue #132, expose `durationMinutes` (`30`–`1440` mins, default `30`) in `PostErrandPage`, expose `Dispute Cancel` on `DELIVERED` orders in the Admin Portal, and add E2E browser UI checks (`UO1`–`UO6`) in `scripts/uat/uat-d2-ui.mjs`.
+
+**Usage scenario:** Frontend/backend alignment against Milestone D1 requirements and E2E Playwright UI test extension (allowed use).
+
+**Files changed:**
+- `apps/student-app/src/api/orders.ts` — added `pickupOrderById`, `deliverOrderById`, `completeOrderById`, and `cancelOrderById` helpers sharing `postOrderLifecycleAction` (preserving 400/403/409 backend error messages), and included `activity.data.history` in `fetchCombinedOrders`.
+- `apps/student-app/src/pages/TasksPage.tsx` — added courier-side **Mark Picked Up** (`ACCEPTED` → `IN_TRANSIT`) and **Mark Delivered** (`IN_TRANSIT` → `DELIVERED`) buttons on accepted task cards, requester-side **Confirm Delivery** (`DELIVERED` → `COMPLETED`) and **Cancel Errand** (`OPEN`/`ACCEPTED` → `CANCELLED`) buttons on posted task cards, a `Refresh` button, and `data-testid` attributes for E2E verification.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — added `durationMinutes` (`30`–`1440` minutes, default `30`) input to `PostErrandFormData` and the Post Errand form per D1 requirement `F3.1.5`.
+- `apps/student-app/src/App.tsx` — wired `handleTaskOrderAction`, `taskActionInFlight`, `onNotification` order reload, and `formData.durationMinutes` to `TasksPage` and `PostErrandPage`, displaying action notices, refreshing wallet credits on completion/cancellation, and surfacing backend 400/403/409 errors in the alert banner.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — updated `onOpenErrand` docstring now that `TasksPage` provides the confirm-delivery action.
+- `apps/admin-portal/src/pages/OrdersPage.tsx` — added the **Dispute Cancel** button alongside **Force Complete** on `DELIVERED` orders (desktop and mobile views) to match backend `adminCancelOrder` (`OPEN`, `ACCEPTED`, `IN_TRANSIT`, `DELIVERED`).
+- `services/order-service/src/repositories/order.repository.ts` & `services/order-service/test/helpers.ts` — included `CANCELLED` orders where `courierId === userId` (e.g., admin dispute-cancelled in-transit/delivered orders) in `getUserActivity` `history`.
+- `scripts/uat/uat-d2-ui.mjs` — added `UO1`–`UO6` Playwright E2E browser checks covering posting with default 30-min duration, courier claim, pickup, delivery, requester completion, requester cancellation, and history persistence.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 23:00 SGT — Simplify `scripts/generate-jwt-keys.mjs` to Print Directly to Standard Output
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-generate-jwt-keys
+
+**Prompt (summarised):** Remove the clipboard functionality in `scripts/generate-jwt-keys.mjs` so it prints directly to the terminal, and update `README.md` in a dedicated worktree.
+
+**Usage scenario:** Refactoring and documentation improvement (allowed use). Removed OS-specific `pbcopy`/`clip.exe`/`xclip` clipboard spawning and `--print` flag handling from `scripts/generate-jwt-keys.mjs` and updated documentation and CI invocations.
+
+**Files changed:**
+- `scripts/generate-jwt-keys.mjs` — removed clipboard spawning and `--print` flag handling, printing `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` directly to `stdout`.
+- `README.md`, `.env.example` — updated `npm run generate:jwt-keys` instructions to reflect direct terminal output.
+- `.github/workflows/ci.yml` — removed obsolete `--print` flag from `node scripts/generate-jwt-keys.mjs` invocations.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 23:10 SGT — Resolve Merge Conflict with `main` on PR #158
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-generate-jwt-keys
+
+**Prompt (summarised):** Resolve merge conflict on PR #158.
+
+**Usage scenario:** Git merge conflict resolution (allowed use). Merged `origin/main` (PR #157) into `chore/simplify-generate-jwt-keys` and preserved both branches' `ai/usage-log.md` entries in chronological order.
+
+**Files changed:**
+- `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/simplify-generate-jwt-keys` plus this record.
+
+## 2026-10-21 23:40 SGT — Merge `main` (PRs #154–#158) into PR #140 again
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Continue the release handoff: PR #140 had become `CONFLICTING` after PRs #154–#158 were merged to `main`.
+
+**Usage scenario:** Git merge conflict resolution (allowed use). Merged `origin/main` @ 1bcd842 into the branch; the only conflict was `ai/usage-log.md`, resolved by keeping both branches' entries. Notification-service code and tests were not touched by `main` since the previous merge (a2aaa57).
+
+**Files changed:**
+- `ai/usage-log.md` — kept both sides of the conflict and appended this entry.
