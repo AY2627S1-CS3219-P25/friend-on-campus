@@ -3927,3 +3927,18 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 20:05 SGT — PR #140: merge main and rewrite the retry-path tests for native requeue
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Release preparation: check out and pull `main`, run the stack on Docker, smoke/UAT-test it, screenshot the pages, refresh the wiki, and merge PR #140 if it can be merged.
+
+**Usage scenario:** Debugging assistance and test code. PR #140 conflicted with `main` (`ai/usage-log.md`, `test/helpers.ts`: both sides kept) and its two retry-path tests no longer compiled after PR #145 replaced the retry queue with native quorum-queue redelivery (`MessagingConfig.retryQueue` gone). The two tests now assert the native path: one transient failure is requeued and delivered; a failure that outlasts `retryLimit` is dead-lettered with the broker's `x-death` / `x-first-death-*` headers after `retryLimit + 1` attempts. The author reviews the tests and decides on the merge.
+
+**Files changed:**
+- `services/notification-service/test/messaging.integration.test.ts` — retry-path tests rewritten for native requeue; disclosure record added
+- `services/notification-service/test/helpers.ts` — merge: both disclosure records kept
+- `ai/usage-log.md` — merge: both sets of entries kept; this entry
