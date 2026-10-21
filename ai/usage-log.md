@@ -3833,3 +3833,17 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `package.json` — added `"db:deploy": "npm run db:deploy --workspaces --if-present"`.
 - `README.md` — updated Quick Start with Docker, fixed Local Development Workflow step ordering (`db:deploy` before CDC and `db:seed`), and updated `test:seed`, `test:acceptance`, and `scripts/ci/create-test-database.mjs` references.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-22 00:41 SGT — Apply Non-Breaking `npm audit fix` Security Updates in `package-lock.json`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/npm-audit-fix
+
+**Prompt (summarised):** Explain why `npm install` reports 13 vulnerabilities, then apply the non-breaking `npm audit fix` updates (`prisma`, `proxy-addr`, `source-map-js`, `vite`) in a dedicated worktree and branch, commit, and open a mergeable PR.
+
+**Usage scenario:** Dependency maintenance and debugging assistance (allowed use). Ran `npm audit fix` (without `--force` to preserve Tailwind CSS v3 compatibility) to resolve 6 non-breaking advisories in `package-lock.json` (`proxy-addr`, `source-map-js`, `vite` -> `6.4.5`, and `prisma` / `deepmerge-ts`).
+
+**Files changed:**
+- `package-lock.json` — updated locked versions for `proxy-addr`, `source-map-js`, `vite`, and `prisma` via `npm audit fix`.
+- `ai/usage-log.md` — this entry.
