@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Consolidated CI/testing documentation from docs/ci.md into Testing & Verification, removed docs/ from the monorepo tree, and updated System Documentation links to point to the project Wiki.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated local development server commands, test category table, and monorepo structure tree for scripts/dev.mjs, scripts/prisma-migrate.mjs, and test:e2e:api.
 Author review: <to be completed by yanhwee>
 
@@ -202,8 +206,6 @@ npm run dev -w apps/admin-portal            # Port 5174 (Admin Web Portal)
 
 ## 🧪 Testing & Verification
 
-CI jobs, prerequisites and the static test-matrix rules are documented in [`docs/ci.md`](./docs/ci.md).
-
 ### Full Isolated Suite
 Creates a uniquely named Compose project on free loopback ports, runs every category below (installing Chromium if needed), and removes only that project's containers and volumes:
 ```bash
@@ -215,13 +217,18 @@ npm test
 | :--- | :--- |
 | `npm run test:unit` | Unit suites (Node's built-in `node --test` via `tsx`, no framework): user, supplier, order and notification services |
 | `npm run test:integration` | PostgreSQL-backed suites: user-service admin guard, notification store and routes, credit-service |
-| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service |
+| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service (creates isolated `credit_test_db` and `order_test_db` databases automatically) |
 | `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation |
 | `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, then `scripts/uat/uat-notifications.mjs` |
 | `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
-| `npm run ci:validate-tests` | Checks package test scripts against the static CI matrices |
+| `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
+
+### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
+- **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
+- **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
+- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) and uploaded as CI workflow artifacts.
 
 ### Automated Milestone D2 End-to-End Suite
 Generates a test-only Ed25519 key pair and verifies account registration followed by
@@ -291,7 +298,6 @@ friend-on-campus/
 ├── data/
 │   ├── csv/                     # NUS campus supplier seed datasets
 │   └── images/                  # Supplier images
-├── docs/                        # System specifications and CI documentation
 ├── ai/
 │   └── usage-log.md             # AI assistance usage disclosures per course policy
 ├── docker-compose.yml           # Full stack
@@ -300,12 +306,14 @@ friend-on-campus/
 
 ---
 
-## 📄 System Documentation & Specifications
+## 📄 System Documentation & Project Wiki
 
-- **Documentation Index**: [`docs/README.md`](./docs/README.md)
-- **System Architecture Specification**: [`docs/architecture.md`](./docs/architecture.md)
-- **Errand Lifecycle & Credit Economy Specification**: [`docs/errand-specification.md`](./docs/errand-specification.md)
-- **Security & Access Control Specification**: [`docs/security.md`](./docs/security.md)
-- **Continuous Integration & Testing**: [`docs/ci.md`](./docs/ci.md)
-- **Project wiki (milestone pages)**: [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)
-- **Claude Code set-up for this repo**: [`.claude/README.md`](./.claude/README.md)
+Full architectural documentation, domain specifications, and milestone presentation guides are maintained in the **[Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**:
+
+- **[Wiki Home](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**: Project overview & milestone navigation
+- **[System Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)**: Microservice topology, Debezium CDC & polling outbox relays, RabbitMQ quorum queues, and reservation saga choreography
+- **[Authentication & Roles](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Authentication-and-Roles)**: Ed25519 access tokens, rotating opaque refresh cookies, RBAC matrix, and least-privilege database/broker identities
+- **[Services & Domain Lifecycle](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Services)**: Order state machine (`PENDING` → `OPEN` → `ACCEPTED` → `PICKED_UP` → `DELIVERED` → `COMPLETED`), closed credit economy & escrow ledger, and real-time notifications
+- **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`)
+- **[Testing & Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Testing-and-Evidence)** & **[Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)**: Automated test matrix, acceptance evidence, and Milestone D3 presentation runbook
+- **Claude Code Set-up**: [`.claude/README.md`](./.claude/README.md) & [`CLAUDE.md`](./CLAUDE.md)

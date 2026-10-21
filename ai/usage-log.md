@@ -3656,3 +3656,20 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 18:42 SGT — Consolidate Documentation into `README.md` & Wiki, Remove `docs/`, and Slim Down `CLAUDE.md`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/consolidate-docs-and-slim-claude
+
+**Prompt (summarised):** Consolidate documentation so the team does not maintain duplicate docs across `docs/`, `README.md`, `CLAUDE.md`, and `friend-on-campus.wiki`: port CI/testing operational details from `docs/ci.md` into `README.md`, sync the newer D3/recent specifications from `docs/` into `friend-on-campus.wiki`, slim down `CLAUDE.md` and `.claude/agents/*.md` so they focus strictly on agent behavioral rules and repo orientation rather than duplicating system documentation, and remove `docs/`.
+
+**Usage scenario:** Documentation consolidation and agent configuration cleanup (allowed use).
+
+**Files changed / deleted:**
+- `README.md` — folded CI test-naming, static matrix validation, and `test-results/` artifact conventions from `docs/ci.md` into `Testing & Verification`, removed `docs/` from the monorepo structure tree, and updated `System Documentation` links to point to the project Wiki.
+- `CLAUDE.md` — slimmed down Sections 4, 5, 7, and 8 to focus on agent behavioral rules and verification requirements and removed duplicated system prose and `docs/` pointers.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes.
+- `docs/{README,architecture,ci,errand-specification,security}.md` [DELETED] — removed duplicate in-repo `docs/` directory after migrating content to `README.md` and `friend-on-campus.wiki`.
+- `ai/usage-log.md` — this entry.
