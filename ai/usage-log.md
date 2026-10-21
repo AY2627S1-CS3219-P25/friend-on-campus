@@ -3622,3 +3622,17 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `.github/workflows/ci.yml` — simplified `acceptance-tests` and `browser-uat` jobs to upload `test-results/**` directly without redundant `ci-artifacts/` wrapper steps.
 - `.claude/PLUGINS.md`, `.claude/agents/reviewer.md` — removed obsolete `docs/evidence/` and `docs/requirements/` references.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 18:16 SGT — Remove Redundant Grants in `01-init-databases.sql`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-postgres-init
+
+**Prompt (summarised):** Ask whether `docker/postgres-init/01-init-databases.sql` needs to be that long, and trim the redundant `GRANT ALL PRIVILEGES ON DATABASE`, `\connect`, `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES` blocks already covered by `CREATE DATABASE ... OWNER` on PostgreSQL 16.
+
+**Usage scenario:** SQL initialization script cleanup and boilerplate removal (allowed use).
+
+**Files changed:**
+- `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
+- `ai/usage-log.md` — this entry.
