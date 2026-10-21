@@ -20,9 +20,9 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
-import { describe, it, before, after } from 'node:test';
-import assert from 'node:assert/strict';
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
+import assert from 'node:assert/strict';
+import { after, before, describe, it } from 'node:test';
 import { createApp } from '../src/app';
 import { createAuthModule } from '../src/auth/auth-module';
 import { hashPassword } from '../src/auth/password';

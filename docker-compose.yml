@@ -185,11 +185,8 @@ services:
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
       JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      RABBITMQ_URL: amqp://user_service:user-service-dev@rabbitmq:5672/campus
     depends_on:
       postgres:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     healthcheck:
       test:
@@ -381,9 +378,9 @@ services:
       start_period: 60s
 
   # AI-generated (edited by yanhwee): log-based Debezium Server Outbox CDC connector
-  debezium:
+  debezium-order:
     image: quay.io/debezium/server:2.7
-    container_name: campuserrand-debezium
+    container_name: campuserrand-debezium-order
     restart: unless-stopped
     volumes:
       - ./docker/debezium/application.properties:/debezium/conf/application.properties:ro
@@ -396,7 +393,41 @@ services:
       order-service:
         condition: service_healthy
 
+  # AI-generated (edited by huangjiaxi1111)
+  debezium-user:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-user
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/user.properties:/debezium/conf/application.properties:ro
+      - debezium_user_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+
+  # AI-generated (edited by huangjiaxi1111)
+  debezium-credit:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-credit
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/credit.properties:/debezium/conf/application.properties:ro
+      - debezium_credit_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      credit-service:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   rabbitmq_data:
   debezium_data:
+  debezium_user_data:
+  debezium_credit_data:

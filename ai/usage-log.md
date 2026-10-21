@@ -3687,3 +3687,45 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `docker/debezium/application.properties` — escaped `\\${routedByValue}` on `debezium.transforms.outbox.route.topic.replacement` and added an explanatory inline comment so `Properties.load` and SmallRye Config pass the literal `${routedByValue}` token to Debezium's `EventRouter` SMT.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 19:29 SGT — Standardize Outbox Publishing on Debezium and Trace Registration
+
+**Tool:** Codex (model: GPT-6)
+**Author:** huangjiaxi1111
+**Branch:** main
+
+**Prompt (summarised):** Use Debezium instead of application outbox workers and check how User Service knows registration completed.
+
+**Usage scenario:** Implementation of the author's selected publishing mechanism and learning support (allowed use). Extended the existing Order CDC setup to User and Credit without schema changes. Removed their application polling publishers and User's direct RabbitMQ dependency. Traced registration: the User transaction commits account and outbox, then returns HTTP 201; Credit processes the registration separately and sends no wallet-ready outcome back to User. Independent infrastructure and registration/test work followed CLAUDE.md delegation rules. Read issue #21 acceptance criteria F4.6.1, F4.6.1.1 and F4.6.2 before implementation; full compliance is not claimed without runtime verification.
+
+**Files changed:**
+- `docker-compose.yml`, `docker-compose.test.yml`, `docker/debezium/{application,user,credit}.properties` — independent CDC connector state, User/Credit initial PENDING snapshots, and isolated saga connector configuration.
+- `scripts/ci/{run-all-tests,wait-for-cdc}.mjs`, `.github/workflows/ci.yml` — start and await isolated Credit CDC for reservation messaging tests.
+- `services/user-service/src/{index,config}.ts`, `src/auth/auth-module.ts`, `src/persistence/auth-repository.ts` — keep transactional event persistence and remove application publication paths and polling operations.
+- `services/user-service/src/messaging/{outbox,publisher}.ts`, `test/{outbox,publisher}.test.ts` — removed obsolete application publisher code and corresponding worker tests.
+- `services/user-service/test/{helpers,auth-module.test,admin-guard.integration.test}.ts` — retain event persistence fakes, verify registration event contents, and add real database commit/rollback coverage.
+- `services/user-service/{package.json,Dockerfile}`, `package-lock.json` — remove User messaging dependency and its container build/copy steps; sync lockfile offline.
+- `services/credit-service/src/index.ts`, `src/messaging/outbox.ts` — remove Credit polling publisher lifecycle and implementation.
+- `services/order-service/test/reservation.messaging.test.ts` — use actual Credit CDC and hold the Order consumer offline for delayed-result tests.
+- `scripts/uat/uat-cdc.mjs`, `package.json` — add HTTP-only registration, welcome-grant, reservation and refund CDC acceptance coverage to the existing acceptance category.
+- `README.md`, `CLAUDE.md`, `docs/{architecture,errand-specification}.md` — document implemented CDC publishing and existing registration completion semantics.
+- `ai/usage-log.md` — disclosure and this entry.
+
+**Validation:** JavaScript syntax, Compose configuration, whitespace and static CI matrix checks passed (12 workspace suites, 3 system-test commands). Initial typecheck and unit suites failed because the local RabbitMQ dependency and generated Prisma clients were missing. `npm ci` failed with restricted-network ENOTFOUND; escalated installation was declined by the user. No install workaround, image pull/build or full Docker suite was attempted after that denial. Application migration remains uncommitted and unverified at runtime.
+
+## 2026-10-21 21:23 SGT — Resolve Merge Conflicts on Debezium Refactor PR
+
+**Tool:** Codex (model: GPT-5)
+**Author:** huangjiaxi1111
+**Branch:** fix/standardize-debezium
+
+**Prompt (summarised):** Resolve merge conflicts in the pull request for Debezium outbox standardization.
+
+**Usage scenario:** Git merge conflict resolution and debugging assistance (allowed use). Merged `origin/main` into the PR branch, resolved file conflicts to preserve current upstream documentation consolidation and Debezium escaping fix, and kept this PR’s Debezium refactor usage-log record. Author still decides final review/approval.
+
+**Files changed:**
+- `CLAUDE.md` — resolved merge conflict by keeping upstream consolidated guidance.
+- `ai/usage-log.md` — resolved conflict by keeping both branches' log history and appended this entry.
+- `docker/debezium/application.properties` — resolved conflict in outbox routing replacement with escaped `\\${routedByValue}`.
+- `docs/{README,architecture,ci,errand-specification,security}.md` — kept upstream deletions from `main` during merge.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md`, `README.md` — merged upstream updates from `main`.

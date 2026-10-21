@@ -1,5 +1,4 @@
 // AI Assistance Disclosure:
-//
 // Tool: Google Antigravity Agent, date: 2026-10-21
 // Scope: Standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (test-results/screenshots and test-results/uat-d2-ui-results.json) instead of docs/evidence/ or os.tmpdir().
 // Author review: <to be completed by author after review>
@@ -30,12 +29,12 @@
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
 // Screenshots go to test-results/screenshots/<check>-<desktop|mobile>.png (or SHOTS);
 // results to test-results/uat-d2-ui-results.json (or UAT_OUT).
-import { chromium } from 'playwright';
-import { randomUUID } from 'node:crypto';
 import amqp from 'amqplib';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 
 const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;

@@ -8,7 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
-    "test:unit": "node --import tsx --test test/app.test.ts test/auth-module.test.ts test/outbox.test.ts test/password.test.ts test/publisher.test.ts test/tokens.test.ts test/user-module.test.ts test/validation.test.ts",
+    "test:unit": "node --import tsx --test test/app.test.ts test/auth-module.test.ts test/password.test.ts test/tokens.test.ts test/user-module.test.ts test/validation.test.ts",
     "test:integration": "node --import tsx --test test/admin-guard.integration.test.ts",
     "build": "tsc",
     "db:generate": "prisma generate --schema prisma/schema.prisma",
@@ -19,7 +19,6 @@
   "dependencies": {
     "@campus-errand/auth": "*",
     "@campus-errand/common-dtos": "*",
-    "@campus-errand/messaging": "*",
     "@prisma/client": "^6.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
