@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Assigned deterministic UUIDs on supplier row creation so SUP-001 and SUP-002 align with Order Service sample order fixtures.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: building/floor are now required columns (part of the new location-uniqueness constraint), so the seed
  * script fails loudly with a clear error if a CSV row is missing either, instead of silently seeding a null
@@ -7,6 +11,7 @@
  * future CSV edits, not a fix for a live problem.
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by yanhwee)
 import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from './client';
@@ -146,6 +151,7 @@ async function seedSuppliers(csvPath: string) {
 
   for (let i = 0; i < records.length; i++) {
     const r = records[i];
+    const id = `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`;
     const code = `SUP-${String(i + 1).padStart(3, '0')}`;
     const building = requireField(r.Building, 'Building', r.Name);
     const floor = requireField(r.Floor, 'Floor', r.Name);
@@ -173,7 +179,7 @@ async function seedSuppliers(csvPath: string) {
     const existing = await prisma.supplier.findUnique({ where: { supplierCode: code } });
     await prisma.supplier.upsert({
       where: { supplierCode: code },
-      create: data,
+      create: { id, ...data },
       update: {
         name: data.name,
         campusZone: data.campusZone,
