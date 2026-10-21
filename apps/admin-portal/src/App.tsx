@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Removed dead AuditPage view and wired HealthPage to live /health and /ready probes across all 5 microservices.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic 3856-line Admin Portal App.tsx into modular pages, components, hooks, constants, and API modules while preserving 100% UI behavior and UAT selectors.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -39,6 +43,11 @@ import {
   toggleUserStatusApi,
 } from './api/users';
 import { executeAdminOrderActionApi, fetchOrdersApi } from './api/orders';
+import {
+  fetchAllServicesHealthApi,
+  SERVICE_HEALTH_SPECS,
+  ServiceHealthStatus,
+} from './api/health';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { AdminSidebar } from './components/AdminSidebar';
 import { AdminHeader } from './components/AdminHeader';
@@ -50,7 +59,6 @@ import { SuppliersPage } from './pages/SuppliersPage';
 import { UsersPage } from './pages/UsersPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { HealthPage } from './pages/HealthPage';
-import { AuditPage } from './pages/AuditPage';
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<AdminNavSection>('suppliers');
@@ -154,6 +162,19 @@ export default function App() {
   const [orderActionError, setOrderActionError] = useState<string | null>(null);
   const [isConflictError, setIsConflictError] = useState(false);
 
+  // Microservice Health state
+  const [servicesHealth, setServicesHealth] = useState<ServiceHealthStatus[]>(() =>
+    SERVICE_HEALTH_SPECS.map((spec) => ({
+      ...spec,
+      overall: 'ONLINE',
+      liveness: 'UP',
+      readiness: 'READY',
+      latencyMs: null,
+      checkedAt: '',
+    }))
+  );
+  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+
   const {
     currentRole,
     authToken,
@@ -235,6 +256,25 @@ export default function App() {
       setIsLoadingOrders(false);
     }
   };
+
+  const fetchServicesHealth = async () => {
+    setIsLoadingHealth(true);
+    try {
+      const results = await fetchAllServicesHealthApi();
+      setServicesHealth(results);
+    } finally {
+      setIsLoadingHealth(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeNav !== 'health') return;
+    void fetchServicesHealth();
+    const intervalId = window.setInterval(() => {
+      void fetchServicesHealth();
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [activeNav]);
 
   const openOrderAction = (order: OrderDTO, type: 'cancel' | 'complete' | 'unassign') => {
     setTargetOrderForAction(order);
@@ -758,6 +798,7 @@ export default function App() {
         setActiveNav={setActiveNav}
         fetchOrders={fetchOrders}
         fetchUsers={fetchUsers}
+        fetchServicesHealth={fetchServicesHealth}
         handleLogout={handleLogout}
         isLoggingOut={isLoggingOut}
       />
@@ -773,9 +814,11 @@ export default function App() {
           isLoading={isLoading}
           isLoadingOrders={isLoadingOrders}
           isLoadingUsers={isLoadingUsers}
+          isLoadingHealth={isLoadingHealth}
           fetchSuppliers={fetchSuppliers}
           fetchOrders={fetchOrders}
           fetchUsers={fetchUsers}
+          fetchServicesHealth={fetchServicesHealth}
           setAddFormErrors={setAddFormErrors}
           setAddDuplicateConflict={setAddDuplicateConflict}
           setIsAddOpen={setIsAddOpen}
@@ -872,9 +915,13 @@ export default function App() {
             />
           )}
 
-          {activeNav === 'health' && <HealthPage />}
-
-          {activeNav === 'audit' && <AuditPage />}
+          {activeNav === 'health' && (
+            <HealthPage
+              servicesHealth={servicesHealth}
+              isLoadingHealth={isLoadingHealth}
+              onRefresh={fetchServicesHealth}
+            />
+          )}
         </main>
       </div>
 

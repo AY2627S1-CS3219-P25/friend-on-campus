@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Wired database readiness check (SELECT 1) into createApp() for /ready probe.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted Express app factory to src/app.ts and config to src/config.ts; added graceful SIGINT/SIGTERM shutdown.
  * Author review: yanhwee
@@ -25,7 +29,16 @@ import { createApp } from './app';
 import { config } from './config';
 import { prisma } from './database/client';
 
-const app = createApp();
+const app = createApp({
+  isReady: async () => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return true;
+    } catch {
+      return false;
+    }
+  },
+});
 
 const server = app.listen(config.port, () => {
   console.log(`🚀 [Supplier Service] running on port ${config.port}`);

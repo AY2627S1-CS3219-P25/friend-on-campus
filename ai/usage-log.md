@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-22
+Scope: Recorded removal of dead AuditPage placeholder in admin-portal and live wiring of HealthPage to /health and /ready probes across all 5 microservices.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Recorded removal of clipboard copying logic from scripts/generate-jwt-keys.mjs and corresponding README/.env.example/CI updates.
 Author review: <to be completed by yanhwee>
@@ -3787,3 +3791,21 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/simplify-generate-jwt-keys` plus this record.
+
+## 2026-10-22 00:06 SGT — Remove Dead `AuditPage` Placeholder & Wire `HealthPage` to Live Microservice `/health` and `/ready` Probes
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/admin-live-health-probes
+
+**Prompt (summarised):** Audit all mandatory features (`M1`–`M7`) and D3 requirements, remove the dead `Audit & Disputes` placeholder tab (`AuditPage.tsx`) from `apps/admin-portal` (since dispute resolution and audit reasons live in `OrdersPage.tsx`), and wire `Microservice Health` (`HealthPage.tsx`) to live `/health` and `/ready` probes across all 5 backend services.
+
+**Usage scenario:** Requirements verification, dead-code removal, and implementation of author-approved live health/readiness probing (allowed use).
+
+**Files changed:**
+- `apps/admin-portal/src/pages/AuditPage.tsx` — deleted dead placeholder component.
+- `apps/admin-portal/src/constants.ts`, `src/components/AdminSidebar.tsx`, `src/components/AdminHeader.tsx`, `src/App.tsx` — removed `'audit'` nav state and buttons; wired `fetchServicesHealth` to the sidebar, mobile nav, top Refresh button, and 15-second polling while on the `health` view.
+- `apps/admin-portal/src/api/health.ts` (new), `src/pages/HealthPage.tsx` — added live parallel `/health` (liveness) and `/ready` (readiness) probing with latency measurement and accurate PostgreSQL + RabbitMQ/CDC storage labels across all 5 microservices.
+- `services/supplier-service/src/app.ts`, `src/index.ts`, `test/supplierRoutes.test.ts` — added `GET /ready` readiness endpoint (`SELECT 1` DB check) and unit test coverage so all 5 services expose both `/health` and `/ready`.
+- `gateway/nginx.conf`, `apps/admin-portal/vite.config.ts` — routed `/api/health/{user,supplier,order,credit,notification}/{health,ready}` to each upstream service's `/health` and `/ready` endpoints in both Docker Compose and host-based Vite dev modes.
+- `ai/usage-log.md` — this entry.
