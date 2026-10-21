@@ -102,16 +102,27 @@ export function createRabbitPublisher(config: { url: string; connectionTimeoutMs
         publisher = conn.createPublisher({ confirm: true, maxAttempts: 1 });
       }
       let returned = false;
+      let timedOut = false;
+      const timer = new AbortController();
       const onReturn = () => { returned = true; };
+      const confirmTimeout = delay(timeout, undefined, { signal: timer.signal }).then(() => {
+        timedOut = true;
+        throw new Error('RabbitMQ publish confirm timed out');
+      });
+      confirmTimeout.catch(() => {});
       publisher.once('basic.return', onReturn);
       try {
-        await publisher.send({ exchange, routingKey, mandatory: true, durable: true, ...options }, body);
+        await Promise.race([
+          publisher.send({ exchange, routingKey, mandatory: true, durable: true, ...options }, body),
+          confirmTimeout,
+        ]);
         await immediate();
         if (returned) throw new Error('RabbitMQ message was unroutable');
       } catch (error) {
-        if (!connection?.ready) await close();
+        if (timedOut || !connection?.ready) await close();
         throw error;
       } finally {
+        timer.abort();
         publisher?.removeListener('basic.return', onReturn);
       }
     });

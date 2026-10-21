@@ -11,6 +11,9 @@
 // AI-generated (edited by huangjiaxi1111, yanhwee)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
+import { Connection } from 'rabbitmq-client';
+import { createRabbitPublisher } from '@campus-errand/messaging';
 import type { UserRegisteredEvent } from '@campus-errand/common-dtos';
 import {
   createRabbitMQPublisher,
@@ -78,6 +81,46 @@ describe('createRabbitMQPublisher error tolerance', () => {
     };
 
     assert.equal(await publisher.publishUserRegistered(event), false);
+  });
+
+  it('rejects when message is returned unroutable (basic.return)', async (t) => {
+    t.mock.method(Connection.prototype as unknown as { _connect: () => unknown }, '_connect', () => undefined);
+    t.mock.method(Connection.prototype, 'onConnect', async () => {});
+    t.mock.method(Connection.prototype, 'close', async () => {});
+    t.mock.method(Connection.prototype, 'createPublisher', () => {
+      const pub = new EventEmitter() as EventEmitter & { send: () => Promise<void>; close: () => Promise<void> };
+      pub.send = async () => {
+        pub.emit('basic.return', {});
+      };
+      pub.close = async () => {};
+      return pub as unknown as ReturnType<Connection['createPublisher']>;
+    });
+
+    const rabbit = createRabbitPublisher({ url: 'amqp://127.0.0.1:5672/campus' });
+    await assert.rejects(
+      rabbit.publish('campus.events', 'user.registered', Buffer.from('{}')),
+      /RabbitMQ message was unroutable/,
+    );
+    await rabbit.close();
+  });
+
+  it('rejects and resets connection when publish confirm times out', async (t) => {
+    t.mock.method(Connection.prototype as unknown as { _connect: () => unknown }, '_connect', () => undefined);
+    t.mock.method(Connection.prototype, 'onConnect', async () => {});
+    t.mock.method(Connection.prototype, 'close', async () => {});
+    t.mock.method(Connection.prototype, 'createPublisher', () => {
+      const pub = new EventEmitter() as EventEmitter & { send: () => Promise<void>; close: () => Promise<void> };
+      pub.send = () => new Promise<void>(() => {});
+      pub.close = async () => {};
+      return pub as unknown as ReturnType<Connection['createPublisher']>;
+    });
+
+    const rabbit = createRabbitPublisher({ url: 'amqp://127.0.0.1:5672/campus', connectionTimeoutMs: 50 });
+    await assert.rejects(
+      rabbit.publish('campus.events', 'user.registered', Buffer.from('{}')),
+      /RabbitMQ publish confirm timed out/,
+    );
+    await rabbit.close();
   });
 });
 

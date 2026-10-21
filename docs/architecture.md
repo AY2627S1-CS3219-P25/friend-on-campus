@@ -113,22 +113,22 @@ Cross-service workflows that do not require blocking the user response are decou
 | Account | Publishes (topic permission on `campus.events`) | Reads |
 |---|---|---|
 | `user_service` | `user.registered` | nothing |
-| `order_service` | `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reserved`, `credit.reservation_failed` |
-| `credit_service` | `credit.reserved`, `credit.reservation_failed` | `user.registered`, `order.created`, `order.completed`, `order.cancelled`, `order.expired` |
-| `notification_service` | nothing on `campus.events` | all seven `order.*` keys |
+| `order_service` (and `debezium` CDC relay) | `order.reservation.requested`, `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reservation.succeeded`, `credit.reservation.failed` |
+| `credit_service` | `credit.reservation.succeeded`, `credit.reservation.failed` | `user.registered`, `order.reservation.requested`, `order.completed`, `order.cancelled`, `order.expired` |
+| `notification_service` | nothing on `campus.events` | all seven `order.*` lifecycle keys (`order.created` through `order.expired`) |
 | `campus_admin` | management UI (`administrator` tag, password `campus-admin-dev`) | everything in `campus` |
 | `credit_test` | test queues `credit-test.*` only | test queues `credit-test.*` only |
 
 | Consumer | Main quorum queue (`x-queue-type: quorum`, bound to `campus.events`) | Retry delay × limit (`x-delivery-count`) | Dead-letter exchange → queue |
 |---|---|---|---|
-| order-service | `order-service.events` | 1 s × 5 (`ORDER_RETRY_DELAY_MS`, `ORDER_RETRY_LIMIT`) | `campus.events.dlx` → `order-service.events.dlq` |
-| credit-service | `credit-service.events` | 1 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
+| order-service | `order-service.events` | 5 s × 5 (`ORDER_RETRY_DELAY_MS`, `ORDER_RETRY_LIMIT`) | `order-service.events.dlq` → `order-service.events.dlq` |
+| credit-service | `credit-service.events` | 5 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
 | notification-service | `notification-service.events` | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
 
-- All queues and exchanges are durable; main consumer queues are RabbitMQ **Quorum Queues** (`x-queue-type: quorum`) with `x-dead-letter-exchange` and `x-dead-letter-routing-key` configured natively, and prefetch is 1.
-- A failed message is classified by the consumer's `classifyError` callback:
-  - A **transient** failure with native `x-delivery-count < retryLimit` (or an **infrastructure** failure) waits `retryDelayMs` and calls `channel.nack(message, false, true)` to requeue the delivery on the quorum queue (which natively increments `x-delivery-count`).
-  - A **permanent** failure, or a transient failure that has reached `x-delivery-count >= retryLimit`, calls `channel.nack(message, false, false)`, causing RabbitMQ to natively dead-letter the message to the configured Dead-Letter Exchange (`x-dead-letter-exchange` → `deadLetterQueue`).
+- All queues and exchanges are durable; main consumer queues are RabbitMQ **Quorum Queues** (`x-queue-type: quorum`) with `x-dead-letter-exchange` and `x-dead-letter-routing-key` configured natively, and prefetch is 1 (note: RabbitMQ quorum queues also apply a broker-level default delivery limit of 20 unless `x-delivery-limit` is overridden; if upgrading an existing local Docker volume that previously declared classic queues, run `docker compose down -v` once to recreate the queues).
+- A failed message is classified by the consumer's `classifyError` callback (`packages/messaging/src/index.ts`, using `rabbitmq-client`):
+  - A **transient** failure with native `x-delivery-count < retryLimit` (or an **infrastructure** failure) sleeps `retryDelayMs` in-place (holding the single `prefetch: 1` slot as backpressure) and returns `ConsumerStatus.REQUEUE` (`basic.nack(requeue=true)`), which natively increments `x-delivery-count` on the quorum queue.
+  - A **permanent** failure, or a transient failure that has reached `x-delivery-count >= retryLimit`, returns `ConsumerStatus.DROP` (`basic.nack(requeue=false)`), causing RabbitMQ to natively dead-letter the message to the configured Dead-Letter Exchange (`x-dead-letter-exchange` → `deadLetterQueue`).
 
 ### D. WebSocket (Notification Service)
 - The gateway forwards `/ws/` to the root path of `notification-service`, which serves REST and WebSocket on one HTTP server (port 8005).
