@@ -5,8 +5,29 @@
  * Author review: (to be completed by author after review)
  */
 import { randomBytes } from 'node:crypto';
-import type { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
+import type {
+  CreditReservationRequestEvent,
+  OrderAcceptedEvent,
+  OrderCancelledEvent,
+  OrderCompletedEvent,
+  OrderCreatedEvent,
+  OrderDeliveredEvent,
+  OrderDTO,
+  OrderExpiredEvent,
+  OrderInTransitEvent,
+  OrderStatus,
+} from '@campus-errand/common-dtos';
 import type { Order as PrismaOrder } from '../database/client';
+
+export type OrderLifecycleEvent =
+  | CreditReservationRequestEvent
+  | OrderCreatedEvent
+  | OrderAcceptedEvent
+  | OrderInTransitEvent
+  | OrderDeliveredEvent
+  | OrderCompletedEvent
+  | OrderExpiredEvent
+  | OrderCancelledEvent;
 
 export class OrderError extends Error {
   constructor(message: string, public readonly status: number = 400) {

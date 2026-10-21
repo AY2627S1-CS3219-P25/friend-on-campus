@@ -252,7 +252,6 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
-      - OUTBOX_CDC_ENABLED=${OUTBOX_CDC_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -381,11 +380,11 @@ services:
       retries: 5
       start_period: 60s
 
-  # AI-generated (edited by yanhwee): optional log-based Debezium Server Outbox CDC connector (enable with --profile cdc)
+  # AI-generated (edited by yanhwee): log-based Debezium Server Outbox CDC connector
   debezium:
     image: quay.io/debezium/server:2.7
     container_name: campuserrand-debezium
-    profiles: ["cdc"]
+    restart: unless-stopped
     volumes:
       - ./docker/debezium/application.properties:/debezium/conf/application.properties:ro
       - debezium_data:/debezium/data
@@ -393,6 +392,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      order-service:
         condition: service_healthy
 
 volumes:

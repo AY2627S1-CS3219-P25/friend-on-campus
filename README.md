@@ -101,12 +101,18 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 
 ## 🚀 Quick Start with Docker (Recommended)
 
-To spin up all microservices, frontends, PostgreSQL, RabbitMQ, and the Nginx Gateway:
+To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway:
 
 ```bash
 # In project root:
 docker compose up --build
 ```
+
+> **Upgrading an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC `order_db` volumes), reset the volumes once before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
+> ```bash
+> docker compose down -v
+> docker compose up --build
+> ```
 
 ### Accessing the Platform
 | Component | Local Access URL | Description |
@@ -147,6 +153,7 @@ npm run generate:jwt-keys -- --print
 ```bash
 docker compose up postgres rabbitmq -d
 ```
+*(Note: In `order-service`, transactional outbox events in `order_db.public.outbox_events` are tailed and published to RabbitMQ by the `debezium` CDC container rather than an in-process Node.js poller. When testing end-to-end order event flows in host-based dev, start `docker compose up debezium -d` after running `order-service` database migrations.)*
 
 ### 4. Seed Databases (First Time Setup)
 ```bash

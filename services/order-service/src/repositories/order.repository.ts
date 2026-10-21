@@ -20,9 +20,9 @@
 import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { PrismaClient } from '../database/client';
-import type { OrderLifecycleEvent } from '../messaging/event.publisher';
 import {
   OrderAuthorizationError,
+  type OrderLifecycleEvent,
   OrderNotFoundError,
   OrderStateConflictError,
   OrderValidationError,

@@ -4,20 +4,14 @@
  * Scope: Implemented direct confirmed RabbitMQ publisher for user.registered events with error isolation.
  * Author review: <to be completed by huangjiaxi1111>
  *
- * Tool: Google Antigravity Agent, date: 2026-10-03
- * Scope: Added 5000 ms connection timeout to amqp.connect matching credit-service to prevent unbounded connection stalls.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-04
- * Scope: Reused live AMQP connections when recreating closed publisher channels and guarded lifecycle handlers against stale resources.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Replaced manual amqplib connection/channel state with createRabbitPublisher from @campus-errand/messaging.
+ * Author review: <to be completed by yanhwee>
  */
-// AI-generated (edited by huangjiaxi1111)
-import amqp, { type ConfirmChannel, type Options } from 'amqplib';
+// AI-generated (edited by huangjiaxi1111, yanhwee)
 import type { UserRegisteredEvent } from '@campus-errand/common-dtos';
+import { createRabbitPublisher } from '@campus-errand/messaging';
 import { logError } from '../utils/logger';
-
-type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;
 
 export interface UserEventPublisher {
   publishUserRegistered(event: UserRegisteredEvent): Promise<boolean>;
@@ -30,106 +24,15 @@ export interface RabbitMQPublisherConfig {
   connectionTimeoutMs?: number;
 }
 
-export function createConfirmedPublisher(channel: ConfirmChannel) {
-  let tail: Promise<void> = Promise.resolve();
-  return (exchange: string, key: string, content: Buffer, options: Options.Publish = {}) => {
-    const publish = tail.then(() => new Promise<void>((resolve, reject) => {
-      let returned = false;
-      let finished = false;
-      const onReturn = () => { returned = true; };
-      const onClose = () => finish(new Error('Publisher channel closed'));
-      const timer = setTimeout(() => {
-        finish(new Error('Publisher confirmation timeout'));
-        void channel.close().catch(() => {});
-      }, 10000);
-      const finish = (error?: Error | null) => {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timer);
-        channel.removeListener('return', onReturn);
-        channel.removeListener('close', onClose);
-        if (error) reject(error);
-        else if (returned) reject(new Error('Message was unroutable'));
-        else resolve();
-      };
-      channel.on('return', onReturn);
-      channel.once('close', onClose);
-      try {
-        channel.publish(exchange, key, content, { ...options, persistent: true, mandatory: true }, finish);
-      } catch (err) {
-        finish(err instanceof Error ? err : new Error('Publication failed'));
-      }
-    }));
-    tail = publish.catch(() => {});
-    return publish;
-  };
-}
-
 export function createRabbitMQPublisher(config: RabbitMQPublisherConfig): UserEventPublisher {
-  let connection: AmqpConnection | null = null;
-  let channel: ConfirmChannel | null = null;
-  let publishFn: ((exchange: string, key: string, content: Buffer, options?: Options.Publish) => Promise<void>) | null = null;
+  const rabbit = createRabbitPublisher(config);
   let isClosing = false;
-  let connectingPromise: Promise<ConfirmChannel> | null = null;
-
-  async function getChannel(): Promise<ConfirmChannel> {
-    if (channel) return channel;
-    if (connectingPromise) return connectingPromise;
-
-    connectingPromise = (async () => {
-      try {
-        let conn = connection;
-        if (!conn) {
-          conn = await amqp.connect(config.url, {
-            timeout: config.connectionTimeoutMs ?? 5000,
-          });
-          connection = conn;
-          conn.on('error', (err) => {
-            logError('rabbitmq_connection_error', err);
-          });
-          conn.on('close', () => {
-            if (connection !== conn) return;
-            channel = null;
-            connection = null;
-            publishFn = null;
-          });
-        }
-
-        const ch = await conn.createConfirmChannel();
-        ch.on('error', (err) => {
-          logError('rabbitmq_channel_error', err);
-          if (channel !== ch) return;
-          channel = null;
-          publishFn = null;
-        });
-        ch.on('close', () => {
-          if (channel !== ch) return;
-          channel = null;
-          publishFn = null;
-        });
-
-        channel = ch;
-        publishFn = createConfirmedPublisher(ch);
-        return ch;
-      } finally {
-        connectingPromise = null;
-      }
-    })();
-
-    return connectingPromise;
-  }
 
   return {
     async publishUserRegistered(event: UserRegisteredEvent): Promise<boolean> {
       if (isClosing) return false;
       try {
-        await getChannel();
-        if (!publishFn) {
-          throw new Error('Publisher channel unavailable');
-        }
-        const content = Buffer.from(JSON.stringify(event), 'utf8');
-        await publishFn(config.exchange, event.eventType, content, {
-          contentType: 'application/json',
+        await rabbit.publish(config.exchange, event.eventType, event, {
           messageId: event.eventId,
         });
         return true;
@@ -144,19 +47,7 @@ export function createRabbitMQPublisher(config: RabbitMQPublisherConfig): UserEv
 
     async close(): Promise<void> {
       isClosing = true;
-      try {
-        if (channel) {
-          await channel.close().catch(() => {});
-          channel = null;
-        }
-        if (connection) {
-          await connection.close().catch(() => {});
-          connection = null;
-        }
-        publishFn = null;
-      } catch (error) {
-        logError('rabbitmq_publisher_close_error', error);
-      }
+      await rabbit.close();
     },
   };
 }

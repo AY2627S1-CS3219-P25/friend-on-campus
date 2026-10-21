@@ -20,10 +20,10 @@ import type { AddressInfo } from 'node:net';
 import type { CreditReservationResultEvent, OrderCreatedEvent, OrderDTO, OrderExpiredEvent } from '@campus-errand/common-dtos';
 import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
 import type { SupplierClient, SupplierDetails } from '../src/clients/supplier.client';
-import type { OrderEventPublisher, OrderLifecycleEvent } from '../src/messaging/event.publisher';
 import {
   OrderNotFoundError,
   OrderAuthorizationError,
+  type OrderLifecycleEvent,
   OrderStateConflictError,
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
@@ -596,30 +596,6 @@ export function makeFakeSupplierClient(knownSuppliers: Record<string, SupplierDe
     },
     addSupplier(supplier: SupplierDetails) {
       suppliers.set(supplier.id, supplier);
-    },
-  };
-}
-
-export function makeFakePublisher() {
-  const published: OrderLifecycleEvent[] = [];
-  let shouldSucceed = true;
-
-  const publisher: OrderEventPublisher = {
-    async publishOrderEvent(event: OrderLifecycleEvent) {
-      if (shouldSucceed) {
-        published.push(event);
-        return true;
-      }
-      return false;
-    },
-    async close() {},
-  };
-
-  return {
-    publisher,
-    published,
-    setSuccess(val: boolean) {
-      shouldSucceed = val;
     },
   };
 }
