@@ -1,9 +1,5 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-10-21
-Scope: Recorded the author-selected Debezium migration.
-Author review: <to be completed by huangjiaxi1111>
-
 Tool: Codex (model: GPT-5), date: 2026-10-19
 Scope: Recorded CI matrix consistency root-cause analysis and fix for the missing order-service messaging matrix entry.
 Author review: <to be completed by huangjiaxi1111>
@@ -3661,6 +3657,37 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-21 18:42 SGT — Consolidate Documentation into `README.md` & Wiki, Remove `docs/`, and Slim Down `CLAUDE.md`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/consolidate-docs-and-slim-claude
+
+**Prompt (summarised):** Consolidate documentation so the team does not maintain duplicate docs across `docs/`, `README.md`, `CLAUDE.md`, and `friend-on-campus.wiki`: port CI/testing operational details from `docs/ci.md` into `README.md`, sync the newer D3/recent specifications from `docs/` into `friend-on-campus.wiki`, slim down `CLAUDE.md` and `.claude/agents/*.md` so they focus strictly on agent behavioral rules and repo orientation rather than duplicating system documentation, and remove `docs/`.
+
+**Usage scenario:** Documentation consolidation and agent configuration cleanup (allowed use).
+
+**Files changed / deleted:**
+- `README.md` — folded CI test-naming, static matrix validation, direct test environment variables (`*_TEST_DATABASE_URL`, `*_TEST_RABBITMQ_URL`), and `test-results/` artifact conventions from `docs/ci.md` into `Testing & Verification`, updated workspace count to 10 (2 apps, 5 services, 3 packages), removed `docs/` from the monorepo structure tree, and updated `System Documentation` links (`IN_TRANSIT` order status) to point to the project Wiki.
+- `CLAUDE.md` — slimmed down Sections 4, 5, 7, and 8 to focus on agent behavioral rules and verification requirements, updated workspace count to 10 and `backend` scope to `packages/**`, and removed duplicated system prose and `docs/` pointers.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes (`notifications/{events,store,routes}.ts` and `IN_TRANSIT` / `DISPUTED` in `OrderStatus`).
+- `docs/{README,architecture,ci,errand-specification,security}.md` [DELETED] — removed duplicate in-repo `docs/` directory after migrating content to `README.md` and `friend-on-campus.wiki`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 19:25 SGT — Fix Debezium Server Outbox Topic Replacement Property Escaping During D3 UAT
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/debezium-outbox-topic-replacement
+
+**Prompt (summarised):** Conduct comprehensive UAT and smoke testing for the upcoming Milestone D3 presentation across Docker Compose, `npm run dev`, API, messaging, and browser E2E flows, and address PR #155 review comments on `\\${routedByValue}` escaping documentation.
+
+**Usage scenario:** Debugging and bug fix during UAT verification (allowed use). Discovered that `campuserrand-debezium` (`quay.io/debezium/server:2.7`) was crash-looping with `java.lang.NullPointerException` at `io.debezium.server.DebeziumServer.configToProperties(DebeziumServer.java:202)` because Quarkus/SmallRye Config interpolated `${routedByValue}` in `debezium.transforms.outbox.route.topic.replacement=${routedByValue}` as a configuration expression and resolved `null`, preventing Order Service CDC outbox events from reaching RabbitMQ. Escaped the literal placeholder as `\\${routedByValue}` (`Properties.load` consumes one backslash, leaving `\${routedByValue}` for SmallRye Config).
+
+**Files changed:**
+- `docker/debezium/application.properties` — escaped `\\${routedByValue}` on `debezium.transforms.outbox.route.topic.replacement` and added an explanatory inline comment so `Properties.load` and SmallRye Config pass the literal `${routedByValue}` token to Debezium's `EventRouter` SMT.
+- `ai/usage-log.md` — this entry.
+
 ## 2026-10-21 19:29 SGT — Standardize Outbox Publishing on Debezium and Trace Registration
 
 **Tool:** Codex (model: GPT-6)
@@ -3685,3 +3712,20 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `ai/usage-log.md` — disclosure and this entry.
 
 **Validation:** JavaScript syntax, Compose configuration, whitespace and static CI matrix checks passed (12 workspace suites, 3 system-test commands). Initial typecheck and unit suites failed because the local RabbitMQ dependency and generated Prisma clients were missing. `npm ci` failed with restricted-network ENOTFOUND; escalated installation was declined by the user. No install workaround, image pull/build or full Docker suite was attempted after that denial. Application migration remains uncommitted and unverified at runtime.
+
+## 2026-10-21 21:23 SGT — Resolve Merge Conflicts on Debezium Refactor PR
+
+**Tool:** Codex (model: GPT-5)
+**Author:** huangjiaxi1111
+**Branch:** fix/standardize-debezium
+
+**Prompt (summarised):** Resolve merge conflicts in the pull request for Debezium outbox standardization.
+
+**Usage scenario:** Git merge conflict resolution and debugging assistance (allowed use). Merged `origin/main` into the PR branch, resolved file conflicts to preserve current upstream documentation consolidation and Debezium escaping fix, and kept this PR’s Debezium refactor usage-log record. Author still decides final review/approval.
+
+**Files changed:**
+- `CLAUDE.md` — resolved merge conflict by keeping upstream consolidated guidance.
+- `ai/usage-log.md` — resolved conflict by keeping both branches' log history and appended this entry.
+- `docker/debezium/application.properties` — resolved conflict in outbox routing replacement with escaped `\\${routedByValue}`.
+- `docs/{README,architecture,ci,errand-specification,security}.md` — kept upstream deletions from `main` during merge.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md`, `README.md` — merged upstream updates from `main`.

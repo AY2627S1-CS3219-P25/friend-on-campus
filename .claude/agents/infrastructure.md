@@ -6,6 +6,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Removed obsolete docs/ orientation references and updated container/CI facts to match current multi-stage Dockerfiles, Debezium CDC, and .github/workflows/ci.yml.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated test:d2 reference to test:e2e:api.
 Author review: <to be completed by yanhwee>
 
@@ -34,22 +38,18 @@ You are the infrastructure engineer. CLAUDE.md sections 1–5 bind you.
 
 Your prompt does not include the conversation, so build context from the repo first (read-only; you may read anything in the repo except `.env` files):
 
-1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and pitfalls (§4), commands (§5), agent team (§8).
-2. `docs/architecture.md` — container topology, networking, gateway routing, and backing services.
-3. `docs/errand-specification.md` — RabbitMQ exchange and messaging architecture.
-4. `docs/security.md` — authentication and session routing rules.
-
-`docs/` is reference material for you, not yours to edit (the main session and the author maintain it). If you find it out of date, say so in your report.
+1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and rules (§4), verification (§5), agent team (§8).
+2. `README.md` — container topology, ports, and CI test categories.
 
 Directory, from your seat:
 
 ```
-docker-compose.yml                  gateway, student-app, admin-portal, 5 services, postgres:16-alpine, rabbitmq:3.13-management; volumes postgres_data, rabbitmq_data
+docker-compose.yml                  gateway, student-app, admin-portal, 5 services, postgres:16-alpine, rabbitmq:3.13-management, debezium:2.7
 gateway/nginx.conf                  upstreams + location blocks for every public route
-apps/*/Dockerfile, services/*/Dockerfile   node:20-alpine, workspace install, tsx / vite dev server
-docker/postgres-init/               init SQL (backend owns the table definitions; you own that it gets mounted and run)
+apps/*/Dockerfile, services/*/Dockerfile   multi-stage builds (compiled JS on node:20-alpine for services; static assets on nginx for apps)
+docker/                             debezium/, postgres-init/, rabbitmq/
 .env.example, .dockerignore, package.json (root scripts), tsconfig.base.json
-.github/                            does not exist yet (CI is issue #68; D1 §3.6 names GitHub Actions)
+.github/workflows/ci.yml            automated CI workflow and static test matrices
 ```
 
 Ports: 80 gateway, 5173/5174 apps, 8001–8005 services, 5432 Postgres, 5672/15672 RabbitMQ. Containers are named `campuserrand-*`.
@@ -60,15 +60,15 @@ Debugging and glue config are yours. Decisions are not: anything about CI beyond
 
 ## Your files
 
-`**/Dockerfile`, `docker-compose.yml`, `.dockerignore`, `gateway/nginx.conf`, `.env.example`, root `package.json` scripts, `.github/**`. Table definitions in `docker/postgres-init/*.sql` belong to `backend` (they must match the Prisma schemas). Do not edit service or app source — report what `backend` / `frontend` must change.
+`**/Dockerfile`, `docker-compose.yml`, `.dockerignore`, `gateway/nginx.conf`, `.env.example`, root `package.json` scripts, `.github/**`. Database provisioning in `docker/postgres-init/*.sql` belongs to `backend` (tables are managed per-service via Prisma migrations). Do not edit service or app source — report what `backend` / `frontend` must change.
 
 ## Facts that save time
 
-- Service Dockerfiles copy the root `package.json`, `packages/` and the service's own folder, then `npm install`; Prisma services also run `prisma generate`. A new npm dependency needs no Dockerfile change; a new shared folder, system package, build step or env var does.
-- Postgres runs the init SQL only on first boot of an empty volume, and `prisma migrate` never runs in containers. "My column is missing" usually means `docker compose down -v`. That wipes local data: say so, and never run it (or `docker system prune`, or volume deletion) without the author's explicit go-ahead each time.
-- Inside a container `localhost` is the container itself. Compose sets `GATEWAY_URL` for both Vite apps to route API traffic through nginx, and `ADMIN_PORTAL_URL` for the student's `/admin` proxy. Host-based development uses direct service localhost defaults when `GATEWAY_URL` is unset.
+- Application Dockerfiles use multi-stage builds with workspace-scoped `npm ci` and run as their base image's built-in non-root user (`node` or `nginx`).
+- Postgres runs `docker/postgres-init/*.sql` only on first boot of an empty volume, while each service runs `prisma migrate deploy` and its seed on container startup. Never run `docker compose down -v`, `docker system prune`, or volume deletion without the author's explicit go-ahead each time.
+- Inside a container `localhost` is the container itself. Compose builds static frontend assets served by per-app NGINX configs that proxy `/api`, `/ws`, and `/admin` through the Compose gateway. Host-based development uses direct service localhost defaults when `GATEWAY_URL` is unset.
 - A new API prefix needs an nginx `location` (note the existing pairs with and without trailing slash) and Vite proxy entries.
-- User Service receives `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`; Supplier Service receives the public key, issuer, and audience for shared Ed25519 verification. Keep these Compose settings aligned with the author-approved authentication contract.
+- User Service receives `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`; downstream services receive `JWT_PUBLIC_KEY`, `JWT_ISSUER`, and `JWT_AUDIENCE` for shared `@campus-errand/auth` Ed25519 verification.
 - Every env var a service reads must appear in `.env.example` with a safe placeholder. Never read, print or commit a real `.env`.
 - `npm run test:e2e:api` starts user- and supplier-service itself on 8001/8002, so those ports must be free (stop the app containers, keep postgres up).
 
