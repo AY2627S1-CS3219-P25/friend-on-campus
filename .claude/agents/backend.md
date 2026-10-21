@@ -54,7 +54,7 @@ services/<name>-service/   package.json, tsconfig.json, Dockerfile, prisma/{sche
   user-service/src/        {index,app,auth,users,persistence,messaging,database,generated}/
   supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts, generated/
   credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, messaging/, database/{client,seed}.ts, generated/
-  notification-service/src/ {index,app,config}.ts, notifications/{consumer,events,store,routes}.ts, ws/hub.ts, database/client.ts, generated/
+  notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts (RabbitMQ consumer lives in events.ts), ws/hub.ts, database/client.ts, generated/
   order-service/src/       {index,app,config}.ts, orders/, messaging/, database/{client,seed}.ts, generated/
 packages/common-dtos/src/index.ts      shared user/auth DTOs, OrderStatus, event types
 docker/postgres-init/01-init-databases.sql   the five databases and per-service roles, first boot only (tables come from each service's migrations)
@@ -80,7 +80,7 @@ You implement decisions; you do not make them. If the task text does not state t
 
 - **user-service :8001** — Prisma (`user_db`). Issues Ed25519 access tokens and opaque refresh sessions; publishes `user.registered` via Transactional Outbox.
 - **supplier-service :8002** — Prisma (`supplier_db`). Campus spots CRUD; RBAC verified offline with `@campus-errand/auth`.
-- **order-service :8003** — Prisma (`order_db`). Errand state machine (`PENDING` → `OPEN` → `ACCEPTED` → `PICKED_UP` → `DELIVERED` → `COMPLETED` / `CANCELLED` / `EXPIRED` / `REJECTED`), asynchronous escrow reservation saga (`order.reservation.requested` ↔ `credit.reservation.succeeded|failed`), atomic single-winner claim, Debezium CDC outbox (`order_db.public.outbox_events`).
+- **order-service :8003** — Prisma (`order_db`). Errand state machine (`PENDING` → `OPEN` → `ACCEPTED` → `IN_TRANSIT` → `DELIVERED` → `COMPLETED` / `CANCELLED` / `EXPIRED` / `REJECTED` / `DISPUTED`; see `OrderStatus` in `packages/common-dtos`), asynchronous escrow reservation saga (`order.reservation.requested` ↔ `credit.reservation.succeeded|failed`), atomic single-winner claim, Debezium CDC outbox (`order_db.public.outbox_events`).
 - **credit-service :8004** — Prisma (`credit_db`). Closed economy wallet balances, ledger entries, escrow holds, transactional outbox (`credit_outbox_events`), and RabbitMQ consumer (`user.registered`, `order.*`).
 - **notification-service :8005** — Prisma (`notification_db`). Consumes `order.*` from RabbitMQ, stores notification records, pushes real-time WebSocket alerts to `/ws`.
 

@@ -188,7 +188,7 @@ Rules for working in this repo:
 
 See `README.md` for full local dev, seeding, and test commands. Key agent verification rules:
 
-- **Before saying a change works:** always run `npm run typecheck` (which covers both `src/**` and `test/**` across all 9 workspaces) and the directly relevant test categories (`npm run test:unit`, `test:integration`, `test:messaging`, `test:e2e:api`, or full isolated `npm test`). Report the real output and any unavailable infrastructure.
+- **Before saying a change works:** always run `npm run typecheck` (which covers both `src/**` and `test/**` across all 10 workspaces) and the directly relevant test categories (`npm run test:unit`, `test:integration`, `test:messaging`, `test:e2e:api`, or full isolated `npm test`). Report the real output and any unavailable infrastructure.
 - **`npm run test:e2e:api` port requirement:** spawns `user-service` and `supplier-service` itself on ports 8001/8002 against `localhost:5432` (with seeded databases), so stop host/container listeners on 8001/8002 first.
 - **Test runner & linter:** Unit tests use Node's built-in `node --test` via `tsx` (no external test framework). Root `npm run lint` runs ESLint. Do not add another test framework or linter unprompted.
 - **Mandatory CI matrix sync:** whenever adding, renaming, moving, or removing a `test:*` script in any `package.json`, update `.github/workflows/ci.yml` in the same change and run `npm run ci:validate-tests`.
@@ -217,7 +217,7 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 
 | Agent | Writes to | Workstream |
 |---|---|---|
-| `backend` | `services/**`, `packages/common-dtos`, Prisma schemas + `docker/postgres-init` SQL | Services, shared contracts, database work |
+| `backend` | `services/**`, `packages/**`, Prisma schemas + `docker/postgres-init` SQL | Services, shared contracts, database work |
 | `frontend` | `apps/**` | student-app, admin-portal |
 | `infrastructure` | Dockerfiles, `docker-compose.yml`, `gateway/`, `.env.example`, `.github/` | Containers, gateway, CI, startup/proxy debugging |
 | `reviewer` | `scripts/**` and test files only | Tests, acceptance evidence, drift, code review, AI-policy check |

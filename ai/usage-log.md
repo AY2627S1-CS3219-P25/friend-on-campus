@@ -3668,8 +3668,8 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Usage scenario:** Documentation consolidation and agent configuration cleanup (allowed use).
 
 **Files changed / deleted:**
-- `README.md` — folded CI test-naming, static matrix validation, and `test-results/` artifact conventions from `docs/ci.md` into `Testing & Verification`, removed `docs/` from the monorepo structure tree, and updated `System Documentation` links to point to the project Wiki.
-- `CLAUDE.md` — slimmed down Sections 4, 5, 7, and 8 to focus on agent behavioral rules and verification requirements and removed duplicated system prose and `docs/` pointers.
-- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes.
+- `README.md` — folded CI test-naming, static matrix validation, direct test environment variables (`*_TEST_DATABASE_URL`, `*_TEST_RABBITMQ_URL`), and `test-results/` artifact conventions from `docs/ci.md` into `Testing & Verification`, updated workspace count to 10 (2 apps, 5 services, 3 packages), removed `docs/` from the monorepo structure tree, and updated `System Documentation` links (`IN_TRANSIT` order status) to point to the project Wiki.
+- `CLAUDE.md` — slimmed down Sections 4, 5, 7, and 8 to focus on agent behavioral rules and verification requirements, updated workspace count to 10 and `backend` scope to `packages/**`, and removed duplicated system prose and `docs/` pointers.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes (`notifications/{events,store,routes}.ts` and `IN_TRANSIT` / `DISPUTED` in `OrderStatus`).
 - `docs/{README,architecture,ci,errand-specification,security}.md` [DELETED] — removed duplicate in-repo `docs/` directory after migrating content to `README.md` and `friend-on-campus.wiki`.
 - `ai/usage-log.md` — this entry.
