@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Updated onOpenErrand docstring now that TasksPage provides the confirm-delivery action (Issue #132).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: Bell button with the unread count (top nav and mobile tab variants) and the Alerts board, per the author's
  * Notification Service Design: list, mark read, mark all read, delivered rows lead to the errand. Fourth pass the
@@ -131,7 +135,7 @@ export function NotificationPanel({ items, unreadCount, isLoading, error, onMark
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
   onRefresh: () => void;
-  /** The delivered step's action. Today it opens Tasks; the confirm-delivery call arrives with Order Service. */
+  /** Opens the Tasks tab so the requester can confirm delivery on the errand card. */
   onOpenErrand: (notification: NotificationDTO) => void;
 }) {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');

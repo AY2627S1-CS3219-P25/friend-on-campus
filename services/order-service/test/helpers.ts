@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Included admin-cancelled courier orders in fake repository getUserActivity history to mirror OrderRepository.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Replace synchronous Credit fakes with reservation submission and confirmation fixtures.
  * Author review: <to be completed by huangjiaxi1111>
@@ -236,7 +240,7 @@ export function makeFakeOrderRepository() {
         if (order.courierId === userId) {
           if (['ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(order.status)) {
             delivering.push({ ...order });
-          } else if (order.status === 'COMPLETED') {
+          } else if (order.status === 'COMPLETED' || order.status === 'CANCELLED') {
             if (!history.some((h) => h.id === order.id)) {
               history.push({ ...order });
             }

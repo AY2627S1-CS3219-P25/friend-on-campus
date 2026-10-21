@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic student-app App.tsx into modular api/, hooks/, components/, and pages/ architecture.
  * Author review: Verified by yanhwee
@@ -30,7 +34,15 @@ import { CreditTransactionDTO, CreditWalletDTO, OrderDTO, SupplierDTO, UserDTO }
 import { RefreshCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { fetchWalletAndLedger } from './api/credits';
-import { acceptOrderById, fetchCombinedOrders } from './api/orders';
+import {
+  acceptOrderById,
+  cancelOrderById,
+  completeOrderById,
+  deliverOrderById,
+  fetchCombinedOrders,
+  pickupOrderById,
+  TaskOrderAction,
+} from './api/orders';
 import { fetchAllSuppliers } from './api/suppliers';
 import {
   deleteUserAccountById,
@@ -88,6 +100,10 @@ export default function App() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
+  const [taskActionInFlight, setTaskActionInFlight] = useState<{
+    orderId: string;
+    action: TaskOrderAction;
+  } | null>(null);
   const orderRequestId = useRef(0);
 
   // Post Form State
@@ -99,6 +115,7 @@ export default function App() {
     specialNotes: '',
     dropoffLocation: '',
     rewardCredits: 15,
+    durationMinutes: 30,
   });
 
   const [notification, setNotification] = useState<string | null>(null);
@@ -123,6 +140,8 @@ export default function App() {
     setOrders([]);
     setOrdersError(null);
     setOrdersLoading(false);
+    setAcceptingOrder(null);
+    setTaskActionInFlight(null);
     setNotification(null);
     setWallet(null);
     setLedger([]);
@@ -142,6 +161,7 @@ export default function App() {
     authFetch,
     onNotification: (n) => {
       setNotification(`🔔 ${n.title}`);
+      void loadOrders.current();
     },
   });
   const wsStatus = notifications.status;
@@ -216,6 +236,7 @@ export default function App() {
           specialNotes: '',
           dropoffLocation: '',
           rewardCredits: 15,
+          durationMinutes: 30,
         }));
         if (activeTab === 'post') setActiveTab('feed');
       }
@@ -329,12 +350,12 @@ export default function App() {
       specialNotes: formData.specialNotes,
       dropoffLocation: formData.dropoffLocation,
       rewardCredits: formData.rewardCredits,
-      durationMinutes: 30,
+      durationMinutes: Number.isFinite(formData.durationMinutes) ? formData.durationMinutes : 30,
     });
   };
 
   const handleAcceptOrder = async (orderId: string) => {
-    if (acceptingOrder) return;
+    if (acceptingOrder || taskActionInFlight) return;
     const requestId = orderRequestId.current;
     setAcceptingOrder(orderId);
     setOrdersError(null);
@@ -351,6 +372,52 @@ export default function App() {
       }
     } finally {
       setAcceptingOrder(null);
+    }
+  };
+
+  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction) => {
+    if (taskActionInFlight || acceptingOrder) return;
+    const requestId = orderRequestId.current;
+    setTaskActionInFlight({ orderId, action });
+    setOrdersError(null);
+    try {
+      let updated: OrderDTO;
+      let successMessage: string;
+      switch (action) {
+        case 'pickup':
+          updated = await pickupOrderById(authFetch, orderId);
+          successMessage = 'Item picked up! Head to dropoff location.';
+          break;
+        case 'deliver':
+          updated = await deliverOrderById(authFetch, orderId);
+          successMessage = 'Item marked as delivered! Awaiting requester confirmation.';
+          break;
+        case 'complete':
+          updated = await completeOrderById(authFetch, orderId);
+          successMessage = 'Delivery confirmed! Credits transferred to courier.';
+          break;
+        case 'cancel':
+          updated = await cancelOrderById(authFetch, orderId);
+          successMessage = 'Errand cancelled. Escrow credits refunded.';
+          break;
+      }
+      if (requestId !== orderRequestId.current) return;
+      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
+      setNotification(successMessage);
+      if (action === 'complete' || action === 'cancel') {
+        void fetchCredits();
+        setTimeout(() => {
+          if (isAuthenticated) void fetchCredits();
+        }, 600);
+      }
+    } catch (error) {
+      if (requestId === orderRequestId.current) {
+        setOrdersError(
+          error instanceof Error ? error.message : 'Unable to update this errand.'
+        );
+      }
+    } finally {
+      setTaskActionInFlight(null);
     }
   };
 
@@ -525,7 +592,18 @@ export default function App() {
         )}
 
         {activeTab === 'tasks' && (
-          <TasksPage orders={orders} currentUserId={currentUserId} />
+          <TasksPage
+            orders={orders}
+            currentUserId={currentUserId}
+            ordersLoading={ordersLoading}
+            actingOrderId={taskActionInFlight?.orderId ?? null}
+            actingAction={taskActionInFlight?.action ?? null}
+            onRefreshOrders={() => void fetchOrders()}
+            onPickupOrder={(orderId) => void handleTaskOrderAction(orderId, 'pickup')}
+            onDeliverOrder={(orderId) => void handleTaskOrderAction(orderId, 'deliver')}
+            onCompleteOrder={(orderId) => void handleTaskOrderAction(orderId, 'complete')}
+            onCancelOrder={(orderId) => void handleTaskOrderAction(orderId, 'cancel')}
+          />
         )}
 
         {activeTab === 'alerts' && (

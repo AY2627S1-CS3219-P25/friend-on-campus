@@ -1,7 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Google Antigravity Agent, date: 2026-10-21
-// Scope: Standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (test-results/screenshots and test-results/uat-d2-ui-results.json) instead of docs/evidence/ or os.tmpdir().
-// Author review: <to be completed by author after review>
+// Scope: Added UO1-UO6 student order lifecycle E2E UI checks (post with durationMinutes, accept, pickup, deliver, complete, cancel, and history persistence) and standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (Issue #132).
+// Author review: <to be completed by yanhwee>
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
 // Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).
@@ -448,6 +448,135 @@ const browser = await chromium.launch();
     return `${code} stayed open`;
   });
   await ctx.close();
+}
+
+// ============================================================ STUDENT ORDER LIFECYCLE (F3 / ISSUE #132), DESKTOP
+// AI-generated (edited by yanhwee)
+{
+  const aliceCtx = await browser.newContext({ viewport: DESKTOP });
+  const bobCtx = await browser.newContext({ viewport: DESKTOP });
+  const alicePage = await aliceCtx.newPage();
+  const bobPage = await bobCtx.newPage();
+  alicePage.setDefaultTimeout(20000);
+  bobPage.setDefaultTimeout(20000);
+
+  const lifecycleItem = `UAT Lifecycle Matcha ${stamp}`;
+  const cancelItem = `UAT Cancel Errand ${stamp}`;
+  let lifecycleCode = '';
+  let cancelCode = '';
+
+  await step('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
+    await alicePage.goto(`${GW}/`);
+    await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
+    await alicePage.locator('input[type=password]').fill(PW);
+    await alicePage.getByRole('button', { name: 'Log In' }).click();
+    await alicePage.getByRole('button', { name: 'Post' }).first().waitFor();
+    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+
+    await alicePage.locator('select:visible').first().waitFor();
+    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
+    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
+    await alicePage.getByLabel('Reward credits').fill('5');
+    const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
+    if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
+
+    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
+    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    await banner.waitFor({ timeout: 20000 });
+    const bannerText = await banner.innerText();
+    const match = bannerText.match(/(ORD-\w+)/);
+    if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
+    lifecycleCode = match[1];
+
+    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
+    await aliceCard.waitFor();
+    await aliceCard.getByTestId('cancel-order-btn').waitFor();
+    await shot(alicePage, 'student-order-posted-desktop');
+    return `${lifecycleCode} OPEN`;
+  });
+
+  await step('UO2', 'student (desktop): courier accepts the errand on Feed and sees Mark Picked Up in Tasks accepted', async () => {
+    await bobPage.goto(`${GW}/`);
+    await bobPage.locator('input[type=email]').fill('bob@u.nus.edu');
+    await bobPage.locator('input[type=password]').fill(PW);
+    await bobPage.getByRole('button', { name: 'Log In' }).click();
+    await bobPage.getByRole('button', { name: 'Tasks' }).first().waitFor();
+
+    const feedCard = bobPage.locator('div.bg-white', { hasText: lifecycleItem }).first();
+    await feedCard.waitFor();
+    await feedCard.getByRole('button', { name: 'Accept Errand' }).click();
+    await bobPage.getByText('Errand accepted! Head to the pickup location.').waitFor();
+
+    await bobPage.getByRole('button', { name: 'Tasks' }).first().click();
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.waitFor();
+    await bobCard.getByTestId('pickup-order-btn').waitFor();
+    await shot(bobPage, 'student-order-accepted-desktop');
+    return `${lifecycleCode} ACCEPTED`;
+  });
+
+  await step('UO3', 'student (desktop): courier clicks Mark Picked Up -> status transitions to IN TRANSIT with Mark Delivered', async () => {
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByTestId('pickup-order-btn').click();
+    await bobCard.getByTestId('deliver-order-btn').waitFor();
+    const txt = await bobCard.innerText();
+    if (!/IN TRANSIT/i.test(txt)) throw new Error(`expected IN TRANSIT on card: ${txt}`);
+    await shot(bobPage, 'student-order-in-transit-desktop');
+    return `${lifecycleCode} IN_TRANSIT`;
+  });
+
+  await step('UO4', 'student (desktop): courier clicks Mark Delivered -> status transitions to DELIVERED', async () => {
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByTestId('deliver-order-btn').click();
+    await bobCard.getByText(/Delivered · Waiting for requester confirmation/i).waitFor();
+    const txt = await bobCard.innerText();
+    if (!/DELIVERED/i.test(txt)) throw new Error(`expected DELIVERED on card: ${txt}`);
+    await shot(bobPage, 'student-order-delivered-desktop');
+    return `${lifecycleCode} DELIVERED`;
+  });
+
+  await step('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
+    await alicePage.getByRole('button', { name: 'Refresh' }).click();
+    const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
+    await aliceCard.getByTestId('complete-order-btn').waitFor();
+    await aliceCard.getByTestId('complete-order-btn').click();
+    await aliceCard.getByText(/Completed · Credits released to courier/i).waitFor();
+    await shot(alicePage, 'student-order-completed-requester-desktop');
+
+    await bobPage.getByRole('button', { name: 'Refresh' }).click();
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByText(/Completed · \+5 credits earned/i).waitFor();
+    await shot(bobPage, 'student-order-completed-courier-desktop');
+    return `${lifecycleCode} COMPLETED in requester + courier history`;
+  });
+
+  await step('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
+    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.locator('select:visible').first().waitFor();
+    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
+    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
+    await alicePage.getByLabel('Reward credits').fill('3');
+    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
+
+    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    await banner.waitFor({ timeout: 20000 });
+    const bannerText = await banner.innerText();
+    const match = bannerText.match(/(ORD-\w+)/);
+    if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
+    cancelCode = match[1];
+
+    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
+    await cancelCard.getByTestId('cancel-order-btn').waitFor();
+    await cancelCard.getByTestId('cancel-order-btn').click();
+    await cancelCard.getByText(/Cancelled · Escrow credits refunded/i).waitFor();
+    await shot(alicePage, 'student-order-cancelled-desktop');
+    return `${cancelCode} CANCELLED in requester history`;
+  });
+
+  await aliceCtx.close();
+  await bobCtx.close();
 }
 
 await browser.close();
