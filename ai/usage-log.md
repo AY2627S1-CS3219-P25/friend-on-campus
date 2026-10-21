@@ -3865,3 +3865,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/student-app/src/api/orders.ts`, `src/pages/TasksPage.tsx`, `src/App.tsx` — wired `unassignOrderById` (`Drop Errand` button on `ACCEPTED` courier cards) and added the `CANCELLED` status message (`Cancelled · Order was cancelled before completion`) on accepted task cards.
 - `scripts/uat/uat-d2-ui.mjs` — updated `UO2` to click the inline `confirm-accept-order-btn` after clicking `Accept Errand`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-22 01:21 SGT — Seed Matching Credit Escrow Reservations for Sample Orders
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/order-courier-lifecycle-and-seed
+
+**Prompt (summarised):** Ensure that when `SEED_SAMPLE_ORDERS=true` seeds the 4 sample `OPEN` orders in `order-service`, `credit-service` also seeds the corresponding idempotent escrow reservations so completing or cancelling any seeded sample order settles or refunds credits accurately.
+
+**Usage scenario:** Database seed synchronization across Order Service and Credit Service (allowed use).
+
+**Files changed:**
+- `services/order-service/src/database/seed.ts`, `services/order-service/test/order.service.test.ts` — assigned deterministic UUIDs (`30000000-0000-4000-8000-000000000001`..`0004`) to the 4 seeded sample orders (`ORD-98214`, `ORD-54312`, `ORD-76128`, `ORD-86429`).
+- `services/credit-service/src/database/seed.ts`, `services/credit-service/tests/seed.integration.test.ts` — added `seedSampleOrders` option (enabled in CLI mode when `SEED_SAMPLE_ORDERS=true`) to call `credits.reserve(...)` idempotently for the 4 sample orders after wallet initialization.
+- `docker-compose.yml` — passed `SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}` to `credit-service`.
+- `ai/usage-log.md` — this entry.

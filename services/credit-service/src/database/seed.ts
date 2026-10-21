@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added offline deterministic seed UUID fallback when User Service is unreachable during host-based CLI database seeding.
+ * Scope: Added offline deterministic seed UUID fallback when User Service is unreachable during host-based CLI database seeding, and idempotent sample order escrow reservation seeding when SEED_SAMPLE_ORDERS=true.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
@@ -27,6 +27,14 @@ const seedAccounts = [
   { email: 'admin@nus.edu.sg', fallbackUserId: '20000000-0000-4000-8000-000000000003' },
 ] as const;
 const seedPassword = 'Password123!';
+
+// Keep these development sample order reservations aligned with order-service/src/database/seed.ts.
+const sampleOrderReservations = [
+  { orderId: '30000000-0000-4000-8000-000000000001', accountIndex: 0, amount: 15 },
+  { orderId: '30000000-0000-4000-8000-000000000002', accountIndex: 1, amount: 20 },
+  { orderId: '30000000-0000-4000-8000-000000000003', accountIndex: 0, amount: 12 },
+  { orderId: '30000000-0000-4000-8000-000000000004', accountIndex: 1, amount: 18 },
+] as const;
 
 async function resolveSeedUserId(
   userServiceUrl: string,
@@ -80,11 +88,16 @@ async function resolveSeedUserId(
 }
 
 export async function seedCreditWallets(
-  credits: Pick<CreditService, 'initializeWallet'>,
+  credits: Pick<CreditService, 'initializeWallet'> & Partial<Pick<CreditService, 'reserve'>>,
   userServiceUrl: string,
-  options?: { allowOfflineFallback?: boolean },
+  options?: { allowOfflineFallback?: boolean; seedSampleOrders?: boolean },
 ) {
   const allowOfflineFallback = options?.allowOfflineFallback ?? false;
+  const seedSampleOrders = options?.seedSampleOrders ?? false;
+  if (seedSampleOrders && typeof credits.reserve !== 'function') {
+    throw new Error('Sample order escrow seeding requires CreditService.reserve');
+  }
+
   const userIds: string[] = [];
   for (const account of seedAccounts) {
     userIds.push(
@@ -102,13 +115,26 @@ export async function seedCreditWallets(
     // Existing transactional initialization preserves balances and grants credits at most once.
     wallets.push(await credits.initializeWallet(userId));
   }
+  if (seedSampleOrders && credits.reserve) {
+    for (const sample of sampleOrderReservations) {
+      wallets[sample.accountIndex] = await credits.reserve({
+        orderId: sample.orderId,
+        requesterId: userIds[sample.accountIndex],
+        amount: sample.amount,
+      });
+    }
+  }
   return wallets;
 }
 
 if (require.main === module) {
   const credits = createCreditService(createCreditStore(prisma));
-  seedCreditWallets(credits, config.seedUserServiceUrl, { allowOfflineFallback: true })
-    .then(wallets => console.log(`[credit-seed] Initialized or retained ${wallets.length} development wallets`))
+  const seedSampleOrders = process.env.SEED_SAMPLE_ORDERS === 'true';
+  seedCreditWallets(credits, config.seedUserServiceUrl, {
+    allowOfflineFallback: true,
+    seedSampleOrders,
+  })
+    .then(wallets => console.log(`[credit-seed] Initialized or retained ${wallets.length} development wallets${seedSampleOrders ? ' and sample order escrows' : ''}`))
     .catch((error: unknown) => {
       const detail = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[credit-seed] Failed: ${detail}`);

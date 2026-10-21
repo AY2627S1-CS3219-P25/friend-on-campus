@@ -57,8 +57,8 @@ const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 it('sample seeding requires explicit true and does not access the database otherwise', async t => {
   const original = process.env.SEED_SAMPLE_ORDERS;
   const originalInsert = prisma.order.createMany;
-  const insert = t.mock.fn(async () => ({ count: 4 }));
-  prisma.order.createMany = insert as typeof originalInsert;
+  const insert = t.mock.fn(async (_args?: { data?: Array<{ id?: string; orderCode?: string }> }) => ({ count: 4 }));
+  prisma.order.createMany = insert as unknown as typeof originalInsert;
   try {
     for (const value of [undefined, 'false', 'TRUE', '1']) {
       if (value === undefined) delete process.env.SEED_SAMPLE_ORDERS;
@@ -69,6 +69,16 @@ it('sample seeding requires explicit true and does not access the database other
     process.env.SEED_SAMPLE_ORDERS = 'true';
     await seedOrders();
     assert.equal(insert.mock.callCount(), 1);
+    const seededData = insert.mock.calls[0]?.arguments[0]?.data ?? [];
+    assert.deepEqual(
+      seededData.map(item => item.id),
+      [
+        '30000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000002',
+        '30000000-0000-4000-8000-000000000003',
+        '30000000-0000-4000-8000-000000000004',
+      ],
+    );
   } finally {
     prisma.order.createMany = originalInsert;
     if (original === undefined) delete process.env.SEED_SAMPLE_ORDERS;
