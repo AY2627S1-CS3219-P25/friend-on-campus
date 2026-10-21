@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Imported PrismaClient from ../src/database/client instead of directly from generated folder.
+ * Author review: <to be completed by author after review>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: Added PostgreSQL tests for the last-enabled-admin disable guard (UAT A8) and for refresh being refused
  * for a disabled account (A11).
@@ -9,6 +13,7 @@
  * Scope: PostgreSQL integration tests for concurrent admin removal and self-deletion session cleanup.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 // Opt in with ADMIN_GUARD_TEST_DATABASE_URL pointing to a disposable PostgreSQL database.
 // Creates and removes its own random schema; never modifies existing application tables.
@@ -18,7 +23,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
-import { PrismaClient } from '../src/database/generated/client';
+import { PrismaClient } from '../src/database/client';
 import { createApp } from '../src/app';
 import { createAuthModule } from '../src/auth/auth-module';
 import { createTokenManager } from '../src/auth/tokens';
@@ -51,7 +56,7 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
     url.searchParams.set('schema', schema);
     for (let i = 0; i < 2; i++) databases.push(new PrismaClient({ datasources: { db: { url: url.toString() } } }));
     await databases[0].$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
-    const migrations = path.resolve(__dirname, '../src/database/prisma/migrations');
+    const migrations = path.resolve(__dirname, '../prisma/migrations');
     for (const dir of (await readdir(migrations, { withFileTypes: true })).filter((entry) => entry.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
       const sql = await readFile(path.join(migrations, dir.name, 'migration.sql'), 'utf8');
       for (const statement of sql.split(';').filter((part) => part.trim())) {

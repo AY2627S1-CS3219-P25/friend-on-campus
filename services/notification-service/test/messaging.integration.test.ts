@@ -23,7 +23,7 @@ import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import amqp from 'amqplib';
 import { WebSocketServer } from 'ws';
-import type { MessagingConfig } from '../src/messaging/rabbitmq';
+import type { MessagingConfig } from '@campus-errand/messaging';
 import { createDeliver, startNotificationConsumer } from '../src/notifications/events';
 import { createNotificationStore } from '../src/notifications/store';
 import { createHub, createSocketAuthenticator } from '../src/ws/hub';
@@ -39,8 +39,6 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     url: brokerUrl!,
     exchange: `${prefix}.in`,
     queue: prefix,
-    retryExchange: `${prefix}.retry`,
-    retryQueue: `${prefix}.retry`,
     deadLetterExchange: `${prefix}.dlx`,
     deadLetterQueue: `${prefix}.dlq`,
     retryDelayMs: 50,
@@ -104,8 +102,8 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
   after(async () => {
     await consumer?.close();
     if (channel) {
-      for (const queue of [config.queue, config.retryQueue, config.deadLetterQueue]) await channel.deleteQueue(queue);
-      for (const exchange of [config.exchange, config.retryExchange, config.deadLetterExchange]) await channel.deleteExchange(exchange);
+      for (const queue of [config.queue, config.deadLetterQueue]) await channel.deleteQueue(queue);
+      for (const exchange of [config.exchange, config.deadLetterExchange]) await channel.deleteExchange(exchange);
       await channel.close();
     }
     await connection?.close();

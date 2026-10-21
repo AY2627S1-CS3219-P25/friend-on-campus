@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated Section 5 commands to reflect scripts/dev.mjs parallel dev runner, standard npm workspace -w invocations, and test:e2e:api replacing legacy test:d2 alias.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-20
+Scope: Updated Section 4 Prisma CLI and root .env loading notes.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Section 4 repo map only: App.tsx line counts updated to the real `wc -l` values (student-app 1703, admin-portal 3855) and `packages/auth` added.
 Author review: <to be completed by Reallyeasy1>
@@ -155,13 +163,15 @@ services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/inde
 services/order-service         :8003  real (Prisma, order_db)     entry src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
-apps/student-app               :5173  one src/App.tsx (~1700 lines), no router
-apps/admin-portal              :5174  one src/App.tsx (~3850 lines), no router
+apps/student-app               :5173  modular src/ (App.tsx, pages/, components/, hooks/, api/)
+apps/admin-portal              :5174  modular src/ (App.tsx, pages/, components/, hooks/, api/)
 packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
+packages/messaging                    @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/postgres-init/*.sql            creates the 5 databases (tables managed per-service by migrations)
-docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
+docker/debezium/                      Debezium Server CDC config for order_db.public.outbox_events
+docker/postgres-init/*.sql            creates the 5 databases & least-privilege roles (tables managed per-service by migrations)
+docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672) + debezium:2.7
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
 docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config
 ```
@@ -170,13 +180,13 @@ Things that are easy to get wrong:
 
 - **Table schemas are managed per-service via Prisma migrations.** Tables are no longer created in `docker/postgres-init/*.sql` (which only provisions the empty logical databases). Each service deploys its own migrations on startup (`npx prisma migrate deploy`) or via `npm run db:migrate --workspace=@campus-errand/<service>`. Schema changes belong strictly in each service's `schema.prisma` and `prisma/migrations/`. When starting a fresh Postgres volume with `docker compose down -v`, each service runs its migrations and seeds upon container boot.
 - **Access tokens use Ed25519 in `Authorization: Bearer …`**. User Service signs them with `JWT_PRIVATE_KEY`; Supplier Service verifies them with the shared `@campus-errand/auth` package and `JWT_PUBLIC_KEY`, issuer, and audience. Refresh tokens are opaque and remain in an HttpOnly cookie. Keep these service settings aligned when the author approves an authentication-contract change.
-- **Prisma clients are per service**, generated into `src/database/generated/` (git-ignored). Import from `../database/client`, never from a root `@prisma/client`. Every Prisma CLI call needs `--schema src/database/prisma/schema.prisma` (the npm scripts already pass it).
-- `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
-- A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
+- **Prisma clients are per service**, generated into `src/generated/prisma/` (git-ignored). Import from `../database/client` (which re-exports `prisma`, `Prisma`, `PrismaClient`, and model types), never directly from `src/generated/prisma` or a root `@prisma/client`. Every Prisma CLI call needs `--schema prisma/schema.prisma` (the npm scripts already pass it and load both service-local `.env` and root `../../.env` with `<SVC>_DATABASE_URL` fallback).
+- `src/database/client.ts` and `src/config.ts` load both service-local `.env` and root `.env` so standalone scripts (seed) and local dev servers share the root `.env` configuration. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the single reference.
+- A service that gains a database should reuse the standard `prisma/` + `src/database/client.ts` layout rather than a new one.
 - `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
 - Vite dev proxies are only for host-based development and send user, supplier and notification requests to their localhost ports. Compose builds static frontend assets and serves them with per-app NGINX configs; those configs preserve direct-port `/api`, `/ws`, and `/admin` proxy behaviour through the Compose gateway. `VITE_SHOW_WS_STATUS` is a student-app build argument, so changing it requires rebuilding that image.
 - Application Dockerfiles use multi-stage builds. Dependency/build stages copy the root lockfile and run workspace-scoped `npm ci` with the workspace root excluded. Backend runtime stages contain production dependencies, compiled workspace/service output, generated Prisma clients, and migration/seed inputs; frontend runtime stages contain only NGINX and built static assets. Every application runtime stage switches to its base image's built-in non-root user (`node` or `nginx`) after privileged setup. A new npm dependency still requires updating that workspace's manifest and the root lockfile; runtime-required tooling must be in `dependencies`, while build-only tooling stays in `devDependencies`. `.dockerignore` excludes `*.md`.
-- **Keep `init: true` on the backend services and the `su-exec rabbitmq` prefix on the rabbitmq health check in `docker-compose.yml`.** The backends `exec node dist/index.js` as PID 1; supplier-service and notification-service register no SIGTERM handler (user, order and credit do, in their `src/index.ts`), so without an init `docker stop` waits 10 s and SIGKILLs those two. RabbitMQ's health probe otherwise runs as root and, on a slow machine, can write a root-owned `.erlang.cookie` before the server (uid 100) boots, after which the broker exits with `eacces`. The container itself stays root on purpose: its entrypoint chowns `/var/lib/rabbitmq` on every start, which is what repairs a volume that already holds a root-owned cookie.
+- **Keep `init: true` on the backend services and the `su-exec rabbitmq` prefix on the rabbitmq health check in `docker-compose.yml`.** The backends `exec node dist/index.js` as PID 1; notification-service registers no SIGTERM handler (user, supplier, order and credit do, in their `src/index.ts`), so without an init `docker stop` waits 10 s and SIGKILLs it. RabbitMQ's health probe otherwise runs as root and, on a slow machine, can write a root-owned `.erlang.cookie` before the server (uid 100) boots, after which the broker exits with `eacces`. The container itself stays root on purpose: its entrypoint chowns `/var/lib/rabbitmq` on every start, which is what repairs a volume that already holds a root-owned cookie.
 
 ## 5. Commands
 
@@ -184,23 +194,23 @@ Things that are easy to get wrong:
 npm install                                   # also runs prisma generate for every service
 docker compose up postgres rabbitmq -d        # backing services only
 docker compose up --build                     # whole stack
-npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:student | dev:admin
-npm run db:migrate --workspace=@campus-errand/<service>
-npm run db:seed    --workspace=@campus-errand/<service>
+npm run dev                                   # all 5 services + 2 apps in parallel (or npm run dev:services | dev:apps)
+npm run dev -w services/<service>             # single service (or npm run dev -- <target>, e.g. npm run dev -- user)
+npm run db:migrate -w @campus-errand/<service>
+npm run db:seed    -w @campus-errand/<service>
 npm run typecheck                             # all workspaces — run after every code change
 npm run test:unit                             # all workspace unit suites (Node only)
 npm run test:integration                      # PostgreSQL-backed integration suites; see docs/ci.md
 npm run test:messaging                        # PostgreSQL + RabbitMQ integration suites
 npm run test:migration | test:seed            # credit migration and seed validation
 npm run test:acceptance                       # API and notification UAT against the full Compose stack
-npm run test:e2e:api | test:e2e:ui            # D2 API E2E or Chromium UI UAT
+npm run test:e2e:api | test:e2e:ui            # D2 API E2E or Chromium UI UAT — see note below
 npm run test:e2e                              # API E2E then Chromium UI UAT against a prepared stack
 npm test                                      # full isolated suite; provisions Docker infrastructure and Chromium
-npm run test:d2                               # D2 end-to-end suite — see note below
 docker exec -it campuserrand-postgres psql -U postgres
 ```
 
-`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening.
+`npm run test:e2e:api` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any host `user-service`/`supplier-service` dev servers first, or it tests whatever is already listening.
 
 **Set-up:** new machine or new teammate → `.claude/README.md` (prerequisites, plugins, checks, troubleshooting).
 

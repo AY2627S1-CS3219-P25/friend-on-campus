@@ -16,9 +16,19 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
+import path from 'node:path';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.NOTIFICATION_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.NOTIFICATION_DATABASE_URL;
+}
 
 function integer(name: string, fallback: number, minimum: number) {
   const value = Number(process.env[name] ?? fallback);
@@ -30,8 +40,8 @@ const queue = process.env.NOTIFICATION_QUEUE || 'notification-service.events';
 const exchange = process.env.NOTIFICATION_EXCHANGE || 'campus.events';
 
 export const config = Object.freeze({
-  port: process.env.PORT || 8005,
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/notification_db',
+  port: process.env.PORT || process.env.NOTIFICATION_SERVICE_PORT || 8005,
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://notification_svc:notification-service-dev@localhost:5432/notification_db',
   auth: {
     // Validated by authMiddleware during startup, before opening connections.
     publicKey: process.env.JWT_PUBLIC_KEY ?? '',
@@ -42,8 +52,6 @@ export const config = Object.freeze({
     url: process.env.RABBITMQ_URL || 'amqp://notification_service:notification-service-dev@localhost:5672/campus',
     exchange,
     queue,
-    retryExchange: process.env.NOTIFICATION_RETRY_EXCHANGE || `${queue}.retry`,
-    retryQueue: process.env.NOTIFICATION_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.NOTIFICATION_DLX || `${queue}.dlx`,
     deadLetterQueue: process.env.NOTIFICATION_DLQ || `${queue}.dlq`,
     // About a minute in total: every insert error counts as transient, and the dead-letter queue is terminal,

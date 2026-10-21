@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Removed legacy test:d2 alias from rootSystemScripts after inlining into test:e2e:api.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-12
  * Scope: Fail validation when a workspace test file is not selected by any classified test script.
  * Author review: <to be completed by ngkhengyang>
@@ -8,7 +12,7 @@
  * Scope: Validate static GitHub Actions test matrices against root/workspace package scripts without a YAML dependency.
  * Author review: <to be completed by ngkhengyang>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by ngkhengyang, yanhwee)
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,9 +40,8 @@ const rootSystemScripts = new Set([
   'test:e2e:api',
   'test:e2e:ui',
   'test:e2e',
-  'test:d2',
 ]);
-const requiredRootScripts = [...rootSystemScripts].filter((script) => script !== 'test:d2');
+const requiredRootScripts = [...rootSystemScripts];
 const testFilePattern = /\.test\.(?:[cm]?[jt]sx?)$/;
 const ignoredTestDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', 'generated']);
 const errors = [];

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity, date: 2026-10-19
+ * Scope: Validated positive 32-bit integer amount in reserve() and simplified reservationResult to Saga Approach B2 (removed release-request and cross-service expiresAt clock check; order expiry refunds are handled via order.expired).
+ * Author review: Reviewed and verified by yanhwee.
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Atomically persist reservation/refund results, balance changes and deduplication; roll back rejected holds.
  * Author review: <to be completed by huangjiaxi1111>
@@ -8,6 +12,7 @@
  * Scope: Implemented the author-specified persistent credit messaging and idempotency contract.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
@@ -18,7 +23,6 @@ export { CreditError, CreditConflict } from './errors';
 
 export type CreditCommand =
   | { kind: 'reserve-request'; event: CreditReservationRequestEvent }
-  | { kind: 'release-request'; event: CreditReservationRequestEvent }
   | { kind: 'register'; userId: string; initialGrant: number }
   | { kind: 'settle'; body: EscrowSettleRequest }
   | { kind: 'refund'; body: EscrowRefundRequest };
@@ -54,7 +58,11 @@ async function matchingEscrow(tx: CreditTransactionStore, body: EscrowReserveReq
   return escrow;
 }
 
+// AI-generated (edited by yanhwee)
 async function reserve(tx: CreditTransactionStore, body: EscrowReserveRequest): Promise<CreditWalletDTO> {
+  if (!Number.isInteger(body.amount) || body.amount <= 0 || body.amount > 2147483647) {
+    throw new CreditError('Amount must be a positive 32-bit integer');
+  }
   if (await tx.findEscrow(body.orderId)) {
     await matchingEscrow(tx, body);
     // An identical reserve replay never reopens a terminal reservation.
@@ -110,31 +118,27 @@ async function refund(tx: CreditTransactionStore, body: EscrowRefundRequest): Pr
   return (await tx.findWallet(body.requesterId))!;
 }
 
-// AI-generated (edited by huangjiaxi1111)
+// AI-generated (edited by yanhwee)
 async function reservationResult(tx: CreditTransactionStore, event: CreditReservationRequestEvent) {
   const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits };
   let eventType: CreditReservationResultEvent['eventType'] = 'credit.reservation.succeeded';
   let reason: string | undefined;
-  if (event.eventType === 'order.reservation.release_requested') {
-    await refund(tx, body);
-    eventType = 'credit.reservation.released';
-  } else {
-    // A business rejection must roll back ALL attempted balance/ledger writes, while
-    // the outer transaction still commits the dedup marker and the failure response.
-    await tx.savepoint();
-    try {
-      if (Date.parse(event.expiresAt) <= Date.now()) throw new CreditError('Submission expired before reservation');
-      const existing = await tx.findEscrow(body.orderId);
-      if (existing && existing.state !== 'RESERVED') throw new CreditConflict('Reservation is already closed');
-      await reserve(tx, body);
-    } catch (error) {
-      if (!(error instanceof CreditError)) throw error;
-      await tx.rollbackAttempt();
-      eventType = 'credit.reservation.failed';
-      reason = error.message;
-    }
-    await tx.releaseSavepoint();
+
+  // A business rejection must roll back ALL attempted balance/ledger writes, while
+  // the outer transaction still commits the dedup marker and the failure response.
+  await tx.savepoint();
+  try {
+    const existing = await tx.findEscrow(body.orderId);
+    if (existing && existing.state !== 'RESERVED') throw new CreditConflict('Reservation is already closed');
+    await reserve(tx, body);
+  } catch (error) {
+    if (!(error instanceof CreditError)) throw error;
+    await tx.rollbackAttempt();
+    eventType = 'credit.reservation.failed';
+    reason = error.message;
   }
+  await tx.releaseSavepoint();
+
   const result: CreditReservationResultEvent = {
     eventId: randomUUID(), eventType, correlationId: event.correlationId,
     orderId: event.orderId, requesterId: event.requesterId, rewardCredits: event.rewardCredits,
@@ -165,7 +169,7 @@ export function createCreditService(store: CreditStore) {
           return;
         }
         await tx.addEvent(identity);
-        if (command.kind === 'reserve-request' || command.kind === 'release-request') await reservationResult(tx, command.event);
+        if (command.kind === 'reserve-request') await reservationResult(tx, command.event);
         else if (command.kind === 'register') await initializeWallet(tx, command.userId, command.initialGrant);
         else if (command.kind === 'settle') await settle(tx, command.body);
         else await refund(tx, command.body);

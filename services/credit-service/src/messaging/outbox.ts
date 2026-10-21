@@ -3,36 +3,20 @@
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Publish committed credit saga results with confirms, persistent retries, and reconnect support.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Replaced manual amqplib connection/channel state with createRabbitPublisher from @campus-errand/messaging.
+ * Author review: <to be completed by yanhwee>
  */
-// AI-generated (edited by huangjiaxi1111)
-import amqp, { type ConfirmChannel } from 'amqplib';
+// AI-generated (edited by huangjiaxi1111, yanhwee)
 import type { PrismaClient } from '../database/client';
-import { createConfirmedPublisher } from './rabbitmq';
+import { createRabbitPublisher } from '@campus-errand/messaging';
 
 export function createCreditOutbox(prisma: PrismaClient, config: { url: string; exchange: string; intervalMs?: number }) {
-  let connection: Awaited<ReturnType<typeof amqp.connect>> | undefined;
-  let channel: ConfirmChannel | undefined;
-  let publish: ReturnType<typeof createConfirmedPublisher> | undefined;
+  const publisher = createRabbitPublisher({ url: config.url });
   let timer: NodeJS.Timeout | undefined;
   let running: Promise<number> | undefined;
   let stopped = false;
-
-  async function connect() {
-    if (!connection) {
-      const conn = await amqp.connect(config.url, { timeout: 5000 });
-      connection = conn;
-      conn.on('error', () => {});
-      conn.on('close', () => { if (connection === conn) { connection = undefined; channel = undefined; publish = undefined; } });
-    }
-    if (!channel) {
-      const ch = await connection.createConfirmChannel();
-      channel = ch;
-      ch.on('error', () => {});
-      ch.on('close', () => { if (channel === ch) { channel = undefined; publish = undefined; } });
-      publish = createConfirmedPublisher(ch);
-    }
-    return publish!;
-  }
 
   function processPending(): Promise<number> {
     if (stopped) return Promise.resolve(0);
@@ -43,8 +27,10 @@ export function createCreditOutbox(prisma: PrismaClient, config: { url: string; 
       for (const row of rows) {
         if (stopped) break;
         try {
-          const send = await connect();
-          await send(config.exchange, row.eventType, Buffer.from(row.payload), { messageId: row.id, contentType: 'application/json' });
+          await publisher.publish(config.exchange, row.eventType, Buffer.from(row.payload), {
+            messageId: row.id,
+            contentType: 'application/json',
+          });
         } catch {
           await prisma.creditOutboxEvent.updateMany({ where: { id: row.id, status: 'PENDING' }, data: { retryCount: { increment: 1 } } });
           break;
@@ -56,6 +42,7 @@ export function createCreditOutbox(prisma: PrismaClient, config: { url: string; 
     })().finally(() => { running = undefined; });
     return running;
   }
+
   const tick = () => { void processPending().catch(() => console.error('[credit_outbox] Database unavailable; will retry')); };
   return {
     processPending,
@@ -64,8 +51,7 @@ export function createCreditOutbox(prisma: PrismaClient, config: { url: string; 
       stopped = true;
       if (timer) clearInterval(timer);
       await running?.catch(() => {});
-      await channel?.close().catch(() => {});
-      await connection?.close().catch(() => {});
+      await publisher.close();
     },
   };
 }

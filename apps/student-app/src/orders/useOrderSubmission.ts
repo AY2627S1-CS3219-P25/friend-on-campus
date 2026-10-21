@@ -1,16 +1,22 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-19
+ * Scope: Refactored useOrderSubmission to poll /api/orders/:id directly with OrderDTO (Approach B2).
+ * Author review: Validated against order-service /api/orders/:id contract by yanhwee
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Connect the existing submission API to authenticated posting, resumable polling and saga outcomes.
  * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by huangjiaxi1111)
-import type { CreateOrderRequest, OrderSubmissionDTO } from '@campus-errand/common-dtos';
+// AI-generated (edited by yanhwee)
+import type { CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
 import { useEffect, useRef, useState } from 'react';
 
-type State = { owner: string | null; receipt: OrderSubmissionDTO | null; posting: boolean; error: string | null; unconfirmed?: boolean };
-const pending = (receipt: OrderSubmissionDTO | null) => receipt?.status === 'PENDING' || receipt?.status === 'COMPENSATING';
+export type OrderSubmissionReceipt = Pick<OrderDTO, 'id' | 'status'> & Partial<OrderDTO>;
+type State = { owner: string | null; receipt: OrderSubmissionReceipt | null; posting: boolean; error: string | null; unconfirmed?: boolean };
+const pending = (receipt: OrderSubmissionReceipt | null) => receipt?.status === 'PENDING';
 const storageKey = (userId: string) => `order-submission:${userId}`;
+const VALID_STATUSES = ['PENDING', 'OPEN', 'REJECTED', 'EXPIRED', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED'];
 
 // Used only to scope local UI state. The server authenticates every request.
 export function tokenUserId(token: string): string | null {
@@ -23,7 +29,7 @@ export function tokenUserId(token: string): string | null {
 export function useOrderSubmission(options: {
   userId: string | null;
   authFetch: (url: string, init?: RequestInit) => Promise<Response>;
-  onSettled: (receipt: OrderSubmissionDTO) => void;
+  onSettled: (receipt: OrderSubmissionReceipt) => void;
 }) {
   const latest = useRef(options);
   latest.current = options;
@@ -35,7 +41,7 @@ export function useOrderSubmission(options: {
   useEffect(() => {
     const epoch = ++generation.current;
     posting.current = false;
-    let receipt: OrderSubmissionDTO | null = null;
+    let receipt: OrderSubmissionReceipt | null = null;
     if (userId) {
       try {
         const id = sessionStorage.getItem(storageKey(userId));
@@ -56,7 +62,7 @@ export function useOrderSubmission(options: {
       controller = new AbortController();
       const timeout = setTimeout(() => controller?.abort(), 10000);
       try {
-        const res = await latest.current.authFetch(`/api/orders/submissions/${submissionId}`, { signal: controller.signal });
+        const res = await latest.current.authFetch(`/api/orders/${submissionId}`, { signal: controller.signal });
         const body = await res.json();
         if (stopped || latest.current.userId !== userId) return;
         if (res.status === 403 || res.status === 404) {
@@ -65,8 +71,8 @@ export function useOrderSubmission(options: {
           return;
         }
         if (!res.ok || !body.success || !body.data) throw new Error('Status unavailable');
-        const receipt = body.data as OrderSubmissionDTO;
-        if (receipt.id !== submissionId || !['PENDING', 'OPEN', 'REJECTED', 'COMPENSATING', 'COMPENSATED'].includes(receipt.status) || (receipt.status === 'OPEN' && !receipt.order)) {
+        const receipt = body.data as OrderSubmissionReceipt;
+        if (receipt.id !== submissionId || !VALID_STATUSES.includes(receipt.status) || (receipt.status === 'OPEN' && !receipt.orderCode)) {
           throw new Error('Invalid submission result');
         }
         setState({ owner: userId, receipt, posting: false, error: null });
@@ -102,7 +108,7 @@ export function useOrderSubmission(options: {
         setState({ owner: userId, receipt: null, posting: false, error: body.error || 'Unable to submit this errand.' });
         return;
       }
-      const receipt = body.data as OrderSubmissionDTO;
+      const receipt = body.data as OrderSubmissionReceipt;
       if (res.status !== 202 || receipt?.status !== 'PENDING' || !/^[0-9a-f-]{36}$/i.test(receipt.id)) throw new Error('Missing receipt');
       try { sessionStorage.setItem(storageKey(userId), receipt.id); } catch { /* Optional browser persistence. */ }
       setState({ owner: userId, receipt, posting: false, error: null });

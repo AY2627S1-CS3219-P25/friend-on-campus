@@ -16,7 +16,7 @@ async function main() {
   if (!url || !new URL(url).pathname.includes('_test')) throw new Error('CREDIT_TEST_DATABASE_URL must name a dedicated _test database');
   const client = new Client({ connectionString: url });
   await client.connect();
-  const migrations = join(__dirname, '../src/database/prisma/migrations');
+  const migrations = join(__dirname, '../prisma/migrations');
   const schema = `credit_test_${randomUUID().replaceAll('-', '')}`;
   await client.query(`CREATE SCHEMA "${schema}"`);
   try {

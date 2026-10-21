@@ -1,8 +1,17 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-21
+// Scope: Added **/test-results/** to ESLint ignores.
+// Author review: <to be completed by author after review>
+//
+// Tool: Google Antigravity, date: 2026-10-20
+// Scope: Updated ESLint ignores for Prisma generated client path **/src/generated/**.
+// Author review: <to be completed by author after review>
+//
 // Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
 // Scope: Added the root ESLint flat configuration for TypeScript, React, React Hooks, and repository scripts.
 // Author review: <to be completed by ngkhengyang>
 
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
 import js from "@eslint/js";
 import react from "eslint-plugin-react";
@@ -17,10 +26,11 @@ export default tseslint.config(
       "**/dist/**",
       "**/build/**",
       "**/coverage/**",
+      "**/test-results/**",
       "**/.vite/**",
       "**/.turbo/**",
       "**/generated/**",
-      "**/src/database/generated/**",
+      "**/src/generated/**",
     ],
   },
   js.configs.recommended,

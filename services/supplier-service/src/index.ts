@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-19
+ * Scope: Extracted Express app factory to src/app.ts and config to src/config.ts; added graceful SIGINT/SIGTERM shutdown.
+ * Author review: yanhwee
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-08
  * Scope: Relocated server entry point from src/backend/server.ts to standard root src/index.ts and updated routes import to src/suppliers/supplierRoutes.
  * Author review: <to be completed by author after review>
@@ -14,45 +18,23 @@
  * Author review: <to be completed by ngkhengyang>
  */
 
-
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by jagdeepsh)
 // AI-generated (edited by ngkhengyang)
-import { authMiddleware, requireAdmin } from '@campus-errand/auth';
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { createSupplierRouter } from './suppliers/supplierRoutes';
+import { createApp } from './app';
+import { config } from './config';
+import { prisma } from './database/client';
 
-dotenv.config();
+const app = createApp();
 
-// AI-generated (edited by ngkhengyang)
-function requiredEnvironmentVariable(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} must be configured`);
-  }
+const server = app.listen(config.port, () => {
+  console.log(`🚀 [Supplier Service] running on port ${config.port}`);
+});
 
-  return value;
+async function shutdown(): Promise<void> {
+  await prisma.$disconnect().catch(() => {});
+  server.close();
 }
 
-const app = express();
-const PORT = process.env.PORT || 8002;
-const authenticateToken = authMiddleware({
-  publicKey: requiredEnvironmentVariable('JWT_PUBLIC_KEY'),
-  issuer: process.env.JWT_ISSUER ?? 'friend-on-campus-user-service',
-  audience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
-});
-
-app.use(cors());
-app.use(express.json());
-
-// Health Check
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({ service: 'supplier-service', status: 'UP', port: PORT, timestamp: new Date() });
-});
-
-app.use('/api/suppliers', createSupplierRouter(authenticateToken, requireAdmin));
-
-app.listen(PORT, () => {
-  console.log(`🚀 [Supplier Service] running on port ${PORT} with tsx`);
-});
+process.once('SIGINT', () => void shutdown());
+process.once('SIGTERM', () => void shutdown());

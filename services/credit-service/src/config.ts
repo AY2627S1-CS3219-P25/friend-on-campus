@@ -9,9 +9,19 @@
  * Author review: <to be completed by Jiaxi>
  */
 // AI-generated (edited by Jiaxi)
+import path from 'node:path';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({
+  path: [
+    path.resolve(__dirname, '../.env'),
+    path.resolve(__dirname, '../../../.env'),
+  ],
+});
+
+if (!process.env.DATABASE_URL && process.env.CREDIT_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.CREDIT_DATABASE_URL;
+}
 
 function integer(name: string, fallback: number, minimum: number) {
   const value = Number(process.env[name] ?? fallback);
@@ -21,8 +31,8 @@ function integer(name: string, fallback: number, minimum: number) {
 const queue = process.env.CREDIT_QUEUE || 'credit-service.events';
 const exchange = process.env.CREDIT_EXCHANGE || 'campus.events';
 export const config = Object.freeze({
-  port: process.env.PORT || 8004,
-  databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/credit_db',
+  port: process.env.PORT || process.env.CREDIT_SERVICE_PORT || 8004,
+  databaseUrl: process.env.DATABASE_URL || 'postgresql://credit_svc:credit-service-dev@localhost:5432/credit_db',
   seedUserServiceUrl: process.env.USER_SERVICE_URL || 'http://localhost:8001',
   auth: {
     // Validated by authMiddleware during startup, before opening connections.
@@ -33,8 +43,6 @@ export const config = Object.freeze({
   rabbitmq: {
     url: process.env.RABBITMQ_URL || 'amqp://credit_service:credit-service-dev@localhost:5672/campus',
     exchange, queue,
-    retryExchange: process.env.CREDIT_RETRY_EXCHANGE || `${queue}.retry`,
-    retryQueue: process.env.CREDIT_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.CREDIT_DLX || `${exchange}.dlx`,
     deadLetterQueue: process.env.CREDIT_DLQ || `${queue}.dlq`,
     retryDelayMs: integer('CREDIT_RETRY_DELAY_MS', 5000, 1),

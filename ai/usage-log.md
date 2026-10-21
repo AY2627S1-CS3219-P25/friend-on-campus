@@ -3701,3 +3701,229 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - none
+
+## 2026-10-19 22:10 SGT — Infrastructure Security & Database-per-Service Isolation (Issue #42, #63)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/infra-security-isolation
+
+**Prompt (summarised):** Implement W1 infrastructure security & isolation: remove the unauthenticated `POST /api/credits/escrow/reserve` endpoint from `credit-service` and block `/api/credits/escrow` at the Nginx API gateway (Issue #42), enforce least-privilege PostgreSQL service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`) with `REVOKE CONNECT ON DATABASE ... FROM PUBLIC` (Issue #63), and serve campus supplier images directly from the Nginx gateway at `/images/` instead of broken GitHub blob URLs.
+
+**Usage scenario:** Implementation code, configuration, test updates, and documentation (allowed use). The author defined the security and isolation requirements across the gateway, credit-service, PostgreSQL initialization script, and seed data.
+
+**Files changed:**
+- `docker/postgres-init/01-init-databases.sql` — provisioned dedicated least-privilege PostgreSQL roles for all 5 microservices, assigned database ownership, revoked public `CONNECT` privileges, and configured default schema grants.
+- `docker-compose.yml` — updated `DATABASE_URL` across all 5 backend services to connect with their dedicated PostgreSQL roles and mounted `./data/images` read-only into `api-gateway`.
+- `gateway/nginx.conf` — added `location /api/credits/escrow { return 403; }` to block external escrow ingress and `location /images/` to serve static supplier images.
+- `services/credit-service/src/credits/routes.ts` — removed the unauthenticated `POST /api/credits/escrow/reserve` HTTP route and unused `escrowRequest` helper (resolving Issue #42).
+- `services/credit-service/tests/credits.integration.test.ts`, `services/credit-service/tests/messaging.integration.test.ts` — updated integration tests to assert HTTP `404` on `/api/credits/escrow/reserve` alongside `settle` and `refund`, and invoked `CreditService.reserve` directly for unit/integration setup.
+- `data/csv/supplier-seed-data.csv` — replaced GitHub HTML blob URLs with gateway-served `/images/<FILE>.jpeg` paths.
+- `docs/security.md` — updated route security table and documented PostgreSQL role isolation.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:45 SGT — Monorepo Standardization, Root .env Unification & Prisma Schema Relocation
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/repo-standardization
+
+**Prompt (summarised):** Implement Workstream 3 (`chore/repo-standardization`): unify `.env` configuration to the monorepo root (removing per-service `.env.example` files and loading root `.env` with `<SERVICE>_DATABASE_URL` and `<SERVICE>_SERVICE_PORT` fallbacks across all 5 microservices), relocate `src/database/prisma/` to `prisma/` at each service root while keeping generated clients isolated in `src/database/generated/client`, refactor `supplier-service` into `src/config.ts`, `src/app.ts`, `src/index.ts`, and `src/suppliers/supplierService.ts`, and add workspace-level `db:migrate`, `db:deploy`, `db:seed`, `dev:apps`, and `dev:services` scripts to root `package.json`.
+
+**Usage scenario:** Implementation code, configuration, refactoring, and documentation (allowed use). The author specified the target repository structure, `.env` consolidation strategy, and layered architecture conventions.
+
+**Files changed / created:**
+- `.env.example`, `services/{credit,notification,order,user}-service/.env.example` [DELETED] — consolidated all service environment variables into root `.env.example`.
+- `services/*/prisma/` — moved `src/database/prisma/` to `prisma/` across all 5 microservices and updated `generator client { output = "../src/database/generated/client" }`.
+- `services/*/Dockerfile`, `services/*/package.json`, `package.json` — updated Prisma schema paths (`prisma/schema.prisma`) and standardized workspace database/dev scripts.
+- `services/*/src/config.ts`, `services/*/src/database/client.ts` — added root `.env` fallback loading and `<SERVICE>_DATABASE_URL` / `<SERVICE>_SERVICE_PORT` fallback resolution.
+- `services/supplier-service/src/{config.ts,app.ts,index.ts}`, `services/supplier-service/src/suppliers/{supplierService.ts,supplierRoutes.ts}` — extracted Express `createApp()`, typed `config.ts`, and service-layer orchestration in `supplierService.ts` while preserving route handler exports for unit tests.
+- `services/credit-service/tests/migration.integration.test.ts`, `services/notification-service/test/helpers.ts`, `services/user-service/test/admin-guard.integration.test.ts` — updated relative migration directory paths to `../prisma/migrations`.
+- `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md`, `.claude/agents/reviewer.md` — updated Prisma schema paths and `.env` documentation.
+- `ai/usage-log.md` — this entry.
+## 2026-10-19 23:35 SGT — Order Creation Choreography Saga (Approach B2) & Debezium Outbox CDC
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/saga-and-cdc
+
+**Prompt (summarised):** Refactor PR #123's outbox-only submission saga to Approach B2: insert `Order` directly into the `orders` table with `status = 'PENDING'` (and `rejectionReason`) alongside the `order.reservation.requested` outbox event in a single atomic transaction; return `202 Accepted` with `OrderDTO` (`Location: /api/orders/:id`) and remove `OrderSubmissionDTO`, `/api/orders/submissions/:id`, and `reservation.saga.ts`; transition `PENDING -> OPEN` on `credit.reservation.succeeded` (or `PENDING -> EXPIRED` with `order.expired` if `expiresAt` has elapsed) and `PENDING -> REJECTED` on `credit.reservation.failed`; remove redundant `COMPENSATING`, `COMPENSATED`, `order.reservation.release_requested`, `credit.reservation.released`, and `expiresAt` from `CreditReservationRequestEvent`; add `aggregate_type` and `aggregate_id` to outbox tables along with PostgreSQL `wal_level=logical` and Debezium Server Outbox Event Router (`docker/debezium/application.properties`).
+
+**Usage scenario:** Architectural refactoring, database schema evolution, asynchronous saga choreography, CDC outbox configuration, test updates, and specification updates (allowed use). The author designed the Approach B2 state machine and CDC outbox architecture.
+
+**Files changed / created:**
+- `packages/common-dtos/src/index.ts` — added `PENDING` and `REJECTED` to `OrderStatus`, added `rejectionReason` to `OrderDTO`, removed `OrderSubmissionDTO`, and simplified `CreditReservationRequestEvent` / `CreditReservationResultEvent`.
+- `services/order-service/prisma/schema.prisma`, `services/order-service/prisma/migrations/20261019150000_saga_b2_and_cdc/migration.sql` [NEW], `services/order-service/src/database/schema.sql` — added `rejection_reason` to `orders` and `aggregate_type` / `aggregate_id` to `outbox_events`.
+- `services/order-service/src/orders/reservation.saga.ts` [DELETED], `services/order-service/src/orders/{order.types.ts,order.repository.ts,order.service.ts,order.routes.ts,reservation.consumer.ts,event.publisher.ts}`, `services/order-service/src/index.ts` — replaced outbox-only submission storage with atomic `PENDING` order creation and `PENDING -> OPEN / REJECTED / EXPIRED` state transitions.
+- `services/order-service/test/{helpers.ts,app.test.ts,order.service.test.ts,reservation.messaging.test.ts}` — updated all 51 unit and route tests for Approach B2.
+- `services/credit-service/prisma/schema.prisma`, `services/credit-service/prisma/migrations/20261019150000_cdc_outbox_columns/migration.sql` [NEW], `services/credit-service/src/credits/{store.ts,events.ts,service.ts}`, `services/credit-service/src/index.ts` — removed redundant `expiresAt` check and `order.reservation.release_requested` / `credit.reservation.released` handling; added `aggregate_type` / `aggregate_id` to `credit_outbox_events`.
+- `docker/rabbitmq/definitions.json`, `docker-compose.yml`, `docker/debezium/application.properties` [NEW] — cleaned up RabbitMQ permissions/bindings, enabled `wal_level=logical` on PostgreSQL, and added Debezium Server 2.7 Outbox Event Router profile (`cdc`).
+- `apps/student-app/src/orders/useOrderSubmission.ts`, `apps/student-app/src/App.tsx` — updated student app to poll `/api/orders/:id` using `OrderDTO`.
+- `docs/errand-specification.md`, `tests/postman/reservation_collection.json` — updated state machine documentation and Postman collection for Approach B2.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 00:00 SGT — Modular Frontend Refactoring for student-app and admin-portal
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/frontend-modular-refactor
+
+**Prompt (summarised):** Implement Workstream 4 (`feat/frontend-modular-refactor`): decompose the monolithic single-file React applications (`apps/student-app/src/App.tsx` at 3,262 lines and `apps/admin-portal/src/App.tsx` at 3,856 lines) into modular `api/`, `hooks/`, `components/`, and `pages/` directories while preserving 100% of existing UI behavior, Tailwind styling, and E2E/Playwright selectors.
+
+**Usage scenario:** Code modularization and structural refactoring (allowed use). The author defined the target directory layout (`api/`, `hooks/`, `components/`, `pages/`) and thin `App.tsx` orchestrator structure for both frontend workspaces.
+
+**Files changed / created:**
+- `apps/student-app/src/api/{client.ts,auth.ts,suppliers.ts,orders.ts,credits.ts,users.ts,notifications.ts}` [NEW] — extracted typed HTTP API client helpers for student-app domains.
+- `apps/student-app/src/hooks/{useAuth.ts,useNotifications.ts}` [NEW] — extracted authentication/session state and Socket.IO notification hooks.
+- `apps/student-app/src/components/{AppHeader.tsx,BottomNav.tsx,ToastContainer.tsx,OrderProgressStepper.tsx,ConfirmActionModal.tsx,ReportDisputeModal.tsx}` [NEW] — extracted shared UI shell, navigation, and modal components.
+- `apps/student-app/src/pages/{AuthPage.tsx,FeedPage.tsx,PostErrandPage.tsx,DirectoryPage.tsx,MyTasksPage.tsx,AlertsPage.tsx,ProfileWalletPage.tsx}` [NEW] — extracted student-app views into page modules.
+- `apps/student-app/src/App.tsx` — simplified from 3,262 lines to a 266-line top-level orchestrator.
+- `apps/admin-portal/src/constants.ts`, `apps/admin-portal/src/api/{auth.ts,suppliers.ts,users.ts,orders.ts}` [NEW] — extracted shared constants and typed admin API client helpers.
+- `apps/admin-portal/src/hooks/useAdminAuth.ts` [NEW] — extracted admin JWT authentication, silent session restore, and logout hook.
+- `apps/admin-portal/src/components/{AdminSidebar.tsx,AdminHeader.tsx,OrderStatusBadge.tsx,SupplierModals.tsx,UserModals.tsx,OrderActionModal.tsx}` [NEW] — extracted admin navigation, header, status badge, and CRUD modal components.
+- `apps/admin-portal/src/pages/{AdminLoginPage.tsx,SuppliersPage.tsx,UsersPage.tsx,OrdersPage.tsx,HealthPage.tsx,AuditPage.tsx}` [NEW] — extracted admin portal views into dedicated page modules.
+- `apps/admin-portal/src/App.tsx` — simplified from 3,856 lines to a 462-line top-level orchestrator.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:28 SGT — Standardize Prisma Client Output Path, Database Client Facade, and Schema DDL Hygiene
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Standardize Prisma folder structure and database conventions across all 5 microservices: update `generator client` output from `../src/database/generated/client` to `../src/generated/prisma`, apply the `src/database/client.ts` facade/re-export best practice across all services, remove redundant `src/database/schema.sql` files, update `.dockerignore`, `.gitignore`, `eslint.config.mjs`, Dockerfiles, and documentation, and create a branch, commit, push, and open a PR via `gh`.
+
+**Usage scenario:** Codebase standardization, refactoring, and configuration alignment (allowed use). The author requested adopting Prisma's modern `../src/generated/prisma` output path, unifying `src/database/client.ts` as the single database entry point, removing stale hand-maintained `schema.sql` files in favor of Prisma migrations, and hardening `.dockerignore`.
+
+**Files changed / created:**
+- `services/{credit,notification,order,supplier,user}-service/prisma/schema.prisma` — updated `generator client { output = "../src/generated/prisma" }`.
+- `services/{credit,notification,order,supplier,user}-service/src/database/client.ts` — standardized all 5 database client modules to import from `../generated/prisma`, configure `datasources.db.url`, and re-export `Prisma`, `PrismaClient`, and model types.
+- `services/notification-service/src/notifications/store.ts`, `services/notification-service/test/helpers.ts`, `services/user-service/src/persistence/{database,auth-repository,user-repository}.ts`, `services/user-service/test/admin-guard.integration.test.ts` — routed Prisma imports through `src/database/client.ts` instead of importing directly from the generated directory.
+- `services/{credit,notification,order,supplier,user}-service/Dockerfile` — updated runtime stage `COPY` from `/app/services/<svc>/src/generated` to `./services/<svc>/dist/generated`.
+- `services/credit-service/src/database/schema.sql` [DELETED], `services/order-service/src/database/schema.sql` [DELETED] — removed stale hand-maintained SQL DDL files superseded by `prisma/migrations/`.
+- `.gitignore`, `.dockerignore`, `eslint.config.mjs` — updated generated Prisma paths (`**/src/generated/`) and added standard `.dockerignore` exclusions.
+- `README.md`, `docs/architecture.md`, `CLAUDE.md`, `.claude/agents/backend.md` — updated documentation references to `src/generated/prisma`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:35 SGT — Monorepo package.json Minimalism & Best-Practices Cleanup
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/package-json-cleanup
+
+**Prompt (summarised):** Audit and clean up root and workspace `package.json` files in a dedicated worktree so dependencies are minimal and follow monorepo best practices.
+
+**Usage scenario:** Dependency and manifest cleanup, configuration hygiene, and lockfile regeneration (allowed use).
+
+**Files changed:**
+- `package.json` — added explicit `amqplib` and `@types/amqplib` to root `devDependencies` for UAT/utility scripts, aligned `@types/node` to `^20.14.0` to deduplicate nested workspace installations, and preserved explicit `db:seed` workspace ordering (`user-service` before `credit-service`).
+- `packages/auth/package.json` — removed duplicate `dependencies` key and added `"private": true`.
+- `packages/common-dtos/package.json` — added `"private": true`.
+- `services/credit-service/package.json` — added `"private": true`, moved `pg` from production `dependencies` to `devDependencies` (used only in `tests/migration.integration.test.ts`), standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.
+- `services/order-service/package.json` — added `"private": true` and removed unused `pg` and `@types/pg` dependencies.
+- `services/supplier-service/package.json` — added `"private": true`, removed unused `pg` and `@types/pg` dependencies, standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.
+- `services/notification-service/package.json`, `services/user-service/package.json` — added `"private": true`, standardized `typecheck` script to `tsc -p tsconfig.test.json --noEmit`, and sorted dependencies.
+- `package-lock.json` — regenerated lockfile after dependency cleanup.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:46 SGT — Address PR #142 Review: Lazy JWT Getters in user-service config.ts and Uniform globalForPrisma Facades
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Address PR #142 review findings: convert `accessTokenPrivateKey` and `accessTokenPublicKey` in `services/user-service/src/config.ts` to lazy property getters so `services/user-service/src/database/client.ts` can import `config.databaseUrl` directly without breaking DB-only scripts/tests when JWT env vars are unset, and align `globalForPrisma` + `export type *` across all 5 `src/database/client.ts` facades.
+
+**Usage scenario:** Code review resolution and refactoring (allowed use). The author approved using lazy property getters on `user-service/src/config.ts` and aligning the 5 `client.ts` facades.
+
+**Files changed:**
+- `services/user-service/src/config.ts` — converted `accessTokenPrivateKey` and `accessTokenPublicKey` to property getters on `config`.
+- `services/user-service/src/database/client.ts` — replaced duplicate `dotenv.config()` and `DEFAULT_DATABASE_URL` fallback with `config.databaseUrl`, `globalForPrisma` singleton guard, and `export type * from '../generated/prisma'`.
+- `services/notification-service/src/database/client.ts`, `services/supplier-service/src/database/client.ts` — added `globalForPrisma` singleton guard and `export type * from '../generated/prisma'` to match `credit-service` and `order-service`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 17:55 SGT — Resolve Merge Conflict with main on PR #142
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/prisma-client-standardization
+
+**Prompt (summarised):** Resolve merge conflicts with `main` on `chore/prisma-client-standardization`.
+
+**Usage scenario:** Git merge and conflict resolution (allowed use). Merged `origin/main` (PR #143) into `chore/prisma-client-standardization` and preserved both branches' `ai/usage-log.md` entries in chronological order.
+
+**Files changed:**
+- `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/prisma-client-standardization` plus this record.
+
+## 2026-10-21 11:30 SGT — Shared `@campus-errand/messaging` Package with `rabbitmq-client` & Native Quorum Queue Redelivery
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** refactor/native-rabbitmq-consumer
+
+**Prompt (summarised):** Extract a shared `@campus-errand/messaging` workspace package built on `rabbitmq-client` providing `startRabbitConsumer` (using RabbitMQ quorum queues, native `x-delivery-count` redelivery via `ConsumerStatus.REQUEUE`, and native dead-lettering via `ConsumerStatus.DROP`) and `createRabbitPublisher` (with publisher confirms, mandatory routing check via `basic.return`, and confirm timeout). Migrate `order-service`, `credit-service`, `notification-service`, and `user-service` off raw `amqplib` channel/retry-queue boilerplate, remove legacy `.retry` topology definitions, and update tests and documentation.
+
+**Usage scenario:** Messaging infrastructure consolidation, library migration (`amqplib` to `rabbitmq-client`), and PR review resolution (allowed use). The author selected `rabbitmq-client`, native quorum queue redelivery (`x-delivery-count`), and the shared `@campus-errand/messaging` package boundary.
+
+**Files changed / created:**
+- `packages/messaging/package.json` [NEW], `packages/messaging/tsconfig.json` [NEW], `packages/messaging/src/index.ts` [NEW] — created shared `@campus-errand/messaging` package with `startRabbitConsumer` and `createRabbitPublisher`.
+- `docker/rabbitmq/definitions.json` — removed legacy `.retry` queues, `.retry` exchanges, and `.retry` bindings.
+- `services/order-service/src/messaging/consumer.ts`, `services/credit-service/src/messaging/consumer.ts`, `services/notification-service/src/notifications/consumer.ts` — migrated consumers to `@campus-errand/messaging` (`startRabbitConsumer`).
+- `services/credit-service/src/messaging/publisher.ts`, `services/user-service/src/messaging/publisher.ts` — migrated outbox publishers to `@campus-errand/messaging` (`createRabbitPublisher`).
+- `services/order-service/src/messaging/publisher.ts` [DELETED], `services/order-service/test/outbox.publisher.unit.test.ts` [DELETED] — removed unused in-process order outbox publisher superseded by Debezium CDC.
+- `services/{order,credit,notification,user}-service/package.json`, `Dockerfile`, `tsconfig*.json` — replaced direct `amqplib` dependencies with `@campus-errand/messaging` and updated container build stages.
+- `services/order-service/test/reservation.consumer.unit.test.ts`, `services/credit-service/tests/consumer.integration.test.ts`, `services/notification-service/test/consumer.integration.test.ts`, `services/user-service/test/publisher.test.ts` — updated unit and integration tests for quorum queues, `x-delivery-count`, unroutable `basic.return` rejection, and publish confirm timeout.
+- `README.md`, `docs/architecture.md`, `docs/errand-specification.md` — updated broker topology, quorum-queue retry documentation, and `docker compose down -v` volume upgrade instructions.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 12:03 SGT — Standardize UAT Test Outputs & Screenshots Under Root Git-Ignored `test-results/`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/uat-screenshots-tmpdir
+
+**Prompt (summarised):** Standardize UAT screenshots and JSON test result files under a dedicated root git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) instead of `docs/evidence/` or `os.tmpdir()`, align CI artifact upload paths in `.github/workflows/ci.yml`, and remove obsolete `docs/evidence/` and `docs/requirements/` references from `.gitignore` and `.claude/` docs.
+
+**Usage scenario:** Test output directory standardization and repository hygiene (allowed use). The author selected a top-level git-ignored `test-results/` directory for UAT screenshots and JSON reports.
+
+**Files changed:**
+- `.gitignore`, `.dockerignore`, `eslint.config.mjs` — added `test-results/` to ignored directories and removed obsolete `docs/evidence/` and `docs/requirements/` entries from `.gitignore`.
+- `scripts/uat/uat-d2-ui.mjs` — defaulted `SHOTS` to `test-results/screenshots` and `UAT_OUT` to `test-results/uat-d2-ui-results.json`.
+- `scripts/uat/uat-d2-api.mjs` — defaulted `UAT_OUT` to `test-results/uat-d2-api-results.json`.
+- `.github/workflows/ci.yml` — simplified `acceptance-tests` and `browser-uat` jobs to upload `test-results/**` directly without redundant `ci-artifacts/` wrapper steps.
+- `.claude/PLUGINS.md`, `.claude/agents/reviewer.md` — removed obsolete `docs/evidence/` and `docs/requirements/` references.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 12:15 SGT — Streamline Root & Workspace `package.json` Scripts and Extract Shared Dev/Prisma Runners
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/streamline-package-scripts
+
+**Prompt (summarised):** Audit `package.json` scripts across the monorepo for npm workspace best practices and eliminate bloat: extract the 10 duplicated ~320-character inline `node -e` Prisma migration one-liners across all 5 services into `scripts/prisma-migrate.mjs`; replace the POSIX-only `& ... & wait` parallel dev wrappers and 7 per-workspace `dev:<name>` wrappers with a zero-dependency cross-platform parallel runner (`scripts/dev.mjs`) supporting `dev`, `dev:apps`, `dev:services`, and target filtering; remove redundant root `db:generate`, `db:migrate`, `db:deploy` wrappers and simplify root `db:seed`; inline `test:d2` into `test:e2e:api` and update `scripts/ci/validate-test-matrix.mjs`; and align `@types/node` in `packages/messaging/package.json` to `^20.14.0`.
+
+**Usage scenario:** Build/script configuration cleanup, boilerplate extraction, and documentation updates (allowed use). All script consolidation decisions were reviewed and confirmed by the author.
+
+**Files changed / created:**
+- `scripts/prisma-migrate.mjs` [NEW] — shared Prisma migration runner (`migrate dev` / `migrate deploy`) loading local `.env` and root `../../.env` with `<SVC>_DATABASE_URL` fallback.
+- `scripts/dev.mjs` [NEW] — zero-dependency cross-platform parallel dev runner with prefixed output and clean `SIGINT`/`SIGTERM` child termination (`dev`, `dev:apps`, `dev:services`, or filtered targets).
+- `package.json` — replaced 7 `dev:<name>` wrappers and POSIX `& wait` scripts with `dev`, `dev:apps`, `dev:services` (`node scripts/dev.mjs`); removed redundant root `db:generate`, `db:migrate`, `db:deploy`; simplified `db:seed`; inlined `tsx scripts/test-d2-e2e.ts` into `test:e2e:api` and removed `test:d2` (31 scripts reduced to 21).
+- `services/{credit,notification,order,supplier,user}-service/package.json` — replaced inline `node -e` `db:migrate` and `db:deploy` one-liners with `node ../../scripts/prisma-migrate.mjs <service> <dev|deploy>`.
+- `packages/messaging/package.json`, `package-lock.json` — aligned `@types/node` from `^20.19.43` to `^20.14.0` and synced lockfile.
+- `scripts/ci/validate-test-matrix.mjs` — removed retired `test:d2` alias from `rootSystemScripts`.
+- `README.md`, `CLAUDE.md`, `docs/ci.md`, `.claude/README.md`, `.claude/agents/{infrastructure,reviewer}.md`, `.claude/settings.json` — updated command references for `dev`, `dev:services`, `dev:apps`, `npm run dev -w ...`, and `test:e2e:api`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 18:16 SGT — Remove Redundant Grants in `01-init-databases.sql`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-postgres-init
+
+**Prompt (summarised):** Ask whether `docker/postgres-init/01-init-databases.sql` needs to be that long, and trim the redundant `GRANT ALL PRIVILEGES ON DATABASE`, `\connect`, `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES` blocks already covered by `CREATE DATABASE ... OWNER` on PostgreSQL 16.
+
+**Usage scenario:** SQL initialization script cleanup and boilerplate removal (allowed use).
+
+**Files changed:**
+- `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
+- `ai/usage-log.md` — this entry.

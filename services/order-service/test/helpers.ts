@@ -17,13 +17,13 @@
 import { generateKeyPairSync } from 'node:crypto';
 import type { Express } from 'express';
 import type { AddressInfo } from 'node:net';
-import type { OrderDTO } from '@campus-errand/common-dtos';
+import type { CreditReservationResultEvent, OrderCreatedEvent, OrderDTO, OrderExpiredEvent } from '@campus-errand/common-dtos';
 import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
 import type { SupplierClient, SupplierDetails } from '../src/clients/supplier.client';
-import type { OrderEventPublisher, OrderLifecycleEvent } from '../src/messaging/event.publisher';
 import {
   OrderNotFoundError,
   OrderAuthorizationError,
+  type OrderLifecycleEvent,
   OrderStateConflictError,
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
@@ -45,6 +45,7 @@ export function makeFakeOrderRepository() {
   const repo: OrderRepository = {
     async createOrderWithOutbox(data: CreateOrderParams, event: OrderLifecycleEvent): Promise<OrderDTO> {
       const now = new Date();
+      const initialStatus = event.eventType === 'order.reservation.requested' ? 'PENDING' : 'OPEN';
       const newOrder: OrderDTO = {
         id: data.id || crypto.randomUUID(),
         orderCode: data.orderCode,
@@ -59,7 +60,8 @@ export function makeFakeOrderRepository() {
         requesterContactNote: data.requesterContactNote,
         courierContactNote: null,
         rewardCredits: data.rewardCredits,
-        status: 'OPEN',
+        status: initialStatus,
+        rejectionReason: null,
         expiresAt: data.expiresAt.toISOString(),
         acceptedAt: null,
         pickedUpAt: null,
@@ -72,7 +74,7 @@ export function makeFakeOrderRepository() {
       orders.push(newOrder);
 
       outboxEvents.push({
-        id: crypto.randomUUID(),
+        id: event.eventId || crypto.randomUUID(),
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -81,7 +83,77 @@ export function makeFakeOrderRepository() {
         updatedAt: now,
       });
 
-      return newOrder;
+      return { ...newOrder };
+    },
+
+    async applyReservationResult(
+      event: CreditReservationResultEvent
+    ): Promise<{ order: OrderDTO; outboxEvent?: OrderLifecycleEvent }> {
+      const order = orders.find((o) => o.id === event.orderId);
+      if (!order) {
+        throw new OrderNotFoundError(`Order ${event.orderId} not found for reservation result`);
+      }
+
+      if (order.status !== 'PENDING') {
+        return { order: { ...order } };
+      }
+
+      const now = new Date();
+      if (event.eventType === 'credit.reservation.failed') {
+        order.status = 'REJECTED';
+        order.rejectionReason = event.reason;
+        order.version += 1;
+        return { order: { ...order } };
+      }
+
+      if (new Date(order.expiresAt) <= now) {
+        order.status = 'EXPIRED';
+        order.version += 1;
+        const expiredEvent: OrderExpiredEvent = {
+          eventId: crypto.randomUUID(),
+          eventType: 'order.expired',
+          timestamp: now.toISOString(),
+          orderId: order.id,
+          orderCode: order.orderCode,
+          requesterId: order.requesterId,
+          rewardCredits: order.rewardCredits,
+        };
+        outboxEvents.push({
+          id: expiredEvent.eventId,
+          eventType: expiredEvent.eventType,
+          payload: JSON.stringify(expiredEvent),
+          status: 'PENDING',
+          retryCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        });
+        return { order: { ...order }, outboxEvent: expiredEvent };
+      }
+
+      order.status = 'OPEN';
+      order.rejectionReason = null;
+      order.version += 1;
+      const createdEvent: OrderCreatedEvent = {
+        eventId: crypto.randomUUID(),
+        eventType: 'order.created',
+        timestamp: now.toISOString(),
+        orderId: order.id,
+        orderCode: order.orderCode,
+        requesterId: order.requesterId,
+        rewardCredits: order.rewardCredits,
+        campusZone: order.campusZone || 'Campus',
+        expiresAt: order.expiresAt,
+      };
+      outboxEvents.push({
+        id: createdEvent.eventId,
+        eventType: createdEvent.eventType,
+        payload: JSON.stringify(createdEvent),
+        status: 'PENDING',
+        retryCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { order: { ...order }, outboxEvent: createdEvent };
     },
 
     async findOrderById(id: string): Promise<OrderDTO | null> {
@@ -93,18 +165,33 @@ export function makeFakeOrderRepository() {
     },
 
     async listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }> {
-      const { status, campusZone, search, page = 1, limit = 50 } = options;
+      const { status, campusZone, search, requesterId, courierId, page = 1, limit = 50, viewerId, isAdmin } = options;
       const now = new Date().toISOString();
+      const trimmedRequesterId = requesterId?.trim();
+      const trimmedCourierId = courierId?.trim();
+      const defaultStatus = trimmedRequesterId || trimmedCourierId ? 'ALL' : 'OPEN';
+      const normalizedStatus = status ? status.toUpperCase() : defaultStatus;
 
       let filtered = orders.filter((o) => {
-        if (!status || status.toUpperCase() === 'OPEN') {
+        if (!isAdmin && viewerId && (o.status === 'PENDING' || o.status === 'REJECTED') && o.requesterId !== viewerId) {
+          return false;
+        }
+        if (normalizedStatus === 'OPEN') {
           return o.status === 'OPEN' && o.expiresAt > now;
         }
-        if (status.toUpperCase() !== 'ALL') {
-          return o.status === status.toUpperCase();
+        if (normalizedStatus !== 'ALL') {
+          return o.status === normalizedStatus;
         }
         return true;
       });
+
+      if (trimmedRequesterId) {
+        filtered = filtered.filter((o) => o.requesterId.toLowerCase() === trimmedRequesterId.toLowerCase());
+      }
+
+      if (trimmedCourierId) {
+        filtered = filtered.filter((o) => o.courierId?.toLowerCase() === trimmedCourierId.toLowerCase());
+      }
 
       if (campusZone && campusZone.trim() !== '') {
         const zoneLower = campusZone.trim().toLowerCase();
@@ -118,7 +205,9 @@ export function makeFakeOrderRepository() {
             o.orderCode.toLowerCase().includes(term) ||
             o.itemDescription.toLowerCase().includes(term) ||
             o.dropoffLocation.toLowerCase().includes(term) ||
-            (o.supplierName && o.supplierName.toLowerCase().includes(term))
+            (o.supplierName && o.supplierName.toLowerCase().includes(term)) ||
+            o.requesterId.toLowerCase() === term ||
+            (o.courierId && o.courierId.toLowerCase() === term)
         );
       }
 
@@ -138,7 +227,7 @@ export function makeFakeOrderRepository() {
       for (const order of orders) {
         const isExpired = order.status === 'OPEN' && order.expiresAt <= now;
         if (order.requesterId === userId) {
-          if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status) || isExpired) {
+          if (['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status) || isExpired) {
             history.push({ ...order });
           } else {
             requested.push({ ...order });
@@ -288,11 +377,15 @@ export function makeFakeOrderRepository() {
         throw new OrderAuthorizationError('Only the requester can cancel this errand');
       }
 
+      if (order.status === 'PENDING') {
+        throw new OrderStateConflictError('Cannot cancel an errand while credit reservation is still pending');
+      }
+
       if (['IN_TRANSIT', 'DELIVERED', 'COMPLETED'].includes(order.status)) {
         throw new OrderStateConflictError('Cannot cancel an errand that has already been picked up or completed');
       }
 
-      if (['CANCELLED', 'EXPIRED'].includes(order.status)) {
+      if (['CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status)) {
         throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
       }
 
@@ -323,7 +416,11 @@ export function makeFakeOrderRepository() {
       const order = orders.find((o) => o.id === orderId);
       if (!order) throw new OrderNotFoundError();
 
-      if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status)) {
+      if (order.status === 'PENDING') {
+        throw new OrderStateConflictError('Cannot cancel an errand while credit reservation is still pending');
+      }
+
+      if (['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status)) {
         throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
       }
 
@@ -455,7 +552,39 @@ export function makeFakeOrderRepository() {
     },
 
   };
-  return { repo, orders, outboxEvents };
+
+  async function approve(orderId: string): Promise<OrderDTO> {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new OrderNotFoundError(`Order ${orderId} not found`);
+    const result = await repo.applyReservationResult({
+      eventId: crypto.randomUUID(),
+      correlationId: order.id,
+      timestamp: new Date().toISOString(),
+      eventType: 'credit.reservation.succeeded',
+      orderId: order.id,
+      requesterId: order.requesterId,
+      rewardCredits: order.rewardCredits,
+    });
+    return result.order;
+  }
+
+  async function reject(orderId: string, reason = 'Insufficient credits'): Promise<OrderDTO> {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new OrderNotFoundError(`Order ${orderId} not found`);
+    const result = await repo.applyReservationResult({
+      eventId: crypto.randomUUID(),
+      correlationId: order.id,
+      timestamp: new Date().toISOString(),
+      eventType: 'credit.reservation.failed',
+      orderId: order.id,
+      requesterId: order.requesterId,
+      rewardCredits: order.rewardCredits,
+      reason,
+    });
+    return result.order;
+  }
+
+  return { repo, orders, outboxEvents, approve, reject };
 }
 
 export function makeFakeSupplierClient(knownSuppliers: Record<string, SupplierDetails> = {}) {
@@ -485,30 +614,6 @@ export function makeFakeSupplierClient(knownSuppliers: Record<string, SupplierDe
   };
 }
 
-export function makeFakePublisher() {
-  const published: OrderLifecycleEvent[] = [];
-  let shouldSucceed = true;
-
-  const publisher: OrderEventPublisher = {
-    async publishOrderEvent(event: OrderLifecycleEvent) {
-      if (shouldSucceed) {
-        published.push(event);
-        return true;
-      }
-      return false;
-    },
-    async close() {},
-  };
-
-  return {
-    publisher,
-    published,
-    setSuccess(val: boolean) {
-      shouldSucceed = val;
-    },
-  };
-}
-
 export function makeKeyPair(): { privateKey: string; publicKey: string } {
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   return {
@@ -528,33 +633,4 @@ export async function startTestServer(app: Express): Promise<{ url: string; clos
       });
     });
   });
-}
-
-// AI-generated (edited by huangjiaxi1111)
-export function makeFakeReservationSaga(fakeRepo: ReturnType<typeof makeFakeOrderRepository>) {
-  const submissions = new Map<string, CreateOrderParams>();
-  const saga: import('../src/orders/reservation.saga').ReservationSaga = {
-    async submit(data) {
-      const id = data.id!;
-      submissions.set(id, data);
-      return { id, status: 'PENDING' };
-    },
-    async get(id, requesterId) {
-      const data = submissions.get(id);
-      if (!data) throw new OrderNotFoundError('Submission not found');
-      if (data.requesterId !== requesterId) throw new OrderAuthorizationError();
-      const order = await fakeRepo.repo.findOrderById(id);
-      return order ? { id, status: 'OPEN', order } : { id, status: 'PENDING' };
-    },
-    async handleResult() { throw new Error('Use the real saga in messaging tests'); },
-  };
-  async function approve(id: string) {
-    const data = submissions.get(id)!;
-    return fakeRepo.repo.createOrderWithOutbox(data, {
-      eventId: crypto.randomUUID(), eventType: 'order.created', timestamp: new Date().toISOString(),
-      orderId: id, orderCode: data.orderCode, requesterId: data.requesterId,
-      rewardCredits: data.rewardCredits, campusZone: data.campusZone!, expiresAt: data.expiresAt.toISOString(),
-    });
-  }
-  return { saga, submissions, approve };
 }

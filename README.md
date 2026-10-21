@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated local development server commands, test category table, and monorepo structure tree for scripts/dev.mjs, scripts/prisma-migrate.mjs, and test:e2e:api.
+Author review: <to be completed by yanhwee>
+
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Refreshed facts to main @ 7f2d972: diagram arrows, Milestone Status (D2 done, D3 prepared, wiki link), access URLs for all services, seed commands, Testing & Verification categories, seed-account permissions, Monorepo Structure tree; merged the second disclosure block into this one.
 Author review: <to be completed by Reallyeasy1>
@@ -76,15 +80,17 @@ flowchart TB
     OrderSvc --> Postgres
     CreditSvc --> Postgres
     NotifSvc --> Postgres
-    OrderSvc -->|"escrow reserve (HTTP)"| CreditSvc
+    OrderSvc -->|"supplier lookup (HTTP)"| SupplierSvc
     UserSvc -.->|"publish user.registered"| RabbitMQ
     OrderSvc -.->|"publish order.*"| RabbitMQ
+    CreditSvc -.->|"publish credit.reservation.*"| RabbitMQ
+    RabbitMQ -.->|"consume credit.reservation.*"| OrderSvc
     RabbitMQ -.->|"consume user.registered, order.*"| CreditSvc
     RabbitMQ -.->|"consume order.*"| NotifSvc
 ```
 
 ### Key Design Highlight: Multi-Service Prisma Isolation
-To avoid client collisions in the root `node_modules/@prisma/client`, each microservice generates its client to an isolated internal path (`output = "../generated/client"`). This guarantees compile-time type safety and prevents engine dylib conflicts across services.
+To avoid client collisions in the root `node_modules/@prisma/client`, each microservice maintains its schema at `prisma/schema.prisma` and generates its client to an isolated internal path (`output = "../src/generated/prisma"`), re-exported through `src/database/client.ts`. This guarantees compile-time type safety and prevents engine dylib conflicts across services.
 
 ---
 
@@ -101,12 +107,18 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 
 ## 🚀 Quick Start with Docker (Recommended)
 
-To spin up all microservices, frontends, PostgreSQL, RabbitMQ, and the Nginx Gateway:
+To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway:
 
 ```bash
 # In project root:
 docker compose up --build
 ```
+
+> **Upgrading an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC `order_db` volumes), reset the volumes once before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
+> ```bash
+> docker compose down -v
+> docker compose up --build
+> ```
 
 ### Accessing the Platform
 | Component | Local Access URL | Description |
@@ -147,6 +159,7 @@ npm run generate:jwt-keys -- --print
 ```bash
 docker compose up postgres rabbitmq -d
 ```
+*(Note: In `order-service`, transactional outbox events in `order_db.public.outbox_events` are tailed and published to RabbitMQ by the `debezium` CDC container rather than an in-process Node.js poller. When testing end-to-end order event flows in host-based dev, start `docker compose up debezium -d` after running `order-service` database migrations.)*
 
 ### 4. Seed Databases (First Time Setup)
 ```bash
@@ -167,16 +180,22 @@ npm run db:seed --workspace=@campus-errand/order-service
 
 ### 5. Run Development Servers
 ```bash
-# Backend microservices
-npm run dev:user        # Port 8001 (User & Auth Service)
-npm run dev:supplier    # Port 8002 (Supplier Directory Service)
-npm run dev:order       # Port 8003 (Order Service)
-npm run dev:credit      # Port 8004 (Credit Service)
-npm run dev:notif       # Port 8005 (Notification Service)
+# Run everything in parallel (5 backend services + 2 frontend apps)
+npm run dev
 
-# Frontend applications
-npm run dev:student     # Port 5173 (Student Web App)
-npm run dev:admin       # Port 5174 (Admin Web Portal)
+# Or run only backend services or only frontend apps in parallel
+npm run dev:services    # Ports 8001–8005
+npm run dev:apps        # Ports 5173–5174
+
+# Or run individual workspaces (via scripts/dev.mjs filter or native npm -w)
+npm run dev -- user supplier
+npm run dev -w services/user-service        # Port 8001 (User & Auth Service)
+npm run dev -w services/supplier-service    # Port 8002 (Supplier Directory Service)
+npm run dev -w services/order-service       # Port 8003 (Order Service)
+npm run dev -w services/credit-service      # Port 8004 (Credit Service)
+npm run dev -w services/notification-service # Port 8005 (Notification Service)
+npm run dev -w apps/student-app             # Port 5173 (Student Web App)
+npm run dev -w apps/admin-portal            # Port 5174 (Admin Web Portal)
 ```
 
 ---
@@ -196,10 +215,10 @@ npm test
 | :--- | :--- |
 | `npm run test:unit` | Unit suites (Node's built-in `node --test` via `tsx`, no framework): user, supplier, order and notification services |
 | `npm run test:integration` | PostgreSQL-backed suites: user-service admin guard, notification store and routes, credit-service |
-| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service |
+| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service |
 | `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation |
 | `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, then `scripts/uat/uat-notifications.mjs` |
-| `npm run test:e2e:api` | Milestone D2 API end-to-end suite (runs `npm run test:d2`, below) |
+| `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
 | `npm run ci:validate-tests` | Checks package test scripts against the static CI matrices |
@@ -212,7 +231,7 @@ Service seed data present; it does not use the `.env` JWT key pair. It spawns us
 supplier-service itself on ports 8001/8002, so those ports must be free.
 
 ```bash
-npm run test:d2
+npm run test:e2e:api
 ```
 
 ### Lint, Build & Universal Typecheck
@@ -252,16 +271,20 @@ friend-on-campus/
 │   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
 ├── packages/
 │   ├── auth/                    # @campus-errand/auth: offline Ed25519 access-token verification middleware
-│   └── common-dtos/             # Shared TypeScript schemas, DTOs & event types
+│   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
+│   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 ├── gateway/
 │   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
 ├── docker/
-│   ├── postgres-init/           # Creates the five logical databases (tables come from per-service migrations)
+│   ├── debezium/                # Debezium Server CDC config for order_db.public.outbox_events
+│   ├── postgres-init/           # Creates the five logical databases and least-privilege roles
 │   └── rabbitmq/                # Broker config and definitions: vhost, exchanges, service accounts, permissions
 ├── scripts/
 │   ├── ci/                      # Isolated aggregate test runner, test-matrix validator, test-database helper
 │   ├── uat/                     # Acceptance drivers: API, notifications, Chromium UI
+│   ├── dev.mjs                  # Parallel cross-platform workspace dev runner
 │   ├── generate-jwt-keys.mjs    # Ed25519 key pair for .env
+│   ├── prisma-migrate.mjs       # Shared Prisma migration runner with .env loading
 │   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
 ├── tests/
 │   └── postman/                 # Postman collection and environment

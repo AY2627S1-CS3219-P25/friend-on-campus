@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-10-21
+# Scope: Aligned acceptance-tests and browser-uat artifact upload paths with the default test-results/ output directory.
+# Author review: <to be completed by author after review>
+#
 # Tool: Codex (model: GPT-6), date: 2026-10-19
 # Scope: Repair malformed messaging database URLs and isolate Credit migrations from Order in the saga job.
 # Author review: <to be completed by huangjiaxi1111>
@@ -481,14 +485,10 @@ jobs:
         run: npm ci
       - name: Generate throwaway JWT keys
         run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
-      - name: Create acceptance artifact directory
-        run: mkdir -p ci-artifacts/acceptance
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run acceptance suite
         run: npm run test:acceptance
-        env:
-          UAT_OUT: ci-artifacts/acceptance/uat-d2-api-results.json
       - name: Credential exposure review
         run: |
           docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T postgres psql -U postgres -d user_db -Atc \
@@ -509,7 +509,7 @@ jobs:
         with:
           name: acceptance-results
           path: |
-            ci-artifacts/acceptance/**
+            test-results/**
             ci-logs/**
           if-no-files-found: ignore
       - name: Stop isolated Compose stack
@@ -577,15 +577,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Generate throwaway JWT keys
         run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
-      - name: Create browser artifact directories
-        run: mkdir -p ci-artifacts/browser/screenshots
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run Chromium browser UAT
         run: npm run test:e2e:ui
-        env:
-          UAT_OUT: ci-artifacts/browser/uat-d2-ui-results.json
-          SHOTS: ci-artifacts/browser/screenshots
       - name: Collect Compose logs
         if: failure()
         run: |
@@ -598,7 +593,7 @@ jobs:
         with:
           name: browser-uat-results
           path: |
-            ci-artifacts/browser/**
+            test-results/**
             ci-logs/**
           if-no-files-found: ignore
       - name: Stop isolated Compose stack

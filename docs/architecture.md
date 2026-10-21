@@ -81,8 +81,8 @@ flowchart TB
 |---|---|---|---|---|
 | **User Service** | `8001` | `user_db` | User registration, password hashing (scrypt), Ed25519 token signing, opaque refresh sessions, user profile management, RBAC, and last-admin safety guard. | Publishes `user.registered` to RabbitMQ via Transactional Outbox upon new student sign-up. |
 | **Supplier Service** | `8002` | `supplier_db` | Directory of campus merchants, dining outlets, and collection points. Search, category filtering, campus zone queries, and Admin-only CRUD. | Verifies Ed25519 JWTs offline. Queried by clients when creating errand requests. |
-| **Order Service** | `8003` | `order_db` | Complete lifecycle state machine for errands (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`, `CANCELLED`, `EXPIRED`). Atomic single-winner courier claiming and background expiry sweeper. | Synchronous HTTP calls to Supplier Service (supplier lookup) and Credit Service (escrow reserve) during errand creation. Publishes order lifecycle events via Transactional Outbox. Expiry sweeper every 30 s (`EXPIRY_SWEEPER_INTERVAL_MS`). |
-| **Credit Service** | `8004` | `credit_db` | Closed credit economy wallet accounts, transaction ledger, and per-order escrow holds, settlements, and refunds. | Exposes `POST /api/credits/escrow/reserve`. Consumes `user.registered` (grants 100 credits), `order.completed` (settles escrow), and `order.cancelled` / `order.expired` (refunds escrow). |
+| **Order Service** | `8003` | `order_db` | Complete lifecycle state machine for errands (`DRAFT` &rarr; `PENDING` &rarr; `OPEN` / `REJECTED` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`, `CANCELLED`, `EXPIRED`). Atomic single-winner courier claiming and background expiry sweeper. | Synchronous HTTP call to Supplier Service (supplier lookup) during errand creation. Asynchronous escrow reservation saga and lifecycle events via Transactional Outbox (Debezium CDC). Expiry sweeper every 30 s (`EXPIRY_SWEEPER_INTERVAL_MS`). |
+| **Credit Service** | `8004` | `credit_db` | Closed credit economy wallet accounts, transaction ledger, and per-order escrow holds, settlements, and refunds. | Consumes `user.registered` (grants 100 credits), `order.reservation.requested` (reserves escrow and publishes `credit.reservation.succeeded` / `credit.reservation.failed`), `order.completed` (settles escrow), and `order.cancelled` / `order.expired` (refunds escrow). All escrow mutations occur via RabbitMQ; `/api/credits/escrow*` is blocked (`403`) at the gateway. |
 | **Notification Service** | `8005` | `notification_db` | Real-time push notifications over authenticated WebSockets (`/ws`), unread notification badge counts, and user notification history. | Consumes all seven `order.*` events from RabbitMQ. Only `order.accepted`, `order.in_transit` and `order.delivered` produce a notification (stored, then pushed to the requester); the other keys are acknowledged without one. |
 
 ---
@@ -91,18 +91,15 @@ flowchart TB
 
 ### A. Synchronous HTTP (Strong Consistency)
 Synchronous REST calls are reserved for workflows where immediate consistency and caller feedback are non-negotiable:
-- **Order Creation & Escrow Hold**: When a student posts an errand, `order-service` first looks the supplier up with `GET /api/suppliers/:id` on `supplier-service` (unknown or inactive supplier → `400`; Supplier Service unreachable → `503`), then calls `POST /api/credits/escrow/reserve` on `credit-service`.
-  - If the requester lacks sufficient available credits, Credit Service returns `400` ("Insufficient available credits for escrow hold"), and Order Service aborts the errand creation with `400` and that message.
-  - The credit client uses a 5 s timeout per attempt and retries network errors and `5xx` responses twice (three attempts). If Credit Service stays unreachable, the creation is aborted with `400` and the message "Credit service unavailable: …"; no order row is written.
-  - **Compensating refund**: if the escrow was reserved but the order insert fails, Order Service writes an `order.cancelled` outbox event for the same `orderId` and amount (up to 5 attempts), so Credit Service refunds the hold, and the request fails.
-- `POST /api/credits/escrow/reserve` is called service-to-service and carries no access token (see `docs/security.md`).
+- **Supplier Verification on Order Creation**: When a student posts an errand, `order-service` looks the supplier up with `GET /api/suppliers/:id` on `supplier-service` (unknown or inactive supplier → `400`; Supplier Service unreachable → `503`) before writing the order submission and `order.reservation.requested` outbox event.
 
 ### B. Asynchronous Event Choreography (Eventual Consistency)
 Cross-service workflows that do not require blocking the user response are decoupled using RabbitMQ 3.13:
 - **Exchange**: Durable topic exchange `campus.events` in the `campus` vhost.
 - **Transactional Outbox Pattern**:
-  - `user-service` and `order-service` persist state transitions and domain events within the same atomic PostgreSQL transaction (writing to `outbox_events`).
-  - An asynchronous publisher worker polls `outbox_events` every 2 s (order-service `OUTBOX_RELAY_INTERVAL_MS`, batch `OUTBOX_BATCH_SIZE` = 20; user-service uses the same 2 s / 20 defaults) and is also triggered right after each write. It publishes oldest-first to `campus.events` with routing key = event type, `persistent` and `mandatory` flags, publisher confirms, and `messageId` = `eventId`, then marks the row `DELIVERED`. On a broker failure the row stays `PENDING` (retry count incremented) and the batch stops; an unparsable payload is marked `FAILED`.
+  - `user-service`, `order-service`, and `credit-service` persist state transitions and domain events within the same atomic PostgreSQL transaction (writing to `outbox_events` / `credit_outbox_events`).
+  - **Log-Based CDC for Order Service (`debezium`)**: Debezium Server (`docker/debezium/application.properties`) tails `order_db.public.outbox_events` via PostgreSQL `pgoutput` logical decoding (`wal_level=logical`) and routes events directly to the `campus.events` exchange with routing key = `event_type` and bare JSON payload.
+  - **Polling Relay for User & Credit Services**: `user-service` and `credit-service` run an asynchronous publisher worker that polls the outbox table (`user-service` every 2 s, batch 20; `credit-service` every 1 s) and is also triggered right after each write. It publishes oldest-first to `campus.events` with routing key = event type, `persistent` and `mandatory` flags, publisher confirms, and `messageId` = `eventId`, then marks the row `DELIVERED`.
   - This guarantees **at-least-once delivery** without distributed 2-phase commits (2PC) and ensures no events are lost if the process crashes.
 - **Event envelope**: every event carries `eventId` (UUID), `eventType` and `timestamp` (ISO-8601 UTC). Payload fields are listed in `docs/errand-specification.md` §5 and defined in `packages/common-dtos/src/index.ts` §5.
 - **Idempotent Consumers**:
@@ -110,25 +107,28 @@ Cross-service workflows that do not require blocking the user response are decou
   - Replayed or duplicate deliveries are recognized and acknowledged safely without double-charging or duplicate alerts.
   - Credit Service applies each event in a `Serializable` transaction, retried up to 9 times on Prisma `P2034`/`P2002`.
 
-### C. Broker Topology (`docker/rabbitmq/definitions.json` + consumer code)
-`definitions.json` is imported at broker boot and defines the `campus` vhost, the durable topic exchange `campus.events`, the durable direct exchange `campus.events.dlx`, and one account per service. Each consumer asserts its own queues, retry exchange and bindings on startup (`src/messaging/rabbitmq.ts`, settings in `src/config.ts`).
+### C. Broker Topology (`docker/rabbitmq/definitions.json` + `@campus-errand/messaging`)
+`definitions.json` is imported at broker boot and defines the `campus` vhost, the durable topic exchange `campus.events`, the durable direct exchange `campus.events.dlx`, and one account per service. Each consumer asserts its own quorum queue, dead-letter exchange, and bindings on startup via the shared `@campus-errand/messaging` package (`packages/messaging/src/index.ts`, settings in each service's `src/config.ts`).
 
 | Account | Publishes (topic permission on `campus.events`) | Reads |
 |---|---|---|
 | `user_service` | `user.registered` | nothing |
-| `order_service` | `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | nothing |
-| `credit_service` | nothing on `campus.events` | `user.registered`, `order.completed`, `order.cancelled`, `order.expired` |
-| `notification_service` | nothing on `campus.events` | all seven `order.*` keys |
+| `order_service` (and `debezium` CDC relay) | `order.reservation.requested`, `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reservation.succeeded`, `credit.reservation.failed` |
+| `credit_service` | `credit.reservation.succeeded`, `credit.reservation.failed` | `user.registered`, `order.reservation.requested`, `order.completed`, `order.cancelled`, `order.expired` |
+| `notification_service` | nothing on `campus.events` | all seven `order.*` lifecycle keys (`order.created` through `order.expired`) |
 | `campus_admin` | management UI (`administrator` tag, password `campus-admin-dev`) | everything in `campus` |
 | `credit_test` | test queues `credit-test.*` only | test queues `credit-test.*` only |
 
-| Consumer | Main queue (bound to `campus.events`) | Retry exchange / queue | Retry delay × limit | Dead-letter exchange → queue |
-|---|---|---|---|---|
-| credit-service | `credit-service.events` | `credit-service.events.retry` (direct) | 1 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
-| notification-service | `notification-service.events` | `notification-service.events.retry` (direct) | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
+| Consumer | Main quorum queue (`x-queue-type: quorum`, bound to `campus.events`) | Retry delay × limit (`x-delivery-count`) | Dead-letter exchange → queue |
+|---|---|---|---|
+| order-service | `order-service.events` | 5 s × 5 (`ORDER_RETRY_DELAY_MS`, `ORDER_RETRY_LIMIT`) | `order-service.events.dlq` → `order-service.events.dlq` |
+| credit-service | `credit-service.events` | 5 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
+| notification-service | `notification-service.events` | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
 
-- All queues and exchanges are durable; prefetch is 1 on the main and retry channels.
-- A failed message is classified. A transient failure under the retry limit is republished (with confirms) to the retry queue with a retry-count header; a retry worker waits out the delay and republishes it through the default exchange to the consumer's own main queue only. A permanent failure, or a transient one past the limit, is republished to the dead-letter queue. The original delivery is then acknowledged.
+- All queues and exchanges are durable; main consumer queues are RabbitMQ **Quorum Queues** (`x-queue-type: quorum`) with `x-dead-letter-exchange` and `x-dead-letter-routing-key` configured natively, and prefetch is 1 (note: RabbitMQ quorum queues also apply a broker-level default delivery limit of 20 unless `x-delivery-limit` is overridden; if upgrading an existing local Docker volume that previously declared classic queues, run `docker compose down -v` once to recreate the queues).
+- A failed message is classified by the consumer's `classifyError` callback (`packages/messaging/src/index.ts`, using `rabbitmq-client`):
+  - A **transient** failure with native `x-delivery-count < retryLimit` (or an **infrastructure** failure) sleeps `retryDelayMs` in-place (holding the single `prefetch: 1` slot as backpressure) and returns `ConsumerStatus.REQUEUE` (`basic.nack(requeue=true)`), which natively increments `x-delivery-count` on the quorum queue.
+  - A **permanent** failure, or a transient failure that has reached `x-delivery-count >= retryLimit`, returns `ConsumerStatus.DROP` (`basic.nack(requeue=false)`), causing RabbitMQ to natively dead-letter the message to the configured Dead-Letter Exchange (`x-dead-letter-exchange` → `deadLetterQueue`).
 
 ### D. WebSocket (Notification Service)
 - The gateway forwards `/ws/` to the root path of `notification-service`, which serves REST and WebSocket on one HTTP server (port 8005).
@@ -143,15 +143,15 @@ Cross-service workflows that do not require blocking the user response are decou
 Each microservice owns its data store exclusively:
 1. **Zero Cross-Database Queries**: No service directly reads or writes to another service's database. No cross-database SQL joins or foreign keys exist.
 2. **PostgreSQL 16 Instance**: For local development and containerized deployment, all 5 logical databases run inside a single containerized PostgreSQL 16 server (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`).
-3. **Prisma Schema Ownership**: Each microservice maintains its own Prisma schema (`src/database/prisma/schema.prisma`) and generates its isolated client (`output = "../generated/client"`) to avoid namespace collisions.
-4. **Tables per database** (Prisma `@@map` names; migrations under each service's `src/database/prisma/migrations/`; `docker/postgres-init/01-init-databases.sql` only creates the five empty databases):
+3. **Prisma Schema Ownership**: Each microservice maintains its own Prisma schema (`prisma/schema.prisma`) and generates its isolated client (`output = "../src/generated/prisma"`), exposed via `src/database/client.ts` to avoid namespace collisions.
+4. **Tables per database** (Prisma `@@map` names; migrations under each service's `prisma/migrations/`; `docker/postgres-init/01-init-databases.sql` provisions the five logical databases along with five dedicated least-privilege PostgreSQL roles — `user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc` — and revokes `PUBLIC` connection privileges):
 
 | Database | Tables |
 |---|---|
 | `user_db` | `users`, `sessions`, `outbox_events` |
 | `supplier_db` | `suppliers` |
 | `order_db` | `orders` (with `version` column for optimistic locking), `outbox_events` |
-| `credit_db` | `credit_wallets`, `credit_transactions`, `credit_grants`, `credit_escrows`, `processed_credit_events` |
+| `credit_db` | `credit_wallets`, `credit_transactions`, `credit_grants`, `credit_escrows`, `processed_credit_events`, `credit_outbox_events` |
 | `notification_db` | `notifications` (unique `event_id`; index on `user_id, created_at desc`) |
 
 ---
@@ -161,7 +161,7 @@ Each microservice owns its data store exclusively:
 The entire platform is defined and orchestrated using `docker-compose.yml`:
 - **API Gateway (`nginx:1.31.7-alpine3.24`, digest-pinned)**: Maps port 80 to frontend apps and service APIs (routes below).
 - **Service Containers**: Multi-stage Dockerfiles compiling TypeScript to Node 20 runtime (`node:20.20.2-alpine3.23`, digest-pinned). Frontend images build static assets with Vite and serve them from `nginx:1.31.7-alpine3.24` with a per-app `nginx.conf` that proxies `/api` (and `/ws/` for the student app) to the gateway. `.dockerignore` excludes `*.md`.
-- **Runtime user and PID 1**: every application runtime stage switches to its base image's non-root user (`node` for backends, `nginx` for frontends). Backends end with `exec node dist/index.js`, so node is PID 1; Compose sets `init: true` on all five backend services so `SIGTERM` reaches it. user-, order- and credit-service register a `SIGTERM` handler; supplier- and notification-service do not.
+- **Runtime user and PID 1**: every application runtime stage switches to its base image's non-root user (`node` for backends, `nginx` for frontends). Backends end with `exec node dist/index.js`, so node is PID 1; Compose sets `init: true` on all five backend services so `SIGTERM` reaches it. user-, supplier-, order- and credit-service register a `SIGTERM` handler; notification-service does not.
 - **Broker health probe**: the `rabbitmq` health check runs `su-exec rabbitmq rabbitmq-diagnostics check_port_connectivity` (as the server user, not root); the container itself runs as root so its entrypoint repairs ownership of `/var/lib/rabbitmq`.
 - **Startup Coordination**:
   - PostgreSQL health checks (`pg_isready`) gate service starts.

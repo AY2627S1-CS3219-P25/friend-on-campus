@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-20
+Scope: Updated Prisma schema path references from src/database/prisma/schema.prisma to prisma/schema.prisma.
+Author review: <to be completed by author after review>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Updated documentation references to unified system specifications in docs/ and updated Order Service status to real.
 Author review: <to be completed by author after review>
@@ -16,15 +20,11 @@ Author review: Approved by Reallyeasy1
 Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 Scope: Corrected the agent's stale User and Supplier Service path and authentication facts.
 Author review: <to be completed by ngkhengyang>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-5), date: 2026-09-25
 Scope: Updated Credit Service layout, persistence, authentication, messaging and idempotency facts.
 Author review: <to be completed by huangjiaxi1111>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Codex (model: GPT-6), date: 2026-09-27
 Scope: Updated the Credit Service migration setup reference after squashing to one fresh migration.
 Author review: <to be completed by huangjiaxi1111>
@@ -49,14 +49,14 @@ Your prompt does not include the conversation, so build context from the repo fi
 Directory, from your seat:
 
 ```
-services/<name>-service/   package.json, tsconfig.json, Dockerfile, src/
-  user-service/src/        {index,app,auth,users,persistence,database}/, database/prisma/schema.prisma
-  supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts, database/prisma/{schema.prisma,migrations/}
-  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,prisma,generated}/
-  notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/{client,prisma,generated}/
-  order-service/src/index.ts              single-file mock
+services/<name>-service/   package.json, tsconfig.json, Dockerfile, prisma/{schema.prisma,migrations/}, src/
+  user-service/src/        {index,app,auth,users,persistence,database,generated}/
+  supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts, generated/
+  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, database/{client,seed}.ts, generated/
+  notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts, ws/hub.ts, messaging/rabbitmq.ts, database/client.ts, generated/
+  order-service/src/       {index,app,config}.ts, orders/, messaging/, database/{client,seed}.ts, generated/
 packages/common-dtos/src/index.ts      shared user/auth DTOs, OrderStatus, event types
-docker/postgres-init/01-init-databases.sql   the five databases, first boot only (tables come from each service's migrations)
+docker/postgres-init/01-init-databases.sql   the five databases and per-service roles, first boot only (tables come from each service's migrations)
 data/csv/supplier-seed-data.csv        supplier seed input
 scripts/test-d2-e2e.ts                 end-to-end suite (reviewer's file; read it to see expected behaviour)
 ```
@@ -67,8 +67,8 @@ You implement decisions; you do not make them. If the task text does not state t
 
 ## Rules
 
-- You own database work too: a table is defined twice (raw SQL in `docker/postgres-init/01-init-databases.sql`, which Postgres runs only on first boot of an empty volume, and the service's `schema.prisma`). Apply a decided column change to **both**, add a migration where a `migrations/` folder exists, and report that `docker compose down -v` is needed (it wipes local data — never run it yourself).
-- Layout: `src/database/{client.ts, <name>Repository.ts, seed.ts, prisma/schema.prisma}`; routes call the repository, never Prisma directly; import the client from `../database/client`, never a root `@prisma/client`.
+- You own database work too: `docker/postgres-init/01-init-databases.sql` provisions only logical databases and per-service roles on first boot of an empty volume, while tables are managed in each service's `prisma/schema.prisma` and `prisma/migrations/`.
+- Layout: `prisma/{schema.prisma,migrations/}` and `src/database/{client.ts, <name>Repository.ts, seed.ts}`; routes call the repository, never Prisma directly; import the client from `../database/client`, never a root `@prisma/client`.
 - Use the shared `@campus-errand/auth` verifier for the author-approved Ed25519 cross-service access-token contract; keep its public-key, issuer, and audience configuration aligned with User Service.
 - `packages/common-dtos` is the contract with every service and both apps; after touching it run typecheck across all workspaces and list the consumers affected.
 - Money-like state (credit): balance change + ledger row in one DB transaction; never write back a balance computed in JS from an earlier read; validate amounts as positive integers at the route.

@@ -19,7 +19,7 @@
  */
 // AI-generated (edited by Reallyeasy1)
 import type { NotificationDTO, NotificationKind } from '@campus-errand/common-dtos';
-import { startRabbitConsumer, type Failure, type MessagingConfig } from '../messaging/rabbitmq';
+import { startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';
 import type { NotificationStore } from './store';
 
 export class InvalidNotificationEvent extends Error {}

@@ -24,24 +24,23 @@ import type {
   AdminCompleteOrderRequest,
   AdminUnassignOrderRequest,
   CreateOrderRequest,
+  CreditReservationRequestEvent,
+  CreditReservationResultEvent,
   OrderAcceptedEvent,
   OrderCancelledEvent,
   OrderCompletedEvent,
   OrderDeliveredEvent,
   OrderDTO,
   OrderInTransitEvent,
-  OrderSubmissionDTO,
 } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { SupplierClient } from '../clients/supplier.client';
-import type { OutboxRelay } from '../messaging/outbox.relay';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
-import type { ReservationSaga } from './reservation.saga';
 
 export interface OrderService {
-  createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderSubmissionDTO>;
-  getSubmission(id: string, requesterId: string): Promise<OrderSubmissionDTO>;
+  createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderDTO>;
+  handleReservationResult(event: CreditReservationResultEvent): Promise<OrderDTO>;
   getOrderById(id: string): Promise<OrderDTO>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
@@ -59,9 +58,7 @@ export interface OrderService {
 
 export interface OrderServiceDependencies {
   repository: OrderRepository;
-  reservationSaga: ReservationSaga;
   supplierClient: SupplierClient;
-  outboxRelay?: OutboxRelay;
 }
 
 // ---------------------------------------------------------------------------
@@ -161,8 +158,8 @@ async function handleCreateOrder(
   deps: OrderServiceDependencies,
   requesterId: string,
   req: CreateOrderRequest
-): Promise<OrderSubmissionDTO> {
-  const { reservationSaga, supplierClient, outboxRelay } = deps;
+): Promise<OrderDTO> {
+  const { repository, supplierClient } = deps;
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(requesterId)) {
@@ -186,17 +183,45 @@ async function handleCreateOrder(
   const supplierName = supplierLookup.supplier.name;
   const campusZone = supplierLookup.supplier.campusZone || 'Campus';
 
-  // Save only the submission/outbox. The credit result consumer creates the actual Order.
-  const submission = await reservationSaga.submit({
-    id: crypto.randomUUID(), orderCode: generateOrderCode(), requesterId,
-    supplierId: validatedInput.supplierId, supplierName, campusZone,
-    itemDescription: validatedInput.itemDescription, specialNotes: validatedInput.specialNotes,
-    dropoffLocation: validatedInput.dropoffLocation, requesterContactNote: validatedInput.requesterContactNote,
+  // 3. Persist PENDING order + order.reservation.requested outbox event atomically
+  const orderId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000);
+  const reservationEvent: CreditReservationRequestEvent = {
+    eventId: orderId,
+    correlationId: orderId,
+    timestamp: new Date().toISOString(),
+    eventType: 'order.reservation.requested',
+    orderId,
+    requesterId,
     rewardCredits: validatedInput.rewardCredits,
-    expiresAt: new Date(Date.now() + validatedInput.durationMinutes * 60 * 1000),
-  });
-  if (outboxRelay) void outboxRelay.trigger();
-  return submission;
+  };
+
+  return repository.createOrderWithOutbox(
+    {
+      id: orderId,
+      orderCode: generateOrderCode(),
+      requesterId,
+      supplierId: validatedInput.supplierId,
+      supplierName,
+      campusZone,
+      itemDescription: validatedInput.itemDescription,
+      specialNotes: validatedInput.specialNotes,
+      dropoffLocation: validatedInput.dropoffLocation,
+      requesterContactNote: validatedInput.requesterContactNote,
+      rewardCredits: validatedInput.rewardCredits,
+      expiresAt,
+    },
+    reservationEvent
+  );
+}
+
+async function handleReservationResult(
+  deps: OrderServiceDependencies,
+  event: CreditReservationResultEvent
+): Promise<OrderDTO> {
+  const { repository } = deps;
+  const result = await repository.applyReservationResult(event);
+  return result.order;
 }
 
 async function handleAcceptOrder(
@@ -206,7 +231,7 @@ async function handleAcceptOrder(
   req?: AcceptOrderRequest,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const courierContactNote = validateOptionalText(req?.courierContactNote, 'courierContactNote', 255);
 
@@ -226,13 +251,7 @@ async function handleAcceptOrder(
     ...(courierUsername !== undefined && { courierUsername }),
   };
 
-  const accepted = await repository.acceptOrder(existing.id, courierId, courierContactNote, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return accepted;
+  return repository.acceptOrder(existing.id, courierId, courierContactNote, event);
 }
 
 async function handlePickupOrder(
@@ -241,7 +260,7 @@ async function handlePickupOrder(
   courierId: string,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -259,13 +278,7 @@ async function handlePickupOrder(
     ...(courierUsername !== undefined && { courierUsername }),
   };
 
-  const inTransit = await repository.pickupOrder(existing.id, courierId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return inTransit;
+  return repository.pickupOrder(existing.id, courierId, event);
 }
 
 async function handleDeliverOrder(
@@ -274,7 +287,7 @@ async function handleDeliverOrder(
   courierId: string,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -292,13 +305,7 @@ async function handleDeliverOrder(
     ...(courierUsername !== undefined && { courierUsername }),
   };
 
-  const delivered = await repository.deliverOrder(existing.id, courierId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return delivered;
+  return repository.deliverOrder(existing.id, courierId, event);
 }
 
 async function handleCompleteOrder(
@@ -306,7 +313,7 @@ async function handleCompleteOrder(
   orderId: string,
   requesterId: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -324,13 +331,7 @@ async function handleCompleteOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const completed = await repository.completeOrder(existing.id, requesterId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return completed;
+  return repository.completeOrder(existing.id, requesterId, event);
 }
 
 async function handleCancelOrder(
@@ -338,7 +339,7 @@ async function handleCancelOrder(
   orderId: string,
   requesterId: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -355,13 +356,7 @@ async function handleCancelOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const cancelled = await repository.cancelOrder(existing.id, requesterId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return cancelled;
+  return repository.cancelOrder(existing.id, requesterId, event);
 }
 
 async function handleAdminCancelOrder(
@@ -370,7 +365,7 @@ async function handleAdminCancelOrder(
   adminUserId: string,
   req: AdminCancelOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const reason = validateRequiredText(req?.reason, 'reason', 500);
 
   const existing = await repository.findOrderById(orderId);
@@ -388,19 +383,13 @@ async function handleAdminCancelOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const cancelled = await repository.adminCancelOrder(
+  return repository.adminCancelOrder(
     existing.id,
     adminUserId,
     reason,
     event,
     req?.expectedVersion
   );
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return cancelled;
 }
 
 async function handleAdminCompleteOrder(
@@ -409,7 +398,7 @@ async function handleAdminCompleteOrder(
   adminUserId: string,
   req: AdminCompleteOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const reason = validateRequiredText(req?.reason, 'reason', 500);
 
   const existing = await repository.findOrderById(orderId);
@@ -428,19 +417,13 @@ async function handleAdminCompleteOrder(
     rewardCredits: existing.rewardCredits,
   };
 
-  const completed = await repository.adminCompleteOrder(
+  return repository.adminCompleteOrder(
     existing.id,
     adminUserId,
     reason,
     event,
     req?.expectedVersion
   );
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return completed;
 }
 
 async function handleAdminUnassignOrder(
@@ -474,7 +457,7 @@ async function handleAdminUnassignOrder(
 export function createOrderService(deps: OrderServiceDependencies): OrderService {
   return {
     createOrder: (requesterId, req) => handleCreateOrder(deps, requesterId, req),
-    getSubmission: (id, requesterId) => deps.reservationSaga.get(id, requesterId),
+    handleReservationResult: (event) => handleReservationResult(deps, event),
     getOrderById: async (id) => {
       const order = await deps.repository.findOrderById(id);
       if (!order) {

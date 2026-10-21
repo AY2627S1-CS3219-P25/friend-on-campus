@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-19
+Scope: Updated per-route rules after removing unauthenticated POST /api/credits/escrow/reserve (Issue #42) and added least-privilege PostgreSQL database role isolation documentation.
+Author review: Verified by yanhwee
+
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Verified against packages/auth and the services on main @ 7f2d972: cookie SameSite value, principal shape and error codes, RBAC table (admins can accept errands; no settings/analytics features), per-route ownership rules for users, orders, credits and notifications, refresh/logout facts, and the last-admin guard as built including the known gap #109.
 Author review: <to be completed by Reallyeasy1>
@@ -118,7 +122,7 @@ Beyond static roles, domain endpoints verify **resource ownership** (`userId` be
 
 | Service | Route | Who may call |
 |---|---|---|
-| order | `GET /api/orders`, `GET /api/orders/:id` | any authenticated user (no ownership filter) |
+| order | `GET /api/orders`, `GET /api/orders/:id` | any authenticated user (`PENDING` and `REJECTED` orders are restricted to the owning `requesterId` or `ADMIN`; `requesterId` and `courierId` query filters on `GET /api/orders` require `ADMIN` or the matching user; `403` otherwise) |
 | order | `GET /api/orders/user/activity` | any authenticated user; returns only orders where the caller is requester or courier |
 | order | `POST /api/orders` | any authenticated user; the caller becomes `requesterId` |
 | order | `POST /:id/accept` | any authenticated user except the order's requester |
@@ -126,7 +130,7 @@ Beyond static roles, domain endpoints verify **resource ownership** (`userId` be
 | order | `POST /:id/complete`, `POST /:id/cancel` | the order's requester |
 | order | `POST /:id/admin/cancel`, `/admin/complete`, `/admin/unassign` | `ADMIN` |
 | credit | `GET /api/credits/wallet`, `GET /api/credits/ledger` | authenticated; always the caller's own wallet / ledger (user id from the token) |
-| credit | `POST /api/credits/escrow/reserve` | service-to-service (called by order-service); no token is checked and the body's identifiers are trusted (known gap, issue #42) |
+| credit | `/api/credits/escrow/*` | not exposed over HTTP (`404` on service, `403` at gateway); escrow reservations, settlements, and refunds execute exclusively via authenticated RabbitMQ domain events (resolved issue #42) |
 | notification | `GET /api/notifications`, `PATCH /:id/read`, `POST /read-all` | authenticated; every query is scoped to the caller's `userId`. Another user's notification id answers `404`, like a missing one |
 | notification | WebSocket `/ws/` | the token's user receives only their own notifications |
 | user | `GET /api/users/me`, `PATCH /api/users/me`, `PUT /api/users/me/password` | authenticated; the caller's own account |
@@ -134,6 +138,12 @@ Beyond static roles, domain endpoints verify **resource ownership** (`userId` be
 | user | `GET /api/users`, `PATCH /:id/toggle-status`, `PATCH /:id/toggle-role` | `ADMIN`; an admin cannot toggle their own role (`403 SELF_ACTION_FORBIDDEN`) |
 | supplier | `GET /api/suppliers`, `GET /api/suppliers/:id` | public (no token required) |
 | supplier | `POST`, `PUT /:id`, `PATCH /:id/toggle`, `DELETE /:id` | `ADMIN` |
+
+### Database-per-Service Role Isolation
+In addition to HTTP/RabbitMQ access controls, PostgreSQL database boundaries are enforced via least-privilege roles provisioned in `docker/postgres-init/01-init-databases.sql`:
+- Each service connects with its own PostgreSQL role (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`).
+- `REVOKE CONNECT ON DATABASE <db> FROM PUBLIC` prevents any service role from connecting to or querying another microservice's database.
+- **Upgrading Existing Local Volumes**: Because PostgreSQL executes `/docker-entrypoint-initdb.d/01-init-databases.sql` only when initializing an empty data directory, developers pulling this change onto an existing `postgres_data` Docker volume should run a one-time `docker compose down -v && docker compose up --build -d` (or apply the role grants manually via `docker compose exec -T postgres psql -U postgres < docker/postgres-init/01-init-databases.sql`).
 
 ---
 

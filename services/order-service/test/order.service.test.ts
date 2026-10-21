@@ -40,8 +40,6 @@ import {
 } from '../src/orders/order.types';
 import {
   makeFakeOrderRepository,
-  makeFakePublisher,
-  makeFakeReservationSaga,
   makeFakeSupplierClient,
 } from './helpers';
 
@@ -77,7 +75,6 @@ it('sample seeding requires explicit true and does not access the database other
 describe('Order Service Lifecycle and Concurrency', () => {
   function setupTest() {
     const fakeRepo = makeFakeOrderRepository();
-    const fakeSaga = makeFakeReservationSaga(fakeRepo);
     const fakeSupplier = makeFakeSupplierClient({
       [SUPPLIER_ID]: {
         id: SUPPLIER_ID,
@@ -86,22 +83,22 @@ describe('Order Service Lifecycle and Concurrency', () => {
         isActive: true,
       },
     });
-    const fakePublisher = makeFakePublisher();
-
     const service = createOrderService({
       repository: fakeRepo.repo,
-      reservationSaga: fakeSaga.saga,
       supplierClient: fakeSupplier.client,
     });
 
-    const fundedService = { ...service, createOrder: async (...args: Parameters<typeof service.createOrder>) => {
-      const submission = await service.createOrder(...args);
-      return fakeSaga.approve(submission.id);
-    } };
-    return { fakeRepo, fakeSaga, fakeSupplier, fakePublisher, service, fundedService };
+    const fundedService = {
+      ...service,
+      createOrder: async (...args: Parameters<typeof service.createOrder>) => {
+        const pendingOrder = await service.createOrder(...args);
+        return fakeRepo.approve(pendingOrder.id);
+      },
+    };
+    return { fakeRepo, fakeSupplier, service, fundedService };
   }
 
-  describe('createOrder', () => {
+  describe('createOrder & handleReservationResult', () => {
     it('validates required fields and positive rewardCredits', async () => {
       const { service } = setupTest();
 
@@ -137,25 +134,25 @@ describe('Order Service Lifecycle and Concurrency', () => {
       );
     });
 
-    it('rejects oversized rewards before persisting a submission', async () => {
-      const { service, fakeSaga, fakeRepo } = setupTest();
+    it('rejects oversized rewards before persisting an order', async () => {
+      const { service, fakeRepo } = setupTest();
       for (const rewardCredits of [2147483648, Number.MAX_SAFE_INTEGER]) {
         await assert.rejects(service.createOrder(REQUESTER_ID, {
           supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits,
         }), (error: Error) => error instanceof OrderValidationError && error.status === 400);
       }
-      assert.equal(fakeSaga.submissions.size, 0);
       assert.equal(fakeRepo.orders.length, 0);
       assert.equal(fakeRepo.outboxEvents.length, 0);
     });
 
     it('accepts the maximum supported reward for asynchronous credit checking', async () => {
-      const { service, fakeSaga } = setupTest();
-      const receipt = await service.createOrder(REQUESTER_ID, {
+      const { service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits: 2147483647,
       });
-      assert.equal(receipt.status, 'PENDING');
-      assert.equal(fakeSaga.submissions.get(receipt.id)?.rewardCredits, 2147483647);
+      assert.equal(order.status, 'PENDING');
+      assert.equal(order.rewardCredits, 2147483647);
+      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
     });
 
     it('rejects order creation if requesterId or supplierId is not a valid UUID', async () => {
@@ -231,23 +228,74 @@ describe('Order Service Lifecycle and Concurrency', () => {
       );
     });
 
-    it('persists a submission without creating an order or publishing order.created', async () => {
-      const { service, fakeRepo, fakeSaga } = setupTest();
-      const submission = await service.createOrder(REQUESTER_ID, {
+    it('persists a PENDING order and order.reservation.requested outbox event, then transitions to OPEN + order.created on credit.reservation.succeeded', async () => {
+      const { service, fakeRepo } = setupTest();
+      const pendingOrder = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID, itemDescription: 'Chicken Rice', dropoffLocation: 'Hall', rewardCredits: 15,
       });
-      assert.equal(submission.status, 'PENDING');
-      assert.equal(fakeRepo.orders.length, 0);
-      assert.equal(fakeRepo.outboxEvents.length, 0);
-      assert.equal(fakeSaga.submissions.get(submission.id)?.rewardCredits, 15);
-      const order = await fakeSaga.approve(submission.id);
-      assert.equal(order.status, 'OPEN');
-      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.created');
+      assert.equal(pendingOrder.status, 'PENDING');
+      assert.equal(fakeRepo.orders.length, 1);
+      assert.equal(fakeRepo.outboxEvents.length, 1);
+      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
+
+      const openedOrder = await service.handleReservationResult({
+        eventId: '30000000-0000-4000-8000-000000000001',
+        correlationId: pendingOrder.id,
+        timestamp: new Date().toISOString(),
+        eventType: 'credit.reservation.succeeded',
+        orderId: pendingOrder.id,
+        requesterId: REQUESTER_ID,
+        rewardCredits: 15,
+      });
+      assert.equal(openedOrder.status, 'OPEN');
+      assert.equal(fakeRepo.outboxEvents.length, 2);
+      assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.created');
     });
 
-    it('does not accept a submission if its durable write fails', async () => {
-      const { service, fakeSaga, fakeRepo } = setupTest();
-      fakeSaga.saga.submit = async () => { throw new Error('Database unavailable'); };
+    it('transitions a PENDING order to REJECTED with rejectionReason on credit.reservation.failed', async () => {
+      const { service, fakeRepo } = setupTest();
+      const pendingOrder = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Lobster', dropoffLocation: 'Hall', rewardCredits: 500,
+      });
+      const rejectedOrder = await service.handleReservationResult({
+        eventId: '30000000-0000-4000-8000-000000000002',
+        correlationId: pendingOrder.id,
+        timestamp: new Date().toISOString(),
+        eventType: 'credit.reservation.failed',
+        orderId: pendingOrder.id,
+        requesterId: REQUESTER_ID,
+        rewardCredits: 500,
+        reason: 'Insufficient credits',
+      });
+      assert.equal(rejectedOrder.status, 'REJECTED');
+      assert.equal(rejectedOrder.rejectionReason, 'Insufficient credits');
+      assert.equal(fakeRepo.outboxEvents.length, 1);
+    });
+
+    it('transitions a PENDING order to EXPIRED and emits order.expired if reservation succeeds after expiresAt', async () => {
+      const { service, fakeRepo } = setupTest();
+      const pendingOrder = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Late Snack', dropoffLocation: 'Hall', rewardCredits: 12,
+      });
+      fakeRepo.orders[0].expiresAt = new Date(Date.now() - 5000).toISOString();
+
+      const expiredOrder = await service.handleReservationResult({
+        eventId: '30000000-0000-4000-8000-000000000003',
+        correlationId: pendingOrder.id,
+        timestamp: new Date().toISOString(),
+        eventType: 'credit.reservation.succeeded',
+        orderId: pendingOrder.id,
+        requesterId: REQUESTER_ID,
+        rewardCredits: 12,
+      });
+      assert.equal(expiredOrder.status, 'EXPIRED');
+      assert.equal(fakeRepo.outboxEvents.length, 2);
+      assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.expired');
+    });
+
+    it('does not create an order if its durable write fails', async () => {
+      const { service, fakeRepo } = setupTest();
+      fakeRepo.repo.createOrderWithOutbox = async () => { throw new Error('Database unavailable'); };
       await assert.rejects(service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits: 10,
       }), /Database unavailable/);
@@ -272,7 +320,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(accepted.status, 'ACCEPTED');
       assert.equal(accepted.courierId, COURIER_1_ID);
       assert.equal(accepted.courierContactNote, 'Arriving in 15 mins by shuttle');
-      assert.equal(accepted.version, 2);
+      assert.equal(accepted.version, 3);
 
       // Verify outbox event order.accepted
       const lastEvent = fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1];
@@ -401,7 +449,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
       const completed = await service.completeOrder(order.id, REQUESTER_ID);
       assert.equal(completed.status, 'COMPLETED');
       assert.ok(completed.completedAt);
-      assert.equal(completed.version, 5);
+      assert.equal(completed.version, 6);
 
       // Check final completed event in outbox
       const lastEvent = fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1];
@@ -638,7 +686,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       assert.equal(cancelled.status, 'CANCELLED');
       assert.ok(cancelled.specialNotes?.includes('Admin Cancel'));
-      assert.equal(cancelled.version, 2);
+      assert.equal(cancelled.version, 3);
 
       const cancelEvent = fakeRepo.outboxEvents.find(
         (e) => e.eventType === 'order.cancelled' && JSON.parse(e.payload).orderId === order.id
@@ -698,14 +746,14 @@ describe('Order Service Lifecycle and Concurrency', () => {
         rewardCredits: 8,
       });
 
-      // Another user accepts the order concurrently (version moves from 1 to 2)
+      // Another user accepts the order concurrently (version moves from 2 to 3)
       await service.acceptOrder(order.id, COURIER_1_ID);
 
-      // Admin attempts to cancel with stale expectedVersion 1
+      // Admin attempts to cancel with stale expectedVersion 2
       await assert.rejects(
         () => service.adminCancelOrder(order.id, ADMIN_ID, {
           reason: 'Stale admin action',
-          expectedVersion: 1,
+          expectedVersion: 2,
         }),
         OrderStateConflictError
       );
@@ -741,7 +789,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       const completed = await service.adminCompleteOrder(order.id, ADMIN_ID, {
         reason: 'Requester uncontactable after photo confirmation',
-        expectedVersion: 4,
+        expectedVersion: 5,
       });
 
       assert.equal(completed.status, 'COMPLETED');
