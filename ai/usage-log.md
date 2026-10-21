@@ -3622,3 +3622,23 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `.github/workflows/ci.yml` — simplified `acceptance-tests` and `browser-uat` jobs to upload `test-results/**` directly without redundant `ci-artifacts/` wrapper steps.
 - `.claude/PLUGINS.md`, `.claude/agents/reviewer.md` — removed obsolete `docs/evidence/` and `docs/requirements/` references.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 12:15 SGT — Streamline Root & Workspace `package.json` Scripts and Extract Shared Dev/Prisma Runners
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/streamline-package-scripts
+
+**Prompt (summarised):** Audit `package.json` scripts across the monorepo for npm workspace best practices and eliminate bloat: extract the 10 duplicated ~320-character inline `node -e` Prisma migration one-liners across all 5 services into `scripts/prisma-migrate.mjs`; replace the POSIX-only `& ... & wait` parallel dev wrappers and 7 per-workspace `dev:<name>` wrappers with a zero-dependency cross-platform parallel runner (`scripts/dev.mjs`) supporting `dev`, `dev:apps`, `dev:services`, and target filtering; remove redundant root `db:generate`, `db:migrate`, `db:deploy` wrappers and simplify root `db:seed`; inline `test:d2` into `test:e2e:api` and update `scripts/ci/validate-test-matrix.mjs`; and align `@types/node` in `packages/messaging/package.json` to `^20.14.0`.
+
+**Usage scenario:** Build/script configuration cleanup, boilerplate extraction, and documentation updates (allowed use). All script consolidation decisions were reviewed and confirmed by the author.
+
+**Files changed / created:**
+- `scripts/prisma-migrate.mjs` [NEW] — shared Prisma migration runner (`migrate dev` / `migrate deploy`) loading local `.env` and root `../../.env` with `<SVC>_DATABASE_URL` fallback.
+- `scripts/dev.mjs` [NEW] — zero-dependency cross-platform parallel dev runner with prefixed output and clean `SIGINT`/`SIGTERM` child termination (`dev`, `dev:apps`, `dev:services`, or filtered targets).
+- `package.json` — replaced 7 `dev:<name>` wrappers and POSIX `& wait` scripts with `dev`, `dev:apps`, `dev:services` (`node scripts/dev.mjs`); removed redundant root `db:generate`, `db:migrate`, `db:deploy`; simplified `db:seed`; inlined `tsx scripts/test-d2-e2e.ts` into `test:e2e:api` and removed `test:d2` (31 scripts reduced to 21).
+- `services/{credit,notification,order,supplier,user}-service/package.json` — replaced inline `node -e` `db:migrate` and `db:deploy` one-liners with `node ../../scripts/prisma-migrate.mjs <service> <dev|deploy>`.
+- `packages/messaging/package.json`, `package-lock.json` — aligned `@types/node` from `^20.19.43` to `^20.14.0` and synced lockfile.
+- `scripts/ci/validate-test-matrix.mjs` — removed retired `test:d2` alias from `rootSystemScripts`.
+- `README.md`, `CLAUDE.md`, `docs/ci.md`, `.claude/README.md`, `.claude/agents/{infrastructure,reviewer}.md`, `.claude/settings.json` — updated command references for `dev`, `dev:services`, `dev:apps`, `npm run dev -w ...`, and `test:e2e:api`.
+- `ai/usage-log.md` — this entry.

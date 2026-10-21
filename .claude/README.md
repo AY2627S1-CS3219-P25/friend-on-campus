@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Consolidated disclosure header and updated test:d2 / dev:user references to test:e2e:api and npm workspace commands.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Removed reference to retired new-adr skill.
 Author review: <to be completed by author after review>
@@ -7,9 +11,7 @@ Author review: <to be completed by author after review>
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
 Scope: Prerequisite row: Node 22.3+ because npm test uses node --test with module mocking.
 Author review: <to be completed by Reallyeasy1>
--->
-<!--
-AI Assistance Disclosure:
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this set-up guide from the configuration in this folder and from problems actually hit while
 setting it up on Windows (gh default repo, missing language server, missing node_modules, plugin start-up timeouts).
@@ -97,7 +99,7 @@ Restart Claude Code from the repo root, then:
 
 | Path | What it does |
 |---|---|
-| `settings.json` | Shared. **Denies** `git commit`, `git push`, `git merge`, `gh pr create/merge` and reading `.env` files; allows typecheck, `test:d2` and read-only git/gh without prompting; wires the hooks; enables the core plugins |
+| `settings.json` | Shared. **Denies** `git commit`, `git push`, `git merge`, `gh pr create/merge` and reading `.env` files; allows typecheck, `test:e2e:api` and read-only git/gh without prompting; wires the hooks; enables the core plugins |
 | `settings.local.json` | Yours, git-ignored. Personal plugin switches and permissions |
 | `hooks/check-usage-log.js` | When Claude stops: warns **you** if files changed but `ai/usage-log.md` has no newer entry. Warn-only |
 | `hooks/check-disclosure.js` | After each edit: reminds **Claude** if the file lacks the "AI Assistance Disclosure" header. Its `SKIP` list names exempt file types |
@@ -125,7 +127,7 @@ Restart Claude Code from the repo root, then:
 | Hooks do nothing | Run `/hooks` and approve them; check `node -v` works in the shell Claude Code uses |
 | Hook errors mentioning `$CLAUDE_PROJECT_DIR` | Claude Code was started outside the repo root — start it from the root |
 | Start-up is slow, "connection timed out after 30000ms" | Globally enabled plugins with background servers you do not use here — disable them in `settings.local.json` (§4) |
-| `npm run test:d2` fails to start services | It launches user- and supplier-service itself on 8001/8002: stop the app containers and any `npm run dev:user` / `dev:supplier`, keep Postgres up and seeded |
+| `npm run test:e2e:api` fails to start services | It launches user- and supplier-service itself on 8001/8002: stop the app containers and any host user/supplier dev servers, keep Postgres up and seeded |
 | A column is missing in Docker | The init SQL only runs on an empty volume: `docker compose down -v` (wipes local data), then up and re-seed |
 | Claude refuses to commit | Intended (`settings.json` deny rule + course policy) |
 
