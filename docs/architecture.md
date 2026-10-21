@@ -81,7 +81,7 @@ flowchart TB
 |---|---|---|---|---|
 | **User Service** | `8001` | `user_db` | User registration, password hashing (scrypt), Ed25519 token signing, opaque refresh sessions, user profile management, RBAC, and last-admin safety guard. | Publishes `user.registered` to RabbitMQ via Transactional Outbox upon new student sign-up. |
 | **Supplier Service** | `8002` | `supplier_db` | Directory of campus merchants, dining outlets, and collection points. Search, category filtering, campus zone queries, and Admin-only CRUD. | Verifies Ed25519 JWTs offline. Queried by clients when creating errand requests. |
-| **Order Service** | `8003` | `order_db` | Complete lifecycle state machine for errands (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`, `CANCELLED`, `EXPIRED`). Atomic single-winner courier claiming and background expiry sweeper. | Synchronous HTTP call to Supplier Service (supplier lookup) during errand creation. Asynchronous escrow reservation and lifecycle events via Transactional Outbox. Expiry sweeper every 30 s (`EXPIRY_SWEEPER_INTERVAL_MS`). |
+| **Order Service** | `8003` | `order_db` | Complete lifecycle state machine for errands (`DRAFT` &rarr; `PENDING` &rarr; `OPEN` / `REJECTED` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`, `CANCELLED`, `EXPIRED`). Atomic single-winner courier claiming and background expiry sweeper. | Synchronous HTTP call to Supplier Service (supplier lookup) during errand creation. Asynchronous escrow reservation saga and lifecycle events via Transactional Outbox (Debezium CDC). Expiry sweeper every 30 s (`EXPIRY_SWEEPER_INTERVAL_MS`). |
 | **Credit Service** | `8004` | `credit_db` | Closed credit economy wallet accounts, transaction ledger, and per-order escrow holds, settlements, and refunds. | Consumes `user.registered` (grants 100 credits), `order.reservation.requested` (reserves escrow and publishes `credit.reservation.succeeded` / `credit.reservation.failed`), `order.completed` (settles escrow), and `order.cancelled` / `order.expired` (refunds escrow). All escrow mutations occur via RabbitMQ; `/api/credits/escrow*` is blocked (`403`) at the gateway. |
 | **Notification Service** | `8005` | `notification_db` | Real-time push notifications over authenticated WebSockets (`/ws`), unread notification badge counts, and user notification history. | Consumes all seven `order.*` events from RabbitMQ. Only `order.accepted`, `order.in_transit` and `order.delivered` produce a notification (stored, then pushed to the requester); the other keys are acknowledged without one. |
 
@@ -151,7 +151,7 @@ Each microservice owns its data store exclusively:
 | `user_db` | `users`, `sessions`, `outbox_events` |
 | `supplier_db` | `suppliers` |
 | `order_db` | `orders` (with `version` column for optimistic locking), `outbox_events` |
-| `credit_db` | `credit_wallets`, `credit_transactions`, `credit_grants`, `credit_escrows`, `processed_credit_events` |
+| `credit_db` | `credit_wallets`, `credit_transactions`, `credit_grants`, `credit_escrows`, `processed_credit_events`, `credit_outbox_events` |
 | `notification_db` | `notifications` (unique `event_id`; index on `user_id, created_at desc`) |
 
 ---

@@ -49,6 +49,8 @@ export interface ListOrdersOptions {
   status?: string;
   campusZone?: string;
   search?: string;
+  requesterId?: string;
+  courierId?: string;
   page?: number;
   limit?: number;
   viewerId?: string;
@@ -220,11 +222,13 @@ async function handleApplyReservationResult(
   });
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function handleFindOrderById(
   prisma: PrismaClient,
   id: string
 ): Promise<OrderDTO | null> {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const isUuid = UUID_REGEX.test(id);
   const order = isUuid
     ? await prisma.order.findUnique({ where: { id } })
     : await prisma.order.findUnique({ where: { orderCode: id } });
@@ -237,11 +241,22 @@ async function handleListOrders(
   prisma: PrismaClient,
   options: ListOrdersOptions
 ): Promise<{ orders: OrderDTO[]; total: number }> {
-  const { status, campusZone, search, page = 1, limit = 50, viewerId, isAdmin } = options;
+  const { status, campusZone, search, requesterId, courierId, page = 1, limit = 50, viewerId, isAdmin } = options;
   const skip = Math.max(0, (page - 1) * limit);
 
+  const trimmedRequesterId = requesterId?.trim();
+  const trimmedCourierId = courierId?.trim();
+  if (
+    (trimmedRequesterId && !UUID_REGEX.test(trimmedRequesterId)) ||
+    (trimmedCourierId && !UUID_REGEX.test(trimmedCourierId))
+  ) {
+    return { orders: [], total: 0 };
+  }
+
   const where: Record<string, any> = {};
-  const normalizedStatus = status ? status.toUpperCase() : 'OPEN';
+  const andConditions: Record<string, any>[] = [];
+  const defaultStatus = trimmedRequesterId || trimmedCourierId ? 'ALL' : 'OPEN';
+  const normalizedStatus = status ? status.toUpperCase() : defaultStatus;
 
   if (normalizedStatus === 'OPEN') {
     where.status = 'OPEN';
@@ -249,17 +264,27 @@ async function handleListOrders(
   } else if (normalizedStatus !== 'ALL') {
     where.status = normalizedStatus;
     if (!isAdmin && viewerId && (normalizedStatus === 'PENDING' || normalizedStatus === 'REJECTED')) {
-      where.requesterId = viewerId;
+      andConditions.push({ requesterId: viewerId });
     }
   } else if (!isAdmin && viewerId) {
-    where.AND = [
-      {
-        OR: [
-          { status: { notIn: ['PENDING', 'REJECTED'] } },
-          { requesterId: viewerId },
-        ],
-      },
-    ];
+    andConditions.push({
+      OR: [
+        { status: { notIn: ['PENDING', 'REJECTED'] } },
+        { requesterId: viewerId },
+      ],
+    });
+  }
+
+  if (trimmedRequesterId) {
+    andConditions.push({ requesterId: trimmedRequesterId });
+  }
+
+  if (trimmedCourierId) {
+    andConditions.push({ courierId: trimmedCourierId });
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
   }
 
   if (campusZone && campusZone.trim() !== '') {
@@ -268,12 +293,16 @@ async function handleListOrders(
 
   if (search && search.trim() !== '') {
     const term = search.trim();
-    where.OR = [
+    const orConditions: Record<string, any>[] = [
       { orderCode: { contains: term, mode: 'insensitive' } },
       { itemDescription: { contains: term, mode: 'insensitive' } },
       { dropoffLocation: { contains: term, mode: 'insensitive' } },
       { supplierName: { contains: term, mode: 'insensitive' } },
     ];
+    if (UUID_REGEX.test(term)) {
+      orConditions.push({ requesterId: term }, { courierId: term });
+    }
+    where.OR = orConditions;
   }
 
   const [orders, total] = await Promise.all([

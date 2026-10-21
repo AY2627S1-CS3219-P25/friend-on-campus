@@ -165,21 +165,33 @@ export function makeFakeOrderRepository() {
     },
 
     async listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }> {
-      const { status, campusZone, search, page = 1, limit = 50, viewerId, isAdmin } = options;
+      const { status, campusZone, search, requesterId, courierId, page = 1, limit = 50, viewerId, isAdmin } = options;
       const now = new Date().toISOString();
+      const trimmedRequesterId = requesterId?.trim();
+      const trimmedCourierId = courierId?.trim();
+      const defaultStatus = trimmedRequesterId || trimmedCourierId ? 'ALL' : 'OPEN';
+      const normalizedStatus = status ? status.toUpperCase() : defaultStatus;
 
       let filtered = orders.filter((o) => {
         if (!isAdmin && viewerId && (o.status === 'PENDING' || o.status === 'REJECTED') && o.requesterId !== viewerId) {
           return false;
         }
-        if (!status || status.toUpperCase() === 'OPEN') {
+        if (normalizedStatus === 'OPEN') {
           return o.status === 'OPEN' && o.expiresAt > now;
         }
-        if (status.toUpperCase() !== 'ALL') {
-          return o.status === status.toUpperCase();
+        if (normalizedStatus !== 'ALL') {
+          return o.status === normalizedStatus;
         }
         return true;
       });
+
+      if (trimmedRequesterId) {
+        filtered = filtered.filter((o) => o.requesterId.toLowerCase() === trimmedRequesterId.toLowerCase());
+      }
+
+      if (trimmedCourierId) {
+        filtered = filtered.filter((o) => o.courierId?.toLowerCase() === trimmedCourierId.toLowerCase());
+      }
 
       if (campusZone && campusZone.trim() !== '') {
         const zoneLower = campusZone.trim().toLowerCase();
@@ -193,7 +205,9 @@ export function makeFakeOrderRepository() {
             o.orderCode.toLowerCase().includes(term) ||
             o.itemDescription.toLowerCase().includes(term) ||
             o.dropoffLocation.toLowerCase().includes(term) ||
-            (o.supplierName && o.supplierName.toLowerCase().includes(term))
+            (o.supplierName && o.supplierName.toLowerCase().includes(term)) ||
+            o.requesterId.toLowerCase() === term ||
+            (o.courierId && o.courierId.toLowerCase() === term)
         );
       }
 

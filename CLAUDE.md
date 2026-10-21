@@ -163,13 +163,15 @@ services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/inde
 services/order-service         :8003  real (Prisma, order_db)     entry src/index.ts
 services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
-apps/student-app               :5173  one src/App.tsx (~1700 lines), no router
-apps/admin-portal              :5174  one src/App.tsx (~3850 lines), no router
+apps/student-app               :5173  modular src/ (App.tsx, pages/, components/, hooks/, api/)
+apps/admin-portal              :5174  modular src/ (App.tsx, pages/, components/, hooks/, api/)
 packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
+packages/messaging                    @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/postgres-init/*.sql            creates the 5 databases (tables managed per-service by migrations)
-docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
+docker/debezium/                      Debezium Server CDC config for order_db.public.outbox_events
+docker/postgres-init/*.sql            creates the 5 databases & least-privilege roles (tables managed per-service by migrations)
+docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672) + debezium:2.7
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
 docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config
 ```
