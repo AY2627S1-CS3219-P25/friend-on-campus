@@ -121,7 +121,7 @@ Every state transition enforces strict authorization, credit financial rules, an
 
 Every route transition runs in one database transaction that reads the row, checks the rules above, applies a conditional `updateMany` on the expected `status` and `version`, increments `version`, and (except unassign) inserts the outbox event. The expiry sweeper matches on `status = OPEN` only (its row above). Unknown order → `404`. `GET /api/orders/:id` accepts either the UUID or the `orderCode` (`ORD-` + 8 hex characters); `PENDING` and `REJECTED` orders are visible only to the requester or an `ADMIN` (`403` otherwise).
 
-Read routes: `GET /api/orders` (default: `OPEN` and not yet expired, newest first; optional `status` (`ALL` for every status), `campusZone`, `search` over code, item, drop-off and supplier name, `page`, `limit` ≤ 100, default 50; non-admin queries only include the caller's own `PENDING` and `REJECTED` rows) and `GET /api/orders/user/activity` (the caller's `requested`, `delivering` and `history` lists). All order routes require an access token.
+Read routes: `GET /api/orders` (default: `OPEN` and not yet expired, newest first; optional `status` (`ALL` for every status), `campusZone`, `requesterId` and `courierId` (`ADMIN` or the matching user only; `403` otherwise), `search` over code, item, drop-off, supplier name, and requester/courier UUID, `page`, `limit` ≤ 100, default 50; non-admin queries only include the caller's own `PENDING` and `REJECTED` rows) and `GET /api/orders/user/activity` (the caller's `requested`, `delivering` and `history` lists). All order routes require an access token.
 
 ---
 
@@ -231,26 +231,29 @@ sequenceDiagram
 
 All events are published to the durable topic exchange `campus.events` using the Transactional Outbox pattern. The routing key equals `eventType`. Every event carries `eventId` (UUID), `eventType` and `timestamp` (ISO-8601 UTC); the table lists the remaining fields as defined in `packages/common-dtos/src/index.ts` §5 (`?` = optional).
 
-| Routing Key | Event Type | Publisher (trigger) | Payload fields | `credit-service` | `notification-service` |
-|---|---|---|---|---|---|
-| `user.registered` | `UserRegisteredEvent` | `user-service` (registration) | `userId`, `email`, `initialGrant` (100) | Creates the wallet with the grant | not bound |
-| `order.created` | `OrderCreatedEvent` | `order-service` (`POST /api/orders`) | `orderId`, `orderCode`, `requesterId`, `rewardCredits`, `campusZone`, `expiresAt` | not bound | Acknowledged, no notification |
-| `order.accepted` | `OrderAcceptedEvent` | `order-service` (accept) | `orderId`, `orderCode`, `requesterId`, `courierId`, `courierUsername?` | not bound | `ORDER_ACCEPTED` to the requester |
-| `order.in_transit` | `OrderInTransitEvent` | `order-service` (pickup) | `orderId`, `orderCode?`, `requesterId`, `courierId`, `courierUsername?` | not bound | `ORDER_PICKED_UP` to the requester |
-| `order.delivered` | `OrderDeliveredEvent` | `order-service` (deliver) | `orderId`, `orderCode`, `requesterId`, `courierId`, `courierUsername?` | not bound | `ORDER_DELIVERED` to the requester |
-| `order.completed` | `OrderCompletedEvent` | `order-service` (complete, admin complete) | `orderId`, `orderCode?`, `requesterId`, `courierId`, `rewardCredits` | Settles the escrow to the courier | Acknowledged, no notification |
-| `order.cancelled` | `OrderCancelledEvent` | `order-service` (cancel, admin cancel, compensating refund) | `orderId`, `orderCode?`, `requesterId`, `rewardCredits` | Refunds the escrow to the requester | Acknowledged, no notification |
-| `order.expired` | `OrderExpiredEvent` | `order-service` (expiry sweeper) | `orderId`, `orderCode?`, `requesterId`, `rewardCredits` | Refunds the escrow to the requester | Acknowledged, no notification |
+| Routing Key | Event Type | Publisher (trigger) | Payload fields | `order-service` | `credit-service` | `notification-service` |
+|---|---|---|---|---|---|---|
+| `user.registered` | `UserRegisteredEvent` | `user-service` (registration) | `userId`, `email`, `initialGrant` (100) | not bound | Creates the wallet with the grant | not bound |
+| `order.reservation.requested` | `CreditReservationRequestEvent` | `order-service` (`POST /api/orders`) | `correlationId`, `orderId`, `requesterId`, `rewardCredits` | not bound | Reserves escrow and emits `credit.reservation.succeeded` or `credit.reservation.failed` | not bound |
+| `credit.reservation.succeeded` | `CreditReservationSucceededEvent` | `credit-service` (reservation succeeded) | `correlationId`, `orderId`, `requesterId`, `rewardCredits` | Transitions `PENDING` &rarr; `OPEN` (or `EXPIRED` if past deadline) | not bound | not bound |
+| `credit.reservation.failed` | `CreditReservationFailedEvent` | `credit-service` (reservation failed) | `correlationId`, `orderId`, `requesterId`, `rewardCredits`, `reason` | Transitions `PENDING` &rarr; `REJECTED` | not bound | not bound |
+| `order.created` | `OrderCreatedEvent` | `order-service` (reservation confirmed) | `orderId`, `orderCode`, `requesterId`, `rewardCredits`, `campusZone`, `expiresAt` | not bound | not bound | Acknowledged, no notification |
+| `order.accepted` | `OrderAcceptedEvent` | `order-service` (accept) | `orderId`, `orderCode`, `requesterId`, `courierId`, `courierUsername?` | not bound | not bound | `ORDER_ACCEPTED` to the requester |
+| `order.in_transit` | `OrderInTransitEvent` | `order-service` (pickup) | `orderId`, `orderCode?`, `requesterId`, `courierId`, `courierUsername?` | not bound | not bound | `ORDER_PICKED_UP` to the requester |
+| `order.delivered` | `OrderDeliveredEvent` | `order-service` (deliver) | `orderId`, `orderCode`, `requesterId`, `courierId`, `courierUsername?` | not bound | not bound | `ORDER_DELIVERED` to the requester |
+| `order.completed` | `OrderCompletedEvent` | `order-service` (complete, admin complete) | `orderId`, `orderCode?`, `requesterId`, `courierId`, `rewardCredits` | not bound | Settles the escrow to the courier | Acknowledged, no notification |
+| `order.cancelled` | `OrderCancelledEvent` | `order-service` (cancel, admin cancel) | `orderId`, `orderCode?`, `requesterId`, `rewardCredits` | not bound | Refunds the escrow to the requester | Acknowledged, no notification |
+| `order.expired` | `OrderExpiredEvent` | `order-service` (expiry sweeper, late reservation) | `orderId`, `orderCode?`, `requesterId`, `rewardCredits` | not bound | Refunds the escrow to the requester | Acknowledged, no notification |
 
-- `courierUsername` is the courier's `username` claim from the access token used for accept / pickup / deliver (1–50 characters); it is omitted when the token predates that claim. The order service always sets `orderCode` on its lifecycle events; the compensating `order.cancelled` written after a failed insert has no `orderCode`.
+- `courierUsername` is the courier's `username` claim from the access token used for accept / pickup / deliver (1–50 characters); it is omitted when the token predates that claim. The order service always sets `orderCode` on its lifecycle events.
 - Admin unassign (`ACCEPTED` &rarr; `OPEN`) publishes no event.
 - Notification copy (title / body), stored as rendered:
   - `ORDER_ACCEPTED`: "Your errand `<orderCode>` was accepted" / "`<courierUsername>` accepted your errand and will pick the items up next." (without `courierUsername`: "A courier has been assigned to your errand.")
   - `ORDER_PICKED_UP`: "Your errand `<orderCode>` was picked up" / "Your courier has the items and is on the way."
   - `ORDER_DELIVERED`: "Your errand `<orderCode>` was delivered" / "Review the delivery and confirm it."
-- **Expiry sweeper** (`expiry.sweeper.ts`): runs once at start and then every 30 s (`EXPIRY_SWEEPER_INTERVAL_MS`, minimum 5000); each run expires up to 50 `OPEN` orders with `expiresAt <= now`, one transaction per order, then triggers the outbox relay. `GET /api/orders` already hides expired `OPEN` orders, and accept rejects them with `409`, before the sweeper runs.
+- **Expiry sweeper** (`expiry.sweeper.ts`): runs once at start and then every 30 s (`EXPIRY_SWEEPER_INTERVAL_MS`, minimum 5000); each run expires up to 50 `OPEN` orders with `expiresAt <= now`, one transaction per order, writing `order.expired` to `outbox_events` (tailed by Debezium CDC). `GET /api/orders` already hides expired `OPEN` orders, and accept rejects them with `409`, before the sweeper runs.
 
 ### Deduplication & Idempotency
 - Every event includes a unique UUID `eventId`.
-- Consuming services check their local tables (`processed_credit_events`, `notifications`) inside their database transactions. If an `eventId` was already processed, the consumer acknowledges RabbitMQ and skips execution.
-- If processing fails with a transient error, the consumer republishes the message to its own retry queue and redelivers it after a fixed delay: credit-service 1 s, up to 5 retries, then `campus.events.dlx` &rarr; `credit-service.events.dlq`; notification-service 2 s, up to 30 retries, then `notification-service.events.dlx` &rarr; `notification-service.events.dlq`. Permanent failures (invalid event, business conflict such as a refund after settlement, constraint violations) go to the dead-letter queue without retry. See `docs/architecture.md` §3 C.
+- Consuming services check their local tables (`processed_credit_events`, `notifications`) or conditional `status = 'PENDING'` state (`order-service`) inside their database transactions. If an event was already processed, the consumer acknowledges RabbitMQ and skips execution.
+- If processing fails with a transient error and native `x-delivery-count < retryLimit`, the quorum-queue consumer sleeps `retryDelayMs` in-place and returns `ConsumerStatus.REQUEUE`: `order-service` 5 s, up to 5 retries, then `order-service.events.dlq` &rarr; `order-service.events.dlq`; `credit-service` 5 s, up to 5 retries, then `campus.events.dlx` &rarr; `credit-service.events.dlq`; `notification-service` 2 s, up to 30 retries, then `notification-service.events.dlx` &rarr; `notification-service.events.dlq`. Permanent failures (invalid event, business conflict such as a refund after settlement, constraint violations) return `ConsumerStatus.DROP` and go to the dead-letter queue without retry. See `docs/architecture.md` §3 C.

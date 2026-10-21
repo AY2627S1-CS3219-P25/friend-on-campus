@@ -122,7 +122,7 @@ Beyond static roles, domain endpoints verify **resource ownership** (`userId` be
 
 | Service | Route | Who may call |
 |---|---|---|
-| order | `GET /api/orders`, `GET /api/orders/:id` | any authenticated user (no ownership filter) |
+| order | `GET /api/orders`, `GET /api/orders/:id` | any authenticated user (`PENDING` and `REJECTED` orders are restricted to the owning `requesterId` or `ADMIN`; `requesterId` and `courierId` query filters on `GET /api/orders` require `ADMIN` or the matching user; `403` otherwise) |
 | order | `GET /api/orders/user/activity` | any authenticated user; returns only orders where the caller is requester or courier |
 | order | `POST /api/orders` | any authenticated user; the caller becomes `requesterId` |
 | order | `POST /:id/accept` | any authenticated user except the order's requester |

@@ -76,9 +76,11 @@ flowchart TB
     OrderSvc --> Postgres
     CreditSvc --> Postgres
     NotifSvc --> Postgres
-    OrderSvc -->|"escrow reserve (HTTP)"| CreditSvc
+    OrderSvc -->|"supplier lookup (HTTP)"| SupplierSvc
     UserSvc -.->|"publish user.registered"| RabbitMQ
     OrderSvc -.->|"publish order.*"| RabbitMQ
+    CreditSvc -.->|"publish credit.reservation.*"| RabbitMQ
+    RabbitMQ -.->|"consume credit.reservation.*"| OrderSvc
     RabbitMQ -.->|"consume user.registered, order.*"| CreditSvc
     RabbitMQ -.->|"consume order.*"| NotifSvc
 ```
@@ -259,11 +261,13 @@ friend-on-campus/
 │   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
 ├── packages/
 │   ├── auth/                    # @campus-errand/auth: offline Ed25519 access-token verification middleware
-│   └── common-dtos/             # Shared TypeScript schemas, DTOs & event types
+│   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
+│   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 ├── gateway/
 │   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
 ├── docker/
-│   ├── postgres-init/           # Creates the five logical databases (tables come from per-service migrations)
+│   ├── debezium/                # Debezium Server CDC config for order_db.public.outbox_events
+│   ├── postgres-init/           # Creates the five logical databases and least-privilege roles
 │   └── rabbitmq/                # Broker config and definitions: vhost, exchanges, service accounts, permissions
 ├── scripts/
 │   ├── ci/                      # Isolated aggregate test runner, test-matrix validator, test-database helper

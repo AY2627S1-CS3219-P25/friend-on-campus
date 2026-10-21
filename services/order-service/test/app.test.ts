@@ -660,4 +660,104 @@ describe('Order Service HTTP Application & Routes', () => {
       await server.close();
     }
   });
+
+  it('supports filtering orders by requesterId and courierId for admin and user queries', async () => {
+    const { app, fakeRepo } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const aliceOrder = await fakeRepo.repo.createOrderWithOutbox({
+        orderCode: 'ORD-ALICE1',
+        requesterId: ALICE_ID,
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Americano',
+        dropoffLocation: 'COM1',
+        rewardCredits: 8,
+        expiresAt: new Date(Date.now() + 60000),
+      }, {
+        eventType: 'order.created',
+        eventId: 'evt-alice-1',
+        timestamp: new Date().toISOString(),
+        orderId: 'dummy-1',
+        orderCode: 'ORD-ALICE1',
+        requesterId: ALICE_ID,
+        campusZone: 'Computing',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        rewardCredits: 8,
+      });
+
+      const bobOrder = await fakeRepo.repo.createOrderWithOutbox({
+        orderCode: 'ORD-BOB001',
+        requesterId: BOB_ID,
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Waffle',
+        dropoffLocation: 'UTown',
+        rewardCredits: 10,
+        expiresAt: new Date(Date.now() + 60000),
+      }, {
+        eventType: 'order.created',
+        eventId: 'evt-bob-1',
+        timestamp: new Date().toISOString(),
+        orderId: 'dummy-2',
+        orderCode: 'ORD-BOB001',
+        requesterId: BOB_ID,
+        campusZone: 'UTown',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        rewardCredits: 10,
+      });
+
+      await fakeRepo.repo.acceptOrder(aliceOrder.id, BOB_ID, undefined, {
+        eventType: 'order.accepted',
+        eventId: 'evt-acc-bob',
+        timestamp: new Date().toISOString(),
+        orderId: aliceOrder.id,
+        orderCode: aliceOrder.orderCode,
+        requesterId: ALICE_ID,
+        courierId: BOB_ID,
+      });
+
+      // Admin filtering by requesterId
+      const requesterRes = await fetch(`${server.url}/api/orders?requesterId=${ALICE_ID}`, {
+        headers: {
+          'x-user-id': ADMIN_ID,
+          'x-user-role': 'ADMIN',
+        },
+      });
+      assert.equal(requesterRes.status, 200);
+      const requesterBody = await requesterRes.json() as any;
+      assert.equal(requesterBody.data.length, 1);
+      assert.equal(requesterBody.data[0].id, aliceOrder.id);
+
+      // Filtering by courierId (admin or matching courier)
+      const courierRes = await fetch(`${server.url}/api/orders?courierId=${BOB_ID}`, {
+        headers: {
+          'x-user-id': BOB_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(courierRes.status, 200);
+      const courierBody = await courierRes.json() as any;
+      assert.equal(courierBody.data.length, 1);
+      assert.equal(courierBody.data[0].id, aliceOrder.id);
+      assert.notEqual(courierBody.data[0].id, bobOrder.id);
+
+      // Non-admin filtering by another user's requesterId or courierId returns 403 Forbidden
+      const forbiddenRequesterRes = await fetch(`${server.url}/api/orders?requesterId=${ALICE_ID}`, {
+        headers: {
+          'x-user-id': BOB_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(forbiddenRequesterRes.status, 403);
+
+      const forbiddenCourierRes = await fetch(`${server.url}/api/orders?courierId=${BOB_ID}`, {
+        headers: {
+          'x-user-id': ALICE_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(forbiddenCourierRes.status, 403);
+    } finally {
+      await server.close();
+    }
+  });
 });

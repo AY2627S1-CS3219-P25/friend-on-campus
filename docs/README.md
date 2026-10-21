@@ -22,7 +22,7 @@ This documentation is organized into focused, authoritative specifications that 
 | Document | Purpose & Scope |
 |---|---|
 | **[`architecture.md`](./architecture.md)** | **System Architecture & Infrastructure**: High-level component topology diagram, microservice responsibilities, database-per-service isolation, synchronous HTTP vs asynchronous RabbitMQ event choreography, and Docker Compose orchestration. |
-| **[`errand-specification.md`](./errand-specification.md)** | **Errand Domain & Credit Economy**: Complete errand lifecycle state machine (`DRAFT` &rarr; `OPEN` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`), credit escrow holds/settlement/refunds, atomic single-winner claiming under concurrency, background expiry sweeper, and RabbitMQ domain event matrix. |
+| **[`errand-specification.md`](./errand-specification.md)** | **Errand Domain & Credit Economy**: Complete errand lifecycle state machine (`DRAFT` &rarr; `PENDING` &rarr; `OPEN` / `REJECTED` &rarr; `ACCEPTED` &rarr; `IN_TRANSIT` &rarr; `DELIVERED` &rarr; `COMPLETED`), credit escrow reservation saga/settlement/refunds, atomic single-winner claiming under concurrency, background expiry sweeper, and RabbitMQ domain event matrix. |
 | **[`security.md`](./security.md)** | **Security & Access Control**: Asymmetric Ed25519 token issuance and offline verification, HttpOnly refresh token session management, Role-Based Access Control (`STUDENT` vs `ADMIN`), resource ownership rules, and atomic last-administrator safety guard. |
 | **[`ci.md`](./ci.md)** | **Continuous Integration & Testing**: GitHub Actions workflow structure, public test commands, isolated aggregate orchestration, static test matrix maintenance, and containerized acceptance/E2E test pipelines. |
 
@@ -34,11 +34,11 @@ This documentation is organized into focused, authoritative specifications that 
 |---|---|---|---|
 | **User Service** | `8001` | `user_db` | Authentication (Ed25519 signing), sessions, user profiles, RBAC, and registration outbox publishing. |
 | **Supplier Service** | `8002` | `supplier_db` | Campus merchant and spot directory CRUD, category filtering, and campus zone queries. |
-| **Order Service** | `8003` | `order_db` | Errand lifecycle state transitions, synchronous credit escrow reservation, atomic single-winner claiming, and outbox event publishing. |
-| **Credit Service** | `8004` | `credit_db` | Closed credit economy, wallet accounts, transaction ledgers, escrow holds/settlement/refunds, and idempotent event consumer. |
+| **Order Service** | `8003` | `order_db` | Errand lifecycle state transitions, asynchronous credit escrow reservation saga, atomic single-winner claiming, and CDC outbox event publishing. |
+| **Credit Service** | `8004` | `credit_db` | Closed credit economy, wallet accounts, transaction ledgers, escrow holds/settlement/refunds, and idempotent event consumer/publisher. |
 | **Notification Service** | `8005` | `notification_db` | In-app notification persistence, authenticated WebSocket real-time push (`/ws`), and errand event consumer. |
 
-*API request/response types and domain event payload interfaces are authoritatively defined in code at `packages/common-dtos/src/index.ts`. Access-token verification is shared through `packages/auth` (see its `README.md`).*
+*API request/response types and domain event payload interfaces are authoritatively defined in code at `packages/common-dtos/src/index.ts`. Access-token verification is shared through `packages/auth` (see its `README.md`), and RabbitMQ quorum-queue/DLQ messaging is shared through `packages/messaging`.*
 
 Milestone pages (demo scripts, evidence) live on the project wiki: [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3).
 

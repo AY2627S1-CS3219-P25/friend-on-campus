@@ -96,14 +96,26 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
   // 1. List / Discover Open Errands (authenticated)
   router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {
     const principal = resolvePrincipal(res);
-    const { status, campusZone, search, page, limit } = req.query;
+    const { status, campusZone, search, requesterId, courierId, page, limit } = req.query;
     const parsedPage = parsePositiveInt(page, 'page');
     const parsedLimit = parsePositiveInt(limit, 'limit', 100);
+    const trimmedRequesterId = typeof requesterId === 'string' ? requesterId.trim() : undefined;
+    const trimmedCourierId = typeof courierId === 'string' ? courierId.trim() : undefined;
+
+    if (
+      principal.role !== 'ADMIN' &&
+      ((trimmedRequesterId && trimmedRequesterId !== principal.userId) ||
+        (trimmedCourierId && trimmedCourierId !== principal.userId))
+    ) {
+      throw new OrderAuthorizationError('Only an administrator or the matching user can filter by requesterId or courierId');
+    }
 
     const result = await orderService.listOrders({
       status: typeof status === 'string' ? status : undefined,
       campusZone: typeof campusZone === 'string' ? campusZone : undefined,
       search: typeof search === 'string' ? search : undefined,
+      requesterId: trimmedRequesterId || undefined,
+      courierId: trimmedCourierId || undefined,
       page: parsedPage,
       limit: parsedLimit,
       viewerId: principal.userId,
