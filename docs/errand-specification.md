@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-21
+Scope: Record Debezium delivery for both saga outboxes and distinguish account registration from wallet initialization.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Google Antigravity Agent, date: 2026-10-19
 Scope: Updated Errand Lifecycle specification for Approach B2 Order Reservation Saga (PENDING/REJECTED Order rows, GET /api/orders/{id} polling, late-success order.expired reuse, and removal of COMPENSATING/COMPENSATED).
 Author review: Validated against order-service and credit-service implementation by yanhwee
@@ -71,7 +75,7 @@ The RabbitMQ `order.reservation.requested` event contains `eventId`, `eventType`
 | `REJECTED` | Credit refused the reservation (e.g., insufficient funds). The `Order` row transitions from `PENDING` &rarr; `REJECTED` with `rejectionReason` populated. |
 | `EXPIRED` | Credit reservation succeeded, but `expiresAt` had already elapsed when Order Service processed the confirmation. Order Service atomically transitions `PENDING` &rarr; `EXPIRED` and emits `order.expired`, reusing Credit Service's existing `order.expired` refund handler to release the escrow hold. |
 
-Credit commits the processed-event marker, balance/escrow/ledger changes, and a result in `credit_outbox_events` in one transaction. A business rejection rolls attempted reservation writes back to a savepoint and commits the failure result with the marker. An infrastructure error rolls back the entire transaction for retry. Order Service uses conditional `WHERE id = :id AND status = 'PENDING'` transitions when handling results; duplicate confirmations are idempotent no-ops. Both relays use persistent messages, mandatory routing, and publisher confirms; delivery remains at least once.
+Credit commits the processed-event marker, balance/escrow/ledger changes, and a result in `credit_outbox_events` in one transaction. A business rejection rolls attempted reservation writes back to a savepoint and commits the failure result with the marker. An infrastructure error rolls back the entire transaction for retry. Order Service uses conditional `WHERE id = :id AND status = 'PENDING'` transitions when handling results; duplicate confirmations are idempotent no-ops. Debezium publishes both services' committed outbox events to RabbitMQ; delivery remains at least once, and consumers retain their duplicate guards.
 
 Consumer failures use native RabbitMQ quorum-queue redelivery (`x-delivery-count` via `ConsumerStatus.REQUEUE`) and dead-letter exchanges routing to `credit-service.events.dlq` and `order-service.events.dlq` (`ConsumerStatus.DROP`).
 
@@ -130,7 +134,7 @@ Read routes: `GET /api/orders` (default: `OPEN` and not yet expired, newest firs
 Friend of Campus operates a closed credit economy where credits represent platform utility:
 
 1. **Initial Welcome Grant**:
-   - When a new student registers (`user-service`), a `user.registered` event is emitted.
+   - When a new student registers (`user-service`), the account and `user.registered` outbox event commit together. HTTP `201` confirms this local transaction. `debezium-user` publishes the event; Credit initializes the wallet asynchronously and acknowledges RabbitMQ without notifying User Service of completion. A wallet is not guaranteed to exist when registration returns.
    - Credit Service consumes this event and initializes the student's wallet with an initial balance of **100 credits** (`initialGrant: 100`, recorded once per user in `credit_grants`). The credit seed initializes wallets for the three seeded accounts.
 2. **Escrow Hold (Serializable transaction)**:
    - Consuming `order.reservation.requested` with `{ orderId, requesterId, amount }` invokes `CreditService.reserve()`, which creates one `credit_escrows` row per `orderId` (state `RESERVED`) and moves the amount in a `Serializable` transaction; an identical replay returns the wallet unchanged, a conflicting one returns `409`. (The legacy `/api/credits/escrow/*` HTTP endpoints are removed on the service and blocked with `403` at the gateway.)
@@ -233,7 +237,7 @@ All events are published to the durable topic exchange `campus.events` using the
 
 | Routing Key | Event Type | Publisher (trigger) | Payload fields | `order-service` | `credit-service` | `notification-service` |
 |---|---|---|---|---|---|---|
-| `user.registered` | `UserRegisteredEvent` | `user-service` (registration) | `userId`, `email`, `initialGrant` (100) | not bound | Creates the wallet with the grant | not bound |
+| `user.registered` | `UserRegisteredEvent` | `user-service` (registration) | `userId`, `email`, `initialGrant` (100) | not bound | Creates the wallet with the grant once per user | not bound |
 | `order.reservation.requested` | `CreditReservationRequestEvent` | `order-service` (`POST /api/orders`) | `correlationId`, `orderId`, `requesterId`, `rewardCredits` | not bound | Reserves escrow and emits `credit.reservation.succeeded` or `credit.reservation.failed` | not bound |
 | `credit.reservation.succeeded` | `CreditReservationSucceededEvent` | `credit-service` (reservation succeeded) | `correlationId`, `orderId`, `requesterId`, `rewardCredits` | Transitions `PENDING` &rarr; `OPEN` (or `EXPIRED` if past deadline) | not bound | not bound |
 | `credit.reservation.failed` | `CreditReservationFailedEvent` | `credit-service` (reservation failed) | `correlationId`, `orderId`, `requesterId`, `rewardCredits`, `reason` | Transitions `PENDING` &rarr; `REJECTED` | not bound | not bound |

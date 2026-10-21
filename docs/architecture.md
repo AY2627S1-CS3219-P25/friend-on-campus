@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-21
+Scope: Record the author-selected Debezium publishing standard, registration completion behavior and debezium-order service name.
+Author review: <to be completed by huangjiaxi1111>
+
 Tool: Codex (model: GPT-6), date: 2026-10-18
 Scope: Align service interactions and outbox facts with the author-approved asynchronous reservation flow.
 Author review: <to be completed by huangjiaxi1111>
@@ -98,10 +102,11 @@ Cross-service workflows that do not require blocking the user response are decou
 - **Exchange**: Durable topic exchange `campus.events` in the `campus` vhost.
 - **Transactional Outbox Pattern**:
   - `user-service`, `order-service`, and `credit-service` persist state transitions and domain events within the same atomic PostgreSQL transaction (writing to `outbox_events` / `credit_outbox_events`).
-  - **Log-Based CDC for Order Service (`debezium`)**: Debezium Server (`docker/debezium/application.properties`) tails `order_db.public.outbox_events` via PostgreSQL `pgoutput` logical decoding (`wal_level=logical`) and routes events directly to the `campus.events` exchange with routing key = `event_type` and bare JSON payload.
-  - **Polling Relay for User & Credit Services**: `user-service` and `credit-service` run an asynchronous publisher worker that polls the outbox table (`user-service` every 2 s, batch 20; `credit-service` every 1 s) and is also triggered right after each write. It publishes oldest-first to `campus.events` with routing key = event type, `persistent` and `mandatory` flags, publisher confirms, and `messageId` = `eventId`, then marks the row `DELIVERED`.
+  - **Log-Based CDC for All Publishers**: Three Debezium Server connectors tail PostgreSQL `pgoutput` logical decoding (`wal_level=logical`): `debezium-user` reads `user_db.public.outbox_events` (`docker/debezium/user.properties`), `debezium-order` reads `order_db.public.outbox_events` (`application.properties`), and `debezium-credit` reads `credit_db.public.credit_outbox_events` (`credit.properties`). Each routes bare JSON payloads to `campus.events` with routing key = `event_type`.
+  - User, Order and Credit do not run application outbox polling publishers. Each connector has its own replication slot, publication and persistent offset volume. User/Credit initial snapshots select only `PENDING` rows during handover from their stopped polling publishers. Subsequent committed inserts are streamed from WAL. Outbox `status` and `retryCount` fields remain for compatibility; Debezium does not update them as delivery receipts.
   - This guarantees **at-least-once delivery** without distributed 2-phase commits (2PC) and ensures no events are lost if the process crashes.
 - **Event envelope**: every event carries `eventId` (UUID), `eventType` and `timestamp` (ISO-8601 UTC). Payload fields are listed in `docs/errand-specification.md` §5 and defined in `packages/common-dtos/src/index.ts` §5.
+- **Registration completion**: HTTP `201` confirms the User account and registration outbox row have committed. Credit initializes the wallet and welcome grant in a separate transaction. Its consumer acknowledgement goes to RabbitMQ; no completion event returns to User Service. Wallet reads can return `404` until initialization succeeds, and a dead-lettered registration event does not automatically disable or remove the account.
 - **Idempotent Consumers**:
   - `credit-service` and `notification-service` maintain tables (`processed_credit_events`, `notifications`) recording unique `eventId` values.
   - Replayed or duplicate deliveries are recognized and acknowledged safely without double-charging or duplicate alerts.
@@ -112,9 +117,9 @@ Cross-service workflows that do not require blocking the user response are decou
 
 | Account | Publishes (topic permission on `campus.events`) | Reads |
 |---|---|---|
-| `user_service` | `user.registered` | nothing |
-| `order_service` (and `debezium` CDC relay) | `order.reservation.requested`, `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reservation.succeeded`, `credit.reservation.failed` |
-| `credit_service` | `credit.reservation.succeeded`, `credit.reservation.failed` | `user.registered`, `order.reservation.requested`, `order.completed`, `order.cancelled`, `order.expired` |
+| `user_service` (`debezium-user` CDC relay) | `user.registered` | nothing |
+| `order_service` (and `debezium-order` CDC relay) | `order.reservation.requested`, `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reservation.succeeded`, `credit.reservation.failed` |
+| `credit_service` (and `debezium-credit` CDC relay) | `credit.reservation.succeeded`, `credit.reservation.failed` | `user.registered`, `order.reservation.requested`, `order.completed`, `order.cancelled`, `order.expired` |
 | `notification_service` | nothing on `campus.events` | all seven `order.*` lifecycle keys (`order.created` through `order.expired`) |
 | `campus_admin` | management UI (`administrator` tag, password `campus-admin-dev`) | everything in `campus` |
 | `credit_test` | test queues `credit-test.*` only | test queues `credit-test.*` only |

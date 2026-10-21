@@ -25,7 +25,7 @@
     "test:messaging": "npm run test:messaging --workspaces --if-present",
     "test:migration": "npm run test:migration --workspaces --if-present",
     "test:seed": "npm run test:seed --workspaces --if-present",
-    "test:acceptance": "node scripts/uat/uat-d2-api.mjs && node scripts/uat/uat-notifications.mjs",
+    "test:acceptance": "node scripts/uat/uat-d2-api.mjs && node scripts/uat/uat-notifications.mjs && node scripts/uat/uat-cdc.mjs",
     "test:e2e": "node scripts/ci/run-all-tests.mjs --system-only",
     "test:e2e:api": "tsx scripts/test-d2-e2e.ts",
     "test:e2e:ui": "node scripts/uat/uat-d2-ui.mjs",

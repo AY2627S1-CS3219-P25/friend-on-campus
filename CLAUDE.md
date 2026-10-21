@@ -169,7 +169,7 @@ packages/auth                         @campus-errand/auth: offline Ed25519 token
 packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
 packages/messaging                    @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/debezium/                      Debezium Server CDC config for order_db.public.outbox_events
+docker/debezium/                      Debezium Server CDC configs for User, Order and Credit outboxes
 docker/postgres-init/*.sql            creates the 5 databases & least-privilege roles (tables managed per-service by migrations)
 docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672) + debezium:2.7
 scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images

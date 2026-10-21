@@ -18,9 +18,9 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { createApp } from '../src/app';
-import { PrismaClient } from '../src/database/client';
 import { CreditError, createCreditService } from '../src/credits/service';
 import { createCreditStore, type CreditStore } from '../src/credits/store';
+import { PrismaClient } from '../src/database/client';
 import { createTestAuth } from './auth-fixture';
 
 async function main() {

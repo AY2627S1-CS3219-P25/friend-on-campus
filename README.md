@@ -159,7 +159,7 @@ npm run generate:jwt-keys -- --print
 ```bash
 docker compose up postgres rabbitmq -d
 ```
-*(Note: In `order-service`, transactional outbox events in `order_db.public.outbox_events` are tailed and published to RabbitMQ by the `debezium` CDC container rather than an in-process Node.js poller. When testing end-to-end order event flows in host-based dev, start `docker compose up debezium -d` after running `order-service` database migrations.)*
+Transactional outbox events from User, Order and Credit are published to RabbitMQ by Debezium, using the `debezium-user`, `debezium-order` and `debezium-credit` services respectively. The application services do not run outbox polling publishers. For host-based development, run migrations for all three databases first, then start these connectors with `docker compose up --no-deps -d debezium-user debezium-order debezium-credit` while PostgreSQL and RabbitMQ are running.
 
 ### 4. Seed Databases (First Time Setup)
 ```bash
@@ -276,7 +276,7 @@ friend-on-campus/
 ├── gateway/
 │   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
 ├── docker/
-│   ├── debezium/                # Debezium Server CDC config for order_db.public.outbox_events
+│   ├── debezium/                # Debezium Server CDC configs for User, Order and Credit outboxes
 │   ├── postgres-init/           # Creates the five logical databases and least-privilege roles
 │   └── rabbitmq/                # Broker config and definitions: vhost, exchanges, service accounts, permissions
 ├── scripts/
