@@ -1,4 +1,8 @@
 -- AI Assistance Disclosure:
+-- Tool: Google Antigravity Agent, date: 2026-10-21
+-- Scope: Removed redundant GRANT ALL PRIVILEGES ON DATABASE, \connect, GRANT ALL ON SCHEMA public, and ALTER DEFAULT PRIVILEGES statements already covered by CREATE DATABASE ... OWNER on PostgreSQL 16.
+-- Author review: <to be completed by yanhwee>
+--
 -- Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 -- Scope: Provisioned dedicated least-privilege PostgreSQL roles per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and revoked PUBLIC cross-database CONNECT privileges to enforce Database-per-Service isolation.
 -- Author review: Validated by Yee Yan Hwee (yanhwee)
@@ -34,34 +38,3 @@ REVOKE CONNECT ON DATABASE supplier_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE order_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE credit_db FROM PUBLIC;
 REVOKE CONNECT ON DATABASE notification_db FROM PUBLIC;
-
-GRANT ALL PRIVILEGES ON DATABASE user_db TO user_svc;
-GRANT ALL PRIVILEGES ON DATABASE supplier_db TO supplier_svc;
-GRANT ALL PRIVILEGES ON DATABASE order_db TO order_svc;
-GRANT ALL PRIVILEGES ON DATABASE credit_db TO credit_svc;
-GRANT ALL PRIVILEGES ON DATABASE notification_db TO notification_svc;
-
-\connect user_db
-GRANT ALL ON SCHEMA public TO user_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO user_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO user_svc;
-
-\connect supplier_db
-GRANT ALL ON SCHEMA public TO supplier_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO supplier_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO supplier_svc;
-
-\connect order_db
-GRANT ALL ON SCHEMA public TO order_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO order_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO order_svc;
-
-\connect credit_db
-GRANT ALL ON SCHEMA public TO credit_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO credit_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO credit_svc;
-
-\connect notification_db
-GRANT ALL ON SCHEMA public TO notification_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO notification_svc;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO notification_svc;

@@ -3642,3 +3642,17 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `scripts/ci/validate-test-matrix.mjs` — removed retired `test:d2` alias from `rootSystemScripts`.
 - `README.md`, `CLAUDE.md`, `docs/ci.md`, `.claude/README.md`, `.claude/agents/{infrastructure,reviewer}.md`, `.claude/settings.json` — updated command references for `dev`, `dev:services`, `dev:apps`, `npm run dev -w ...`, and `test:e2e:api`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 18:16 SGT — Remove Redundant Grants in `01-init-databases.sql`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-postgres-init
+
+**Prompt (summarised):** Ask whether `docker/postgres-init/01-init-databases.sql` needs to be that long, and trim the redundant `GRANT ALL PRIVILEGES ON DATABASE`, `\connect`, `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES` blocks already covered by `CREATE DATABASE ... OWNER` on PostgreSQL 16.
+
+**Usage scenario:** SQL initialization script cleanup and boilerplate removal (allowed use).
+
+**Files changed:**
+- `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
+- `ai/usage-log.md` — this entry.
