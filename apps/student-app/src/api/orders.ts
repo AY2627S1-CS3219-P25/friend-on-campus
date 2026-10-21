@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added unassignOrderById and 'unassign' action to TaskOrderAction so couriers can drop ACCEPTED errands prior to pickup.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Added pickup, deliver, complete, and cancel lifecycle API helpers, preserved 400/403/409 backend error messages, and included user activity history in fetchCombinedOrders (Issue #132).
  * Author review: <to be completed by yanhwee>
@@ -14,7 +18,7 @@
 import { OrderDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './auth';
 
-export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel';
+export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel' | 'unassign';
 
 export async function fetchCombinedOrders(authFetch: AuthFetchFn): Promise<OrderDTO[]> {
   const [feedResponse, activityResponse] = await Promise.all([
@@ -103,5 +107,17 @@ export async function cancelOrderById(
     orderId,
     'cancel',
     'Unable to cancel this errand.'
+  );
+}
+
+export async function unassignOrderById(
+  authFetch: AuthFetchFn,
+  orderId: string
+): Promise<OrderDTO> {
+  return postOrderLifecycleAction(
+    authFetch,
+    orderId,
+    'unassign',
+    'Unable to drop this errand.'
   );
 }

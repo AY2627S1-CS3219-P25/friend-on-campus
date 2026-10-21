@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added courier Drop Errand (unassign) action before pickup and CANCELLED status summary on accepted courier task cards.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Added courier pickup/deliver actions and requester confirm-delivery (complete)/cancel actions on task cards in pages/TasksPage.tsx (Issue #132).
  * Author review: <to be completed by yanhwee>
@@ -27,6 +31,7 @@ interface TasksPageProps {
   onDeliverOrder: (orderId: string) => void;
   onCompleteOrder: (orderId: string) => void;
   onCancelOrder: (orderId: string) => void;
+  onUnassignOrder: (orderId: string) => void;
 }
 
 function getStatusBadgeClasses(status: OrderStatus): string {
@@ -55,6 +60,7 @@ export function TasksPage({
   onDeliverOrder,
   onCompleteOrder,
   onCancelOrder,
+  onUnassignOrder,
 }: TasksPageProps) {
   const groups = [
     {
@@ -147,20 +153,36 @@ export function TasksPage({
                   {group.key === 'accepted' && (
                     <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       {task.status === 'ACCEPTED' && (
-                        <button
-                          type="button"
-                          data-testid="pickup-order-btn"
-                          onClick={() => onPickupOrder(task.id)}
-                          disabled={disableAllActions}
-                          className="w-full inline-flex items-center justify-center gap-1.5 bg-nus-blue hover:bg-blue-800 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Truck className="h-3.5 w-3.5" />
-                          <span>
-                            {isBusyThisCard && actingAction === 'pickup'
-                              ? 'Marking Picked Up…'
-                              : 'Mark Picked Up'}
-                          </span>
-                        </button>
+                        <div className="w-full flex flex-col sm:flex-row gap-2">
+                          <button
+                            type="button"
+                            data-testid="pickup-order-btn"
+                            onClick={() => onPickupOrder(task.id)}
+                            disabled={disableAllActions}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-nus-blue hover:bg-blue-800 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Truck className="h-3.5 w-3.5" />
+                            <span>
+                              {isBusyThisCard && actingAction === 'pickup'
+                                ? 'Marking Picked Up…'
+                                : 'Mark Picked Up'}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            data-testid="unassign-order-btn"
+                            onClick={() => onUnassignOrder(task.id)}
+                            disabled={disableAllActions}
+                            className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs px-3 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span>
+                              {isBusyThisCard && actingAction === 'unassign'
+                                ? 'Dropping…'
+                                : 'Drop Errand'}
+                            </span>
+                          </button>
+                        </div>
                       )}
 
                       {task.status === 'IN_TRANSIT' && (
@@ -189,6 +211,12 @@ export function TasksPage({
                       {task.status === 'COMPLETED' && (
                         <p className="text-xs font-medium text-emerald-700">
                           Completed · +{task.rewardCredits} credits earned
+                        </p>
+                      )}
+
+                      {task.status === 'CANCELLED' && (
+                        <p className="text-xs font-medium text-slate-500">
+                          Cancelled · Order was cancelled before completion
                         </p>
                       )}
                     </div>

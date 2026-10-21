@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added inline two-step confirmation (Confirm / Cancel) when clicking Accept Errand to prevent accidental single-click claims.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted errand card component from student-app App.tsx into components/ErrandCard.tsx.
  * Author review: Verified by yanhwee
@@ -9,6 +13,7 @@
 
 import { OrderDTO } from '@campus-errand/common-dtos';
 import { ArrowRight, Clock, Coins, MapPin } from 'lucide-react';
+import { useState } from 'react';
 import { ExpandableNotes } from './ExpandableNotes';
 
 interface ErrandCardProps {
@@ -24,6 +29,8 @@ export function ErrandCard({
   acceptingOrderId,
   onAcceptOrder,
 }: ErrandCardProps) {
+  const [confirmingAccept, setConfirmingAccept] = useState(false);
+
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition">
       <div className="flex items-start justify-between">
@@ -74,19 +81,46 @@ export function ErrandCard({
         </span>
 
         {order.status === 'OPEN' ? (
-          <button
-            onClick={() => onAcceptOrder(order.id)}
-            disabled={!!acceptingOrderId || order.requesterId === currentUserId}
-            className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span>
-              {order.requesterId === currentUserId
-                ? 'Your errand'
-                : acceptingOrderId === order.id
-                ? 'Accepting…'
-                : 'Accept Errand'}
-            </span>
-          </button>
+          confirmingAccept && acceptingOrderId !== order.id && order.requesterId !== currentUserId ? (
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                data-testid="confirm-accept-order-btn"
+                onClick={() => {
+                  setConfirmingAccept(false);
+                  onAcceptOrder(order.id);
+                }}
+                disabled={!!acceptingOrderId}
+                className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                data-testid="cancel-accept-order-btn"
+                onClick={() => setConfirmingAccept(false)}
+                disabled={!!acceptingOrderId}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-2.5 py-1.5 rounded-lg transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingAccept(true)}
+              disabled={!!acceptingOrderId || order.requesterId === currentUserId}
+              className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>
+                {order.requesterId === currentUserId
+                  ? 'Your errand'
+                  : acceptingOrderId === order.id
+                  ? 'Accepting…'
+                  : 'Accept Errand'}
+              </span>
+            </button>
+          )
         ) : (
           <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
             Accepted by You

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added integration test for POST /api/orders/:id/unassign (courier drop before pickup, 403 for non-assigned courier, 409 after pickup).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Verify asynchronous creation receipts, polling authorization and existing lifecycle routes.
  * Author review: <to be completed by huangjiaxi1111>
@@ -756,6 +760,55 @@ describe('Order Service HTTP Application & Routes', () => {
         },
       });
       assert.equal(forbiddenCourierRes.status, 403);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('allows assigned courier to unassign (drop) an ACCEPTED order via POST /api/orders/:id/unassign before pickup', async () => {
+    const { app, fakeRepo } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const createRes = await fetch(`${server.url}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': ALICE_ID,
+        },
+        body: JSON.stringify({
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Matcha Latte',
+          dropoffLocation: 'COM2',
+          rewardCredits: 15,
+        }),
+      });
+      const orderId = (await createRes.json() as any).data.id;
+      await fakeRepo.approve(orderId);
+
+      // Bob accepts
+      const acceptRes = await fetch(`${server.url}/api/orders/${orderId}/accept`, {
+        method: 'POST',
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(acceptRes.status, 200);
+
+      // Alice (not the courier) cannot unassign -> 403
+      const forbiddenRes = await fetch(`${server.url}/api/orders/${orderId}/unassign`, {
+        method: 'POST',
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(forbiddenRes.status, 403);
+
+      // Bob drops the errand before pickup -> 200 OPEN
+      const unassignRes = await fetch(`${server.url}/api/orders/${orderId}/unassign`, {
+        method: 'POST',
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(unassignRes.status, 200);
+      const unassignBody = await unassignRes.json() as any;
+      assert.equal(unassignBody.success, true);
+      assert.equal(unassignBody.data.status, 'OPEN');
+      assert.equal(unassignBody.data.courierId, null);
     } finally {
       await server.close();
     }

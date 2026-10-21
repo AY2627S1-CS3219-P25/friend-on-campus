@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
  * Author review: <to be completed by yanhwee>
@@ -42,6 +46,7 @@ import {
   fetchCombinedOrders,
   pickupOrderById,
   TaskOrderAction,
+  unassignOrderById,
 } from './api/orders';
 import { fetchAllSuppliers } from './api/suppliers';
 import {
@@ -400,6 +405,10 @@ export default function App() {
           updated = await cancelOrderById(authFetch, orderId);
           successMessage = 'Errand cancelled. Escrow credits refunded.';
           break;
+        case 'unassign':
+          updated = await unassignOrderById(authFetch, orderId);
+          successMessage = 'Errand dropped and returned to the open feed.';
+          break;
       }
       if (requestId !== orderRequestId.current) return;
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
@@ -603,6 +612,7 @@ export default function App() {
             onDeliverOrder={(orderId) => void handleTaskOrderAction(orderId, 'deliver')}
             onCompleteOrder={(orderId) => void handleTaskOrderAction(orderId, 'complete')}
             onCancelOrder={(orderId) => void handleTaskOrderAction(orderId, 'cancel')}
+            onUnassignOrder={(orderId) => void handleTaskOrderAction(orderId, 'unassign')}
           />
         )}
 

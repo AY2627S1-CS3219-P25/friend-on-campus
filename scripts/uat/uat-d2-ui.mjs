@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-22
+// Scope: Updated UO2 to click the inline Confirm button after clicking Accept Errand on the feed card.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Google Antigravity Agent, date: 2026-10-21
 // Scope: Added UO1-UO6 student order lifecycle E2E UI checks (post with durationMinutes, accept, pickup, deliver, complete, cancel, and history persistence) and standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (Issue #132).
 // Author review: <to be completed by yanhwee>
@@ -506,6 +510,7 @@ const browser = await chromium.launch();
     const feedCard = bobPage.locator('div.bg-white', { hasText: lifecycleItem }).first();
     await feedCard.waitFor();
     await feedCard.getByRole('button', { name: 'Accept Errand' }).click();
+    await feedCard.getByTestId('confirm-accept-order-btn').click();
     await bobPage.getByText('Errand accepted! Head to the pickup location.').waitFor();
 
     await bobPage.getByRole('button', { name: 'Tasks' }).first().click();

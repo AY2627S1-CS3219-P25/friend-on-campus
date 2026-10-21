@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added courier unassignOrder handler allowing assigned couriers to drop an ACCEPTED errand prior to pickup.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Replace synchronous reserve/create calls with durable outbox submission.
  * Author review: <to be completed by huangjiaxi1111>
@@ -51,6 +55,7 @@ export interface OrderService {
   deliverOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
+  unassignOrder(orderId: string, courierId: string): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, req: AdminCancelOrderRequest): Promise<OrderDTO>;
   adminCompleteOrder(orderId: string, adminUserId: string, req: AdminCompleteOrderRequest): Promise<OrderDTO>;
   adminUnassignOrder(orderId: string, adminUserId: string, req: AdminUnassignOrderRequest): Promise<OrderDTO>;
@@ -359,6 +364,21 @@ async function handleCancelOrder(
   return repository.cancelOrder(existing.id, requesterId, event);
 }
 
+async function handleUnassignOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  courierId: string
+): Promise<OrderDTO> {
+  const { repository } = deps;
+
+  const existing = await repository.findOrderById(orderId);
+  if (!existing) {
+    throw new OrderNotFoundError();
+  }
+
+  return repository.unassignOrder(existing.id, courierId);
+}
+
 async function handleAdminCancelOrder(
   deps: OrderServiceDependencies,
   orderId: string,
@@ -472,6 +492,7 @@ export function createOrderService(deps: OrderServiceDependencies): OrderService
     deliverOrder: (orderId, courierId, courierUsername) => handleDeliverOrder(deps, orderId, courierId, courierUsername),
     completeOrder: (orderId, requesterId) => handleCompleteOrder(deps, orderId, requesterId),
     cancelOrder: (orderId, requesterId) => handleCancelOrder(deps, orderId, requesterId),
+    unassignOrder: (orderId, courierId) => handleUnassignOrder(deps, orderId, courierId),
     adminCancelOrder: (orderId, adminUserId, req) =>
       handleAdminCancelOrder(deps, orderId, adminUserId, req),
     adminCompleteOrder: (orderId, adminUserId, req) =>

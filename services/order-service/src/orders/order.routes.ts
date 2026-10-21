@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added POST /:id/unassign endpoint allowing the assigned courier to drop an ACCEPTED errand before pickup.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Return asynchronous submission receipts and expose owner-authorized submission polling.
  * Author review: <to be completed by huangjiaxi1111>
@@ -222,6 +226,17 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
       success: true,
       data: order,
       message: 'Errand cancelled. Escrow credits refunded.',
+    });
+  }));
+
+  // 9b. Drop / Unassign Errand (Assigned Courier only, before pickup, returns ACCEPTED back to OPEN)
+  router.post('/:id/unassign', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const courierId = resolveUserId(req, res);
+    const order = await orderService.unassignOrder(req.params.id, courierId);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Errand dropped and returned to open feed.',
     });
   }));
 
