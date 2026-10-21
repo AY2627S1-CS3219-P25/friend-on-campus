@@ -30,6 +30,7 @@
     "test:e2e:api": "tsx scripts/test-d2-e2e.ts",
     "test:e2e:ui": "node scripts/uat/uat-d2-ui.mjs",
     "ci:validate-tests": "node scripts/ci/validate-test-matrix.mjs",
+    "db:deploy": "npm run db:deploy --workspaces --if-present",
     "db:seed": "npm run db:seed -w @campus-errand/user-service -w @campus-errand/supplier-service -w @campus-errand/order-service -w @campus-errand/credit-service",
     "generate:jwt-keys": "node scripts/generate-jwt-keys.mjs",
     "postinstall": "npm run db:generate --workspaces --if-present"

@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-22
+Scope: Recorded local development workflow fixes, deterministic seed UUID alignment, offline Credit Service seed fallback, root db:deploy script, and README updates.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-22
 Scope: Recorded removal of dead AuditPage placeholder in admin-portal and live wiring of HealthPage to /health and /ready probes across all 5 microservices.
 Author review: <to be completed by yanhwee>
 
@@ -3808,4 +3812,24 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/admin-portal/src/api/health.ts` (new), `src/pages/HealthPage.tsx` — added live parallel `/health` (liveness) and `/ready` (readiness) probing with `'UNKNOWN'`/`'PENDING'` pre-probe rendering, latency measurement, and accurate PostgreSQL + RabbitMQ/CDC storage labels across all 5 microservices.
 - `services/supplier-service/src/app.ts`, `src/index.ts`, `test/supplierRoutes.test.ts`, `docker-compose.yml` — added `GET /ready` readiness endpoint (`SELECT 1` DB check), unit test coverage, and Compose `/ready` healthcheck so all 5 services expose both `/health` and `/ready`.
 - `gateway/nginx.conf`, `apps/admin-portal/vite.config.ts` — routed `/api/health/{user,supplier,order,credit,notification}/{health,ready}` to each upstream service's `/health` and `/ready` endpoints in both Docker Compose and host-based Vite dev modes.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-22 00:34 SGT — Fix Local Development Workflow, Offline Database Seeding, and Migration Ordering
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/local-dev-workflow
+
+**Prompt (summarised):** Diagnose why the Local Development Workflow (Without Docker) in `README.md` fails after `docker compose down -v`, make `npm run db:seed` work completely offline alongside updating `.env.example`, `package.json`, and `README.md` in a dedicated worktree, and open a PR.
+
+**Usage scenario:** Debugging assistance, boilerplate configuration, and documentation updates (allowed use). Assigned deterministic seed UUIDs in User Service (`20000000-0000-4000-8000-000000000001..0003`) and Supplier Service (`10000000-0000-4000-8000-000000000001..0021`) to match Order Service sample order fixtures, added an offline fallback in Credit Service CLI seeding when User Service is not running locally, added `SEED_SAMPLE_ORDERS=true` to `.env.example`, added a root `db:deploy` workspace script to `package.json`, and updated `README.md` so migrations (`npm run db:deploy`) precede Debezium CDC startup and database seeding (`npm run db:seed`).
+
+**Files changed:**
+- `services/user-service/src/database/seed.ts` — assigned deterministic UUIDs (`20000000-0000-4000-8000-000000000001..0003`) when creating new seed user accounts and logged seed completion.
+- `services/supplier-service/src/database/seed.ts` — assigned deterministic UUIDs (`10000000-0000-4000-8000-000000000001..0021`) when creating new supplier rows so `SUP-001` and `SUP-002` match Order Service sample order fixtures.
+- `services/credit-service/src/database/seed.ts` — added `{ allowOfflineFallback: true }` in CLI mode so offline `npm run db:seed` falls back to the deterministic seed user UUIDs when `USER_SERVICE_URL` is unreachable while preserving HTTP login resolution when User Service is running.
+- `services/credit-service/tests/seed.integration.test.ts` — added assertions verifying offline fallback when User Service is unreachable and rejection when a reachable User Service returns an HTTP/identity error.
+- `.env.example` — added `SEED_SAMPLE_ORDERS=true`.
+- `package.json` — added `"db:deploy": "npm run db:deploy --workspaces --if-present"`.
+- `README.md` — updated Quick Start with Docker, fixed Local Development Workflow step ordering (`db:deploy` before CDC and `db:seed`), and updated `test:seed`, `test:acceptance`, and `scripts/ci/create-test-database.mjs` references.
 - `ai/usage-log.md` — this entry.

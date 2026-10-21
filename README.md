@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-22
+Scope: Fixed Local Development Workflow migration/seeding ordering (db:deploy before db:seed), documented root db:deploy and offline db:seed commands, added .env setup to Quick Start with Docker, and updated test:seed and test:acceptance descriptions.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated JWT key generation instructions after removing clipboard copying from scripts/generate-jwt-keys.mjs.
 Author review: <to be completed by yanhwee>
@@ -115,16 +119,20 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 
 ## 🚀 Quick Start with Docker (Recommended)
 
-To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway:
+To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway (each service automatically runs `prisma migrate deploy` and seeds its database on container startup):
 
 ```bash
-# In project root:
+# 1. One-time environment setup (if .env does not exist yet):
+cp .env.example .env
+npm run generate:jwt-keys   # paste the printed JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env
+
+# 2. Build and start the full stack:
 docker compose up --build
 ```
 
-> **Upgrading an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC `order_db` volumes), reset the volumes once before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
+> **Upgrading or resetting an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC volumes), reset the volumes and remove orphaned containers before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
 > ```bash
-> docker compose down -v
+> docker compose down -v --remove-orphans
 > docker compose up --build
 > ```
 
@@ -165,26 +173,37 @@ npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste t
 ```bash
 docker compose up postgres rabbitmq -d
 ```
-Transactional outbox events from User, Order and Credit are published to RabbitMQ by Debezium, using the `debezium-user`, `debezium-order` and `debezium-credit` services respectively. The application services do not run outbox polling publishers. For host-based development, run migrations for all three databases first, then start these connectors with `docker compose up --no-deps -d debezium-user debezium-order debezium-credit` while PostgreSQL and RabbitMQ are running.
 
-### 4. Seed Databases (First Time Setup)
+### 4. Apply Database Migrations
+`docker/postgres-init/` only provisions the five empty databases and least-privilege service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`). Apply all committed Prisma migrations across every service before seeding or starting Debezium CDC:
 ```bash
-# Seed User Service (admin@nus.edu.sg, alice@u.nus.edu, bob@u.nus.edu)
-npm run db:seed --workspace=@campus-errand/user-service
+# Apply committed migrations across all 5 services (prisma migrate deploy)
+npm run db:deploy
 
-# Seed Supplier Service (21 verified NUS campus locations from CSV)
-npm run db:seed --workspace=@campus-errand/supplier-service
-
-# Seed Credit Service wallets for the three seeded accounts
-# (logs in through the User Service, so user-service must be running at USER_SERVICE_URL, default http://localhost:8001)
-npm run db:seed --workspace=@campus-errand/credit-service
-
-# Seed Order Service sample errands (skipped when order_db already contains orders)
-npm run db:seed --workspace=@campus-errand/order-service
+# Or apply migrations for an individual service:
+npm run db:deploy -w @campus-errand/user-service
 ```
-*(Apply each service's migrations first with `npm run db:migrate --workspace=@campus-errand/<service>`. Under Docker Compose every service runs `prisma migrate deploy` and its seed, where it has one, on container boot.)*
+*(Note: Use `db:deploy` to apply existing migrations—the least-privilege service roles do not have `CREATEDB` permissions for Prisma's shadow database. When authoring a new schema change with `npm run db:migrate -w @campus-errand/<service>`, supply a superuser `DATABASE_URL` or `SHADOW_DATABASE_URL`.)*
 
-### 5. Run Development Servers
+Transactional outbox events from User, Order, and Credit are published to RabbitMQ by Debezium (`debezium-user`, `debezium-order`, `debezium-credit`). Once migrations are applied, start the CDC connectors so outbox events flow during host-based development:
+```bash
+docker compose up --no-deps -d debezium-user debezium-order debezium-credit
+```
+
+### 5. Seed Databases (First-Time Setup)
+```bash
+# Seed all services at once (User, Supplier, Order, and Credit)
+npm run db:seed
+
+# Or seed individual workspaces:
+npm run db:seed -w @campus-errand/user-service     # admin@nus.edu.sg, alice@u.nus.edu, bob@u.nus.edu
+npm run db:seed -w @campus-errand/supplier-service # 21 verified NUS campus locations from CSV
+npm run db:seed -w @campus-errand/order-service    # sample OPEN errands (requires SEED_SAMPLE_ORDERS=true in .env)
+npm run db:seed -w @campus-errand/credit-service   # 100-credit wallets for the three seed accounts
+```
+*(When `user-service` is running at `USER_SERVICE_URL`, `credit-service` resolves the seed accounts via HTTP login; when run offline before starting dev servers, it falls back to the deterministic seed account UUIDs.)*
+
+### 6. Run Development Servers
 ```bash
 # Run everything in parallel (5 backend services + 2 frontend apps)
 npm run dev
@@ -195,13 +214,13 @@ npm run dev:apps        # Ports 5173–5174
 
 # Or run individual workspaces (via scripts/dev.mjs filter or native npm -w)
 npm run dev -- user supplier
-npm run dev -w services/user-service        # Port 8001 (User & Auth Service)
-npm run dev -w services/supplier-service    # Port 8002 (Supplier Directory Service)
-npm run dev -w services/order-service       # Port 8003 (Order Service)
-npm run dev -w services/credit-service      # Port 8004 (Credit Service)
+npm run dev -w services/user-service         # Port 8001 (User & Auth Service)
+npm run dev -w services/supplier-service     # Port 8002 (Supplier Directory Service)
+npm run dev -w services/order-service        # Port 8003 (Order Service)
+npm run dev -w services/credit-service       # Port 8004 (Credit Service)
 npm run dev -w services/notification-service # Port 8005 (Notification Service)
-npm run dev -w apps/student-app             # Port 5173 (Student Web App)
-npm run dev -w apps/admin-portal            # Port 5174 (Admin Web Portal)
+npm run dev -w apps/student-app              # Port 5173 (Student Web App)
+npm run dev -w apps/admin-portal             # Port 5174 (Admin Web Portal)
 ```
 
 ---
@@ -220,8 +239,8 @@ npm test
 | `npm run test:unit` | Unit suites (Node's built-in `node --test` via `tsx`, no framework): user, supplier, order and notification services |
 | `npm run test:integration` | PostgreSQL-backed suites: user-service admin guard, notification store and routes, credit-service |
 | `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service (`npm test` provisions isolated `credit_messaging_test` and `order_messaging_test` databases automatically; direct runs require migrated `_test` databases and the `*_TEST_*` env vars below) |
-| `npm run test:migration` / `npm run test:seed` | Credit Service and Order Service migration and seed validation (`test:migration` runs on `credit-service`; `test:seed` runs on both `credit-service` and `order-service`) |
-| `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, then `scripts/uat/uat-notifications.mjs` |
+| `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation (`test:migration` and `test:seed` run on `credit-service`) |
+| `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, `scripts/uat/uat-notifications.mjs`, and `scripts/uat/uat-cdc.mjs` |
 | `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
@@ -230,7 +249,7 @@ npm test
 ### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
 - **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
 - **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
-- **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`node scripts/ci/prepare-test-database.mjs <url> [schema]`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
+- **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`POSTGRES_ADMIN_URL=... TEST_DATABASE_NAME=... node scripts/ci/create-test-database.mjs`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
 - **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) and uploaded as CI workflow artifacts.
 
 ### Automated Milestone D2 End-to-End Suite
