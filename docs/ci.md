@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated test:e2e:api description in Public test commands table after removing the legacy test:d2 alias.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-10-19
 Scope: Clarify separate saga databases and broker credentials in GitHub CI versus the local runner.
 Author review: <to be completed by huangjiaxi1111>
@@ -65,7 +69,7 @@ Every ordinary job runs its own checkout, Node 22 setup, and `npm ci`. The root 
 | `npm run test:migration` | Credit migration validation | PostgreSQL and `CREDIT_TEST_DATABASE_URL` ending in `_test` |
 | `npm run test:seed` | Credit seed validation | Migrated PostgreSQL test database |
 | `npm run test:acceptance` | API and notification UAT (`scripts/uat/uat-d2-api.mjs`, then `scripts/uat/uat-notifications.mjs`) | Healthy full Compose stack |
-| `npm run test:e2e:api` | D2 API E2E (`npm run test:d2`, `scripts/test-d2-e2e.ts`) | Seeded PostgreSQL; ports 8001/8002 free |
+| `npm run test:e2e:api` | D2 API E2E (`scripts/test-d2-e2e.ts`) | Seeded PostgreSQL; ports 8001/8002 free |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright 1.64.0) | Healthy full Compose stack and installed Chromium |
 | `npm run test:e2e` | API E2E, then browser UAT | Docker engine; uses isolated system-test orchestration |
 | `npm test` | Every category above | Docker engine; the runner installs Chromium if needed |

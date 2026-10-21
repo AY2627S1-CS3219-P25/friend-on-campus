@@ -6,8 +6,8 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/evidence/ and docs/requirements/ directory references.
-Author review: <to be completed by author after review>
+Scope: Removed obsolete docs/evidence/ and docs/requirements/ directory references and updated test:d2 reference to test:e2e:api.
+Author review: <to be completed by yanhwee>
 
 Tool: Google Antigravity Agent, date: 2026-10-20
 Scope: Updated Prisma schema path reference from services/*/src/database/prisma/schema.prisma to services/*/prisma/schema.prisma.
@@ -66,4 +66,4 @@ Judge behaviour against `docs/architecture.md`, `docs/errand-specification.md`, 
 
 ## Running things
 
-`npm run test:d2` spawns user- and supplier-service itself on 8001/8002: Postgres up and seeded, those ports free. Paste the real tail of every output. Never claim a pass you did not see. Disclosure header on files you write; never commit or push; the main session writes the usage-log entry.
+`npm run test:e2e:api` spawns user- and supplier-service itself on 8001/8002: Postgres up and seeded, those ports free. Paste the real tail of every output. Never claim a pass you did not see. Disclosure header on files you write; never commit or push; the main session writes the usage-log entry.
