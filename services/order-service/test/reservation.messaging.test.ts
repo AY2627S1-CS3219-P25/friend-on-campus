@@ -21,15 +21,13 @@ import type { CreditReservationRequestEvent, CreditReservationResultEvent } from
 import { PrismaClient as OrderPrisma } from '../src/database/client';
 import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
 import { createOrderRepository } from '../src/repositories/order.repository';
-import { createRabbitMQPublisher } from '../src/messaging/event.publisher';
-import { createOutboxRelay } from '../src/messaging/outbox.relay';
 import { classifyReservationFailure, startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
 import { createCreditStore } from '../../credit-service/src/credits/store';
 import { createCreditService } from '../../credit-service/src/credits/service';
 import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../../credit-service/src/credits/consumer';
 import { createCreditOutbox } from '../../credit-service/src/messaging/outbox';
-import { createConfirmedPublisher } from '../../credit-service/src/messaging/rabbitmq';
+import { createRabbitPublisher, queueArguments } from '@campus-errand/messaging';
 
 function testUrl(name: string) {
   const value = process.env[name];
@@ -61,15 +59,14 @@ async function main() {
   const url = process.env.CREDIT_TEST_RABBITMQ_URL ?? 'amqp://credit_test:credit-test-dev@localhost:5672/campus';
   const prefix = `credit-test.saga-${randomUUID()}`;
   const exchange = `${prefix}.events`;
-  const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`, retryExchange: `${prefix}.${side}.retry`,
-    retryQueue: `${prefix}.${side}.retry`, deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
+  const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`,
+    deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
   const cc = config('credit'); const oc = config('order');
   const connection = await amqp.connect(url);
   connection.on('error', () => {});
   const channel = await connection.createConfirmChannel();
-  const publish = createConfirmedPublisher(channel);
-  const publisher = createRabbitMQPublisher({ url, exchange });
-  const relay = createOutboxRelay({ prisma: orders, publisher });
+  const rabbitPublisher = createRabbitPublisher({ url });
+  const publish = rabbitPublisher.publish;
   const results = createCreditOutbox(credit, { url, exchange });
   const orderRepo = createOrderRepository(orders);
   const orderHandler = {
@@ -83,6 +80,17 @@ async function main() {
   let creditConsumer: Awaited<ReturnType<typeof startCreditConsumer>> | undefined;
   let orderConsumer: Awaited<ReturnType<typeof startReservationConsumer>> | undefined;
   const emit = (event: { eventType: string; eventId: string }) => publish(exchange, event.eventType, Buffer.from(JSON.stringify(event)), { messageId: event.eventId });
+  async function flushOrderOutbox() {
+    const pending = await orders.outboxEvent.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+    });
+    for (const row of pending) {
+      if (!ids.includes(row.aggregateId)) continue;
+      await emit(JSON.parse(row.payload));
+      await orders.outboxEvent.update({ where: { id: row.id }, data: { status: 'DELIVERED' } });
+    }
+  }
   async function submit(rewardCredits = 15, expiresAt = new Date(Date.now() + 600000)) {
     const requesterId = randomUUID(); users.push(requesterId);
     await credits.initializeWallet(requesterId);
@@ -117,12 +125,12 @@ async function main() {
     const rows = await credit.creditOutboxEvent.findMany();
     return rows.map(row => JSON.parse(row.payload)).find(event => event.correlationId === id);
   };
-  async function pump() { await relay.processPending(); await results.processPending(); }
+  async function pump() { await flushOrderOutbox(); await results.processPending(); }
   try {
     // Provision durable routes before consumers start, just as definitions.json does in Compose.
     await channel.assertExchange(exchange, 'topic', { durable: true });
     for (const [cfg, keys] of [[cc, creditRoutingKeys], [oc, reservationResultKeys]] as const) {
-      await channel.assertQueue(cfg.queue, { durable: true });
+      await channel.assertQueue(cfg.queue, { durable: true, arguments: queueArguments(cfg) });
       for (const key of keys) await channel.bindQueue(cfg.queue, exchange, key);
     }
     await channel.assertQueue(`${prefix}.created`, { durable: true });
@@ -130,7 +138,7 @@ async function main() {
 
     const first = await submit();
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
-    await relay.processPending();
+    await flushOrderOutbox();
     assert.equal((await channel.checkQueue(cc.queue)).messageCount, 1);
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     creditConsumer = await startCreditConsumer(cc, credits);
@@ -162,7 +170,7 @@ async function main() {
 
     // Funds were reserved in time, but the success reaches Order only after expiry.
     const late = await submit(12, new Date(Date.now() + 1200));
-    await relay.processPending();
+    await flushOrderOutbox();
     await until(() => getResult(late.id), 'late reservation committed');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     await delay(1300);
@@ -204,7 +212,7 @@ async function main() {
 
     // Order status transition (PENDING -> OPEN) and order.created publication are also one transaction.
     await orderConsumer.close(); orderConsumer = undefined;
-    await relay.processPending();
+    await flushOrderOutbox();
     await until(() => getResult(rollback.id), 'result after retry');
     const faultDb = new Proxy(orders, { get(target, property) {
       if (property === '$transaction') return (operation: (tx: unknown) => Promise<unknown>) => target.$transaction(tx => operation(new Proxy(tx, {
@@ -253,20 +261,23 @@ async function main() {
     const exhausted = await channel.get(oc.deadLetterQueue, { noAck: true });
     assert(exhausted);
     assert.equal(eventAttempts, 6);
-    assert.equal(exhausted.properties.headers!['x-order-retry-count'], 5);
+    assert.equal(exhausted.properties.headers?.['x-first-death-queue'], oc.queue);
+    assert.equal(exhausted.properties.headers?.['x-first-death-reason'], 'rejected');
     await publish(exchange, 'credit.reservation.succeeded', Buffer.from('{invalid'));
     await until(async () => (await channel.checkQueue(oc.deadLetterQueue)).messageCount === 1, 'invalid event DLQ');
     const invalid = await channel.get(oc.deadLetterQueue, { noAck: true });
     assert(invalid);
-    assert.equal(invalid.properties.headers!['x-order-retry-count'], 0);
+    assert.equal(invalid.properties.headers?.['x-first-death-queue'], oc.queue);
+    assert.equal(invalid.properties.headers?.['x-first-death-reason'], 'rejected');
     assert.equal(eventAttempts, 6);
     console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, PENDING order saga, offline consumers, persisted results, duplicate safety, insufficient funds, late-success expiry refund, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
-    await relay.stop(); await publisher.close(); await results.stop();
+    await results.stop();
+    await rabbitPublisher.close();
     for (const cfg of [cc, oc]) {
-      for (const queue of [cfg.queue, cfg.retryQueue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
-      for (const ex of [cfg.retryExchange, cfg.deadLetterExchange]) await channel.deleteExchange(ex);
+      for (const queue of [cfg.queue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
+      await channel.deleteExchange(cfg.deadLetterExchange);
     }
     await channel.deleteQueue(`${prefix}.created`); await channel.deleteExchange(exchange);
     await channel.close(); await connection.close();

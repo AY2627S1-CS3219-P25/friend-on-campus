@@ -40,7 +40,6 @@ import {
 } from '../src/orders/order.types';
 import {
   makeFakeOrderRepository,
-  makeFakePublisher,
   makeFakeSupplierClient,
 } from './helpers';
 
@@ -84,8 +83,6 @@ describe('Order Service Lifecycle and Concurrency', () => {
         isActive: true,
       },
     });
-    const fakePublisher = makeFakePublisher();
-
     const service = createOrderService({
       repository: fakeRepo.repo,
       supplierClient: fakeSupplier.client,
@@ -98,7 +95,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
         return fakeRepo.approve(pendingOrder.id);
       },
     };
-    return { fakeRepo, fakeSupplier, fakePublisher, service, fundedService };
+    return { fakeRepo, fakeSupplier, service, fundedService };
   }
 
   describe('createOrder & handleReservationResult', () => {

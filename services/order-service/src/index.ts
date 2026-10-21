@@ -16,8 +16,6 @@ import { createApp } from './app';
 import { createSupplierClient } from './clients/supplier.client';
 import { config } from './config';
 import { prisma } from './database/client';
-import { createRabbitMQPublisher, type OrderEventPublisher } from './messaging/event.publisher';
-import { createOutboxRelay, type OutboxRelay } from './messaging/outbox.relay';
 import { startReservationConsumer } from './messaging/reservation.consumer';
 import { createExpirySweeper, type ExpirySweeper } from './orders/expiry.sweeper';
 import { createOrderService } from './orders/order.service';
@@ -25,8 +23,6 @@ import { createOrderRepository } from './repositories/order.repository';
 
 let consumer: Awaited<ReturnType<typeof startReservationConsumer>> | undefined;
 let server: Server | undefined;
-let publisher: OrderEventPublisher | undefined;
-let outboxRelay: OutboxRelay | undefined;
 let expirySweeper: ExpirySweeper | undefined;
 let stopping = false;
 let shutdownPromise: Promise<void> | undefined;
@@ -73,12 +69,6 @@ function shutdown(failed = false): Promise<void> {
     if (expirySweeper) {
       await expirySweeper.stop();
     }
-    if (outboxRelay) {
-      await outboxRelay.stop();
-    }
-    if (publisher) {
-      await publisher.close();
-    }
     if (server?.listening) {
       await new Promise<void>((resolve) => server!.close(() => resolve()));
     }
@@ -111,35 +101,19 @@ async function main() {
     prisma.outboxEvent.findFirst().catch(() => null),
   ]);
 
-  // Initialize messaging and domain dependencies
-  publisher = createRabbitMQPublisher(config.rabbitmq);
-  outboxRelay = createOutboxRelay({
-    prisma,
-    publisher,
-    pollIntervalMs: config.outboxRelay.intervalMs,
-    batchSize: config.outboxRelay.batchSize,
-  });
-
   const orderRepo = createOrderRepository(prisma);
   const supplierClient = createSupplierClient(config.supplierServiceUrl);
   const orderService = createOrderService({
     repository: orderRepo,
     supplierClient,
-    outboxRelay,
   });
   consumer = await startReservationConsumer(config.rabbitmq, orderService, () => { void shutdown(true); });
   if (stopping) { await consumer.close(); return; }
 
   expirySweeper = createExpirySweeper({
     repository: orderRepo,
-    outboxRelay,
     pollIntervalMs: config.expirySweeper.intervalMs,
   });
-
-  // Start background workers (skip polling outbox relay when Debezium CDC is active)
-  if (process.env.OUTBOX_CDC_ENABLED !== 'true') {
-    outboxRelay.start();
-  }
   expirySweeper.start();
 
   // Create Express application

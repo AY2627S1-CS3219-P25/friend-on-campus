@@ -48,8 +48,6 @@ export const config = Object.freeze({
     url: process.env.RABBITMQ_URL || 'amqp://order_service:order-service-dev@localhost:5672/campus',
     exchange: process.env.EVENTS_EXCHANGE || 'campus.events',
     queue: 'order-service.events',
-    retryExchange: 'order-service.events.retry',
-    retryQueue: 'order-service.events.retry',
     deadLetterExchange: 'order-service.events.dlq',
     deadLetterQueue: 'order-service.events.dlq',
     retryDelayMs: integer('ORDER_RETRY_DELAY_MS', 5000, 1),
@@ -58,9 +56,5 @@ export const config = Object.freeze({
   },
   expirySweeper: {
     intervalMs: integer('EXPIRY_SWEEPER_INTERVAL_MS', 30000, 5000),
-  },
-  outboxRelay: {
-    intervalMs: integer('OUTBOX_RELAY_INTERVAL_MS', 2000, 500),
-    batchSize: integer('OUTBOX_BATCH_SIZE', 20, 1),
   },
 });

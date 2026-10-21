@@ -98,8 +98,8 @@ Cross-service workflows that do not require blocking the user response are decou
 - **Exchange**: Durable topic exchange `campus.events` in the `campus` vhost.
 - **Transactional Outbox Pattern**:
   - `user-service`, `order-service`, and `credit-service` persist state transitions and domain events within the same atomic PostgreSQL transaction (writing to `outbox_events` / `credit_outbox_events`).
-  - By default, an asynchronous publisher worker polls the outbox table every 2 s (order-service `OUTBOX_RELAY_INTERVAL_MS`, batch `OUTBOX_BATCH_SIZE` = 20; user-service uses the same 2 s / 20 defaults; credit-service polls every 1 s) and is also triggered right after each write. It publishes oldest-first to `campus.events` with routing key = event type, `persistent` and `mandatory` flags, publisher confirms, and `messageId` = `eventId`, then marks the row `DELIVERED`. On a broker failure the row stays `PENDING` (retry count incremented) and the batch stops; an unparsable payload is marked `FAILED`.
-  - **Optional Log-Based CDC (`--profile cdc`)**: Setting `OUTBOX_CDC_ENABLED=true` and starting `docker compose --profile cdc up` disables the `order-service` polling relay and runs Debezium Server (`docker/debezium/application.properties`), which tails `order_db.public.outbox_events` via PostgreSQL `pgoutput` logical decoding and routes events directly to the `campus.events` exchange with routing key = `event_type`. Note: if you later stop the `debezium` container and revert to polling mode without recreating the database volume, drop the replication slot (`SELECT pg_drop_replication_slot('debezium');`) so PostgreSQL does not retain WAL segments indefinitely.
+  - **Log-Based CDC for Order Service (`debezium`)**: Debezium Server (`docker/debezium/application.properties`) tails `order_db.public.outbox_events` via PostgreSQL `pgoutput` logical decoding (`wal_level=logical`) and routes events directly to the `campus.events` exchange with routing key = `event_type` and bare JSON payload.
+  - **Polling Relay for User & Credit Services**: `user-service` and `credit-service` run an asynchronous publisher worker that polls the outbox table (`user-service` every 2 s, batch 20; `credit-service` every 1 s) and is also triggered right after each write. It publishes oldest-first to `campus.events` with routing key = event type, `persistent` and `mandatory` flags, publisher confirms, and `messageId` = `eventId`, then marks the row `DELIVERED`.
   - This guarantees **at-least-once delivery** without distributed 2-phase commits (2PC) and ensures no events are lost if the process crashes.
 - **Event envelope**: every event carries `eventId` (UUID), `eventType` and `timestamp` (ISO-8601 UTC). Payload fields are listed in `docs/errand-specification.md` §5 and defined in `packages/common-dtos/src/index.ts` §5.
 - **Idempotent Consumers**:
@@ -107,25 +107,28 @@ Cross-service workflows that do not require blocking the user response are decou
   - Replayed or duplicate deliveries are recognized and acknowledged safely without double-charging or duplicate alerts.
   - Credit Service applies each event in a `Serializable` transaction, retried up to 9 times on Prisma `P2034`/`P2002`.
 
-### C. Broker Topology (`docker/rabbitmq/definitions.json` + consumer code)
-`definitions.json` is imported at broker boot and defines the `campus` vhost, the durable topic exchange `campus.events`, the durable direct exchange `campus.events.dlx`, and one account per service. Each consumer asserts its own queues, retry exchange and bindings on startup (`src/messaging/rabbitmq.ts`, settings in `src/config.ts`).
+### C. Broker Topology (`docker/rabbitmq/definitions.json` + `@campus-errand/messaging`)
+`definitions.json` is imported at broker boot and defines the `campus` vhost, the durable topic exchange `campus.events`, the durable direct exchange `campus.events.dlx`, and one account per service. Each consumer asserts its own quorum queue, dead-letter exchange, and bindings on startup via the shared `@campus-errand/messaging` package (`packages/messaging/src/index.ts`, settings in each service's `src/config.ts`).
 
 | Account | Publishes (topic permission on `campus.events`) | Reads |
 |---|---|---|
 | `user_service` | `user.registered` | nothing |
-| `order_service` | `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | nothing |
-| `credit_service` | nothing on `campus.events` | `user.registered`, `order.completed`, `order.cancelled`, `order.expired` |
-| `notification_service` | nothing on `campus.events` | all seven `order.*` keys |
+| `order_service` (and `debezium` CDC relay) | `order.reservation.requested`, `order.created`, `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled`, `order.expired` | `credit.reservation.succeeded`, `credit.reservation.failed` |
+| `credit_service` | `credit.reservation.succeeded`, `credit.reservation.failed` | `user.registered`, `order.reservation.requested`, `order.completed`, `order.cancelled`, `order.expired` |
+| `notification_service` | nothing on `campus.events` | all seven `order.*` lifecycle keys (`order.created` through `order.expired`) |
 | `campus_admin` | management UI (`administrator` tag, password `campus-admin-dev`) | everything in `campus` |
 | `credit_test` | test queues `credit-test.*` only | test queues `credit-test.*` only |
 
-| Consumer | Main queue (bound to `campus.events`) | Retry exchange / queue | Retry delay × limit | Dead-letter exchange → queue |
-|---|---|---|---|---|
-| credit-service | `credit-service.events` | `credit-service.events.retry` (direct) | 1 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
-| notification-service | `notification-service.events` | `notification-service.events.retry` (direct) | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
+| Consumer | Main quorum queue (`x-queue-type: quorum`, bound to `campus.events`) | Retry delay × limit (`x-delivery-count`) | Dead-letter exchange → queue |
+|---|---|---|---|
+| order-service | `order-service.events` | 5 s × 5 (`ORDER_RETRY_DELAY_MS`, `ORDER_RETRY_LIMIT`) | `order-service.events.dlq` → `order-service.events.dlq` |
+| credit-service | `credit-service.events` | 5 s × 5 (`CREDIT_RETRY_DELAY_MS`, `CREDIT_RETRY_LIMIT`) | `campus.events.dlx` → `credit-service.events.dlq` |
+| notification-service | `notification-service.events` | 2 s × 30 (`NOTIFICATION_RETRY_DELAY_MS`, `NOTIFICATION_RETRY_LIMIT`) | `notification-service.events.dlx` → `notification-service.events.dlq` |
 
-- All queues and exchanges are durable; prefetch is 1 on the main and retry channels.
-- A failed message is classified. A transient failure under the retry limit is republished (with confirms) to the retry queue with a retry-count header; a retry worker waits out the delay and republishes it through the default exchange to the consumer's own main queue only. A permanent failure, or a transient one past the limit, is republished to the dead-letter queue. The original delivery is then acknowledged.
+- All queues and exchanges are durable; main consumer queues are RabbitMQ **Quorum Queues** (`x-queue-type: quorum`) with `x-dead-letter-exchange` and `x-dead-letter-routing-key` configured natively, and prefetch is 1 (note: RabbitMQ quorum queues also apply a broker-level default delivery limit of 20 unless `x-delivery-limit` is overridden; if upgrading an existing local Docker volume that previously declared classic queues, run `docker compose down -v` once to recreate the queues).
+- A failed message is classified by the consumer's `classifyError` callback (`packages/messaging/src/index.ts`, using `rabbitmq-client`):
+  - A **transient** failure with native `x-delivery-count < retryLimit` (or an **infrastructure** failure) sleeps `retryDelayMs` in-place (holding the single `prefetch: 1` slot as backpressure) and returns `ConsumerStatus.REQUEUE` (`basic.nack(requeue=true)`), which natively increments `x-delivery-count` on the quorum queue.
+  - A **permanent** failure, or a transient failure that has reached `x-delivery-count >= retryLimit`, returns `ConsumerStatus.DROP` (`basic.nack(requeue=false)`), causing RabbitMQ to natively dead-letter the message to the configured Dead-Letter Exchange (`x-dead-letter-exchange` → `deadLetterQueue`).
 
 ### D. WebSocket (Notification Service)
 - The gateway forwards `/ws/` to the root path of `notification-service`, which serves REST and WebSocket on one HTTP server (port 8005).

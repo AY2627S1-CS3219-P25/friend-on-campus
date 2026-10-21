@@ -3584,6 +3584,27 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/prisma-client-standardization` plus this record.
 
+## 2026-10-21 11:30 SGT — Shared `@campus-errand/messaging` Package with `rabbitmq-client` & Native Quorum Queue Redelivery
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** refactor/native-rabbitmq-consumer
+
+**Prompt (summarised):** Extract a shared `@campus-errand/messaging` workspace package built on `rabbitmq-client` providing `startRabbitConsumer` (using RabbitMQ quorum queues, native `x-delivery-count` redelivery via `ConsumerStatus.REQUEUE`, and native dead-lettering via `ConsumerStatus.DROP`) and `createRabbitPublisher` (with publisher confirms, mandatory routing check via `basic.return`, and confirm timeout). Migrate `order-service`, `credit-service`, `notification-service`, and `user-service` off raw `amqplib` channel/retry-queue boilerplate, remove legacy `.retry` topology definitions, and update tests and documentation.
+
+**Usage scenario:** Messaging infrastructure consolidation, library migration (`amqplib` to `rabbitmq-client`), and PR review resolution (allowed use). The author selected `rabbitmq-client`, native quorum queue redelivery (`x-delivery-count`), and the shared `@campus-errand/messaging` package boundary.
+
+**Files changed / created:**
+- `packages/messaging/package.json` [NEW], `packages/messaging/tsconfig.json` [NEW], `packages/messaging/src/index.ts` [NEW] — created shared `@campus-errand/messaging` package with `startRabbitConsumer` and `createRabbitPublisher`.
+- `docker/rabbitmq/definitions.json` — removed legacy `.retry` queues, `.retry` exchanges, and `.retry` bindings.
+- `services/order-service/src/messaging/consumer.ts`, `services/credit-service/src/messaging/consumer.ts`, `services/notification-service/src/notifications/consumer.ts` — migrated consumers to `@campus-errand/messaging` (`startRabbitConsumer`).
+- `services/credit-service/src/messaging/publisher.ts`, `services/user-service/src/messaging/publisher.ts` — migrated outbox publishers to `@campus-errand/messaging` (`createRabbitPublisher`).
+- `services/order-service/src/messaging/publisher.ts` [DELETED], `services/order-service/test/outbox.publisher.unit.test.ts` [DELETED] — removed unused in-process order outbox publisher superseded by Debezium CDC.
+- `services/{order,credit,notification,user}-service/package.json`, `Dockerfile`, `tsconfig*.json` — replaced direct `amqplib` dependencies with `@campus-errand/messaging` and updated container build stages.
+- `services/order-service/test/reservation.consumer.unit.test.ts`, `services/credit-service/tests/consumer.integration.test.ts`, `services/notification-service/test/consumer.integration.test.ts`, `services/user-service/test/publisher.test.ts` — updated unit and integration tests for quorum queues, `x-delivery-count`, unroutable `basic.return` rejection, and publish confirm timeout.
+- `README.md`, `docs/architecture.md`, `docs/errand-specification.md` — updated broker topology, quorum-queue retry documentation, and `docker compose down -v` volume upgrade instructions.
+- `ai/usage-log.md` — this entry.
+
 ## 2026-10-21 11:43 SGT — Default Browser UAT Screenshots to OS Temp Directory & Remove Obsolete `docs/evidence` References
 
 **Tool:** Google Antigravity Agent

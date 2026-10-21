@@ -52,8 +52,6 @@ export const config = Object.freeze({
     url: process.env.RABBITMQ_URL || 'amqp://notification_service:notification-service-dev@localhost:5672/campus',
     exchange,
     queue,
-    retryExchange: process.env.NOTIFICATION_RETRY_EXCHANGE || `${queue}.retry`,
-    retryQueue: process.env.NOTIFICATION_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.NOTIFICATION_DLX || `${queue}.dlx`,
     deadLetterQueue: process.env.NOTIFICATION_DLQ || `${queue}.dlq`,
     // About a minute in total: every insert error counts as transient, and the dead-letter queue is terminal,
