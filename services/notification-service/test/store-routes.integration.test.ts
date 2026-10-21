@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
+ * Scope: Added a paging test: a later page returns the remainder, totalPages follows the active filter while unreadCount does not, and a page past the end is empty.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: PostgreSQL tests for src/notifications/store.ts and the REST routes over it: the unique event id as the
  * duplicate guard, ordering by event time, the unread filter and count, ownership on list and mark-read, read-all.
@@ -162,6 +166,28 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       assert.deepEqual([clamped.body.data.page, clamped.body.data.limit], [1, 100]);
       const junk = await call('GET', '/api/notifications?page=abc&limit=-2', ALICE);
       assert.deepEqual([junk.body.data.page, junk.body.data.limit], [1, 1]);
+    });
+
+    // AI-generated (edited by Reallyeasy1)
+    it('a later page returns the remainder, and totalPages follows the filter', async () => {
+      const carol = randomUUID();
+      const ids: string[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        const saved = await store.insert(row({ userId: carol, createdAt: `2026-10-05T04:0${i}:00.000Z` }));
+        ids.push(saved!.id);
+      }
+      const second = await call('GET', '/api/notifications?page=2&limit=2', carol);
+      assert.deepEqual(
+        [second.body.data.items.length, second.body.data.total, second.body.data.page, second.body.data.totalPages, second.body.data.unreadCount],
+        [1, 3, 2, 2, 3],
+      );
+      assert.equal(second.body.data.items[0].id, ids[0], 'newest first, so the oldest row lands on page 2');
+
+      await store.markRead(carol, ids[2]);
+      const unread = await call('GET', '/api/notifications?unread=true&page=2&limit=2', carol);
+      assert.deepEqual([unread.body.data.items.length, unread.body.data.total, unread.body.data.totalPages, unread.body.data.unreadCount], [0, 2, 1, 2]);
+      const beyond = await call('GET', '/api/notifications?page=50&limit=100', carol);
+      assert.deepEqual([beyond.body.data.items.length, beyond.body.data.total, beyond.body.data.page], [0, 3, 50]);
     });
 
     it('/ready reports the dependencies and the old broadcast route is gone', async () => {

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
+ * Scope: Added the liveness suite: a socket that stops answering pings is terminated within two intervals while an answering one survives, and a failing unread-count query closes the socket with 1011 before anything is filed.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Tests for src/ws/hub.ts over real sockets and real Ed25519 tokens: the AUTH handshake and its 4401
  * rejections, addressing a push to one user's sockets, closing at token expiry, and eviction on close.
@@ -121,5 +125,58 @@ describe('WebSocket hub', () => {
     await client.frame('AUTH_OK');
     assert.equal(await client.closed(4000), 4401);
     await until(() => hub.connectionCount(ALICE) === 0, 'expired socket evicted');
+  });
+});
+
+// AI-generated (edited by Reallyeasy1)
+describe('WebSocket hub liveness', () => {
+  let wss: WebSocketServer;
+  let url: string;
+  const hub = createHub({
+    authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
+    unreadCount: async (userId) => {
+      if (userId === BOB) throw new Error('database down');
+      return 0;
+    },
+    authTimeoutMs: 150,
+    pingIntervalMs: 250,
+  });
+
+  before(async () => {
+    wss = new WebSocketServer({ port: 0 });
+    wss.on('connection', hub.handleConnection);
+    await new Promise<void>((resolve) => wss.once('listening', resolve));
+    url = `ws://127.0.0.1:${(wss.address() as AddressInfo).port}`;
+  });
+
+  after(async () => {
+    hub.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+  });
+
+  it('terminates a socket that stops answering pings and keeps one that answers', async () => {
+    const dead = await openSocket(url, { autoPong: false });
+    const live = await openSocket(url);
+    dead.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    live.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    await Promise.all([dead.frame('AUTH_OK'), live.frame('AUTH_OK')]);
+    assert.equal(hub.connectionCount(ALICE), 2);
+
+    // Tick one sends the ping, tick two finds it unanswered: gone within two intervals, no close frame (1006).
+    assert.equal(await dead.closed(2000), 1006);
+    await until(() => hub.connectionCount(ALICE) === 1, 'dead socket evicted');
+    await delay(800);
+    assert.equal(live.isOpen(), true, 'a socket that answers pings survives several intervals');
+    assert.equal(hub.push(ALICE, notification), 1);
+    live.ws.close();
+  });
+
+  it('closes with 1011 when the unread count cannot be read, and files nothing', async () => {
+    const bob = await openSocket(url);
+    bob.send({ type: 'AUTH', token: signToken(keys.privateKey, BOB) });
+    assert.equal(await bob.closed(), 1011);
+    assert.deepEqual(bob.frames, [], 'no AUTH_OK before the failure');
+    assert.equal(hub.connectionCount(BOB), 0);
+    assert.equal(hub.push(BOB, notification), 0);
   });
 });
