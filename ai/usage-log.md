@@ -3583,3 +3583,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/prisma-client-standardization` plus this record.
+
+## 2026-10-21 11:43 SGT — Default Browser UAT Screenshots to OS Temp Directory & Remove Obsolete `docs/evidence` References
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/uat-screenshots-tmpdir
+
+**Prompt (summarised):** Default `SHOTS` in `scripts/uat/uat-d2-ui.mjs` to `os.tmpdir()` (`uat-d2-ui-screenshots`) so local browser UAT runs do not recreate `docs/evidence/d2/screenshots/` in the repository working tree, and remove obsolete `docs/evidence/` and `docs/requirements/` references from `.gitignore` and `.claude/` docs in a dedicated worktree.
+
+**Usage scenario:** Test script output path cleanup and repository hygiene (allowed use). The author approved defaulting `SHOTS` to `os.tmpdir()` (consistent with `UAT_OUT`) and removing the stale `docs/evidence/` and `docs/requirements/` entries.
+
+**Files changed:**
+- `scripts/uat/uat-d2-ui.mjs` — changed default `SHOTS` path from `../../docs/evidence/d2/screenshots` to `path.join(tmpdir(), 'uat-d2-ui-screenshots')` and removed unused `fileURLToPath` import.
+- `.gitignore` — removed obsolete `docs/evidence/` and `docs/requirements/` rules.
+- `.claude/PLUGINS.md`, `.claude/agents/reviewer.md` — removed obsolete `docs/evidence/` and `docs/requirements/` references.
+- `ai/usage-log.md` — this entry.

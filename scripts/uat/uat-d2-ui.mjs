@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 //
+// Tool: Google Antigravity Agent, date: 2026-10-21
+// Scope: Defaulted SHOTS screenshot output directory to os.tmpdir() (uat-d2-ui-screenshots) so local browser UAT runs do not recreate docs/evidence/d2/screenshots in the repository working tree.
+// Author review: <to be completed by author after review>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
 // Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).
 // Author review: <to be completed by Reallyeasy1>
@@ -24,7 +28,7 @@
 // Run: npx playwright install chromium && npm run test:e2e:ui
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
-// Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;
+// Screenshots go to uat-d2-ui-screenshots/<check>-<desktop|mobile>.png in the OS temp folder (or SHOTS);
 // results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
 import { chromium } from 'playwright';
 import { randomUUID } from 'node:crypto';
@@ -32,11 +36,11 @@ import amqp from 'amqplib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
-const SHOTS = process.env.SHOTS ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../docs/evidence/d2/screenshots');
+// AI-generated (edited by yanhwee)
+const SHOTS = process.env.SHOTS ?? path.join(tmpdir(), 'uat-d2-ui-screenshots');
 const PW = 'Password123!';
 const AMQP_URL = process.env.AMQP_URL ?? 'amqp://order_service:order-service-dev@localhost:5672/campus';
 const DESKTOP = { width: 1440, height: 900 };
