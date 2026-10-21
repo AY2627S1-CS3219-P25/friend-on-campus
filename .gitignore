@@ -8,6 +8,7 @@ dist/
 build/
 *.tsbuildinfo
 coverage/
+test-results/
 .turbo/
 
 # Prisma Generated Clients & Native Binaries (dylib / wasm)

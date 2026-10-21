@@ -3605,18 +3605,20 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `README.md`, `docs/architecture.md`, `docs/errand-specification.md` — updated broker topology, quorum-queue retry documentation, and `docker compose down -v` volume upgrade instructions.
 - `ai/usage-log.md` — this entry.
 
-## 2026-10-21 11:43 SGT — Default Browser UAT Screenshots to OS Temp Directory & Remove Obsolete `docs/evidence` References
+## 2026-10-21 12:03 SGT — Standardize UAT Test Outputs & Screenshots Under Root Git-Ignored `test-results/`
 
 **Tool:** Google Antigravity Agent
 **Author:** yanhwee
 **Branch:** chore/uat-screenshots-tmpdir
 
-**Prompt (summarised):** Default `SHOTS` in `scripts/uat/uat-d2-ui.mjs` to `os.tmpdir()` (`uat-d2-ui-screenshots`) so local browser UAT runs do not recreate `docs/evidence/d2/screenshots/` in the repository working tree, and remove obsolete `docs/evidence/` and `docs/requirements/` references from `.gitignore` and `.claude/` docs in a dedicated worktree.
+**Prompt (summarised):** Standardize UAT screenshots and JSON test result files under a dedicated root git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) instead of `docs/evidence/` or `os.tmpdir()`, align CI artifact upload paths in `.github/workflows/ci.yml`, and remove obsolete `docs/evidence/` and `docs/requirements/` references from `.gitignore` and `.claude/` docs.
 
-**Usage scenario:** Test script output path cleanup and repository hygiene (allowed use). The author approved defaulting `SHOTS` to `os.tmpdir()` (consistent with `UAT_OUT`) and removing the stale `docs/evidence/` and `docs/requirements/` entries.
+**Usage scenario:** Test output directory standardization and repository hygiene (allowed use). The author selected a top-level git-ignored `test-results/` directory for UAT screenshots and JSON reports.
 
 **Files changed:**
-- `scripts/uat/uat-d2-ui.mjs` — changed default `SHOTS` path from `../../docs/evidence/d2/screenshots` to `path.join(tmpdir(), 'uat-d2-ui-screenshots')` and removed unused `fileURLToPath` import.
-- `.gitignore` — removed obsolete `docs/evidence/` and `docs/requirements/` rules.
+- `.gitignore`, `.dockerignore`, `eslint.config.mjs` — added `test-results/` to ignored directories and removed obsolete `docs/evidence/` and `docs/requirements/` entries from `.gitignore`.
+- `scripts/uat/uat-d2-ui.mjs` — defaulted `SHOTS` to `test-results/screenshots` and `UAT_OUT` to `test-results/uat-d2-ui-results.json`.
+- `scripts/uat/uat-d2-api.mjs` — defaulted `UAT_OUT` to `test-results/uat-d2-api-results.json`.
+- `.github/workflows/ci.yml` — simplified `acceptance-tests` and `browser-uat` jobs to upload `test-results/**` directly without redundant `ci-artifacts/` wrapper steps.
 - `.claude/PLUGINS.md`, `.claude/agents/reviewer.md` — removed obsolete `docs/evidence/` and `docs/requirements/` references.
 - `ai/usage-log.md` — this entry.

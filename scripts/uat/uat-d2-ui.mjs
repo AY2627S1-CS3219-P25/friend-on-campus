@@ -1,7 +1,7 @@
 // AI Assistance Disclosure:
 //
 // Tool: Google Antigravity Agent, date: 2026-10-21
-// Scope: Defaulted SHOTS screenshot output directory to os.tmpdir() (uat-d2-ui-screenshots) so local browser UAT runs do not recreate docs/evidence/d2/screenshots in the repository working tree.
+// Scope: Standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (test-results/screenshots and test-results/uat-d2-ui-results.json) instead of docs/evidence/ or os.tmpdir().
 // Author review: <to be completed by author after review>
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
@@ -28,19 +28,20 @@
 // Run: npx playwright install chromium && npm run test:e2e:ui
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
-// Screenshots go to uat-d2-ui-screenshots/<check>-<desktop|mobile>.png in the OS temp folder (or SHOTS);
-// results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
+// Screenshots go to test-results/screenshots/<check>-<desktop|mobile>.png (or SHOTS);
+// results to test-results/uat-d2-ui-results.json (or UAT_OUT).
 import { chromium } from 'playwright';
 import { randomUUID } from 'node:crypto';
 import amqp from 'amqplib';
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
 // AI-generated (edited by yanhwee)
-const SHOTS = process.env.SHOTS ?? path.join(tmpdir(), 'uat-d2-ui-screenshots');
+const TEST_RESULTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-results');
+const SHOTS = process.env.SHOTS ?? path.join(TEST_RESULTS_DIR, 'screenshots');
 const PW = 'Password123!';
 const AMQP_URL = process.env.AMQP_URL ?? 'amqp://order_service:order-service-dev@localhost:5672/campus';
 const DESKTOP = { width: 1440, height: 900 };
@@ -453,6 +454,8 @@ const browser = await chromium.launch();
 await browser.close();
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} UI checks passed; screenshots in ${SHOTS}`);
-const out = process.env.UAT_OUT ?? path.join(tmpdir(), 'uat-d2-ui-results.json');
+// AI-generated (edited by yanhwee)
+const out = process.env.UAT_OUT ?? path.join(TEST_RESULTS_DIR, 'uat-d2-ui-results.json');
+mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));
 console.log(`results written to ${out}`);
