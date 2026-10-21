@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated Section 5 commands to reflect scripts/dev.mjs parallel dev runner, standard npm workspace -w invocations, and test:e2e:api replacing legacy test:d2 alias.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-10-20
 Scope: Updated Section 4 Prisma CLI and root .env loading notes.
 Author review: <to be completed by author after review>
@@ -188,23 +192,23 @@ Things that are easy to get wrong:
 npm install                                   # also runs prisma generate for every service
 docker compose up postgres rabbitmq -d        # backing services only
 docker compose up --build                     # whole stack
-npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:student | dev:admin
-npm run db:migrate --workspace=@campus-errand/<service>
-npm run db:seed    --workspace=@campus-errand/<service>
+npm run dev                                   # all 5 services + 2 apps in parallel (or npm run dev:services | dev:apps)
+npm run dev -w services/<service>             # single service (or npm run dev -- <target>, e.g. npm run dev -- user)
+npm run db:migrate -w @campus-errand/<service>
+npm run db:seed    -w @campus-errand/<service>
 npm run typecheck                             # all workspaces — run after every code change
 npm run test:unit                             # all workspace unit suites (Node only)
 npm run test:integration                      # PostgreSQL-backed integration suites; see docs/ci.md
 npm run test:messaging                        # PostgreSQL + RabbitMQ integration suites
 npm run test:migration | test:seed            # credit migration and seed validation
 npm run test:acceptance                       # API and notification UAT against the full Compose stack
-npm run test:e2e:api | test:e2e:ui            # D2 API E2E or Chromium UI UAT
+npm run test:e2e:api | test:e2e:ui            # D2 API E2E or Chromium UI UAT — see note below
 npm run test:e2e                              # API E2E then Chromium UI UAT against a prepared stack
 npm test                                      # full isolated suite; provisions Docker infrastructure and Chromium
-npm run test:d2                               # D2 end-to-end suite — see note below
 docker exec -it campuserrand-postgres psql -U postgres
 ```
 
-`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening.
+`npm run test:e2e:api` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any host `user-service`/`supplier-service` dev servers first, or it tests whatever is already listening.
 
 **Set-up:** new machine or new teammate → `.claude/README.md` (prerequisites, plugins, checks, troubleshooting).
 

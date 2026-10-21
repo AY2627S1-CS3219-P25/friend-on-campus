@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated test:d2 reference to test:e2e:api.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
 Author review: <to be completed by author after review>
@@ -66,7 +70,7 @@ Debugging and glue config are yours. Decisions are not: anything about CI beyond
 - A new API prefix needs an nginx `location` (note the existing pairs with and without trailing slash) and Vite proxy entries.
 - User Service receives `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`; Supplier Service receives the public key, issuer, and audience for shared Ed25519 verification. Keep these Compose settings aligned with the author-approved authentication contract.
 - Every env var a service reads must appear in `.env.example` with a safe placeholder. Never read, print or commit a real `.env`.
-- `npm run test:d2` starts user- and supplier-service itself on 8001/8002, so those ports must be free (stop the app containers, keep postgres up).
+- `npm run test:e2e:api` starts user- and supplier-service itself on 8001/8002, so those ports must be free (stop the app containers, keep postgres up).
 
 ## Report
 
