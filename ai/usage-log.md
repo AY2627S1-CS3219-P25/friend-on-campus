@@ -3657,16 +3657,33 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-21 18:42 SGT — Consolidate Documentation into `README.md` & Wiki, Remove `docs/`, and Slim Down `CLAUDE.md`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/consolidate-docs-and-slim-claude
+
+**Prompt (summarised):** Consolidate documentation so the team does not maintain duplicate docs across `docs/`, `README.md`, `CLAUDE.md`, and `friend-on-campus.wiki`: port CI/testing operational details from `docs/ci.md` into `README.md`, sync the newer D3/recent specifications from `docs/` into `friend-on-campus.wiki`, slim down `CLAUDE.md` and `.claude/agents/*.md` so they focus strictly on agent behavioral rules and repo orientation rather than duplicating system documentation, and remove `docs/`.
+
+**Usage scenario:** Documentation consolidation and agent configuration cleanup (allowed use).
+
+**Files changed / deleted:**
+- `README.md` — folded CI test-naming, static matrix validation, direct test environment variables (`*_TEST_DATABASE_URL`, `*_TEST_RABBITMQ_URL`), and `test-results/` artifact conventions from `docs/ci.md` into `Testing & Verification`, updated workspace count to 10 (2 apps, 5 services, 3 packages), removed `docs/` from the monorepo structure tree, and updated `System Documentation` links (`IN_TRANSIT` order status) to point to the project Wiki.
+- `CLAUDE.md` — slimmed down Sections 4, 5, 7, and 8 to focus on agent behavioral rules and verification requirements, updated workspace count to 10 and `backend` scope to `packages/**`, and removed duplicated system prose and `docs/` pointers.
+- `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes (`notifications/{events,store,routes}.ts` and `IN_TRANSIT` / `DISPUTED` in `OrderStatus`).
+- `docs/{README,architecture,ci,errand-specification,security}.md` [DELETED] — removed duplicate in-repo `docs/` directory after migrating content to `README.md` and `friend-on-campus.wiki`.
+- `ai/usage-log.md` — this entry.
+
 ## 2026-10-21 19:25 SGT — Fix Debezium Server Outbox Topic Replacement Property Escaping During D3 UAT
 
 **Tool:** Google Antigravity Agent
 **Author:** yanhwee
 **Branch:** fix/debezium-outbox-topic-replacement
 
-**Prompt (summarised):** Conduct comprehensive UAT and smoke testing for the upcoming Milestone D3 presentation across Docker Compose, `npm run dev`, API, messaging, and browser E2E flows.
+**Prompt (summarised):** Conduct comprehensive UAT and smoke testing for the upcoming Milestone D3 presentation across Docker Compose, `npm run dev`, API, messaging, and browser E2E flows, and address PR #155 review comments on `\\${routedByValue}` escaping documentation.
 
-**Usage scenario:** Debugging and bug fix during UAT verification (allowed use). Discovered that `campuserrand-debezium` (`quay.io/debezium/server:2.7`) was crash-looping with `java.lang.NullPointerException` at `io.debezium.server.DebeziumServer.configToProperties(DebeziumServer.java:202)` because Quarkus/SmallRye Config interpolated `${routedByValue}` in `debezium.transforms.outbox.route.topic.replacement=${routedByValue}` as a configuration expression and resolved `null`, preventing Order Service CDC outbox events from reaching RabbitMQ. Escaped the literal placeholder as `\${routedByValue}`.
+**Usage scenario:** Debugging and bug fix during UAT verification (allowed use). Discovered that `campuserrand-debezium` (`quay.io/debezium/server:2.7`) was crash-looping with `java.lang.NullPointerException` at `io.debezium.server.DebeziumServer.configToProperties(DebeziumServer.java:202)` because Quarkus/SmallRye Config interpolated `${routedByValue}` in `debezium.transforms.outbox.route.topic.replacement=${routedByValue}` as a configuration expression and resolved `null`, preventing Order Service CDC outbox events from reaching RabbitMQ. Escaped the literal placeholder as `\\${routedByValue}` (`Properties.load` consumes one backslash, leaving `\${routedByValue}` for SmallRye Config).
 
 **Files changed:**
-- `docker/debezium/application.properties` — escaped `\${routedByValue}` on `debezium.transforms.outbox.route.topic.replacement` so SmallRye Config passes the literal `${routedByValue}` token to Debezium's `EventRouter` SMT.
+- `docker/debezium/application.properties` — escaped `\\${routedByValue}` on `debezium.transforms.outbox.route.topic.replacement` and added an explanatory inline comment so `Properties.load` and SmallRye Config pass the literal `${routedByValue}` token to Debezium's `EventRouter` SMT.
 - `ai/usage-log.md` — this entry.
