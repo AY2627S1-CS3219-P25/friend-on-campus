@@ -17,9 +17,9 @@ export interface ServiceHealthSpec {
 }
 
 export interface ServiceHealthStatus extends ServiceHealthSpec {
-  overall: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
-  liveness: 'UP' | 'DOWN';
-  readiness: 'READY' | 'NOT_READY';
+  overall: 'ONLINE' | 'DEGRADED' | 'OFFLINE' | 'UNKNOWN';
+  liveness: 'UP' | 'DOWN' | 'UNKNOWN';
+  readiness: 'READY' | 'NOT_READY' | 'UNKNOWN';
   latencyMs: number | null;
   checkedAt: string;
   details?: string;

@@ -25,6 +25,7 @@ export function HealthPage({
   isLoadingHealth,
   onRefresh,
 }: HealthPageProps) {
+  const allUnknown = servicesHealth.every((s) => s.overall === 'UNKNOWN');
   const readyCount = servicesHealth.filter((s) => s.overall === 'ONLINE').length;
   const lastChecked = servicesHealth[0]?.checkedAt
     ? new Date(servicesHealth[0].checkedAt).toLocaleTimeString()
@@ -46,14 +47,16 @@ export function HealthPage({
         <div className="flex items-center space-x-3">
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold border ${
-              readyCount === servicesHealth.length && servicesHealth.length > 0
+              allUnknown
+                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                : readyCount === servicesHealth.length && servicesHealth.length > 0
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : readyCount > 0
                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                 : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}
           >
-            {readyCount} / {servicesHealth.length} Ready
+            {allUnknown ? 'Pending...' : `${readyCount} / ${servicesHealth.length} Ready`}
           </span>
           <button
             onClick={onRefresh}
@@ -69,13 +72,17 @@ export function HealthPage({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {servicesHealth.map((svc) => {
           const badgeClass =
-            svc.overall === 'ONLINE'
+            svc.overall === 'UNKNOWN'
+              ? 'bg-slate-100 text-slate-600 border-slate-200'
+              : svc.overall === 'ONLINE'
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
               : svc.overall === 'DEGRADED'
               ? 'bg-amber-50 text-amber-700 border-amber-200'
               : 'bg-rose-50 text-rose-700 border-rose-200';
           const dotClass =
-            svc.overall === 'ONLINE'
+            svc.overall === 'UNKNOWN'
+              ? 'bg-slate-400 animate-pulse'
+              : svc.overall === 'ONLINE'
               ? 'bg-emerald-500 animate-pulse'
               : svc.overall === 'DEGRADED'
               ? 'bg-amber-500 animate-pulse'
@@ -91,7 +98,11 @@ export function HealthPage({
                   <h3 className="font-bold text-sm text-slate-900">{svc.name}</h3>
                   <p className="text-sm text-slate-500 mt-0.5">
                     Port: {svc.port}
-                    {svc.latencyMs !== null ? ` | Latency: ${svc.latencyMs} ms` : ' | Unreachable'}
+                    {svc.latencyMs !== null
+                      ? ` | Latency: ${svc.latencyMs} ms`
+                      : svc.checkedAt === ''
+                      ? ' | Pending'
+                      : ' | Unreachable'}
                   </p>
                   <p className="text-xs text-slate-400 font-mono mt-1">Storage: {svc.db}</p>
                   {svc.details && (
@@ -102,28 +113,32 @@ export function HealthPage({
                   className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold border shrink-0 ${badgeClass}`}
                 >
                   <span className={`w-2 h-2 rounded-full ${dotClass}`} />
-                  <span>{svc.overall}</span>
+                  <span>{svc.overall === 'UNKNOWN' ? 'PENDING' : svc.overall}</span>
                 </span>
               </div>
 
               <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
                 <span
                   className={`px-2 py-0.5 rounded font-mono font-semibold ${
-                    svc.liveness === 'UP'
+                    svc.liveness === 'UNKNOWN'
+                      ? 'bg-slate-100 text-slate-600'
+                      : svc.liveness === 'UP'
                       ? 'bg-emerald-50 text-emerald-700'
                       : 'bg-rose-50 text-rose-700'
                   }`}
                 >
-                  /health: {svc.liveness}
+                  /health: {svc.liveness === 'UNKNOWN' ? 'PENDING' : svc.liveness}
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded font-mono font-semibold ${
-                    svc.readiness === 'READY'
+                    svc.readiness === 'UNKNOWN'
+                      ? 'bg-slate-100 text-slate-600'
+                      : svc.readiness === 'READY'
                       ? 'bg-emerald-50 text-emerald-700'
                       : 'bg-amber-50 text-amber-700'
                   }`}
                 >
-                  /ready: {svc.readiness}
+                  /ready: {svc.readiness === 'UNKNOWN' ? 'PENDING' : svc.readiness}
                 </span>
               </div>
             </div>

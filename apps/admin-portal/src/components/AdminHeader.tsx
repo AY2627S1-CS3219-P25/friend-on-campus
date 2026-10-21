@@ -200,7 +200,6 @@ export function AdminHeader({
             <button
               onClick={() => {
                 setActiveNav('health');
-                fetchServicesHealth();
                 setMobileMenuOpen(false);
               }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold ${activeNav === 'health' ? 'bg-blue-600 text-white' : 'text-slate-300'}`}

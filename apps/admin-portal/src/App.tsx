@@ -12,7 +12,7 @@
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
   CreateSupplierRequest,
@@ -166,14 +166,15 @@ export default function App() {
   const [servicesHealth, setServicesHealth] = useState<ServiceHealthStatus[]>(() =>
     SERVICE_HEALTH_SPECS.map((spec) => ({
       ...spec,
-      overall: 'ONLINE',
-      liveness: 'UP',
-      readiness: 'READY',
+      overall: 'UNKNOWN',
+      liveness: 'UNKNOWN',
+      readiness: 'UNKNOWN',
       latencyMs: null,
       checkedAt: '',
     }))
   );
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+  const healthInFlightRef = useRef(false);
 
   const {
     currentRole,
@@ -258,11 +259,14 @@ export default function App() {
   };
 
   const fetchServicesHealth = async () => {
+    if (healthInFlightRef.current) return;
+    healthInFlightRef.current = true;
     setIsLoadingHealth(true);
     try {
       const results = await fetchAllServicesHealthApi();
       setServicesHealth(results);
     } finally {
+      healthInFlightRef.current = false;
       setIsLoadingHealth(false);
     }
   };
@@ -798,7 +802,6 @@ export default function App() {
         setActiveNav={setActiveNav}
         fetchOrders={fetchOrders}
         fetchUsers={fetchUsers}
-        fetchServicesHealth={fetchServicesHealth}
         handleLogout={handleLogout}
         isLoggingOut={isLoggingOut}
       />

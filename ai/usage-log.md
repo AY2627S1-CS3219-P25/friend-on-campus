@@ -3804,8 +3804,8 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `apps/admin-portal/src/pages/AuditPage.tsx` — deleted dead placeholder component.
-- `apps/admin-portal/src/constants.ts`, `src/components/AdminSidebar.tsx`, `src/components/AdminHeader.tsx`, `src/App.tsx` — removed `'audit'` nav state and buttons; wired `fetchServicesHealth` to the sidebar, mobile nav, top Refresh button, and 15-second polling while on the `health` view.
-- `apps/admin-portal/src/api/health.ts` (new), `src/pages/HealthPage.tsx` — added live parallel `/health` (liveness) and `/ready` (readiness) probing with latency measurement and accurate PostgreSQL + RabbitMQ/CDC storage labels across all 5 microservices.
-- `services/supplier-service/src/app.ts`, `src/index.ts`, `test/supplierRoutes.test.ts` — added `GET /ready` readiness endpoint (`SELECT 1` DB check) and unit test coverage so all 5 services expose both `/health` and `/ready`.
+- `apps/admin-portal/src/constants.ts`, `src/components/AdminSidebar.tsx`, `src/components/AdminHeader.tsx`, `src/App.tsx` — removed `'audit'` nav state and buttons; initialized health state to `'UNKNOWN'`, added `healthInFlightRef` guard to prevent overlapping probe batches, and wired `fetchServicesHealth` to the `activeNav === 'health'` effect (with 15s polling) and top Refresh button.
+- `apps/admin-portal/src/api/health.ts` (new), `src/pages/HealthPage.tsx` — added live parallel `/health` (liveness) and `/ready` (readiness) probing with `'UNKNOWN'`/`'PENDING'` pre-probe rendering, latency measurement, and accurate PostgreSQL + RabbitMQ/CDC storage labels across all 5 microservices.
+- `services/supplier-service/src/app.ts`, `src/index.ts`, `test/supplierRoutes.test.ts`, `docker-compose.yml` — added `GET /ready` readiness endpoint (`SELECT 1` DB check), unit test coverage, and Compose `/ready` healthcheck so all 5 services expose both `/health` and `/ready`.
 - `gateway/nginx.conf`, `apps/admin-portal/vite.config.ts` — routed `/api/health/{user,supplier,order,credit,notification}/{health,ready}` to each upstream service's `/health` and `/ready` endpoints in both Docker Compose and host-based Vite dev modes.
 - `ai/usage-log.md` — this entry.

@@ -19,7 +19,6 @@ interface AdminSidebarProps {
   setActiveNav: (nav: AdminNavSection) => void;
   fetchOrders: () => void;
   fetchUsers: () => void;
-  fetchServicesHealth: () => void;
   handleLogout: () => void;
   isLoggingOut: boolean;
 }
@@ -29,7 +28,6 @@ export function AdminSidebar({
   setActiveNav,
   fetchOrders,
   fetchUsers,
-  fetchServicesHealth,
   handleLogout,
   isLoggingOut,
 }: AdminSidebarProps) {
@@ -89,10 +87,7 @@ export function AdminSidebar({
         </button>
 
         <button
-          onClick={() => {
-            setActiveNav('health');
-            fetchServicesHealth();
-          }}
+          onClick={() => setActiveNav('health')}
           className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
             activeNav === 'health'
               ? 'bg-blue-600 text-white shadow'

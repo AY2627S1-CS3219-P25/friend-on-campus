@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-10-22
+# Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 # Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
 # Author review: Validated by Yee Yan Hwee (yanhwee)
@@ -224,7 +228,7 @@ services:
         - node
         - -e
         - >-
-          fetch('http://localhost:8002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+          fetch('http://localhost:8002/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
       interval: 5s
       timeout: 5s
       retries: 10
