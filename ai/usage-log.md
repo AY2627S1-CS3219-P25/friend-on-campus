@@ -3673,3 +3673,17 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `.claude/agents/{backend,frontend,infrastructure,reviewer}.md` — removed `docs/` orientation links and updated stale service/frontend/container/test-runner orientation notes (`notifications/{events,store,routes}.ts` and `IN_TRANSIT` / `DISPUTED` in `OrderStatus`).
 - `docs/{README,architecture,ci,errand-specification,security}.md` [DELETED] — removed duplicate in-repo `docs/` directory after migrating content to `README.md` and `friend-on-campus.wiki`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 19:25 SGT — Fix Debezium Server Outbox Topic Replacement Property Escaping During D3 UAT
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/debezium-outbox-topic-replacement
+
+**Prompt (summarised):** Conduct comprehensive UAT and smoke testing for the upcoming Milestone D3 presentation across Docker Compose, `npm run dev`, API, messaging, and browser E2E flows, and address PR #155 review comments on `\\${routedByValue}` escaping documentation.
+
+**Usage scenario:** Debugging and bug fix during UAT verification (allowed use). Discovered that `campuserrand-debezium` (`quay.io/debezium/server:2.7`) was crash-looping with `java.lang.NullPointerException` at `io.debezium.server.DebeziumServer.configToProperties(DebeziumServer.java:202)` because Quarkus/SmallRye Config interpolated `${routedByValue}` in `debezium.transforms.outbox.route.topic.replacement=${routedByValue}` as a configuration expression and resolved `null`, preventing Order Service CDC outbox events from reaching RabbitMQ. Escaped the literal placeholder as `\\${routedByValue}` (`Properties.load` consumes one backslash, leaving `\${routedByValue}` for SmallRye Config).
+
+**Files changed:**
+- `docker/debezium/application.properties` — escaped `\\${routedByValue}` on `debezium.transforms.outbox.route.topic.replacement` and added an explanatory inline comment so `Properties.load` and SmallRye Config pass the literal `${routedByValue}` token to Debezium's `EventRouter` SMT.
+- `ai/usage-log.md` — this entry.
