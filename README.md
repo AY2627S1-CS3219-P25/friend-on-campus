@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated JWT key generation instructions after removing clipboard copying from scripts/generate-jwt-keys.mjs.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Consolidated CI/testing documentation from docs/ci.md into Testing & Verification, removed docs/ from the monorepo tree, and updated System Documentation links to point to the project Wiki.
 Author review: <to be completed by yanhwee>
 
@@ -154,9 +158,7 @@ npm install
 Copy `.env.example` to `.env` and generate an Ed25519 key pair for JWT access token signing:
 ```bash
 cp .env.example .env
-npm run generate:jwt-keys   # copies JWT_PRIVATE_KEY and JWT_PUBLIC_KEY to the clipboard; paste them into .env
-# where clipboard copying is unsupported, print them instead:
-npm run generate:jwt-keys -- --print
+npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste them into .env
 ```
 
 ### 3. Start PostgreSQL & RabbitMQ

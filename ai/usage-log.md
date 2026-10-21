@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Recorded removal of clipboard copying logic from scripts/generate-jwt-keys.mjs and corresponding README/.env.example/CI updates.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Recorded student-app order lifecycle actions (Issue #132), D1 F3.1.5 durationMinutes input, admin DELIVERED dispute-cancel button, courier cancelled history inclusion, and UO1-UO6 E2E UI checks.
 Author review: <to be completed by yanhwee>
 
@@ -3754,3 +3758,32 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `services/order-service/src/repositories/order.repository.ts` & `services/order-service/test/helpers.ts` — included `CANCELLED` orders where `courierId === userId` (e.g., admin dispute-cancelled in-transit/delivered orders) in `getUserActivity` `history`.
 - `scripts/uat/uat-d2-ui.mjs` — added `UO1`–`UO6` Playwright E2E browser checks covering posting with default 30-min duration, courier claim, pickup, delivery, requester completion, requester cancellation, and history persistence.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 23:00 SGT — Simplify `scripts/generate-jwt-keys.mjs` to Print Directly to Standard Output
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-generate-jwt-keys
+
+**Prompt (summarised):** Remove the clipboard functionality in `scripts/generate-jwt-keys.mjs` so it prints directly to the terminal, and update `README.md` in a dedicated worktree.
+
+**Usage scenario:** Refactoring and documentation improvement (allowed use). Removed OS-specific `pbcopy`/`clip.exe`/`xclip` clipboard spawning and `--print` flag handling from `scripts/generate-jwt-keys.mjs` and updated documentation and CI invocations.
+
+**Files changed:**
+- `scripts/generate-jwt-keys.mjs` — removed clipboard spawning and `--print` flag handling, printing `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` directly to `stdout`.
+- `README.md`, `.env.example` — updated `npm run generate:jwt-keys` instructions to reflect direct terminal output.
+- `.github/workflows/ci.yml` — removed obsolete `--print` flag from `node scripts/generate-jwt-keys.mjs` invocations.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-21 23:10 SGT — Resolve Merge Conflict with `main` on PR #158
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/simplify-generate-jwt-keys
+
+**Prompt (summarised):** Resolve merge conflict on PR #158.
+
+**Usage scenario:** Git merge conflict resolution (allowed use). Merged `origin/main` (PR #157) into `chore/simplify-generate-jwt-keys` and preserved both branches' `ai/usage-log.md` entries in chronological order.
+
+**Files changed:**
+- `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/simplify-generate-jwt-keys` plus this record.
