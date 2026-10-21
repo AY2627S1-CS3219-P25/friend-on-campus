@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-10-21
+# Scope: Removed obsolete --print flag from scripts/generate-jwt-keys.mjs invocations.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-10-21
 # Scope: Enable logical WAL and run an isolated Credit Debezium connector for reservation saga messaging tests.
 # Author review: <to be completed by huangjiaxi1111>
@@ -524,7 +528,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run acceptance suite
@@ -573,7 +577,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Stop services spawned by the API E2E suite
@@ -616,7 +620,7 @@ jobs:
       - name: Install Chromium and operating-system dependencies
         run: npx playwright install --with-deps chromium
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run Chromium browser UAT
