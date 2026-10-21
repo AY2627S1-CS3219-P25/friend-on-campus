@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
 # Tool: Google Antigravity Agent, date: 2026-10-22
-# Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe.
+# Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe, and passed SEED_SAMPLE_ORDERS to credit-service so sample order escrow reservations are seeded alongside order-service.
 # Author review: <to be completed by yanhwee>
 #
 # Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
@@ -281,6 +281,7 @@ services:
       - "8004:8004"
     environment:
       - PORT=8004
+      - SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}
       - DATABASE_URL=postgresql://credit_svc:credit-service-dev@postgres:5432/credit_db
       - USER_SERVICE_URL=http://user-service:8001
       - RABBITMQ_URL=amqp://credit_service:credit-service-dev@rabbitmq:5672/campus

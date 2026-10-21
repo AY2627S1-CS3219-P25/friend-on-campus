@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Preserved courierId on requester order cancellation for courier task history visibility and added courier unassignOrder (ACCEPTED -> OPEN) before pickup.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Included admin-cancelled courier orders (order.status === 'CANCELLED' where courierId === userId) in getUserActivity history.
  * Author review: <to be completed by yanhwee>
@@ -72,6 +76,7 @@ export interface OrderRepository {
   deliverOrder(orderId: string, courierId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
+  unassignOrder(orderId: string, courierId: string): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
   adminCompleteOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
   adminUnassignOrder(orderId: string, adminUserId: string, reason: string, expectedVersion?: number): Promise<OrderDTO>;
@@ -631,7 +636,6 @@ async function handleCancelOrder(
       },
       data: {
         status: 'CANCELLED',
-        courierId: null, // unassign courier if was accepted
         version: { increment: 1 },
       },
     });
@@ -650,6 +654,52 @@ async function handleCancelOrder(
         status: 'PENDING',
       },
     });
+
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    return toOrderDTO(refreshed);
+  });
+}
+
+async function handleUnassignOrder(
+  prisma: PrismaClient,
+  orderId: string,
+  courierId: string
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (order.courierId !== courierId) {
+      throw new OrderAuthorizationError('Only the assigned courier can drop this errand');
+    }
+
+    if (order.status !== 'ACCEPTED') {
+      throw new OrderStateConflictError(
+        `Cannot drop errand from status ${order.status}. Errand can only be dropped before pickup.`
+      );
+    }
+
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'ACCEPTED',
+        courierId,
+        version: order.version,
+      },
+      data: {
+        status: 'OPEN',
+        courierId: null,
+        acceptedAt: null,
+        courierContactNote: null,
+        version: { increment: 1 },
+      },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
 
     const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
@@ -912,6 +962,7 @@ export function createOrderRepository(prisma: PrismaClient): OrderRepository {
     deliverOrder: (orderId, courierId, event) => handleDeliverOrder(prisma, orderId, courierId, event),
     completeOrder: (orderId, requesterId, event) => handleCompleteOrder(prisma, orderId, requesterId, event),
     cancelOrder: (orderId, requesterId, event) => handleCancelOrder(prisma, orderId, requesterId, event),
+    unassignOrder: (orderId, courierId) => handleUnassignOrder(prisma, orderId, courierId),
     adminCancelOrder: (orderId, adminUserId, reason, event, expectedVersion) =>
       handleAdminCancelOrder(prisma, orderId, adminUserId, reason, event, expectedVersion),
     adminCompleteOrder: (orderId, adminUserId, reason, event, expectedVersion) =>

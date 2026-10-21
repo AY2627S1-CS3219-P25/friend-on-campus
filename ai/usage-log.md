@@ -3847,3 +3847,37 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `package-lock.json` — updated locked versions for `proxy-addr`, `source-map-js`, `vite`, and `prisma` via `npm audit fix`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-22 01:05 SGT — Preserve Courier History on Requester Cancel, Add Inline Accept Confirmation, and Add Courier Unassign (Drop Errand) Before Pickup
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/order-courier-lifecycle-and-seed
+
+**Prompt (summarised):** Address two courier workflow UX/state issues identified during team testing: (1) when a requester cancels an `ACCEPTED` order, preserve `courierId` on the cancelled order row (matching `adminCancelOrder`) so the cancelled order stays visible in the courier's `Tasks accepted` history instead of disappearing; (2) add both an inline two-step confirmation (`Confirm` / `Cancel`) on `Accept Errand` cards to prevent accidental single-click claims and a `Drop Errand` (`POST /api/orders/:id/unassign`) action allowing the assigned courier to unassign an `ACCEPTED` errand prior to pickup (`ACCEPTED -> OPEN`).
+
+**Usage scenario:** Debugging assistance and implementation of author-selected UX and state-transition refinements (allowed use).
+
+**Files changed:**
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `src/orders/order.routes.ts` — preserved `courierId` on `handleCancelOrder` and added `unassignOrder` (`POST /api/orders/:id/unassign`) allowing the assigned courier to return an `ACCEPTED` order back to `OPEN` prior to pickup.
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts`, `test/app.test.ts` — updated fake repository `cancelOrder` and unit/integration tests to verify `courierId` preservation on requester cancel and courier `unassignOrder` authorization/state guards.
+- `apps/student-app/src/components/ErrandCard.tsx` — added inline `Confirm` / `Cancel` step on `Accept Errand`.
+- `apps/student-app/src/api/orders.ts`, `src/pages/TasksPage.tsx`, `src/App.tsx` — wired `unassignOrderById` (`Drop Errand` button on `ACCEPTED` courier cards) and added the `CANCELLED` status message (`Cancelled · Order was cancelled before completion`) on accepted task cards.
+- `scripts/uat/uat-d2-ui.mjs` — updated `UO2` to click the inline `confirm-accept-order-btn` after clicking `Accept Errand`.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-22 01:21 SGT — Seed Matching Credit Escrow Reservations for Sample Orders
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/order-courier-lifecycle-and-seed
+
+**Prompt (summarised):** Ensure that when `SEED_SAMPLE_ORDERS=true` seeds the 4 sample `OPEN` orders in `order-service`, `credit-service` also seeds the corresponding idempotent escrow reservations so completing or cancelling any seeded sample order settles or refunds credits accurately.
+
+**Usage scenario:** Database seed synchronization across Order Service and Credit Service (allowed use).
+
+**Files changed:**
+- `services/order-service/src/database/seed.ts`, `services/order-service/test/order.service.test.ts` — assigned deterministic UUIDs (`30000000-0000-4000-8000-000000000001`..`0004`) to the 4 seeded sample orders (`ORD-98214`, `ORD-54312`, `ORD-76128`, `ORD-86429`).
+- `services/credit-service/src/database/seed.ts`, `services/credit-service/tests/seed.integration.test.ts` — added `seedSampleOrders` option (enabled in CLI mode when `SEED_SAMPLE_ORDERS=true`) to call `credits.reserve(...)` idempotently for the 4 sample orders after wallet initialization.
+- `docker-compose.yml` — passed `SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}` to `credit-service`.
+- `ai/usage-log.md` — this entry.

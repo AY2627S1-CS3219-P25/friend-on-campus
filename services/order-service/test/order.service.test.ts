@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Updated ACCEPTED order cancellation test to verify courierId preservation for courier history, and added unit tests for courier unassignOrder (ACCEPTED -> OPEN).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Verify development sample seeding requires explicit opt-in.
  * Author review: <to be completed by huangjiaxi1111>
@@ -53,8 +57,8 @@ const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 it('sample seeding requires explicit true and does not access the database otherwise', async t => {
   const original = process.env.SEED_SAMPLE_ORDERS;
   const originalInsert = prisma.order.createMany;
-  const insert = t.mock.fn(async () => ({ count: 4 }));
-  prisma.order.createMany = insert as typeof originalInsert;
+  const insert = t.mock.fn(async (_args?: { data?: Array<{ id?: string; orderCode?: string }> }) => ({ count: 4 }));
+  prisma.order.createMany = insert as unknown as typeof originalInsert;
   try {
     for (const value of [undefined, 'false', 'TRUE', '1']) {
       if (value === undefined) delete process.env.SEED_SAMPLE_ORDERS;
@@ -65,6 +69,16 @@ it('sample seeding requires explicit true and does not access the database other
     process.env.SEED_SAMPLE_ORDERS = 'true';
     await seedOrders();
     assert.equal(insert.mock.callCount(), 1);
+    const seededData = insert.mock.calls[0]?.arguments[0]?.data ?? [];
+    assert.deepEqual(
+      seededData.map(item => item.id),
+      [
+        '30000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000002',
+        '30000000-0000-4000-8000-000000000003',
+        '30000000-0000-4000-8000-000000000004',
+      ],
+    );
   } finally {
     prisma.order.createMany = originalInsert;
     if (original === undefined) delete process.env.SEED_SAMPLE_ORDERS;
@@ -547,7 +561,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(payload.rewardCredits, 20);
     });
 
-    it('allows requester to cancel an ACCEPTED errand before pickup and unassigns courier', async () => {
+    it('allows requester to cancel an ACCEPTED errand before pickup and preserves courierId for courier history', async () => {
       const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
@@ -560,7 +574,45 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       const cancelled = await service.cancelOrder(order.id, REQUESTER_ID);
       assert.equal(cancelled.status, 'CANCELLED');
-      assert.equal(cancelled.courierId, null);
+      assert.equal(cancelled.courierId, COURIER_1_ID);
+
+      const courierActivity = await service.getUserActivity(COURIER_1_ID);
+      assert.equal(courierActivity.history.some((o) => o.id === order.id && o.status === 'CANCELLED'), true);
+    });
+
+    it('allows assigned courier to drop (unassign) an ACCEPTED errand before pickup and returns it to OPEN', async () => {
+      const { fundedService: service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Tea',
+        dropoffLocation: 'UTown',
+        rewardCredits: 12,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID, { courierContactNote: 'On my way' });
+
+      await assert.rejects(
+        () => service.unassignOrder(order.id, COURIER_2_ID),
+        OrderAuthorizationError,
+      );
+
+      const dropped = await service.unassignOrder(order.id, COURIER_1_ID);
+      assert.equal(dropped.status, 'OPEN');
+      assert.equal(dropped.courierId, null);
+      assert.equal(dropped.acceptedAt, null);
+      assert.equal(dropped.courierContactNote, null);
+
+      // Another courier can now accept the reopened order
+      const reaccepted = await service.acceptOrder(order.id, COURIER_2_ID);
+      assert.equal(reaccepted.status, 'ACCEPTED');
+      assert.equal(reaccepted.courierId, COURIER_2_ID);
+
+      // Once picked up (IN_TRANSIT), courier can no longer drop the errand
+      await service.pickupOrder(order.id, COURIER_2_ID);
+      await assert.rejects(
+        () => service.unassignOrder(order.id, COURIER_2_ID),
+        OrderStateConflictError,
+      );
     });
 
     it('rejects cancellation once errand is IN_TRANSIT or DELIVERED', async () => {

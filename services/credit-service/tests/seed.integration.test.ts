@@ -113,6 +113,7 @@ async function main() {
     // Offline CLI fallback resolves deterministic UUIDs only when User Service is unreachable.
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     const offlineIds: string[] = [];
+    const offlineReservations: Array<{ orderId: string; requesterId: string; amount: number }> = [];
     const offlineRecorder = {
       initializeWallet: async (userId: string) => {
         offlineIds.push(userId);
@@ -120,6 +121,16 @@ async function main() {
           userId,
           availableCredits: 100,
           escrowCredits: 0,
+          totalEarnedCredits: 0,
+          updatedAt: new Date(0).toISOString(),
+        };
+      },
+      reserve: async (body: { orderId: string; requesterId: string; amount: number }) => {
+        offlineReservations.push(body);
+        return {
+          userId: body.requesterId,
+          availableCredits: 100 - body.amount,
+          escrowCredits: body.amount,
           totalEarnedCredits: 0,
           updatedAt: new Date(0).toISOString(),
         };
@@ -132,6 +143,14 @@ async function main() {
       '20000000-0000-4000-8000-000000000001',
       '20000000-0000-4000-8000-000000000002',
       '20000000-0000-4000-8000-000000000003',
+    ]);
+    assert.equal(offlineReservations.length, 0);
+    await seedCreditWallets(offlineRecorder, base, { allowOfflineFallback: true, seedSampleOrders: true });
+    assert.deepEqual(offlineReservations, [
+      { orderId: '30000000-0000-4000-8000-000000000001', requesterId: '20000000-0000-4000-8000-000000000001', amount: 15 },
+      { orderId: '30000000-0000-4000-8000-000000000002', requesterId: '20000000-0000-4000-8000-000000000002', amount: 20 },
+      { orderId: '30000000-0000-4000-8000-000000000003', requesterId: '20000000-0000-4000-8000-000000000001', amount: 12 },
+      { orderId: '30000000-0000-4000-8000-000000000004', requesterId: '20000000-0000-4000-8000-000000000002', amount: 18 },
     ]);
     console.log('PASS: real UUID matching, offline fallback when unreachable, three 100-credit wallets, one grant each, preserved spent/earned/escrow balances and ledger on concurrent reruns, identity failure before writes and session cleanup');
   } finally {

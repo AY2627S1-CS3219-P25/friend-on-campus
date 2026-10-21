@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Preserved courierId on cancelOrder and added unassignOrder to fake repository to mirror OrderRepository.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Included admin-cancelled courier orders in fake repository getUserActivity history to mirror OrderRepository.
  * Author review: <to be completed by yanhwee>
@@ -394,7 +398,6 @@ export function makeFakeOrderRepository() {
       }
 
       order.status = 'CANCELLED';
-      order.courierId = null;
       order.version += 1;
 
       outboxEvents.push({
@@ -406,6 +409,29 @@ export function makeFakeOrderRepository() {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+      return { ...order };
+    },
+
+    async unassignOrder(orderId: string, courierId: string): Promise<OrderDTO> {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new OrderNotFoundError();
+
+      if (order.courierId !== courierId) {
+        throw new OrderAuthorizationError('Only the assigned courier can drop this errand');
+      }
+
+      if (order.status !== 'ACCEPTED') {
+        throw new OrderStateConflictError(
+          `Cannot drop errand from status ${order.status}. Errand can only be dropped before pickup.`
+        );
+      }
+
+      order.status = 'OPEN';
+      order.courierId = null;
+      order.acceptedAt = null;
+      order.courierContactNote = null;
+      order.version += 1;
 
       return { ...order };
     },
