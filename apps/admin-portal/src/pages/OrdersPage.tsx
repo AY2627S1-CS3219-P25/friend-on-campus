@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Added Dispute Cancel button alongside Force Complete for DELIVERED orders in OrdersPage.tsx to match backend adminCancelOrder support.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted OrdersPage state management component into src/pages/OrdersPage.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -357,13 +361,22 @@ export function OrdersPage({
                                     )}
 
                                     {order.status === 'DELIVERED' && (
-                                      <button
-                                        onClick={() => openOrderAction(order, 'complete')}
-                                        className="text-xs font-bold text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-300 rounded-lg px-2.5 py-1 transition shadow-sm"
-                                        title="Resolve delivery dispute by releasing escrow to courier"
-                                      >
-                                        Force Complete
-                                      </button>
+                                      <div className="flex items-center space-x-1.5">
+                                        <button
+                                          onClick={() => openOrderAction(order, 'complete')}
+                                          className="text-xs font-bold text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                          title="Resolve delivery dispute by releasing escrow to courier"
+                                        >
+                                          Force Complete
+                                        </button>
+                                        <button
+                                          onClick={() => openOrderAction(order, 'cancel')}
+                                          className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                          title="Resolve delivery dispute by cancelling and refunding requester"
+                                        >
+                                          Dispute Cancel
+                                        </button>
+                                      </div>
                                     )}
 
                                     {isTerminal && (
@@ -442,12 +455,20 @@ export function OrdersPage({
                                   </button>
                                 )}
                                 {order.status === 'DELIVERED' && (
-                                  <button
-                                    onClick={() => openOrderAction(order, 'complete')}
-                                    className="text-xs font-bold text-emerald-600 border border-emerald-300 rounded-lg px-3 py-1.5"
-                                  >
-                                    Force Complete
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => openOrderAction(order, 'complete')}
+                                      className="text-xs font-bold text-emerald-600 border border-emerald-300 rounded-lg px-3 py-1.5"
+                                    >
+                                      Force Complete
+                                    </button>
+                                    <button
+                                      onClick={() => openOrderAction(order, 'cancel')}
+                                      className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
+                                    >
+                                      Dispute Cancel
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             )}

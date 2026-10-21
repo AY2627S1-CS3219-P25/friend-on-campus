@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Added configurable acceptance duration (durationMinutes, 30-1440 mins, default 30 mins) per D1 F3.1.5.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted post errand form page from student-app App.tsx into pages/PostErrandPage.tsx.
  * Author review: Verified by yanhwee
@@ -18,6 +22,7 @@ export interface PostErrandFormData {
   specialNotes: string;
   dropoffLocation: string;
   rewardCredits: number;
+  durationMinutes: number;
 }
 
 interface PostErrandPageProps {
@@ -198,6 +203,34 @@ export function PostErrandPage({
                 Enter a whole number of at least 1 credit. Available:{' '}
                 {wallet ? `${wallet.availableCredits} C` : '—'}. Credits are reserved before your
                 errand is posted.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-6">
+              <div className="flex flex-wrap gap-3 items-center justify-between">
+                <label htmlFor="duration-minutes-input" className="text-sm font-bold text-slate-800">
+                  Acceptance Duration (mins):
+                </label>
+                <input
+                  id="duration-minutes-input"
+                  type="number"
+                  aria-label="Acceptance duration in minutes"
+                  required
+                  min={30}
+                  max={1440}
+                  step={1}
+                  value={Number.isFinite(formData.durationMinutes) ? formData.durationMinutes : ''}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      durationMinutes: event.target.valueAsNumber,
+                    }))
+                  }
+                  className="w-24 rounded border border-slate-300 bg-white px-2 py-1.5 text-center font-bold text-slate-800"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Between 30 and 1440 mins (30 mins – 24 hrs, default 30). Unaccepted errands expire automatically and refund reserved credits.
               </p>
             </div>
 

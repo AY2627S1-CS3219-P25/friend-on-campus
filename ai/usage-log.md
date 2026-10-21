@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Recorded student-app order lifecycle actions (Issue #132), D1 F3.1.5 durationMinutes input, admin DELIVERED dispute-cancel button, courier cancelled history inclusion, and UO1-UO6 E2E UI checks.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-5), date: 2026-10-19
 Scope: Recorded CI matrix consistency root-cause analysis and fix for the missing order-service messaging matrix entry.
 Author review: <to be completed by huangjiaxi1111>
@@ -3729,3 +3733,24 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docker/debezium/application.properties` — resolved conflict in outbox routing replacement with escaped `\\${routedByValue}`.
 - `docs/{README,architecture,ci,errand-specification,security}.md` — kept upstream deletions from `main` during merge.
 - `.claude/agents/{backend,frontend,infrastructure,reviewer}.md`, `README.md` — merged upstream updates from `main`.
+
+## 2026-10-21 22:28 SGT — Complete Order Lifecycle UI, D1 F3.1.5 Acceptance Duration, Admin Dispute Cancel, and E2E Browser UI Checks (Issue #132)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-order-lifecycle-actions
+
+**Prompt (summarised):** Check whether Order functionality (frontend and backend) is complete across the entire lifecycle against the Milestone D1 specification (`F3`, `F4`, `F5`, `F7.1`), implement the missing student-app order lifecycle actions (`pickup`, `deliver`, `complete`, `cancel`, and history inclusion) tracked in Issue #132, expose `durationMinutes` (`30`–`1440` mins, default `30`) in `PostErrandPage`, expose `Dispute Cancel` on `DELIVERED` orders in the Admin Portal, and add E2E browser UI checks (`UO1`–`UO6`) in `scripts/uat/uat-d2-ui.mjs`.
+
+**Usage scenario:** Frontend/backend alignment against Milestone D1 requirements and E2E Playwright UI test extension (allowed use).
+
+**Files changed:**
+- `apps/student-app/src/api/orders.ts` — added `pickupOrderById`, `deliverOrderById`, `completeOrderById`, and `cancelOrderById` helpers sharing `postOrderLifecycleAction` (preserving 400/403/409 backend error messages), and included `activity.data.history` in `fetchCombinedOrders`.
+- `apps/student-app/src/pages/TasksPage.tsx` — added courier-side **Mark Picked Up** (`ACCEPTED` → `IN_TRANSIT`) and **Mark Delivered** (`IN_TRANSIT` → `DELIVERED`) buttons on accepted task cards, requester-side **Confirm Delivery** (`DELIVERED` → `COMPLETED`) and **Cancel Errand** (`OPEN`/`ACCEPTED` → `CANCELLED`) buttons on posted task cards, a `Refresh` button, and `data-testid` attributes for E2E verification.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — added `durationMinutes` (`30`–`1440` minutes, default `30`) input to `PostErrandFormData` and the Post Errand form per D1 requirement `F3.1.5`.
+- `apps/student-app/src/App.tsx` — wired `handleTaskOrderAction`, `taskActionInFlight`, `onNotification` order reload, and `formData.durationMinutes` to `TasksPage` and `PostErrandPage`, displaying action notices, refreshing wallet credits on completion/cancellation, and surfacing backend 400/403/409 errors in the alert banner.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — updated `onOpenErrand` docstring now that `TasksPage` provides the confirm-delivery action.
+- `apps/admin-portal/src/pages/OrdersPage.tsx` — added the **Dispute Cancel** button alongside **Force Complete** on `DELIVERED` orders (desktop and mobile views) to match backend `adminCancelOrder` (`OPEN`, `ACCEPTED`, `IN_TRANSIT`, `DELIVERED`).
+- `services/order-service/src/repositories/order.repository.ts` & `services/order-service/test/helpers.ts` — included `CANCELLED` orders where `courierId === userId` (e.g., admin dispute-cancelled in-transit/delivered orders) in `getUserActivity` `history`.
+- `scripts/uat/uat-d2-ui.mjs` — added `UO1`–`UO6` Playwright E2E browser checks covering posting with default 30-min duration, courier claim, pickup, delivery, requester completion, requester cancellation, and history persistence.
+- `ai/usage-log.md` — this entry.

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Included admin-cancelled courier orders (order.status === 'CANCELLED' where courierId === userId) in getUserActivity history.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity, date: 2026-10-19
  * Scope: Implemented Saga Approach B2 state transitions (PENDING -> OPEN / REJECTED / EXPIRED) directly in OrderRepository with Debezium CDC outbox metadata.
  * Author review: Reviewed and verified by yanhwee.
@@ -355,7 +359,7 @@ async function handleGetUserActivity(
     if (order.courierId === userId) {
       if (['ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(order.status)) {
         delivering.push(dto);
-      } else if (order.status === 'COMPLETED') {
+      } else if (order.status === 'COMPLETED' || order.status === 'CANCELLED') {
         // Already in history if user was also requester, otherwise add
         if (!history.some((h) => h.id === dto.id)) {
           history.push(dto);
