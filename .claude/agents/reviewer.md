@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Removed obsolete docs/evidence/ and docs/requirements/ directory references.
+Author review: <to be completed by author after review>
+
 Tool: Google Antigravity Agent, date: 2026-10-20
 Scope: Updated Prisma schema path reference from services/*/src/database/prisma/schema.prisma to services/*/prisma/schema.prisma.
 Author review: <to be completed by author after review>
@@ -41,16 +45,15 @@ apps/*/src/App.tsx           UI under review
 packages/common-dtos/        the contract both sides must match
 docker/postgres-init/*.sql vs services/*/prisma/schema.prisma    database provisioning and service schema definitions to compare
 gateway/nginx.conf, apps/*/vite.config.ts, docker-compose.yml                 routing and env to compare against the code
-docs/evidence/<milestone>/   where the author records results (you report; you do not edit docs)
 ai/usage-log.md              checked in AI-policy mode
 ```
 
-Judge behaviour against the *intended* column of `docs/architecture/overview.md` and the issue's criteria, and say clearly when the only implementation is a mock.
+Judge behaviour against `docs/architecture.md`, `docs/errand-specification.md`, `docs/security.md`, and the issue's criteria, and say clearly when the only implementation is a mock.
 
 ## Boundaries
 
 - You may create or edit files **only** under `scripts/` and test files (`*.test.ts`, `*.spec.ts`, `__tests__/`). You never edit production code, schemas, DTOs, config or docs to make something pass. A failure is a finding: file:line, observed vs expected, and which agent (`backend`, `frontend`, `infrastructure`) owns the fix.
-- Expected behaviour comes from the issue's acceptance criteria, D1 and the D2 plan §5 — quote the ID. If sources disagree or are silent, **stop and return the question** (see `docs/requirements/conflicts.md`). You do not decide what correct behaviour is, choose thresholds, redesign anything, or rank what the team should fix first.
+- Expected behaviour comes from the issue's acceptance criteria, D1 and the D2 plan §5 — quote the ID. If sources disagree or are silent, **stop and return the question**. You do not decide what correct behaviour is, choose thresholds, redesign anything, or rank what the team should fix first.
 - No unit-test runner or lint script exists yet (issue #68); do not install one unless the author chose it. Follow `scripts/test-d2-e2e.ts`: plain `tsx`, local `assert`, `fetch` against the running service, non-zero exit on failure.
 
 ## Modes (do only what was asked)

@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-21
+// Scope: Added **/test-results/** to ESLint ignores.
+// Author review: <to be completed by author after review>
+//
 // Tool: Google Antigravity, date: 2026-10-20
 // Scope: Updated ESLint ignores for Prisma generated client path **/src/generated/**.
 // Author review: <to be completed by author after review>
@@ -22,6 +26,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/build/**",
       "**/coverage/**",
+      "**/test-results/**",
       "**/.vite/**",
       "**/.turbo/**",
       "**/generated/**",

@@ -3604,3 +3604,21 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `services/order-service/test/reservation.consumer.unit.test.ts`, `services/credit-service/tests/consumer.integration.test.ts`, `services/notification-service/test/consumer.integration.test.ts`, `services/user-service/test/publisher.test.ts` — updated unit and integration tests for quorum queues, `x-delivery-count`, unroutable `basic.return` rejection, and publish confirm timeout.
 - `README.md`, `docs/architecture.md`, `docs/errand-specification.md` — updated broker topology, quorum-queue retry documentation, and `docker compose down -v` volume upgrade instructions.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-21 12:03 SGT — Standardize UAT Test Outputs & Screenshots Under Root Git-Ignored `test-results/`
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** chore/uat-screenshots-tmpdir
+
+**Prompt (summarised):** Standardize UAT screenshots and JSON test result files under a dedicated root git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) instead of `docs/evidence/` or `os.tmpdir()`, align CI artifact upload paths in `.github/workflows/ci.yml`, and remove obsolete `docs/evidence/` and `docs/requirements/` references from `.gitignore` and `.claude/` docs.
+
+**Usage scenario:** Test output directory standardization and repository hygiene (allowed use). The author selected a top-level git-ignored `test-results/` directory for UAT screenshots and JSON reports.
+
+**Files changed:**
+- `.gitignore`, `.dockerignore`, `eslint.config.mjs` — added `test-results/` to ignored directories and removed obsolete `docs/evidence/` and `docs/requirements/` entries from `.gitignore`.
+- `scripts/uat/uat-d2-ui.mjs` — defaulted `SHOTS` to `test-results/screenshots` and `UAT_OUT` to `test-results/uat-d2-ui-results.json`.
+- `scripts/uat/uat-d2-api.mjs` — defaulted `UAT_OUT` to `test-results/uat-d2-api-results.json`.
+- `.github/workflows/ci.yml` — simplified `acceptance-tests` and `browser-uat` jobs to upload `test-results/**` directly without redundant `ci-artifacts/` wrapper steps.
+- `.claude/PLUGINS.md`, `.claude/agents/reviewer.md` — removed obsolete `docs/evidence/` and `docs/requirements/` references.
+- `ai/usage-log.md` — this entry.
