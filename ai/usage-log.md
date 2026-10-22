@@ -3897,3 +3897,18 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/admin-portal/src/api/auth.ts`, `apps/admin-portal/src/hooks/useAdminAuth.ts` — guarded `res.json()` with `.catch(() => null)` in `adminLoginApi` and surfaced friendly `5xx` fallback messages in `handleAdminLogin`.
 - `apps/student-app/src/components/ErrandCard.tsx`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/src/api/orders.ts` — added an optional `courierContactNote` input (`data-testid="accept-contact-note-input"`, max 255 chars) inside the inline `Confirm` / `Cancel` step on `ErrandCard` and passed it to `POST /api/orders/:id/accept`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-22 14:25 SGT — Postman collection for the Notification Service REST API (F5)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Locate the Postman files and add rigorous Postman tests for the Notification Service.
+
+**Usage scenario:** Test code (allowed). Mirrors `tests/postman/reservation_collection.json`: gateway `baseUrl` variable, throwaway requester and courier registered by the first request (no seeded credentials), `pm.test` assertions, "Wait for …" polling via `pm.execution.setNextRequest`. Verified twice with `npx newman@6.2.1 run tests/postman/notification_collection.json --env-var baseUrl=http://localhost:8080`: 63 and 58 requests (polling repeats differ), 138 and 133 assertions, 0 failures, 26 s and 23 s. WebSocket push and broker-level duplicate delivery stay with `scripts/uat/uat-notifications.mjs` (the Postman runner cannot exercise them). Not wired into CI, like the other collections; whether to add a newman job is the author's call.
+
+**Files changed:**
+- `tests/postman/notification_collection.json` — new (JSON, no header): 49 requests in order: setup (register/login requester and courier, pick an active supplier); auth boundaries (401 MISSING_TOKEN / INVALID_TOKEN on list, mark-read, read-all); `/api/health/notification/health` and `/ready` probes; empty-inbox contract and query clamping (`limit` 500→100, 0→1, non-numeric page/limit → defaults, negative page → 1); malformed and unknown ids → 404 NOTIFICATION_NOT_FOUND; invalid JSON body → 400; the real order flow (202 → poll OPEN → accept → pickup → deliver → complete) asserting one alert per stage with exact titles/bodies, courier id and username (F5.1.1, F5.2.1, F5.3.1), newest-first ordering, no alert for the courier and none for completion; mark-read and idempotent re-read, unread filter, pagination (2+1, past the end, global unreadCount), cross-user ownership (404 and read-all updated=0), read-all (2 then 0); both accounts delete themselves
+- `ai/usage-log.md` — this entry
+- GitHub: issue and pull request opened for this change at the request of the author

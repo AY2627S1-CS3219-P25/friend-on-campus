@@ -1,0 +1,2014 @@
+{
+ "info": {
+  "name": "Campus Errand - Notification Service API Tests",
+  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier or for completion, mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "variable": [
+  {
+   "key": "baseUrl",
+   "value": "http://localhost",
+   "type": "string"
+  }
+ ],
+ "item": [
+  {
+   "name": "00 Register requester",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const stamp = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);",
+       "pm.collectionVariables.set('runId', stamp);",
+       "pm.collectionVariables.set('reqEmail', 'notif_req_' + stamp + '@example.com');",
+       "pm.collectionVariables.set('courierEmail', 'notif_courier_' + stamp + '@example.com');",
+       "pm.collectionVariables.set('courierUsername', 'notif_courier_' + stamp);",
+       "pm.collectionVariables.set('password', 'NotifTest123!');",
+       "for (const k of ['reqToken', 'courierToken', 'orderId', 'orderCode', 'n1', 'n2', 'n3', 'readAt1']) pm.collectionVariables.unset(k);"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/auth/register",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "auth",
+      "register"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"username\": \"notif_req_{{runId}}\", \"email\": \"{{reqEmail}}\", \"password\": \"{{password}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "01 Login requester",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.collectionVariables.set('reqToken', d.accessToken); pm.collectionVariables.set('reqId', d.user.userId);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/auth/login",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "auth",
+      "login"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"email\": \"{{reqEmail}}\", \"password\": \"{{password}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "02 Register courier",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/auth/register",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "auth",
+      "register"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"username\": \"{{courierUsername}}\", \"email\": \"{{courierEmail}}\", \"password\": \"{{password}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "03 Login courier",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.collectionVariables.set('courierToken', d.accessToken); pm.collectionVariables.set('courierId', d.user.userId);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/auth/login",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "auth",
+      "login"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"email\": \"{{courierEmail}}\", \"password\": \"{{password}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "04 Select active supplier",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; const list = Array.isArray(d) ? d : d.suppliers;",
+       "const s = list.find((x) => x.isActive); pm.test('An active supplier exists', () => pm.expect(s).to.be.an('object'));",
+       "pm.collectionVariables.set('supplierId', s.id);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/suppliers",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "suppliers"
+     ]
+    }
+   }
+  },
+  {
+   "name": "10 List alerts - no token (401)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code MISSING_TOKEN', () => pm.expect(b.code).to.eql('MISSING_TOKEN'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "11 List alerts - malformed token (401)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code INVALID_TOKEN', () => pm.expect(b.code).to.eql('INVALID_TOKEN'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer not.a.jwt"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "12 Mark read - no token (401)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code MISSING_TOKEN', () => pm.expect(b.code).to.eql('MISSING_TOKEN'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/00000000-0000-4000-8000-000000000000/read",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "00000000-0000-4000-8000-000000000000",
+      "read"
+     ]
+    }
+   }
+  },
+  {
+   "name": "13 Read all - no token (401)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code MISSING_TOKEN', () => pm.expect(b.code).to.eql('MISSING_TOKEN'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/read-all",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "read-all"
+     ]
+    }
+   }
+  },
+  {
+   "name": "14 Health probe",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const b = pm.response.json();",
+       "pm.test('Liveness body', () => { pm.expect(b.service).to.eql('notification-service'); pm.expect(b.status).to.eql('UP'); pm.expect(b.timestamp).to.be.a('string'); });",
+       "pm.test('Exposes socket count and broker state', () => { pm.expect(b.activeWsClients).to.be.a('number'); pm.expect(b.rabbitmq).to.eql('UP'); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/health/notification/health",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "health",
+      "notification",
+      "health"
+     ]
+    }
+   }
+  },
+  {
+   "name": "15 Readiness probe",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const b = pm.response.json(); pm.test('READY (consumer connected and database reachable)', () => pm.expect(b.status).to.eql('READY'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{baseUrl}}/api/health/notification/ready",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "health",
+      "notification",
+      "ready"
+     ]
+    }
+   }
+  },
+  {
+   "name": "20 Empty inbox",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const b = pm.response.json(); const d = b.data;",
+       "pm.test('Envelope success=true', () => pm.expect(b.success).to.eql(true));",
+       "pm.test('Page shape: items, total, page, limit, totalPages, unreadCount', () => {",
+       "  pm.expect(d.items).to.be.an('array'); pm.expect(d.total).to.be.a('number'); pm.expect(d.page).to.be.a('number');",
+       "  pm.expect(d.limit).to.be.a('number'); pm.expect(d.totalPages).to.be.a('number'); pm.expect(d.unreadCount).to.be.a('number');",
+       "});",
+       "pm.test('Fresh account has no alerts', () => { pm.expect(d.items).to.eql([]); pm.expect(d.total).to.eql(0); pm.expect(d.unreadCount).to.eql(0); pm.expect(d.totalPages).to.eql(0); });",
+       "pm.test('Defaults page=1 limit=20', () => { pm.expect(d.page).to.eql(1); pm.expect(d.limit).to.eql(20); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "21 Empty inbox - unread filter",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('No unread alerts', () => { pm.expect(d.items).to.eql([]); pm.expect(d.unreadCount).to.eql(0); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?unread=true",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "unread",
+       "value": "true"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "22 limit above 100 is clamped to 100",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('limit=100', () => pm.expect(pm.response.json().data.limit).to.eql(100));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?limit=500",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "limit",
+       "value": "500"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "23 limit below 1 is clamped to 1",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('limit=1', () => pm.expect(pm.response.json().data.limit).to.eql(1));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?limit=0",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "limit",
+       "value": "0"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "24 Non-numeric page and limit fall back to defaults",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('page=1 limit=20', () => { pm.expect(d.page).to.eql(1); pm.expect(d.limit).to.eql(20); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?page=abc&limit=xyz",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "page",
+       "value": "abc"
+      },
+      {
+       "key": "limit",
+       "value": "xyz"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "25 Negative page is clamped to 1",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('page=1', () => pm.expect(pm.response.json().data.page).to.eql(1));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?page=-3",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "page",
+       "value": "-3"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "26 Mark read - malformed id (404)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code NOTIFICATION_NOT_FOUND', () => pm.expect(b.code).to.eql('NOTIFICATION_NOT_FOUND'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/not-a-uuid/read",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "not-a-uuid",
+      "read"
+     ]
+    }
+   }
+  },
+  {
+   "name": "27 Mark read - unknown id (404)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code NOTIFICATION_NOT_FOUND', () => pm.expect(b.code).to.eql('NOTIFICATION_NOT_FOUND'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/00000000-0000-4000-8000-000000000000/read",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "00000000-0000-4000-8000-000000000000",
+      "read"
+     ]
+    }
+   }
+  },
+  {
+   "name": "28 Read all on empty inbox",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const b = pm.response.json(); pm.test('updated=0', () => { pm.expect(b.success).to.eql(true); pm.expect(b.data.updated).to.eql(0); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/read-all",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "read-all"
+     ]
+    }
+   }
+  },
+  {
+   "name": "29 Read all - invalid JSON body (400)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+       "const b = pm.response.json(); pm.test('Parse error is reported, not a 500', () => { pm.expect(b.success).to.eql(false); pm.expect(b.error).to.eql('Invalid JSON request body'); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     },
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/read-all",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "read-all"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{not json",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "30 Requester posts an errand (202)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 202', () => pm.response.to.have.status(202));",
+       "const d = pm.response.json().data; pm.test('PENDING receipt with id', () => { pm.expect(d.status).to.eql('PENDING'); pm.expect(d.id).to.match(/^[0-9a-f-]{36}$/); });",
+       "pm.collectionVariables.set('orderId', d.id);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     },
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"supplierId\": \"{{supplierId}}\", \"itemDescription\": \"Notification API test {{runId}}\", \"dropoffLocation\": \"Test - do not fulfil\", \"rewardCredits\": 3, \"durationMinutes\": 30}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "31 Wait for order OPEN",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data;",
+       "const key = 'poll_' + pm.info.requestName;",
+       "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
+       "if (!(d.status !== 'PENDING') && attempts < 100) {",
+       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "} else {",
+       "  pm.collectionVariables.unset(key);",
+       "  pm.test('Condition reached within 100 polls', () => pm.expect(d.status !== 'PENDING').to.eql(true));",
+       "  pm.test('Order is OPEN', () => pm.expect(d.status).to.eql('OPEN'));",
+       "  pm.collectionVariables.set('orderCode', d.orderCode);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders",
+      "{{orderId}}"
+     ]
+    }
+   }
+  },
+  {
+   "name": "32 Courier accepts",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('ACCEPTED', () => pm.expect(pm.response.json().data.status).to.eql('ACCEPTED'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     },
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders/{{orderId}}/accept",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders",
+      "{{orderId}}",
+      "accept"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "33 Wait for ORDER_ACCEPTED alert (F5.1)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data;",
+       "const key = 'poll_' + pm.info.requestName;",
+       "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
+       "if (!(d.total >= 1) && attempts < 60) {",
+       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "} else {",
+       "  pm.collectionVariables.unset(key);",
+       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 1).to.eql(true));",
+       "  const b = pm.response.json();",
+       "  pm.test('Envelope success=true', () => pm.expect(b.success).to.eql(true));",
+       "  pm.test('Page shape: items, total, page, limit, totalPages, unreadCount', () => {",
+       "    pm.expect(d.items).to.be.an('array'); pm.expect(d.total).to.be.a('number'); pm.expect(d.page).to.be.a('number');",
+       "    pm.expect(d.limit).to.be.a('number'); pm.expect(d.totalPages).to.be.a('number'); pm.expect(d.unreadCount).to.be.a('number');",
+       "  });",
+       "  function expectItemShape(n) {",
+       "    pm.expect(n.id).to.match(/^[0-9a-f-]{36}$/);",
+       "    pm.expect(['ORDER_ACCEPTED', 'ORDER_PICKED_UP', 'ORDER_DELIVERED']).to.include(n.kind);",
+       "    pm.expect(n.orderId).to.match(/^[0-9a-f-]{36}$/); pm.expect(n.title).to.be.a('string'); pm.expect(n.body).to.be.a('string');",
+       "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
+       "  }",
+       "  const n = d.items[0]; expectItemShape(n);",
+       "  pm.test('Exactly one alert, unread', () => { pm.expect(d.total).to.eql(1); pm.expect(d.unreadCount).to.eql(1); pm.expect(n.readAt).to.eql(null); });",
+       "  pm.test('Identifies the errand (F5.1.1)', () => { pm.expect(n.kind).to.eql('ORDER_ACCEPTED'); pm.expect(n.orderId).to.eql(pm.collectionVariables.get('orderId')); pm.expect(n.orderCode).to.eql(pm.collectionVariables.get('orderCode')); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was accepted'); });",
+       "  pm.test('Identifies the courier (F5.1.1)', () => { pm.expect(n.courierId).to.eql(pm.collectionVariables.get('courierId')); pm.expect(n.body).to.eql(pm.collectionVariables.get('courierUsername') + ' accepted your errand and will pick the items up next.'); });",
+       "  pm.collectionVariables.set('n1', n.id);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "34 Courier inbox stays empty (requester-facing feature)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('No alerts for the courier', () => { pm.expect(d.total).to.eql(0); pm.expect(d.unreadCount).to.eql(0); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "35 Courier picks up",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('IN_TRANSIT', () => pm.expect(pm.response.json().data.status).to.eql('IN_TRANSIT'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     },
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders/{{orderId}}/pickup",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders",
+      "{{orderId}}",
+      "pickup"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "36 Wait for ORDER_PICKED_UP alert (F5.2)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data;",
+       "const key = 'poll_' + pm.info.requestName;",
+       "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
+       "if (!(d.total >= 2) && attempts < 60) {",
+       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "} else {",
+       "  pm.collectionVariables.unset(key);",
+       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 2).to.eql(true));",
+       "  function expectItemShape(n) {",
+       "    pm.expect(n.id).to.match(/^[0-9a-f-]{36}$/);",
+       "    pm.expect(['ORDER_ACCEPTED', 'ORDER_PICKED_UP', 'ORDER_DELIVERED']).to.include(n.kind);",
+       "    pm.expect(n.orderId).to.match(/^[0-9a-f-]{36}$/); pm.expect(n.title).to.be.a('string'); pm.expect(n.body).to.be.a('string');",
+       "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
+       "  }",
+       "  const n = d.items[0]; expectItemShape(n);",
+       "  pm.test('Newest first and unread count 2', () => { pm.expect(d.total).to.eql(2); pm.expect(d.unreadCount).to.eql(2); pm.expect(n.kind).to.eql('ORDER_PICKED_UP'); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n1')); });",
+       "  pm.test('Identifies the errand whose status changed (F5.2.1)', () => { pm.expect(n.orderCode).to.eql(pm.collectionVariables.get('orderCode')); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was picked up'); pm.expect(n.body).to.eql('Your courier has the items and is on the way.'); });",
+       "  pm.collectionVariables.set('n2', n.id);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "37 Courier delivers",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('DELIVERED', () => pm.expect(pm.response.json().data.status).to.eql('DELIVERED'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     },
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders/{{orderId}}/deliver",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders",
+      "{{orderId}}",
+      "deliver"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "38 Wait for ORDER_DELIVERED alert (F5.3)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data;",
+       "const key = 'poll_' + pm.info.requestName;",
+       "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
+       "if (!(d.total >= 3) && attempts < 60) {",
+       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "} else {",
+       "  pm.collectionVariables.unset(key);",
+       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 3).to.eql(true));",
+       "  function expectItemShape(n) {",
+       "    pm.expect(n.id).to.match(/^[0-9a-f-]{36}$/);",
+       "    pm.expect(['ORDER_ACCEPTED', 'ORDER_PICKED_UP', 'ORDER_DELIVERED']).to.include(n.kind);",
+       "    pm.expect(n.orderId).to.match(/^[0-9a-f-]{36}$/); pm.expect(n.title).to.be.a('string'); pm.expect(n.body).to.be.a('string');",
+       "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
+       "  }",
+       "  const n = d.items[0]; expectItemShape(n);",
+       "  pm.test('Three stages, all unread, all for this order', () => { pm.expect(d.total).to.eql(3); pm.expect(d.unreadCount).to.eql(3); pm.expect(d.totalPages).to.eql(1); d.items.forEach((x) => pm.expect(x.orderId).to.eql(pm.collectionVariables.get('orderId'))); });",
+       "  pm.test('Prompts the requester to confirm (F5.3.1)', () => { pm.expect(n.kind).to.eql('ORDER_DELIVERED'); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was delivered'); pm.expect(n.body).to.eql('Review the delivery and confirm it.'); });",
+       "  pm.test('Ordered by event time, newest first', () => { for (let i = 1; i < d.items.length; i++) pm.expect(d.items[i - 1].createdAt >= d.items[i].createdAt).to.eql(true); });",
+       "  pm.test('Stage order accepted < picked up < delivered', () => { const byId = Object.fromEntries(d.items.map((x) => [x.id, x.createdAt])); pm.expect(byId[pm.collectionVariables.get('n1')] <= byId[pm.collectionVariables.get('n2')]).to.eql(true); pm.expect(byId[pm.collectionVariables.get('n2')] <= n.createdAt).to.eql(true); });",
+       "  pm.collectionVariables.set('n3', n.id);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "39 Requester confirms delivery",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('COMPLETED', () => pm.expect(pm.response.json().data.status).to.eql('COMPLETED'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     },
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders/{{orderId}}/complete",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders",
+      "{{orderId}}",
+      "complete"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "40 Wait for order COMPLETED",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data;",
+       "const key = 'poll_' + pm.info.requestName;",
+       "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
+       "if (!(d.status === 'COMPLETED') && attempts < 30) {",
+       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "} else {",
+       "  pm.collectionVariables.unset(key);",
+       "  pm.test('Condition reached within 30 polls', () => pm.expect(d.status === 'COMPLETED').to.eql(true));",
+       "  pm.test('Order settled', () => pm.expect(d.status).to.eql('COMPLETED'));",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "orders",
+      "{{orderId}}"
+     ]
+    }
+   }
+  },
+  {
+   "name": "41 Completion adds no alert (F5 scope)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('Still exactly three alerts', () => { pm.expect(d.total).to.eql(3); pm.expect(d.items.map((x) => x.kind)).to.eql(['ORDER_DELIVERED', 'ORDER_PICKED_UP', 'ORDER_ACCEPTED']); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "50 Unread filter lists all three",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('3 unread', () => { pm.expect(d.items.length).to.eql(3); pm.expect(d.total).to.eql(3); d.items.forEach((x) => pm.expect(x.readAt).to.eql(null)); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?unread=true",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "unread",
+       "value": "true"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "51 Mark the accepted alert read",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const b = pm.response.json(); pm.test('Returns the stamped row', () => { pm.expect(b.success).to.eql(true); pm.expect(b.data.id).to.eql(pm.collectionVariables.get('n1')); pm.expect(b.data.readAt).to.be.a('string'); });",
+       "pm.collectionVariables.set('readAt1', b.data.readAt);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/{{n1}}/read",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "{{n1}}",
+      "read"
+     ]
+    }
+   }
+  },
+  {
+   "name": "52 Mark read again keeps the first read time (idempotent)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('readAt unchanged', () => pm.expect(pm.response.json().data.readAt).to.eql(pm.collectionVariables.get('readAt1')));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/{{n1}}/read",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "{{n1}}",
+      "read"
+     ]
+    }
+   }
+  },
+  {
+   "name": "53 Unread filter excludes the read alert",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('2 unread, n1 excluded', () => { pm.expect(d.items.length).to.eql(2); pm.expect(d.unreadCount).to.eql(2); pm.expect(d.total).to.eql(2); pm.expect(d.items.map((x) => x.id)).to.not.include(pm.collectionVariables.get('n1')); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?unread=true",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "unread",
+       "value": "true"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "54 Pagination page 1 of 2",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('2 of 3, newest first', () => { pm.expect(d.items.length).to.eql(2); pm.expect(d.total).to.eql(3); pm.expect(d.totalPages).to.eql(2); pm.expect(d.page).to.eql(1); pm.expect(d.limit).to.eql(2); pm.expect(d.items[0].id).to.eql(pm.collectionVariables.get('n3')); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n2')); });",
+       "pm.test('unreadCount is global, not per page', () => pm.expect(d.unreadCount).to.eql(2));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?limit=2&page=1",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "limit",
+       "value": "2"
+      },
+      {
+       "key": "page",
+       "value": "1"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "55 Pagination page 2 of 2",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('Last item only', () => { pm.expect(d.items.length).to.eql(1); pm.expect(d.items[0].id).to.eql(pm.collectionVariables.get('n1')); pm.expect(d.page).to.eql(2); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?limit=2&page=2",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "limit",
+       "value": "2"
+      },
+      {
+       "key": "page",
+       "value": "2"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "56 Pagination past the end",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('Empty page, totals intact', () => { pm.expect(d.items).to.eql([]); pm.expect(d.total).to.eql(3); pm.expect(d.totalPages).to.eql(2); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?limit=2&page=3",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "limit",
+       "value": "2"
+      },
+      {
+       "key": "page",
+       "value": "3"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "57 Ownership: courier cannot mark the requester alert read (404)",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+       "const b = pm.response.json();",
+       "pm.test('Envelope success=false', () => pm.expect(b.success).to.eql(false));",
+       "pm.test('Error code NOTIFICATION_NOT_FOUND', () => pm.expect(b.code).to.eql('NOTIFICATION_NOT_FOUND'));",
+       "pm.test('Error message is a string', () => pm.expect(b.error).to.be.a('string'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "PATCH",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/{{n2}}/read",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "{{n2}}",
+      "read"
+     ]
+    }
+   }
+  },
+  {
+   "name": "58 Ownership: courier read-all touches nothing",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('updated=0', () => pm.expect(pm.response.json().data.updated).to.eql(0));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/read-all",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "read-all"
+     ]
+    }
+   }
+  },
+  {
+   "name": "59 Requester unread count unchanged by the courier",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('Still 2 unread', () => { pm.expect(d.unreadCount).to.eql(2); pm.expect(d.items.find((x) => x.id === pm.collectionVariables.get('n2')).readAt).to.eql(null); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "60 Read all",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('updated=2', () => pm.expect(pm.response.json().data.updated).to.eql(2));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/read-all",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "read-all"
+     ]
+    }
+   }
+  },
+  {
+   "name": "61 Everything is read",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('unreadCount 0, every row stamped, n1 keeps its first stamp', () => { pm.expect(d.unreadCount).to.eql(0); d.items.forEach((x) => pm.expect(x.readAt).to.be.a('string')); pm.expect(d.items.find((x) => x.id === pm.collectionVariables.get('n1')).readAt).to.eql(pm.collectionVariables.get('readAt1')); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ]
+    }
+   }
+  },
+  {
+   "name": "62 Unread filter is empty",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "const d = pm.response.json().data; pm.test('No unread', () => { pm.expect(d.items).to.eql([]); pm.expect(d.total).to.eql(0); });"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications?unread=true",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications"
+     ],
+     "query": [
+      {
+       "key": "unread",
+       "value": "true"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "63 Read all again is a no-op",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+       "pm.test('updated=0', () => pm.expect(pm.response.json().data.updated).to.eql(0));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/notifications/read-all",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "notifications",
+      "read-all"
+     ]
+    }
+   }
+  },
+  {
+   "name": "70 Cleanup: requester deletes own account",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "DELETE",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{reqToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/users/{{reqId}}",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "users",
+      "{{reqId}}"
+     ]
+    }
+   }
+  },
+  {
+   "name": "71 Cleanup: courier deletes own account",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "DELETE",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{courierToken}}"
+     }
+    ],
+    "url": {
+     "raw": "{{baseUrl}}/api/users/{{courierId}}",
+     "host": [
+      "{{baseUrl}}"
+     ],
+     "path": [
+      "api",
+      "users",
+      "{{courierId}}"
+     ]
+    }
+   }
+  }
+ ]
+}
