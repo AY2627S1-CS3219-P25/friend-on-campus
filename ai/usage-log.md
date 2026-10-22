@@ -3897,6 +3897,73 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/admin-portal/src/api/auth.ts`, `apps/admin-portal/src/hooks/useAdminAuth.ts` — guarded `res.json()` with `.catch(() => null)` in `adminLoginApi` and surfaced friendly `5xx` fallback messages in `handleAdminLogin`.
 - `apps/student-app/src/components/ErrandCard.tsx`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/src/api/orders.ts` — added an optional `courierContactNote` input (`data-testid="accept-contact-note-input"`, max 255 chars) inside the inline `Confirm` / `Cancel` step on `ErrandCard` and passed it to `POST /api/orders/:id/accept`.
 - `ai/usage-log.md` — this entry.
+## 2026-10-21 20:40 SGT — Release check of main: Docker UAT, Debezium start failure, PR #140, wiki refresh (handed off)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Pull `main`, run the stack on Docker, smoke/UAT-test the app, screenshot its pages, refresh the GitHub wiki, and merge PR #140 if possible. Interrupted by the author; progress saved and handoff written.
+
+**Usage scenario:** Debugging assistance, test code and documentation. Stack built from main @ 3fd1921 (gateway remapped to :8080, Postgres :5440, RabbitMQ :5673). Acceptance drivers: `uat-d2-api` 62/62, `uat-notifications` 17/17, `uat-d2-ui` 34/34; an order-lifecycle driver adapted to the 202/PENDING saga was 8/24 because the Debezium container crash-looped (Quarkus expanded `${routedByValue}` to null → NullPointerException in `configToProperties`), so no order outbox event was published and orders stayed `PENDING`; after escaping the placeholder it is 24/24. PR #140 was merged with `main` in a scratch worktree, its retry-path tests rewritten for the native quorum-queue redelivery of PR #145, pushed (a2aaa57, CI green); the merge itself is left to the author. Wiki pages rewritten by subagents from the code (uncommitted in the wiki clone). No architecture or design decisions made.
+
+**Files changed:**
+- `docker/debezium/application.properties` — `$${routedByValue}` escape so Debezium Server starts; disclosure record (uncommitted, for the author to review and commit)
+- `ai/usage-log.md` — this entry
+- `services/notification-service/test/messaging.integration.test.ts`, `test/helpers.ts`, `ai/usage-log.md` on branch `test/notification-service-untested-paths` (PR #140) — merge of main and native-retry test rewrite, pushed
+- GitHub wiki clone (`wiki-checkout`, uncommitted): Architecture, Services, Deployment-and-Configuration, Order-Service, Credit-Service, Notification-Service, User-Service, Supplier-Service, Data-Model, Authentication-and-Roles, Frontend-Apps, Getting-Started, Testing-and-Evidence, Team-Conventions, Decisions-and-Open-Questions; `images/d3/*.jpg` screenshots
+
+## 2026-10-22 00:05 SGT — Release check continued on main @ 1bcd842: Docker UAT re-run, PR #140 re-merged, wiki merged with the author's sync
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Continue the release handoff of 2026-10-21 20:40 (Docker UAT, screenshots, wiki refresh, PR #140).
+
+**Usage scenario:** Debugging assistance, test execution and documentation. `main` had moved from 3fd1921 to 1bcd842 (PRs #154–#158) since the handoff: the clone was fast-forwarded, the previous session's uncommitted `$${routedByValue}` Debezium edit was dropped because PR #155 fixed the same defect with `\${routedByValue}`, and the stack was rebuilt from 1bcd842 (gateway :8080, Postgres :5440, RabbitMQ :5673). Acceptance drivers on that stack: `uat-d2-api` 62/62, `uat-notifications` 17/17, `uat-cdc` 7/7, `uat-d2-ui` 40/40 (incl. UO1–UO6), order-lifecycle driver 24/24. PR #140 had become `CONFLICTING` again; `origin/main` was merged into it in a scratch worktree (only `ai/usage-log.md` conflicted), `npm run typecheck`, notification-service unit 34/34, integration 10/10 and messaging 5/5 passed, pushed as e5a1606 (the merge itself is left to the author). The GitHub wiki clone was fast-forwarded onto the author's three sync commits of this evening and the parallel rewrite of 15 pages was merged into them by four subagents, then refreshed to 1bcd842; Home, Roadmap, Milestone D3, the sidebar and a new D3 Screenshots page (56 Chromium screenshots) were written in the main session. No architecture or design decisions made; no commits on `main`.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry (the 20:40 entry above stays as written; its Debezium line is superseded by PR #155)
+- Branch `test/notification-service-untested-paths` (PR #140): merge commit e5a1606 with `ai/usage-log.md` resolved, pushed
+- GitHub wiki clone (`wiki-checkout`): Architecture, Services, Deployment-and-Configuration, Getting-Started, Order-Service, Credit-Service, Data-Model, User-Service, Authentication-and-Roles, Team-Conventions, Decisions-and-Open-Questions, Frontend-Apps, Testing-and-Evidence, Notification-Service, Supplier-Service, Home, Roadmap, Milestone-D3, _Sidebar, D3-Screenshots (new), `images/d3/*.png` (new)
+- Nothing else in this repository; `test-results/`-style outputs went to `../handoff-2026-10-21/test-results-1bcd842/`
+
+## 2026-10-22 13:05 SGT — Alerts board: count stages per kind and clear "Needs your confirmation" once the order moves on
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Check the notification feature for bugs and fix them. (Earlier in the same session: browser UAT of main @ 7c43af1 with a 45-case Playwright suite and a Claude in Chrome pass, kept outside the repo in `../uat-2026-10-22/`; issues #168–#174 filed from it.)
+
+**Usage scenario:** Debugging assistance, implementation code and unit tests (allowed). Two defects confirmed on live data: (1) after a courier drop / admin unassign and a new acceptance the errand has two `ORDER_ACCEPTED` rows, so the Alerts timeline read "4 of 3 stages" and lost its "Next:" hint; (2) nothing is stored when the requester confirms (or an admin cancels) a delivered errand, so every completed errand stayed under "Needs your confirmation" with the confirm button (11 of alice's errands). Fix kept inside the student app: stages are distinct kinds, and the section/button only apply to orders still `DELIVERED` (set computed from the orders `App.tsx` already loads). Left to the author: whether the Notification Service should instead publish a completion/cancellation notification (an interface change, not made here); the open `test/notification-service-untested-paths` PR #140 is untouched. `ai/usage-log.md` had unresolved stash-conflict markers from the fast-forward to 7c43af1; the three marker lines were removed with both sides' entries kept.
+
+**Files changed:**
+- `apps/student-app/src/notifications/errands.ts` — new: `groupByErrand`, `stageCount` (distinct kinds), `sectionOf(errand, awaitingConfirmation)`, `SECTIONS` moved out of `NotificationBell.tsx`
+- `apps/student-app/src/notifications/NotificationBell.tsx` — uses the helpers; new `awaitingConfirmation` prop gates the "Needs your confirmation" section and the "Open in Tasks to confirm" button; header count, timeline connector and "Next:" hint use `stageCount`
+- `apps/student-app/src/pages/AlertsPage.tsx` — passes `awaitingConfirmation` through
+- `apps/student-app/src/App.tsx` — computes `awaitingConfirmation` (this requester's orders in `DELIVERED`) and passes it to `AlertsPage`
+- `apps/student-app/test/errands.test.ts` — new regression tests (3), run with `node --import tsx --test`
+- `apps/student-app/package.json` — new `test:unit` script (no new dependency; `tsx` is hoisted)
+- `.github/workflows/ci.yml` — student-app added to the unit matrix; `npm run ci:validate-tests` passes
+- `ai/usage-log.md` — this entry; conflict markers removed
+
+## 2026-10-22 13:50 SGT — Credit Service unit suite for the escrow rules (F4.0–F4.6), CI unit matrix entry
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Review the testing/CI pipeline for rigour and coverage, then pick one improvement to do before the Milestone 3 presentation. Assessment (chat only, data in `../uat-2026-10-22/coverage/`): `main` has no branch protection so the test gate is advisory; credit-service had no unit tests and its four suites are plain `tsx` scripts that abort on the first assertion; `packages/auth`, `packages/messaging` and `common-dtos` have no tests of their own; admin-portal has none and student-app only the Alerts helpers; no coverage in CI, lint allows warnings, no dependency scanning, no outage scenario. Chosen task: unit-test the escrow service.
+
+**Usage scenario:** Test suggestions and unit tests (allowed). Which items go into Sprint 4, and whether to add a second test framework for the frontends, are left to the author. No production code changed.
+
+**Files changed:**
+- `services/credit-service/tests/service.unit.test.ts` — new: 20 `node:test` cases against an in-memory store with transaction/savepoint rollback (grant once; 404 wallet; no negative balance with full rollback; reserve/replay/conflicts; settle idempotent, courier/amount/unknown conflicts, settle-after-refund; refund idempotent, refund-after-settle; event dedup by id, fingerprint conflict, failed-result outbox with rollback, closed-reservation failure, infrastructure failure aborts the event; Serializable retry loop of `createCreditStore` with a fake Prisma client). `src/credits/service.ts` 98.9% lines / 91.6% branches under `--experimental-test-coverage`
+- `services/credit-service/package.json` — new `test:unit` script (JSON, no header)
+- `.github/workflows/ci.yml` — credit-service added to the unit matrix; `npm run ci:validate-tests` passes (14 suites)
+- `ai/usage-log.md` — this entry
 
 ## 2026-10-22 14:25 SGT — Postman collection for the Notification Service REST API (F5)
 
@@ -3912,3 +3979,77 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `tests/postman/notification_collection.json` — new (JSON, no header): 49 requests in order: setup (register/login requester and courier, pick an active supplier); auth boundaries (401 MISSING_TOKEN / INVALID_TOKEN on list, mark-read, read-all); `/api/health/notification/health` and `/ready` probes; empty-inbox contract and query clamping (`limit` 500→100, 0→1, non-numeric page/limit → defaults, negative page → 1); malformed and unknown ids → 404 NOTIFICATION_NOT_FOUND; invalid JSON body → 400; the real order flow (202 → poll OPEN → accept → pickup → deliver → complete) asserting one alert per stage with exact titles/bodies, courier id and username (F5.1.1, F5.2.1, F5.3.1), newest-first ordering, no alert for the courier and none for completion; mark-read and idempotent re-read, unread filter, pagination (2+1, past the end, global unreadCount), cross-user ownership (404 and read-all updated=0), read-all (2 then 0); both accounts delete themselves
 - `ai/usage-log.md` — this entry
 - GitHub: issue and pull request opened for this change at the request of the author; review findings on PR #178 (polling delay and reset, settlement wait before the no-alert check, supplier guard, named shape assertions, residue note, this branch line) applied in a follow-up commit
+
+## 2026-10-22 21:15 SGT — Notification inbox: implement the author's "Student Notification System Redesign" (increments 1–5)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox (from origin/main 52d791e; carries the same-day Alerts-board UAT fix, which this work supersedes)
+
+**Prompt (summarised):** Use the redesign document `Friend-on-Campus-Notification-Redesign.md` (team design proposal, 22 Oct 2026) for the notification service.
+
+**Usage scenario:** Implementation code, boilerplate and tests for a design the author decided (allowed). Every recipient rule, event field, table, index, view and piece of copy comes from the document (§2–§11); where it left a choice open the plan at `docs/superpowers/plans/2026-10-22-notification-inbox.md` records what was taken. Not done, left to the author: increment 6 (Credit `credit.escrow.settled`/`refunded` receipts), chat/reminder/matching alerts, push/email, multi-instance fan-out, DLQ monitoring and the audited replay procedure, the wiki refresh, and the deep link uses `/?tab=tasks&orderId=` instead of the suggested `/tasks?orderId=` (the gateway serves the SPA at `/` only). No commits were made.
+
+Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, all pre-existing), `npm run ci:validate-tests` (14 suites); unit: order-service 60/60, notification-service 56/56, credit-service 20/20, student-app 5/5; notification-service integration 16/16 and messaging 4/4 against the Compose PostgreSQL (5440) and RabbitMQ (5673); student-app `vite build`. Acceptance on the rebuilt Compose stack (gateway :8080, migration `20261022120000_recipient_inbox` applied on the existing notification data at container start): `uat-notifications` 21/21 (the first run exposed a driver bug, the acceptance event carried a lower orderVersion than the publication and was correctly treated as stale: stored, not pushed), newman `notification_collection` 63 requests / 141 assertions / 0 failures, `uat-d2-ui` 40/40 (UO5 copy updated), `uat-d2-api` 62/62, `uat-cdc` 7/7.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `OrderActorRole`, `OrderReasonCode`, `OrderEventV2Fields` (optional on the existing Order events, `courierId` on cancelled/expired), new `OrderRejectedEvent` and `OrderUnassignedEvent`; `NotificationKind` (9 kinds), `NotificationCategory/Priority/ActionType/View`, `NotificationDTO` (+producer, category, priority, actionType, targetId, sourceVersion, storedAt, orderStatus), `NotificationPageDTO`
+- `services/order-service/src/orders/order.types.ts` — `OrderEventDraft`, `completeEvent()` (fills orderVersion/previousStatus/status, cancelled/expired assignee, priorCourierId inside the transaction)
+- `services/order-service/src/orders/order.service.ts` — `v2()` envelope on every draft (actor, reason code, correlationId); `order.unassigned` drafts for courier drop and admin unassign
+- `services/order-service/src/repositories/order.repository.ts` — outbox payloads completed at commit; `order.rejected` written with REJECTED; `order.unassigned` on both unassign paths; SYSTEM-actor created/expired with `PUBLICATION_EXPIRED`/`OPEN_EXPIRED`
+- `services/order-service/src/orders/order.routes.ts` — success messages no longer claim credits transferred/refunded
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repo mirrors the v2 facts; 9 new tests; rejection test now expects `order.rejected`
+- `docker/rabbitmq/definitions.json` — (JSON, no header) `order.rejected`/`order.unassigned` added to order_service write and notification_service read topic permissions
+- `services/notification-service/prisma/schema.prisma`, `prisma/migrations/20261022120000_recipient_inbox/migration.sql` — new columns + backfill, `UNIQUE(producer, event_id, user_id, kind)` replacing `UNIQUE(event_id)`, `(user_id, stored_at DESC, id DESC)` index, `processed_notification_events` (seeded from legacy rows, outcome `legacy`, no fingerprint), `order_notification_state`
+- `services/notification-service/src/notifications/store.ts` — `applyEvent()` one-transaction claim/fingerprint/projection/recipient inserts; `list()` with views and snapshot counts; read routes return authoritative `unreadCount`
+- `services/notification-service/src/notifications/policy.ts` — new: `toNotifications()` recipient and trigger matrix, `POLICY_VERSION`
+- `services/notification-service/src/notifications/events.ts` — v1/v2 parsing, new routing keys, `fingerprint()`, infrastructure classifier, `createDeliver(store, hub)` with stale/duplicate handling and INBOX_CHANGED
+- `services/notification-service/src/ws/hub.ts` — `inboxChanged()`; `src/notifications/routes.ts` — `view=`, `meta.unreadCount`, `INVALID_VIEW`; `src/app.ts`, `src/index.ts` — wiring; `src/config.ts` — retry limit default 5
+- `services/notification-service/test/policy.test.ts` (new), `test/events.test.ts`, `test/hub.test.ts`, `test/store-routes.integration.test.ts`, `test/messaging.integration.test.ts` — rewritten/extended; `package.json` — `test:unit` adds policy.test.ts (JSON, no header)
+- `apps/student-app/src/notifications/inbox.ts` (new), `test/inbox.test.ts` (new; replaces `errands.ts`/`errands.test.ts`, removed), `package.json` — `test:unit` points at inbox.test.ts (JSON, no header)
+- `apps/student-app/src/notifications/useNotifications.ts` — REST-first, reconcile on focus/online/visibility/30 s, paging, id-merge, server counts, INBOX_CHANGED, stale flag
+- `apps/student-app/src/notifications/NotificationBell.tsx`, `src/pages/AlertsPage.tsx` — inbox views, generic card, action CTA, stale line, load more
+- `apps/student-app/src/api/orders.ts` — `fetchOrderById`; `src/pages/TasksPage.tsx` — focused-errand panel, card highlight, truthful credit copy; `src/App.tsx` — deep link, toast rule, wallet/errand navigation, copy
+- `scripts/uat/uat-notifications.mjs` — v2 payloads, N6/N7 reworded, N17–N20 added; `scripts/uat/uat-d2-ui.mjs` — cancelled-card copy
+- `tests/postman/notification_collection.json` — (JSON, no header) counts +1 for the publication receipt, delivery/completion assertions on `actionType`/`orderStatus`, courier read-all now updates his completion notice, `meta.unreadCount`
+- `README.md` — "polling outbox relays" wording removed (Debezium only)
+- `docs/superpowers/plans/2026-10-22-notification-inbox.md` — new: the implementation plan derived from the design document
+- `ai/usage-log.md` — this entry
+
+## 2026-10-22 23:50 SGT — Switch for the Claude PR review workflow; saga messaging test routes order.rejected
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Open the PR for the notification inbox, try running it, then add a flag to enable/disable the Claude Code review and set it to disabled.
+
+**Usage scenario:** Boilerplate/config and test code (allowed), at the author's explicit request to commit and push. PR #184 opened (Closes #179/#180/#181, Part of #182). The first CI run failed only in the order-service saga messaging suite (the mandatory outbox flush had no sink for the new `order.rejected`); fixed and green on the second run. The Claude review job failed twice in ~30 s with `is_error: true` (no review output, same signature as an invalid action token) and is now gated by the repository variable `CLAUDE_PR_REVIEW_ENABLED`, created and set to `false` with `gh variable set`. Browser walkthrough of the inbox on the local stack done (deep link, resolved delivery action, live courier-drop push).
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — job `if:` also requires `vars.CLAUDE_PR_REVIEW_ENABLED != 'false'`; header documents the switch
+- `services/order-service/test/reservation.messaging.test.ts` — binds `order.rejected` to the test sink queue and asserts the committed rejection fact (committed as f36356b)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-23 00:25 SGT — Notification Redesign increment 6: Credit settlement and refund receipts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Carry on with the redesign (the deferred financial extension, §4/§6/§9, issue #182).
+
+**Usage scenario:** Implementation code and tests for the author's design (allowed); the contract fields, recipients, copy and idempotency rule are the document's. Credit Service now writes `credit.escrow.settled` / `credit.escrow.refunded` in the same transaction as the escrow transition, ledger row and wallet change (replay of a closed escrow writes nothing); Notification Service binds, validates (Credit-only producer, beneficiary must match the outcome) and stores them as quiet RECEIPT rows pointing at the wallet, without touching the order projection. Verified: typecheck all workspaces, lint (warnings only), unit credit 20 / notification 66 / student-app 5, notification messaging+integration 21 against Compose; on the rebuilt stack `uat-notifications` 22/22 (new N21), newman 65 requests / 143 assertions / 0 failures, `uat-cdc` 7/7 (the real refund produced a CREDITS_RETURNED row), `uat-d2-api` 62/62. Broker topic permissions were applied to the running broker with `rabbitmqctl set_topic_permissions`; the gateway needed a restart after the rebuild (#173). Credit integration/messaging suites run in CI. Wiki refresh still left to the author.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `CreditEscrowSettledEvent`, `CreditEscrowRefundedEvent`, kinds `CREDITS_RECEIVED`/`CREDITS_RETURNED`, category `RECEIPT`
+- `services/credit-service/src/credits/store.ts` — `addTransaction` returns the ledger row id and code
+- `services/credit-service/src/credits/service.ts` — receipts written in `settle()`/`refund()`; `applyEvent` passes the causing Order event id and order code
+- `services/credit-service/src/credits/events.ts` — keeps the optional `orderCode` of Order events
+- `services/credit-service/tests/credits.integration.test.ts` — receipt assertions (one per operation, none on replay, ledger reference); `tests/service.unit.test.ts` (uncommitted, author's) — fake `addTransaction` returns the row
+- `docker/rabbitmq/definitions.json` — (JSON) credit_service may write and notification_service may read `credit.escrow.(settled|refunded)`
+- `services/notification-service/src/notifications/events.ts` — `creditRoutingKeys`, `parseCreditReceipt`, `parseNotificationEvent`, receipts stored under producer `credit-service`; `policy.ts` — receipt drafts; `store.ts` — producer type
+- `services/notification-service/test/events.test.ts`, `test/policy.test.ts`, `test/messaging.integration.test.ts` — receipt cases
+- `apps/student-app/src/notifications/inbox.ts`, `NotificationBell.tsx`, `test/inbox.test.ts` — receipt labels/icons, receipts never toast
+- `scripts/uat/uat-notifications.mjs` — N21 (credit_service account), N10 count; `tests/postman/notification_collection.json` — (JSON) request 58 expects the payment receipt
+- `ai/usage-log.md` — this entry

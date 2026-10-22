@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Keeps the optional orderCode of completed/cancelled/expired events so the settlement or refund receipt can name
+ * the errand (Notification Redesign increment 6). Version-2 fields the service does not use are still ignored.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity, date: 2026-10-19
  * Scope: Removed redundant order.reservation.release_requested handling for Saga Approach B2 (refunds unified on order.expired/order.cancelled).
  * Author review: Reviewed and verified by yanhwee.
@@ -63,6 +68,11 @@ export function parseCreditEvent(content: Buffer, routingKey: string): CreditEve
     return { ...base, eventType: 'user.registered', userId: uuid(input.userId, 'userId'), email: input.email, initialGrant: amount(input.initialGrant, 'initialGrant') };
   }
   const order = { ...base, orderId: uuid(input.orderId, 'orderId'), requesterId: uuid(input.requesterId, 'requesterId'), rewardCredits: amount(input.rewardCredits, 'rewardCredits') };
+  // AI-generated (edited by Reallyeasy1): the display code is optional (version-1 events may omit it) and only decorates receipts.
+  if (input.orderCode !== undefined) {
+    if (typeof input.orderCode !== 'string' || input.orderCode.length === 0 || input.orderCode.length > 32) throw new InvalidCreditEvent('orderCode must be a non-empty string');
+    Object.assign(order, { orderCode: input.orderCode });
+  }
   if (input.eventType === 'order.reservation.requested') {
     return { ...order, eventType: 'order.reservation.requested', correlationId: uuid(input.correlationId, 'correlationId') };
   }
@@ -77,7 +87,7 @@ export function createCreditEventHandler(credits: CreditService) {
     if (event.eventType === 'order.reservation.requested') command = { kind: 'reserve-request', event };
     else if (event.eventType === 'user.registered') command = { kind: 'register', userId: event.userId, initialGrant: event.initialGrant };
     else {
-      const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits };
+      const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits, ...('orderCode' in event && event.orderCode ? { orderCode: event.orderCode } : {}) };
       command = event.eventType === 'order.completed'
         ? { kind: 'settle', body: { ...body, courierId: event.courierId } }
         : { kind: 'refund', body };

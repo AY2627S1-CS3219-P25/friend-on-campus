@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Per the author's Notification Redesign (§2, §9): a focus panel for the errand a notification opened (live
+ * status from Order Service, "no longer available" for a former participant), the matching card highlighted and
+ * scrolled into view, and status copy that no longer claims credits were transferred or refunded.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added courier Drop Errand (unassign) action before pickup and CANCELLED status summary on accepted courier task cards.
  * Author review: <to be completed by yanhwee>
@@ -17,7 +23,8 @@
 
 import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
 import { CheckCircle2, Coins, PackageCheck, RefreshCw, Truck, XCircle } from 'lucide-react';
-import { TaskOrderAction } from '../api/orders';
+import { useEffect } from 'react';
+import { FetchOrderResult, TaskOrderAction } from '../api/orders';
 import { ExpandableNotes } from '../components/ExpandableNotes';
 
 interface TasksPageProps {
@@ -32,6 +39,11 @@ interface TasksPageProps {
   onCompleteOrder: (orderId: string) => void;
   onCancelOrder: (orderId: string) => void;
   onUnassignOrder: (orderId: string) => void;
+  /** The errand a notification opened (deep link); null when Tasks was opened directly. */
+  focusOrderId?: string | null;
+  /** Its authoritative state, fetched from Order Service when the focus was set; null while loading. */
+  focusOrder?: FetchOrderResult | null;
+  onClearFocus?: () => void;
 }
 
 function getStatusBadgeClasses(status: OrderStatus): string {
@@ -61,7 +73,19 @@ export function TasksPage({
   onCompleteOrder,
   onCancelOrder,
   onUnassignOrder,
+  focusOrderId = null,
+  focusOrder = null,
+  onClearFocus,
 }: TasksPageProps) {
+  // AI-generated (edited by Reallyeasy1)
+  // The notification only pointed here; the current order status decides what the card offers.
+  useEffect(() => {
+    if (!focusOrderId) return;
+    const card = document.querySelector<HTMLElement>(`[data-order-id="${focusOrderId}"]`);
+    card?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [focusOrderId, orders.length]);
+  const focused = focusOrder?.status === 'ok' ? focusOrder.order : null;
+
   const groups = [
     {
       key: 'posted' as const,
@@ -93,6 +117,40 @@ export function TasksPage({
           </button>
         )}
       </div>
+      {focusOrderId && (
+        <section
+          role="status"
+          data-testid="focused-errand"
+          className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-slate-800 flex flex-wrap items-center gap-3"
+        >
+          {focusOrder === null && <span>Checking the errand's current status…</span>}
+          {focused && (
+            <>
+              <span className="font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded">{focused.orderCode}</span>
+              <span className={`text-xs font-bold px-2 py-1 rounded ${getStatusBadgeClasses(focused.status)}`}>
+                {focused.status.replace(/_/g, ' ')}
+              </span>
+              <span className="text-slate-600">
+                {focused.status === 'DELIVERED' && focused.requesterId === currentUserId
+                  ? 'Delivered: review it and confirm below.'
+                  : focused.requesterId === currentUserId || focused.courierId === currentUserId
+                    ? 'This is the current state of the errand; the card below has the actions it allows.'
+                    : 'You are no longer part of this errand; this is its current state.'}
+              </span>
+            </>
+          )}
+          {focusOrder && focusOrder.status !== 'ok' && (
+            <span className="text-slate-600">
+              {focusOrder.status === 'error' ? focusOrder.message : 'This errand is no longer available to you.'}
+            </span>
+          )}
+          {onClearFocus && (
+            <button type="button" onClick={onClearFocus} className="ml-auto text-xs font-bold text-blue-700 underline">
+              Dismiss
+            </button>
+          )}
+        </section>
+      )}
       {groups.map((group) => (
         <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
           <div>
@@ -116,7 +174,10 @@ export function TasksPage({
                 <article
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
-                  className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2 flex flex-col justify-between"
+                  data-order-id={task.id}
+                  className={`bg-white rounded-xl p-4 shadow-sm border space-y-2 flex flex-col justify-between ${
+                    task.id === focusOrderId ? 'border-nus-orange ring-2 ring-nus-orange/60' : 'border-slate-200'
+                  }`}
                 >
                   <div className="space-y-2">
                     <div className="flex flex-wrap justify-between items-center gap-2">
@@ -210,7 +271,7 @@ export function TasksPage({
 
                       {task.status === 'COMPLETED' && (
                         <p className="text-xs font-medium text-emerald-700">
-                          Completed · +{task.rewardCredits} credits earned
+                          Completed · {task.rewardCredits} credits are paid once Credit Service settles the escrow
                         </p>
                       )}
 
@@ -272,19 +333,19 @@ export function TasksPage({
 
                       {task.status === 'COMPLETED' && (
                         <p className="text-xs font-medium text-emerald-700">
-                          Completed · Credits released to courier
+                          Completed · Delivery confirmed
                         </p>
                       )}
 
                       {task.status === 'CANCELLED' && (
                         <p className="text-xs font-medium text-slate-500">
-                          Cancelled · Escrow credits refunded
+                          Cancelled · Reserved credits are returned by Credit Service
                         </p>
                       )}
 
                       {task.status === 'EXPIRED' && (
                         <p className="text-xs font-medium text-slate-500">
-                          Expired · Escrow credits refunded
+                          Expired · Reserved credits are returned by Credit Service
                         </p>
                       )}
 

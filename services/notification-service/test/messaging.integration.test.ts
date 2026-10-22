@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Increment 6 (2026-10-23): a settlement receipt reaches the courier once. Per the author's Notification Redesign: a version-1 order.completed is acknowledged and suppressed, and a
+ * version-2 admin cancellation reaches requester and courier once each (two sockets, two rows, replay adds nothing).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
  * Scope: The accepted event carries courierUsername and the pushed frame's body is asserted (F5.1.1).
  * Author review: <to be completed by Reallyeasy1>
@@ -47,6 +52,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
   let connection: Awaited<ReturnType<typeof amqp.connect>>;
   let channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createConfirmChannel']>>;
   let alice: Awaited<ReturnType<typeof openSocket>>;
+  let bob: Awaited<ReturnType<typeof openSocket>>;
 
   const accepted = (overrides: Record<string, unknown> = {}) => ({
     eventId: randomUUID(),
@@ -79,8 +85,11 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     alice = await openSocket(`ws://127.0.0.1:${(wss.address() as AddressInfo).port}`);
     alice.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
     await alice.frame('AUTH_OK');
+    bob = await openSocket(`ws://127.0.0.1:${(wss.address() as AddressInfo).port}`);
+    bob.send({ type: 'AUTH', token: signToken(keys.privateKey, BOB) });
+    await bob.frame('AUTH_OK');
 
-    consumer = await startNotificationConsumer(config, createDeliver(store, hub.push));
+    consumer = await startNotificationConsumer(config, createDeliver(store, hub));
     connection = await amqp.connect(config.url);
     channel = await connection.createConfirmChannel();
   });
@@ -94,6 +103,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     }
     await connection?.close();
     alice?.ws.close();
+    bob?.ws.close();
     hub?.close();
     if (wss) await new Promise<void>((resolve) => wss.close(() => resolve()));
     await database?.drop();
@@ -118,11 +128,78 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     assert.equal(alice.frames.filter((f) => f.type === 'NOTIFICATION').length, 1);
   });
 
-  it('acknowledges events that map to no notification', async () => {
-    await publishEvent(accepted({ eventType: 'order.created' }));
+  it('acknowledges a version-1 event that has no recipient policy and records it as suppressed', async () => {
+    const legacy = accepted({ eventType: 'order.completed' });
+    await publishEvent(legacy);
     await publishEvent(accepted({ requesterId: BOB, courierId: ALICE }));
-    await until(async () => (await rowsFor(BOB)) === 2, 'the event after order.created');
+    await until(async () => (await rowsFor(BOB)) === 2, 'the event after order.completed');
     assert.equal(await rowsFor(ALICE), 1);
+    const processed = await database.db.processedNotificationEvent.findUnique({
+      where: { producer_eventId: { producer: 'order-service', eventId: String(legacy.eventId) } },
+    });
+    assert.equal(processed?.outcome, 'suppressed');
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('a version-2 admin cancellation reaches requester and courier once each; a redelivery adds nothing', async () => {
+    const orderId = randomUUID();
+    const cancelled = {
+      eventId: randomUUID(),
+      eventType: 'order.cancelled',
+      timestamp: '2026-10-22T10:30:00.000Z',
+      schemaVersion: 2,
+      producer: 'order-service',
+      orderId,
+      orderCode: 'ORD-1042',
+      orderVersion: 5,
+      previousStatus: 'ACCEPTED',
+      status: 'CANCELLED',
+      requesterId: ALICE,
+      courierId: BOB,
+      actorId: '90000000-0000-4000-8000-000000000001',
+      actorRole: 'ADMIN',
+      reasonCode: 'ADMIN_CANCELLED',
+      rewardCredits: 8,
+      correlationId: orderId,
+    };
+    const before = { alice: alice.frames.length, bob: bob.frames.length };
+    await publishEvent(cancelled);
+    const forAlice = await until(() => alice.frames.slice(before.alice).find((f) => f.type === 'NOTIFICATION'), 'requester frame');
+    const forBob = await until(() => bob.frames.slice(before.bob).find((f) => f.type === 'NOTIFICATION'), 'courier frame');
+    assert.deepEqual([forAlice.data.kind, forAlice.data.category, forAlice.data.priority, forAlice.data.orderStatus], ['ORDER_CANCELLED', 'IMPORTANT', 'HIGH', 'CANCELLED']);
+    assert.equal(forBob.data.body, 'An administrator cancelled ORD-1042. Open the errand for its current status.');
+    assert.ok(alice.frames.slice(before.alice).some((f) => f.type === 'INBOX_CHANGED'), 'the requester tab is told to refetch');
+    assert.equal(await database.db.notification.count({ where: { orderId } }), 2);
+
+    await publishEvent(cancelled);
+    await publishEvent(accepted({ requesterId: BOB, courierId: ALICE }));
+    await until(async () => (await rowsFor(BOB)) === 4, 'the event after the redelivery');
+    assert.equal(await database.db.notification.count({ where: { orderId } }), 2);
+    assert.equal(alice.frames.slice(before.alice).filter((f) => f.type === 'NOTIFICATION').length, 1);
+    const state = await database.db.orderNotificationState.findUniqueOrThrow({ where: { orderId } });
+    assert.deepEqual([state.highestOrderVersion, state.status, state.courierId], [5, 'CANCELLED', BOB]);
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('a credit settlement receipt reaches the courier as a quiet CREDITS_RECEIVED row under producer credit-service', async () => {
+    const orderId = randomUUID();
+    const settled = {
+      eventId: randomUUID(), eventType: 'credit.escrow.settled', timestamp: '2026-10-23T04:00:00.000Z',
+      schemaVersion: 2, producer: 'credit-service', orderId, orderCode: 'ORD-2001', correlationId: orderId,
+      ledgerTransactionId: randomUUID(), transactionCode: 'TX-feedbeef', amount: 8,
+      beneficiaryId: BOB, requesterId: ALICE, courierId: BOB,
+    };
+    const before = bob.frames.length;
+    await publishEvent(settled);
+    const frame = await until(() => bob.frames.slice(before).find((f) => f.type === 'NOTIFICATION'), 'courier receipt');
+    assert.deepEqual([frame.data.kind, frame.data.category, frame.data.priority, frame.data.actionType, frame.data.producer, frame.data.orderStatus],
+      ['CREDITS_RECEIVED', 'RECEIPT', 'NORMAL', 'REVIEW_WALLET', 'credit-service', null]);
+    assert.equal(frame.data.title, '8 credits received');
+    assert.equal(await database.db.orderNotificationState.count({ where: { orderId } }), 0, 'a receipt never creates a projection');
+    await publishEvent(settled);
+    await publishEvent(accepted({ requesterId: BOB, courierId: ALICE }));
+    await until(async () => (await rowsFor(BOB)) === 6, 'the event after the replayed receipt');
+    assert.equal(await database.db.notification.count({ where: { orderId } }), 1);
   });
 
   it('dead-letters a malformed message and keeps draining the queue', async () => {

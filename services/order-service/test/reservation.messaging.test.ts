@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: The test topology binds order.rejected (new Order outcome, Notification Redesign §9) so the mandatory outbox
+ * flush routes it, and the rejection case asserts the committed fact's reason code, statuses and SYSTEM actor.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Exercise Credit result publication through Debezium and keep late-delivery cases behind an offline Order consumer.
  * Author review: <to be completed by huangjiaxi1111>
@@ -137,6 +142,9 @@ async function main() {
     }
     await channel.assertQueue(`${prefix}.created`, { durable: true });
     await channel.bindQueue(`${prefix}.created`, exchange, 'order.created');
+    // AI-generated (edited by Reallyeasy1): order.rejected is an Order outcome for the Notification Service, which is
+    // not part of this topology; the outbox flush publishes mandatory, so it needs a sink too.
+    await channel.bindQueue(`${prefix}.created`, exchange, 'order.rejected');
 
     const first = await submit();
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
@@ -167,6 +175,10 @@ async function main() {
     const rejectedOrder = await orders.order.findUniqueOrThrow({ where: { id: rejected.id } });
     assert.equal(rejectedOrder.status, 'REJECTED');
     assert.ok(rejectedOrder.rejectionReason);
+    const rejectedFact = (await orders.outboxEvent.findMany({ where: { eventType: 'order.rejected' } }))
+      .map(row => JSON.parse(row.payload)).find(payload => payload.orderId === rejected.id);
+    assert.deepEqual([rejectedFact?.reasonCode, rejectedFact?.previousStatus, rejectedFact?.status, rejectedFact?.actorRole],
+      ['INSUFFICIENT_CREDITS', 'PENDING', 'REJECTED', 'SYSTEM']);
     assert.equal(await credit.creditEscrow.count({ where: { orderId: rejected.id } }), 0);
     assert.equal((await credits.getWallet(rejected.requesterId)).availableCredits, 100);
 

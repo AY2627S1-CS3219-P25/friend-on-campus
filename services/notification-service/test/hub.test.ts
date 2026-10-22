@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Fixture carries the inbox DTO fields; new test for inboxChanged() reaching only the user's sockets.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Tests for src/ws/hub.ts over real sockets and real Ed25519 tokens: the AUTH handshake and its 4401
  * rejections, addressing a push to one user's sockets, closing at token expiry, and eviction on close.
@@ -27,6 +31,14 @@ const notification: NotificationDTO = {
   body: 'A courier has been assigned to your errand.',
   readAt: null,
   createdAt: '2026-10-05T04:00:00.000Z',
+  producer: 'order-service',
+  category: 'PROGRESS',
+  priority: 'NORMAL',
+  actionType: 'VIEW_ERRAND',
+  targetId: '30000000-0000-4000-8000-000000000001',
+  sourceVersion: 2,
+  storedAt: '2026-10-05T04:00:01.000Z',
+  orderStatus: 'ACCEPTED',
 };
 
 describe('WebSocket hub', () => {
@@ -100,6 +112,24 @@ describe('WebSocket hub', () => {
     assert.equal(hub.push(ALICE, notification), 1);
     assert.equal(hub.push('20000000-0000-4000-8000-00000000ffff', notification), 0);
     for (const client of [aliceTwo, bob, anonymous]) client.ws.close();
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('inboxChanged reaches every socket of its user and nobody else', async () => {
+    const [aliceOne, aliceTwo, bob] = await Promise.all([1, 2, 3].map(() => openSocket(url)));
+    aliceOne.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    aliceTwo.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    bob.send({ type: 'AUTH', token: signToken(keys.privateKey, BOB) });
+    await Promise.all([aliceOne.frame('AUTH_OK'), aliceTwo.frame('AUTH_OK'), bob.frame('AUTH_OK')]);
+
+    assert.equal(hub.inboxChanged(ALICE), 2);
+    assert.deepEqual(await aliceOne.frame('INBOX_CHANGED'), { type: 'INBOX_CHANGED' });
+    await aliceTwo.frame('INBOX_CHANGED');
+    await delay(100);
+    assert.equal(bob.frames.some((f) => f.type === 'INBOX_CHANGED'), false);
+    assert.equal(hub.inboxChanged('20000000-0000-4000-8000-00000000ffff'), 0);
+    for (const client of [aliceOne, aliceTwo, bob]) client.ws.close();
+    await until(() => hub.connectionCount(ALICE) === 0 && hub.connectionCount(BOB) === 0, 'sockets evicted');
   });
 
   it('ignores frames after the handshake instead of echoing them to other clients', async () => {

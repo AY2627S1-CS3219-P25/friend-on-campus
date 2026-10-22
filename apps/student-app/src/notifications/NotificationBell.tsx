@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Alerts board rebuilt as the inbox of the author's Notification Redesign (§2): views Action needed / Important /
+ * All / Unread, one row per notification (title, one line of context, time, read state), a detail pane whose single
+ * button follows the typed action (review delivery while the order is still DELIVERED, otherwise view errand or
+ * wallet), a stale-data line when a refresh failed, Load more paging, and a generic card for kinds this build does
+ * not know. The three-stage timeline and the "Needs your confirmation" stage counting are gone. Bell unchanged.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Updated onOpenErrand docstring now that TasksPage provides the confirm-delivery action (Issue #132).
  * Author review: <to be completed by yanhwee>
@@ -17,17 +25,31 @@
  */
 // AI-generated (edited by Reallyeasy1)
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Bell, CheckCheck, PackageCheck, RefreshCw, Truck, UserCheck } from 'lucide-react';
-import type { NotificationDTO, NotificationKind } from '@campus-errand/common-dtos';
+import {
+  AlertTriangle, ArrowLeft, ArrowRight, Bell, CheckCheck, CheckCircle2, Clock, Coins, Megaphone, PackageCheck, RefreshCw,
+  Truck, UserCheck, UserMinus, Wallet, XCircle,
+} from 'lucide-react';
+import type { NotificationDTO, OrderStatus } from '@campus-errand/common-dtos';
+import { inView, isActionOpen, kindLabel, VIEWS, type InboxView } from './inbox';
 
 const FOCUS = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-1';
 
-// The three stages F5 notifies about: accepted, picked up, delivered.
-const STAGE: Record<NotificationKind, { label: string; Icon: typeof Bell; ring: string; pill: string }> = {
-  ORDER_ACCEPTED: { label: 'Accepted', Icon: UserCheck, ring: 'bg-blue-100 text-blue-700', pill: 'bg-blue-50 text-blue-700 border-blue-200' },
-  ORDER_PICKED_UP: { label: 'Picked up', Icon: Truck, ring: 'bg-amber-100 text-amber-700', pill: 'bg-amber-50 text-amber-700 border-amber-200' },
-  ORDER_DELIVERED: { label: 'Delivered', Icon: PackageCheck, ring: 'bg-emerald-100 text-emerald-700', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+// Presentation per kind; anything unknown falls back to the generic bell so a new kind never breaks the board.
+const LOOK: Record<string, { Icon: typeof Bell; ring: string; pill: string }> = {
+  ORDER_ACCEPTED: { Icon: UserCheck, ring: 'bg-blue-100 text-blue-700', pill: 'bg-blue-50 text-blue-700 border-blue-200' },
+  ORDER_PICKED_UP: { Icon: Truck, ring: 'bg-amber-100 text-amber-700', pill: 'bg-amber-50 text-amber-700 border-amber-200' },
+  ORDER_DELIVERED: { Icon: PackageCheck, ring: 'bg-emerald-100 text-emerald-700', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  ORDER_PUBLISHED: { Icon: Megaphone, ring: 'bg-slate-100 text-slate-600', pill: 'bg-slate-50 text-slate-600 border-slate-200' },
+  ORDER_COMPLETED: { Icon: CheckCircle2, ring: 'bg-emerald-100 text-emerald-700', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  ORDER_CANCELLED: { Icon: XCircle, ring: 'bg-rose-100 text-rose-700', pill: 'bg-rose-50 text-rose-700 border-rose-200' },
+  ORDER_EXPIRED: { Icon: Clock, ring: 'bg-slate-100 text-slate-600', pill: 'bg-slate-50 text-slate-600 border-slate-200' },
+  ORDER_REJECTED: { Icon: AlertTriangle, ring: 'bg-rose-100 text-rose-700', pill: 'bg-rose-50 text-rose-700 border-rose-200' },
+  ORDER_UNASSIGNED: { Icon: UserMinus, ring: 'bg-amber-100 text-amber-700', pill: 'bg-amber-50 text-amber-700 border-amber-200' },
+  CREDITS_RECEIVED: { Icon: Coins, ring: 'bg-emerald-100 text-emerald-700', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  CREDITS_RETURNED: { Icon: Coins, ring: 'bg-blue-100 text-blue-700', pill: 'bg-blue-50 text-blue-700 border-blue-200' },
 };
+const GENERIC = { Icon: Bell, ring: 'bg-slate-100 text-slate-600', pill: 'bg-slate-50 text-slate-600 border-slate-200' };
+const look = (kind: string) => LOOK[kind] ?? GENERIC;
 
 export function NotificationBell({ unreadCount, active, onClick, variant }: {
   unreadCount: number;
@@ -95,108 +117,111 @@ function timeOfDay(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-interface Errand {
-  orderId: string;
-  orderCode: string | null;
-  /** Oldest first, so the timeline reads downwards. */
-  steps: NotificationDTO[];
-  latest: NotificationDTO;
-  unread: number;
-}
+type Section = 'Today' | 'Earlier';
+const SECTIONS: Section[] = ['Today', 'Earlier'];
+const sectionOf = (n: NotificationDTO): Section =>
+  new Date(n.createdAt).toDateString() === new Date().toDateString() ? 'Today' : 'Earlier';
 
-type Section = 'Needs your confirmation' | 'Today' | 'Earlier';
-const SECTIONS: Section[] = ['Needs your confirmation', 'Today', 'Earlier'];
-
-// One entry per errand (bundling by source). The event timestamp orders the steps, so late or redelivered events do not reorder them.
-function groupByErrand(items: NotificationDTO[]): Errand[] {
-  const groups = new Map<string, Errand>();
-  for (const n of items) {
-    const group = groups.get(n.orderId) ?? { orderId: n.orderId, orderCode: n.orderCode ?? null, steps: [], latest: n, unread: 0 };
-    group.steps.push(n);
-    if (n.createdAt > group.latest.createdAt) group.latest = n;
-    if (!n.readAt) group.unread += 1;
-    if (!group.orderCode && n.orderCode) group.orderCode = n.orderCode;
-    groups.set(n.orderId, group);
+/** The one thing the detail pane offers. The errand screen re-checks the order before any command. */
+function ctaFor(n: NotificationDTO, liveStatus?: OrderStatus): { label: string; Icon: typeof Bell } | null {
+  switch (n.actionType) {
+    case 'REVIEW_DELIVERY':
+      return isActionOpen(n, liveStatus) ? { label: 'Review delivery', Icon: PackageCheck } : { label: 'View errand', Icon: ArrowRight };
+    case 'REVIEW_WALLET':
+      return { label: 'Review wallet', Icon: Wallet };
+    case 'VIEW_ERRAND':
+      return { label: 'View errand', Icon: ArrowRight };
+    default:
+      return null;
   }
-  for (const group of groups.values()) group.steps.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  return [...groups.values()].sort((a, b) => b.latest.createdAt.localeCompare(a.latest.createdAt));
 }
 
-function sectionOf(errand: Errand): Section {
-  if (errand.latest.kind === 'ORDER_DELIVERED') return 'Needs your confirmation';
-  return new Date(errand.latest.createdAt).toDateString() === new Date().toDateString() ? 'Today' : 'Earlier';
-}
-
-export function NotificationPanel({ items, unreadCount, isLoading, error, onMarkRead, onMarkAllRead, onRefresh, onOpenErrand }: {
+export function NotificationPanel({
+  items, unreadCount, isLoading, stale, error, hasMore, liveStatus, onMarkRead, onMarkAllRead, onRefresh, onLoadMore, onOpen,
+}: {
   items: NotificationDTO[];
   unreadCount: number;
   isLoading: boolean;
+  /** The last refresh failed; the rows shown are what was loaded before. */
+  stale: boolean;
   error: string | null;
+  hasMore: boolean;
+  liveStatus: (orderId: string) => OrderStatus | undefined;
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
   onRefresh: () => void;
-  /** Opens the Tasks tab so the requester can confirm delivery on the errand card. */
-  onOpenErrand: (notification: NotificationDTO) => void;
+  onLoadMore: () => void;
+  /** Opens the notification's destination (errand or wallet); never performs a business action itself. */
+  onOpen: (notification: NotificationDTO) => void;
 }) {
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [view, setView] = useState<InboxView>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // On a phone the board is one pane at a time: the list, then the errand you tapped.
+  // On a phone the board is one pane at a time: the list, then the item you tapped.
   const [mobileDetail, setMobileDetail] = useState(false);
 
-  const all = groupByErrand(items);
-  const errands = all.filter((e) => filter === 'all' || e.unread > 0);
-  // Resolved from every errand, not the filtered list: opening marks read, which would otherwise drop the
-  // opened errand out of the Unread view and jump the detail pane to the next one.
-  const selected = all.find((e) => e.orderId === selectedId) ?? errands[0] ?? null;
+  const visible = items.filter((n) => inView(n, view, liveStatus(n.orderId)));
+  const counts: Record<InboxView, number> = {
+    action_needed: items.filter((n) => isActionOpen(n, liveStatus(n.orderId))).length,
+    important: items.filter((n) => n.category === 'IMPORTANT').length,
+    all: items.length,
+    unread: unreadCount,
+  };
+  // Resolved from every item, not the filtered list: opening marks read, which would otherwise drop the opened
+  // item out of the Unread view and jump the detail pane to the next one.
+  const selected = items.find((n) => n.id === selectedId) ?? visible[0] ?? null;
   useEffect(() => {
-    if (selected && selected.orderId !== selectedId) setSelectedId(selected.orderId);
+    if (selected && selected.id !== selectedId) setSelectedId(selected.id);
   }, [selected, selectedId]);
 
-  // Opening an errand marks its alerts read, as an inbox does.
-  const open = (errand: Errand) => {
-    setSelectedId(errand.orderId);
+  // Opening a notification marks it read, as an inbox does. It does not confirm, accept or resolve anything.
+  const open = (n: NotificationDTO) => {
+    setSelectedId(n.id);
     if (window.matchMedia('(max-width: 1023px)').matches) setMobileDetail(true);
-    for (const step of errand.steps) if (!step.readAt) onMarkRead(step.id);
+    if (!n.readAt) onMarkRead(n.id);
   };
+
+  const emptyText = view === 'unread' ? "You're all caught up" : view === 'action_needed' ? 'Nothing needs your action' : 'No alerts yet';
 
   const list = (
     <ol className="divide-y divide-slate-100">
       {SECTIONS.map((section) => {
-        const rows = errands.filter((e) => sectionOf(e) === section);
+        const rows = visible.filter((n) => sectionOf(n) === section);
         if (rows.length === 0) return null;
-        const urgent = section === 'Needs your confirmation';
         return (
           <li key={section}>
-            <h3 className={`px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wide ${urgent ? 'text-nus-orange' : 'text-slate-400'}`}>
-              {section}{urgent ? ` · ${rows.length}` : ''}
-            </h3>
+            <h3 className="px-4 pt-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">{section}</h3>
             <ol>
-              {rows.map((errand) => {
-                const stage = STAGE[errand.latest.kind];
-                const active = selected?.orderId === errand.orderId;
+              {rows.map((n) => {
+                const { Icon, ring, pill } = look(n.kind);
+                const active = selected?.id === n.id;
+                const unread = !n.readAt;
                 return (
-                  <li key={errand.orderId} data-testid="notification-row" data-unread={errand.unread > 0}>
+                  <li key={n.id} data-testid="notification-row" data-unread={unread}>
                     <button
-                      onClick={() => open(errand)}
+                      onClick={() => open(n)}
                       aria-current={active ? 'true' : undefined}
-                      aria-label={`${errand.orderCode ?? 'Errand'}, ${stage.label}${errand.unread > 0 ? `, ${errand.unread} unread` : ''}`}
+                      aria-label={`${n.orderCode ?? 'Errand'}, ${kindLabel(n.kind)}${unread ? ', unread' : ''}`}
                       className={`w-full text-left px-4 py-3 flex items-start gap-3 border-l-2 transition ${FOCUS} ${
                         active ? 'border-nus-orange bg-orange-50/60' : 'border-transparent hover:bg-slate-50'
                       }`}
                     >
-                      <span className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${stage.ring}`}>
-                        <stage.Icon className="w-4 h-4" aria-hidden />
+                      <span className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${ring}`}>
+                        <Icon className="w-4 h-4" aria-hidden />
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className="flex items-center gap-2">
-                          <span className={`font-mono text-sm ${errand.unread > 0 ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{errand.orderCode ?? 'Errand'}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-px rounded-full border ${stage.pill}`}>{stage.label}</span>
+                          <span className={`font-mono text-sm ${unread ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{n.orderCode ?? 'Errand'}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-px rounded-full border ${pill}`}>{kindLabel(n.kind)}</span>
+                          {isActionOpen(n, liveStatus(n.orderId)) && (
+                            <span className="text-[10px] font-bold px-1.5 py-px rounded-full bg-nus-orange text-white">Action needed</span>
+                          )}
                         </span>
-                        <span className="block text-xs text-slate-500 mt-0.5 truncate">{errand.latest.body}</span>
+                        <span className={`block text-sm mt-0.5 truncate ${unread ? 'text-slate-900' : 'text-slate-600'}`}>{n.title}</span>
+                        <span className="block text-xs text-slate-500 truncate">{n.body}</span>
                       </span>
                       <span className="flex flex-col items-end shrink-0 text-[11px] text-slate-400 pt-0.5">
-                        <span>{timeAgo(errand.latest.createdAt)}</span>
-                        {errand.unread > 0 && <span aria-hidden className="mt-2 w-2 h-2 rounded-full bg-rose-500" />}
+                        <span>{timeAgo(n.createdAt)}</span>
+                        {unread && <span aria-hidden className="mt-2 w-2 h-2 rounded-full bg-rose-500" />}
                       </span>
                     </button>
                   </li>
@@ -206,74 +231,75 @@ export function NotificationPanel({ items, unreadCount, isLoading, error, onMark
           </li>
         );
       })}
+      {hasMore && view === 'all' && (
+        <li className="px-4 py-3 text-center">
+          <button onClick={onLoadMore} disabled={isLoading} className={`text-xs font-bold text-blue-700 disabled:text-slate-400 ${FOCUS}`}>
+            Load more
+          </button>
+        </li>
+      )}
     </ol>
   );
 
-  const detail = selected && (
-    <article aria-label={`${selected.orderCode ?? 'Errand'} timeline`} className="h-full flex flex-col">
-      <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-4 border-b border-slate-100">
-        <button onClick={() => setMobileDetail(false)} aria-label="Back to all alerts" className={`lg:hidden p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:bg-slate-100 ${FOCUS}`}>
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <h3 className="font-mono text-lg font-bold text-slate-900">{selected.orderCode ?? 'Errand'}</h3>
-        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${STAGE[selected.latest.kind].pill}`}>{STAGE[selected.latest.kind].label}</span>
-        <span className="ml-auto text-xs text-slate-400">{selected.steps.length} of 3 stages</span>
-      </header>
-
-      <ol className="px-5 py-5 flex-1">
-        {selected.steps.map((n, i) => {
-          const stage = STAGE[n.kind];
-          const last = i === selected.steps.length - 1 && selected.steps.length === 3;
-          return (
-            <li key={n.id} className="relative flex gap-4">
-              {!last && <span aria-hidden className="absolute left-[19px] top-10 bottom-0 w-px bg-slate-200" />}
-              <span className={`relative mt-0.5 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${stage.ring}`}>
-                <stage.Icon className="w-5 h-5" aria-hidden />
-              </span>
-              <div className={`flex-1 min-w-0 ${last ? '' : 'pb-6'}`}>
-                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3">
-                  <p className="text-sm font-bold text-slate-900">{n.title}</p>
-                  <time dateTime={n.createdAt} className="text-[11px] text-slate-400 shrink-0">{timeOfDay(n.createdAt)} · {timeAgo(n.createdAt)}</time>
-                </div>
-                <p className="text-sm text-slate-600 mt-0.5">{n.body}</p>
-                {n.kind === 'ORDER_DELIVERED' && (
-                  <button
-                    onClick={() => onOpenErrand(n)}
-                    className={`mt-3 inline-flex items-center space-x-1.5 text-sm font-bold text-white bg-nus-orange hover:bg-orange-600 px-4 py-2 rounded-lg shadow-sm ${FOCUS}`}
-                  >
-                    <span>Open in Tasks to confirm</span>
-                    <ArrowRight className="w-4 h-4" aria-hidden />
-                  </button>
-                )}
-              </div>
-            </li>
-          );
-        })}
-        {selected.steps.length < 3 && (
-          <li className="flex gap-4 text-slate-400">
-            <span className="w-10 h-10 rounded-full border-2 border-dashed border-slate-200 shrink-0" aria-hidden />
-            <p className="text-sm pt-2.5">
-              Next: {selected.latest.kind === 'ORDER_ACCEPTED' ? 'your courier picks the items up' : 'your courier delivers the items'}
-            </p>
-          </li>
-        )}
-      </ol>
-    </article>
-  );
+  const detail = selected && (() => {
+    const { Icon, ring, pill } = look(selected.kind);
+    const live = liveStatus(selected.orderId);
+    const cta = ctaFor(selected, live);
+    const status = live ?? selected.orderStatus;
+    const resolved = selected.actionType === 'REVIEW_DELIVERY' && !isActionOpen(selected, live);
+    return (
+      <article aria-label={`${selected.orderCode ?? 'Errand'} notification`} className="h-full flex flex-col">
+        <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-4 border-b border-slate-100">
+          <button onClick={() => setMobileDetail(false)} aria-label="Back to all alerts" className={`lg:hidden p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:bg-slate-100 ${FOCUS}`}>
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h3 className="font-mono text-lg font-bold text-slate-900">{selected.orderCode ?? 'Errand'}</h3>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${pill}`}>{kindLabel(selected.kind)}</span>
+          {status && <span className="ml-auto text-xs text-slate-400">Errand status: {status.replace(/_/g, ' ')}</span>}
+        </header>
+        <div className="px-5 py-5 flex-1 flex gap-4">
+          <span className={`mt-0.5 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${ring}`}>
+            <Icon className="w-5 h-5" aria-hidden />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3">
+              <p className="text-sm font-bold text-slate-900">{selected.title}</p>
+              <time dateTime={selected.createdAt} className="text-[11px] text-slate-400 shrink-0">{timeOfDay(selected.createdAt)} · {timeAgo(selected.createdAt)}</time>
+            </div>
+            <p className="text-sm text-slate-600 mt-0.5">{selected.body}</p>
+            {resolved && (
+              <p className="text-xs text-slate-500 mt-2">This delivery no longer needs your confirmation{status ? ` (errand is ${status.replace(/_/g, ' ')})` : ''}.</p>
+            )}
+            {cta && (
+              <button
+                onClick={() => onOpen(selected)}
+                className={`mt-3 inline-flex items-center space-x-1.5 text-sm font-bold text-white px-4 py-2 rounded-lg shadow-sm ${FOCUS} ${
+                  cta.label === 'Review delivery' ? 'bg-nus-orange hover:bg-orange-600' : 'bg-nus-blue hover:bg-blue-800'
+                }`}
+              >
+                <span>{cta.label}</span>
+                <cta.Icon className="w-4 h-4" aria-hidden />
+              </button>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  })();
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div role="tablist" aria-label="Filter alerts" className="flex items-center bg-white border border-slate-200 rounded-full p-0.5 text-xs font-bold shadow-sm">
-          {(['all', 'unread'] as const).map((value) => (
+        <div role="tablist" aria-label="Filter alerts" className="flex flex-wrap items-center bg-white border border-slate-200 rounded-full p-0.5 text-xs font-bold shadow-sm">
+          {VIEWS.map(({ key, label }) => (
             <button
-              key={value}
+              key={key}
               role="tab"
-              aria-selected={filter === value}
-              onClick={() => setFilter(value)}
-              className={`px-3 py-1.5 rounded-full transition ${FOCUS} ${filter === value ? 'bg-nus-blue text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              aria-selected={view === key}
+              onClick={() => setView(key)}
+              className={`px-3 py-1.5 rounded-full transition ${FOCUS} ${view === key ? 'bg-nus-blue text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
-              {value === 'all' ? `All · ${items.length}` : `Unread · ${unreadCount}`}
+              {label} · {counts[key]}
             </button>
           ))}
         </div>
@@ -292,28 +318,33 @@ export function NotificationPanel({ items, unreadCount, isLoading, error, onMark
         </div>
       </div>
 
-      {error && <p className="rounded-xl px-4 py-3 text-sm text-rose-700 bg-rose-50 border border-rose-200">{error} Refresh to try again.</p>}
+      {stale && (
+        <p role="status" className="rounded-xl px-4 py-3 text-sm text-amber-800 bg-amber-50 border border-amber-200">
+          Showing saved alerts; the last refresh failed{error ? ` (${error})` : ''}. Refresh to try again.
+        </p>
+      )}
+      {!stale && error && <p className="rounded-xl px-4 py-3 text-sm text-rose-700 bg-rose-50 border border-rose-200">{error} Refresh to try again.</p>}
 
-      {!error && errands.length === 0 && !selected && !isLoading && (
+      {visible.length === 0 && !selected && !isLoading && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
           <Bell className="w-8 h-8 mx-auto text-slate-300" />
-          <p className="mt-3 text-sm font-bold text-slate-700">{filter === 'unread' ? "You're all caught up" : 'No alerts yet'}</p>
+          <p className="mt-3 text-sm font-bold text-slate-700">{emptyText}</p>
           <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
-            {filter === 'unread'
-              ? 'New alerts appear here the moment a courier acts on one of your errands.'
-              : 'Post an errand and you will hear here when a courier accepts, picks up and delivers it.'}
+            {view === 'action_needed'
+              ? 'A delivery waiting for your confirmation shows up here.'
+              : 'You will hear here when an errand of yours is posted, accepted, picked up, delivered, cancelled or changes courier.'}
           </p>
         </div>
       )}
 
-      {(errands.length > 0 || selected) && (
+      {(visible.length > 0 || selected) && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden lg:grid lg:grid-cols-[minmax(20rem,2fr)_3fr] lg:min-h-[28rem]">
-          <section aria-label="Errands with alerts" className={`${mobileDetail ? 'hidden lg:block' : ''} lg:border-r lg:border-slate-100 lg:max-h-[70vh] lg:overflow-y-auto`}>
-            {errands.length > 0 ? list : (
-              <p className="px-4 py-10 text-center text-sm text-slate-500">You're all caught up. Every alert has been read.</p>
+          <section aria-label="Alerts" className={`${mobileDetail ? 'hidden lg:block' : ''} lg:border-r lg:border-slate-100 lg:max-h-[70vh] lg:overflow-y-auto`}>
+            {visible.length > 0 ? list : (
+              <p className="px-4 py-10 text-center text-sm text-slate-500">{emptyText}.</p>
             )}
           </section>
-          <section aria-label="Selected errand" className={`${mobileDetail ? '' : 'hidden lg:block'} bg-slate-50/50`}>
+          <section aria-label="Selected alert" className={`${mobileDetail ? '' : 'hidden lg:block'} bg-slate-50/50`}>
             {detail}
           </section>
         </div>
