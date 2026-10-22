@@ -4015,3 +4015,18 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 - `README.md` — "polling outbox relays" wording removed (Debezium only)
 - `docs/superpowers/plans/2026-10-22-notification-inbox.md` — new: the implementation plan derived from the design document
 - `ai/usage-log.md` — this entry
+
+## 2026-10-22 23:50 SGT — Switch for the Claude PR review workflow; saga messaging test routes order.rejected
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Open the PR for the notification inbox, try running it, then add a flag to enable/disable the Claude Code review and set it to disabled.
+
+**Usage scenario:** Boilerplate/config and test code (allowed), at the author's explicit request to commit and push. PR #184 opened (Closes #179/#180/#181, Part of #182). The first CI run failed only in the order-service saga messaging suite (the mandatory outbox flush had no sink for the new `order.rejected`); fixed and green on the second run. The Claude review job failed twice in ~30 s with `is_error: true` (no review output, same signature as an invalid action token) and is now gated by the repository variable `CLAUDE_PR_REVIEW_ENABLED`, created and set to `false` with `gh variable set`. Browser walkthrough of the inbox on the local stack done (deep link, resolved delivery action, live courier-drop push).
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — job `if:` also requires `vars.CLAUDE_PR_REVIEW_ENABLED != 'false'`; header documents the switch
+- `services/order-service/test/reservation.messaging.test.ts` — binds `order.rejected` to the test sink queue and asserts the committed rejection fact (committed as f36356b)
+- `ai/usage-log.md` — this entry
