@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage.
+ * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage and forwarded optional courierContactNote on accept (F3.3.6).
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
@@ -359,13 +359,13 @@ export default function App() {
     });
   };
 
-  const handleAcceptOrder = async (orderId: string) => {
+  const handleAcceptOrder = async (orderId: string, courierContactNote?: string) => {
     if (acceptingOrder || taskActionInFlight) return;
     const requestId = orderRequestId.current;
     setAcceptingOrder(orderId);
     setOrdersError(null);
     try {
-      const updated = await acceptOrderById(authFetch, orderId);
+      const updated = await acceptOrderById(authFetch, orderId, courierContactNote);
       if (requestId !== orderRequestId.current) return;
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
       setNotification('Errand accepted! Head to the pickup location.');

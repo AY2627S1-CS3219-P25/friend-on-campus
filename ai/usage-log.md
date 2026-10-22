@@ -3881,3 +3881,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `services/credit-service/src/database/seed.ts`, `services/credit-service/tests/seed.integration.test.ts` — added `seedSampleOrders` option (enabled in CLI mode when `SEED_SAMPLE_ORDERS=true`) to call `credits.reserve(...)` idempotently for the 4 sample orders after wallet initialization.
 - `docker-compose.yml` — passed `SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}` to `credit-service`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-22 09:38 SGT — Handle Non-JSON 502/503 Responses Gracefully on Auth/User APIs and Add Optional Courier Contact Note on Accept (F3.3.6)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/order-courier-lifecycle-and-seed
+
+**Prompt (summarised):** Address two manual-testing UX items from a teammate: (1) handle non-JSON error responses (such as NGINX `502 Bad Gateway` / `503` HTML pages while containers are starting up) gracefully in login, registration, and profile API calls so users see a friendly message instead of raw `Unexpected token '<'` JSON parse errors; (2) add an optional courier contact note input (`courierContactNote`, F3.3.6) inside the inline `Confirm` / `Cancel` step on `ErrandCard.tsx` and wire it through `acceptOrderById`.
+
+**Usage scenario:** Frontend UX resilience and wiring existing backend `courierContactNote` contract (`POST /api/orders/:id/accept`) into the student app (allowed use).
+
+**Files changed:**
+- `apps/student-app/src/api/auth.ts`, `apps/student-app/src/api/users.ts` — guarded `res.json()` with `.catch(() => null)` and surfaced friendly `5xx` service-unavailable fallback messages.
+- `apps/admin-portal/src/api/auth.ts`, `apps/admin-portal/src/hooks/useAdminAuth.ts` — guarded `res.json()` with `.catch(() => null)` in `adminLoginApi` and surfaced friendly `5xx` fallback messages in `handleAdminLogin`.
+- `apps/student-app/src/components/ErrandCard.tsx`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/src/api/orders.ts` — added an optional `courierContactNote` input (`data-testid="accept-contact-note-input"`, max 255 chars) inside the inline `Confirm` / `Cancel` step on `ErrandCard` and passed it to `POST /api/orders/:id/accept`.
+- `ai/usage-log.md` — this entry.

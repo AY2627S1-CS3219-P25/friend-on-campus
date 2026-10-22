@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Handled non-JSON / 502 Bad Gateway responses gracefully in handleAdminLogin.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted admin authentication, token refresh, and authFetch session hook into src/hooks/useAdminAuth.ts.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -68,10 +72,14 @@ export function useAdminAuth(onClearDomainState: () => void) {
     setLoginError(null);
     try {
       const { res, data } = await adminLoginApi(loginEmail, loginPassword, rememberMe);
-      if (!res.ok || !data.success) {
+      if (!res.ok || !data?.success) {
         setLoginError({
-          code: data.code || `HTTP_${res.status}`,
-          message: data.error || 'Login failed. Please check your credentials.',
+          code: data?.code || `HTTP_${res.status}`,
+          message:
+            data?.error ||
+            (res.status >= 500
+              ? 'Authentication service is temporarily unavailable. Please try again in a moment.'
+              : 'Login failed. Please check your credentials.'),
         });
         return;
       }
