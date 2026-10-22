@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "Campus Errand - Notification Service API Tests",
-  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier or for completion, mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
+  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier or for completion, mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). Residue: the two accounts delete themselves, but the order (COMPLETED, 3 credits), its three notification rows and both credit wallets remain, keyed by the deleted user ids; services keep no cross-database references, so this is harmless but visible in admin views. WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "variable": [
@@ -26,7 +26,8 @@
        "pm.collectionVariables.set('courierEmail', 'notif_courier_' + stamp + '@example.com');",
        "pm.collectionVariables.set('courierUsername', 'notif_courier_' + stamp);",
        "pm.collectionVariables.set('password', 'NotifTest123!');",
-       "for (const k of ['reqToken', 'courierToken', 'orderId', 'orderCode', 'n1', 'n2', 'n3', 'readAt1']) pm.collectionVariables.unset(k);"
+       "const stale = ['reqToken', 'reqId', 'courierToken', 'courierId', 'supplierId', 'orderId', 'orderCode', 'n1', 'n2', 'n3', 'readAt1'];",
+       "for (const k of Object.keys(pm.collectionVariables.toObject())) if (k.startsWith('poll_') || stale.includes(k)) pm.collectionVariables.unset(k);"
       ]
      }
     },
@@ -212,7 +213,7 @@
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
        "const d = pm.response.json().data; const list = Array.isArray(d) ? d : d.suppliers;",
        "const s = list.find((x) => x.isActive); pm.test('An active supplier exists', () => pm.expect(s).to.be.an('object'));",
-       "pm.collectionVariables.set('supplierId', s.id);"
+       "if (s) pm.collectionVariables.set('supplierId', s.id);"
       ]
      }
     }
@@ -899,7 +900,7 @@
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
        "if (!(d.status !== 'PENDING') && attempts < 100) {",
-       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
        "  pm.test('Condition reached within 100 polls', () => pm.expect(d.status !== 'PENDING').to.eql(true));",
@@ -993,7 +994,7 @@
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
        "if (!(d.total >= 1) && attempts < 60) {",
-       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
        "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 1).to.eql(true));",
@@ -1009,7 +1010,7 @@
        "    pm.expect(n.orderId).to.match(/^[0-9a-f-]{36}$/); pm.expect(n.title).to.be.a('string'); pm.expect(n.body).to.be.a('string');",
        "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
        "  }",
-       "  const n = d.items[0]; expectItemShape(n);",
+       "  const n = d.items[0]; pm.test('Item shape', () => expectItemShape(n));",
        "  pm.test('Exactly one alert, unread', () => { pm.expect(d.total).to.eql(1); pm.expect(d.unreadCount).to.eql(1); pm.expect(n.readAt).to.eql(null); });",
        "  pm.test('Identifies the errand (F5.1.1)', () => { pm.expect(n.kind).to.eql('ORDER_ACCEPTED'); pm.expect(n.orderId).to.eql(pm.collectionVariables.get('orderId')); pm.expect(n.orderCode).to.eql(pm.collectionVariables.get('orderCode')); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was accepted'); });",
        "  pm.test('Identifies the courier (F5.1.1)', () => { pm.expect(n.courierId).to.eql(pm.collectionVariables.get('courierId')); pm.expect(n.body).to.eql(pm.collectionVariables.get('courierUsername') + ' accepted your errand and will pick the items up next.'); });",
@@ -1135,7 +1136,7 @@
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
        "if (!(d.total >= 2) && attempts < 60) {",
-       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
        "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 2).to.eql(true));",
@@ -1145,7 +1146,7 @@
        "    pm.expect(n.orderId).to.match(/^[0-9a-f-]{36}$/); pm.expect(n.title).to.be.a('string'); pm.expect(n.body).to.be.a('string');",
        "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
        "  }",
-       "  const n = d.items[0]; expectItemShape(n);",
+       "  const n = d.items[0]; pm.test('Item shape', () => expectItemShape(n));",
        "  pm.test('Newest first and unread count 2', () => { pm.expect(d.total).to.eql(2); pm.expect(d.unreadCount).to.eql(2); pm.expect(n.kind).to.eql('ORDER_PICKED_UP'); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n1')); });",
        "  pm.test('Identifies the errand whose status changed (F5.2.1)', () => { pm.expect(n.orderCode).to.eql(pm.collectionVariables.get('orderCode')); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was picked up'); pm.expect(n.body).to.eql('Your courier has the items and is on the way.'); });",
        "  pm.collectionVariables.set('n2', n.id);",
@@ -1236,7 +1237,7 @@
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
        "if (!(d.total >= 3) && attempts < 60) {",
-       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
        "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 3).to.eql(true));",
@@ -1246,7 +1247,7 @@
        "    pm.expect(n.orderId).to.match(/^[0-9a-f-]{36}$/); pm.expect(n.title).to.be.a('string'); pm.expect(n.body).to.be.a('string');",
        "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
        "  }",
-       "  const n = d.items[0]; expectItemShape(n);",
+       "  const n = d.items[0]; pm.test('Item shape', () => expectItemShape(n));",
        "  pm.test('Three stages, all unread, all for this order', () => { pm.expect(d.total).to.eql(3); pm.expect(d.unreadCount).to.eql(3); pm.expect(d.totalPages).to.eql(1); d.items.forEach((x) => pm.expect(x.orderId).to.eql(pm.collectionVariables.get('orderId'))); });",
        "  pm.test('Prompts the requester to confirm (F5.3.1)', () => { pm.expect(n.kind).to.eql('ORDER_DELIVERED'); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was delivered'); pm.expect(n.body).to.eql('Review the delivery and confirm it.'); });",
        "  pm.test('Ordered by event time, newest first', () => { for (let i = 1; i < d.items.length; i++) pm.expect(d.items[i - 1].createdAt >= d.items[i].createdAt).to.eql(true); });",
@@ -1327,7 +1328,7 @@
    }
   },
   {
-   "name": "40 Wait for order COMPLETED",
+   "name": "40 Wait for settlement (courier paid, proves order.completed was consumed)",
    "event": [
     {
      "listen": "test",
@@ -1338,12 +1339,12 @@
        "const d = pm.response.json().data;",
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
-       "if (!(d.status === 'COMPLETED') && attempts < 30) {",
-       "  pm.collectionVariables.set(key, attempts); pm.execution.setNextRequest(pm.info.requestName);",
+       "if (!(d.totalEarnedCredits >= 3) && attempts < 100) {",
+       "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
-       "  pm.test('Condition reached within 30 polls', () => pm.expect(d.status === 'COMPLETED').to.eql(true));",
-       "  pm.test('Order settled', () => pm.expect(d.status).to.eql('COMPLETED'));",
+       "  pm.test('Condition reached within 100 polls', () => pm.expect(d.totalEarnedCredits >= 3).to.eql(true));",
+       "  pm.test('Courier received the exact reward on top of the welcome grant (F4.4)', () => { pm.expect(d.totalEarnedCredits).to.eql(3); pm.expect(d.availableCredits).to.eql(103); pm.expect(d.escrowCredits).to.eql(0); });",
        "}"
       ]
      }
@@ -1354,18 +1355,18 @@
     "header": [
      {
       "key": "Authorization",
-      "value": "Bearer {{reqToken}}"
+      "value": "Bearer {{courierToken}}"
      }
     ],
     "url": {
-     "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+     "raw": "{{baseUrl}}/api/credits/wallet",
      "host": [
       "{{baseUrl}}"
      ],
      "path": [
       "api",
-      "orders",
-      "{{orderId}}"
+      "credits",
+      "wallet"
      ]
     }
    }
@@ -1379,7 +1380,16 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('Still exactly three alerts', () => { pm.expect(d.total).to.eql(3); pm.expect(d.items.map((x) => x.kind)).to.eql(['ORDER_DELIVERED', 'ORDER_PICKED_UP', 'ORDER_ACCEPTED']); });"
+       "const d = pm.response.json().data;",
+       "const key = 'poll_' + pm.info.requestName;",
+       "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
+       "// Settlement has landed (40), so order.completed has been through the outbox and broker; keep watching for ~1.5 s more.",
+       "if (attempts < 5) {",
+       "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
+       "} else {",
+       "  pm.collectionVariables.unset(key);",
+       "  pm.test('Still exactly three alerts after completion', () => { pm.expect(d.total).to.eql(3); pm.expect(d.items.map((x) => x.kind)).to.eql(['ORDER_DELIVERED', 'ORDER_PICKED_UP', 'ORDER_ACCEPTED']); });",
+       "}"
       ]
      }
     }

@@ -3902,7 +3902,7 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
 **Author:** Reallyeasy1
-**Branch:** main
+**Branch:** test/notification-postman-collection
 
 **Prompt (summarised):** Locate the Postman files and add rigorous Postman tests for the Notification Service.
 
@@ -3911,4 +3911,4 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `tests/postman/notification_collection.json` — new (JSON, no header): 49 requests in order: setup (register/login requester and courier, pick an active supplier); auth boundaries (401 MISSING_TOKEN / INVALID_TOKEN on list, mark-read, read-all); `/api/health/notification/health` and `/ready` probes; empty-inbox contract and query clamping (`limit` 500→100, 0→1, non-numeric page/limit → defaults, negative page → 1); malformed and unknown ids → 404 NOTIFICATION_NOT_FOUND; invalid JSON body → 400; the real order flow (202 → poll OPEN → accept → pickup → deliver → complete) asserting one alert per stage with exact titles/bodies, courier id and username (F5.1.1, F5.2.1, F5.3.1), newest-first ordering, no alert for the courier and none for completion; mark-read and idempotent re-read, unread filter, pagination (2+1, past the end, global unreadCount), cross-user ownership (404 and read-all updated=0), read-all (2 then 0); both accounts delete themselves
 - `ai/usage-log.md` — this entry
-- GitHub: issue and pull request opened for this change at the request of the author
+- GitHub: issue and pull request opened for this change at the request of the author; review findings on PR #178 (polling delay and reset, settlement wait before the no-alert check, supplier guard, named shape assertions, residue note, this branch line) applied in a follow-up commit
