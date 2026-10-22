@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Version-2 parsing (envelope, actor, reason code, versions, assignee fields), the payload fingerprint, the
+ * Scope: Increment 6 receipt parsing added 2026-10-23. Version-2 parsing (envelope, actor, reason code, versions, assignee fields), the payload fingerprint, the
  * infrastructure/permanent/transient classifier and createDeliver's push-after-commit, stale and duplicate behaviour,
  * per the author's Notification Redesign (§6, §8, §10). The version-1 cases are kept; the mapping tests moved to
  * policy.test.ts.
@@ -29,6 +29,7 @@ import {
   classifyNotificationFailure,
   createDeliver,
   fingerprint,
+  parseNotificationEvent,
   parseOrderEvent,
 } from '../src/notifications/events';
 import { ContractMismatch, type AppliedEvent, type ProcessedEventInput } from '../src/notifications/store';
@@ -210,4 +211,40 @@ test('a duplicate or suppressed event is neither pushed nor invalidated', async 
     await deliver(parseOrderEvent(body(accepted), 'order.accepted'));
   }
   assert.deepEqual(steps, []);
+});
+
+// AI-generated (edited by Reallyeasy1)
+const settled = {
+  eventId: '10000000-0000-4000-8000-000000000009', eventType: 'credit.escrow.settled', timestamp: '2026-10-23T04:00:00.000Z',
+  schemaVersion: 2, producer: 'credit-service', orderId: accepted.orderId, orderCode: 'ORD-1042', correlationId: accepted.orderId,
+  ledgerTransactionId: '50000000-0000-4000-8000-000000000001', transactionCode: 'TX-abc123', amount: 8,
+  beneficiaryId: accepted.courierId, requesterId: accepted.requesterId, courierId: accepted.courierId,
+  causationEventId: '10000000-0000-4000-8000-000000000002',
+};
+
+test('parses a credit settlement receipt and keeps the ledger reference', () => {
+  const event = parseNotificationEvent(body(settled), 'credit.escrow.settled');
+  if (event.schemaVersion !== 2 || event.producer !== 'credit-service') return assert.fail('expected a credit receipt');
+  assert.deepEqual([event.amount, event.transactionCode, event.ledgerTransactionId, event.beneficiaryId, event.causationEventId],
+    [8, 'TX-abc123', settled.ledgerTransactionId, accepted.courierId, settled.causationEventId]);
+});
+
+for (const [name, payload, key] of [
+  ['an Order-produced receipt', { ...settled, producer: 'order-service' }, 'credit.escrow.settled'],
+  ['a receipt whose beneficiary is not the courier', { ...settled, beneficiaryId: accepted.requesterId }, 'credit.escrow.settled'],
+  ['a refund whose beneficiary is not the requester', { ...settled, eventType: 'credit.escrow.refunded', beneficiaryId: accepted.courierId }, 'credit.escrow.refunded'],
+  ['a zero amount', { ...settled, amount: 0 }, 'credit.escrow.settled'],
+  ['a receipt without a ledger id', { ...settled, ledgerTransactionId: undefined }, 'credit.escrow.settled'],
+  ['a version-1 receipt', { ...settled, schemaVersion: undefined }, 'credit.escrow.settled'],
+] as const) {
+  test(`rejects ${name}`, () => {
+    assert.throws(() => parseNotificationEvent(body(payload), key), InvalidNotificationEvent);
+  });
+}
+
+test('a receipt is stored under producer credit-service with no order projection', async () => {
+  let received: ProcessedEventInput | undefined;
+  const deliver = createDeliver({ applyEvent: async (event) => { received = event; return { outcome: 'created', stale: false, created: [] }; } }, fakeHub([]));
+  await deliver(parseNotificationEvent(body(settled), 'credit.escrow.settled'));
+  assert.deepEqual([received?.producer, received?.projection, received?.orderCode, received?.courierId], ['credit-service', undefined, 'ORD-1042', accepted.courierId]);
 });

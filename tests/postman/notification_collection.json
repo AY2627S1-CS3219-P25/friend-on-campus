@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "Campus Errand - Notification Service API Tests",
-  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the quiet ORDER_PUBLISHED receipt once the order is OPEN, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier until the requester confirms (then exactly one ORDER_COMPLETED notice for the courier), mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). Residue: the two accounts delete themselves, but the order (COMPLETED, 3 credits), its five notification rows and both credit wallets remain, keyed by the deleted user ids; services keep no cross-database references, so this is harmless but visible in admin views. WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
+  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the quiet ORDER_PUBLISHED receipt once the order is OPEN, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier until the requester confirms (then exactly one ORDER_COMPLETED notice and, once Credit settles the escrow, one CREDITS_RECEIVED receipt for the courier), mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). Residue: the two accounts delete themselves, but the order (COMPLETED, 3 credits), its five notification rows and both credit wallets remain, keyed by the deleted user ids; services keep no cross-database references, so this is harmless but visible in admin views. WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "variable": [
@@ -1740,7 +1740,7 @@
    }
   },
   {
-   "name": "58 Ownership: courier read-all marks only his own completion notice",
+   "name": "58 Ownership: courier read-all marks only his own completion notice and payment receipt",
    "event": [
     {
      "listen": "test",
@@ -1748,7 +1748,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const b = pm.response.json(); pm.test('updated=1 (the ORDER_COMPLETED notice), unreadCount=0', () => { pm.expect(b.data.updated).to.eql(1); pm.expect(b.data.unreadCount).to.eql(0); });"
+       "const b = pm.response.json(); pm.test('updated=2 (ORDER_COMPLETED and CREDITS_RECEIVED), unreadCount=0', () => { pm.expect(b.data.updated).to.eql(2); pm.expect(b.data.unreadCount).to.eql(0); });"
       ]
      }
     }

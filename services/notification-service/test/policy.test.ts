@@ -1,14 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: One test per row of the recipient and trigger matrix in the author's Notification Redesign (§3, §4), plus the
+ * Scope: Increment 6 receipts added 2026-10-23. One test per row of the recipient and trigger matrix in the author's Notification Redesign (§3, §4), plus the
  * audience rules (no self-alert, deduplicated recipients, version-1 events keep only the F5 alerts).
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseOrderEvent } from '../src/notifications/events';
+import { parseNotificationEvent, parseOrderEvent } from '../src/notifications/events';
 import { toNotifications } from '../src/notifications/policy';
 
 const REQUESTER = '20000000-0000-4000-8000-000000000001';
@@ -156,4 +156,31 @@ test('audience rules: the acting identity is excluded even when it is a particip
     previousStatus: 'ACCEPTED', status: 'OPEN', priorCourierId: REQUESTER, actorRole: 'ADMIN', actorId: ADMIN, reasonCode: 'ADMIN_UNASSIGNED',
   });
   assert.equal(toNotifications(same).length, 1);
+});
+
+// AI-generated (edited by Reallyeasy1)
+const LEDGER = '50000000-0000-4000-8000-000000000001';
+const receiptEvent = (eventType: string, overrides: Record<string, unknown> = {}) => {
+  const payload: Record<string, unknown> = {
+    eventId: '10000000-0000-4000-8000-000000000009', eventType, timestamp: '2026-10-23T04:00:00.000Z',
+    schemaVersion: 2, producer: 'credit-service', orderId: ORDER, orderCode: 'ORD-1042', correlationId: ORDER,
+    ledgerTransactionId: LEDGER, transactionCode: 'TX-abc123', amount: 8, requesterId: REQUESTER,
+    ...overrides,
+  };
+  for (const [k, v] of Object.entries(payload)) if (v === undefined) delete payload[k];
+  return parseNotificationEvent(Buffer.from(JSON.stringify(payload)), eventType);
+};
+
+test('credit.escrow.settled: quiet receipt for the courier with the exact amount and ledger code', () => {
+  assert.deepEqual(toNotifications(receiptEvent('credit.escrow.settled', { beneficiaryId: COURIER, courierId: COURIER })), [{
+    userId: COURIER, kind: 'CREDITS_RECEIVED', category: 'RECEIPT', priority: 'NORMAL', actionType: 'REVIEW_WALLET',
+    title: '8 credits received', body: 'Payment for ORD-1042 is complete (TX-abc123).',
+  }]);
+});
+
+test('credit.escrow.refunded: quiet receipt for the requester; without an order code it still reads', () => {
+  assert.deepEqual(toNotifications(receiptEvent('credit.escrow.refunded', { beneficiaryId: REQUESTER, orderCode: undefined })), [{
+    userId: REQUESTER, kind: 'CREDITS_RETURNED', category: 'RECEIPT', priority: 'NORMAL', actionType: 'REVIEW_WALLET',
+    title: '8 reserved credits are available again', body: 'Refund for your errand is complete (TX-abc123).',
+  }]);
 });

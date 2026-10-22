@@ -51,9 +51,11 @@ test('toast rule: never for the publication receipt, never on the Tasks or Alert
   assert.equal(shouldToast(row({ kind: 'ORDER_PUBLISHED', priority: 'NORMAL' }), 'feed'), false);
   assert.equal(shouldToast(row(), 'tasks'), false);
   assert.equal(shouldToast(row(), 'alerts'), false);
+  assert.equal(shouldToast(row({ kind: 'CREDITS_RECEIVED', category: 'RECEIPT', priority: 'NORMAL' }), 'feed'), false, 'wallet receipts are quiet');
 });
 
 test('unknown kinds get a generic label', () => {
   assert.equal(kindLabel('ORDER_CANCELLED'), 'Cancelled');
+  assert.equal(kindLabel('CREDITS_RETURNED'), 'Credits returned');
   assert.equal(kindLabel('SOMETHING_NEW'), 'Update');
 });

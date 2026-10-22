@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Per the author's Notification Redesign: a version-1 order.completed is acknowledged and suppressed, and a
+ * Scope: Increment 6 (2026-10-23): a settlement receipt reaches the courier once. Per the author's Notification Redesign: a version-1 order.completed is acknowledged and suppressed, and a
  * version-2 admin cancellation reaches requester and courier once each (two sockets, two rows, replay adds nothing).
  * Author review: <to be completed by Reallyeasy1>
  *
@@ -178,6 +178,28 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     assert.equal(alice.frames.slice(before.alice).filter((f) => f.type === 'NOTIFICATION').length, 1);
     const state = await database.db.orderNotificationState.findUniqueOrThrow({ where: { orderId } });
     assert.deepEqual([state.highestOrderVersion, state.status, state.courierId], [5, 'CANCELLED', BOB]);
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('a credit settlement receipt reaches the courier as a quiet CREDITS_RECEIVED row under producer credit-service', async () => {
+    const orderId = randomUUID();
+    const settled = {
+      eventId: randomUUID(), eventType: 'credit.escrow.settled', timestamp: '2026-10-23T04:00:00.000Z',
+      schemaVersion: 2, producer: 'credit-service', orderId, orderCode: 'ORD-2001', correlationId: orderId,
+      ledgerTransactionId: randomUUID(), transactionCode: 'TX-feedbeef', amount: 8,
+      beneficiaryId: BOB, requesterId: ALICE, courierId: BOB,
+    };
+    const before = bob.frames.length;
+    await publishEvent(settled);
+    const frame = await until(() => bob.frames.slice(before).find((f) => f.type === 'NOTIFICATION'), 'courier receipt');
+    assert.deepEqual([frame.data.kind, frame.data.category, frame.data.priority, frame.data.actionType, frame.data.producer, frame.data.orderStatus],
+      ['CREDITS_RECEIVED', 'RECEIPT', 'NORMAL', 'REVIEW_WALLET', 'credit-service', null]);
+    assert.equal(frame.data.title, '8 credits received');
+    assert.equal(await database.db.orderNotificationState.count({ where: { orderId } }), 0, 'a receipt never creates a projection');
+    await publishEvent(settled);
+    await publishEvent(accepted({ requesterId: BOB, courierId: ALICE }));
+    await until(async () => (await rowsFor(BOB)) === 6, 'the event after the replayed receipt');
+    assert.equal(await database.db.notification.count({ where: { orderId } }), 1);
   });
 
   it('dead-letters a malformed message and keeps draining the queue', async () => {

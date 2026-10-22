@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-23
+ * Scope: Increment 6: credit.escrow.settled / credit.escrow.refunded are bound and parsed (parseCreditReceipt: Credit is
+ * the only producer, beneficiary must match the outcome), parseNotificationEvent dispatches by key family, and
+ * createDeliver stores receipts under producer credit-service without touching the order projection.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§5, §6, §8, §10): version-2 parsing (envelope, actor, reason code,
  * committed versions, assignee fields) next to the unchanged version-1 rules, order.rejected and order.unassigned
@@ -34,7 +40,7 @@ import { ContractMismatch, type NotificationStore } from './store';
 export class InvalidNotificationEvent extends Error {}
 
 /** Every order.* key the notification_service broker account may read. */
-export const notificationRoutingKeys = [
+export const orderRoutingKeys = [
   'order.created',
   'order.accepted',
   'order.in_transit',
@@ -45,7 +51,11 @@ export const notificationRoutingKeys = [
   'order.rejected',
   'order.unassigned',
 ] as const;
-export type NotificationRoutingKey = (typeof notificationRoutingKeys)[number];
+/** Credit-owned financial outcomes (increment 6): written only when the ledger change committed. */
+export const creditRoutingKeys = ['credit.escrow.settled', 'credit.escrow.refunded'] as const;
+export const notificationRoutingKeys = [...orderRoutingKeys, ...creditRoutingKeys] as const;
+export type NotificationRoutingKey = (typeof orderRoutingKeys)[number];
+export type CreditRoutingKey = (typeof creditRoutingKeys)[number];
 
 /** A message without schemaVersion: the contract Order Service published before the redesign. */
 export interface OrderEventV1 {
@@ -78,6 +88,28 @@ export interface OrderEventV2 extends Omit<OrderEventV1, 'schemaVersion' | 'orde
 }
 
 export type OrderEvent = OrderEventV1 | OrderEventV2;
+
+/** A committed wallet change from Credit Service; the only producer allowed to assert these fields. */
+export interface CreditReceiptEvent {
+  schemaVersion: 2;
+  producer: 'credit-service';
+  eventId: string;
+  eventType: CreditRoutingKey;
+  timestamp: string;
+  orderId: string;
+  orderCode?: string;
+  ledgerTransactionId: string;
+  transactionCode: string;
+  amount: number;
+  beneficiaryId: string;
+  requesterId: string;
+  courierId?: string;
+  causationEventId?: string;
+  correlationId: string;
+  actorId?: undefined;
+}
+
+export type NotificationEvent = OrderEvent | CreditReceiptEvent;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
@@ -117,16 +149,63 @@ function orderCode(value: unknown): string {
   return value;
 }
 
-export function parseOrderEvent(content: Buffer, routingKey: string): OrderEvent {
-  let input: Record<string, unknown>;
+function jsonObject(content: Buffer): Record<string, unknown> {
   try {
     const parsed: unknown = JSON.parse(content.toString('utf8'));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
-    input = parsed as Record<string, unknown>;
+    return parsed as Record<string, unknown>;
   } catch {
     throw new InvalidNotificationEvent('Message must be a JSON object');
   }
-  if (!notificationRoutingKeys.includes(routingKey as NotificationRoutingKey) || input.eventType !== routingKey) {
+}
+
+/** Dispatch on the routing key family; anything else is a contract error. */
+export function parseNotificationEvent(content: Buffer, routingKey: string): NotificationEvent {
+  if (creditRoutingKeys.includes(routingKey as CreditRoutingKey)) return parseCreditReceipt(content, routingKey);
+  return parseOrderEvent(content, routingKey);
+}
+
+export function parseCreditReceipt(content: Buffer, routingKey: string): CreditReceiptEvent {
+  const input = jsonObject(content);
+  if (!creditRoutingKeys.includes(routingKey as CreditRoutingKey) || input.eventType !== routingKey) {
+    throw new InvalidNotificationEvent('Unsupported or mismatched event type and routing key');
+  }
+  if (input.schemaVersion !== 2) throw new InvalidNotificationEvent('Unsupported schemaVersion');
+  if (input.producer !== 'credit-service') throw new InvalidNotificationEvent('producer must be credit-service');
+  if (typeof input.amount !== 'number' || !Number.isInteger(input.amount) || input.amount < 1) {
+    throw new InvalidNotificationEvent('amount must be a positive integer');
+  }
+  if (typeof input.transactionCode !== 'string' || input.transactionCode.length === 0 || input.transactionCode.length > 32) {
+    throw new InvalidNotificationEvent('transactionCode must be a non-empty string');
+  }
+  const eventType = routingKey as CreditRoutingKey;
+  const event: CreditReceiptEvent = {
+    schemaVersion: 2,
+    producer: 'credit-service',
+    eventId: uuid(input.eventId, 'eventId'),
+    eventType,
+    timestamp: timestamp(input.timestamp),
+    orderId: uuid(input.orderId, 'orderId'),
+    ledgerTransactionId: uuid(input.ledgerTransactionId, 'ledgerTransactionId'),
+    transactionCode: input.transactionCode,
+    amount: input.amount,
+    beneficiaryId: uuid(input.beneficiaryId, 'beneficiaryId'),
+    requesterId: uuid(input.requesterId, 'requesterId'),
+    correlationId: uuid(input.correlationId, 'correlationId'),
+  };
+  if (input.orderCode !== undefined) event.orderCode = orderCode(input.orderCode);
+  if (eventType === 'credit.escrow.settled' || input.courierId !== undefined) event.courierId = uuid(input.courierId, 'courierId');
+  if (input.causationEventId !== undefined) event.causationEventId = uuid(input.causationEventId, 'causationEventId');
+  // The beneficiary is a fact Credit asserts; it must be one of the participants it names.
+  if (event.beneficiaryId !== (eventType === 'credit.escrow.settled' ? event.courierId : event.requesterId)) {
+    throw new InvalidNotificationEvent('beneficiaryId does not match the outcome');
+  }
+  return event;
+}
+
+export function parseOrderEvent(content: Buffer, routingKey: string): OrderEvent {
+  const input = jsonObject(content);
+  if (!orderRoutingKeys.includes(routingKey as NotificationRoutingKey) || input.eventType !== routingKey) {
     throw new InvalidNotificationEvent('Unsupported or mismatched event type and routing key');
   }
   const eventType = routingKey as NotificationRoutingKey;
@@ -186,7 +265,7 @@ export function parseOrderEvent(content: Buffer, routingKey: string): OrderEvent
 }
 
 /** sha256 of the normalized event with keys sorted, so key order and unknown extra fields never count as a change. */
-export function fingerprint(event: OrderEvent): string {
+export function fingerprint(event: NotificationEvent): string {
   const sorted = Object.fromEntries(Object.entries(event).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)));
   return createHash('sha256').update(JSON.stringify(sorted)).digest('hex');
 }
@@ -198,7 +277,7 @@ export function classifyNotificationFailure(error: unknown): Failure {
   return { category: 'transient', reason: 'processing_failure' };
 }
 
-export type Deliver = (event: OrderEvent) => Promise<void>;
+export type Deliver = (event: NotificationEvent) => Promise<void>;
 
 export interface LiveHints {
   push(userId: string, notification: NotificationDTO): unknown;
@@ -215,7 +294,7 @@ export function createDeliver(store: Pick<NotificationStore, 'applyEvent'>, hub:
     const drafts = toNotifications(event);
     const applied = await store.applyEvent(
       {
-        producer: 'order-service',
+        producer: event.schemaVersion === 2 && event.producer === 'credit-service' ? 'credit-service' : 'order-service',
         eventId: event.eventId,
         fingerprint: fingerprint(event),
         schemaVersion: event.schemaVersion,
@@ -224,7 +303,8 @@ export function createDeliver(store: Pick<NotificationStore, 'applyEvent'>, hub:
         orderCode: event.orderCode ?? null,
         courierId: event.courierId ?? null,
         occurredAt: event.timestamp,
-        ...(event.schemaVersion === 2 && {
+        // A receipt is a Credit fact: it never moves the order attention projection.
+        ...(event.schemaVersion === 2 && event.producer === 'order-service' && {
           projection: {
             orderVersion: event.orderVersion,
             status: event.status,
@@ -247,7 +327,7 @@ export function createDeliver(store: Pick<NotificationStore, 'applyEvent'>, hub:
 
 export function createNotificationEventHandler(deliver: Deliver) {
   return async (content: Buffer, routingKey: string) => {
-    await deliver(parseOrderEvent(content, routingKey));
+    await deliver(parseNotificationEvent(content, routingKey));
   };
 }
 

@@ -1,6 +1,12 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Increment 6 of the same design: CreditEscrowSettledEvent / CreditEscrowRefundedEvent (Credit-owned outcomes
+ * with ledger reference, amount, beneficiary and causation), the CREDITS_RECEIVED / CREDITS_RETURNED kinds and the
+ * RECEIPT category.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Implements the contract section of the author's "Student Notification System Redesign" (22 Oct 2026):
  * version-2 fields on every Order event (OrderEventV2Fields), the new order.rejected and order.unassigned facts,
  * courierId on cancelled/expired, and the inbox NotificationKind/NotificationDTO (category, priority, actionType,
@@ -473,8 +479,41 @@ export interface OrderUnassignedEvent extends BaseEvent, OrderEventV2Fields {
   reasonCode: 'COURIER_DROPPED' | 'ADMIN_UNASSIGNED';
 }
 
+// AI-generated (edited by Reallyeasy1)
+// Financial outcomes (Notification Redesign §4, §6, §9, increment 6): written by Credit Service in the transaction that
+// commits the ledger row, escrow state and wallet change. An idempotent replay of the command writes no second event.
+export interface CreditEscrowOutcomeFields extends BaseEvent {
+  schemaVersion: 2;
+  producer: 'credit-service';
+  orderId: string;
+  /** Display reference, when the triggering Order event carried it. */
+  orderCode?: string;
+  /** credit_transactions.id and its TX- code, as shown in the wallet ledger. */
+  ledgerTransactionId: string;
+  transactionCode: string;
+  amount: number;
+  /** The wallet that received the credits. */
+  beneficiaryId: string;
+  requesterId: string;
+  /** The Order event whose processing committed this outcome; absent for a direct service call. */
+  causationEventId?: string;
+  /** The order id: one value per order workflow. */
+  correlationId: string;
+}
+
+export interface CreditEscrowSettledEvent extends CreditEscrowOutcomeFields {
+  eventType: 'credit.escrow.settled';
+  courierId: string;
+}
+
+export interface CreditEscrowRefundedEvent extends CreditEscrowOutcomeFields {
+  eventType: 'credit.escrow.refunded';
+}
+
 export type CampusErrandEvent =
   | UserRegisteredEvent
+  | CreditEscrowSettledEvent
+  | CreditEscrowRefundedEvent
   | OrderCreatedEvent
   | OrderAcceptedEvent
   | OrderInTransitEvent
@@ -497,9 +536,14 @@ export type NotificationKind =
   | 'ORDER_EXPIRED'
   | 'ORDER_COMPLETED'
   | 'ORDER_CANCELLED'
-  | 'ORDER_UNASSIGNED';
-/** ACTION: something the recipient can do now; IMPORTANT: a relevant change; PROGRESS: a routine update. */
-export type NotificationCategory = 'PROGRESS' | 'ACTION' | 'IMPORTANT';
+  | 'ORDER_UNASSIGNED'
+  | 'CREDITS_RECEIVED'
+  | 'CREDITS_RETURNED';
+/**
+ * ACTION: something the recipient can do now; IMPORTANT: a relevant change; PROGRESS: a routine update;
+ * RECEIPT: a committed wallet change (quiet, never a toast).
+ */
+export type NotificationCategory = 'PROGRESS' | 'ACTION' | 'IMPORTANT' | 'RECEIPT';
 /** HIGH may show a visible toast; NORMAL is a quiet inbox update. */
 export type NotificationPriority = 'NORMAL' | 'HIGH';
 /** Typed destinations mapped by the student app; never an event-supplied URL. */

@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-23
+ * Scope: Increment 6 receipts (§4, §9): credit.escrow.settled is a quiet CREDITS_RECEIVED receipt for the courier with the
+ * exact amount and ledger code; credit.escrow.refunded a quiet CREDITS_RETURNED receipt for the requester. Both point
+ * at the wallet. Nothing is said about money on Order events.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: The recipient and trigger matrix of the author's Notification Redesign (§2–§4): one validated Order event
  * becomes zero or more recipient drafts with kind, category, priority, action and the copy fixed by the design.
@@ -8,7 +14,7 @@
  */
 // AI-generated (edited by Reallyeasy1)
 import type { NotificationActionType, NotificationCategory, NotificationPriority } from '@campus-errand/common-dtos';
-import type { OrderEvent, OrderEventV2 } from './events';
+import type { CreditReceiptEvent, NotificationEvent, OrderEvent, OrderEventV2 } from './events';
 import type { NotificationDraft } from './store';
 
 /** Bump when the matrix changes, so replayed events can be told apart from ones processed under an older policy. */
@@ -91,11 +97,31 @@ function v2Drafts(event: OrderEventV2): NotificationDraft[] {
   }
 }
 
+// AI-generated (edited by Reallyeasy1)
+/** A committed wallet change. Quiet: it sits in the inbox and never toasts; the wallet shows the ledger row. */
+function receipt(event: CreditReceiptEvent): NotificationDraft[] {
+  const errand = event.orderCode ?? 'your errand';
+  const shape: Shape = { kind: 'CREDITS_RECEIVED', category: 'RECEIPT', priority: 'NORMAL', actionType: 'REVIEW_WALLET' };
+  if (event.eventType === 'credit.escrow.settled') {
+    return [{
+      userId: event.beneficiaryId, ...shape,
+      title: `${event.amount} credits received`,
+      body: `Payment for ${errand} is complete (${event.transactionCode}).`,
+    }];
+  }
+  return [{
+    userId: event.beneficiaryId, ...shape, kind: 'CREDITS_RETURNED',
+    title: `${event.amount} reserved credits are available again`,
+    body: `Refund for ${errand} is complete (${event.transactionCode}).`,
+  }];
+}
+
 /**
  * Map one validated event to the students who should see it. Zero drafts is a valid answer: the event changed
  * nothing a student needs to know, or (version 1) the design never defined a recipient for it.
  */
-export function toNotifications(event: OrderEvent): NotificationDraft[] {
+export function toNotifications(event: NotificationEvent): NotificationDraft[] {
+  if (event.schemaVersion === 2 && event.producer === 'credit-service') return receipt(event);
   const alert = f5(event);
   const drafts: NotificationDraft[] = alert ? [{ userId: event.requesterId, ...alert }] : [];
   if (event.schemaVersion === 2) drafts.push(...v2Drafts(event));

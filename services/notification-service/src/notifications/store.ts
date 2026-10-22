@@ -43,7 +43,7 @@ export interface NotificationDraft {
 
 /** What applyEvent records about the event itself, independent of how many recipients it has. */
 export interface ProcessedEventInput {
-  producer: 'order-service';
+  producer: 'order-service' | 'credit-service';
   eventId: string;
   /** sha256 of the normalized event; the same id with another fingerprint is a contract error. */
   fingerprint: string;

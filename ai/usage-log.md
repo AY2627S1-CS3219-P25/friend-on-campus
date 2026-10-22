@@ -4030,3 +4030,26 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 - `.github/workflows/claude-pr-review.yml` — job `if:` also requires `vars.CLAUDE_PR_REVIEW_ENABLED != 'false'`; header documents the switch
 - `services/order-service/test/reservation.messaging.test.ts` — binds `order.rejected` to the test sink queue and asserts the committed rejection fact (committed as f36356b)
 - `ai/usage-log.md` — this entry
+
+## 2026-10-23 00:25 SGT — Notification Redesign increment 6: Credit settlement and refund receipts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Carry on with the redesign (the deferred financial extension, §4/§6/§9, issue #182).
+
+**Usage scenario:** Implementation code and tests for the author's design (allowed); the contract fields, recipients, copy and idempotency rule are the document's. Credit Service now writes `credit.escrow.settled` / `credit.escrow.refunded` in the same transaction as the escrow transition, ledger row and wallet change (replay of a closed escrow writes nothing); Notification Service binds, validates (Credit-only producer, beneficiary must match the outcome) and stores them as quiet RECEIPT rows pointing at the wallet, without touching the order projection. Verified: typecheck all workspaces, lint (warnings only), unit credit 20 / notification 66 / student-app 5, notification messaging+integration 21 against Compose; on the rebuilt stack `uat-notifications` 22/22 (new N21), newman 65 requests / 143 assertions / 0 failures, `uat-cdc` 7/7 (the real refund produced a CREDITS_RETURNED row), `uat-d2-api` 62/62. Broker topic permissions were applied to the running broker with `rabbitmqctl set_topic_permissions`; the gateway needed a restart after the rebuild (#173). Credit integration/messaging suites run in CI. Wiki refresh still left to the author.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `CreditEscrowSettledEvent`, `CreditEscrowRefundedEvent`, kinds `CREDITS_RECEIVED`/`CREDITS_RETURNED`, category `RECEIPT`
+- `services/credit-service/src/credits/store.ts` — `addTransaction` returns the ledger row id and code
+- `services/credit-service/src/credits/service.ts` — receipts written in `settle()`/`refund()`; `applyEvent` passes the causing Order event id and order code
+- `services/credit-service/src/credits/events.ts` — keeps the optional `orderCode` of Order events
+- `services/credit-service/tests/credits.integration.test.ts` — receipt assertions (one per operation, none on replay, ledger reference); `tests/service.unit.test.ts` (uncommitted, author's) — fake `addTransaction` returns the row
+- `docker/rabbitmq/definitions.json` — (JSON) credit_service may write and notification_service may read `credit.escrow.(settled|refunded)`
+- `services/notification-service/src/notifications/events.ts` — `creditRoutingKeys`, `parseCreditReceipt`, `parseNotificationEvent`, receipts stored under producer `credit-service`; `policy.ts` — receipt drafts; `store.ts` — producer type
+- `services/notification-service/test/events.test.ts`, `test/policy.test.ts`, `test/messaging.integration.test.ts` — receipt cases
+- `apps/student-app/src/notifications/inbox.ts`, `NotificationBell.tsx`, `test/inbox.test.ts` — receipt labels/icons, receipts never toast
+- `scripts/uat/uat-notifications.mjs` — N21 (credit_service account), N10 count; `tests/postman/notification_collection.json` — (JSON) request 58 expects the payment receipt
+- `ai/usage-log.md` — this entry

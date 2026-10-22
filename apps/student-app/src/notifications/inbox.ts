@@ -45,11 +45,11 @@ export function mergeNotifications(current: NotificationDTO[], incoming: Notific
 }
 
 /**
- * A toast is a hint for someone looking elsewhere: never for the quiet publication receipt, and not while the
+ * A toast is a hint for someone looking elsewhere: never for the quiet publication or wallet receipts, and not while the
  * Tasks or Alerts screen already shows the change. The server never pushes stale or duplicate rows.
  */
 export function shouldToast(n: NotificationDTO, activeTab: string): boolean {
-  if (n.kind === 'ORDER_PUBLISHED') return false;
+  if (n.kind === 'ORDER_PUBLISHED' || n.category === 'RECEIPT') return false;
   return activeTab !== 'tasks' && activeTab !== 'alerts';
 }
 
@@ -63,6 +63,8 @@ const LABELS: Record<string, string> = {
   ORDER_COMPLETED: 'Completed',
   ORDER_CANCELLED: 'Cancelled',
   ORDER_UNASSIGNED: 'Courier changed',
+  CREDITS_RECEIVED: 'Credits received',
+  CREDITS_RETURNED: 'Credits returned',
 };
 
 /** A kind this build does not know renders as a plain update instead of crashing the board. */

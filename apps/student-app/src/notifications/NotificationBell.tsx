@@ -26,7 +26,7 @@
 // AI-generated (edited by Reallyeasy1)
 import { useEffect, useState } from 'react';
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, Bell, CheckCheck, CheckCircle2, Clock, Megaphone, PackageCheck, RefreshCw,
+  AlertTriangle, ArrowLeft, ArrowRight, Bell, CheckCheck, CheckCircle2, Clock, Coins, Megaphone, PackageCheck, RefreshCw,
   Truck, UserCheck, UserMinus, Wallet, XCircle,
 } from 'lucide-react';
 import type { NotificationDTO, OrderStatus } from '@campus-errand/common-dtos';
@@ -45,6 +45,8 @@ const LOOK: Record<string, { Icon: typeof Bell; ring: string; pill: string }> = 
   ORDER_EXPIRED: { Icon: Clock, ring: 'bg-slate-100 text-slate-600', pill: 'bg-slate-50 text-slate-600 border-slate-200' },
   ORDER_REJECTED: { Icon: AlertTriangle, ring: 'bg-rose-100 text-rose-700', pill: 'bg-rose-50 text-rose-700 border-rose-200' },
   ORDER_UNASSIGNED: { Icon: UserMinus, ring: 'bg-amber-100 text-amber-700', pill: 'bg-amber-50 text-amber-700 border-amber-200' },
+  CREDITS_RECEIVED: { Icon: Coins, ring: 'bg-emerald-100 text-emerald-700', pill: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  CREDITS_RETURNED: { Icon: Coins, ring: 'bg-blue-100 text-blue-700', pill: 'bg-blue-50 text-blue-700 border-blue-200' },
 };
 const GENERIC = { Icon: Bell, ring: 'bg-slate-100 text-slate-600', pill: 'bg-slate-50 text-slate-600 border-slate-200' };
 const look = (kind: string) => LOOK[kind] ?? GENERIC;

@@ -1,6 +1,6 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
-// Scope: Events are published with the version-2 contract of the author's Notification Redesign; N6/N7 now check the
+// Scope: N21 (2026-10-23) publishes a credit.escrow.settled receipt with the credit_service account (increment 6). Events are published with the version-2 contract of the author's Notification Redesign; N6/N7 now check the
 // quiet publication receipt and the courier's completion notice; N17–N19 add the two-recipient admin cancellation
 // with its redelivery, the action_needed view before and after completion, and the authoritative unread count on
 // PATCH read. Counts updated for the extra receipt.
@@ -168,13 +168,33 @@ await publish(v2('order.unassigned', 6000, { previousStatus: 'ACCEPTED', status:
 const dropped = await until(() => aliceSocket.frames.find((f) => f.type === 'NOTIFICATION' && f.data.orderId === thirdOrder));
 record('N20', 'order.unassigned (new key, bound and permitted) tells the requester her courier dropped the errand; the courier gets no self-alert', dropped?.data.kind === 'ORDER_UNASSIGNED' && dropped?.data.priority === 'HIGH' && !bobSocket.frames.some((f) => f.type === 'NOTIFICATION' && f.data.orderId === thirdOrder), `${dropped?.data.title}: ${dropped?.data.body}`);
 
+// ---------------------------------------------------------------- financial receipt, published as Credit Service writes it (increment 6)
+const CREDIT_AMQP_URL = process.env.CREDIT_AMQP_URL ?? AMQP_URL.replace('order_service:order-service-dev', 'credit_service:credit-service-dev');
+{
+  const creditConnection = await amqp.connect(CREDIT_AMQP_URL);
+  const creditChannel = await creditConnection.createConfirmChannel();
+  const receipt = {
+    eventId: randomUUID(), eventType: 'credit.escrow.settled', timestamp: new Date(Date.now() + 7000).toISOString(),
+    schemaVersion: 2, producer: 'credit-service', orderId, orderCode, correlationId: orderId,
+    ledgerTransactionId: randomUUID(), transactionCode: `TX-${orderCode.toLowerCase()}`, amount: 8,
+    beneficiaryId: bob.userId, requesterId: alice.userId, courierId: bob.userId,
+  };
+  await new Promise((resolve, reject) => creditChannel.publish('campus.events', receipt.eventType, Buffer.from(JSON.stringify(receipt)),
+    { persistent: true, contentType: 'application/json', messageId: receipt.eventId }, (error) => (error ? reject(error) : resolve())));
+  const received = await until(() => bobSocket.frames.find((f) => f.type === 'NOTIFICATION' && f.data.kind === 'CREDITS_RECEIVED' && f.data.orderId === orderId));
+  record('N21', 'credit.escrow.settled (credit_service account) gives the courier a quiet receipt with the amount and ledger code; the requester gets nothing', received?.data.title === '8 credits received' && received?.data.category === 'RECEIPT' && received?.data.actionType === 'REVIEW_WALLET' && received?.data.producer === 'credit-service' && !aliceSocket.frames.some((f) => f.type === 'NOTIFICATION' && f.data.kind === 'CREDITS_RECEIVED'), `${received?.data.title}: ${received?.data.body}`);
+  await creditChannel.close();
+  await creditConnection.close();
+}
+
 // ---------------------------------------------------------------- REST: retained, scoped, read state
 const list = (await call('/api/notifications', { token: alice.token })).json?.data;
 const rows = (list?.items ?? []).filter((n) => n.orderId === orderId);
 // alice's new rows: four for this errand, the acceptance of B, the admin cancellation of C and the courier drop of D.
 record('N9', 'the notifications are retained and listed newest first', rows.map((n) => n.kind).join(',') === 'ORDER_DELIVERED,ORDER_PICKED_UP,ORDER_ACCEPTED,ORDER_PUBLISHED' && list.unreadCount === (before?.unreadCount ?? 0) + 7, `unread ${before?.unreadCount} -> ${list?.unreadCount}`);
 const bobList = (await call('/api/notifications', { token: bob.token })).json?.data;
-record('N10', "another user's list holds only his own notices for these errands", (bobList?.items ?? []).filter((n) => n.orderId === orderId).length === 1 && (bobList?.items ?? []).filter((n) => n.orderId === secondOrder).length === 1, `bob sees ${(bobList?.items ?? []).filter((n) => [orderId, secondOrder].includes(n.orderId)).map((n) => n.kind).join(',')}`);
+// bob's rows for the main errand: the completion notice and the payment receipt; for errand C: the admin cancellation.
+record('N10', "another user's list holds only his own notices for these errands", (bobList?.items ?? []).filter((n) => n.orderId === orderId).length === 2 && (bobList?.items ?? []).filter((n) => n.orderId === secondOrder).length === 1, `bob sees ${(bobList?.items ?? []).filter((n) => [orderId, secondOrder].includes(n.orderId)).map((n) => n.kind).join(',')}`);
 const foreign = await call(`/api/notifications/${rows[0]?.id}/read`, { method: 'PATCH', token: bob.token });
 record('N11', "marking another user's notification read -> 404", foreign.status === 404, `HTTP ${foreign.status} ${foreign.json?.code}`);
 const read = await call(`/api/notifications/${rows[0]?.id}/read`, { method: 'PATCH', token: alice.token });
