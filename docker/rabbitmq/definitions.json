@@ -118,7 +118,7 @@
       "user": "order_service",
       "vhost": "campus",
       "exchange": "campus.events",
-      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired|reservation\\.requested)$",
+      "write": "^order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired|rejected|unassigned|reservation\\.requested)$",
       "read": "^credit\\.reservation\\.(succeeded|failed)$"
     },
     {
@@ -133,7 +133,7 @@
       "vhost": "campus",
       "exchange": "campus.events",
       "write": "^$",
-      "read": "^(order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired))$"
+      "read": "^(order\\.(created|accepted|in_transit|delivered|completed|cancelled|expired|rejected|unassigned))$"
     }
   ],
   "queues": [

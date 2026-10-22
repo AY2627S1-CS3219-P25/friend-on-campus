@@ -15,6 +15,10 @@
 # Scope: Repair malformed messaging database URLs and isolate Credit migrations from Order in the saga job.
 # Author review: <to be completed by huangjiaxi1111>
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+# Scope: Added the student-app test:unit entry (notification inbox helpers) to the unit matrix.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-19
 # Scope: Added order-service messaging suite coverage and order-saga credit migration setup in the CI messaging matrix.
 # Author review: <to be completed by huangjiaxi1111>
@@ -144,6 +148,11 @@ jobs:
             rabbitmq: false
           - name: order-service
             workspace: '@campus-errand/order-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
+          - name: student-app
+            workspace: '@campus-errand/student-app'
             script: test:unit
             database: none
             rabbitmq: false

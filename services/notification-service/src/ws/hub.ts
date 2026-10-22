@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: inboxChanged(): a user-scoped INBOX_CHANGED frame after inserts and read changes so every open tab refetches
+ * (author's Notification Redesign §7); frames stay hints, the client reads counts from REST.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: The WebSocket hub of the author's design: AUTH as the first frame within a time limit, sockets filed under
  * the token's user, push to one user's sockets, close at token expiry, and a ping that evicts dead sockets.
@@ -99,19 +104,27 @@ export function createHub(options: {
     });
   }
 
+  // AI-generated (edited by Reallyeasy1)
+  function sendToUser(userId: string, frame: string): number {
+    let sent = 0;
+    for (const ws of byUser.get(userId) ?? []) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(frame);
+        sent += 1;
+      }
+    }
+    return sent;
+  }
+
   return {
     handleConnection,
     /** Sends to every open socket of this user and returns how many there were. */
     push(userId: string, notification: NotificationDTO): number {
-      const frame = JSON.stringify({ type: 'NOTIFICATION', data: notification });
-      let sent = 0;
-      for (const ws of byUser.get(userId) ?? []) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(frame);
-          sent += 1;
-        }
-      }
-      return sent;
+      return sendToUser(userId, JSON.stringify({ type: 'NOTIFICATION', data: notification }));
+    },
+    /** Tells every open socket of this user that its inbox or unread count changed; the client refetches over REST. */
+    inboxChanged(userId: string): number {
+      return sendToUser(userId, JSON.stringify({ type: 'INBOX_CHANGED' }));
     },
     /** Authenticated sockets of one user, or every connected socket when no user is given. */
     connectionCount(userId?: string): number {

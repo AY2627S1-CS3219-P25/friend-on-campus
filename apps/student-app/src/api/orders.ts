@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: fetchOrderById for the notification deep link: the errand's live status from GET /api/orders/:id, with 403
+ * and 404 kept apart so a former courier sees "no longer available" rather than a stale action (Notification Redesign §2).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added unassignOrderById and 'unassign' action to TaskOrderAction so couriers can drop ACCEPTED errands prior to pickup, and added optional courierContactNote support to acceptOrderById (F3.3.6).
  * Author review: <to be completed by yanhwee>
@@ -19,6 +24,25 @@ import { OrderDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './auth';
 
 export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel' | 'unassign';
+
+// AI-generated (edited by Reallyeasy1)
+export type FetchOrderResult =
+  | { status: 'ok'; order: OrderDTO }
+  | { status: 'forbidden' | 'not_found' | 'error'; message: string };
+
+/** The authoritative state of one errand, fetched when a notification is opened. */
+export async function fetchOrderById(authFetch: AuthFetchFn, orderId: string): Promise<FetchOrderResult> {
+  try {
+    const res = await authFetch(`/api/orders/${encodeURIComponent(orderId)}`);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok && body.success) return { status: 'ok', order: body.data as OrderDTO };
+    if (res.status === 403) return { status: 'forbidden', message: body.error || 'You no longer have access to this errand.' };
+    if (res.status === 404) return { status: 'not_found', message: body.error || 'This errand no longer exists.' };
+    return { status: 'error', message: body.error || `Could not load this errand (HTTP ${res.status}).` };
+  } catch {
+    return { status: 'error', message: 'Could not load this errand. Check your connection and try again.' };
+  }
+}
 
 export async function fetchCombinedOrders(authFetch: AuthFetchFn): Promise<OrderDTO[]> {
   const [feedResponse, activityResponse] = await Promise.all([

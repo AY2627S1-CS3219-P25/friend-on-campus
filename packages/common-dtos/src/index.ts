@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Implements the contract section of the author's "Student Notification System Redesign" (22 Oct 2026):
+ * version-2 fields on every Order event (OrderEventV2Fields), the new order.rejected and order.unassigned facts,
+ * courierId on cancelled/expired, and the inbox NotificationKind/NotificationDTO (category, priority, actionType,
+ * targetId, sourceVersion, storedAt, orderStatus) plus NotificationView and NotificationPageDTO.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity, date: 2026-10-19
  * Scope: Refactored Order Saga contracts to Approach B2 (PENDING/REJECTED OrderStatus, rejectionReason on OrderDTO, removed OrderSubmissionDTO and release_requested/released events).
  * Author review: Reviewed and verified by yanhwee.
@@ -325,7 +332,38 @@ export interface UserRegisteredEvent extends BaseEvent {
   initialGrant: number;
 }
 
-export interface OrderCreatedEvent extends BaseEvent {
+// AI-generated (edited by Reallyeasy1)
+// Version 2 of the Order event contract (Notification Redesign §6). schemaVersion is additive: a message without it is
+// version 1. The producer fills orderVersion/previousStatus/status inside the committing transaction.
+export type OrderActorRole = 'STUDENT' | 'ADMIN' | 'SYSTEM';
+export type OrderReasonCode =
+  | 'REQUESTER_CANCELLED'
+  | 'ADMIN_CANCELLED'
+  | 'COURIER_DROPPED'
+  | 'ADMIN_UNASSIGNED'
+  | 'OPEN_EXPIRED'
+  | 'PUBLICATION_EXPIRED'
+  | 'INSUFFICIENT_CREDITS'
+  | 'RESERVATION_FAILED'
+  | 'REQUESTER_CONFIRMED'
+  | 'ADMIN_CONFIRMED';
+
+export interface OrderEventV2Fields {
+  schemaVersion: 2;
+  producer: 'order-service';
+  /** The order's version after the committed transition. */
+  orderVersion: number;
+  previousStatus: OrderStatus;
+  status: OrderStatus;
+  actorRole: OrderActorRole;
+  /** Absent only when actorRole is SYSTEM. */
+  actorId?: string;
+  reasonCode?: OrderReasonCode;
+  /** The order id: one value per order workflow. */
+  correlationId: string;
+}
+
+export interface OrderCreatedEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.created';
   orderId: string;
   orderCode: string;
@@ -356,7 +394,7 @@ export interface CreditReservationResultEvent extends BaseEvent {
 // AI-generated (edited by Reallyeasy1)
 // courierUsername is the courier's display name from their access token at the time of the call (F5.1.1).
 // Optional: events already queued, and calls made with a token that predates the claim, omit it.
-export interface OrderAcceptedEvent extends BaseEvent {
+export interface OrderAcceptedEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.accepted';
   orderId: string;
   orderCode: string;
@@ -365,7 +403,7 @@ export interface OrderAcceptedEvent extends BaseEvent {
   courierUsername?: string;
 }
 
-export interface OrderInTransitEvent extends BaseEvent {
+export interface OrderInTransitEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.in_transit';
   orderId: string;
   orderCode?: string;
@@ -375,7 +413,7 @@ export interface OrderInTransitEvent extends BaseEvent {
 }
 
 // AI-generated (edited by Reallyeasy1)
-export interface OrderDeliveredEvent extends BaseEvent {
+export interface OrderDeliveredEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.delivered';
   orderId: string;
   orderCode: string;
@@ -384,7 +422,7 @@ export interface OrderDeliveredEvent extends BaseEvent {
   courierUsername?: string;
 }
 
-export interface OrderCompletedEvent extends BaseEvent {
+export interface OrderCompletedEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.completed';
   orderId: string;
   orderCode?: string;
@@ -393,20 +431,46 @@ export interface OrderCompletedEvent extends BaseEvent {
   rewardCredits: number;
 }
 
-export interface OrderExpiredEvent extends BaseEvent {
+export interface OrderExpiredEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.expired';
   orderId: string;
   orderCode?: string;
   requesterId: string;
+  /** The courier assigned when the order expired, if any (version 2). */
+  courierId?: string;
   rewardCredits: number;
 }
 
-export interface OrderCancelledEvent extends BaseEvent {
+export interface OrderCancelledEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.cancelled';
   orderId: string;
   orderCode?: string;
   requesterId: string;
+  /** The courier assigned at cancellation, if any (version 2). */
+  courierId?: string;
   rewardCredits: number;
+}
+
+// AI-generated (edited by Reallyeasy1)
+// Written in the transaction that sets REJECTED (Notification Redesign §6, §9).
+export interface OrderRejectedEvent extends BaseEvent, OrderEventV2Fields {
+  eventType: 'order.rejected';
+  orderId: string;
+  orderCode: string;
+  requesterId: string;
+  rewardCredits: number;
+  reasonCode: 'INSUFFICIENT_CREDITS' | 'RESERVATION_FAILED';
+}
+
+// Written when an ACCEPTED order returns to OPEN, by the courier or an administrator.
+export interface OrderUnassignedEvent extends BaseEvent, OrderEventV2Fields {
+  eventType: 'order.unassigned';
+  orderId: string;
+  orderCode: string;
+  requesterId: string;
+  /** The courier removed by this transaction. */
+  priorCourierId: string;
+  reasonCode: 'COURIER_DROPPED' | 'ADMIN_UNASSIGNED';
 }
 
 export type CampusErrandEvent =
@@ -417,11 +481,30 @@ export type CampusErrandEvent =
   | OrderDeliveredEvent
   | OrderCompletedEvent
   | OrderExpiredEvent
-  | OrderCancelledEvent;
+  | OrderCancelledEvent
+  | OrderRejectedEvent
+  | OrderUnassignedEvent;
 
 // AI-generated (edited by Reallyeasy1)
-// Notification Service (F5): what the requester is told, as stored and as sent over REST and the WebSocket.
-export type NotificationKind = 'ORDER_ACCEPTED' | 'ORDER_PICKED_UP' | 'ORDER_DELIVERED';
+// Notification Service: one inbox row per intended recipient, as stored and as sent over REST and the WebSocket
+// (Notification Redesign §7). The three F5 kinds are unchanged; the others arrive with version-2 Order events.
+export type NotificationKind =
+  | 'ORDER_ACCEPTED'
+  | 'ORDER_PICKED_UP'
+  | 'ORDER_DELIVERED'
+  | 'ORDER_PUBLISHED'
+  | 'ORDER_REJECTED'
+  | 'ORDER_EXPIRED'
+  | 'ORDER_COMPLETED'
+  | 'ORDER_CANCELLED'
+  | 'ORDER_UNASSIGNED';
+/** ACTION: something the recipient can do now; IMPORTANT: a relevant change; PROGRESS: a routine update. */
+export type NotificationCategory = 'PROGRESS' | 'ACTION' | 'IMPORTANT';
+/** HIGH may show a visible toast; NORMAL is a quiet inbox update. */
+export type NotificationPriority = 'NORMAL' | 'HIGH';
+/** Typed destinations mapped by the student app; never an event-supplied URL. */
+export type NotificationActionType = 'VIEW_ERRAND' | 'REVIEW_DELIVERY' | 'REVIEW_WALLET';
+export type NotificationView = 'all' | 'action_needed' | 'important';
 
 export interface NotificationDTO {
   id: string;
@@ -432,7 +515,24 @@ export interface NotificationDTO {
   title: string;
   body: string;
   readAt?: string | null;
+  /** The event's occurrence time. */
   createdAt: string;
+  producer: string;
+  category: NotificationCategory;
+  priority: NotificationPriority;
+  actionType: NotificationActionType | null;
+  /** The order the action opens; null when the action has no order target. */
+  targetId: string | null;
+  /** The committed order version the event carried; null for version-1 events. */
+  sourceVersion: number | null;
+  /** When Notification Service stored the row; the inbox orders and pages by it. */
+  storedAt: string;
+  /** Latest order status in Notification Service's attention projection; null until a version-2 event for the order was seen. */
+  orderStatus: OrderStatus | null;
+}
+
+export interface NotificationPageDTO extends PaginatedResponse<NotificationDTO> {
+  unreadCount: number;
 }
 
 // ==========================================
