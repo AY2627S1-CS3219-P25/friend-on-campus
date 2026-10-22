@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Handled non-JSON error responses gracefully in adminLoginApi.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted admin authentication API calls into src/api/auth.ts.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -13,7 +17,7 @@ export async function adminLoginApi(email: string, password: string, keepLoggedI
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, keepLoggedIn }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => null);
   return { res, data };
 }
 

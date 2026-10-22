@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added unassignOrderById and 'unassign' action to TaskOrderAction so couriers can drop ACCEPTED errands prior to pickup.
+ * Scope: Added unassignOrderById and 'unassign' action to TaskOrderAction so couriers can drop ACCEPTED errands prior to pickup, and added optional courierContactNote support to acceptOrderById (F3.3.6).
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
@@ -42,11 +42,12 @@ async function postOrderLifecycleAction(
   authFetch: AuthFetchFn,
   orderId: string,
   action: 'accept' | TaskOrderAction,
-  fallbackMessage: string
+  fallbackMessage: string,
+  payload: Record<string, unknown> = {}
 ): Promise<OrderDTO> {
   const res = await authFetch(`/api/orders/${encodeURIComponent(orderId)}/${action}`, {
     method: 'POST',
-    body: '{}',
+    body: JSON.stringify(payload),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.success) {
@@ -57,9 +58,17 @@ async function postOrderLifecycleAction(
 
 export async function acceptOrderById(
   authFetch: AuthFetchFn,
-  orderId: string
+  orderId: string,
+  courierContactNote?: string
 ): Promise<OrderDTO> {
-  return postOrderLifecycleAction(authFetch, orderId, 'accept', 'Unable to accept this errand.');
+  const trimmedNote = courierContactNote?.trim();
+  return postOrderLifecycleAction(
+    authFetch,
+    orderId,
+    'accept',
+    'Unable to accept this errand.',
+    trimmedNote ? { courierContactNote: trimmedNote } : {}
+  );
 }
 
 export async function pickupOrderById(

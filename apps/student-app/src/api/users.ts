@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Handled non-JSON error responses gracefully in fetchCurrentUserProfile and updateCurrentUsername.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted user profile and account deletion API helpers from student-app App.tsx into modular api/users.ts.
  * Author review: Verified by yanhwee
@@ -19,14 +23,18 @@ export async function fetchCurrentUserProfile(
 ): Promise<UserApiResult<UserDTO>> {
   try {
     const res = await authFetch('/api/users/me');
-    const data = await res.json();
-    if (res.ok && data.success) {
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.success) {
       return { ok: true, data: data.data.user as UserDTO };
     }
     return {
       ok: false,
-      code: data.code || `HTTP_${res.status}`,
-      message: data.error || 'Failed to load profile.',
+      code: data?.code || `HTTP_${res.status}`,
+      message:
+        data?.error ||
+        (res.status >= 500
+          ? 'User service is temporarily unavailable. Please try again in a moment.'
+          : 'Failed to load profile.'),
     };
   } catch (err: any) {
     return {
@@ -46,14 +54,18 @@ export async function updateCurrentUsername(
       method: 'PATCH',
       body: JSON.stringify({ username }),
     });
-    const data = await res.json();
-    if (res.ok && data.success) {
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.success) {
       return { ok: true, data: data.data.user as UserDTO };
     }
     return {
       ok: false,
-      code: data.code || `HTTP_${res.status}`,
-      message: data.error || 'Failed to update username.',
+      code: data?.code || `HTTP_${res.status}`,
+      message:
+        data?.error ||
+        (res.status >= 500
+          ? 'User service is temporarily unavailable. Please try again in a moment.'
+          : 'Failed to update username.'),
     };
   } catch (err: any) {
     return {
