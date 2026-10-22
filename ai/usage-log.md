@@ -3897,3 +3897,20 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/admin-portal/src/api/auth.ts`, `apps/admin-portal/src/hooks/useAdminAuth.ts` — guarded `res.json()` with `.catch(() => null)` in `adminLoginApi` and surfaced friendly `5xx` fallback messages in `handleAdminLogin`.
 - `apps/student-app/src/components/ErrandCard.tsx`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/src/api/orders.ts` — added an optional `courierContactNote` input (`data-testid="accept-contact-note-input"`, max 255 chars) inside the inline `Confirm` / `Cancel` step on `ErrandCard` and passed it to `POST /api/orders/:id/accept`.
 - `ai/usage-log.md` — this entry.
+
+## 2026-10-22 13:50 SGT — Credit Service unit suite for the escrow rules (F4.0–F4.6), CI unit matrix entry
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Review the testing/CI pipeline for rigour and coverage, then pick one improvement to do before the Milestone 3 presentation; open a PR for it. Assessment (chat only, data in `../uat-2026-10-22/coverage/`): `main` has no branch protection so the test gate is advisory; credit-service had no unit tests and its four suites are plain `tsx` scripts that abort on the first assertion; `packages/auth`, `packages/messaging` and `common-dtos` have no tests of their own; admin-portal has none and student-app only the Alerts helpers; no coverage in CI, lint allows warnings, no dependency scanning, no outage scenario. Chosen task: unit-test the escrow service.
+
+**Usage scenario:** Test suggestions and unit tests (allowed). Which items go into Sprint 4, and whether to add a second test framework for the frontends, are left to the author. No production code changed.
+
+**Files changed:**
+- `services/credit-service/tests/service.unit.test.ts` — new: 20 `node:test` cases against an in-memory store with transaction/savepoint rollback (grant once; 404 wallet; no negative balance with full rollback; reserve/replay/conflicts; settle idempotent, courier/amount/unknown conflicts, settle-after-refund; refund idempotent, refund-after-settle; event dedup by id, fingerprint conflict, failed-result outbox with rollback, closed-reservation failure, infrastructure failure aborts the event; Serializable retry loop of `createCreditStore` with a fake Prisma client). `src/credits/service.ts` 98.9% lines / 91.6% branches under `--experimental-test-coverage`
+- `services/credit-service/package.json` — new `test:unit` script (JSON, no header)
+- `.github/workflows/ci.yml` — credit-service added to the unit matrix; `npm run ci:validate-tests` passes (14 suites)
+- `ai/usage-log.md` — this entry
+- GitHub: issue and pull request opened for this change at the author's request
