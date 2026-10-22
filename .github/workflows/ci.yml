@@ -16,6 +16,10 @@
 # Author review: <to be completed by huangjiaxi1111>
 #
 # Tool: Codex (model: GPT-5), date: 2026-10-19
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+# Scope: Added the credit-service test:unit entry to the unit matrix.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Scope: Added order-service messaging suite coverage and order-saga credit migration setup in the CI messaging matrix.
 # Author review: <to be completed by huangjiaxi1111>
 #
@@ -137,6 +141,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: credit-service
+            workspace: '@campus-errand/credit-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: notification-service
             workspace: '@campus-errand/notification-service'
             script: test:unit
