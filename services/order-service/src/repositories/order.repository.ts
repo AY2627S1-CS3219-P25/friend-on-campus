@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): the list filter is built as Prisma.OrderWhereInput instead of Record<string, any>.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§6, §11 increment 3): every outbox payload is completed with the
  * committed version/status inside its transaction (completeEvent); order.rejected is written with the REJECTED
@@ -34,7 +38,7 @@
 // AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
-import type { PrismaClient } from '../database/client';
+import type { Order, Prisma, PrismaClient } from '../database/client';
 import {
   completeEvent,
   OrderAuthorizationError,
@@ -252,8 +256,8 @@ async function handleListOrders(
     return { orders: [], total: 0 };
   }
 
-  const where: Record<string, any> = {};
-  const andConditions: Record<string, any>[] = [];
+  const where: Prisma.OrderWhereInput = {};
+  const andConditions: Prisma.OrderWhereInput[] = [];
   const defaultStatus = trimmedRequesterId || trimmedCourierId ? 'ALL' : 'OPEN';
   const normalizedStatus = status ? status.toUpperCase() : defaultStatus;
 
@@ -261,7 +265,7 @@ async function handleListOrders(
     where.status = 'OPEN';
     where.expiresAt = { gt: new Date() };
   } else if (normalizedStatus !== 'ALL') {
-    where.status = normalizedStatus;
+    where.status = normalizedStatus as Order['status'];
     if (!isAdmin && viewerId && (normalizedStatus === 'PENDING' || normalizedStatus === 'REJECTED')) {
       andConditions.push({ requesterId: viewerId });
     }
@@ -292,7 +296,7 @@ async function handleListOrders(
 
   if (search && search.trim() !== '') {
     const term = search.trim();
-    const orConditions: Record<string, any>[] = [
+    const orConditions: Prisma.OrderWhereInput[] = [
       { orderCode: { contains: term, mode: 'insensitive' } },
       { itemDescription: { contains: term, mode: 'insensitive' } },
       { dropoffLocation: { contains: term, mode: 'insensitive' } },

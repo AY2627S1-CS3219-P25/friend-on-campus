@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): catch clauses narrow with instanceof Error; sortBy is cast to the DTO's union (the repository still validates it).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
  * Scope: Removed unused DTO imports identified by the root lint configuration.
  * Author review: <to be completed by ngkhengyang>
@@ -70,7 +74,7 @@ export async function getSuppliers(req: Request, res: Response) {
       category: category ? String(category) : undefined,
       search: search ? String(search) : undefined,
       isActive: activeFilter,
-      sortBy: sortBy as any,
+      sortBy: sortBy as SupplierQueryOptions['sortBy'],
       sortOrder: sortOrder === 'desc' ? 'desc' : 'asc',
       page: page !== undefined ? parseInt(String(page), 10) : undefined,
       limit: limit !== undefined ? parseInt(String(limit), 10) : undefined,
@@ -79,9 +83,9 @@ export async function getSuppliers(req: Request, res: Response) {
     const result = await listSuppliers(queryOptions);
 
     return res.json({ success: true, data: result });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error fetching suppliers:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: (err instanceof Error && err.message) || 'Internal server error' });
   }
 }
 
@@ -91,12 +95,12 @@ export async function getSupplier(req: Request, res: Response) {
     const { id } = req.params;
     const supplier = await findSupplierByIdOrCode(id);
     return res.json({ success: true, data: supplier });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof SupplierNotFoundError) {
       return res.status(404).json({ success: false, error: err.message });
     }
     console.error('Error fetching supplier:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: (err instanceof Error && err.message) || 'Internal server error' });
   }
 }
 
@@ -110,7 +114,7 @@ export async function createSupplier(req: Request, res: Response) {
       data: supplier,
       message: 'Supplier created successfully',
     });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof SupplierValidationError) {
       return res.status(400).json({ success: false, error: err.message });
     }
@@ -122,7 +126,7 @@ export async function createSupplier(req: Request, res: Response) {
       });
     }
     console.error('Error creating supplier:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: (err instanceof Error && err.message) || 'Internal server error' });
   }
 }
 
@@ -137,7 +141,7 @@ export async function updateSupplier(req: Request, res: Response) {
       data: updated,
       message: 'Supplier updated successfully',
     });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof SupplierNotFoundError) {
       return res.status(404).json({ success: false, error: err.message });
     }
@@ -152,7 +156,7 @@ export async function updateSupplier(req: Request, res: Response) {
       });
     }
     console.error('Error updating supplier:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: (err instanceof Error && err.message) || 'Internal server error' });
   }
 }
 
@@ -166,12 +170,12 @@ export async function toggleSupplier(req: Request, res: Response) {
       data: updated,
       message: `Supplier ${updated.isActive ? 'activated' : 'deactivated'} successfully`,
     });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof SupplierNotFoundError) {
       return res.status(404).json({ success: false, error: err.message });
     }
     console.error('Error toggling supplier status:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: (err instanceof Error && err.message) || 'Internal server error' });
   }
 }
 
@@ -187,12 +191,12 @@ export async function deleteSupplier(req: Request, res: Response) {
         ? 'Supplier permanently deleted'
         : 'Supplier marked as inactive (soft delete to preserve order history)',
     });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof SupplierNotFoundError) {
       return res.status(404).json({ success: false, error: err.message });
     }
     console.error('Error deleting supplier:', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    return res.status(500).json({ success: false, error: (err instanceof Error && err.message) || 'Internal server error' });
   }
 }
 

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Handled non-JSON / 502 Bad Gateway responses gracefully in handleAdminLogin.
  * Author review: <to be completed by yanhwee>
@@ -96,8 +100,8 @@ export function useAdminAuth(onClearDomainState: () => void) {
       setCurrentRole('ADMIN');
       setIsAuthenticated(true);
       setLoginPassword('');
-    } catch (err: any) {
-      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
+    } catch (err) {
+      setLoginError({ code: 'NETWORK_ERROR', message: (err instanceof Error && err.message) || 'Could not reach the authentication server.' });
     } finally {
       setIsLoggingIn(false);
     }

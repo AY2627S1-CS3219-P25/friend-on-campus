@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): ApiResponse and PaginatedResponse default their type parameter to unknown instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Increment 6 of the same design: CreditEscrowSettledEvent / CreditEscrowRefundedEvent (Credit-owned outcomes
  * with ledger reference, amount, beneficiary and causation), the CREDITS_RECEIVED / CREDITS_RETURNED kinds and the
@@ -582,7 +586,7 @@ export interface NotificationPageDTO extends PaginatedResponse<NotificationDTO> 
 // ==========================================
 // 6. Generic API Response Wrapper
 // ==========================================
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -590,7 +594,7 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T = unknown> {
   items: T[];
   total: number;
   page: number;
