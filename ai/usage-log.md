@@ -3447,6 +3447,277 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docs/errand-specification.md` — §2 sentence after the matrix.
 - `ai/usage-log.md` — previous entry's Branch field; this entry.
 
+## 2026-10-19 17:10 SGT — Wiki: "How it works" diagrams for every service
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (wiki repository, pushed directly)
+
+**Prompt (summarised):** Add more diagrams, illustrations and descriptions of how each service works to the GitHub wiki.
+
+**Usage scenario:** Documentation improvements. Each service page gained a "How it works" section of Mermaid diagrams with short descriptions, every one drawn from the service source on main @ 6327aac (service code unchanged since 7f2d972) and rendered locally with mermaid-cli before pushing: Order (components, state machine, create with escrow and compensation, single-winner accept, outbox relay, expiry sweeper), Credit (components, escrow states, credit movement between wallet pockets, event consumption with dedupe and Serializable retry, failure classification and retry/dead-letter), Notification (components, event-to-notification mapping, WebSocket session, socket states), User (components, registration to welcome grant, login/refresh/logout, session lifecycle, last-admin guard), Supplier (components, list pipeline, create with the duplicate rule, availability states). Architecture gained an end-to-end errand sequence, the broker topology and the transactional-outbox sequence. No architecture, rationale or trade-off text was added.
+
+**Files changed (wiki, `wiki-checkout/`):** `Architecture.md`, `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `User-Service.md`, `Supplier-Service.md` (insertions only; disclosure record added to each page's block).
+
+**Files changed (repo):**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 20:05 SGT — Wiki: more "How it works" diagrams, sequence diagrams included
+
+**Tool:** Claude Code (model: Claude Fable 5.1, with Fable 5.1 fork subagents drafting one page each)
+**Author:** Reallyeasy1
+**Branch:** main (wiki repository, pushed directly)
+
+**Prompt (summarised):** Make more diagrams, illustrations and descriptions of how each service works on the GitHub wiki; include sequence diagrams as well.
+
+**Usage scenario:** Documentation improvements. 37 Mermaid diagrams (mostly sequence diagrams, plus state and flow diagrams) with short as-built descriptions were added to seven wiki pages, each drawn from the source on main @ 6327aac and rendered locally with mermaid-cli before pushing. Order Service: courier path, requester cancel, admin intervention, request pipeline, start-up and shutdown, listing and activity. Credit Service: HTTP escrow reserve, welcome grant, refund, wallet and ledger reads, start-up/readiness/shutdown. Notification Service: REST history and mark-read, transient failure and the retry queue, one user with several tabs, start-up and shutdown; the socket-states diagram's shutdown edge was corrected (hub.close is only called from the tests). User Service: profile and password change, account deletion, account states, token issue and verify, start-up/seed/shutdown. Supplier Service: read-one and the Order Service's use of it, update, delete/toggle, seed on every boot, request handling. Architecture: Compose start order, a request through the gateway, cancel/refund and expiry end to end, and a new "Failure cases" section (broker down, Credit Service down at creation, compensating refund). Frontend Apps: authFetch refresh-on-401, the student app session and socket from the client side, the admin order action with expectedVersion. No architecture, rationale or trade-off text was added; facts the drafts surfaced that differ from earlier wording (user- and supplier-service containers stop on a seed failure, reserve failures always answer 400, notification-service installs no signal handler) are stated as built.
+
+**Files changed (wiki, `wiki-checkout/`):** `Architecture.md`, `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `User-Service.md`, `Supplier-Service.md`, `Frontend-Apps.md` (insertions plus the one socket-states edge; disclosure record added to each page's block).
+
+**Files changed (repo):**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 20:40 SGT — Notification Service as-built review (facts only)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Look at the Notification Service's design and functionality, see how it can be improved, and create a design doc to evaluate.
+
+**Usage scenario:** The "how it can be improved" part is architecture and design-rationale work, which CLAUDE.md §1 reserves for the author, so it was declined. The allowed alternative was produced instead: a facts-only review of `services/notification-service` on main @ 6327aac as a shared Claude doc (https://claude.ai/code/artifact/d1bd45ac-a4f9-4397-84c1-8b11a75aefae), listing the behaviour and limits of delivery, the WebSocket hub, REST, messaging and retry, lifecycle, data, security and tests with file and function citations, the related issues (#51, #52, #56, #64, #119), and twenty open questions for the author with a decision column. No recommendation, trade-off or proposed design was written. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 21:20 SGT — Notification Service: tests for the untested paths (review row 19)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Look at the review's decisions, use judgement to pick which to work on, and do it.
+
+**Usage scenario:** Picking among the design decisions (what the courier is told, retention, reconnect strategy, schema constraints, security posture, scale-out) was left to the author per CLAUDE.md §1 and said so. Row 19 (automated evidence for untested behaviour, issue #64) is test writing with no design decision in it, so that was done: tests added to the existing suites only, so `.github/workflows/ci.yml` is unchanged. Hub unit suite: a socket that stops answering pings is terminated within two intervals while an answering one survives; a failing unread-count query closes 1011 before anything is filed. Messaging suite: a transient failure goes through the retry queue and is delivered once it clears; a failure that outlasts `retryLimit` is dead-lettered with the `x-notification-*` headers (retry count = limit, transient, original routing key, original content) while the main queue keeps draining; the consumer is started through a deliver wrapper that simulates the outage. Store suite: a later page returns the remainder, `totalPages` follows the filter while `unreadCount` does not, a page past the end is empty. Still without automated evidence: SIGTERM behaviour, `process.exit(1)` on broker loss and the container restart, token-expiry reconnect end to end, load.
+
+**Verification:** `npm run typecheck` (all workspaces) clean; `node --test` unit 13/13 hub + 20/20 events; `test:integration` 10/10 and `test:messaging` 5/5 run locally against a throwaway `postgres:16` container on 5440 (removed afterwards) and the native RabbitMQ as guest; eslint clean on the four test files.
+
+**Files changed:**
+- `services/notification-service/test/helpers.ts` — `openSocket` accepts ws client options (`autoPong: false`).
+- `services/notification-service/test/hub.test.ts` — "WebSocket hub liveness" suite (2 tests).
+- `services/notification-service/test/messaging.integration.test.ts` — deliver wrapper with a simulated outage; 2 tests (retry recovery, retry limit to DLQ with headers).
+- `services/notification-service/test/store-routes.integration.test.ts` — paging test.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:05 SGT — Milestone D3 gap assessment (facts only, no prioritisation)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Assert the project against the CS3219 D3 instructions (PDF supplied), see what should be worked on from here, and write a project plan.
+
+**Usage scenario:** Requirements work in the allowed sense: discovering, interpreting and formatting. The D3 instructions were checked item by item against main @ 6327aac, the wiki and the open issues, and written up as a shared Claude doc (https://claude.ai/code/artifact/46159a9a-387d-4902-a349-5edda85ebefb): what D3 asks, a status table with evidence per item, 13 named gaps, 14 candidate work items each tied to a gap, and the questions only the team can answer. The "project plan" part in the sense of prioritising the items, setting a sprint order or allocating people was declined under CLAUDE.md §1 and left as questions; the candidate list is unordered. No design was proposed for any gap. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:45 SGT — D3 Part 3.4 demo and observability runbook, OpenTelemetry facts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Create a design doc on how to handle D3 Part 3.4 (demonstrate duplicate-message or failure handling already implemented; present the observability mechanisms in place) and check whether OpenTelemetry is needed.
+
+**Usage scenario:** Documentation of as-built behaviour: a shared Claude doc (https://claude.ai/code/artifact/22ace0d5-602c-4d4c-b8a2-ab8bd97ecabc) mapping both 3.4 bullets to the implemented mechanisms, a duplicate-message demo (republish a completion event, show one settlement and the processed_credit_events row) and four failure demos (broker down with the outbox draining, Credit Service down at creation, poison message to the dead-letter queues, optional transient retry) with commands, expected output, code location and the automated test as fallback; an inventory of every log line, health field, broker view and audit table. The OpenTelemetry question was answered with facts only (3.4 names no tool; #73 lists metrics and correlation for Sprint 4; no telemetry library in the repo; what adding it would touch incl. the ask-first dependency rule and the outbox context break) and left as a team decision; no recommendation or design was written. Log text, reason strings and health fields were verified in the service sources. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:55 SGT — Can D3 Part 3.4 be handled without hardcoding or OpenTelemetry
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Check whether Part 3.4 can be handled completely without much hardcoding or OpenTelemetry.
+
+**Usage scenario:** Learning support / explanation from the facts already gathered for the 3.4 runbook: every demo step uses existing service behaviour, Docker stop/start, psql queries and one amqplib publish snippet outside the services; no demo mode, flag or test hook in any service, and no new dependency. Answered in chat; the decision on OpenTelemetry stays with the team.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:05 SGT — Where the logs are (RabbitMQ management UI question)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** How can the logs be seen from the RabbitMQ management UI at localhost:15672.
+
+**Usage scenario:** Learning support: identified that port 15672 on this machine is the native RabbitMQ 4.1.0 (vhost `/`, users guest and workato), not the project's container broker, and explained where broker and application logs actually live. No repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:20 SGT — RabbitMQ documentation: where the container broker's logs are
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Navigate the RabbitMQ documentation to see where the logs are for the broker behind localhost:15673.
+
+**Usage scenario:** Learning support: read rabbitmq.com/docs/logging and the official Docker image page, checked the project's `docker/rabbitmq/rabbitmq.conf` (definitions import only, no log settings), and verified in a throwaway `rabbitmq:3.13.7-management-alpine` container (removed afterwards) that the image logs to the console, so `docker logs` is the log and `rabbitmq-diagnostics log_tail` has no file. Answered in chat; no repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:30 SGT — Node page in the RabbitMQ UI: where to click for logs
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Screenshot of the native broker's node page; where to click next to see the logs.
+
+**Usage scenario:** Learning support: the management UI has no log viewer, the Log files field is informational; pointed at the file path shown and at `docker logs` for the container broker. No repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 00:10 SGT — GitHub issues for the D3 gaps
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Based on the Milestone D3 gap assessment doc, create GitHub issues for the deliverables that have gaps.
+
+**Usage scenario:** Documentation (issue write-ups of facts already established in the gap assessment and verified against `main` @ 4be192b). Created #129–#138 in `AY2627S1-CS3219-P25/friend-on-campus` with the author's explicit request. Gaps already tracked by an open issue were not duplicated (#42 escrow reserve auth, #63 demo logistics, #64 concurrency evidence, #73 monitoring). No priority label, milestone, assignee or ordering was set; the "Decision needed" sections name the team's design choices without proposing one.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry (the issues themselves live on GitHub)
+
+## 2026-10-20 00:40 SGT — Correct the N2H issues to the team's allocation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Shared the team's N2H allocation table (one feature per member) and the CS3219 project brief; use them for the N2H gaps.
+
+**Usage scenario:** Documentation. Rewrote #137 and #138 with the five allocated features, their brief categories (N1, N2, N4), their tracking issues and what is built versus written on `main`; corrected the earlier claim that one member had no N2H. The gap assessment doc's G12 and 5.2 rows corrected the same way. No design, approach or value statement was drafted; those remain the team's.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 01:00 SGT — Commit, push and PR for the notification tests and log entries
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Commit the usage-log entries and the notification-service test files, push both, and create a PR.
+
+**Usage scenario:** Bookkeeping and test delivery with the author's explicit approval. Branched off `origin/main` @ 6a8f871, rebased the two log commits, committed the four test files, re-ran the unit suite (34/34), created #139 so the PR can link an issue, pushed and opened PR #140. Local `main` reset to `origin/main`. Author review of the test files is still pending.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 09:50 SGT — Act on the Claude PR review of #140
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Check PR #140 against the AI review before merging.
+
+**Usage scenario:** Debugging assistance. The review's single Low finding (the 100 ms ping interval leaves the liveness test's handshake a narrow window on a slow runner) was verified against `src/ws/hub.ts`: the pinger walks every socket, authenticated or not, so a dead socket can be terminated 100 to 200 ms after it opens. Applied the suggested widening (250 ms interval, 2 s close wait, 800 ms survival wait); unit suite 34/34. Merge is the author's call.
+
+**Files changed:**
+- `services/notification-service/test/hub.test.ts` — liveness suite timings widened
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 10:20 SGT — Milestone for the D3 gap issues
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Put the newly created issues on a milestone.
+
+**Usage scenario:** Bookkeeping on the author's request. #129–#139 set to the existing "D3 progress check" milestone (the one #63 is on). No priority labels or ordering set.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 10:40 SGT — Which assigned issue to prioritise
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** List the open issues assigned to me and tell me which one to prioritise.
+
+**Usage scenario:** Learning support / facts only. Listed the nine open issues assigned to Reallyeasy1 with milestone, due date, dependency and the label-versus-body priority mismatches. Declined the "which first" part under CLAUDE.md section 1 (prioritising requirements and sprint planning stay with the team).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 11:30 SGT — F8 private conversation: design brief (facts and decision points)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Focus on F8 (private conversation per accepted errand) and produce a design doc.
+
+**Usage scenario:** Documentation and learning support. Wrote a Claude Doc "F8 private conversation per accepted errand: design brief" with the #56 criteria, what the code already provides (hub, store, consumer, gateway, order facts, usernames, student app, Compose and CI), the CLAUDE.md constraints, nine decision points with the facts and files each touches, the follow-on work items and a decision-record table. Declined the design itself under CLAUDE.md section 1: no service boundary, schema, transport or authorisation mechanism was chosen, and no reasoning was drafted. Recorded three source conflicts for the author (FAILED status absent from the code, admin read access versus F8.1.2, unassign publishes no event).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 16:20 SGT — F8 brief: decision record asked for suggestions
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Look at the decision record (every row filled with "give suggestion") and update the design document accordingly.
+
+**Usage scenario:** Learning support. Declined to pick the options under CLAUDE.md section 1 (architecture and design decisions, trade-off reasoning). Added a section "Concepts, precedents and the questions that settle each decision" to the F8 brief: per decision, the concepts in plain terms, the places in this repo that already use each pattern (facts), and the questions whose answers decide the row. The nine "Your choice" cells were left as the author wrote them.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 16:50 SGT — F8 decision record: asked to pick the options
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** What to write in the "Your choice" cells; then "pick the most recommended ones for each of them".
+
+**Usage scenario:** Learning support. Listed the options each row allows (as already stated in the brief) and the size of a filled row. Declined to pick: the course AI policy (project brief Appendix 2) prohibits AI proposals on architecture, boundaries, schemas and interfaces, and CLAUDE.md section 1 mirrors it. Offered to walk the settling questions row by row and to implement once the author marks a row Decided.
+
+**Files changed:**
+- none
+
+## 2026-10-20 17:05 SGT — F8 options listed by number
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** List the F8 choices again, indexed by number, and say which are more recommended.
+
+**Usage scenario:** Learning support. Listed the options per decision with the one fact from the brief that bears on each. Did not rank or recommend (course AI policy Appendix 2; CLAUDE.md section 1).
+
+**Files changed:**
+- none
+
 ## 2026-10-19 22:10 SGT — Infrastructure Security & Database-per-Service Isolation (Issue #42, #63)
 
 **Tool:** Google Antigravity Agent
@@ -3673,6 +3944,20 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-21 20:05 SGT — PR #140: merge main and rewrite the retry-path tests for native requeue
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Release preparation: check out and pull `main`, run the stack on Docker, smoke/UAT-test it, screenshot the pages, refresh the wiki, and merge PR #140 if it can be merged.
+
+**Usage scenario:** Debugging assistance and test code. PR #140 conflicted with `main` (`ai/usage-log.md`, `test/helpers.ts`: both sides kept) and its two retry-path tests no longer compiled after PR #145 replaced the retry queue with native quorum-queue redelivery (`MessagingConfig.retryQueue` gone). The two tests now assert the native path: one transient failure is requeued and delivered; a failure that outlasts `retryLimit` is dead-lettered with the broker's `x-death` / `x-first-death-*` headers after `retryLimit + 1` attempts. The author reviews the tests and decides on the merge.
+
+**Files changed:**
+- `services/notification-service/test/messaging.integration.test.ts` — retry-path tests rewritten for native requeue; disclosure record added
+- `services/notification-service/test/helpers.ts` — merge: both disclosure records kept
+- `ai/usage-log.md` — merge: both sets of entries kept; this entry
 ## 2026-10-21 18:42 SGT — Consolidate Documentation into `README.md` & Wiki, Remove `docs/`, and Slim Down `CLAUDE.md`
 
 **Tool:** Google Antigravity Agent
@@ -3795,6 +4080,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 
 **Files changed:**
 - `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/simplify-generate-jwt-keys` plus this record.
+
+## 2026-10-21 23:40 SGT — Merge `main` (PRs #154–#158) into PR #140 again
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Continue the release handoff: PR #140 had become `CONFLICTING` after PRs #154–#158 were merged to `main`.
+
+**Usage scenario:** Git merge conflict resolution (allowed use). Merged `origin/main` @ 1bcd842 into the branch; the only conflict was `ai/usage-log.md`, resolved by keeping both branches' entries. Notification-service code and tests were not touched by `main` since the previous merge (a2aaa57).
+
+**Files changed:**
+- `ai/usage-log.md` — kept both sides of the conflict and appended this entry.
 
 ## 2026-10-22 00:06 SGT — Remove Dead `AuditPage` Placeholder & Wire `HealthPage` to Live Microservice `/health` and `/ready` Probes
 
@@ -4108,3 +4406,20 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 **Files changed:**
 - `.github/workflows/ci.yml` — disclosure header order restored; credit-service `test:unit` matrix entry (author's pending change) committed with its `package.json` script
 - `ai/usage-log.md` — this entry
+
+## 2026-10-24 15:40 SGT — Fold PR #140 (notification test suites) into PR #184 and close #140
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Pull PR #140, see whether the two PRs can be merged into one, then close #140.
+
+**Usage scenario:** Git merge conflict resolution and test porting at the author's explicit request (allowed). Merged `origin/test/notification-service-untested-paths` into this branch. #140 was `CONFLICTING` with `main` because #184 rewrote the same suites; the four conflicts were resolved by keeping both disclosure records, keeping both usage-log sides (the #140 entry of 21 Oct placed before the 22–24 Oct entries; its other 14 entries were already in `main`), and porting the three #140 suites onto the rewritten code: the hub liveness suite merged cleanly; the store paging test now seeds rows through `applyEvent` (`store.insert` no longer exists); the two retry-path tests wrap the one-argument `Deliver`, use row/DLQ counts relative to what the earlier tests stored, and drain the dead-letter queue instead of relying on message positions. Verified locally: notification-service typecheck, `npm run lint` 0 problems, notification-service unit 68/68 (liveness included). The PostgreSQL and RabbitMQ suites could not run here (Docker not running); CI runs them on the push. PR #184 body gains `Closes #139` and a section on the folded tests; PR #140 closed with a pointer to #184.
+
+**Files changed:**
+- `services/notification-service/test/helpers.ts` — `openSocket` accepts ws client options (clean merge)
+- `services/notification-service/test/hub.test.ts` — liveness suite from #140; header records merged
+- `services/notification-service/test/store-routes.integration.test.ts` — paging test ported to `applyEvent`
+- `services/notification-service/test/messaging.integration.test.ts` — outage wrapper and two retry-path tests ported; `GetMessage` typing
+- `ai/usage-log.md` — both sides kept; this entry
