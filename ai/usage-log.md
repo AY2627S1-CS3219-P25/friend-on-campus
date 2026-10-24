@@ -4423,3 +4423,30 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 - `services/notification-service/test/store-routes.integration.test.ts` — paging test ported to `applyEvent`
 - `services/notification-service/test/messaging.integration.test.ts` — outage wrapper and two retry-path tests ported; `GetMessage` typing
 - `ai/usage-log.md` — both sides kept; this entry
+
+## 2026-10-24 14:51 SGT — /usage-log check after folding PR #140 into PR #184
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** `/usage-log` — confirm the mandatory log entry for the session's work exists.
+
+**Usage scenario:** Bookkeeping only (allowed). The work of this session is already logged in the three preceding entries (review fixes, lint, PR #140 fold), all committed and pushed (`452518a` is the head of PR #184). Timestamp note: this entry uses the machine clock; the two preceding entries' times (14:55, 15:40) were written ahead of it while the work was in progress, so they sit later than this one although they describe earlier work. Still pending at the time of writing: the CI run on `452518a`, which exercises the ported PostgreSQL and RabbitMQ suites that could not run locally. Left uncommitted on purpose: `.claude/settings.json` (local permissions) and `docs/evidence/` (D2 screenshots).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:58 SGT — CI on 452518a: fix the moving baseline in the notification messaging suite
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Same `/usage-log` turn: the CI watcher on the merge commit returned, and the notification-service messaging job had failed on the ported "requeues a transient failure" test (`Timed out: one row for the redelivered event`); every other job passed.
+
+**Usage scenario:** Debugging assistance and test fix (allowed). Root cause is the pre-existing malformed-message test from #184, which waited for ALICE to reach an absolute row count that was already true, so its event was still in flight when the next test took its baseline. It now records the count first and waits for its own row. Verified locally: notification-service typecheck and lint clean; the broker suite itself runs in CI (Docker not running here). Note for the author: `gh pr checks --watch` exited 0 although a job failed, so results were read explicitly afterwards.
+
+**Files changed:**
+- `services/notification-service/test/messaging.integration.test.ts` — relative wait in the malformed-message test; header record for the fold and this fix
+- `ai/usage-log.md` — this entry

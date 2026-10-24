@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Folded the PR #140 retry-path tests in (relative counts, dead-letter drain) and made the malformed-message test wait for its own row, which the next test's baseline depends on.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Increment 6 (2026-10-23): a settlement receipt reaches the courier once. Per the author's Notification Redesign: a version-1 order.completed is acknowledged and suppressed, and a
  * version-2 admin cancellation reaches requester and courier once each (two sockets, two rows, replay adds nothing).
@@ -222,10 +226,13 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
   });
 
   it('dead-letters a malformed message and keeps draining the queue', async () => {
+    // AI-generated (edited by Reallyeasy1): wait for this test's own row. ALICE already had rows from the earlier tests,
+    // so an absolute count was satisfied before the event landed and the next test measured a moving baseline.
+    const rowsBefore = await rowsFor(ALICE);
     await publish(Buffer.from('not json'));
     await until(async () => (await channel.checkQueue(config.deadLetterQueue)).messageCount === 1, 'the dead-lettered message');
     await publishEvent(accepted());
-    await until(async () => (await rowsFor(ALICE)) === 2, 'the event after the malformed one');
+    await until(async () => (await rowsFor(ALICE)) === rowsBefore + 1, 'the event after the malformed one');
     assert.equal((await channel.checkQueue(config.queue)).messageCount, 0);
     assert.equal(consumer.isReady(), true);
   });
