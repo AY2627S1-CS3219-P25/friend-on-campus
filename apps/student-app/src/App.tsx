@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): AlertsPage receives the hook's view, total and setView.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Inbox wiring per the author's Notification Redesign (§2, §9, §10): opening a notification deep-links to the
  * exact errand (?tab=tasks&orderId=, fetched live from Order Service) or the wallet, toasts follow the inbox rule,
@@ -250,10 +258,16 @@ export default function App() {
     }
   };
 
+  // AI-generated (edited by Reallyeasy1): same shape as the orders effect below. The latest fetchCredits is read from a
+  // ref (it closes over authFetch and setters, so listing it would refetch on every render) and the request counter is
+  // bumped on cleanup so a response from the previous tab or session is ignored.
+  const loadCredits = useRef(fetchCredits);
+  loadCredits.current = fetchCredits;
   useEffect(() => {
-    if (isAuthenticated) void fetchCredits();
+    const requests = creditRequestId;
+    if (isAuthenticated) void loadCredits.current();
     return () => {
-      creditRequestId.current++;
+      requests.current++;
     };
   }, [isAuthenticated, activeTab]);
 
@@ -685,6 +699,9 @@ export default function App() {
           <AlertsPage
             items={notifications.items}
             unreadCount={notifications.unreadCount}
+            total={notifications.total}
+            view={notifications.view}
+            onViewChange={notifications.setView}
             isLoading={notifications.isLoading}
             stale={notifications.stale}
             error={notifications.error}

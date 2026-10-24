@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): inboxQuery() maps a view to the REST query the service already supports, and
+ * applyPages() folds fetched pages into the cache, so the hook's paging is a pure, tested data flow.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Pure helpers for the inbox of the author's Notification Redesign (§2, §10): the four views, whether a
  * delivery review is still open (live order status beats the server's projection), merging rows by id, the toast
@@ -7,7 +12,7 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
-import type { NotificationDTO, OrderStatus } from '@campus-errand/common-dtos';
+import type { NotificationDTO, NotificationPageDTO, OrderStatus } from '@campus-errand/common-dtos';
 
 export type InboxView = 'action_needed' | 'important' | 'all' | 'unread';
 
@@ -42,6 +47,27 @@ export function mergeNotifications(current: NotificationDTO[], incoming: Notific
   const byId = new Map(current.map((n) => [n.id, n]));
   for (const n of incoming) byId.set(n.id, n);
   return [...byId.values()].sort((a, b) => b.storedAt.localeCompare(a.storedAt) || b.id.localeCompare(a.id));
+}
+
+/** The query for one page of a view. Unread is the server's unread=true flag over All; the other views exist server side. */
+export function inboxQuery(view: InboxView, page: number, limit: number): string {
+  return `view=${view === 'unread' ? 'all&unread=true' : view}&page=${page}&limit=${limit}`;
+}
+
+/**
+ * Folds fetched pages into the cache. Pages are offset based, so a refresh re-reads every page loaded so far (1..n):
+ * rows that arrived meanwhile and read-state changes on older pages both land, and Load more continues from the last
+ * page the server actually returned. Counts come from the last page, i.e. the newest snapshot.
+ */
+export function applyPages(current: NotificationDTO[], pages: NotificationPageDTO[]) {
+  const last = pages[pages.length - 1];
+  return {
+    items: mergeNotifications(current, pages.flatMap((p) => p.items)),
+    unreadCount: last.unreadCount,
+    total: last.total,
+    pagesLoaded: last.page,
+    hasMore: last.totalPages > last.page,
+  };
 }
 
 /**

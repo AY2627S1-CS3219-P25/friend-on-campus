@@ -13,6 +13,7 @@
     "db:migrate": "node ../../scripts/prisma-migrate.mjs credit dev",
     "db:deploy": "node ../../scripts/prisma-migrate.mjs credit deploy",
     "db:seed": "tsx src/database/seed.ts",
+    "test:unit": "node --import tsx --test tests/service.unit.test.ts tests/events.unit.test.ts",
     "test:seed": "tsx tests/seed.integration.test.ts",
     "test:integration": "tsx tests/credits.integration.test.ts",
     "test:messaging": "tsx tests/messaging.integration.test.ts",

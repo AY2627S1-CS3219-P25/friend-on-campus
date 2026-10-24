@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): the view is a prop the hook fetches server side; tab counts are only the ones the server
+ * vouches for (the active view's total and the unread count) instead of counts over the rows loaded so far; Load more
+ * is offered in every view, so a filtered view can page too.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Alerts board rebuilt as the inbox of the author's Notification Redesign (§2): views Action needed / Important /
  * All / Unread, one row per notification (title, one line of context, time, read state), a detail pane whose single
@@ -137,16 +143,20 @@ function ctaFor(n: NotificationDTO, liveStatus?: OrderStatus): { label: string; 
 }
 
 export function NotificationPanel({
-  items, unreadCount, isLoading, stale, error, hasMore, liveStatus, onMarkRead, onMarkAllRead, onRefresh, onLoadMore, onOpen,
+  items, unreadCount, total, view, isLoading, stale, error, hasMore, liveStatus, onViewChange, onMarkRead, onMarkAllRead, onRefresh, onLoadMore, onOpen,
 }: {
   items: NotificationDTO[];
   unreadCount: number;
+  /** Rows the server has for the selected view. */
+  total: number;
+  view: InboxView;
   isLoading: boolean;
   /** The last refresh failed; the rows shown are what was loaded before. */
   stale: boolean;
   error: string | null;
   hasMore: boolean;
   liveStatus: (orderId: string) => OrderStatus | undefined;
+  onViewChange: (view: InboxView) => void;
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
   onRefresh: () => void;
@@ -154,18 +164,16 @@ export function NotificationPanel({
   /** Opens the notification's destination (errand or wallet); never performs a business action itself. */
   onOpen: (notification: NotificationDTO) => void;
 }) {
-  const [view, setView] = useState<InboxView>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // On a phone the board is one pane at a time: the list, then the item you tapped.
   const [mobileDetail, setMobileDetail] = useState(false);
 
+  // The cache holds rows from every view fetched so far; the selected view's own pages are in it, so filtering here
+  // never hides a matching row the server has (the hook fetched that view).
   const visible = items.filter((n) => inView(n, view, liveStatus(n.orderId)));
-  const counts: Record<InboxView, number> = {
-    action_needed: items.filter((n) => isActionOpen(n, liveStatus(n.orderId))).length,
-    important: items.filter((n) => n.category === 'IMPORTANT').length,
-    all: items.length,
-    unread: unreadCount,
-  };
+  // AI-generated (edited by Reallyeasy1): only counts the server vouches for. A count over loaded rows would say
+  // "Important · 0" while an older important row sits beyond the loaded pages.
+  const countOf = (key: InboxView): number | null => (key === 'unread' ? unreadCount : key === view ? total : null);
   // Resolved from every item, not the filtered list: opening marks read, which would otherwise drop the opened
   // item out of the Unread view and jump the detail pane to the next one.
   const selected = items.find((n) => n.id === selectedId) ?? visible[0] ?? null;
@@ -231,7 +239,7 @@ export function NotificationPanel({
           </li>
         );
       })}
-      {hasMore && view === 'all' && (
+      {hasMore && (
         <li className="px-4 py-3 text-center">
           <button onClick={onLoadMore} disabled={isLoading} className={`text-xs font-bold text-blue-700 disabled:text-slate-400 ${FOCUS}`}>
             Load more
@@ -296,10 +304,10 @@ export function NotificationPanel({
               key={key}
               role="tab"
               aria-selected={view === key}
-              onClick={() => setView(key)}
+              onClick={() => onViewChange(key)}
               className={`px-3 py-1.5 rounded-full transition ${FOCUS} ${view === key ? 'bg-nus-blue text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
-              {label} · {counts[key]}
+              {label}{countOf(key) === null ? '' : ` · ${countOf(key)}`}
             </button>
           ))}
         </div>

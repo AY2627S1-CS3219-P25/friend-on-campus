@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): the processed-event fingerprint leaves orderCode out, so a pre-upgrade event replayed
+ * with its display code still matches the hash stored by the previous version instead of dead-lettering as a conflict.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Keeps the optional orderCode of completed/cancelled/expired events so the settlement or refund receipt can name
  * the errand (Notification Redesign increment 6). Version-2 fields the service does not use are still ignored.
@@ -92,9 +97,12 @@ export function createCreditEventHandler(credits: CreditService) {
         ? { kind: 'settle', body: { ...body, courierId: event.courierId } }
         : { kind: 'refund', body };
     }
+    // AI-generated (edited by Reallyeasy1): orderCode only decorates receipts and was discarded before it was kept, so it
+    // stays out of the fingerprint; rows in processed_credit_events written by the previous version still match.
+    const fingerprinted = Object.fromEntries(Object.entries(event).filter(([key]) => key !== 'orderCode'));
     await credits.applyEvent({
       eventId: event.eventId, eventType: event.eventType,
-      fingerprint: createHash('sha256').update(JSON.stringify(event)).digest('hex'),
+      fingerprint: createHash('sha256').update(JSON.stringify(fingerprinted)).digest('hex'),
     }, command);
   };
 }

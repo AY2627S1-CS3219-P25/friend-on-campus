@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): passes the server-fetched view, its total and the view setter through to the panel.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Inbox props of the author's Notification Redesign (stale flag, load more, live order status, onOpen) replace
  * the awaitingConfirmation set; subtitle reworded for an inbox of changes rather than a stage timeline.
@@ -15,16 +19,21 @@
 
 import { NotificationDTO, OrderStatus } from '@campus-errand/common-dtos';
 import { NotificationPanel } from '../notifications/NotificationBell';
+import type { InboxView } from '../notifications/inbox';
 
 interface AlertsPageProps {
   items: NotificationDTO[];
   unreadCount: number;
+  /** Rows the server has for the selected view. */
+  total: number;
+  view: InboxView;
   isLoading: boolean;
   stale: boolean;
   error: string | null;
   hasMore: boolean;
   /** The status of an errand the app has loaded, if it has; fresher than the server's projection. */
   liveStatus: (orderId: string) => OrderStatus | undefined;
+  onViewChange: (view: InboxView) => void;
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
   onRefresh: () => void;

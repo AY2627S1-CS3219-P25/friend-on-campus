@@ -4053,3 +4053,58 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 - `apps/student-app/src/notifications/inbox.ts`, `NotificationBell.tsx`, `test/inbox.test.ts` — receipt labels/icons, receipts never toast
 - `scripts/uat/uat-notifications.mjs` — N21 (credit_service account), N10 count; `tests/postman/notification_collection.json` — (JSON) request 58 expects the payment receipt
 - `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:18 SGT — PR #184 review fixes: fetched inbox views, page-window reconcile, Credit fingerprint compatibility
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Read the Codex review on PR #184 (review 5625380058, three P2 findings) and make the changes.
+
+**Usage scenario:** Debugging assistance and implementation code/tests for fixes the reviewer specified (allowed). Each finding was verified against the code before changing it. (1) The inbox views filtered only the loaded All pages: the hook now owns the selected view and sends the service's existing `view=`/`unread=true` query, re-reading from page 1 when the view changes; tab counts show only server-vouched numbers (active view's `total`, server `unreadCount`); Load more is offered in every view. (2) `refresh()` re-reads every loaded page 1..n in parallel instead of page 1 alone, so arrivals that shift offset pages are caught up and read state on older pages is reconciled. (3) The Credit event fingerprint excludes `orderCode`, so pre-upgrade rows in `processed_credit_events` still match. Count presentation (no count on inactive non-Unread tabs) is an implementation choice left for the author to confirm against the Redesign document. Verified: `npm run typecheck` (all workspaces, exit 0), `npm run lint` (0 errors, 35 pre-existing warnings, none in touched files), student-app `test:unit` 9/9 (4 new), credit-service `test:unit` 22/22 (2 new), `npm run ci:validate-tests` passed. Hook tests are pure data-flow tests through `applyPages`/`inboxQuery` against a fake paginating server (no React test harness exists in the repo; adding one would be a new dependency).
+
+**Files changed:**
+- `apps/student-app/src/notifications/inbox.ts` — `inboxQuery()` and `applyPages()` pure paging helpers
+- `apps/student-app/src/notifications/useNotifications.ts` — view state + server-side view fetch, refresh re-reads pages 1..n, exposes `total`, `view`, `setView`
+- `apps/student-app/src/notifications/NotificationBell.tsx` — view/total/onViewChange props, server-vouched counts, Load more in every view
+- `apps/student-app/src/pages/AlertsPage.tsx`, `apps/student-app/src/App.tsx` — pass view, total, setView through
+- `apps/student-app/test/inbox.test.ts` — query mapping, Important row beyond page 1, 100 + 60 offline arrivals (all 160 ids before hasMore false), read-state reconcile on page 2
+- `services/credit-service/src/credits/events.ts` — fingerprint over the event without `orderCode`
+- `services/credit-service/tests/events.unit.test.ts` — new: legacy-fingerprint upgrade regression, command still carries `orderCode`
+- `services/credit-service/package.json` — (JSON, no header) `test:unit` also runs `tests/events.unit.test.ts`
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:40 SGT — Clear the 35 ESLint warnings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "ok please fix the linting" (the 35 warnings reported after the PR #184 review fixes).
+
+**Usage scenario:** Refactoring (allowed): mechanical type tightening with no behaviour change. 33 `no-explicit-any` warnings: `catch (err: any)` becomes `catch (err)` with `instanceof Error` narrowing; Prisma `where`/`update` objects typed with the generated `Prisma.*Input` types; the Supplier Service response body names its four fields; `sortBy` cast to the DTO union; `ApiResponse`/`PaginatedResponse` default `T` to `unknown` (shared contract, no caller relied on the `any` default: typecheck passes everywhere). 2 `react-hooks/exhaustive-deps` warnings: the student-app credits effect now follows the orders effect's existing ref pattern. Several files belong to other authors' areas (admin-portal, supplier-service, order-service); their disclosure blocks received a new record and the earlier attribution is preserved. Verified: `npm run lint` 0 problems, `npm run typecheck` all workspaces exit 0, unit suites student-app 9/9, credit 22/22, supplier 49/49, order 60/60.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` (11 sites), `apps/admin-portal/src/hooks/useAdminAuth.ts`, `apps/student-app/src/api/users.ts`, `apps/student-app/src/hooks/useAuthSession.ts`, `services/supplier-service/src/suppliers/supplierRoutes.ts`, `scripts/test-d2-e2e.ts` — untyped catch clauses with `instanceof Error` narrowing
+- `apps/student-app/src/App.tsx` — credits effect reads `fetchCredits` through a ref and aliases the request counter
+- `packages/common-dtos/src/index.ts` — `ApiResponse<T = unknown>`, `PaginatedResponse<T = unknown>`
+- `services/order-service/src/clients/supplier.client.ts` — typed response body
+- `services/order-service/src/repositories/order.repository.ts` — `Prisma.OrderWhereInput` filter, status cast to `Order['status']`
+- `services/supplier-service/src/suppliers/supplierRepository.ts` — `Prisma.SupplierWhereInput` / `Prisma.SupplierUpdateInput`
+- `services/supplier-service/src/suppliers/supplierRoutes.ts` — `sortBy as SupplierQueryOptions['sortBy']`
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:55 SGT — Commit and push the review and lint fixes to PR #184
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "make a PR out of this" (explicit request to commit, push and open/update the pull request).
+
+**Usage scenario:** Boilerplate/git work at the author's explicit request. The branch already carries open PR #184, so the work is pushed as two commits to that PR (review fixes; lint) and a "Review fixes" section is appended to its body. Left uncommitted on purpose: `.claude/settings.json` (local permission change) and `docs/evidence/` (D2 screenshots unrelated to this PR). The malformed `ci.yml` disclosure header (a Codex record's Tool line had drifted above the Claude record) was restored before committing.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — disclosure header order restored; credit-service `test:unit` matrix entry (author's pending change) committed with its `package.json` script
+- `ai/usage-log.md` — this entry
