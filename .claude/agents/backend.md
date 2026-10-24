@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Removed obsolete docs/ orientation references and updated service facts for @campus-errand/messaging, asynchronous reservation saga, and Debezium CDC outbox.
 Author review: <to be completed by yanhwee>
@@ -47,13 +51,15 @@ Your prompt does not include the conversation, so build context from the repo fi
 3. `packages/common-dtos` — shared contracts, DTOs, and event types (executable TypeScript source of truth).
 4. `packages/auth` & `packages/messaging` — shared Ed25519 access-token verification middleware and RabbitMQ quorum-queue consumer/publisher helpers.
 
+Technical reference: `docs/README.md`, `docs/services/` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+
 Directory, from your seat:
 
 ```
 services/<name>-service/   package.json, tsconfig.json, Dockerfile, prisma/{schema.prisma,migrations/}, src/
-  user-service/src/        {index,app,auth,users,persistence,messaging,database,generated}/
+  user-service/src/        {index,app,config}.ts, auth/, users/, persistence/, database/, generated/
   supplier-service/src/    index.ts, suppliers/{supplierRoutes,supplierRepository}.ts, database/{client,seed}.ts, generated/
-  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types}.ts, messaging/, database/{client,seed}.ts, generated/
+  credit-service/src/     {index,app,config}.ts, credits/{routes,service,store,types,events,consumer,errors}.ts, database/{client,seed}.ts, generated/
   notification-service/src/ {index,app,config}.ts, notifications/{events,store,routes}.ts (RabbitMQ consumer lives in events.ts), ws/hub.ts, database/client.ts, generated/
   order-service/src/       {index,app,config}.ts, orders/, messaging/, database/{client,seed}.ts, generated/
 packages/common-dtos/src/index.ts      shared user/auth DTOs, OrderStatus, event types
@@ -69,7 +75,7 @@ You implement decisions; you do not make them. If the task text does not state t
 ## Rules
 
 - You own database work too: `docker/postgres-init/01-init-databases.sql` provisions only logical databases and per-service roles on first boot of an empty volume, while tables are managed in each service's `prisma/schema.prisma` and `prisma/migrations/`.
-- Layout: `prisma/{schema.prisma,migrations/}` and `src/database/{client.ts, <name>Repository.ts, seed.ts}`; routes call the repository, never Prisma directly; import the client from `../database/client`, never a root `@prisma/client`.
+- Follow each service's existing layout: User uses `persistence/`, Supplier `suppliers/`, Order `orders/` and `repositories/`, Credit `credits/`, Notification `notifications/` and `ws/`. Migrations stay in `prisma/`; Prisma clients remain service-local. Trace existing route/service/store imports before editing; this map does not authorize new module boundaries. Routes must not access Prisma directly; follow existing module/service/store calls. Import Prisma through the service’s `database/client` module, never a root `@prisma/client`.
 - Use the shared `@campus-errand/auth` verifier for the author-approved Ed25519 cross-service access-token contract; keep its public-key, issuer, and audience configuration aligned with User Service.
 - `packages/common-dtos` is the contract with every service and both apps; after touching it run typecheck across all workspaces and list the consumers affected.
 - Money-like state (credit): balance change + ledger row in one DB transaction; never write back a balance computed in JS from an earlier read; validate amounts as positive integers at the route.

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Recorded the initial read-only plan and approved documentation/configuration execution, including direct PR #184 inspection.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-22
 Scope: Recorded local development workflow fixes, deterministic seed UUID alignment, offline Credit Service seed fallback, root db:deploy script, and README updates.
 Author review: <to be completed by yanhwee>
@@ -3912,3 +3916,37 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `tests/postman/notification_collection.json` — new (JSON, no header): 49 requests in order: setup (register/login requester and courier, pick an active supplier); auth boundaries (401 MISSING_TOKEN / INVALID_TOKEN on list, mark-read, read-all); `/api/health/notification/health` and `/ready` probes; empty-inbox contract and query clamping (`limit` 500→100, 0→1, non-numeric page/limit → defaults, negative page → 1); malformed and unknown ids → 404 NOTIFICATION_NOT_FOUND; invalid JSON body → 400; the real order flow (202 → poll OPEN → accept → pickup → deliver → complete) asserting one alert per stage with exact titles/bodies, courier id and username (F5.1.1, F5.2.1, F5.3.1), newest-first ordering, no alert for the courier and none for completion; mark-read and idempotent re-read, unread filter, pagination (2+1, past the end, global unreadCount), cross-user ownership (404 and read-all updated=0), read-all (2 then 0); both accounts delete themselves
 - `ai/usage-log.md` — this entry
 - GitHub: issue and pull request opened for this change at the request of the author; review findings on PR #178 (polling delay and reset, settlement wait before the no-alert check, supplier guard, named shape assertions, residue note, this branch line) applied in a follow-up commit
+
+
+## 2026-10-25 01:14 SGT — Read-only technical documentation execution plan
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** main (read-only reconnaissance)
+
+**Prompt (summarised):** Audit the repository and Wiki, propose comprehensive service documentation and conservative Claude Code improvements, present an agent execution plan and wait for approval before modifications.
+
+**Usage scenario:** Source inspection and documentation workflow preparation. Independent agents researched assigned source areas read-only. No repository modifications occurred before approval; this entry was deferred until the user authorized writes.
+
+**Files changed:** None during the initial prompt; this deferred log entry is recorded in the approved follow-up.
+
+## 2026-10-25 01:14 SGT — Approved technical reference, Claude setup corrections and PR #184 inspection
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** docs/technical-reference-claude-setup
+
+**Prompt (summarised):** Inspect PR #184 itself and execute the previously approved documentation/configuration plan, including an authorized draft pull request against main.
+
+**Usage scenario:** Factual technical documentation, permitted configuration maintenance, code review and verification. Root owns all repository edits; specialist agents provide read-only research and independent review. PR #184 is audited at a pinned unmerged head; production fixes and architectural decisions are excluded. No Wiki writes, dependencies, schema/API/event changes, plugin enablement, hook behavior or settings permissions changed. Human Author review fields remain pending.
+
+**Files changed:**
+- `docs/` — all five services (additional Notification internals/structure), both frontends, all three shared packages, architecture/integration facts, infrastructure, development/test/UAT guidance, 32-page Wiki inventory, drift/coverage/verification records and separate PR #184 audit. Complete inventory: `docs/README.md`.
+- `README.md`, `CLAUDE.md` — navigation to the technical reference and verification/UAT configuration.
+- `.claude/README.md`, `.claude/PLUGINS.md` — verified setup, plugin prerequisite and migration diagnostic corrections.
+- `.claude/agents/backend.md`, `frontend.md`, `infrastructure.md`, `reviewer.md` — accurate source/proxy orientation and technical-reference navigation; tools and boundaries retained.
+- `.claude/skills/issue-start/SKILL.md` — current repo/main and source verification orientation; existing restrictions retained.
+- `.claude/rules/documentation.md` — path-scoped documentation evidence/maintenance instructions.
+- `ai/usage-log.md` — consolidated attribution and these two prompt records. No JSON changes.
+
+**Verification:** Full command outcomes and unavailable checks are recorded in `docs/audits/review-findings.md`. Review reproductions execute pinned PR hook/component source with controlled fetch/SSR; they are not a full browser/infrastructure run. Draft publication is explicitly authorized by the approved task; no merge is authorized.

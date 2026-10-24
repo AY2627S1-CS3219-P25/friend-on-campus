@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Slimmed down Sections 4, 5, 7, and 8 to keep CLAUDE.md focused on agent behavioral rules and remove duplicated system documentation and obsolete docs/ pointers.
 Author review: <to be completed by yanhwee>
@@ -159,7 +163,7 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ## 4. Repo map & coding rules
 
-Architecture, setup, seed accounts, and test categories are documented in `README.md` and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki). Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
+Architecture, setup, seed accounts, and test categories are documented in `README.md` and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki). Use [docs/README.md](docs/README.md) for source-linked implementation navigation and [documentation drift](docs/audits/documentation-drift.md) for unresolved source conflicts. Pending PRs and proposals do not establish current behavior or human approval. Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
 
 ```
 services/user-service          :8001  Prisma (user_db)          entry src/index.ts
