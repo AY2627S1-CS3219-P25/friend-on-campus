@@ -6,6 +6,11 @@
  * SEND with a client id so a rejection (F8.2.3) is matched to the message that failed. New MESSAGE frames are
  * appended to the errand's list and deduplicated by id.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fixes (PR #148): a pending send is settled only by the echo carrying its clientId; history pages by
+ * afterSequence until the last page; after a reconnect every loaded thread catches up from its last sequence.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -27,6 +32,8 @@ export type SendOutcome = { ok: true } | { ok: false; code: ChatErrorCode | 'DIS
 const UNAUTHORIZED = 4401;
 const MAX_BACKOFF_MS = 30_000;
 const SEND_TIMEOUT_MS = 10_000;
+/** The server's maximum page; a page shorter than this is the last one. */
+const PAGE_SIZE = 100;
 
 const EMPTY: ChatThread = { conversation: null, messages: [], isLoading: false, loadError: null };
 
@@ -61,20 +68,37 @@ export function useChat(options: {
     entry.resolve(outcome);
   };
 
-  /** History for one errand: GET /api/chat/:orderId (opens the conversation on the server when needed). */
-  const load = useCallback(async (orderId: string) => {
+  // The socket callbacks read the threads through this ref so a reconnect can reload what is open without re-binding.
+  const threadsRef = useRef(threads);
+  threadsRef.current = threads;
+
+  /**
+   * History for one errand: GET /api/chat/:orderId (opens the conversation on the server when needed), paged by
+   * afterSequence until a page comes back short, so a long conversation is complete (F8.3.1). `afterSequence` lets a
+   * reconnect fetch only what was missed.
+   */
+  const load = useCallback(async (orderId: string, afterSequence = 0) => {
     setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: true, loadError: null } }));
     try {
-      const res = await latest.current.authFetch(`/api/chat/${orderId}?limit=100`);
-      const body = await res.json();
-      if (!res.ok || !body.success) throw new Error(body.error ?? `HTTP ${res.status}`);
-      const data = body.data as ChatHistoryResponse;
+      let after = afterSequence;
+      let conversation: ConversationDTO | null = null;
+      const pages: ChatMessageDTO[] = [];
+      for (;;) {
+        const res = await latest.current.authFetch(`/api/chat/${orderId}?afterSequence=${after}&limit=${PAGE_SIZE}`);
+        const body = await res.json();
+        if (!res.ok || !body.success) throw new Error(body.error ?? `HTTP ${res.status}`);
+        const data = body.data as ChatHistoryResponse;
+        conversation = data.conversation;
+        pages.push(...data.messages);
+        if (data.messages.length < PAGE_SIZE) break;
+        after = data.messages[data.messages.length - 1].sequence;
+      }
       setThreads((current) => ({
         ...current,
         [orderId]: {
-          conversation: data.conversation,
+          conversation,
           // Frames that arrived while loading are kept; the history wins on ids it also carries.
-          messages: data.messages.reduce(mergeMessage, current[orderId]?.messages ?? []),
+          messages: pages.reduce(mergeMessage, current[orderId]?.messages ?? []),
           isLoading: false,
           loadError: null,
         },
@@ -110,6 +134,7 @@ export function useChat(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    let hadConnected = false;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/chat/`;
 
@@ -128,11 +153,19 @@ export function useChat(options: {
           attempt = 0;
           socketRef.current = ws;
           setStatus('connected');
+          // After a reconnect (token expiry, sleep, a network blip) every loaded thread catches up from its last
+          // known sequence, so messages sent during the gap appear without collapsing the panel (F8.2.1).
+          if (hadConnected) {
+            for (const [orderId, thread] of Object.entries(threadsRef.current)) {
+              if (thread.conversation) void load(orderId, thread.messages.at(-1)?.sequence ?? 0);
+            }
+          }
+          hadConnected = true;
         } else if (frame.type === 'MESSAGE') {
           const { orderId, message } = frame;
           setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), messages: mergeMessage(current[orderId]?.messages ?? [], message) } }));
-          // The sender's own echo carries no client id, so a pending send is settled by sender and text instead.
-          for (const [clientId] of pending.current) settle(clientId, { ok: true });
+          // Only the sender's own echo carries the client id; a frame from anyone else settles nothing (F8.2.3).
+          settle(frame.clientId, { ok: true });
         } else if (frame.type === 'ERROR') {
           settle(frame.clientId, { ok: false, code: frame.code, message: frame.message });
         }

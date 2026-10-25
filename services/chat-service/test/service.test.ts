@@ -6,6 +6,11 @@
  * participants while open, blank text rejected, sender name and role from the token (F8.2, F8.2.2, F8.2.3, F8.3.2);
  * history in sequence order (F8.3.1). In-memory store and a fake Order Service.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fixes (PR #148 P1, P2): regressions for a close or re-courier committed between send's pre-check and
+ * the append (racingStore), and for accept A, accept B, replay A keeping only B authorised.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -107,4 +112,68 @@ test('send: participants only, while open, non-blank, attributed from the token'
   const history = await service.history(ORDER, principal(BOB), { afterSequence: 0, limit: 10 });
   assert.equal(history.kind, 'found');
   assert.deepEqual(history.kind === 'found' && history.messages.map((m) => m.text), ['on my way', 'ok'], 'F8.3.1 and F8.3.2: readable after close');
+});
+
+/** A store whose first read of the row is followed by `race()` before the append, modelling a commit in between. */
+function racingStore(race: (store: ReturnType<typeof memoryStore>['store']) => Promise<unknown>) {
+  const memory = memoryStore();
+  const { store } = memory;
+  const original = store.findByOrderId.bind(store);
+  let armed = false;
+  const racing = {
+    ...store,
+    async findByOrderId(orderId: string) {
+      const row = await original(orderId);
+      if (armed && row) { armed = false; await race(store); }
+      return row ? { ...row } : row; // a snapshot, as a database read is
+    },
+  };
+  return { ...memory, store: racing, arm: () => { armed = true; } };
+}
+
+test('P2: a close committed between the pre-check and the append is honoured; the message is not stored', async () => {
+  const { store, arm, messages } = racingStore((inner) => inner.close(ORDER, '2026-10-20T04:31:00.000Z'));
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const service = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }) });
+  arm();
+  assert.equal((await service.send(ORDER, principal(ALICE), 'just made it?')).kind, 'closed');
+  assert.equal(messages.length, 0, 'F8.3.2: nothing stored after closure');
+});
+
+test('P2: a re-courier committed between the pre-check and the append makes the old courier forbidden and the recipients follow the locked row', async () => {
+  const { store, arm, messages } = racingStore((inner) =>
+    inner.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: CAROL, createdAt: '2026-10-20T04:40:00.000Z' }));
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const service = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }) });
+
+  arm();
+  assert.equal((await service.send(ORDER, principal(BOB), 'still here?')).kind, 'forbidden', 'Bob was replaced during his send');
+  assert.equal(messages.length, 0);
+
+  // Alice's own send after the same kind of race is delivered to the courier the locked row names, not the stale one.
+  const { store: store2, arm: arm2 } = racingStore((inner) =>
+    inner.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: CAROL, createdAt: '2026-10-20T04:40:00.000Z' }));
+  await store2.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const service2 = createConversationService({ store: store2, orders: fakeOrders({ kind: 'not_found' }) });
+  arm2();
+  const sent = await service2.send(ORDER, principal(ALICE), 'hello courier');
+  assert.equal(sent.kind, 'sent');
+  assert.deepEqual(sent.kind === 'sent' && sent.recipientIds, [CAROL]);
+});
+
+test('P1: after accept A, accept B and a replay of A, only B may read and send', async () => {
+  const { store } = memoryStore();
+  const T0 = '2026-10-20T04:00:00.000Z';
+  const T1 = '2026-10-20T05:00:00.000Z';
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: CAROL, createdAt: T1 });
+  const service = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }) });
+  assert.equal((await service.send(ORDER, principal(CAROL, { username: 'carol' }), 'hi')).kind, 'sent');
+
+  const replay = await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+  assert.equal(replay.outcome, 'ignored');
+  assert.equal((await service.history(ORDER, principal(BOB), { afterSequence: 0, limit: 10 })).kind, 'forbidden', 'Bob stays out');
+  assert.equal((await service.send(ORDER, principal(BOB), 'back?')).kind, 'forbidden');
+  assert.equal((await service.history(ORDER, principal(CAROL), { afterSequence: 0, limit: 10 })).kind, 'found', 'Carol keeps access');
+  assert.equal((await service.send(ORDER, principal(CAROL, { username: 'carol' }), 'still me')).kind, 'sent');
 });

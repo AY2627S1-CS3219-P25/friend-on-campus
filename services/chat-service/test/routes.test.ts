@@ -5,6 +5,10 @@
  * when neither a row nor the order exists, 503 when the Order Service is down and no row exists, the fallback
  * creating the row from the order, and paging by afterSequence and limit. In-memory store, fake Order Service.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): an afterSequence above the INTEGER maximum answers an empty page, not a 500.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -77,5 +81,9 @@ describe('GET /api/chat/:orderId', () => {
     assert.deepEqual(all.data.messages.map((m: { senderUsername: string }) => m.senderUsername), ['alice', 'bob', 'alice', 'bob', 'alice']);
     const page = await (await get(`/api/chat/${ORDER}?afterSequence=2&limit=2`, BOB)).json();
     assert.deepEqual(page.data.messages.map((m: { sequence: number }) => m.sequence), [3, 4]);
+    // Above the INTEGER maximum the value is clamped, so the answer is an empty page rather than a 500.
+    const oversized = await get(`/api/chat/${ORDER}?afterSequence=3000000000`, BOB);
+    assert.equal(oversized.status, 200);
+    assert.deepEqual((await oversized.json()).data.messages, []);
   });
 });

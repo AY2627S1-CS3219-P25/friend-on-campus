@@ -6,6 +6,11 @@
  * @campus-errand/auth verifies, a WebSocket test client that records frames and the close code, a polling wait, and a
  * throwaway PostgreSQL schema with the service's migrations applied.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fixes (PR #148 P1, P2): the in-memory store mirrors the Prisma one's courierSince replay guard and the
+ * participant/closure recheck in append (shared checkAppend), with the new return shapes.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
@@ -15,7 +20,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { WebSocket } from 'ws';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import { PrismaClient } from '../src/database/client';
-import type { ConversationRow, ConversationStore, MessageRow } from '../src/conversations/store';
+import { checkAppend, type ConversationRow, type ConversationStore, type MessageRow } from '../src/conversations/store';
 
 export const ISSUER = 'chat-test-issuer';
 export const AUDIENCE = 'chat-test-audience';
@@ -91,22 +96,32 @@ export function memoryStore() {
     async findByOrderId(orderId) { return conversations.get(orderId) ?? null; },
     async upsertAccepted(c) {
       const existing = conversations.get(c.orderId);
-      if (existing) { existing.courierId = c.courierId; return existing; }
+      if (existing) {
+        // Same rule as the Prisma store: only an accept newer than courierSince moves the courier (P1).
+        if (!(new Date(c.createdAt) > new Date(existing.courierSince))) return { conversation: existing, outcome: 'ignored' };
+        existing.courierId = c.courierId;
+        existing.courierSince = c.createdAt;
+        return { conversation: existing, outcome: 'recouriered' };
+      }
       const row: ConversationRow = {
-        id: randomUUID(), orderId: c.orderId, requesterId: c.requesterId, courierId: c.courierId,
+        id: randomUUID(), orderId: c.orderId, requesterId: c.requesterId, courierId: c.courierId, courierSince: c.createdAt,
         createdAt: c.createdAt, pickedUpAt: null, deliveredAt: null, closedAt: c.closedAt ?? null,
       };
       conversations.set(c.orderId, row);
-      return row;
+      return { conversation: row, outcome: 'created' };
     },
     async markPickedUp(orderId, at) { return setOnce(orderId, 'pickedUpAt', at); },
     async markDelivered(orderId, at) { return setOnce(orderId, 'deliveredAt', at); },
     async close(orderId, at) { return setOnce(orderId, 'closedAt', at); },
     async append(m) {
+      // Same recheck as the Prisma store's locked read (P2), against the row as it is now.
+      const row = [...conversations.values()].find((c) => c.id === m.conversationId) ?? null;
+      const check = checkAppend(row, m.senderId);
+      if (check.kind !== 'ok') return check;
       const sequence = messages.filter((x) => x.conversationId === m.conversationId).length + 1;
-      const row: MessageRow = { id: randomUUID(), sequence, ...m };
-      messages.push(row);
-      return row;
+      const message: MessageRow = { id: randomUUID(), sequence, ...m };
+      messages.push(message);
+      return { kind: 'appended', message, recipientIds: check.recipientIds };
     },
     async listMessages(conversationId, { afterSequence, limit }) {
       return messages.filter((m) => m.conversationId === conversationId && m.sequence > afterSequence).slice(0, limit);

@@ -5,6 +5,11 @@
  * conversation (running the Order Service fallback when no row exists) and returns it with its messages in
  * sequence order. Paging and error shape follow notification-service/src/notifications/routes.ts.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): afterSequence is clamped to the INTEGER maximum so an oversized value pages to an
+ * empty list instead of a 500.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { Router, type Request, type RequestHandler, type Response } from 'express';
@@ -50,7 +55,8 @@ export function createChatRouter(service: ConversationService, authenticate: Req
       return;
     }
     const messages = await service.messages(opened.conversation.id, {
-      afterSequence: clamp(req.query.afterSequence, 0, 0, Number.MAX_SAFE_INTEGER),
+      // Message.sequence is a Postgres INTEGER; anything above its maximum would be a 500 from the query engine.
+      afterSequence: clamp(req.query.afterSequence, 0, 0, 2147483647),
       limit: clamp(req.query.limit, 50, 1, 100),
     });
     res.json({ success: true, data: { conversation: opened.conversation, messages: messages.map(toMessageDTO) } });

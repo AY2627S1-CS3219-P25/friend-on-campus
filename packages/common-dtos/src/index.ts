@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): optional clientId on the MESSAGE server frame (the sender's own echo).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): ApiResponse and PaginatedResponse default their type parameter to unknown instead of any.
  * Author review: <to be completed by Reallyeasy1>
@@ -626,7 +630,8 @@ export type ChatClientFrame =
 
 export type ChatServerFrame =
   | { type: 'AUTH_OK' }
-  | { type: 'MESSAGE'; orderId: string; message: ChatMessageDTO }
+  /** clientId is present only on the sender's own echo, so the client can settle exactly the SEND it answers. */
+  | { type: 'MESSAGE'; orderId: string; clientId?: string; message: ChatMessageDTO }
   | { type: 'ERROR'; orderId?: string; clientId?: string; code: ChatErrorCode; message: string };
 
 export interface ChatHistoryResponse {

@@ -4898,3 +4898,24 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - conflict resolutions listed above, plus `scripts/dev.mjs` (chat target; header record) and the three docs that received the moved chat facts (header records)
 - `ai/usage-log.md` — union plus this entry
+
+## 2026-10-25 21:30 SGT — PR #148 review fixes: replay guard (P1), locked recheck (P2), client-id echo, paging, clamp, live read-only
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "see if you can resolve the code review comments on this pull request here and then push to the branch of the pull request" (PR #148).
+
+**Usage scenario:** Review follow-up: implementation and tests for defects the reviewers (Codex review of 7622df5 by the author, Claude PR review) described with reproduction steps; git push at the author's explicit request. Changes: (P1) `conversations.courier_since` added by migration `20261025000000_courier_since` (backfilled from created_at) and the store applies an order.accepted only when its timestamp is newer than courierSince, so accept A, accept B, replay A leaves B the courier (projection reports 'ignored'); the upsert now returns `{ conversation, outcome }`. (P2) `store.append` re-reads requester, courier and closedAt under the FOR UPDATE lock it already took, returns `not_found`/`forbidden`/`closed` from that state and the recipients from the locked row; `service.send` keeps its fast pre-checks and takes the verdict from the store; `checkAppend` is shared with the in-memory test store. (Medium) the sender's MESSAGE echo carries the SEND's clientId (optional `clientId` on the MESSAGE server frame in common-dtos, an additive field the review proposed) and `useChat` settles only that pending send. (Medium) `useChat.load` pages by afterSequence until a short page and, after a reconnect, every loaded thread reloads from its last sequence. (Low) `afterSequence` clamped to 2147483647. (Low) `ChatPanel` takes the card's status and reloads when it changes. (Low) the stale "scaffold" wording was already removed when main was merged (docs/architecture.md no longer exists; CLAUDE.md row updated). Left for the author: the column addition is the one schema change, made because the P1 finding needs a per-row assignment time and the author's review asked for the guard; confirm or name another design. Verified: typecheck (common-dtos, chat-service, student-app), ESLint on the changed paths, chat-service unit 31/31 (5 new), PostgreSQL integration 6/6 (2 new, Docker PostgreSQL after creating chat_svc/chat_db on the existing volume), RabbitMQ messaging 2/2. Not run: browser UAT.
+
+**Files changed:**
+- `services/chat-service/prisma/schema.prisma`, `prisma/migrations/20261025000000_courier_since/migration.sql` — courierSince column
+- `services/chat-service/src/conversations/store.ts` — replay guard, UpsertResult, locked recheck in append (AppendResult), checkAppend
+- `services/chat-service/src/conversations/service.ts`, `events.ts` — use the new store results
+- `services/chat-service/src/ws/hub.ts` — clientId on the sender's echo
+- `services/chat-service/src/chat/routes.ts` — INTEGER clamp
+- `services/chat-service/test/helpers.ts`, `events.test.ts`, `service.test.ts`, `store.integration.test.ts`, `hub.test.ts`, `routes.test.ts` — regressions
+- `packages/common-dtos/src/index.ts` — optional clientId on the MESSAGE frame
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx`, `apps/student-app/src/pages/TasksPage.tsx` — settle by clientId, paging and reconnect reload, status-driven reload
+- `ai/usage-log.md` — this entry

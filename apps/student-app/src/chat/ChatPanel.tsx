@@ -6,11 +6,16 @@
  * that rejects blank text locally and shows the server's reason when a send fails (F8.2.3), and a read-only state
  * once the errand is finished (F8.3.2). Styling follows the Tasks card and ExpandableNotes.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): the panel takes the errand's status and reloads the conversation when it changes, so
+ * the read-only switch happens while the panel is open.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageCircle, RefreshCw, Send } from 'lucide-react';
-import type { ChatMessageDTO } from '@campus-errand/common-dtos';
+import type { ChatMessageDTO, OrderStatus } from '@campus-errand/common-dtos';
 import type { ChatApi, ChatSocketStatus } from './useChat';
 
 function MessageText({ text }: { text: string }) {
@@ -65,7 +70,13 @@ function Bubble({ message, mine }: { message: ChatMessageDTO; mine: boolean }) {
   );
 }
 
-export function ChatPanel({ orderId, currentUserId, chat }: { orderId: string; currentUserId: string | null; chat: ChatApi }) {
+export function ChatPanel({ orderId, status, currentUserId, chat }: {
+  orderId: string;
+  /** The errand's current status from the orders poll; a change reloads the conversation so closedAt is live (F8.3.2). */
+  status: OrderStatus;
+  currentUserId: string | null;
+  chat: ChatApi;
+}) {
   const thread = chat.threads[orderId];
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
@@ -73,7 +84,8 @@ export function ChatPanel({ orderId, currentUserId, chat }: { orderId: string; c
   const list = useRef<HTMLUListElement>(null);
   const load = chat.load;
 
-  useEffect(() => { void load(orderId); }, [load, orderId]);
+  // The server pushes no frame when a conversation closes; the card's status is the signal that it may have.
+  useEffect(() => { void load(orderId); }, [load, orderId, status]);
   useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [thread?.messages.length]);
 
   const closed = Boolean(thread?.conversation?.closedAt);

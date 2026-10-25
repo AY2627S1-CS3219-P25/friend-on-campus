@@ -5,6 +5,10 @@
  * courier only, pickup and delivery are recorded once, the three terminal keys close once, and events for an order
  * with no row are ignored. No broker needed.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148 P1): regression for accept A, accept B, replay A (and a same-timestamp redelivery).
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -54,6 +58,22 @@ test('accept creates the row; a later accept replaces the courier and nothing el
   assert.equal(await project(event('order.accepted', { courierId: CAROL, timestamp: '2026-10-20T05:00:00.000Z' })), 'created_or_recouriered');
   assert.equal(row.courierId, CAROL);
   assert.equal(row.createdAt, base.timestamp, 'creation time is kept');
+});
+
+test('P1: an older or replayed accept cannot restore a former courier', async () => {
+  const { store, conversations } = memoryStore();
+  const project = createProjection(store);
+  const bobAccept = event('order.accepted');                                                   // Bob at T0
+  await project(bobAccept);
+  await project(event('order.accepted', { courierId: CAROL, timestamp: '2026-10-20T05:00:00.000Z' })); // Carol at T1
+  const row = conversations.get(ORDER)!;
+  assert.equal(row.courierId, CAROL);
+
+  assert.equal(await project(bobAccept), 'ignored', 'replay of the older accept');
+  assert.equal(row.courierId, CAROL, 'Carol stays the courier');
+  assert.equal(await project(event('order.accepted', { courierId: CAROL, timestamp: '2026-10-20T05:00:00.000Z' })), 'ignored', 'redelivery of the same accept');
+  assert.equal(await project(event('order.accepted', { courierId: BOB, timestamp: '2026-10-20T06:00:00.000Z' })), 'created_or_recouriered', 'a genuinely newer accept still applies');
+  assert.deepEqual([row.courierId, row.courierSince, row.createdAt], [BOB, '2026-10-20T06:00:00.000Z', base.timestamp]);
 });
 
 test('pickup, delivery and close are recorded once each; redelivery is ignored', async () => {

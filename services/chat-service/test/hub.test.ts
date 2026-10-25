@@ -5,6 +5,10 @@
  * both participants and to every tab of the sender but not to a third user, ERROR frames with the client id for
  * empty text, a closed conversation and a non-participant, BAD_FRAME for anything else. In-memory store.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): asserts the sender's MESSAGE echo carries the clientId and the recipient's does not.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -73,6 +77,8 @@ describe('chat hub', () => {
       assert.deepEqual([frame.message.sequence, frame.message.senderId, frame.message.senderUsername, frame.message.senderRole, frame.message.text],
         [1, ALICE, 'alice', 'STUDENT', 'on my way']);
     }
+    // The sender's own echo (every tab) names the SEND it answers; the other participant's copy does not.
+    assert.deepEqual([a.clientId, a2.clientId, b.clientId], ['c1', 'c1', undefined]);
     bob.send({ type: 'SEND', orderId: ORDER, text: 'ok' });
     assert.equal((await alice.frame('MESSAGE', 2)).message.sequence, 2);
     assert.equal(carol.frames.filter((f) => f.type === 'MESSAGE').length, 0, 'a third user hears nothing');

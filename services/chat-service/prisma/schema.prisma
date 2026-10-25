@@ -6,6 +6,11 @@
 // per-conversation sequence and the server receive time, text unlimited. Transcribed into Prisma in the layout the
 // other services use.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+// Scope: Review fix (PR #148 P1): courierSince records when the current courier was assigned, so an older or replayed
+// order.accepted cannot move the assignment backwards.
+// Author review: <to be completed by Reallyeasy1>
 
 generator client {
   provider = "prisma-client-js"
@@ -24,6 +29,8 @@ model Conversation {
   requesterId String    @map("requester_id") @db.Uuid
   // Kept after an admin unassign until the next order.accepted replaces it (author's S1 answer 2).
   courierId   String    @map("courier_id") @db.Uuid
+  // When the current courier was assigned (the accept event's timestamp); an accept older than this is a replay.
+  courierSince DateTime @map("courier_since") @db.Timestamptz(6)
   createdAt   DateTime  @map("created_at") @db.Timestamptz(6)
   // S3 answer 1: order.in_transit and order.delivered are recorded on the row (names as in OrderDTO).
   pickedUpAt  DateTime? @map("picked_up_at") @db.Timestamptz(6)

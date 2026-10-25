@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): the expanded ChatPanel receives the card's status so it can switch to read-only live.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§2, §9): a focus panel for the errand a notification opened (live
  * status from Order Service, "no longer available" for a former participant), the matching card highlighted and
@@ -238,7 +242,9 @@ export function TasksPage({
                         <MessageCircle className="h-4 w-4" />
                         {openChat === task.id ? 'Hide chat' : 'Chat'}
                       </button>
-                      {openChat === task.id && <ChatPanel orderId={task.id} currentUserId={currentUserId} chat={chat} />}
+                      {openChat === task.id && (
+                        <ChatPanel orderId={task.id} status={task.status} currentUserId={currentUserId} chat={chat} />
+                      )}
                     </div>
                   )}
 

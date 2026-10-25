@@ -5,6 +5,11 @@
  * set-once pickup, delivery and close marks, the per-conversation sequence under concurrent appends (the unique
  * index as arbiter), and paging by sequence. Same opt-in and throwaway-schema pattern as the Notification Service.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fixes (PR #148 P1, P2): courierSince and the upsert outcome, the replay/redelivery guard, and append's
+ * locked recheck (closed, non-participant, missing, recipients from the row) on real PostgreSQL.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 // Opt in with CHAT_TEST_DATABASE_URL pointing to any PostgreSQL database.
@@ -34,12 +39,48 @@ describe('conversation store (PostgreSQL)', { skip: !databaseUrl }, () => {
 
   it('creates on the first accept and replaces only the courier on a later one', async () => {
     const orderId = randomUUID();
-    const created = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
-    assert.deepEqual([created.requesterId, created.courierId, created.createdAt, created.closedAt], [ALICE, BOB, T0, null]);
+    const { conversation: created, outcome } = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+    assert.equal(outcome, 'created');
+    assert.deepEqual([created.requesterId, created.courierId, created.courierSince, created.createdAt, created.closedAt], [ALICE, BOB, T0, T0, null]);
     const again = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: CAROL, createdAt: T1 });
-    assert.deepEqual([again.id, again.courierId, again.createdAt], [created.id, CAROL, T0]);
+    assert.equal(again.outcome, 'recouriered');
+    assert.deepEqual([again.conversation.id, again.conversation.courierId, again.conversation.courierSince, again.conversation.createdAt], [created.id, CAROL, T1, T0]);
     assert.equal((await store.findByOrderId(orderId))?.courierId, CAROL);
     assert.equal(await store.findByOrderId(randomUUID()), null);
+  });
+
+  it('P1: an accept not newer than courierSince is ignored (replay of the older accept, redelivery of the current one)', async () => {
+    const orderId = randomUUID();
+    await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+    await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: CAROL, createdAt: T1 });
+    const replay = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+    assert.equal(replay.outcome, 'ignored');
+    assert.equal(replay.conversation.courierId, CAROL);
+    const redelivery = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: CAROL, createdAt: T1 });
+    assert.equal(redelivery.outcome, 'ignored');
+    assert.deepEqual([(await store.findByOrderId(orderId))?.courierId, (await store.findByOrderId(orderId))?.courierSince], [CAROL, T1]);
+  });
+
+  it('P2: append re-checks the row under its lock: closed, non-participant and missing conversations are refused; recipients come from the row', async () => {
+    const orderId = randomUUID();
+    const { conversation } = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+    const message = (senderId: string, text: string) => ({ conversationId: conversation.id, senderId, senderUsername: 'x', senderRole: 'STUDENT', text, sentAt: T0 });
+
+    const fromBob = await store.append(message(BOB, 'hi'));
+    assert.equal(fromBob.kind, 'appended');
+    assert.deepEqual(fromBob.kind === 'appended' && fromBob.recipientIds, [ALICE]);
+    assert.equal((await store.append(message(CAROL, 'me too'))).kind, 'forbidden');
+
+    // The courier changes after a caller read the row: the next append sees the new courier, not the stale one.
+    await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: CAROL, createdAt: T1 });
+    assert.equal((await store.append(message(BOB, 'still here?'))).kind, 'forbidden');
+    const toCarol = await store.append(message(ALICE, 'hello courier'));
+    assert.deepEqual(toCarol.kind === 'appended' && toCarol.recipientIds, [CAROL]);
+
+    await store.close(orderId, T1);
+    assert.equal((await store.append(message(ALICE, 'late'))).kind, 'closed');
+    assert.equal((await store.append({ ...message(ALICE, 'nowhere'), conversationId: randomUUID() })).kind, 'not_found');
+    assert.deepEqual((await store.listMessages(conversation.id, { afterSequence: 0, limit: 10 })).map((m) => m.text), ['hi', 'hello courier']);
   });
 
   it('records pickup, delivery and close once; a repeat or a missing row is false', async () => {
@@ -57,7 +98,7 @@ describe('conversation store (PostgreSQL)', { skip: !databaseUrl }, () => {
 
   it('numbers concurrent appends 1..n without gaps or duplicates, and pages by sequence', async () => {
     const orderId = randomUUID();
-    const conversation = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+    const { conversation } = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
     const message = (i: number) => ({
       conversationId: conversation.id,
       senderId: i % 2 ? ALICE : BOB,
@@ -67,7 +108,7 @@ describe('conversation store (PostgreSQL)', { skip: !databaseUrl }, () => {
       sentAt: T0,
     });
     const rows = await Promise.all([1, 2, 3, 4, 5, 6].map((i) => store.append(message(i))));
-    assert.deepEqual(rows.map((r) => r.sequence).sort((a, b) => a - b), [1, 2, 3, 4, 5, 6]);
+    assert.deepEqual(rows.map((r) => (r.kind === 'appended' ? r.message.sequence : -1)).sort((a, b) => a - b), [1, 2, 3, 4, 5, 6]);
 
     const page = await store.listMessages(conversation.id, { afterSequence: 2, limit: 3 });
     assert.deepEqual(page.map((m) => m.sequence), [3, 4, 5]);

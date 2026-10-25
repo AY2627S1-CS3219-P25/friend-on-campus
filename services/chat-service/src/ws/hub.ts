@@ -6,6 +6,11 @@
  * extended for the frames the author's S5 answers reuse from it: SEND from the client, MESSAGE and ERROR back. The
  * send rules themselves live in conversations/service.ts; the hub only carries frames and fans MESSAGE out by user id.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): the sender's own MESSAGE echo carries the SEND's clientId; other recipients get the
+ * frame without it.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { WebSocket } from 'ws';
@@ -95,9 +100,13 @@ export function createChatHub(options: {
       sendFrame(ws, { type: 'ERROR', orderId, clientId, code, message: ERROR_TEXT[code] });
       return;
     }
-    const message: ChatServerFrame = { type: 'MESSAGE', orderId, message: toMessageDTO(result.message) };
-    // The sender's own sockets (every tab) and the other participant's.
-    for (const userId of new Set([principal.userId, ...result.recipientIds])) push(userId, message);
+    const message = toMessageDTO(result.message);
+    // The sender's own sockets (every tab) get the echo with the client id, so the client settles exactly the send it
+    // belongs to; the other participant's sockets get the plain frame.
+    push(principal.userId, { type: 'MESSAGE', orderId, clientId, message });
+    for (const userId of new Set(result.recipientIds)) {
+      if (userId !== principal.userId) push(userId, { type: 'MESSAGE', orderId, message });
+    }
   }
 
   function handleConnection(ws: WebSocket) {

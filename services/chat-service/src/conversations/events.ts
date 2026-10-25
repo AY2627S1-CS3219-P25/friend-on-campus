@@ -6,6 +6,10 @@
  * re-couriers the conversation, order.in_transit and order.delivered are recorded, the three terminal keys close it;
  * events for an order with no row are acknowledged and ignored.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148 P1): an order.accepted the store ignores as a replay reports 'ignored'.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { startRabbitConsumer, type Failure, type MessagingConfig } from '../messaging/rabbitmq';
@@ -86,9 +90,11 @@ export type ProjectionOutcome = 'created_or_recouriered' | 'picked_up' | 'delive
 export function createProjection(store: ConversationStore) {
   return async (event: OrderEvent): Promise<ProjectionOutcome> => {
     switch (event.eventType) {
-      case 'order.accepted':
-        await store.upsertAccepted({ orderId: event.orderId, requesterId: event.requesterId, courierId: event.courierId!, createdAt: event.timestamp });
-        return 'created_or_recouriered';
+      case 'order.accepted': {
+        // P1: the store ignores an accept that is not newer than the courier already recorded (replay or older event).
+        const { outcome } = await store.upsertAccepted({ orderId: event.orderId, requesterId: event.requesterId, courierId: event.courierId!, createdAt: event.timestamp });
+        return outcome === 'ignored' ? 'ignored' : 'created_or_recouriered';
+      }
       case 'order.in_transit':
         return (await store.markPickedUp(event.orderId, event.timestamp)) ? 'picked_up' : 'ignored';
       case 'order.delivered':
