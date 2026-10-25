@@ -4605,3 +4605,17 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `README.md` — `npm run coverage` row; header record
 - `docs/ci.md` — stays deleted (main)
 - `ai/usage-log.md` — union plus this entry
+
+## 2026-10-25 17:10 SGT — PR #147 review follow-up: coverage count, docs pointer, coverage.mjs skip guard
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/host-sensitive-timeouts-coverage
+
+**Prompt (summarised):** "please address the code reviews and then afterwards merge them together" (PRs #147 and #187), then bring PR #148 up to date and push to it.
+
+**Usage scenario:** Review follow-up and debugging (allowed); git operations at the author's explicit request. The Codex review on 9c491cd asked for the "five coverage files" count to match the head: at the merged head credit-service has a `node --test` unit suite, so `npm run coverage` writes five `lcov.info` files (verified locally, exit 0, all suites passing); the PR body now says so and points at README's command table instead of the deleted `docs/ci.md`. The stale skip comment in `scripts/coverage.mjs` no longer names credit-service. Found while verifying: a leftover `services/chat-service/` directory (ignored `coverage/`, `node_modules/`, `src/generated/` from an earlier checkout, no `package.json`) crashed the runner with ENOENT, so the loop now skips a services entry without `package.json`. PR #187 had no review comments.
+
+**Files changed:**
+- `scripts/coverage.mjs` — skip guard for a services entry without package.json; comment fix; header record
+- `ai/usage-log.md` — this entry
