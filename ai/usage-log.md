@@ -4571,3 +4571,32 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — conflict resolution plus this entry
+
+## 2026-10-25 16:10 SGT — Keep the settings change, ignore the UAT screenshots, carry the CLAUDE.md usage-log rules on a chore branch
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-usage-log-rules
+
+**Prompt (summarised):** "use the most recent settings change and then the rest try and use the recommended approach".
+
+**Usage scenario:** Configuration, documentation and git operations at the author's explicit request (CLAUDE.md section 1 exception). Author decision recorded: `.claude/settings.json` keeps git commit/push/merge and `gh pr create`/`gh pr merge` on the allow list (moved out of deny); the AI-policy text in CLAUDE.md section 1 is unchanged, so explicit per-prompt approval is still required. `docs/evidence/` is now git-ignored because `scripts/uat/uat-d2-ui.mjs` regenerates those screenshots on every browser UAT run and the directory was removed from the repo on 2026-10-21. The CLAUDE.md section 2 usage-log rules (written earlier today on feature/notification-inbox) were re-applied on top of main, keeping PR #185's header record beside the new one. Branch pushed; no PR opened because no open issue matches and the PR template requires a closing keyword (the author must create or name an issue). `.claude/settings.json` cannot carry a disclosure header (JSON), so it is listed here. PR #147's five-way conflict was resolved and pushed in the same prompt (entry on that branch).
+
+**Files changed:**
+- `CLAUDE.md` — Section 2 usage-log timing/scope rules; header record
+- `.claude/settings.json` — git commit/push/merge and `gh pr create`/`gh pr merge` moved from deny to allow (no header possible)
+- `.gitignore` — `docs/evidence/` ignored
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 16:35 SGT — Clear the local tree, open issue #186 and PR #187 for the chore branch
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-usage-log-rules
+
+**Prompt (summarised):** "ok please handle them accordingly" (the follow-ups listed in the previous reply).
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). Restored `CLAUDE.md`, `.claude/settings.json` and `ai/usage-log.md` in the local checkout (their edits were already on the pushed chore branch) and switched the checkout from the merged `feature/notification-inbox` to `chore/claude-usage-log-rules`, which also hides the UAT screenshots via the new ignore rule. Opened issue #186 (acceptance criteria T1-T4 drafted from the three gaps) and PR #187 closing it. PR #147's CI on the merged head passed; it remains a draft and was not merged. No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry

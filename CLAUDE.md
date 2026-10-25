@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Section 2: added timing and scope rules for the usage log (write before the final reply, question-only prompts count, log is the last file written, entry rides in approved commits, repeated hook warnings point at leftover paths).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
 Author review: <to be completed by Reallyeasy1>
@@ -139,6 +143,13 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
    **Files changed:**
    - `path` — what changed
    ```
+
+   Timing and scope rules (the `/usage-log` skill does the collecting and appending):
+   - Write the entry **before the final reply of every prompt**, in the same turn as the work. Never defer it to "the next prompt" or wait for the Stop hook to complain.
+   - Question-only prompts, explanations and "check this" prompts count too. Write `- none` under **Files changed**; one short entry per prompt, never batched across prompts after the fact.
+   - Make `ai/usage-log.md` the **last file written** in the turn, so the Stop hook (which compares file modification times) sees it as newest.
+   - When the author approves a commit or push, the entry describing that prompt goes **into that commit**, not left behind in the working tree.
+   - If the hook still warns after the entry is written, do not add another entry: the warning is about other uncommitted or untracked paths. Name those paths to the author and let them decide (commit, revert, ignore, or delete).
 
 2. **Disclosure header.** Maintain exactly one consolidated disclosure block per file, at the top (after any frontmatter or shebang, using the file's comment syntax). Add new tool/date/scope and author-review records to that existing block rather than creating another heading. Preserve earlier attribution and review status. For a file without a block, use this format:
 
