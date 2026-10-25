@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Handled non-JSON error responses gracefully in fetchCurrentUserProfile and updateCurrentUsername.
  * Author review: <to be completed by yanhwee>
@@ -36,11 +40,11 @@ export async function fetchCurrentUserProfile(
           ? 'User service is temporarily unavailable. Please try again in a moment.'
           : 'Failed to load profile.'),
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       ok: false,
       code: 'NETWORK_ERROR',
-      message: err.message || 'Could not reach the User Service.',
+      message: (err instanceof Error && err.message) || 'Could not reach the User Service.',
     };
   }
 }
@@ -67,11 +71,11 @@ export async function updateCurrentUsername(
           ? 'User service is temporarily unavailable. Please try again in a moment.'
           : 'Failed to update username.'),
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       ok: false,
       code: 'NETWORK_ERROR',
-      message: err.message || 'Could not reach the User Service.',
+      message: (err instanceof Error && err.message) || 'Could not reach the User Service.',
     };
   }
 }
@@ -91,11 +95,11 @@ export async function deleteUserAccountById(
       code: data.code || `HTTP_${res.status}`,
       message: data.error || 'Failed to delete account.',
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       ok: false,
       code: 'NETWORK_ERROR',
-      message: err.message || 'Could not reach the User Service.',
+      message: (err instanceof Error && err.message) || 'Could not reach the User Service.',
     };
   }
 }

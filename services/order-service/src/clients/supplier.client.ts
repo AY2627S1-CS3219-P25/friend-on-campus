@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): the Supplier Service response body names the four fields read from it instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored Supplier Service client using extracted helper functions and a lightweight factory function.
  * Author review: (to be completed by author after review)
@@ -44,7 +48,7 @@ async function handleGetSupplier(
       return { kind: 'unavailable', message: `Supplier Service returned status ${response.status}` };
     }
 
-    const body = await response.json() as { success?: boolean; data?: any };
+    const body = await response.json() as { success?: boolean; data?: { id: string; name: string; campusZone?: string | null; isActive?: boolean } };
     if (body.success && body.data) {
       const supplier = body.data;
       return {

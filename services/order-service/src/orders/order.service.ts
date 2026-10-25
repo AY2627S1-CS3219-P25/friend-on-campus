@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Per the author's Notification Redesign (§6): every outbox draft carries the version-2 fields (schemaVersion,
+ * producer, correlationId, actor, reason code) via v2(); courier drop and admin unassign now emit order.unassigned.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added courier unassignOrder handler allowing assigned couriers to drop an ACCEPTED errand prior to pickup.
  * Author review: <to be completed by yanhwee>
@@ -31,16 +36,34 @@ import type {
   CreditReservationRequestEvent,
   CreditReservationResultEvent,
   OrderAcceptedEvent,
+  OrderActorRole,
   OrderCancelledEvent,
   OrderCompletedEvent,
   OrderDeliveredEvent,
   OrderDTO,
   OrderInTransitEvent,
+  OrderReasonCode,
 } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { SupplierClient } from '../clients/supplier.client';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
-import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
+import { generateOrderCode, OrderError, type OrderEventDraft, OrderNotFoundError, OrderValidationError } from './order.types';
+
+// AI-generated (edited by Reallyeasy1)
+// Version-2 envelope fields the service knows before the transaction (Notification Redesign §6). The repository adds
+// orderVersion, previousStatus, status and the removed assignee when it commits.
+function v2(order: Pick<OrderDTO, 'id'>, actor: { role: OrderActorRole; id?: string }, reasonCode?: OrderReasonCode) {
+  return {
+    schemaVersion: 2 as const,
+    producer: 'order-service' as const,
+    correlationId: order.id,
+    actorRole: actor.role,
+    ...(actor.id !== undefined && { actorId: actor.id }),
+    ...(reasonCode !== undefined && { reasonCode }),
+  };
+}
+
+type UnassignedDraft = Extract<OrderEventDraft, { eventType: 'order.unassigned' }>;
 
 export interface OrderService {
   createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderDTO>;
@@ -254,6 +277,7 @@ async function handleAcceptOrder(
     requesterId: existing.requesterId,
     courierId,
     ...(courierUsername !== undefined && { courierUsername }),
+    ...v2(existing, { role: 'STUDENT', id: courierId }),
   };
 
   return repository.acceptOrder(existing.id, courierId, courierContactNote, event);
@@ -281,6 +305,7 @@ async function handlePickupOrder(
     requesterId: existing.requesterId,
     courierId,
     ...(courierUsername !== undefined && { courierUsername }),
+    ...v2(existing, { role: 'STUDENT', id: courierId }),
   };
 
   return repository.pickupOrder(existing.id, courierId, event);
@@ -308,6 +333,7 @@ async function handleDeliverOrder(
     requesterId: existing.requesterId,
     courierId,
     ...(courierUsername !== undefined && { courierUsername }),
+    ...v2(existing, { role: 'STUDENT', id: courierId }),
   };
 
   return repository.deliverOrder(existing.id, courierId, event);
@@ -334,6 +360,7 @@ async function handleCompleteOrder(
     requesterId: existing.requesterId,
     courierId: existing.courierId ?? '',
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'STUDENT', id: requesterId }, 'REQUESTER_CONFIRMED'),
   };
 
   return repository.completeOrder(existing.id, requesterId, event);
@@ -359,6 +386,7 @@ async function handleCancelOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'STUDENT', id: requesterId }, 'REQUESTER_CANCELLED'),
   };
 
   return repository.cancelOrder(existing.id, requesterId, event);
@@ -376,7 +404,18 @@ async function handleUnassignOrder(
     throw new OrderNotFoundError();
   }
 
-  return repository.unassignOrder(existing.id, courierId);
+  const event: UnassignedDraft = {
+    eventType: 'order.unassigned',
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    orderId: existing.id,
+    orderCode: existing.orderCode,
+    requesterId: existing.requesterId,
+    ...v2(existing, { role: 'STUDENT', id: courierId }, 'COURIER_DROPPED'),
+    reasonCode: 'COURIER_DROPPED',
+  };
+
+  return repository.unassignOrder(existing.id, courierId, event);
 }
 
 async function handleAdminCancelOrder(
@@ -401,6 +440,7 @@ async function handleAdminCancelOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'ADMIN', id: adminUserId }, 'ADMIN_CANCELLED'),
   };
 
   return repository.adminCancelOrder(
@@ -435,6 +475,7 @@ async function handleAdminCompleteOrder(
     requesterId: existing.requesterId,
     courierId: existing.courierId ?? '',
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'ADMIN', id: adminUserId }, 'ADMIN_CONFIRMED'),
   };
 
   return repository.adminCompleteOrder(
@@ -460,14 +501,18 @@ async function handleAdminUnassignOrder(
     throw new OrderNotFoundError();
   }
 
-  const unassigned = await repository.adminUnassignOrder(
-    existing.id,
-    adminUserId,
-    reason,
-    req?.expectedVersion
-  );
+  const event: UnassignedDraft = {
+    eventType: 'order.unassigned',
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    orderId: existing.id,
+    orderCode: existing.orderCode,
+    requesterId: existing.requesterId,
+    ...v2(existing, { role: 'ADMIN', id: adminUserId }, 'ADMIN_UNASSIGNED'),
+    reasonCode: 'ADMIN_UNASSIGNED',
+  };
 
-  return unassigned;
+  return repository.adminUnassignOrder(existing.id, adminUserId, reason, event, req?.expectedVersion);
 }
 
 // ---------------------------------------------------------------------------

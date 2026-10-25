@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+// Scope: UO5/UO6 expect the truthful completion and cancellation copy of the author's Notification Redesign (§9).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Google Antigravity Agent, date: 2026-10-22
 // Scope: Updated UO2 to click the inline Confirm button after clicking Accept Errand on the feed card.
 // Author review: <to be completed by yanhwee>
@@ -546,12 +550,12 @@ const browser = await chromium.launch();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
     await aliceCard.getByTestId('complete-order-btn').waitFor();
     await aliceCard.getByTestId('complete-order-btn').click();
-    await aliceCard.getByText(/Completed · Credits released to courier/i).waitFor();
+    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
     await shot(alicePage, 'student-order-completed-requester-desktop');
 
     await bobPage.getByRole('button', { name: 'Refresh' }).click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
-    await bobCard.getByText(/Completed · \+5 credits earned/i).waitFor();
+    await bobCard.getByText(/Completed · 5 credits are paid once Credit Service settles the escrow/i).waitFor();
     await shot(bobPage, 'student-order-completed-courier-desktop');
     return `${lifecycleCode} COMPLETED in requester + courier history`;
   });
@@ -575,7 +579,7 @@ const browser = await chromium.launch();
     const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
     await cancelCard.getByTestId('cancel-order-btn').waitFor();
     await cancelCard.getByTestId('cancel-order-btn').click();
-    await cancelCard.getByText(/Cancelled · Escrow credits refunded/i).waitFor();
+    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
     await shot(alicePage, 'student-order-cancelled-desktop');
     return `${cancelCode} CANCELLED in requester history`;
   });

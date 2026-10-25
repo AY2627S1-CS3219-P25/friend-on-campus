@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): the final catch no longer types err as any; it only logs the value.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-11
  * Scope: Allow isolated aggregate runs to configure user, supplier, and PostgreSQL host ports while retaining manual defaults.
  * Author review: <to be completed by ngkhengyang>
@@ -546,7 +550,7 @@ async function runTests() {
       }
     );
     assert(adminHardDelete.status === 200, 'Admin token DELETE ?permanent=true cleans up test record');
-  } catch (err: any) {
+  } catch (err) {
     console.error('Unexpected test error:', err);
   } finally {
     cleanup();
