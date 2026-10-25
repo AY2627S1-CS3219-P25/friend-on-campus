@@ -4450,3 +4450,72 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 **Files changed:**
 - `services/notification-service/test/messaging.integration.test.ts` — relative wait in the malformed-message test; header record for the fold and this fix
 - `ai/usage-log.md` — this entry
+
+## 2026-10-25 00:05 SGT — Why the Compose stack took 11 minutes; which containers could be stopped
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "run this locally", then "check on why it is taking so long to boot up and what can be done about this", then "see if there are any other containers that can be shut down first".
+
+**Usage scenario:** Debugging assistance (allowed); findings reported, no changes made in this prompt. `docker compose up --build -d --wait` ran 11 min: ~8 min rebuilding all seven images, then RabbitMQ's container took 104 s before Erlang even logged its start and 231 s to open listeners (memory high-watermark alarm fired mid-boot), so the probe budget (60 s + 5 x 10 s, 5 s timeout) expired and compose aborted the four dependents ("dependency rabbitmq failed to start"); the `| tail` in the background command masked the non-zero exit. Contributing load: the Docker Desktop VM was capped at 5 GB by `~/.wslconfig` (written 2026-10-22), and the three Debezium containers (two days old, `unless-stopped`) had 233–235 restarts each from crash-looping whenever Postgres/RabbitMQ were down. No container from any other project was running (46 Exited/Created ones cost disk only). Recommendations listed for the author: start the four Created services without `--build`, drop `--build` from routine starts, raise VM memory to 8 GB, widen the probe budget, prune ~25 GB of reclaimable images/cache.
+
+**Files changed:**
+- none
+
+## 2026-10-25 00:40 SGT — Raise the Docker VM to 8 GB, widen the RabbitMQ probe budget, run the stack locally
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "raise docker desktop memory to 8gb and maybe also do anything that you would recommend doing as well" (continuing "run this locally").
+
+**Usage scenario:** Infrastructure/config changes and local verification at the author's explicit request (allowed). `~/.wslconfig` memory 5GB -> 8GB (outside the repo; comment updated), `wsl --shutdown` after `docker compose stop` (Ubuntu distro was idle), engine back with 8 GB. `docker-compose.yml` RabbitMQ healthcheck: timeout 5 s -> 20 s (same value as open PR #147, so the two will conflict textually on merge) and start_period 60 s -> 180 s; left uncommitted for the author. Result: `docker compose up -d --wait` (no build) healthy in 76 s, RabbitMQ listeners in 45 s (was 231 s), probes 2.0-5.2 s. Local run: all five services 200 on /health; through the gateway the inbox API answers view=all (93 rows, 2 pages), important (9), action_needed (12), unread=true (6), page=2&limit=2, and INVALID_VIEW for a bad view; browser UAT `uat-d2-ui.mjs` 37/40. Finding: Windows runs native `postgresql-x64-17` and `RabbitMQ` services (Automatic) on 5432/5672/15672, so Docker's mappings for 5432 and 5672 never bound; every host-side client (notification integration and messaging suites, `uat-notifications.mjs`, the UAT's event publisher behind UD3-UD5) hit the native services and was refused, while containers talk to each other fine. Stopping or disabling those services needs an elevated shell and may affect the author's other projects, so it is left for the author to decide. Debezium is needed for the order saga, so it was not stopped. Disk pruning not done.
+
+**Files changed:**
+- `docker-compose.yml` — RabbitMQ healthcheck `timeout: 20s`, `start_period: 180s`; header record
+- `ai/usage-log.md` — this entry
+- (outside the repo) `~/.wslconfig` — `memory=8GB`
+
+## 2026-10-25 01:05 SGT — Let Docker own 5432/5672; rerun the host-side suites
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "use the ones that docker uses" (the Docker PostgreSQL and RabbitMQ rather than the native Windows services holding their ports).
+
+**Usage scenario:** Local environment fix and verification at the author's explicit request (allowed). Through an elevated PowerShell (UAC approved by the author) the native Windows services `postgresql-x64-17` and `RabbitMQ` were stopped and set to Manual start; Docker then bound 5432, 5672 and 15672 without a container restart. Reruns against the Docker stack: notification-service integration 17/17, messaging 7/7 (both ported retry-path tests pass on a real broker), `uat-notifications.mjs` 22/22, `uat-d2-ui.mjs` 40/40 (UD3–UD5 were the three host-side refusals). Reversal if ever needed: `Start-Service` and `Set-Service -StartupType Automatic` on the two services.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (outside the repo) Windows services `postgresql-x64-17`, `RabbitMQ` stopped and set to Manual
+
+## 2026-10-25 01:20 SGT — Hide the Action needed and Important tabs on the Alerts board
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** With a screenshot of the Alerts board: "hide the action needed and important buttons in the frontend here".
+
+**Usage scenario:** Implementation of a UI change the author specified (allowed). `VIEWS` in the student app's inbox helpers now lists only All and Unread, so the tab bar renders two tabs; `InboxView`, `inView()`, the hook's server query and the row-level "Action needed" pill are unchanged, so a tab comes back by re-adding its line. Verified: student-app typecheck, unit 9/9, ESLint clean; student-app image rebuilt and restarted alone (`docker compose up -d --build --no-deps student-app`) so http://localhost shows the change. Left for the author: whether the hidden views should also leave the server contract later (that is an interface decision).
+
+**Files changed:**
+- `apps/student-app/src/notifications/inbox.ts` — `VIEWS` reduced to All and Unread; header record
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 13:20 SGT — Commit, push and merge PR #184 at the author's request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "i would like you to push into the pull request itself and then merge".
+
+**Usage scenario:** Git operations performed only because the author explicitly requested them (CLAUDE.md section 1 exception). Two commits on the PR branch: the Alerts-board tab hiding (`inbox.ts`) and the RabbitMQ health-probe budget (`docker-compose.yml`), each with its usage-log entries; then `git push` and `gh pr merge 184 --merge`. Deliberately left uncommitted for the author: `.claude/settings.json` (moves the git commit/push/merge and `gh pr` commands from the deny list to the allow list, a team policy change) and the untracked `docs/evidence/d2/screenshots/` (35 PNGs dated 2026-10-20, unrelated to this PR). Note for the author: the compose change carries the same `timeout: 20s` as open PR #147, so that PR will need a trivial conflict resolution after this merge.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
