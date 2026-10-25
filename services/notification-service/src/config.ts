@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Retry limit default lowered to 5: database and broker outages are now classified as infrastructure failures
+ * and retry without limit, so the budget only covers unexpected handler errors (Notification Redesign §10).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: Retry defaults raised to 30 attempts 2 s apart, so a database restart no longer dead-letters notifications
  * (review finding on PR #111).
@@ -52,13 +57,11 @@ export const config = Object.freeze({
     url: process.env.RABBITMQ_URL || 'amqp://notification_service:notification-service-dev@localhost:5672/campus',
     exchange,
     queue,
-    retryExchange: process.env.NOTIFICATION_RETRY_EXCHANGE || `${queue}.retry`,
-    retryQueue: process.env.NOTIFICATION_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.NOTIFICATION_DLX || `${queue}.dlx`,
     deadLetterQueue: process.env.NOTIFICATION_DLQ || `${queue}.dlq`,
-    // About a minute in total: every insert error counts as transient, and the dead-letter queue is terminal,
-    // so the budget has to outlast a database restart.
+    // Connectivity failures (Prisma/PostgreSQL/network codes) retry without limit via the shared classifier; this
+    // budget is for unexpected handler errors only, after which the message is dead-lettered for an operator.
     retryDelayMs: integer('NOTIFICATION_RETRY_DELAY_MS', 2000, 1),
-    retryLimit: integer('NOTIFICATION_RETRY_LIMIT', 30, 0),
+    retryLimit: integer('NOTIFICATION_RETRY_LIMIT', 5, 0),
   },
 });

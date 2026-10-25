@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Remove application RabbitMQ publisher settings now owned by the Debezium relay.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Converted accessTokenPrivateKey and accessTokenPublicKey to lazy property getters on config so DB-only scripts and tests can read config.databaseUrl without requiring JWT keys in process.env.
  * Author review: <to be completed by author after review>
@@ -30,8 +34,6 @@ if (!process.env.DATABASE_URL && process.env.USER_DATABASE_URL) {
 
 const DEFAULT_PORT = 8001;
 const DEFAULT_DATABASE_URL = 'postgresql://user_svc:user-service-dev@localhost:5432/user_db';
-const DEFAULT_RABBITMQ_URL = 'amqp://user_service:user-service-dev@localhost:5672/campus';
-const DEFAULT_EVENTS_EXCHANGE = 'campus.events';
 
 function readPort(value: string | undefined): number {
   if (value === undefined) {
@@ -58,8 +60,6 @@ export interface AppConfig {
   accessTokenAudience: string;
   corsOrigin: string;
   secureCookies: boolean;
-  rabbitmqUrl: string;
-  eventsExchange: string;
 }
 
 function readRequiredKey(name: 'JWT_PRIVATE_KEY' | 'JWT_PUBLIC_KEY'): string {
@@ -117,6 +117,4 @@ export const config: AppConfig = Object.freeze({
   accessTokenAudience: process.env.JWT_AUDIENCE ?? 'friend-on-campus-services',
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   secureCookies: nodeEnvironment === 'production',
-  rabbitmqUrl: process.env.RABBITMQ_URL ?? DEFAULT_RABBITMQ_URL,
-  eventsExchange: process.env.EVENTS_EXCHANGE ?? DEFAULT_EVENTS_EXCHANGE,
 });

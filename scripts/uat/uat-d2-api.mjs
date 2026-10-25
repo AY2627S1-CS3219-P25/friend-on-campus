@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-21
+// Scope: Standardized default JSON result path (UAT_OUT) under root git-ignored test-results/uat-d2-api-results.json instead of os.tmpdir().
+// Author review: <to be completed by author after review>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
 // Scope: A8 expects 409 LAST_ADMIN_REQUIRED, A10 expects 400, A11 checks the decided behaviour (refresh refused for a disabled account; its access token stays valid until it expires), S8 compares names without regard to letter case.
 // Author review: <to be completed by Reallyeasy1>
@@ -10,11 +14,11 @@
 // Run: node scripts/uat/uat-d2-api.mjs   (stack up: docker compose up --build -d; no npm deps)
 // D2 UAT — API level, through the nginx gateway (http://localhost) and directly to
 // the supplier service (http://localhost:8002) to show it works without the UI/gateway.
-// Prints one line per check and writes uat-d2-api-results.json to the OS temp folder,
+// Prints one line per check and writes test-results/uat-d2-api-results.json,
 // or to the path in UAT_OUT.
-import { writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const GW = process.env.GW ?? 'http://localhost';
 const SUP_DIRECT = process.env.SUP_DIRECT ?? 'http://localhost:8002';
@@ -252,7 +256,9 @@ let firstSupplier;
 
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} checks passed`);
-const out = process.env.UAT_OUT ?? path.join(tmpdir(), 'uat-d2-api-results.json');
+// AI-generated (edited by yanhwee)
+const out = process.env.UAT_OUT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-results/uat-d2-api-results.json');
+mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));
 console.log(`results written to ${out}`);
 process.exit(passed === results.length ? 0 : 1);

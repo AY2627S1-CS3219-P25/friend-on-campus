@@ -9,7 +9,7 @@
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
-import { isInfrastructureFailure, startRabbitConsumer, type MessagingConfig, type Failure } from '../messaging/rabbitmq';
+import { isInfrastructureFailure, startRabbitConsumer, type MessagingConfig, type Failure } from '@campus-errand/messaging';
 import { CreditError, InvalidCreditEvent } from './errors';
 import { createCreditEventHandler, creditRoutingKeys } from './events';
 import type { CreditService } from './service';

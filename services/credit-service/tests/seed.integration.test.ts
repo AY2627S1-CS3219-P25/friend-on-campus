@@ -1,9 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added integration test assertions for offline deterministic seed UUID fallback when User Service is unreachable vs reachable HTTP failures.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-03
  * Scope: Verify seed identity matching, session cleanup and repeat-safe PostgreSQL wallet initialization.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -69,6 +74,7 @@ async function main() {
     for (const failure of ['disabled', 'wrong-email', 'invalid-id'] as const) {
       fault = failure;
       await assert.rejects(seedCreditWallets(credits, base));
+      await assert.rejects(seedCreditWallets(credits, base, { allowOfflineFallback: true }));
       assert.equal(await db.creditWallet.count({ where: { userId: { in: userIds } } }), 0);
       assert.equal(sessions.size, 0, 'identity failures still close all successful logins');
     }
@@ -102,10 +108,55 @@ async function main() {
       toUserId: { in: userIds }, transactionType: 'WELCOME_GRANT',
     } }), 3);
     assert.equal(sessions.size, 0);
-    assert.equal(logouts, 17);
-    console.log('PASS: real UUID matching, three 100-credit wallets, one grant each, preserved spent/earned/escrow balances and ledger on concurrent reruns, identity failure before writes and session cleanup');
-  } finally {
+    assert.equal(logouts, 25);
+
+    // Offline CLI fallback resolves deterministic UUIDs only when User Service is unreachable.
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    const offlineIds: string[] = [];
+    const offlineReservations: Array<{ orderId: string; requesterId: string; amount: number }> = [];
+    const offlineRecorder = {
+      initializeWallet: async (userId: string) => {
+        offlineIds.push(userId);
+        return {
+          userId,
+          availableCredits: 100,
+          escrowCredits: 0,
+          totalEarnedCredits: 0,
+          updatedAt: new Date(0).toISOString(),
+        };
+      },
+      reserve: async (body: { orderId: string; requesterId: string; amount: number }) => {
+        offlineReservations.push(body);
+        return {
+          userId: body.requesterId,
+          availableCredits: 100 - body.amount,
+          escrowCredits: body.amount,
+          totalEarnedCredits: 0,
+          updatedAt: new Date(0).toISOString(),
+        };
+      },
+    };
+    await assert.rejects(seedCreditWallets(offlineRecorder, base));
+    assert.equal(offlineIds.length, 0);
+    await seedCreditWallets(offlineRecorder, base, { allowOfflineFallback: true });
+    assert.deepEqual(offlineIds, [
+      '20000000-0000-4000-8000-000000000001',
+      '20000000-0000-4000-8000-000000000002',
+      '20000000-0000-4000-8000-000000000003',
+    ]);
+    assert.equal(offlineReservations.length, 0);
+    await seedCreditWallets(offlineRecorder, base, { allowOfflineFallback: true, seedSampleOrders: true });
+    assert.deepEqual(offlineReservations, [
+      { orderId: '30000000-0000-4000-8000-000000000001', requesterId: '20000000-0000-4000-8000-000000000001', amount: 15 },
+      { orderId: '30000000-0000-4000-8000-000000000002', requesterId: '20000000-0000-4000-8000-000000000002', amount: 20 },
+      { orderId: '30000000-0000-4000-8000-000000000003', requesterId: '20000000-0000-4000-8000-000000000001', amount: 12 },
+      { orderId: '30000000-0000-4000-8000-000000000004', requesterId: '20000000-0000-4000-8000-000000000002', amount: 18 },
+    ]);
+    console.log('PASS: real UUID matching, offline fallback when unreachable, three 100-credit wallets, one grant each, preserved spent/earned/escrow balances and ledger on concurrent reruns, identity failure before writes and session cleanup');
+  } finally {
+    if (server.listening) {
+      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    }
     try {
       await db.creditEscrow.deleteMany({ where: { orderId: { in: orderIds } } });
       await db.creditTransaction.deleteMany({ where: { OR: [

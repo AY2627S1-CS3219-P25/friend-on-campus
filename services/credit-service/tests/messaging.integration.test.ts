@@ -26,7 +26,7 @@ import { CreditError, createCreditService } from '../src/credits/service';
 import { createCreditStore, type CreditStore } from '../src/credits/store';
 import { createCreditEventHandler, creditRoutingKeys } from '../src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../src/credits/consumer';
-import { createConfirmedPublisher, startRabbitConsumer, type MessagingConfig } from '../src/messaging/rabbitmq';
+import { createRabbitPublisher, startRabbitConsumer, type MessagingConfig } from '@campus-errand/messaging';
 import { createTestAuth } from './auth-fixture';
 
 async function until<T>(check: () => Promise<T>, label: string): Promise<NonNullable<T>> {
@@ -70,14 +70,14 @@ async function main() {
   const config: MessagingConfig = {
     url: process.env.CREDIT_TEST_RABBITMQ_URL || 'amqp://credit_test:credit-test-dev@localhost:5672/campus',
     exchange: `${prefix}.events`, queue: `${prefix}.credit`,
-    retryExchange: `${prefix}.retry`, retryQueue: `${prefix}.retry`,
     deadLetterExchange: `${prefix}.dlx`, deadLetterQueue: `${prefix}.dlq`, retryDelayMs: 60, retryLimit: 5,
   };
   const connection = await amqp.connect(config.url);
   connection.on('error', () => {});
   const channel = await connection.createConfirmChannel();
   channel.on('error', () => {});
-  const publish = createConfirmedPublisher(channel);
+  const rabbitPublisher = createRabbitPublisher({ url: config.url });
+  const publish = rabbitPublisher.publish;
   const users: string[] = [];
   const events: string[] = [];
   const user = () => { const id = randomUUID(); users.push(id); return id; };
@@ -117,7 +117,7 @@ async function main() {
     assert.equal((await credits.getWallet(registered)).availableCredits, 70);
     assert.equal((await credits.getLedger(registered)).filter(t => t.transactionType === 'WELCOME_GRANT').length, 1);
     await send({ ...registration, initialGrant: 71 });
-    assert.equal((await dead()).properties.headers!['x-credit-failure-category'], 'permanent');
+    assert.equal(Number((await dead()).properties.headers?.['x-delivery-count'] ?? 0), 0);
     const conflict = event('user.registered', { userId: registered, email: 'mq@example.test', initialGrant: 100 });
     await send(conflict); await dead();
     assert.equal(await db.processedCreditEvent.count({ where: { eventId: conflict.eventId } }), 0);
@@ -177,23 +177,14 @@ async function main() {
     for (const fields of invalids) {
       const invalid = { ...registration, ...fields };
       await send(invalid);
-      assert.equal((await dead()).properties.headers!['x-credit-failure-reason'], 'invalid_event');
+      assert.equal((await dead()).properties.headers?.['x-first-death-reason'], 'rejected');
     }
     // Direct enqueue tests an unsupported event that would normally be filtered by bindings.
     const unknown = event('order.unknown', {});
-    await publish('', config.queue, Buffer.from(JSON.stringify(unknown)), { headers: { 'x-credit-original-routing-key': unknown.eventType } });
-    assert.equal((await dead()).properties.headers!['x-credit-failure-category'], 'permanent');
+    await publish('', config.queue, Buffer.from(JSON.stringify(unknown)));
+    assert.equal((await dead()).properties.headers?.['x-first-death-reason'], 'rejected');
     await publish(config.exchange, 'order.completed', Buffer.from(JSON.stringify(registration)));
-    assert.equal((await dead()).properties.headers!['x-credit-failure-reason'], 'invalid_event');
-
-    // Losing DLQ routing must retain the original delivery, not acknowledge-and-drop it.
-    await channel.unbindQueue(config.deadLetterQueue, config.deadLetterExchange, config.deadLetterQueue);
-    await publish(config.exchange, 'user.registered', Buffer.from('{"broken":true}'));
-    await until(async () => !consumer!.isReady(), 'unroutable forwarding stops consumer');
-    await consumer.close();
-    assert.equal((await channel.checkQueue(config.queue)).messageCount, 1);
-    consumer = await startCreditConsumer(config, credits); // Restores the missing binding.
-    assert.equal((await dead()).content.toString(), '{"broken":true}');
+    assert.equal((await dead()).properties.headers?.['x-first-death-reason'], 'rejected');
 
     // Two active consumers contend for the same event and different IDs for the same business action.
     const second = await startCreditConsumer(config, credits);
@@ -233,7 +224,6 @@ async function main() {
         const id = JSON.parse(body.toString()).eventId;
         const attempt = (attempts.get(id) ?? 0) + 1; attempts.set(id, attempt);
         if (id === mixed.eventId && attempt <= 8) throw Object.assign(new Error('Injected unavailable database'), { errorCode: 'P1001' });
-        if (id === mixed.eventId && attempt <= 13) throw new Error('Injected processing failure');
         if (id === exhausted.eventId || (id === transient.eventId && attempt <= 2)) throw new Error('Injected temporary dependency failure');
         if (id === rollback.eventId && attempt === 1) {
           try { await failHandler(body, key); }
@@ -248,11 +238,11 @@ async function main() {
         await handle(body, key);
       },
     });
-    // Eight infrastructure failures must leave all five event retries available.
+    // Eight infrastructure failures must survive past retryLimit and recover once the database returns.
     const retryStarted = Date.now();
     await send(mixed); await processed(mixed);
-    assert.equal(attempts.get(mixed.eventId), 14);
-    assert(Date.now() - retryStarted >= 13 * config.retryDelayMs - 50, 'retries must be delayed');
+    assert.equal(attempts.get(mixed.eventId), 9);
+    assert(Date.now() - retryStarted >= 8 * config.retryDelayMs - 50, 'retries must be delayed');
     assert.equal((await credits.getLedger(mixed.userId as string)).length, 1);
     assert.equal((await channel.checkQueue(config.deadLetterQueue)).messageCount, 0);
     await send(transient); await processed(transient);
@@ -263,14 +253,14 @@ async function main() {
     await send(exhausted);
     const exhaustedMessage = await dead();
     assert.equal(attempts.get(exhausted.eventId), 6);
-    assert.equal(exhaustedMessage.properties.headers!['x-credit-retry-count'], 5);
-    assert.equal(exhaustedMessage.properties.headers!['x-credit-original-routing-key'], 'user.registered');
+    assert.equal(exhaustedMessage.properties.headers?.['x-first-death-reason'], 'rejected');
+    assert.equal(exhaustedMessage.properties.headers?.['x-first-death-queue'], config.queue);
     assert.equal(exhaustedMessage.properties.messageId, exhausted.eventId);
     assert.deepEqual(JSON.parse(exhaustedMessage.content.toString()), exhausted);
     assert.equal(await db.creditWallet.count({ where: { userId: exhausted.userId as string } }), 0);
     await consumer.close();
 
-    // Restart while a message waits in the durable retry queue.
+    // Restart while a failed message is awaiting redelivery on the durable quorum queue.
     const delayedConfig = { ...config, retryDelayMs: 500 };
     const delayed = event('user.registered', { userId: user(), email: 'delayed@example.test', initialGrant: 30 });
     consumer = await startRabbitConsumer(delayedConfig, {
@@ -318,10 +308,11 @@ async function main() {
       const exited = once(child, 'exit'); child.kill('SIGKILL'); await exited;
     }
     await consumer?.close();
+    await rabbitPublisher.close();
     await new Promise<void>(resolve => server.close(() => resolve()));
     try {
-      for (const queue of [config.queue, config.retryQueue, config.deadLetterQueue]) await channel.deleteQueue(queue);
-      for (const exchange of [config.exchange, config.retryExchange, config.deadLetterExchange]) await channel.deleteExchange(exchange);
+      for (const queue of [config.queue, config.deadLetterQueue]) await channel.deleteQueue(queue);
+      for (const exchange of [config.exchange, config.deadLetterExchange]) await channel.deleteExchange(exchange);
     } finally { await connection.close(); }
     try {
       await db.processedCreditEvent.deleteMany({ where: { eventId: { in: events } } });

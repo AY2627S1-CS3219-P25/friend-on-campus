@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Removed dead Audit & Disputes navigation option and wired top Refresh button and mobile Health tab to fetchServicesHealth.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted top header bar, mobile navigation drawer, and action alert banner into src/components/AdminHeader.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -28,9 +32,11 @@ interface AdminHeaderProps {
   isLoading: boolean;
   isLoadingOrders: boolean;
   isLoadingUsers: boolean;
+  isLoadingHealth: boolean;
   fetchSuppliers: () => void;
   fetchOrders: () => void;
   fetchUsers: () => void;
+  fetchServicesHealth: () => void;
   setAddFormErrors: (errors: Record<string, string>) => void;
   setAddDuplicateConflict: (conflict: SupplierLocationConflict | null) => void;
   setIsAddOpen: (open: boolean) => void;
@@ -49,9 +55,11 @@ export function AdminHeader({
   isLoading,
   isLoadingOrders,
   isLoadingUsers,
+  isLoadingHealth,
   fetchSuppliers,
   fetchOrders,
   fetchUsers,
+  fetchServicesHealth,
   setAddFormErrors,
   setAddDuplicateConflict,
   setIsAddOpen,
@@ -81,9 +89,7 @@ export function AdminHeader({
                 ? 'Users Directory'
                 : activeNav === 'orders'
                 ? 'Errands & Order State Management'
-                : activeNav === 'health'
-                ? 'System Microservices'
-                : 'Audit & Disputes'}
+                : 'System Microservices'}
             </h2>
             <p className="text-xs text-slate-500 hidden sm:block">
               Manage campus vendor pickup locations, operating hours, and real-time availability
@@ -110,6 +116,7 @@ export function AdminHeader({
             onClick={() => {
               if (activeNav === 'orders') fetchOrders();
               else if (activeNav === 'users') fetchUsers();
+              else if (activeNav === 'health') fetchServicesHealth();
               else fetchSuppliers();
             }}
             disabled={
@@ -117,6 +124,8 @@ export function AdminHeader({
                 ? isLoadingOrders
                 : activeNav === 'users'
                 ? isLoadingUsers
+                : activeNav === 'health'
+                ? isLoadingHealth
                 : isLoading
             }
             className="admin-icon-square flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition shrink-0"
@@ -128,6 +137,8 @@ export function AdminHeader({
                   ? isLoadingOrders
                   : activeNav === 'users'
                   ? isLoadingUsers
+                  : activeNav === 'health'
+                  ? isLoadingHealth
                   : isLoading)
                   ? 'animate-spin'
                   : ''
@@ -187,22 +198,13 @@ export function AdminHeader({
               Users
             </button>
             <button
-              onClick={() => { setActiveNav('health'); setMobileMenuOpen(false); }}
+              onClick={() => {
+                setActiveNav('health');
+                setMobileMenuOpen(false);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold ${activeNav === 'health' ? 'bg-blue-600 text-white' : 'text-slate-300'}`}
             >
               Health
-            </button>
-            {/* AI-generated (edited by jagdeepsh) */}
-            <button
-              onClick={() => {
-                setActiveNav('audit');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                activeNav === 'audit' ? 'bg-blue-600 text-white' : 'text-slate-300'
-              }`}
-            >
-              Audit & Disputes
             </button>
           </div>
           <div className="flex items-center justify-end pt-2 border-t border-slate-800">

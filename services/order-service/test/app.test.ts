@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added integration test for POST /api/orders/:id/unassign (courier drop before pickup, 403 for non-assigned courier, 409 after pickup).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Verify asynchronous creation receipts, polling authorization and existing lifecycle routes.
  * Author review: <to be completed by huangjiaxi1111>
@@ -656,6 +660,155 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.equal(body.success, true);
       assert.equal(body.data.status, 'OPEN');
       assert.equal(body.data.courierId, null);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('supports filtering orders by requesterId and courierId for admin and user queries', async () => {
+    const { app, fakeRepo } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const aliceOrder = await fakeRepo.repo.createOrderWithOutbox({
+        orderCode: 'ORD-ALICE1',
+        requesterId: ALICE_ID,
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Americano',
+        dropoffLocation: 'COM1',
+        rewardCredits: 8,
+        expiresAt: new Date(Date.now() + 60000),
+      }, {
+        eventType: 'order.created',
+        eventId: 'evt-alice-1',
+        timestamp: new Date().toISOString(),
+        orderId: 'dummy-1',
+        orderCode: 'ORD-ALICE1',
+        requesterId: ALICE_ID,
+        campusZone: 'Computing',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        rewardCredits: 8,
+      });
+
+      const bobOrder = await fakeRepo.repo.createOrderWithOutbox({
+        orderCode: 'ORD-BOB001',
+        requesterId: BOB_ID,
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Waffle',
+        dropoffLocation: 'UTown',
+        rewardCredits: 10,
+        expiresAt: new Date(Date.now() + 60000),
+      }, {
+        eventType: 'order.created',
+        eventId: 'evt-bob-1',
+        timestamp: new Date().toISOString(),
+        orderId: 'dummy-2',
+        orderCode: 'ORD-BOB001',
+        requesterId: BOB_ID,
+        campusZone: 'UTown',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        rewardCredits: 10,
+      });
+
+      await fakeRepo.repo.acceptOrder(aliceOrder.id, BOB_ID, undefined, {
+        eventType: 'order.accepted',
+        eventId: 'evt-acc-bob',
+        timestamp: new Date().toISOString(),
+        orderId: aliceOrder.id,
+        orderCode: aliceOrder.orderCode,
+        requesterId: ALICE_ID,
+        courierId: BOB_ID,
+      });
+
+      // Admin filtering by requesterId
+      const requesterRes = await fetch(`${server.url}/api/orders?requesterId=${ALICE_ID}`, {
+        headers: {
+          'x-user-id': ADMIN_ID,
+          'x-user-role': 'ADMIN',
+        },
+      });
+      assert.equal(requesterRes.status, 200);
+      const requesterBody = await requesterRes.json() as any;
+      assert.equal(requesterBody.data.length, 1);
+      assert.equal(requesterBody.data[0].id, aliceOrder.id);
+
+      // Filtering by courierId (admin or matching courier)
+      const courierRes = await fetch(`${server.url}/api/orders?courierId=${BOB_ID}`, {
+        headers: {
+          'x-user-id': BOB_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(courierRes.status, 200);
+      const courierBody = await courierRes.json() as any;
+      assert.equal(courierBody.data.length, 1);
+      assert.equal(courierBody.data[0].id, aliceOrder.id);
+      assert.notEqual(courierBody.data[0].id, bobOrder.id);
+
+      // Non-admin filtering by another user's requesterId or courierId returns 403 Forbidden
+      const forbiddenRequesterRes = await fetch(`${server.url}/api/orders?requesterId=${ALICE_ID}`, {
+        headers: {
+          'x-user-id': BOB_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(forbiddenRequesterRes.status, 403);
+
+      const forbiddenCourierRes = await fetch(`${server.url}/api/orders?courierId=${BOB_ID}`, {
+        headers: {
+          'x-user-id': ALICE_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(forbiddenCourierRes.status, 403);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('allows assigned courier to unassign (drop) an ACCEPTED order via POST /api/orders/:id/unassign before pickup', async () => {
+    const { app, fakeRepo } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const createRes = await fetch(`${server.url}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': ALICE_ID,
+        },
+        body: JSON.stringify({
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Matcha Latte',
+          dropoffLocation: 'COM2',
+          rewardCredits: 15,
+        }),
+      });
+      const orderId = (await createRes.json() as any).data.id;
+      await fakeRepo.approve(orderId);
+
+      // Bob accepts
+      const acceptRes = await fetch(`${server.url}/api/orders/${orderId}/accept`, {
+        method: 'POST',
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(acceptRes.status, 200);
+
+      // Alice (not the courier) cannot unassign -> 403
+      const forbiddenRes = await fetch(`${server.url}/api/orders/${orderId}/unassign`, {
+        method: 'POST',
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(forbiddenRes.status, 403);
+
+      // Bob drops the errand before pickup -> 200 OPEN
+      const unassignRes = await fetch(`${server.url}/api/orders/${orderId}/unassign`, {
+        method: 'POST',
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(unassignRes.status, 200);
+      const unassignBody = await unassignRes.json() as any;
+      assert.equal(unassignBody.success, true);
+      assert.equal(unassignBody.data.status, 'OPEN');
+      assert.equal(unassignBody.data.courierId, null);
     } finally {
       await server.close();
     }

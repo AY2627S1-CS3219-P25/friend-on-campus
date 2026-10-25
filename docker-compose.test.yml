@@ -44,3 +44,31 @@ services:
     container_name: !reset null
     ports: !override
       - "127.0.0.1:${TEST_RABBITMQ_PORT:-5672}:5672"
+  debezium-order:
+    container_name: !reset null
+  debezium-user:
+    container_name: !reset null
+  debezium-credit:
+    container_name: !reset null
+  debezium-credit-messaging:
+    image: quay.io/debezium/server:2.7
+    profiles: [messaging]
+    environment:
+      DEBEZIUM_SOURCE_DATABASE_DBNAME: ${CREDIT_CDC_TEST_DATABASE:-credit_messaging_test}
+      DEBEZIUM_SOURCE_SLOT_NAME: debezium_credit_messaging
+      DEBEZIUM_SOURCE_PUBLICATION_NAME: dbz_credit_messaging_publication
+      DEBEZIUM_SOURCE_TOPIC_PREFIX: campus_credit_messaging
+      DEBEZIUM_SINK_RABBITMQ_CONNECTION_USERNAME: credit_test
+      DEBEZIUM_SINK_RABBITMQ_CONNECTION_PASSWORD: credit-test-dev
+      DEBEZIUM_SINK_RABBITMQ_EXCHANGE: credit-test.saga-cdc.events
+    volumes:
+      - ./docker/debezium/credit.properties:/debezium/conf/application.properties:ro
+      - debezium_credit_messaging_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  debezium_credit_messaging_data:

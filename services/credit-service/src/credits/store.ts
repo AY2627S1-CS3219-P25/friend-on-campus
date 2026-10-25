@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: addTransaction returns the ledger row's id and code so settlement/refund receipts can reference it
+ * (Notification Redesign increment 6).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Add transaction savepoints and Credit result outbox writes.
  * Author review: <to be completed by huangjiaxi1111>
@@ -103,8 +108,10 @@ function queries(db: Prisma.TransactionClient) {
       });
       return rows.map(transactionDTO);
     },
-    async addTransaction(data: Omit<CreditTransactionDTO, 'id' | 'createdAt'>) {
-      await db.creditTransaction.create({ data });
+    // AI-generated (edited by Reallyeasy1): the ledger row identifies the receipt event written in the same transaction.
+    async addTransaction(data: Omit<CreditTransactionDTO, 'id' | 'createdAt'>): Promise<{ id: string; transactionCode: string }> {
+      const row = await db.creditTransaction.create({ data, select: { id: true, transactionCode: true } });
+      return row;
     },
   };
 }

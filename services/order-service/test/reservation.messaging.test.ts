@@ -1,5 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: The test topology binds order.rejected (new Order outcome, Notification Redesign §9) so the mandatory outbox
+ * flush routes it, and the rejection case asserts the committed fact's reason code, statuses and SYSTEM actor.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Exercise Credit result publication through Debezium and keep late-delivery cases behind an offline Order consumer.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
  * Scope: Updated reservation messaging integration test for Saga Approach B2 (PENDING/OPEN/REJECTED/EXPIRED orders and order.expired late-reservation refund).
  * Author review: Reviewed and verified by Yee Yan Hwee (yanhwee)
@@ -13,23 +22,20 @@
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by yanhwee)
+import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
+import { createRabbitPublisher, queueArguments } from '@campus-errand/messaging';
+import amqp from 'amqplib';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import amqp from 'amqplib';
-import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
-import { PrismaClient as OrderPrisma } from '../src/database/client';
-import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
-import { createOrderRepository } from '../src/repositories/order.repository';
-import { createRabbitMQPublisher } from '../src/messaging/event.publisher';
-import { createOutboxRelay } from '../src/messaging/outbox.relay';
-import { classifyReservationFailure, startReservationConsumer, reservationResultKeys } from '../src/messaging/reservation.consumer';
-import { createCreditStore } from '../../credit-service/src/credits/store';
-import { createCreditService } from '../../credit-service/src/credits/service';
-import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
 import { classifyCreditFailure, startCreditConsumer } from '../../credit-service/src/credits/consumer';
-import { createCreditOutbox } from '../../credit-service/src/messaging/outbox';
-import { createConfirmedPublisher } from '../../credit-service/src/messaging/rabbitmq';
+import { createCreditEventHandler, creditRoutingKeys } from '../../credit-service/src/credits/events';
+import { createCreditService } from '../../credit-service/src/credits/service';
+import { createCreditStore } from '../../credit-service/src/credits/store';
+import { PrismaClient as CreditPrisma } from '../../credit-service/src/database/client';
+import { PrismaClient as OrderPrisma } from '../src/database/client';
+import { classifyReservationFailure, reservationResultKeys, startReservationConsumer } from '../src/messaging/reservation.consumer';
+import { createOrderRepository } from '../src/repositories/order.repository';
 
 function testUrl(name: string) {
   const value = process.env[name];
@@ -60,17 +66,15 @@ async function main() {
   const credit = new CreditPrisma({ datasources: { db: { url: testUrl('CREDIT_TEST_DATABASE_URL') } } });
   const url = process.env.CREDIT_TEST_RABBITMQ_URL ?? 'amqp://credit_test:credit-test-dev@localhost:5672/campus';
   const prefix = `credit-test.saga-${randomUUID()}`;
-  const exchange = `${prefix}.events`;
-  const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`, retryExchange: `${prefix}.${side}.retry`,
-    retryQueue: `${prefix}.${side}.retry`, deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
+  const exchange = process.env.SAGA_TEST_EXCHANGE ?? 'credit-test.saga-cdc.events';
+  const config = (side: string) => ({ url, exchange, queue: `${prefix}.${side}`,
+    deadLetterExchange: `${prefix}.${side}.dlq`, deadLetterQueue: `${prefix}.${side}.dlq`, retryDelayMs: 50, retryLimit: 5 });
   const cc = config('credit'); const oc = config('order');
   const connection = await amqp.connect(url);
   connection.on('error', () => {});
   const channel = await connection.createConfirmChannel();
-  const publish = createConfirmedPublisher(channel);
-  const publisher = createRabbitMQPublisher({ url, exchange });
-  const relay = createOutboxRelay({ prisma: orders, publisher });
-  const results = createCreditOutbox(credit, { url, exchange });
+  const rabbitPublisher = createRabbitPublisher({ url });
+  const publish = rabbitPublisher.publish;
   const orderRepo = createOrderRepository(orders);
   const orderHandler = {
     handleReservationResult: (event: CreditReservationResultEvent) => orderRepo.applyReservationResult(event),
@@ -83,6 +87,17 @@ async function main() {
   let creditConsumer: Awaited<ReturnType<typeof startCreditConsumer>> | undefined;
   let orderConsumer: Awaited<ReturnType<typeof startReservationConsumer>> | undefined;
   const emit = (event: { eventType: string; eventId: string }) => publish(exchange, event.eventType, Buffer.from(JSON.stringify(event)), { messageId: event.eventId });
+  async function flushOrderOutbox() {
+    const pending = await orders.outboxEvent.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+    });
+    for (const row of pending) {
+      if (!ids.includes(row.aggregateId)) continue;
+      await emit(JSON.parse(row.payload));
+      await orders.outboxEvent.update({ where: { id: row.id }, data: { status: 'DELIVERED' } });
+    }
+  }
   async function submit(rewardCredits = 15, expiresAt = new Date(Date.now() + 600000)) {
     const requesterId = randomUUID(); users.push(requesterId);
     await credits.initializeWallet(requesterId);
@@ -117,20 +132,23 @@ async function main() {
     const rows = await credit.creditOutboxEvent.findMany();
     return rows.map(row => JSON.parse(row.payload)).find(event => event.correlationId === id);
   };
-  async function pump() { await relay.processPending(); await results.processPending(); }
+  async function pump() { await flushOrderOutbox(); }
   try {
     // Provision durable routes before consumers start, just as definitions.json does in Compose.
     await channel.assertExchange(exchange, 'topic', { durable: true });
     for (const [cfg, keys] of [[cc, creditRoutingKeys], [oc, reservationResultKeys]] as const) {
-      await channel.assertQueue(cfg.queue, { durable: true });
+      await channel.assertQueue(cfg.queue, { durable: true, arguments: queueArguments(cfg) });
       for (const key of keys) await channel.bindQueue(cfg.queue, exchange, key);
     }
     await channel.assertQueue(`${prefix}.created`, { durable: true });
     await channel.bindQueue(`${prefix}.created`, exchange, 'order.created');
+    // AI-generated (edited by Reallyeasy1): order.rejected is an Order outcome for the Notification Service, which is
+    // not part of this topology; the outbox flush publishes mandatory, so it needs a sink too.
+    await channel.bindQueue(`${prefix}.created`, exchange, 'order.rejected');
 
     const first = await submit();
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
-    await relay.processPending();
+    await flushOrderOutbox();
     assert.equal((await channel.checkQueue(cc.queue)).messageCount, 1);
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     creditConsumer = await startCreditConsumer(cc, credits);
@@ -139,7 +157,7 @@ async function main() {
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: first.id } })).status, 'PENDING');
     // A restart after the credit commit cannot lose the result waiting in its outbox.
     await creditConsumer.close();
-    await results.processPending();
+    await until(async () => (await channel.checkQueue(oc.queue)).messageCount === 1, 'CDC publishes the committed result');
     assert.equal((await channel.checkQueue(oc.queue)).messageCount, 1);
     orderConsumer = await startReservationConsumer(oc, orderHandler);
     await until(async () => (await orders.order.findUnique({ where: { id: first.id } }))?.status === 'OPEN', 'confirmed order');
@@ -157,15 +175,21 @@ async function main() {
     const rejectedOrder = await orders.order.findUniqueOrThrow({ where: { id: rejected.id } });
     assert.equal(rejectedOrder.status, 'REJECTED');
     assert.ok(rejectedOrder.rejectionReason);
+    const rejectedFact = (await orders.outboxEvent.findMany({ where: { eventType: 'order.rejected' } }))
+      .map(row => JSON.parse(row.payload)).find(payload => payload.orderId === rejected.id);
+    assert.deepEqual([rejectedFact?.reasonCode, rejectedFact?.previousStatus, rejectedFact?.status, rejectedFact?.actorRole],
+      ['INSUFFICIENT_CREDITS', 'PENDING', 'REJECTED', 'SYSTEM']);
     assert.equal(await credit.creditEscrow.count({ where: { orderId: rejected.id } }), 0);
     assert.equal((await credits.getWallet(rejected.requesterId)).availableCredits, 100);
 
     // Funds were reserved in time, but the success reaches Order only after expiry.
+    await orderConsumer.close(); orderConsumer = undefined;
     const late = await submit(12, new Date(Date.now() + 1200));
-    await relay.processPending();
+    await flushOrderOutbox();
     await until(() => getResult(late.id), 'late reservation committed');
     assert.equal((await credits.getWallet(late.requesterId)).escrowCredits, 12);
     await delay(1300);
+    orderConsumer = await startReservationConsumer(oc, orderHandler);
     // Refund commands (order.expired) must survive infrastructure failures beyond the event budget.
     await creditConsumer.close();
     let refundAttempts = 0;
@@ -204,7 +228,7 @@ async function main() {
 
     // Order status transition (PENDING -> OPEN) and order.created publication are also one transaction.
     await orderConsumer.close(); orderConsumer = undefined;
-    await relay.processPending();
+    await flushOrderOutbox();
     await until(() => getResult(rollback.id), 'result after retry');
     const faultDb = new Proxy(orders, { get(target, property) {
       if (property === '$transaction') return (operation: (tx: unknown) => Promise<unknown>) => target.$transaction(tx => operation(new Proxy(tx, {
@@ -217,7 +241,6 @@ async function main() {
     } });
     await assert.rejects(createOrderRepository(faultDb).applyReservationResult(await getResult(rollback.id)), /Injected/);
     assert.equal((await orders.order.findUniqueOrThrow({ where: { id: rollback.id } })).status, 'PENDING');
-    await results.processPending();
     orderConsumer = await startReservationConsumer(oc, orderHandler);
     await until(async () => (await orders.order.findUnique({ where: { id: rollback.id } }))?.status === 'OPEN', 'order after consumer restart');
 
@@ -253,20 +276,22 @@ async function main() {
     const exhausted = await channel.get(oc.deadLetterQueue, { noAck: true });
     assert(exhausted);
     assert.equal(eventAttempts, 6);
-    assert.equal(exhausted.properties.headers!['x-order-retry-count'], 5);
+    assert.equal(exhausted.properties.headers?.['x-first-death-queue'], oc.queue);
+    assert.equal(exhausted.properties.headers?.['x-first-death-reason'], 'rejected');
     await publish(exchange, 'credit.reservation.succeeded', Buffer.from('{invalid'));
     await until(async () => (await channel.checkQueue(oc.deadLetterQueue)).messageCount === 1, 'invalid event DLQ');
     const invalid = await channel.get(oc.deadLetterQueue, { noAck: true });
     assert(invalid);
-    assert.equal(invalid.properties.headers!['x-order-retry-count'], 0);
+    assert.equal(invalid.properties.headers?.['x-first-death-queue'], oc.queue);
+    assert.equal(invalid.properties.headers?.['x-first-death-reason'], 'rejected');
     assert.equal(eventAttempts, 6);
     console.log('PASS: infrastructure retry recovery, bounded event retries, invalid-event DLQ, PENDING order saga, offline consumers, persisted results, duplicate safety, insufficient funds, late-success expiry refund, atomic rollbacks and restart recovery');
   } finally {
     await orderConsumer?.close(); await creditConsumer?.close();
-    await relay.stop(); await publisher.close(); await results.stop();
+    await rabbitPublisher.close();
     for (const cfg of [cc, oc]) {
-      for (const queue of [cfg.queue, cfg.retryQueue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
-      for (const ex of [cfg.retryExchange, cfg.deadLetterExchange]) await channel.deleteExchange(ex);
+      for (const queue of [cfg.queue, cfg.deadLetterQueue]) await channel.deleteQueue(queue);
+      await channel.deleteExchange(cfg.deadLetterExchange);
     }
     await channel.deleteQueue(`${prefix}.created`); await channel.deleteExchange(exchange);
     await channel.close(); await connection.close();

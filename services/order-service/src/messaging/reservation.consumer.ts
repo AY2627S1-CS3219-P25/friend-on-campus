@@ -11,7 +11,7 @@
 // AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent } from '@campus-errand/common-dtos';
 import { OrderError, OrderValidationError } from '../orders/order.types';
-import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from './rabbitmq';
+import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';
 
 export const reservationResultKeys = ['credit.reservation.succeeded', 'credit.reservation.failed'] as const;
 

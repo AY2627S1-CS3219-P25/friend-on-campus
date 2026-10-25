@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): the final catch no longer types err as any; it only logs the value.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Readiness wait for the two spawned services raised from 30 s to 120 s. A cold `npx tsx src/index.ts` boot
  * of user-service measured 8 s idle and exceeded 30 s while the full Compose stack was running beside it, which
@@ -553,7 +557,7 @@ async function runTests() {
       }
     );
     assert(adminHardDelete.status === 200, 'Admin token DELETE ?permanent=true cleans up test record');
-  } catch (err: any) {
+  } catch (err) {
     console.error('Unexpected test error:', err);
   } finally {
     cleanup();

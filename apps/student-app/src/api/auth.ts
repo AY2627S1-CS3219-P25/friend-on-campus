@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Handled non-JSON error responses (e.g. NGINX 502/503 HTML pages during container startup) gracefully in loginWithPassword and registerUserAccount.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted authentication API client functions from student-app App.tsx into modular api/auth.ts.
  * Author review: Verified by yanhwee
@@ -19,9 +23,17 @@ export async function loginWithPassword(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, keepLoggedIn }),
   });
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    return { ok: false, code: data.code || `HTTP_${res.status}`, message: data.error };
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.success) {
+    return {
+      ok: false,
+      code: data?.code || `HTTP_${res.status}`,
+      message:
+        data?.error ||
+        (res.status >= 500
+          ? 'Authentication service is temporarily unavailable. Please try again in a moment.'
+          : 'Login failed. Please check your credentials.'),
+    };
   }
   return { ok: true, accessToken: data.data.accessToken as string };
 }
@@ -36,12 +48,16 @@ export async function registerUserAccount(payload: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  const data = await res.json();
-  if (!res.ok || !data.success) {
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.success) {
     return {
       ok: false,
-      code: data.code || `HTTP_${res.status}`,
-      message: data.error || 'Sign up failed.',
+      code: data?.code || `HTTP_${res.status}`,
+      message:
+        data?.error ||
+        (res.status >= 500
+          ? 'Registration service is temporarily unavailable. Please try again in a moment.'
+          : 'Sign up failed.'),
     };
   }
   return { ok: true };

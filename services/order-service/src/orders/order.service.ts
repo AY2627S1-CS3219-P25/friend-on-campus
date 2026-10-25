@@ -1,5 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Per the author's Notification Redesign (§6): every outbox draft carries the version-2 fields (schemaVersion,
+ * producer, correlationId, actor, reason code) via v2(); courier drop and admin unassign now emit order.unassigned.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added courier unassignOrder handler allowing assigned couriers to drop an ACCEPTED errand prior to pickup.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Replace synchronous reserve/create calls with durable outbox submission.
  * Author review: <to be completed by huangjiaxi1111>
@@ -27,17 +36,34 @@ import type {
   CreditReservationRequestEvent,
   CreditReservationResultEvent,
   OrderAcceptedEvent,
+  OrderActorRole,
   OrderCancelledEvent,
   OrderCompletedEvent,
   OrderDeliveredEvent,
   OrderDTO,
   OrderInTransitEvent,
+  OrderReasonCode,
 } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { SupplierClient } from '../clients/supplier.client';
-import type { OutboxRelay } from '../messaging/outbox.relay';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
-import { generateOrderCode, OrderError, OrderNotFoundError, OrderValidationError } from './order.types';
+import { generateOrderCode, OrderError, type OrderEventDraft, OrderNotFoundError, OrderValidationError } from './order.types';
+
+// AI-generated (edited by Reallyeasy1)
+// Version-2 envelope fields the service knows before the transaction (Notification Redesign §6). The repository adds
+// orderVersion, previousStatus, status and the removed assignee when it commits.
+function v2(order: Pick<OrderDTO, 'id'>, actor: { role: OrderActorRole; id?: string }, reasonCode?: OrderReasonCode) {
+  return {
+    schemaVersion: 2 as const,
+    producer: 'order-service' as const,
+    correlationId: order.id,
+    actorRole: actor.role,
+    ...(actor.id !== undefined && { actorId: actor.id }),
+    ...(reasonCode !== undefined && { reasonCode }),
+  };
+}
+
+type UnassignedDraft = Extract<OrderEventDraft, { eventType: 'order.unassigned' }>;
 
 export interface OrderService {
   createOrder(requesterId: string, req: CreateOrderRequest): Promise<OrderDTO>;
@@ -52,6 +78,7 @@ export interface OrderService {
   deliverOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
+  unassignOrder(orderId: string, courierId: string): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, req: AdminCancelOrderRequest): Promise<OrderDTO>;
   adminCompleteOrder(orderId: string, adminUserId: string, req: AdminCompleteOrderRequest): Promise<OrderDTO>;
   adminUnassignOrder(orderId: string, adminUserId: string, req: AdminUnassignOrderRequest): Promise<OrderDTO>;
@@ -60,7 +87,6 @@ export interface OrderService {
 export interface OrderServiceDependencies {
   repository: OrderRepository;
   supplierClient: SupplierClient;
-  outboxRelay?: OutboxRelay;
 }
 
 // ---------------------------------------------------------------------------
@@ -161,7 +187,7 @@ async function handleCreateOrder(
   requesterId: string,
   req: CreateOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, supplierClient, outboxRelay } = deps;
+  const { repository, supplierClient } = deps;
 
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID_REGEX.test(requesterId)) {
@@ -198,7 +224,7 @@ async function handleCreateOrder(
     rewardCredits: validatedInput.rewardCredits,
   };
 
-  const createdOrder = await repository.createOrderWithOutbox(
+  return repository.createOrderWithOutbox(
     {
       id: orderId,
       orderCode: generateOrderCode(),
@@ -215,20 +241,14 @@ async function handleCreateOrder(
     },
     reservationEvent
   );
-
-  if (outboxRelay) void outboxRelay.trigger();
-  return createdOrder;
 }
 
 async function handleReservationResult(
   deps: OrderServiceDependencies,
   event: CreditReservationResultEvent
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const result = await repository.applyReservationResult(event);
-  if (result.outboxEvent && outboxRelay) {
-    void outboxRelay.trigger();
-  }
   return result.order;
 }
 
@@ -239,7 +259,7 @@ async function handleAcceptOrder(
   req?: AcceptOrderRequest,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const courierContactNote = validateOptionalText(req?.courierContactNote, 'courierContactNote', 255);
 
@@ -257,15 +277,10 @@ async function handleAcceptOrder(
     requesterId: existing.requesterId,
     courierId,
     ...(courierUsername !== undefined && { courierUsername }),
+    ...v2(existing, { role: 'STUDENT', id: courierId }),
   };
 
-  const accepted = await repository.acceptOrder(existing.id, courierId, courierContactNote, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return accepted;
+  return repository.acceptOrder(existing.id, courierId, courierContactNote, event);
 }
 
 async function handlePickupOrder(
@@ -274,7 +289,7 @@ async function handlePickupOrder(
   courierId: string,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -290,15 +305,10 @@ async function handlePickupOrder(
     requesterId: existing.requesterId,
     courierId,
     ...(courierUsername !== undefined && { courierUsername }),
+    ...v2(existing, { role: 'STUDENT', id: courierId }),
   };
 
-  const inTransit = await repository.pickupOrder(existing.id, courierId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return inTransit;
+  return repository.pickupOrder(existing.id, courierId, event);
 }
 
 async function handleDeliverOrder(
@@ -307,7 +317,7 @@ async function handleDeliverOrder(
   courierId: string,
   courierUsername?: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -323,15 +333,10 @@ async function handleDeliverOrder(
     requesterId: existing.requesterId,
     courierId,
     ...(courierUsername !== undefined && { courierUsername }),
+    ...v2(existing, { role: 'STUDENT', id: courierId }),
   };
 
-  const delivered = await repository.deliverOrder(existing.id, courierId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return delivered;
+  return repository.deliverOrder(existing.id, courierId, event);
 }
 
 async function handleCompleteOrder(
@@ -339,7 +344,7 @@ async function handleCompleteOrder(
   orderId: string,
   requesterId: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -355,15 +360,10 @@ async function handleCompleteOrder(
     requesterId: existing.requesterId,
     courierId: existing.courierId ?? '',
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'STUDENT', id: requesterId }, 'REQUESTER_CONFIRMED'),
   };
 
-  const completed = await repository.completeOrder(existing.id, requesterId, event);
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return completed;
+  return repository.completeOrder(existing.id, requesterId, event);
 }
 
 async function handleCancelOrder(
@@ -371,7 +371,7 @@ async function handleCancelOrder(
   orderId: string,
   requesterId: string
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
 
   const existing = await repository.findOrderById(orderId);
   if (!existing) {
@@ -386,15 +386,36 @@ async function handleCancelOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'STUDENT', id: requesterId }, 'REQUESTER_CANCELLED'),
   };
 
-  const cancelled = await repository.cancelOrder(existing.id, requesterId, event);
+  return repository.cancelOrder(existing.id, requesterId, event);
+}
 
-  if (outboxRelay) {
-    void outboxRelay.trigger();
+async function handleUnassignOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  courierId: string
+): Promise<OrderDTO> {
+  const { repository } = deps;
+
+  const existing = await repository.findOrderById(orderId);
+  if (!existing) {
+    throw new OrderNotFoundError();
   }
 
-  return cancelled;
+  const event: UnassignedDraft = {
+    eventType: 'order.unassigned',
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    orderId: existing.id,
+    orderCode: existing.orderCode,
+    requesterId: existing.requesterId,
+    ...v2(existing, { role: 'STUDENT', id: courierId }, 'COURIER_DROPPED'),
+    reasonCode: 'COURIER_DROPPED',
+  };
+
+  return repository.unassignOrder(existing.id, courierId, event);
 }
 
 async function handleAdminCancelOrder(
@@ -403,7 +424,7 @@ async function handleAdminCancelOrder(
   adminUserId: string,
   req: AdminCancelOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const reason = validateRequiredText(req?.reason, 'reason', 500);
 
   const existing = await repository.findOrderById(orderId);
@@ -419,21 +440,16 @@ async function handleAdminCancelOrder(
     orderCode: existing.orderCode,
     requesterId: existing.requesterId,
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'ADMIN', id: adminUserId }, 'ADMIN_CANCELLED'),
   };
 
-  const cancelled = await repository.adminCancelOrder(
+  return repository.adminCancelOrder(
     existing.id,
     adminUserId,
     reason,
     event,
     req?.expectedVersion
   );
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return cancelled;
 }
 
 async function handleAdminCompleteOrder(
@@ -442,7 +458,7 @@ async function handleAdminCompleteOrder(
   adminUserId: string,
   req: AdminCompleteOrderRequest
 ): Promise<OrderDTO> {
-  const { repository, outboxRelay } = deps;
+  const { repository } = deps;
   const reason = validateRequiredText(req?.reason, 'reason', 500);
 
   const existing = await repository.findOrderById(orderId);
@@ -459,21 +475,16 @@ async function handleAdminCompleteOrder(
     requesterId: existing.requesterId,
     courierId: existing.courierId ?? '',
     rewardCredits: existing.rewardCredits,
+    ...v2(existing, { role: 'ADMIN', id: adminUserId }, 'ADMIN_CONFIRMED'),
   };
 
-  const completed = await repository.adminCompleteOrder(
+  return repository.adminCompleteOrder(
     existing.id,
     adminUserId,
     reason,
     event,
     req?.expectedVersion
   );
-
-  if (outboxRelay) {
-    void outboxRelay.trigger();
-  }
-
-  return completed;
 }
 
 async function handleAdminUnassignOrder(
@@ -490,14 +501,18 @@ async function handleAdminUnassignOrder(
     throw new OrderNotFoundError();
   }
 
-  const unassigned = await repository.adminUnassignOrder(
-    existing.id,
-    adminUserId,
-    reason,
-    req?.expectedVersion
-  );
+  const event: UnassignedDraft = {
+    eventType: 'order.unassigned',
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    orderId: existing.id,
+    orderCode: existing.orderCode,
+    requesterId: existing.requesterId,
+    ...v2(existing, { role: 'ADMIN', id: adminUserId }, 'ADMIN_UNASSIGNED'),
+    reasonCode: 'ADMIN_UNASSIGNED',
+  };
 
-  return unassigned;
+  return repository.adminUnassignOrder(existing.id, adminUserId, reason, event, req?.expectedVersion);
 }
 
 // ---------------------------------------------------------------------------
@@ -522,6 +537,7 @@ export function createOrderService(deps: OrderServiceDependencies): OrderService
     deliverOrder: (orderId, courierId, courierUsername) => handleDeliverOrder(deps, orderId, courierId, courierUsername),
     completeOrder: (orderId, requesterId) => handleCompleteOrder(deps, orderId, requesterId),
     cancelOrder: (orderId, requesterId) => handleCancelOrder(deps, orderId, requesterId),
+    unassignOrder: (orderId, courierId) => handleUnassignOrder(deps, orderId, courierId),
     adminCancelOrder: (orderId, adminUserId, req) =>
       handleAdminCancelOrder(deps, orderId, adminUserId, req),
     adminCompleteOrder: (orderId, adminUserId, req) =>

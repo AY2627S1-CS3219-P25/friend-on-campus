@@ -1,4 +1,11 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+// Scope: Recipient-aware inbox per the author's Notification Redesign (§7): notifications gain producer, category,
+// priority, action_type, target_id, source_version and stored_at, uniqueness moves from event_id to
+// (producer, event_id, user_id, kind), the inbox index is (user_id, stored_at DESC, id DESC); new tables
+// processed_notification_events (dedup + fingerprint) and order_notification_state (attention projection).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Google Antigravity, date: 2026-10-20
 // Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
 // Author review: <to be completed by author after review>
@@ -8,6 +15,7 @@
 // layout credit-service uses.
 // Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by yanhwee)
+// AI-generated (edited by Reallyeasy1)
 
 generator client {
   provider = "prisma-client-js"
@@ -19,23 +27,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// One inbox row per intended recipient of one event.
 model Notification {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  // The requester the notification is addressed to.
-  userId    String    @map("user_id") @db.Uuid
-  // The event's eventId; the unique index is the duplicate guard.
-  eventId   String    @unique @map("event_id") @db.Uuid
-  kind      String
-  orderId   String    @map("order_id") @db.Uuid
-  orderCode String?   @map("order_code")
-  courierId String?   @map("courier_id") @db.Uuid
-  title     String
-  body      String
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // The recipient.
+  userId        String    @map("user_id") @db.Uuid
+  // The owning service of the event (dedup scope with eventId).
+  producer      String    @default("order-service")
+  eventId       String    @map("event_id") @db.Uuid
+  kind          String
+  orderId       String    @map("order_id") @db.Uuid
+  orderCode     String?   @map("order_code")
+  courierId     String?   @map("courier_id") @db.Uuid
+  title         String
+  body          String
+  // PROGRESS | ACTION | IMPORTANT
+  category      String
+  // NORMAL | HIGH
+  priority      String
+  // VIEW_ERRAND | REVIEW_DELIVERY | REVIEW_WALLET, or null
+  actionType    String?   @map("action_type")
+  // The order the action opens.
+  targetId      String?   @map("target_id") @db.Uuid
+  // The committed order version the event carried; null for version-1 events.
+  sourceVersion Int?      @map("source_version")
   // Null means unread.
-  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
-  // The event's timestamp, not insert time, so ordering survives redelivery.
-  createdAt DateTime  @map("created_at") @db.Timestamptz(6)
+  readAt        DateTime? @map("read_at") @db.Timestamptz(6)
+  // The event's timestamp (occurrence time), kept for compatibility.
+  createdAt     DateTime  @map("created_at") @db.Timestamptz(6)
+  // When this row was stored; the inbox orders and pages by it.
+  storedAt      DateTime  @default(now()) @map("stored_at") @db.Timestamptz(6)
 
-  @@index([userId, createdAt(sort: Desc)])
+  @@unique([producer, eventId, userId, kind])
+  @@index([userId, storedAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, readAt])
   @@map("notifications")
+}
+
+/// Every event the consumer has seen, created or suppressed, so replay is a no-op and a changed payload is detected.
+model ProcessedNotificationEvent {
+  producer      String
+  eventId       String   @map("event_id") @db.Uuid
+  // sha256 of the normalized event; null for rows backfilled from legacy notifications.
+  fingerprint   String?
+  schemaVersion Int      @map("schema_version")
+  policyVersion Int      @map("policy_version")
+  // created | suppressed | legacy
+  outcome       String
+  processedAt   DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
+
+  @@id([producer, eventId])
+  @@map("processed_notification_events")
+}
+
+/// The latest committed order state this service has seen; removes stale inbox actions, never authorizes commands.
+model OrderNotificationState {
+  orderId             String   @id @map("order_id") @db.Uuid
+  highestOrderVersion Int      @map("highest_order_version")
+  status              String
+  requesterId         String   @map("requester_id") @db.Uuid
+  courierId           String?  @map("courier_id") @db.Uuid
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("order_notification_state")
 }

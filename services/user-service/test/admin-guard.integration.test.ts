@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Verify registration commits its CDC event and rolls the account back if the outbox insert fails.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Imported PrismaClient from ../src/database/client instead of directly from generated folder.
  * Author review: <to be completed by author after review>
@@ -17,16 +21,16 @@
 // AI-generated (edited by huangjiaxi1111)
 // Opt in with ADMIN_GUARD_TEST_DATABASE_URL pointing to a disposable PostgreSQL database.
 // Creates and removes its own random schema; never modifies existing application tables.
-import { after, before, beforeEach, describe, it } from 'node:test';
+import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { authMiddleware, requireAdmin } from '@campus-errand/auth';
-import { PrismaClient } from '../src/database/client';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import { createApp } from '../src/app';
 import { createAuthModule } from '../src/auth/auth-module';
 import { createTokenManager } from '../src/auth/tokens';
+import { PrismaClient } from '../src/database/client';
 import { createAuthRepository } from '../src/persistence/auth-repository';
 import { createDatabase } from '../src/persistence/database';
 import { createUserRepository } from '../src/persistence/user-repository';
@@ -82,12 +86,42 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
   });
 
   beforeEach(async () => {
+    await databases[0].outboxEvent.deleteMany();
     await databases[0].user.deleteMany();
     await databases[0].user.createMany({ data: [
       makeUser({ id: adminA, username: 'admin-a', email: 'admin-a@nus.edu.sg', role: 'ADMIN' }),
       makeUser({ id: adminB, username: 'admin-b', email: 'admin-b@nus.edu.sg', role: 'ADMIN' }),
       makeUser({ id: student, username: 'student', email: 'student@u.nus.edu' }),
     ] });
+  });
+
+  it('commits the account and registration event before returning HTTP 201', async () => {
+    const response = await clients[0].call('POST', '/api/auth/register', { body: {
+      username: 'cdc-student', email: 'cdc-student@u.nus.edu', password: 'Password123!',
+    } });
+    assert.equal(response.status, 201);
+    const userId = response.body.data.user.userId;
+    assert.ok(await databases[1].user.findUnique({ where: { id: userId } }));
+    const row = await databases[1].outboxEvent.findFirstOrThrow({ where: { eventType: 'user.registered' } });
+    const event = JSON.parse(row.payload);
+    assert.equal(event.userId, userId);
+    assert.equal(event.eventId, row.id);
+    assert.equal(event.initialGrant, 100);
+    assert.equal(row.status, 'PENDING');
+  });
+
+  it('rolls back account creation when the registration outbox insert fails', async () => {
+    const eventId = randomUUID();
+    const userId = randomUUID();
+    await databases[0].outboxEvent.create({ data: {
+      id: eventId, eventType: 'user.registered', payload: '{}',
+    } });
+    await assert.rejects(createAuthRepository(databases[0]).createUser({
+      id: userId, username: 'rollback-student', email: 'rollback@u.nus.edu', passwordHash: 'test-hash',
+      outboxEvent: { id: eventId, eventType: 'user.registered', payload: '{}' },
+    }));
+    assert.equal(await databases[1].user.findUnique({ where: { id: userId } }), null);
+    assert.equal(await databases[1].outboxEvent.count({ where: { id: eventId } }), 1);
   });
 
   after(async () => {
