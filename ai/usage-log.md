@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Recorded the initial read-only plan and approved documentation/configuration execution, including direct PR #184 inspection.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-22
 Scope: Recorded local development workflow fixes, deterministic seed UUID alignment, offline Credit Service seed fallback, root db:deploy script, and README updates.
 Author review: <to be completed by yanhwee>
@@ -4519,3 +4523,51 @@ Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, a
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-25 01:14 SGT — Read-only technical documentation execution plan
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** main (read-only reconnaissance)
+
+**Prompt (summarised):** Audit the repository and Wiki, propose comprehensive service documentation and conservative Claude Code improvements, present an agent execution plan and wait for approval before modifications.
+
+**Usage scenario:** Source inspection and documentation workflow preparation. Independent agents researched assigned source areas read-only. No repository modifications occurred before approval; this entry was deferred until the user authorized writes.
+
+**Files changed:** None during the initial prompt; this deferred log entry is recorded in the approved follow-up.
+
+## 2026-10-25 01:14 SGT — Approved technical reference, Claude setup corrections and PR #184 inspection
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** docs/technical-reference-claude-setup
+
+**Prompt (summarised):** Inspect PR #184 itself and execute the previously approved documentation/configuration plan, including an authorized draft pull request against main.
+
+**Usage scenario:** Factual technical documentation, permitted configuration maintenance, code review and verification. Root owns all repository edits; specialist agents provide read-only research and independent review. PR #184 is audited at a pinned unmerged head; production fixes and architectural decisions are excluded. No Wiki writes, dependencies, schema/API/event changes, plugin enablement, hook behavior or settings permissions changed. Human Author review fields remain pending.
+
+**Files changed:**
+- `docs/` — all five services (additional Notification internals/structure), both frontends, all three shared packages, architecture/integration facts, infrastructure, development/test/UAT guidance, 32-page Wiki inventory, drift/coverage/verification records and separate PR #184 audit. Complete inventory: `docs/README.md`.
+- `README.md`, `CLAUDE.md` — navigation to the technical reference and verification/UAT configuration.
+- `.claude/README.md`, `.claude/PLUGINS.md` — verified setup, plugin prerequisite and migration diagnostic corrections.
+- `.claude/agents/backend.md`, `frontend.md`, `infrastructure.md`, `reviewer.md` — accurate source/proxy orientation and technical-reference navigation; tools and boundaries retained.
+- `.claude/skills/issue-start/SKILL.md` — current repo/main and source verification orientation; existing restrictions retained.
+- `.claude/rules/documentation.md` — path-scoped documentation evidence/maintenance instructions.
+- `ai/usage-log.md` — consolidated attribution and these two prompt records. No JSON changes.
+
+**Verification:** Full command outcomes and unavailable checks are recorded in `docs/audits/review-findings.md`. Review reproductions execute pinned PR hook/component source with controlled fetch/SSR; they are not a full browser/infrastructure run. Draft publication is explicitly authorized by the approved task; no merge is authorized.
+
+## 2026-10-25 14:05 SGT — Bring PR #185 up to date with main and merge it at the author's request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/technical-reference-claude-setup
+
+**Prompt (summarised):** "merge with this pull request here <PR #185 URL>".
+
+**Usage scenario:** Git operations performed only because the author explicitly requested them (CLAUDE.md section 1 exception). `main` (25 commits, including PR #184) merged into the PR branch in a throwaway worktree; the only conflict was `ai/usage-log.md`, resolved as the union (main's entries, then this PR's two 01:14 SGT entries, then this one). The PR's prior CI run had been cancelled, not failed, so after the push the rerun is awaited before `gh pr ready` and `gh pr merge 185 --merge`.
+
+Correction: the first resolution script aborted on a sanity check, the chained commands did not stop, and merge commit 8a4cde2 was pushed with the conflict markers still in this file; the next commit replaces the file with the intended union.
+
+**Files changed:**
+- `ai/usage-log.md` — conflict resolution plus this entry

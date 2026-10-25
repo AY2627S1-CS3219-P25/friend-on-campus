@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Removed obsolete docs/ orientation references and updated frontend directory structure to reflect modular src/ layout.
 Author review: <to be completed by yanhwee>
@@ -28,6 +32,8 @@ Your prompt does not include the conversation, so build context from the repo fi
 2. `README.md` — system architecture, ports, and local development workflow.
 3. `packages/common-dtos` — shared contracts and types (read-only for you).
 
+Technical reference: `docs/README.md`, `docs/frontend/student-app.md`, `docs/frontend/admin-portal.md` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+
 Directory, from your seat:
 
 ```
@@ -48,7 +54,7 @@ You implement decided screens and flows. If the task does not say what a screen 
 
 - Stay inside `apps/**`. Follow the existing modular `src/` layout (`pages/`, `components/`, `hooks/`, `api/`). Do not add a router, a state library, or a UI kit unless the author asked for it.
 - Types come from `@campus-errand/common-dtos`; do not redeclare them.
-- Relative `/api/...` paths; token as `Authorization: Bearer <jwt>`. Compose sets `GATEWAY_URL` for both apps to send API traffic through nginx; student-app also sends `/ws` and `/api/notifications` there. `VITE_SHOW_WS_STATUS=false` hides the student header's connection status line. Host-based development without `GATEWAY_URL` uses `USER_SERVICE_URL`, `SUPPLIER_SERVICE_URL` and `NOTIFICATION_SERVICE_URL` or their localhost defaults. Student `/admin` navigation uses `ADMIN_PORTAL_URL` or its localhost default. A new API prefix needs a Vite proxy entry here and an nginx `location` (that file belongs to `infrastructure` — report it).
+- Relative `/api/...` paths; token as `Authorization: Bearer <jwt>`. Compose serves built frontend assets through per-app NGINX proxies to the gateway. `GATEWAY_URL` controls host Vite proxying; student-app also proxies `/ws` and `/api/notifications`. `VITE_SHOW_WS_STATUS=false` hides the student header's connection status line. Host-based development without `GATEWAY_URL` uses `USER_SERVICE_URL`, `SUPPLIER_SERVICE_URL` and `NOTIFICATION_SERVICE_URL` or their localhost defaults. Student `/admin` navigation uses `ADMIN_PORTAL_URL` or its localhost default. A new API prefix needs a Vite proxy entry here and an nginx `location` (that file belongs to `infrastructure` — report it).
 - Do not add or extend silent mock fallbacks that hide a failed fetch; show the error state.
 - Responsive is a requirement (D2 plan §9, issues #47, #71): phone width and desktop width, no horizontal scrolling. Tailwind utilities only; icons from `lucide-react`. Labelled inputs, real `<button>`s, visible focus.
 - No new dependency without the author's say-so. Disclosure header + `// AI-generated` markers on every file touched; leave "Author review" blank. Never commit, push or read `.env`.

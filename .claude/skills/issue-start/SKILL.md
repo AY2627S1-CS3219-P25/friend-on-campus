@@ -4,6 +4,10 @@ description: Start work on a GitHub issue in this repo - fetch it from the team 
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this skill.
 Author review: <to be completed by Reallyeasy1>
@@ -11,8 +15,8 @@ Author review: <to be completed by Reallyeasy1>
 
 # issue-start <number>
 
-1. `gh issue view <number> -R AY2627S1-CS3219-P25/nus-campus-errand --json title,body,milestone,assignees,labels,comments` — the `-R` is required, `gh` may default to the course template repo.
+1. `gh issue view <number> -R AY2627S1-CS3219-P25/friend-on-campus --json title,body,milestone,assignees,labels,comments` — the `-R` is required, `gh` may default to the course template repo.
 2. Print the acceptance criteria as a checklist with their IDs (`F3.2.1`, `N3`, …), plus milestone, due date and assignees.
-3. Report facts only: which files currently implement anything related (paths and line numbers), whether that code is real or mock (see CLAUDE.md repo map), and any place where the issue, D1, the D2 plan and the code disagree.
+3. Use `docs/README.md` and `docs/audits/documentation-drift.md` to orient, then verify against source; pending PRs/proposals are not current behavior. Report facts only: which files currently implement anything related (paths and line numbers), whether that code is real or mock (see CLAUDE.md repo map), and any place where the issue, D1, the D2 plan and the code disagree.
 4. Do **not** rank this issue against others, choose an approach, or design the schema/interface — ask the author for their design, then implement it.
-5. Suggest a branch name `feat/<number>-<slug>` off `dev`; create it only if the author says so. Never commit or push.
+5. Suggest a branch name `feat/<number>-<slug>` off current `main`; create it only if the author says so. Never commit or push.

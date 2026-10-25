@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Removed obsolete docs/ orientation references and updated test-runner/service status facts to match the real Prisma-backed services and Node built-in test runner.
 Author review: <to be completed by yanhwee>
@@ -35,6 +39,8 @@ Your prompt does not include the conversation, so build context from the repo fi
 1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and rules (§4), verification (§5), agent team (§8).
 2. `README.md` — system architecture, ports, and test categories.
 3. `packages/common-dtos` — shared contracts and event interfaces.
+
+Technical reference: `docs/README.md`, `docs/audits/review-findings.md` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
 
 Directory, from your seat:
 

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Consolidated disclosure header and updated test:d2 / dev:user references to test:e2e:api and npm workspace commands.
 Author review: <to be completed by yanhwee>
@@ -43,10 +47,11 @@ About 15 minutes. Do it once per machine. Everything here is about the AI toolin
 ## 2. Repository
 
 ```bash
-git clone https://github.com/AY2627S1-CS3219-P25/nus-campus-errand
-cd nus-campus-errand
-npm install                      # also generates both Prisma clients; needed for typecheck and the language server
-gh repo set-default AY2627S1-CS3219-P25/nus-campus-errand
+# AI-generated (edited by Reallyeasy1)
+git clone https://github.com/AY2627S1-CS3219-P25/friend-on-campus
+cd friend-on-campus
+npm install                      # also generates all five Prisma clients; needed for typecheck and the language server
+gh repo set-default AY2627S1-CS3219-P25/friend-on-campus
 ```
 
 The last line matters if your clone has an `upstream` remote pointing at the course template: without it `gh` reads issues and opens PRs against the **template** repo.
@@ -91,7 +96,7 @@ Restart Claude Code from the repo root, then:
 | `/agents` | `backend`, `frontend`, `infrastructure`, `reviewer` |
 | `/hooks` | a `PostToolUse` hook on `Edit\|Write` and a `Stop` hook. Approve them if asked |
 | `/plugin` | the five core plugins enabled |
-| type `/` | skills `usage-log`, `new-adr`, `issue-start` |
+| type `/` | skills `usage-log`, `issue-start` |
 | ask: "use LSP to find all references to `AuthResponse`" | hits in the shared DTO package and User Service session handling |
 | `node .claude/hooks/hooks.test.js` (in a terminal) | `hooks ok` |
 
@@ -106,8 +111,11 @@ Restart Claude Code from the repo root, then:
 | `hooks/hooks.test.js` | Self-check for both |
 | `skills/usage-log` | `/usage-log` — appends the log entry in the team's format |
 | `skills/issue-start` | `/issue-start <n>` — fetches the issue from the right repo and lists its acceptance criteria and the code it touches |
+| `rules/documentation.md` | Source evidence and drift checks, scoped to `docs/**/*.md` |
 | `agents/` | Four subagents; when and when not to use them is in `CLAUDE.md` §8 |
 | `PLUGINS.md` | The team's plugin list |
+
+Technical navigation: [documentation index](../docs/README.md), [Claude workflow audit](../docs/development/claude-code-workflow.md), and [verification record](../docs/audits/review-findings.md). Check `/memory` for the scoped documentation rule when working on a docs file; static path checks do not establish runtime loading.
 
 ## 7. Working day to day
 
@@ -128,7 +136,7 @@ Restart Claude Code from the repo root, then:
 | Hook errors mentioning `$CLAUDE_PROJECT_DIR` | Claude Code was started outside the repo root — start it from the root |
 | Start-up is slow, "connection timed out after 30000ms" | Globally enabled plugins with background servers you do not use here — disable them in `settings.local.json` (§4) |
 | `npm run test:e2e:api` fails to start services | It launches user- and supplier-service itself on 8001/8002: stop the app containers and any host user/supplier dev servers, keep Postgres up and seeded |
-| A column is missing in Docker | The init SQL only runs on an empty volume: `docker compose down -v` (wipes local data), then up and re-seed |
+| A column is missing in Docker | Inspect the affected service logs and migration status. Init SQL provisions databases/roles only; service tables come from committed Prisma migrations via `db:deploy`. Do not delete volumes as a routine schema repair. |
 | Claude refuses to commit | Intended (`settings.json` deny rule + course policy) |
 
 Changes to anything in this folder affect the whole team: make them in a PR, and update this guide and `PLUGINS.md` in the same change.

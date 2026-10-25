@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Removed obsolete docs/ orientation references and updated container/CI facts to match current multi-stage Dockerfiles, Debezium CDC, and .github/workflows/ci.yml.
 Author review: <to be completed by yanhwee>
@@ -41,12 +45,14 @@ Your prompt does not include the conversation, so build context from the repo fi
 1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and rules (§4), verification (§5), agent team (§8).
 2. `README.md` — container topology, ports, and CI test categories.
 
+Technical reference: `docs/README.md`, `docs/infrastructure/docker-and-deployment.md` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+
 Directory, from your seat:
 
 ```
 docker-compose.yml                  gateway, student-app, admin-portal, 5 services, postgres:16-alpine, rabbitmq:3.13-management, debezium:2.7
 gateway/nginx.conf                  upstreams + location blocks for every public route
-apps/*/Dockerfile, services/*/Dockerfile   multi-stage builds (compiled JS on node:20-alpine for services; static assets on nginx for apps)
+apps/*/Dockerfile, services/*/Dockerfile   multi-stage builds (compiled JS on Node 20.20.2 for services; static assets on NGINX for apps, built using Node 20.20.2)
 docker/                             debezium/, postgres-init/, rabbitmq/
 .env.example, .dockerignore, package.json (root scripts), tsconfig.base.json
 .github/workflows/ci.yml            automated CI workflow and static test matrices
