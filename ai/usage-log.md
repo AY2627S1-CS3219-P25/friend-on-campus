@@ -4997,3 +4997,23 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 00:40 SGT — Chat Service D4 documentation: README and proposed implementation specification
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Pasted task: inspect the current Chat Service implementation (PR #148) and produce implementation-ready specifications for its remaining D4 work inside docs/, reconciling fixes already present, labelling proposals, updating the index/coverage/audit records, validating, and stopping before implementation.
+
+**Usage scenario:** Documentation (allowed) with the CLAUDE.md section 1 boundary applied: no schema, interface, pattern or trade-off was decided. Inspected PR #148 head f39ab1f252414bca5c5ef7d08f3d45b9e16007a0, main 9a361461de0e8b3e5d237ebaa64f5b8197c97171 and wiki revision a463e3bd77dd0327414543dba62cd2feb9c9c2a9 (cloned read-only to the scratchpad; not edited). Wrote `docs/services/chat-service/README.md` (implementation at the PR head, module map, wiring, migrations, tests, known limits) and `docs/services/chat-service/d4-implementation-specification.md` (status: proposal). The specification separates [impl]/[main]/[approved]/[proposal] statements; reconciles the seven review findings against code and tests with their residual limits; lists fourteen remaining limitations with the smallest change each needs; registers CHAT-D4-01..10 against F8 with Given/When/Then; records decisions D1-D7 and D-F with their conflicting sources and leaves them unapproved (the wiki's recommendation is quoted as the wiki's); restates the wiki's proposed authorization, persistence/idempotency, contract, frontend and operations designs as conditional sections, naming the gaps the wiki leaves open instead of filling them (read fallback during an Order outage, legacy-client handling, frame shape A vs B); maps requirements to source-inspected tests and proposed additions; gives a file-impact table and four increments estimated at 7-10 build + 3-4 verification hours against the existing 10 + 4 constraint, with the overrun rule. Facts recorded on the way: Order GET /:id returns any non-PENDING/REJECTED order to any authenticated user (participant check stays in Chat); main now publishes order.unassigned and OrderDTO.version, which the wiki page treats as not on main (drift D26); REST returns courierSince although ConversationDTO lacks it (D28); no FAILED status for F8.3.2 (D29). Updated docs/README.md (Chat row, two inventory rows), coverage matrix (Chat row), drift register (D26-D30, decision pointer), source inventory (#148 head, #56 row) and review findings (dated executed-checks block). Executed: chat-service unit tests 31/31; ad-hoc link/anchor/Mermaid/inventory check over the six touched docs (186 links ok, 3 diagrams, both new files inventoried, pre-existing omission of docs/superpowers/plans/2026-10-22-notification-inbox.md noted); git diff --check. Not run: database/broker/browser suites, full typecheck/lint (no code changed). No application code, schema, migration, infrastructure, CI, policy or .claude file changed; nothing committed or pushed; no issue, PR or wiki edit.
+
+**Files changed:**
+- `docs/services/chat-service/README.md` — new
+- `docs/services/chat-service/d4-implementation-specification.md` — new (proposal)
+- `docs/README.md` — Chat row and inventory rows; header record
+- `docs/audits/documentation-coverage.md` — Chat row; header record
+- `docs/audits/documentation-drift.md` — D26-D30 and decision-register pointer; header record
+- `docs/audits/source-inventory.md` — #148 head and #56 rows; header record
+- `docs/audits/review-findings.md` — Chat documentation checks block; header record
+- `ai/usage-log.md` — this entry

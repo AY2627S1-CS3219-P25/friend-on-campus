@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the Chat (pending PR #148) coverage row; other rows unchanged and not reverified.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -23,6 +27,7 @@ Coverage means implemented behavior is described with source links; it is not an
 | Infrastructure | Gateway, Docker/deployment, CDC/broker, CI | Routing, startup, persistence, connectors, matrix and review workflow | Local Compose documented; cloud proposals not deployed claims |
 | Development | Local, testing, conventions, Claude workflow | Actual commands, #174 variables, evidence/disclosure workflow | Live Claude plugin/rule loading unverified |
 | Audits | Source inventory, drift, review findings, PR184 review | Baselines, discrepancies, actual verification and pending-change separation | Human approval fields remain pending |
+| Chat (pending PR #148 head `f39ab1f`; not on `main`) | README, D4 specification (proposal) | Module map, configuration/wiring, two migrations, test inventory, reconciliation of the seven review findings, remaining limitations, decision register, conditional D4 contracts and verification map | Policy decisions D1-D7 unapproved; no frontend unit harness or browser scenario; Order-authority, idempotency and bounds remain proposals |
 
 ## Maintenance
 

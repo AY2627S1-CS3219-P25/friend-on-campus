@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added drift rows D26-D30 (Chat PR #148 head f39ab1f versus main 9a36146, issue #56 and the wiki Chat proposal) and a pointer to the Chat decision register; earlier rows unchanged.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -38,6 +42,11 @@ This register records factual conflicts and pending questions. It does not resol
 | D23 | Wiki Milestone-D3 says all order events produce a notification | Seven bindings, only three mapped alerts on main |
 | D24 | D3 demo block uses undefined SUPPLIER and accepts immediately after 202 | Do not present as verified reproduction; supplier selection and PENDING→OPEN wait are necessary |
 | D25 | Historical D2 index/evidence/screenshots contain different dated commits | Retain as historical multi-revision evidence, not one current verification run |
+| D26 | Wiki Chat design page (rev `a463e3b`) treats PR #184's v2 Order events and `order.unassigned` as "not on main"; `main` `9a36146` merged #184 (`OrderDTO.version`, `OrderEventV2Fields`, `order.unassigned` from both unassign paths); the Order contracts page row "Courier/admin unassign → None at this baseline" describes `52d791e` | Chat docs cite `main` `9a36146`; Order reference keeps its `52d791e` baseline until reverified; no claim that Chat consumes the new event |
+| D27 | Chat access policy: author's S1 answer 2 (keep the courier until the next accept) and D8 (admins read) in code comments versus issue #56 F8.1.1/F8.1.2 and the wiki's proposed revocation/denial | Recorded as decisions D1/D2 in the Chat D4 specification; code behavior documented as implemented; no policy chosen |
+| D28 | Chat REST response includes `courierSince` (from `ConversationRow`) while `ConversationDTO` in common-dtos does not declare it | Documented as a DTO/route mismatch at `f39ab1f`; interface change left to the author |
+| D29 | Issue #56 F8.3.2 names "failed"; no `FAILED` status or `order.failed` event exists on `main`; `DISPUTED` is declared and never produced (D15) | Chat specification does not invent either; conflict left to the author (register row D-F) |
+| D30 | Wiki Chat page section 2.2 lists eight failure modes against head `7622df5`; five were addressed at `f39ab1f` (replay guard, locked recheck, correlated echo, paged history, status reload) with narrower residual limits | Reconciliation table in the Chat specification; wiki not edited |
 
 Wiki evidence for D21: [Supplier Service, running/responses](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Supplier-Service), compared with root package.json and supplierRoutes.ts. D22–D24: [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3), compared with Order/Credit config and classifiers, Notification events.ts, and Order create route. D25: [Milestone D2](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D2), [D2 Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/D2-Evidence), and [D2 Screenshots](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/D2-Screenshots). All Wiki observations use the snapshot in the source inventory. Historical --print, test:d2, unsupported /admin and volume-reset instructions are not current setup guidance.
 
@@ -45,7 +54,7 @@ The independent source review also found that browser UAT catches failed steps b
 
 ## Outstanding human questions
 
-Which pending Notification/Chat/AWS proposal is approved as intended design; required historical inbox reconciliation and deployment compatibility; existing database-choice rationale issues (#129); enabled-admin semantics; unresolved NFR evidence. No rationale or trade-off is authored here.
+Which pending Notification/Chat/AWS proposal is approved as intended design; required historical inbox reconciliation and deployment compatibility; existing database-choice rationale issues (#129); enabled-admin semantics; unresolved NFR evidence. No rationale or trade-off is authored here. For Chat specifically, the decision register in [the D4 specification](../services/chat-service/d4-implementation-specification.md#22-decision-register) lists D1-D7 and D-F with their conflicting sources.
 
 Source hierarchy: current code/configuration for implementation, verified human specifications for intended behavior, issue criteria, then established Wiki/README descriptions. Contradictions remain explicit rather than silently selecting a policy.
 

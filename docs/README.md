@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Chat row now links the new chat-service README and D4 specification (PR #148 head f39ab1f, pending); two inventory rows added.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
 Scope: Added the Chat Service row to the service table.
 Author review: <to be completed by Reallyeasy1>
@@ -37,7 +41,7 @@ Code/configuration establish implemented behavior; verified human specifications
 | Order | Routes/state predicates, Supplier call, reservation saga, concurrent mutation, outbox/CDC and expiry | [Order](services/order-service/README.md) |
 | Credit | Wallet/ledger, grants/escrow/refunds/settlement, serializable processing, replay/retry and tests | [Credit](services/credit-service/README.md) |
 | Notification | Full module/REST/socket/event traces, mapping, persistence, ACK/retry/DLQ boundaries and structural review | [Notification](services/notification-service/README.md) |
-| Chat | F8 private conversation per accepted errand (PR #148): REST history route, `/ws/chat/` socket hub, order-event projection and tests | Source under `services/chat-service/`; no technical document yet |
+| Chat (pending, PR #148 head `f39ab1f`, not on `main`) | F8 private conversation per accepted errand: REST history route, `/ws/chat/` socket hub, order-event projection, tests, known limits; proposed D4 work with decision register | [Chat](services/chat-service/README.md) · [D4 specification (proposal)](services/chat-service/d4-implementation-specification.md) |
 
 Coverage is source-backed documentation, not a claim that all runtime acceptance checks passed. See the verification record for executed and unavailable checks, and human-only review fields.
 
@@ -71,6 +75,8 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 | [packages/auth.md](packages/auth.md) | Shared authentication package |
 | [packages/common-dtos.md](packages/common-dtos.md) | Shared contracts |
 | [packages/messaging.md](packages/messaging.md) | Shared RabbitMQ messaging |
+| [services/chat-service/README.md](services/chat-service/README.md) | Chat Service implementation at PR #148 head (pending, not on `main`) |
+| [services/chat-service/d4-implementation-specification.md](services/chat-service/d4-implementation-specification.md) | Proposed D4 Chat specification: reconciliation, decision register, conditional contracts and verification map |
 | [services/credit-service/README.md](services/credit-service/README.md) | Credit Service implementation |
 | [services/credit-service/contracts-and-data.md](services/credit-service/contracts-and-data.md) | Credit contracts and data |
 | [services/credit-service/runtime-and-testing.md](services/credit-service/runtime-and-testing.md) | Credit runtime, recovery and tests |

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Recorded the PR #148 head and main commit inspected for the Chat documents and added the issue #56 row; wiki snapshot unchanged.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -67,7 +71,8 @@ Scope is derived from actual page headings. Established descriptions still requi
 | [#129](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/129) | Human-authored database rationale gap |
 | [#154](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/154) | Previous docs consolidation and deletion |
 | [#184](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/184) | Pending Notification/Order/Credit/frontend changes; separate review |
-| [#148](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/148) | Pending Chat work; not current five-service implementation |
+| [#148](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/148) | Pending Chat work; not current five-service implementation. Head `f39ab1f252414bca5c5ef7d08f3d45b9e16007a0` inspected 2026-10-25 against `main` `9a361461de0e8b3e5d237ebaa64f5b8197c97171` for the [Chat README](../services/chat-service/README.md) and [D4 specification](../services/chat-service/d4-implementation-specification.md) |
+| [#56](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/56) | F8 acceptance criteria F8.1-F8.3.2 for the Chat Service; "failed" state has no Order counterpart (drift D29) |
 
 Official Claude references and verified plugin IDs are recorded in [Claude workflow](../development/claude-code-workflow.md). Missing live runtime, DB/broker/browser and human-review evidence is recorded in [review findings](review-findings.md). No Wiki, issue or existing PR was modified.
 
