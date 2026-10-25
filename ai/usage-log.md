@@ -4919,3 +4919,81 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `packages/common-dtos/src/index.ts` — optional clientId on the MESSAGE frame
 - `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx`, `apps/student-app/src/pages/TasksPage.tsx` — settle by clientId, paging and reconnect reload, status-driven reload
 - `ai/usage-log.md` — this entry
+
+## 2026-10-25 22:30 SGT — Why Docker Desktop was not running
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "why is docker desktop not running".
+
+**Usage scenario:** Debugging assistance (allowed); facts only, no changes. Windows System log: clean shutdown at 13:15:02 and boot at 13:15:11 SGT (no user-initiated 1074 event recorded); Docker Desktop's backend, proxy and Electron logs were last closed at 13:14:42, i.e. the previous Docker instance ended with that restart. Docker Desktop's settings have AutoStart=false (the Run-key entry exists but the app honours its own setting), so it did not come back after the boot; nothing in this session needed the daemon until the chat-service database tests (`docker compose config` parses the file without the engine), which is when the absence surfaced. The 21:54 start is the one made in the previous prompt.
+
+**Files changed:**
+- none
+
+## 2026-10-25 22:45 SGT — Docker Desktop "The Compose app is no longer running"
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Screenshot of Docker Desktop's Compose project page showing "The Compose app is no longer running", "this is what it showed".
+
+**Usage scenario:** Debugging assistance and a local environment action (allowed). The engine had the project half up after the 13:15 reboot: postgres, rabbitmq, credit/notification/order services and the Debezium connectors restarted with Docker; user-service, supplier-service, gateway, student-app and admin-portal sat in Exited (255), the status a container keeps when the daemon stops under it. Docker Desktop shows that message for a project in this partial state. Ran `docker compose up -d --wait` (no build) to start the rest; result reported in the reply. No repository file changed.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:00 SGT — Remove Docker containers no longer used
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "consider removing containers that are not used anymore".
+
+**Usage scenario:** Local environment maintenance (allowed), destructive step taken only after the author chose the "old leftovers" option. Inventory: 56 containers, 42 stopped, together ~400 MB; the reclaimable disk is in images (19.9 GB before, 39.4 GB after the containers stopped pinning them) and build cache (5.2 GB). Removed 29 containers idle 3 to 17 months with `docker rm` (no `-v`): eight unnamed my-image/ubuntu test containers, a 13-month rabbitmq, the five jbtestsuite containers, amoura/jbt, lumi-openclaw, the seven chatapp containers, the three yiphehua containers and the two lodestar containers. Named volumes untouched; the old rabbitmq's anonymous volume is now dangling. Kept, by the author's choice: 13 containers from projects used in the last 8 weeks (remarkably-backend/docs, oculith, waredrip, lenor-uat-redis, subbuddy-pg, irr-chatbot). Images and build cache not pruned (not selected). No repository file changed.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:10 SGT — Prune Docker images and build cache
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok please do" (the image and build-cache prune offered after the container cleanup).
+
+**Usage scenario:** Local environment maintenance at the author's request (allowed); no repository file changed. `docker image prune` (dangling) reclaimed 0.4 GB, `docker builder prune` 5.2 GB, and `docker image prune -a` (images no container references, i.e. the removed projects' images and pulled-but-unused bases) 43.1 GB across 302 image layers/tags. Images now 23, all in use, 14.75 GB. Not touched: volumes (8.4 GB dangling, mostly the removed projects' named database volumes and the old rabbitmq's anonymous one; left for the author since they hold data). friend-on-campus stack unaffected, 14 containers running.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:20 SGT — Should the environment-maintenance log entries be committed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok then should it be committed" (the uncommitted usage-log entries from the Docker questions and cleanup).
+
+**Usage scenario:** Learning support (allowed); no code change. Answer given: yes, the usage log is a repository file and CLAUDE.md section 2 requires an entry per prompt, so the entries belong in version control; the lowest-friction home is a small docs(usage-log) commit on this branch pushed to PR #148, because the file is append-only and a separate branch would only create another union conflict. Commit left for the author's explicit go-ahead.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:25 SGT — Commit the environment-maintenance log entries to PR #148
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok please do so" (commit and push the uncommitted usage-log entries).
+
+**Usage scenario:** Git operations at the author's explicit request (CLAUDE.md section 1 exception). One docs(usage-log) commit with the six entries from tonight's Docker questions and cleanup plus this one, pushed to feature/chat-service (PR #148). No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
