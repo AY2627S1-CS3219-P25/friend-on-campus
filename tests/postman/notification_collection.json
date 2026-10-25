@@ -1,7 +1,7 @@
 {
  "info": {
   "name": "Campus Errand - Notification Service API Tests",
-  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier or for completion, mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). Residue: the two accounts delete themselves, but the order (COMPLETED, 3 credits), its three notification rows and both credit wallets remain, keyed by the deleted user ids; services keep no cross-database references, so this is harmless but visible in admin views. WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
+  "description": "F5 notifications through the gateway: auth boundaries, probes, empty-inbox contract and query clamping, the quiet ORDER_PUBLISHED receipt once the order is OPEN, the accept -> pickup -> deliver event chain with exact titles and bodies, no alert for the courier until the requester confirms (then exactly one ORDER_COMPLETED notice and, once Credit settles the escrow, one CREDITS_RECEIVED receipt for the courier), mark-read idempotency, unread filter, pagination, cross-user ownership, read-all, cleanup. Registers its own requester and courier (no seeded credentials). Run against a healthy stack: newman run tests/postman/notification_collection.json --env-var baseUrl=http://localhost (or :8080 with the port override). Residue: the two accounts delete themselves, but the order (COMPLETED, 3 credits), its five notification rows and both credit wallets remain, keyed by the deleted user ids; services keep no cross-database references, so this is harmless but visible in admin views. WebSocket push and broker-level duplicate delivery are covered by scripts/uat/uat-notifications.mjs, which the Postman runner cannot exercise.",
   "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
  },
  "variable": [
@@ -993,11 +993,11 @@
        "const d = pm.response.json().data;",
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
-       "if (!(d.total >= 1) && attempts < 60) {",
+       "if (!(d.total >= 2) && attempts < 60) {",
        "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
-       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 1).to.eql(true));",
+       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 2).to.eql(true));",
        "  const b = pm.response.json();",
        "  pm.test('Envelope success=true', () => pm.expect(b.success).to.eql(true));",
        "  pm.test('Page shape: items, total, page, limit, totalPages, unreadCount', () => {",
@@ -1011,7 +1011,7 @@
        "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
        "  }",
        "  const n = d.items[0]; pm.test('Item shape', () => expectItemShape(n));",
-       "  pm.test('Exactly one alert, unread', () => { pm.expect(d.total).to.eql(1); pm.expect(d.unreadCount).to.eql(1); pm.expect(n.readAt).to.eql(null); });",
+       "  pm.test('Publication receipt plus the acceptance, both unread', () => { pm.expect(d.total).to.eql(2); pm.expect(d.unreadCount).to.eql(2); pm.expect(n.readAt).to.eql(null); pm.expect(d.items[1].kind).to.eql('ORDER_PUBLISHED'); pm.expect(d.items[1].category).to.eql('PROGRESS'); });",
        "  pm.test('Identifies the errand (F5.1.1)', () => { pm.expect(n.kind).to.eql('ORDER_ACCEPTED'); pm.expect(n.orderId).to.eql(pm.collectionVariables.get('orderId')); pm.expect(n.orderCode).to.eql(pm.collectionVariables.get('orderCode')); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was accepted'); });",
        "  pm.test('Identifies the courier (F5.1.1)', () => { pm.expect(n.courierId).to.eql(pm.collectionVariables.get('courierId')); pm.expect(n.body).to.eql(pm.collectionVariables.get('courierUsername') + ' accepted your errand and will pick the items up next.'); });",
        "  pm.collectionVariables.set('n1', n.id);",
@@ -1135,11 +1135,11 @@
        "const d = pm.response.json().data;",
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
-       "if (!(d.total >= 2) && attempts < 60) {",
+       "if (!(d.total >= 3) && attempts < 60) {",
        "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
-       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 2).to.eql(true));",
+       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 3).to.eql(true));",
        "  function expectItemShape(n) {",
        "    pm.expect(n.id).to.match(/^[0-9a-f-]{36}$/);",
        "    pm.expect(['ORDER_ACCEPTED', 'ORDER_PICKED_UP', 'ORDER_DELIVERED']).to.include(n.kind);",
@@ -1147,7 +1147,7 @@
        "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
        "  }",
        "  const n = d.items[0]; pm.test('Item shape', () => expectItemShape(n));",
-       "  pm.test('Newest first and unread count 2', () => { pm.expect(d.total).to.eql(2); pm.expect(d.unreadCount).to.eql(2); pm.expect(n.kind).to.eql('ORDER_PICKED_UP'); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n1')); });",
+       "  pm.test('Newest first and unread count 3', () => { pm.expect(d.total).to.eql(3); pm.expect(d.unreadCount).to.eql(3); pm.expect(n.kind).to.eql('ORDER_PICKED_UP'); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n1')); });",
        "  pm.test('Identifies the errand whose status changed (F5.2.1)', () => { pm.expect(n.orderCode).to.eql(pm.collectionVariables.get('orderCode')); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was picked up'); pm.expect(n.body).to.eql('Your courier has the items and is on the way.'); });",
        "  pm.collectionVariables.set('n2', n.id);",
        "}"
@@ -1236,11 +1236,11 @@
        "const d = pm.response.json().data;",
        "const key = 'poll_' + pm.info.requestName;",
        "const attempts = Number(pm.collectionVariables.get(key) || 0) + 1;",
-       "if (!(d.total >= 3) && attempts < 60) {",
+       "if (!(d.total >= 4) && attempts < 60) {",
        "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
-       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 3).to.eql(true));",
+       "  pm.test('Condition reached within 60 polls', () => pm.expect(d.total >= 4).to.eql(true));",
        "  function expectItemShape(n) {",
        "    pm.expect(n.id).to.match(/^[0-9a-f-]{36}$/);",
        "    pm.expect(['ORDER_ACCEPTED', 'ORDER_PICKED_UP', 'ORDER_DELIVERED']).to.include(n.kind);",
@@ -1248,8 +1248,8 @@
        "    pm.expect(n.createdAt).to.match(/^\\d{4}-\\d{2}-\\d{2}T/); pm.expect(n.readAt === null || typeof n.readAt === 'string').to.eql(true);",
        "  }",
        "  const n = d.items[0]; pm.test('Item shape', () => expectItemShape(n));",
-       "  pm.test('Three stages, all unread, all for this order', () => { pm.expect(d.total).to.eql(3); pm.expect(d.unreadCount).to.eql(3); pm.expect(d.totalPages).to.eql(1); d.items.forEach((x) => pm.expect(x.orderId).to.eql(pm.collectionVariables.get('orderId'))); });",
-       "  pm.test('Prompts the requester to confirm (F5.3.1)', () => { pm.expect(n.kind).to.eql('ORDER_DELIVERED'); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was delivered'); pm.expect(n.body).to.eql('Review the delivery and confirm it.'); });",
+       "  pm.test('Receipt and three stages, all unread, all for this order', () => { pm.expect(d.total).to.eql(4); pm.expect(d.unreadCount).to.eql(4); pm.expect(d.totalPages).to.eql(1); d.items.forEach((x) => pm.expect(x.orderId).to.eql(pm.collectionVariables.get('orderId'))); });",
+       "  pm.test('Prompts the requester to confirm (F5.3.1)', () => { pm.expect(n.kind).to.eql('ORDER_DELIVERED'); pm.expect(n.title).to.eql('Your errand ' + pm.collectionVariables.get('orderCode') + ' was delivered'); pm.expect(n.body).to.eql('Review the delivery and confirm it.'); pm.expect(n.actionType).to.eql('REVIEW_DELIVERY'); pm.expect(n.category).to.eql('ACTION'); pm.expect(n.orderStatus).to.eql('DELIVERED'); });",
        "  pm.test('Ordered by event time, newest first', () => { for (let i = 1; i < d.items.length; i++) pm.expect(d.items[i - 1].createdAt >= d.items[i].createdAt).to.eql(true); });",
        "  pm.test('Stage order accepted < picked up < delivered', () => { const byId = Object.fromEntries(d.items.map((x) => [x.id, x.createdAt])); pm.expect(byId[pm.collectionVariables.get('n1')] <= byId[pm.collectionVariables.get('n2')]).to.eql(true); pm.expect(byId[pm.collectionVariables.get('n2')] <= n.createdAt).to.eql(true); });",
        "  pm.collectionVariables.set('n3', n.id);",
@@ -1372,7 +1372,7 @@
    }
   },
   {
-   "name": "41 Completion adds no alert (F5 scope)",
+   "name": "41 Completion adds no requester alert and resolves the delivery action",
    "event": [
     {
      "listen": "test",
@@ -1388,7 +1388,7 @@
        "  pm.collectionVariables.set(key, attempts); setTimeout(() => {}, 300); pm.execution.setNextRequest(pm.info.requestName);",
        "} else {",
        "  pm.collectionVariables.unset(key);",
-       "  pm.test('Still exactly three alerts after completion', () => { pm.expect(d.total).to.eql(3); pm.expect(d.items.map((x) => x.kind)).to.eql(['ORDER_DELIVERED', 'ORDER_PICKED_UP', 'ORDER_ACCEPTED']); });",
+       "  pm.test('Still exactly four alerts after completion, delivery no longer an open action', () => { pm.expect(d.total).to.eql(4); pm.expect(d.items.map((x) => x.kind)).to.eql(['ORDER_DELIVERED', 'ORDER_PICKED_UP', 'ORDER_ACCEPTED', 'ORDER_PUBLISHED']); pm.expect(d.items[0].orderStatus).to.eql('COMPLETED'); });",
        "}"
       ]
      }
@@ -1415,7 +1415,7 @@
    }
   },
   {
-   "name": "50 Unread filter lists all three",
+   "name": "50 Unread filter lists all four",
    "event": [
     {
      "listen": "test",
@@ -1423,7 +1423,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('3 unread', () => { pm.expect(d.items.length).to.eql(3); pm.expect(d.total).to.eql(3); d.items.forEach((x) => pm.expect(x.readAt).to.eql(null)); });"
+       "const d = pm.response.json().data; pm.test('4 unread', () => { pm.expect(d.items.length).to.eql(4); pm.expect(d.total).to.eql(4); d.items.forEach((x) => pm.expect(x.readAt).to.eql(null)); });"
       ]
      }
     }
@@ -1463,7 +1463,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const b = pm.response.json(); pm.test('Returns the stamped row', () => { pm.expect(b.success).to.eql(true); pm.expect(b.data.id).to.eql(pm.collectionVariables.get('n1')); pm.expect(b.data.readAt).to.be.a('string'); });",
+       "const b = pm.response.json(); pm.test('Returns the stamped row and the authoritative unread count', () => { pm.expect(b.success).to.eql(true); pm.expect(b.data.id).to.eql(pm.collectionVariables.get('n1')); pm.expect(b.data.readAt).to.be.a('string'); pm.expect(b.meta.unreadCount).to.eql(3); });",
        "pm.collectionVariables.set('readAt1', b.data.readAt);"
       ]
      }
@@ -1536,7 +1536,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('2 unread, n1 excluded', () => { pm.expect(d.items.length).to.eql(2); pm.expect(d.unreadCount).to.eql(2); pm.expect(d.total).to.eql(2); pm.expect(d.items.map((x) => x.id)).to.not.include(pm.collectionVariables.get('n1')); });"
+       "const d = pm.response.json().data; pm.test('3 unread, n1 excluded', () => { pm.expect(d.items.length).to.eql(3); pm.expect(d.unreadCount).to.eql(3); pm.expect(d.total).to.eql(3); pm.expect(d.items.map((x) => x.id)).to.not.include(pm.collectionVariables.get('n1')); });"
       ]
      }
     }
@@ -1576,8 +1576,8 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('2 of 3, newest first', () => { pm.expect(d.items.length).to.eql(2); pm.expect(d.total).to.eql(3); pm.expect(d.totalPages).to.eql(2); pm.expect(d.page).to.eql(1); pm.expect(d.limit).to.eql(2); pm.expect(d.items[0].id).to.eql(pm.collectionVariables.get('n3')); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n2')); });",
-       "pm.test('unreadCount is global, not per page', () => pm.expect(d.unreadCount).to.eql(2));"
+       "const d = pm.response.json().data; pm.test('2 of 4, newest first', () => { pm.expect(d.items.length).to.eql(2); pm.expect(d.total).to.eql(4); pm.expect(d.totalPages).to.eql(2); pm.expect(d.page).to.eql(1); pm.expect(d.limit).to.eql(2); pm.expect(d.items[0].id).to.eql(pm.collectionVariables.get('n3')); pm.expect(d.items[1].id).to.eql(pm.collectionVariables.get('n2')); });",
+       "pm.test('unreadCount is global, not per page', () => pm.expect(d.unreadCount).to.eql(3));"
       ]
      }
     }
@@ -1621,7 +1621,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('Last item only', () => { pm.expect(d.items.length).to.eql(1); pm.expect(d.items[0].id).to.eql(pm.collectionVariables.get('n1')); pm.expect(d.page).to.eql(2); });"
+       "const d = pm.response.json().data; pm.test('Acceptance then the publication receipt', () => { pm.expect(d.items.length).to.eql(2); pm.expect(d.items[0].id).to.eql(pm.collectionVariables.get('n1')); pm.expect(d.items[1].kind).to.eql('ORDER_PUBLISHED'); pm.expect(d.page).to.eql(2); });"
       ]
      }
     }
@@ -1665,7 +1665,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('Empty page, totals intact', () => { pm.expect(d.items).to.eql([]); pm.expect(d.total).to.eql(3); pm.expect(d.totalPages).to.eql(2); });"
+       "const d = pm.response.json().data; pm.test('Empty page, totals intact', () => { pm.expect(d.items).to.eql([]); pm.expect(d.total).to.eql(4); pm.expect(d.totalPages).to.eql(2); });"
       ]
      }
     }
@@ -1740,7 +1740,7 @@
    }
   },
   {
-   "name": "58 Ownership: courier read-all touches nothing",
+   "name": "58 Ownership: courier read-all marks only his own completion notice and payment receipt",
    "event": [
     {
      "listen": "test",
@@ -1748,7 +1748,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "pm.test('updated=0', () => pm.expect(pm.response.json().data.updated).to.eql(0));"
+       "const b = pm.response.json(); pm.test('updated=2 (ORDER_COMPLETED and CREDITS_RECEIVED), unreadCount=0', () => { pm.expect(b.data.updated).to.eql(2); pm.expect(b.data.unreadCount).to.eql(0); });"
       ]
      }
     }
@@ -1783,7 +1783,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "const d = pm.response.json().data; pm.test('Still 2 unread', () => { pm.expect(d.unreadCount).to.eql(2); pm.expect(d.items.find((x) => x.id === pm.collectionVariables.get('n2')).readAt).to.eql(null); });"
+       "const d = pm.response.json().data; pm.test('Still 3 unread', () => { pm.expect(d.unreadCount).to.eql(3); pm.expect(d.items.find((x) => x.id === pm.collectionVariables.get('n2')).readAt).to.eql(null); });"
       ]
      }
     }
@@ -1817,7 +1817,7 @@
       "type": "text/javascript",
       "exec": [
        "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-       "pm.test('updated=2', () => pm.expect(pm.response.json().data.updated).to.eql(2));"
+       "const b = pm.response.json(); pm.test('updated=3, unreadCount=0', () => { pm.expect(b.data.updated).to.eql(3); pm.expect(b.data.unreadCount).to.eql(0); });"
       ]
      }
     }

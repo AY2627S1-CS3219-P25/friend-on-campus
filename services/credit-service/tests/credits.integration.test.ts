@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Asserts the credit.escrow.settled / credit.escrow.refunded outbox receipts (one per real operation, none on
+ * replay, referencing the ledger row) per the author's Notification Redesign increment 6.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
  * Scope: Updated integration tests to verify HTTP POST /api/credits/escrow/reserve returns 404 alongside settle and refund (Issue #42), exercising reservation logic directly via CreditService.
  * Author review: Validated by Yee Yan Hwee (yanhwee)
@@ -139,11 +144,27 @@ async function main() {
     assert.equal(settle.requesterWallet.escrowCredits, 0);
     assert.equal(settle.courierWallet.availableCredits, 125);
     assert.equal(settle.courierWallet.totalEarnedCredits, 25);
+    // AI-generated (edited by Reallyeasy1): the settlement receipt commits with the payout and references its ledger row.
+    const settledReceipts = (await db.creditOutboxEvent.findMany({ where: { eventType: 'credit.escrow.settled', aggregateId: orderId } }))
+      .map(row => JSON.parse(row.payload));
+    assert.equal(settledReceipts.length, 1);
+    const payout = (await credits.getLedger(courierId)).find(t => t.transactionType === 'ESCROW_RELEASE')!;
+    assert.deepEqual(
+      [settledReceipts[0].producer, settledReceipts[0].beneficiaryId, settledReceipts[0].amount, settledReceipts[0].ledgerTransactionId, settledReceipts[0].transactionCode],
+      ['credit-service', courierId, 25, payout.id, payout.transactionCode],
+    );
+    await credits.settle({ requesterId, courierId, orderId, amount: 25 });
+    assert.equal(await db.creditOutboxEvent.count({ where: { eventType: 'credit.escrow.settled', aggregateId: orderId } }), 1, 'a replayed settlement writes no second receipt');
     const refundOrder = randomUUID();
     await credits.reserve({ requesterId, orderId: refundOrder, amount: 15 });
     const refund = await credits.refund({ requesterId, orderId: refundOrder, amount: 15 });
     assert.equal(refund.availableCredits, 75);
     assert.equal(refund.escrowCredits, 0);
+    await credits.refund({ requesterId, orderId: refundOrder, amount: 15 });
+    const refundReceipts = (await db.creditOutboxEvent.findMany({ where: { eventType: 'credit.escrow.refunded', aggregateId: refundOrder } }))
+      .map(row => JSON.parse(row.payload));
+    assert.equal(refundReceipts.length, 1, 'one refund receipt, replay adds none');
+    assert.deepEqual([refundReceipts[0].beneficiaryId, refundReceipts[0].amount], [requesterId, 15]);
     await assert.rejects(credits.reserve({ requesterId, orderId: randomUUID(), amount: 1000 }), isBadRequest);
     await assert.rejects(credits.reserve({ requesterId, orderId, amount: 1000 }), isConflict);
     for (const operation of ['settle', 'refund'] as const) {

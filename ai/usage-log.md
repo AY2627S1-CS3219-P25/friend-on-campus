@@ -3451,6 +3451,277 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docs/errand-specification.md` — §2 sentence after the matrix.
 - `ai/usage-log.md` — previous entry's Branch field; this entry.
 
+## 2026-10-19 17:10 SGT — Wiki: "How it works" diagrams for every service
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (wiki repository, pushed directly)
+
+**Prompt (summarised):** Add more diagrams, illustrations and descriptions of how each service works to the GitHub wiki.
+
+**Usage scenario:** Documentation improvements. Each service page gained a "How it works" section of Mermaid diagrams with short descriptions, every one drawn from the service source on main @ 6327aac (service code unchanged since 7f2d972) and rendered locally with mermaid-cli before pushing: Order (components, state machine, create with escrow and compensation, single-winner accept, outbox relay, expiry sweeper), Credit (components, escrow states, credit movement between wallet pockets, event consumption with dedupe and Serializable retry, failure classification and retry/dead-letter), Notification (components, event-to-notification mapping, WebSocket session, socket states), User (components, registration to welcome grant, login/refresh/logout, session lifecycle, last-admin guard), Supplier (components, list pipeline, create with the duplicate rule, availability states). Architecture gained an end-to-end errand sequence, the broker topology and the transactional-outbox sequence. No architecture, rationale or trade-off text was added.
+
+**Files changed (wiki, `wiki-checkout/`):** `Architecture.md`, `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `User-Service.md`, `Supplier-Service.md` (insertions only; disclosure record added to each page's block).
+
+**Files changed (repo):**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 20:05 SGT — Wiki: more "How it works" diagrams, sequence diagrams included
+
+**Tool:** Claude Code (model: Claude Fable 5.1, with Fable 5.1 fork subagents drafting one page each)
+**Author:** Reallyeasy1
+**Branch:** main (wiki repository, pushed directly)
+
+**Prompt (summarised):** Make more diagrams, illustrations and descriptions of how each service works on the GitHub wiki; include sequence diagrams as well.
+
+**Usage scenario:** Documentation improvements. 37 Mermaid diagrams (mostly sequence diagrams, plus state and flow diagrams) with short as-built descriptions were added to seven wiki pages, each drawn from the source on main @ 6327aac and rendered locally with mermaid-cli before pushing. Order Service: courier path, requester cancel, admin intervention, request pipeline, start-up and shutdown, listing and activity. Credit Service: HTTP escrow reserve, welcome grant, refund, wallet and ledger reads, start-up/readiness/shutdown. Notification Service: REST history and mark-read, transient failure and the retry queue, one user with several tabs, start-up and shutdown; the socket-states diagram's shutdown edge was corrected (hub.close is only called from the tests). User Service: profile and password change, account deletion, account states, token issue and verify, start-up/seed/shutdown. Supplier Service: read-one and the Order Service's use of it, update, delete/toggle, seed on every boot, request handling. Architecture: Compose start order, a request through the gateway, cancel/refund and expiry end to end, and a new "Failure cases" section (broker down, Credit Service down at creation, compensating refund). Frontend Apps: authFetch refresh-on-401, the student app session and socket from the client side, the admin order action with expectedVersion. No architecture, rationale or trade-off text was added; facts the drafts surfaced that differ from earlier wording (user- and supplier-service containers stop on a seed failure, reserve failures always answer 400, notification-service installs no signal handler) are stated as built.
+
+**Files changed (wiki, `wiki-checkout/`):** `Architecture.md`, `Order-Service.md`, `Credit-Service.md`, `Notification-Service.md`, `User-Service.md`, `Supplier-Service.md`, `Frontend-Apps.md` (insertions plus the one socket-states edge; disclosure record added to each page's block).
+
+**Files changed (repo):**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 20:40 SGT — Notification Service as-built review (facts only)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Look at the Notification Service's design and functionality, see how it can be improved, and create a design doc to evaluate.
+
+**Usage scenario:** The "how it can be improved" part is architecture and design-rationale work, which CLAUDE.md §1 reserves for the author, so it was declined. The allowed alternative was produced instead: a facts-only review of `services/notification-service` on main @ 6327aac as a shared Claude doc (https://claude.ai/code/artifact/d1bd45ac-a4f9-4397-84c1-8b11a75aefae), listing the behaviour and limits of delivery, the WebSocket hub, REST, messaging and retry, lifecycle, data, security and tests with file and function citations, the related issues (#51, #52, #56, #64, #119), and twenty open questions for the author with a decision column. No recommendation, trade-off or proposed design was written. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 21:20 SGT — Notification Service: tests for the untested paths (review row 19)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Look at the review's decisions, use judgement to pick which to work on, and do it.
+
+**Usage scenario:** Picking among the design decisions (what the courier is told, retention, reconnect strategy, schema constraints, security posture, scale-out) was left to the author per CLAUDE.md §1 and said so. Row 19 (automated evidence for untested behaviour, issue #64) is test writing with no design decision in it, so that was done: tests added to the existing suites only, so `.github/workflows/ci.yml` is unchanged. Hub unit suite: a socket that stops answering pings is terminated within two intervals while an answering one survives; a failing unread-count query closes 1011 before anything is filed. Messaging suite: a transient failure goes through the retry queue and is delivered once it clears; a failure that outlasts `retryLimit` is dead-lettered with the `x-notification-*` headers (retry count = limit, transient, original routing key, original content) while the main queue keeps draining; the consumer is started through a deliver wrapper that simulates the outage. Store suite: a later page returns the remainder, `totalPages` follows the filter while `unreadCount` does not, a page past the end is empty. Still without automated evidence: SIGTERM behaviour, `process.exit(1)` on broker loss and the container restart, token-expiry reconnect end to end, load.
+
+**Verification:** `npm run typecheck` (all workspaces) clean; `node --test` unit 13/13 hub + 20/20 events; `test:integration` 10/10 and `test:messaging` 5/5 run locally against a throwaway `postgres:16` container on 5440 (removed afterwards) and the native RabbitMQ as guest; eslint clean on the four test files.
+
+**Files changed:**
+- `services/notification-service/test/helpers.ts` — `openSocket` accepts ws client options (`autoPong: false`).
+- `services/notification-service/test/hub.test.ts` — "WebSocket hub liveness" suite (2 tests).
+- `services/notification-service/test/messaging.integration.test.ts` — deliver wrapper with a simulated outage; 2 tests (retry recovery, retry limit to DLQ with headers).
+- `services/notification-service/test/store-routes.integration.test.ts` — paging test.
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:05 SGT — Milestone D3 gap assessment (facts only, no prioritisation)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Assert the project against the CS3219 D3 instructions (PDF supplied), see what should be worked on from here, and write a project plan.
+
+**Usage scenario:** Requirements work in the allowed sense: discovering, interpreting and formatting. The D3 instructions were checked item by item against main @ 6327aac, the wiki and the open issues, and written up as a shared Claude doc (https://claude.ai/code/artifact/46159a9a-387d-4902-a349-5edda85ebefb): what D3 asks, a status table with evidence per item, 13 named gaps, 14 candidate work items each tied to a gap, and the questions only the team can answer. The "project plan" part in the sense of prioritising the items, setting a sprint order or allocating people was declined under CLAUDE.md §1 and left as questions; the candidate list is unordered. No design was proposed for any gap. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:45 SGT — D3 Part 3.4 demo and observability runbook, OpenTelemetry facts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Create a design doc on how to handle D3 Part 3.4 (demonstrate duplicate-message or failure handling already implemented; present the observability mechanisms in place) and check whether OpenTelemetry is needed.
+
+**Usage scenario:** Documentation of as-built behaviour: a shared Claude doc (https://claude.ai/code/artifact/22ace0d5-602c-4d4c-b8a2-ab8bd97ecabc) mapping both 3.4 bullets to the implemented mechanisms, a duplicate-message demo (republish a completion event, show one settlement and the processed_credit_events row) and four failure demos (broker down with the outbox draining, Credit Service down at creation, poison message to the dead-letter queues, optional transient retry) with commands, expected output, code location and the automated test as fallback; an inventory of every log line, health field, broker view and audit table. The OpenTelemetry question was answered with facts only (3.4 names no tool; #73 lists metrics and correlation for Sprint 4; no telemetry library in the repo; what adding it would touch incl. the ask-first dependency rule and the outbox context break) and left as a team decision; no recommendation or design was written. Log text, reason strings and health fields were verified in the service sources. No repository file other than this log was changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 22:55 SGT — Can D3 Part 3.4 be handled without hardcoding or OpenTelemetry
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Check whether Part 3.4 can be handled completely without much hardcoding or OpenTelemetry.
+
+**Usage scenario:** Learning support / explanation from the facts already gathered for the 3.4 runbook: every demo step uses existing service behaviour, Docker stop/start, psql queries and one amqplib publish snippet outside the services; no demo mode, flag or test hook in any service, and no new dependency. Answered in chat; the decision on OpenTelemetry stays with the team.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:05 SGT — Where the logs are (RabbitMQ management UI question)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** How can the logs be seen from the RabbitMQ management UI at localhost:15672.
+
+**Usage scenario:** Learning support: identified that port 15672 on this machine is the native RabbitMQ 4.1.0 (vhost `/`, users guest and workato), not the project's container broker, and explained where broker and application logs actually live. No repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:20 SGT — RabbitMQ documentation: where the container broker's logs are
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Navigate the RabbitMQ documentation to see where the logs are for the broker behind localhost:15673.
+
+**Usage scenario:** Learning support: read rabbitmq.com/docs/logging and the official Docker image page, checked the project's `docker/rabbitmq/rabbitmq.conf` (definitions import only, no log settings), and verified in a throwaway `rabbitmq:3.13.7-management-alpine` container (removed afterwards) that the image logs to the console, so `docker logs` is the log and `rabbitmq-diagnostics log_tail` has no file. Answered in chat; no repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-19 23:30 SGT — Node page in the RabbitMQ UI: where to click for logs
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Screenshot of the native broker's node page; where to click next to see the logs.
+
+**Usage scenario:** Learning support: the management UI has no log viewer, the Log files field is informational; pointed at the file path shown and at `docker logs` for the container broker. No repository file changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry.
+
+## 2026-10-20 00:10 SGT — GitHub issues for the D3 gaps
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Based on the Milestone D3 gap assessment doc, create GitHub issues for the deliverables that have gaps.
+
+**Usage scenario:** Documentation (issue write-ups of facts already established in the gap assessment and verified against `main` @ 4be192b). Created #129–#138 in `AY2627S1-CS3219-P25/friend-on-campus` with the author's explicit request. Gaps already tracked by an open issue were not duplicated (#42 escrow reserve auth, #63 demo logistics, #64 concurrency evidence, #73 monitoring). No priority label, milestone, assignee or ordering was set; the "Decision needed" sections name the team's design choices without proposing one.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry (the issues themselves live on GitHub)
+
+## 2026-10-20 00:40 SGT — Correct the N2H issues to the team's allocation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Shared the team's N2H allocation table (one feature per member) and the CS3219 project brief; use them for the N2H gaps.
+
+**Usage scenario:** Documentation. Rewrote #137 and #138 with the five allocated features, their brief categories (N1, N2, N4), their tracking issues and what is built versus written on `main`; corrected the earlier claim that one member had no N2H. The gap assessment doc's G12 and 5.2 rows corrected the same way. No design, approach or value statement was drafted; those remain the team's.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 01:00 SGT — Commit, push and PR for the notification tests and log entries
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Commit the usage-log entries and the notification-service test files, push both, and create a PR.
+
+**Usage scenario:** Bookkeeping and test delivery with the author's explicit approval. Branched off `origin/main` @ 6a8f871, rebased the two log commits, committed the four test files, re-ran the unit suite (34/34), created #139 so the PR can link an issue, pushed and opened PR #140. Local `main` reset to `origin/main`. Author review of the test files is still pending.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 09:50 SGT — Act on the Claude PR review of #140
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Check PR #140 against the AI review before merging.
+
+**Usage scenario:** Debugging assistance. The review's single Low finding (the 100 ms ping interval leaves the liveness test's handshake a narrow window on a slow runner) was verified against `src/ws/hub.ts`: the pinger walks every socket, authenticated or not, so a dead socket can be terminated 100 to 200 ms after it opens. Applied the suggested widening (250 ms interval, 2 s close wait, 800 ms survival wait); unit suite 34/34. Merge is the author's call.
+
+**Files changed:**
+- `services/notification-service/test/hub.test.ts` — liveness suite timings widened
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 10:20 SGT — Milestone for the D3 gap issues
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Put the newly created issues on a milestone.
+
+**Usage scenario:** Bookkeeping on the author's request. #129–#139 set to the existing "D3 progress check" milestone (the one #63 is on). No priority labels or ordering set.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 10:40 SGT — Which assigned issue to prioritise
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** List the open issues assigned to me and tell me which one to prioritise.
+
+**Usage scenario:** Learning support / facts only. Listed the nine open issues assigned to Reallyeasy1 with milestone, due date, dependency and the label-versus-body priority mismatches. Declined the "which first" part under CLAUDE.md section 1 (prioritising requirements and sprint planning stay with the team).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 11:30 SGT — F8 private conversation: design brief (facts and decision points)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Focus on F8 (private conversation per accepted errand) and produce a design doc.
+
+**Usage scenario:** Documentation and learning support. Wrote a Claude Doc "F8 private conversation per accepted errand: design brief" with the #56 criteria, what the code already provides (hub, store, consumer, gateway, order facts, usernames, student app, Compose and CI), the CLAUDE.md constraints, nine decision points with the facts and files each touches, the follow-on work items and a decision-record table. Declined the design itself under CLAUDE.md section 1: no service boundary, schema, transport or authorisation mechanism was chosen, and no reasoning was drafted. Recorded three source conflicts for the author (FAILED status absent from the code, admin read access versus F8.1.2, unassign publishes no event).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 16:20 SGT — F8 brief: decision record asked for suggestions
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Look at the decision record (every row filled with "give suggestion") and update the design document accordingly.
+
+**Usage scenario:** Learning support. Declined to pick the options under CLAUDE.md section 1 (architecture and design decisions, trade-off reasoning). Added a section "Concepts, precedents and the questions that settle each decision" to the F8 brief: per decision, the concepts in plain terms, the places in this repo that already use each pattern (facts), and the questions whose answers decide the row. The nine "Your choice" cells were left as the author wrote them.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 16:50 SGT — F8 decision record: asked to pick the options
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** What to write in the "Your choice" cells; then "pick the most recommended ones for each of them".
+
+**Usage scenario:** Learning support. Listed the options each row allows (as already stated in the brief) and the size of a filled row. Declined to pick: the course AI policy (project brief Appendix 2) prohibits AI proposals on architecture, boundaries, schemas and interfaces, and CLAUDE.md section 1 mirrors it. Offered to walk the settling questions row by row and to implement once the author marks a row Decided.
+
+**Files changed:**
+- none
+
+## 2026-10-20 17:05 SGT — F8 options listed by number
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** List the F8 choices again, indexed by number, and say which are more recommended.
+
+**Usage scenario:** Learning support. Listed the options per decision with the one fact from the brief that bears on each. Did not rank or recommend (course AI policy Appendix 2; CLAUDE.md section 1).
+
+**Files changed:**
+- none
+
 ## 2026-10-19 22:10 SGT — Infrastructure Security & Database-per-Service Isolation (Issue #42, #63)
 
 **Tool:** Google Antigravity Agent
@@ -3677,6 +3948,20 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `docker/postgres-init/01-init-databases.sql` — removed redundant database-level `GRANT ALL PRIVILEGES`, per-database `\connect` + `GRANT ALL ON SCHEMA public`, and `ALTER DEFAULT PRIVILEGES FOR ROLE postgres` statements, retaining the `CREATE ROLE`, `CREATE DATABASE ... OWNER`, and `REVOKE CONNECT ... FROM PUBLIC` statements.
 - `ai/usage-log.md` — this entry.
 
+## 2026-10-21 20:05 SGT — PR #140: merge main and rewrite the retry-path tests for native requeue
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Release preparation: check out and pull `main`, run the stack on Docker, smoke/UAT-test it, screenshot the pages, refresh the wiki, and merge PR #140 if it can be merged.
+
+**Usage scenario:** Debugging assistance and test code. PR #140 conflicted with `main` (`ai/usage-log.md`, `test/helpers.ts`: both sides kept) and its two retry-path tests no longer compiled after PR #145 replaced the retry queue with native quorum-queue redelivery (`MessagingConfig.retryQueue` gone). The two tests now assert the native path: one transient failure is requeued and delivered; a failure that outlasts `retryLimit` is dead-lettered with the broker's `x-death` / `x-first-death-*` headers after `retryLimit + 1` attempts. The author reviews the tests and decides on the merge.
+
+**Files changed:**
+- `services/notification-service/test/messaging.integration.test.ts` — retry-path tests rewritten for native requeue; disclosure record added
+- `services/notification-service/test/helpers.ts` — merge: both disclosure records kept
+- `ai/usage-log.md` — merge: both sets of entries kept; this entry
 ## 2026-10-21 18:42 SGT — Consolidate Documentation into `README.md` & Wiki, Remove `docs/`, and Slim Down `CLAUDE.md`
 
 **Tool:** Google Antigravity Agent
@@ -3800,6 +4085,19 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 **Files changed:**
 - `ai/usage-log.md` — resolved merge conflict by retaining entries from both `origin/main` and `chore/simplify-generate-jwt-keys` plus this record.
 
+## 2026-10-21 23:40 SGT — Merge `main` (PRs #154–#158) into PR #140 again
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/notification-service-untested-paths
+
+**Prompt (summarised):** Continue the release handoff: PR #140 had become `CONFLICTING` after PRs #154–#158 were merged to `main`.
+
+**Usage scenario:** Git merge conflict resolution (allowed use). Merged `origin/main` @ 1bcd842 into the branch; the only conflict was `ai/usage-log.md`, resolved by keeping both branches' entries. Notification-service code and tests were not touched by `main` since the previous merge (a2aaa57).
+
+**Files changed:**
+- `ai/usage-log.md` — kept both sides of the conflict and appended this entry.
+
 ## 2026-10-22 00:06 SGT — Remove Dead `AuditPage` Placeholder & Wire `HealthPage` to Live Microservice `/health` and `/ready` Probes
 
 **Tool:** Google Antigravity Agent
@@ -3901,6 +4199,73 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `apps/admin-portal/src/api/auth.ts`, `apps/admin-portal/src/hooks/useAdminAuth.ts` — guarded `res.json()` with `.catch(() => null)` in `adminLoginApi` and surfaced friendly `5xx` fallback messages in `handleAdminLogin`.
 - `apps/student-app/src/components/ErrandCard.tsx`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/src/api/orders.ts` — added an optional `courierContactNote` input (`data-testid="accept-contact-note-input"`, max 255 chars) inside the inline `Confirm` / `Cancel` step on `ErrandCard` and passed it to `POST /api/orders/:id/accept`.
 - `ai/usage-log.md` — this entry.
+## 2026-10-21 20:40 SGT — Release check of main: Docker UAT, Debezium start failure, PR #140, wiki refresh (handed off)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Pull `main`, run the stack on Docker, smoke/UAT-test the app, screenshot its pages, refresh the GitHub wiki, and merge PR #140 if possible. Interrupted by the author; progress saved and handoff written.
+
+**Usage scenario:** Debugging assistance, test code and documentation. Stack built from main @ 3fd1921 (gateway remapped to :8080, Postgres :5440, RabbitMQ :5673). Acceptance drivers: `uat-d2-api` 62/62, `uat-notifications` 17/17, `uat-d2-ui` 34/34; an order-lifecycle driver adapted to the 202/PENDING saga was 8/24 because the Debezium container crash-looped (Quarkus expanded `${routedByValue}` to null → NullPointerException in `configToProperties`), so no order outbox event was published and orders stayed `PENDING`; after escaping the placeholder it is 24/24. PR #140 was merged with `main` in a scratch worktree, its retry-path tests rewritten for the native quorum-queue redelivery of PR #145, pushed (a2aaa57, CI green); the merge itself is left to the author. Wiki pages rewritten by subagents from the code (uncommitted in the wiki clone). No architecture or design decisions made.
+
+**Files changed:**
+- `docker/debezium/application.properties` — `$${routedByValue}` escape so Debezium Server starts; disclosure record (uncommitted, for the author to review and commit)
+- `ai/usage-log.md` — this entry
+- `services/notification-service/test/messaging.integration.test.ts`, `test/helpers.ts`, `ai/usage-log.md` on branch `test/notification-service-untested-paths` (PR #140) — merge of main and native-retry test rewrite, pushed
+- GitHub wiki clone (`wiki-checkout`, uncommitted): Architecture, Services, Deployment-and-Configuration, Order-Service, Credit-Service, Notification-Service, User-Service, Supplier-Service, Data-Model, Authentication-and-Roles, Frontend-Apps, Getting-Started, Testing-and-Evidence, Team-Conventions, Decisions-and-Open-Questions; `images/d3/*.jpg` screenshots
+
+## 2026-10-22 00:05 SGT — Release check continued on main @ 1bcd842: Docker UAT re-run, PR #140 re-merged, wiki merged with the author's sync
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Continue the release handoff of 2026-10-21 20:40 (Docker UAT, screenshots, wiki refresh, PR #140).
+
+**Usage scenario:** Debugging assistance, test execution and documentation. `main` had moved from 3fd1921 to 1bcd842 (PRs #154–#158) since the handoff: the clone was fast-forwarded, the previous session's uncommitted `$${routedByValue}` Debezium edit was dropped because PR #155 fixed the same defect with `\${routedByValue}`, and the stack was rebuilt from 1bcd842 (gateway :8080, Postgres :5440, RabbitMQ :5673). Acceptance drivers on that stack: `uat-d2-api` 62/62, `uat-notifications` 17/17, `uat-cdc` 7/7, `uat-d2-ui` 40/40 (incl. UO1–UO6), order-lifecycle driver 24/24. PR #140 had become `CONFLICTING` again; `origin/main` was merged into it in a scratch worktree (only `ai/usage-log.md` conflicted), `npm run typecheck`, notification-service unit 34/34, integration 10/10 and messaging 5/5 passed, pushed as e5a1606 (the merge itself is left to the author). The GitHub wiki clone was fast-forwarded onto the author's three sync commits of this evening and the parallel rewrite of 15 pages was merged into them by four subagents, then refreshed to 1bcd842; Home, Roadmap, Milestone D3, the sidebar and a new D3 Screenshots page (56 Chromium screenshots) were written in the main session. No architecture or design decisions made; no commits on `main`.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry (the 20:40 entry above stays as written; its Debezium line is superseded by PR #155)
+- Branch `test/notification-service-untested-paths` (PR #140): merge commit e5a1606 with `ai/usage-log.md` resolved, pushed
+- GitHub wiki clone (`wiki-checkout`): Architecture, Services, Deployment-and-Configuration, Getting-Started, Order-Service, Credit-Service, Data-Model, User-Service, Authentication-and-Roles, Team-Conventions, Decisions-and-Open-Questions, Frontend-Apps, Testing-and-Evidence, Notification-Service, Supplier-Service, Home, Roadmap, Milestone-D3, _Sidebar, D3-Screenshots (new), `images/d3/*.png` (new)
+- Nothing else in this repository; `test-results/`-style outputs went to `../handoff-2026-10-21/test-results-1bcd842/`
+
+## 2026-10-22 13:05 SGT — Alerts board: count stages per kind and clear "Needs your confirmation" once the order moves on
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Check the notification feature for bugs and fix them. (Earlier in the same session: browser UAT of main @ 7c43af1 with a 45-case Playwright suite and a Claude in Chrome pass, kept outside the repo in `../uat-2026-10-22/`; issues #168–#174 filed from it.)
+
+**Usage scenario:** Debugging assistance, implementation code and unit tests (allowed). Two defects confirmed on live data: (1) after a courier drop / admin unassign and a new acceptance the errand has two `ORDER_ACCEPTED` rows, so the Alerts timeline read "4 of 3 stages" and lost its "Next:" hint; (2) nothing is stored when the requester confirms (or an admin cancels) a delivered errand, so every completed errand stayed under "Needs your confirmation" with the confirm button (11 of alice's errands). Fix kept inside the student app: stages are distinct kinds, and the section/button only apply to orders still `DELIVERED` (set computed from the orders `App.tsx` already loads). Left to the author: whether the Notification Service should instead publish a completion/cancellation notification (an interface change, not made here); the open `test/notification-service-untested-paths` PR #140 is untouched. `ai/usage-log.md` had unresolved stash-conflict markers from the fast-forward to 7c43af1; the three marker lines were removed with both sides' entries kept.
+
+**Files changed:**
+- `apps/student-app/src/notifications/errands.ts` — new: `groupByErrand`, `stageCount` (distinct kinds), `sectionOf(errand, awaitingConfirmation)`, `SECTIONS` moved out of `NotificationBell.tsx`
+- `apps/student-app/src/notifications/NotificationBell.tsx` — uses the helpers; new `awaitingConfirmation` prop gates the "Needs your confirmation" section and the "Open in Tasks to confirm" button; header count, timeline connector and "Next:" hint use `stageCount`
+- `apps/student-app/src/pages/AlertsPage.tsx` — passes `awaitingConfirmation` through
+- `apps/student-app/src/App.tsx` — computes `awaitingConfirmation` (this requester's orders in `DELIVERED`) and passes it to `AlertsPage`
+- `apps/student-app/test/errands.test.ts` — new regression tests (3), run with `node --import tsx --test`
+- `apps/student-app/package.json` — new `test:unit` script (no new dependency; `tsx` is hoisted)
+- `.github/workflows/ci.yml` — student-app added to the unit matrix; `npm run ci:validate-tests` passes
+- `ai/usage-log.md` — this entry; conflict markers removed
+
+## 2026-10-22 13:50 SGT — Credit Service unit suite for the escrow rules (F4.0–F4.6), CI unit matrix entry
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** Review the testing/CI pipeline for rigour and coverage, then pick one improvement to do before the Milestone 3 presentation. Assessment (chat only, data in `../uat-2026-10-22/coverage/`): `main` has no branch protection so the test gate is advisory; credit-service had no unit tests and its four suites are plain `tsx` scripts that abort on the first assertion; `packages/auth`, `packages/messaging` and `common-dtos` have no tests of their own; admin-portal has none and student-app only the Alerts helpers; no coverage in CI, lint allows warnings, no dependency scanning, no outage scenario. Chosen task: unit-test the escrow service.
+
+**Usage scenario:** Test suggestions and unit tests (allowed). Which items go into Sprint 4, and whether to add a second test framework for the frontends, are left to the author. No production code changed.
+
+**Files changed:**
+- `services/credit-service/tests/service.unit.test.ts` — new: 20 `node:test` cases against an in-memory store with transaction/savepoint rollback (grant once; 404 wallet; no negative balance with full rollback; reserve/replay/conflicts; settle idempotent, courier/amount/unknown conflicts, settle-after-refund; refund idempotent, refund-after-settle; event dedup by id, fingerprint conflict, failed-result outbox with rollback, closed-reservation failure, infrastructure failure aborts the event; Serializable retry loop of `createCreditStore` with a fake Prisma client). `src/credits/service.ts` 98.9% lines / 91.6% branches under `--experimental-test-coverage`
+- `services/credit-service/package.json` — new `test:unit` script (JSON, no header)
+- `.github/workflows/ci.yml` — credit-service added to the unit matrix; `npm run ci:validate-tests` passes (14 suites)
+- `ai/usage-log.md` — this entry
 
 ## 2026-10-22 14:25 SGT — Postman collection for the Notification Service REST API (F5)
 
@@ -3917,6 +4282,7 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `ai/usage-log.md` — this entry
 - GitHub: issue and pull request opened for this change at the request of the author; review findings on PR #178 (polling delay and reset, settlement wait before the no-alert check, supplier guard, named shape assertions, residue note, this branch line) applied in a follow-up commit
 
+<<<<<<< HEAD
 
 ## 2026-10-25 01:14 SGT — Read-only technical documentation execution plan
 
@@ -3950,3 +4316,259 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - `ai/usage-log.md` — consolidated attribution and these two prompt records. No JSON changes.
 
 **Verification:** Full command outcomes and unavailable checks are recorded in `docs/audits/review-findings.md`. Review reproductions execute pinned PR hook/component source with controlled fetch/SSR; they are not a full browser/infrastructure run. Draft publication is explicitly authorized by the approved task; no merge is authorized.
+=======
+## 2026-10-22 21:15 SGT — Notification inbox: implement the author's "Student Notification System Redesign" (increments 1–5)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox (from origin/main 52d791e; carries the same-day Alerts-board UAT fix, which this work supersedes)
+
+**Prompt (summarised):** Use the redesign document `Friend-on-Campus-Notification-Redesign.md` (team design proposal, 22 Oct 2026) for the notification service.
+
+**Usage scenario:** Implementation code, boilerplate and tests for a design the author decided (allowed). Every recipient rule, event field, table, index, view and piece of copy comes from the document (§2–§11); where it left a choice open the plan at `docs/superpowers/plans/2026-10-22-notification-inbox.md` records what was taken. Not done, left to the author: increment 6 (Credit `credit.escrow.settled`/`refunded` receipts), chat/reminder/matching alerts, push/email, multi-instance fan-out, DLQ monitoring and the audited replay procedure, the wiki refresh, and the deep link uses `/?tab=tasks&orderId=` instead of the suggested `/tasks?orderId=` (the gateway serves the SPA at `/` only). No commits were made.
+
+Verified: `npm run typecheck` (all workspaces), `npm run lint` (warnings only, all pre-existing), `npm run ci:validate-tests` (14 suites); unit: order-service 60/60, notification-service 56/56, credit-service 20/20, student-app 5/5; notification-service integration 16/16 and messaging 4/4 against the Compose PostgreSQL (5440) and RabbitMQ (5673); student-app `vite build`. Acceptance on the rebuilt Compose stack (gateway :8080, migration `20261022120000_recipient_inbox` applied on the existing notification data at container start): `uat-notifications` 21/21 (the first run exposed a driver bug, the acceptance event carried a lower orderVersion than the publication and was correctly treated as stale: stored, not pushed), newman `notification_collection` 63 requests / 141 assertions / 0 failures, `uat-d2-ui` 40/40 (UO5 copy updated), `uat-d2-api` 62/62, `uat-cdc` 7/7.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `OrderActorRole`, `OrderReasonCode`, `OrderEventV2Fields` (optional on the existing Order events, `courierId` on cancelled/expired), new `OrderRejectedEvent` and `OrderUnassignedEvent`; `NotificationKind` (9 kinds), `NotificationCategory/Priority/ActionType/View`, `NotificationDTO` (+producer, category, priority, actionType, targetId, sourceVersion, storedAt, orderStatus), `NotificationPageDTO`
+- `services/order-service/src/orders/order.types.ts` — `OrderEventDraft`, `completeEvent()` (fills orderVersion/previousStatus/status, cancelled/expired assignee, priorCourierId inside the transaction)
+- `services/order-service/src/orders/order.service.ts` — `v2()` envelope on every draft (actor, reason code, correlationId); `order.unassigned` drafts for courier drop and admin unassign
+- `services/order-service/src/repositories/order.repository.ts` — outbox payloads completed at commit; `order.rejected` written with REJECTED; `order.unassigned` on both unassign paths; SYSTEM-actor created/expired with `PUBLICATION_EXPIRED`/`OPEN_EXPIRED`
+- `services/order-service/src/orders/order.routes.ts` — success messages no longer claim credits transferred/refunded
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repo mirrors the v2 facts; 9 new tests; rejection test now expects `order.rejected`
+- `docker/rabbitmq/definitions.json` — (JSON, no header) `order.rejected`/`order.unassigned` added to order_service write and notification_service read topic permissions
+- `services/notification-service/prisma/schema.prisma`, `prisma/migrations/20261022120000_recipient_inbox/migration.sql` — new columns + backfill, `UNIQUE(producer, event_id, user_id, kind)` replacing `UNIQUE(event_id)`, `(user_id, stored_at DESC, id DESC)` index, `processed_notification_events` (seeded from legacy rows, outcome `legacy`, no fingerprint), `order_notification_state`
+- `services/notification-service/src/notifications/store.ts` — `applyEvent()` one-transaction claim/fingerprint/projection/recipient inserts; `list()` with views and snapshot counts; read routes return authoritative `unreadCount`
+- `services/notification-service/src/notifications/policy.ts` — new: `toNotifications()` recipient and trigger matrix, `POLICY_VERSION`
+- `services/notification-service/src/notifications/events.ts` — v1/v2 parsing, new routing keys, `fingerprint()`, infrastructure classifier, `createDeliver(store, hub)` with stale/duplicate handling and INBOX_CHANGED
+- `services/notification-service/src/ws/hub.ts` — `inboxChanged()`; `src/notifications/routes.ts` — `view=`, `meta.unreadCount`, `INVALID_VIEW`; `src/app.ts`, `src/index.ts` — wiring; `src/config.ts` — retry limit default 5
+- `services/notification-service/test/policy.test.ts` (new), `test/events.test.ts`, `test/hub.test.ts`, `test/store-routes.integration.test.ts`, `test/messaging.integration.test.ts` — rewritten/extended; `package.json` — `test:unit` adds policy.test.ts (JSON, no header)
+- `apps/student-app/src/notifications/inbox.ts` (new), `test/inbox.test.ts` (new; replaces `errands.ts`/`errands.test.ts`, removed), `package.json` — `test:unit` points at inbox.test.ts (JSON, no header)
+- `apps/student-app/src/notifications/useNotifications.ts` — REST-first, reconcile on focus/online/visibility/30 s, paging, id-merge, server counts, INBOX_CHANGED, stale flag
+- `apps/student-app/src/notifications/NotificationBell.tsx`, `src/pages/AlertsPage.tsx` — inbox views, generic card, action CTA, stale line, load more
+- `apps/student-app/src/api/orders.ts` — `fetchOrderById`; `src/pages/TasksPage.tsx` — focused-errand panel, card highlight, truthful credit copy; `src/App.tsx` — deep link, toast rule, wallet/errand navigation, copy
+- `scripts/uat/uat-notifications.mjs` — v2 payloads, N6/N7 reworded, N17–N20 added; `scripts/uat/uat-d2-ui.mjs` — cancelled-card copy
+- `tests/postman/notification_collection.json` — (JSON, no header) counts +1 for the publication receipt, delivery/completion assertions on `actionType`/`orderStatus`, courier read-all now updates his completion notice, `meta.unreadCount`
+- `README.md` — "polling outbox relays" wording removed (Debezium only)
+- `docs/superpowers/plans/2026-10-22-notification-inbox.md` — new: the implementation plan derived from the design document
+- `ai/usage-log.md` — this entry
+
+## 2026-10-22 23:50 SGT — Switch for the Claude PR review workflow; saga messaging test routes order.rejected
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Open the PR for the notification inbox, try running it, then add a flag to enable/disable the Claude Code review and set it to disabled.
+
+**Usage scenario:** Boilerplate/config and test code (allowed), at the author's explicit request to commit and push. PR #184 opened (Closes #179/#180/#181, Part of #182). The first CI run failed only in the order-service saga messaging suite (the mandatory outbox flush had no sink for the new `order.rejected`); fixed and green on the second run. The Claude review job failed twice in ~30 s with `is_error: true` (no review output, same signature as an invalid action token) and is now gated by the repository variable `CLAUDE_PR_REVIEW_ENABLED`, created and set to `false` with `gh variable set`. Browser walkthrough of the inbox on the local stack done (deep link, resolved delivery action, live courier-drop push).
+
+**Files changed:**
+- `.github/workflows/claude-pr-review.yml` — job `if:` also requires `vars.CLAUDE_PR_REVIEW_ENABLED != 'false'`; header documents the switch
+- `services/order-service/test/reservation.messaging.test.ts` — binds `order.rejected` to the test sink queue and asserts the committed rejection fact (committed as f36356b)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-23 00:25 SGT — Notification Redesign increment 6: Credit settlement and refund receipts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Carry on with the redesign (the deferred financial extension, §4/§6/§9, issue #182).
+
+**Usage scenario:** Implementation code and tests for the author's design (allowed); the contract fields, recipients, copy and idempotency rule are the document's. Credit Service now writes `credit.escrow.settled` / `credit.escrow.refunded` in the same transaction as the escrow transition, ledger row and wallet change (replay of a closed escrow writes nothing); Notification Service binds, validates (Credit-only producer, beneficiary must match the outcome) and stores them as quiet RECEIPT rows pointing at the wallet, without touching the order projection. Verified: typecheck all workspaces, lint (warnings only), unit credit 20 / notification 66 / student-app 5, notification messaging+integration 21 against Compose; on the rebuilt stack `uat-notifications` 22/22 (new N21), newman 65 requests / 143 assertions / 0 failures, `uat-cdc` 7/7 (the real refund produced a CREDITS_RETURNED row), `uat-d2-api` 62/62. Broker topic permissions were applied to the running broker with `rabbitmqctl set_topic_permissions`; the gateway needed a restart after the rebuild (#173). Credit integration/messaging suites run in CI. Wiki refresh still left to the author.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `CreditEscrowSettledEvent`, `CreditEscrowRefundedEvent`, kinds `CREDITS_RECEIVED`/`CREDITS_RETURNED`, category `RECEIPT`
+- `services/credit-service/src/credits/store.ts` — `addTransaction` returns the ledger row id and code
+- `services/credit-service/src/credits/service.ts` — receipts written in `settle()`/`refund()`; `applyEvent` passes the causing Order event id and order code
+- `services/credit-service/src/credits/events.ts` — keeps the optional `orderCode` of Order events
+- `services/credit-service/tests/credits.integration.test.ts` — receipt assertions (one per operation, none on replay, ledger reference); `tests/service.unit.test.ts` (uncommitted, author's) — fake `addTransaction` returns the row
+- `docker/rabbitmq/definitions.json` — (JSON) credit_service may write and notification_service may read `credit.escrow.(settled|refunded)`
+- `services/notification-service/src/notifications/events.ts` — `creditRoutingKeys`, `parseCreditReceipt`, `parseNotificationEvent`, receipts stored under producer `credit-service`; `policy.ts` — receipt drafts; `store.ts` — producer type
+- `services/notification-service/test/events.test.ts`, `test/policy.test.ts`, `test/messaging.integration.test.ts` — receipt cases
+- `apps/student-app/src/notifications/inbox.ts`, `NotificationBell.tsx`, `test/inbox.test.ts` — receipt labels/icons, receipts never toast
+- `scripts/uat/uat-notifications.mjs` — N21 (credit_service account), N10 count; `tests/postman/notification_collection.json` — (JSON) request 58 expects the payment receipt
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:18 SGT — PR #184 review fixes: fetched inbox views, page-window reconcile, Credit fingerprint compatibility
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Read the Codex review on PR #184 (review 5625380058, three P2 findings) and make the changes.
+
+**Usage scenario:** Debugging assistance and implementation code/tests for fixes the reviewer specified (allowed). Each finding was verified against the code before changing it. (1) The inbox views filtered only the loaded All pages: the hook now owns the selected view and sends the service's existing `view=`/`unread=true` query, re-reading from page 1 when the view changes; tab counts show only server-vouched numbers (active view's `total`, server `unreadCount`); Load more is offered in every view. (2) `refresh()` re-reads every loaded page 1..n in parallel instead of page 1 alone, so arrivals that shift offset pages are caught up and read state on older pages is reconciled. (3) The Credit event fingerprint excludes `orderCode`, so pre-upgrade rows in `processed_credit_events` still match. Count presentation (no count on inactive non-Unread tabs) is an implementation choice left for the author to confirm against the Redesign document. Verified: `npm run typecheck` (all workspaces, exit 0), `npm run lint` (0 errors, 35 pre-existing warnings, none in touched files), student-app `test:unit` 9/9 (4 new), credit-service `test:unit` 22/22 (2 new), `npm run ci:validate-tests` passed. Hook tests are pure data-flow tests through `applyPages`/`inboxQuery` against a fake paginating server (no React test harness exists in the repo; adding one would be a new dependency).
+
+**Files changed:**
+- `apps/student-app/src/notifications/inbox.ts` — `inboxQuery()` and `applyPages()` pure paging helpers
+- `apps/student-app/src/notifications/useNotifications.ts` — view state + server-side view fetch, refresh re-reads pages 1..n, exposes `total`, `view`, `setView`
+- `apps/student-app/src/notifications/NotificationBell.tsx` — view/total/onViewChange props, server-vouched counts, Load more in every view
+- `apps/student-app/src/pages/AlertsPage.tsx`, `apps/student-app/src/App.tsx` — pass view, total, setView through
+- `apps/student-app/test/inbox.test.ts` — query mapping, Important row beyond page 1, 100 + 60 offline arrivals (all 160 ids before hasMore false), read-state reconcile on page 2
+- `services/credit-service/src/credits/events.ts` — fingerprint over the event without `orderCode`
+- `services/credit-service/tests/events.unit.test.ts` — new: legacy-fingerprint upgrade regression, command still carries `orderCode`
+- `services/credit-service/package.json` — (JSON, no header) `test:unit` also runs `tests/events.unit.test.ts`
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:40 SGT — Clear the 35 ESLint warnings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "ok please fix the linting" (the 35 warnings reported after the PR #184 review fixes).
+
+**Usage scenario:** Refactoring (allowed): mechanical type tightening with no behaviour change. 33 `no-explicit-any` warnings: `catch (err: any)` becomes `catch (err)` with `instanceof Error` narrowing; Prisma `where`/`update` objects typed with the generated `Prisma.*Input` types; the Supplier Service response body names its four fields; `sortBy` cast to the DTO union; `ApiResponse`/`PaginatedResponse` default `T` to `unknown` (shared contract, no caller relied on the `any` default: typecheck passes everywhere). 2 `react-hooks/exhaustive-deps` warnings: the student-app credits effect now follows the orders effect's existing ref pattern. Several files belong to other authors' areas (admin-portal, supplier-service, order-service); their disclosure blocks received a new record and the earlier attribution is preserved. Verified: `npm run lint` 0 problems, `npm run typecheck` all workspaces exit 0, unit suites student-app 9/9, credit 22/22, supplier 49/49, order 60/60.
+
+**Files changed:**
+- `apps/admin-portal/src/App.tsx` (11 sites), `apps/admin-portal/src/hooks/useAdminAuth.ts`, `apps/student-app/src/api/users.ts`, `apps/student-app/src/hooks/useAuthSession.ts`, `services/supplier-service/src/suppliers/supplierRoutes.ts`, `scripts/test-d2-e2e.ts` — untyped catch clauses with `instanceof Error` narrowing
+- `apps/student-app/src/App.tsx` — credits effect reads `fetchCredits` through a ref and aliases the request counter
+- `packages/common-dtos/src/index.ts` — `ApiResponse<T = unknown>`, `PaginatedResponse<T = unknown>`
+- `services/order-service/src/clients/supplier.client.ts` — typed response body
+- `services/order-service/src/repositories/order.repository.ts` — `Prisma.OrderWhereInput` filter, status cast to `Order['status']`
+- `services/supplier-service/src/suppliers/supplierRepository.ts` — `Prisma.SupplierWhereInput` / `Prisma.SupplierUpdateInput`
+- `services/supplier-service/src/suppliers/supplierRoutes.ts` — `sortBy as SupplierQueryOptions['sortBy']`
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:55 SGT — Commit and push the review and lint fixes to PR #184
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "make a PR out of this" (explicit request to commit, push and open/update the pull request).
+
+**Usage scenario:** Boilerplate/git work at the author's explicit request. The branch already carries open PR #184, so the work is pushed as two commits to that PR (review fixes; lint) and a "Review fixes" section is appended to its body. Left uncommitted on purpose: `.claude/settings.json` (local permission change) and `docs/evidence/` (D2 screenshots unrelated to this PR). The malformed `ci.yml` disclosure header (a Codex record's Tool line had drifted above the Claude record) was restored before committing.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — disclosure header order restored; credit-service `test:unit` matrix entry (author's pending change) committed with its `package.json` script
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 15:40 SGT — Fold PR #140 (notification test suites) into PR #184 and close #140
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Pull PR #140, see whether the two PRs can be merged into one, then close #140.
+
+**Usage scenario:** Git merge conflict resolution and test porting at the author's explicit request (allowed). Merged `origin/test/notification-service-untested-paths` into this branch. #140 was `CONFLICTING` with `main` because #184 rewrote the same suites; the four conflicts were resolved by keeping both disclosure records, keeping both usage-log sides (the #140 entry of 21 Oct placed before the 22–24 Oct entries; its other 14 entries were already in `main`), and porting the three #140 suites onto the rewritten code: the hub liveness suite merged cleanly; the store paging test now seeds rows through `applyEvent` (`store.insert` no longer exists); the two retry-path tests wrap the one-argument `Deliver`, use row/DLQ counts relative to what the earlier tests stored, and drain the dead-letter queue instead of relying on message positions. Verified locally: notification-service typecheck, `npm run lint` 0 problems, notification-service unit 68/68 (liveness included). The PostgreSQL and RabbitMQ suites could not run here (Docker not running); CI runs them on the push. PR #184 body gains `Closes #139` and a section on the folded tests; PR #140 closed with a pointer to #184.
+
+**Files changed:**
+- `services/notification-service/test/helpers.ts` — `openSocket` accepts ws client options (clean merge)
+- `services/notification-service/test/hub.test.ts` — liveness suite from #140; header records merged
+- `services/notification-service/test/store-routes.integration.test.ts` — paging test ported to `applyEvent`
+- `services/notification-service/test/messaging.integration.test.ts` — outage wrapper and two retry-path tests ported; `GetMessage` typing
+- `ai/usage-log.md` — both sides kept; this entry
+
+## 2026-10-24 14:51 SGT — /usage-log check after folding PR #140 into PR #184
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** `/usage-log` — confirm the mandatory log entry for the session's work exists.
+
+**Usage scenario:** Bookkeeping only (allowed). The work of this session is already logged in the three preceding entries (review fixes, lint, PR #140 fold), all committed and pushed (`452518a` is the head of PR #184). Timestamp note: this entry uses the machine clock; the two preceding entries' times (14:55, 15:40) were written ahead of it while the work was in progress, so they sit later than this one although they describe earlier work. Still pending at the time of writing: the CI run on `452518a`, which exercises the ported PostgreSQL and RabbitMQ suites that could not run locally. Left uncommitted on purpose: `.claude/settings.json` (local permissions) and `docs/evidence/` (D2 screenshots).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-24 14:58 SGT — CI on 452518a: fix the moving baseline in the notification messaging suite
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** Same `/usage-log` turn: the CI watcher on the merge commit returned, and the notification-service messaging job had failed on the ported "requeues a transient failure" test (`Timed out: one row for the redelivered event`); every other job passed.
+
+**Usage scenario:** Debugging assistance and test fix (allowed). Root cause is the pre-existing malformed-message test from #184, which waited for ALICE to reach an absolute row count that was already true, so its event was still in flight when the next test took its baseline. It now records the count first and waits for its own row. Verified locally: notification-service typecheck and lint clean; the broker suite itself runs in CI (Docker not running here). Note for the author: `gh pr checks --watch` exited 0 although a job failed, so results were read explicitly afterwards.
+
+**Files changed:**
+- `services/notification-service/test/messaging.integration.test.ts` — relative wait in the malformed-message test; header record for the fold and this fix
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 00:05 SGT — Why the Compose stack took 11 minutes; which containers could be stopped
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "run this locally", then "check on why it is taking so long to boot up and what can be done about this", then "see if there are any other containers that can be shut down first".
+
+**Usage scenario:** Debugging assistance (allowed); findings reported, no changes made in this prompt. `docker compose up --build -d --wait` ran 11 min: ~8 min rebuilding all seven images, then RabbitMQ's container took 104 s before Erlang even logged its start and 231 s to open listeners (memory high-watermark alarm fired mid-boot), so the probe budget (60 s + 5 x 10 s, 5 s timeout) expired and compose aborted the four dependents ("dependency rabbitmq failed to start"); the `| tail` in the background command masked the non-zero exit. Contributing load: the Docker Desktop VM was capped at 5 GB by `~/.wslconfig` (written 2026-10-22), and the three Debezium containers (two days old, `unless-stopped`) had 233–235 restarts each from crash-looping whenever Postgres/RabbitMQ were down. No container from any other project was running (46 Exited/Created ones cost disk only). Recommendations listed for the author: start the four Created services without `--build`, drop `--build` from routine starts, raise VM memory to 8 GB, widen the probe budget, prune ~25 GB of reclaimable images/cache.
+
+**Files changed:**
+- none
+
+## 2026-10-25 00:40 SGT — Raise the Docker VM to 8 GB, widen the RabbitMQ probe budget, run the stack locally
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "raise docker desktop memory to 8gb and maybe also do anything that you would recommend doing as well" (continuing "run this locally").
+
+**Usage scenario:** Infrastructure/config changes and local verification at the author's explicit request (allowed). `~/.wslconfig` memory 5GB -> 8GB (outside the repo; comment updated), `wsl --shutdown` after `docker compose stop` (Ubuntu distro was idle), engine back with 8 GB. `docker-compose.yml` RabbitMQ healthcheck: timeout 5 s -> 20 s (same value as open PR #147, so the two will conflict textually on merge) and start_period 60 s -> 180 s; left uncommitted for the author. Result: `docker compose up -d --wait` (no build) healthy in 76 s, RabbitMQ listeners in 45 s (was 231 s), probes 2.0-5.2 s. Local run: all five services 200 on /health; through the gateway the inbox API answers view=all (93 rows, 2 pages), important (9), action_needed (12), unread=true (6), page=2&limit=2, and INVALID_VIEW for a bad view; browser UAT `uat-d2-ui.mjs` 37/40. Finding: Windows runs native `postgresql-x64-17` and `RabbitMQ` services (Automatic) on 5432/5672/15672, so Docker's mappings for 5432 and 5672 never bound; every host-side client (notification integration and messaging suites, `uat-notifications.mjs`, the UAT's event publisher behind UD3-UD5) hit the native services and was refused, while containers talk to each other fine. Stopping or disabling those services needs an elevated shell and may affect the author's other projects, so it is left for the author to decide. Debezium is needed for the order saga, so it was not stopped. Disk pruning not done.
+
+**Files changed:**
+- `docker-compose.yml` — RabbitMQ healthcheck `timeout: 20s`, `start_period: 180s`; header record
+- `ai/usage-log.md` — this entry
+- (outside the repo) `~/.wslconfig` — `memory=8GB`
+
+## 2026-10-25 01:05 SGT — Let Docker own 5432/5672; rerun the host-side suites
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "use the ones that docker uses" (the Docker PostgreSQL and RabbitMQ rather than the native Windows services holding their ports).
+
+**Usage scenario:** Local environment fix and verification at the author's explicit request (allowed). Through an elevated PowerShell (UAC approved by the author) the native Windows services `postgresql-x64-17` and `RabbitMQ` were stopped and set to Manual start; Docker then bound 5432, 5672 and 15672 without a container restart. Reruns against the Docker stack: notification-service integration 17/17, messaging 7/7 (both ported retry-path tests pass on a real broker), `uat-notifications.mjs` 22/22, `uat-d2-ui.mjs` 40/40 (UD3–UD5 were the three host-side refusals). Reversal if ever needed: `Start-Service` and `Set-Service -StartupType Automatic` on the two services.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (outside the repo) Windows services `postgresql-x64-17`, `RabbitMQ` stopped and set to Manual
+
+## 2026-10-25 01:20 SGT — Hide the Action needed and Important tabs on the Alerts board
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** With a screenshot of the Alerts board: "hide the action needed and important buttons in the frontend here".
+
+**Usage scenario:** Implementation of a UI change the author specified (allowed). `VIEWS` in the student app's inbox helpers now lists only All and Unread, so the tab bar renders two tabs; `InboxView`, `inView()`, the hook's server query and the row-level "Action needed" pill are unchanged, so a tab comes back by re-adding its line. Verified: student-app typecheck, unit 9/9, ESLint clean; student-app image rebuilt and restarted alone (`docker compose up -d --build --no-deps student-app`) so http://localhost shows the change. Left for the author: whether the hidden views should also leave the server contract later (that is an interface decision).
+
+**Files changed:**
+- `apps/student-app/src/notifications/inbox.ts` — `VIEWS` reduced to All and Unread; header record
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 13:20 SGT — Commit, push and merge PR #184 at the author's request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/notification-inbox
+
+**Prompt (summarised):** "i would like you to push into the pull request itself and then merge".
+
+**Usage scenario:** Git operations performed only because the author explicitly requested them (CLAUDE.md section 1 exception). Two commits on the PR branch: the Alerts-board tab hiding (`inbox.ts`) and the RabbitMQ health-probe budget (`docker-compose.yml`), each with its usage-log entries; then `git push` and `gh pr merge 184 --merge`. Deliberately left uncommitted for the author: `.claude/settings.json` (moves the git commit/push/merge and `gh pr` commands from the deny list to the allow list, a team policy change) and the untracked `docs/evidence/d2/screenshots/` (35 PNGs dated 2026-10-20, unrelated to this PR). Note for the author: the compose change carries the same `timeout: 20s` as open PR #147, so that PR will need a trivial conflict resolution after this merge.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+>>>>>>> origin/main
+
+## 2026-10-25 14:05 SGT — Bring PR #185 up to date with main and merge it at the author's request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/technical-reference-claude-setup
+
+**Prompt (summarised):** "merge with this pull request here <PR #185 URL>".
+
+**Usage scenario:** Git operations performed only because the author explicitly requested them (CLAUDE.md section 1 exception). `main` (25 commits, including PR #184) merged into the PR branch in a throwaway worktree; the only conflict was `ai/usage-log.md`, resolved as the union (main's entries, then this PR's two 01:14 SGT entries, then this one). The PR's prior CI run had been cancelled, not failed, so after the push the rerun is awaited before `gh pr ready` and `gh pr merge 185 --merge`.
+
+**Files changed:**
+- `ai/usage-log.md` — conflict resolution plus this entry

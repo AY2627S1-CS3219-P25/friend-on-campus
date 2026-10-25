@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Removed dead AuditPage view and wired HealthPage to live /health and /ready probes across all 5 microservices.
  * Author review: <to be completed by yanhwee>
@@ -215,8 +219,8 @@ export default function App() {
     try {
       const items = await fetchSuppliersApi();
       setSuppliers(items);
-    } catch (err: any) {
-      console.warn('API error, falling back to cached list:', err.message);
+    } catch (err) {
+      console.warn('API error, falling back to cached list:', err instanceof Error ? err.message : err);
       setError('Could not connect to live Supplier Service API (/api/suppliers). Showing cached records.');
       setSuppliers(FALLBACK_SUPPLIERS);
     } finally {
@@ -234,8 +238,8 @@ export default function App() {
     try {
       const items = await fetchUsersApi(authFetch);
       setUsers(items);
-    } catch (err: any) {
-      console.warn('API error fetching users:', err.message);
+    } catch (err) {
+      console.warn('API error fetching users:', err instanceof Error ? err.message : err);
       setErrorUsers('Could not connect to live User Service API (/api/users).');
       setUsers([]);
     } finally {
@@ -249,8 +253,8 @@ export default function App() {
     try {
       const list = await fetchOrdersApi(authFetch);
       setOrders(list);
-    } catch (err: any) {
-      console.warn('API error fetching orders:', err.message);
+    } catch (err) {
+      console.warn('API error fetching orders:', err instanceof Error ? err.message : err);
       setErrorOrders('Could not connect to live Order Service API (/api/orders).');
       setOrders([]);
     } finally {
@@ -336,8 +340,8 @@ export default function App() {
         message: data.message || `Order ${updatedOrder.orderCode} successfully updated.`,
       });
       closeOrderActionModal();
-    } catch (err: any) {
-      setOrderActionError(err.message || 'An error occurred executing order state action.');
+    } catch (err) {
+      setOrderActionError((err instanceof Error && err.message) || 'An error occurred executing order state action.');
     } finally {
       setIsSubmittingOrderAction(false);
     }
@@ -379,8 +383,8 @@ export default function App() {
           message: data.message || data.error || `HTTP ${res.status}: Failed to create supplier`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Network error creating supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Network error creating supplier' });
     } finally {
       setIsSubmitting(false);
     }
@@ -429,8 +433,8 @@ export default function App() {
           message: data.message || data.error || `HTTP ${res.status}: Failed to update supplier`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Network error updating supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Network error updating supplier' });
     } finally {
       setIsSubmitting(false);
     }
@@ -463,8 +467,8 @@ export default function App() {
           message: data.message || data.error || `HTTP ${res.status}: Failed to delete supplier`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Network error deleting supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Network error deleting supplier' });
     } finally {
       setIsSubmitting(false);
     }
@@ -488,8 +492,8 @@ export default function App() {
         });
         return;
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Failed to toggle supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Failed to toggle supplier' });
     }
   };
 
@@ -511,8 +515,8 @@ export default function App() {
           message: data.error || `HTTP ${res.status}: Failed to update user status`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Failed to update user status' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Failed to update user status' });
     } finally {
       setTogglingUserIds((prev) => {
         const next = new Set(prev);
@@ -541,8 +545,8 @@ export default function App() {
         const data = await res.json().catch(() => ({}));
         setDeleteUserError(data.error || `HTTP ${res.status}: Failed to delete user`);
       }
-    } catch (err: any) {
-      setDeleteUserError(err.message || 'Failed to delete user');
+    } catch (err) {
+      setDeleteUserError((err instanceof Error && err.message) || 'Failed to delete user');
     } finally {
       setIsDeletingUser(false);
     }
@@ -562,8 +566,8 @@ export default function App() {
       } else {
         setToggleRoleError(data.error || `HTTP ${res.status}: Failed to update user role`);
       }
-    } catch (err: any) {
-      setToggleRoleError(err.message || 'Failed to update user role');
+    } catch (err) {
+      setToggleRoleError((err instanceof Error && err.message) || 'Failed to update user role');
     } finally {
       setIsTogglingRole(false);
     }

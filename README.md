@@ -341,7 +341,7 @@ friend-on-campus/
 Full architectural documentation, domain specifications, and milestone presentation guides are maintained in the **[Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**:
 
 - **[Wiki Home](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**: Project overview & milestone navigation
-- **[System Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)**: Microservice topology, Debezium CDC & polling outbox relays, RabbitMQ quorum queues, and reservation saga choreography
+- **[System Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)**: Microservice topology, Debezium CDC outbox connectors, RabbitMQ quorum queues, and reservation saga choreography
 - **[Authentication & Roles](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Authentication-and-Roles)**: Ed25519 access tokens, rotating opaque refresh cookies, RBAC matrix, and least-privilege database/broker identities
 - **[Services & Domain Lifecycle](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Services)**: Order state machine (`PENDING` → `OPEN` → `ACCEPTED` → `IN_TRANSIT` → `DELIVERED` → `COMPLETED`), closed credit economy & escrow ledger, and real-time notifications
 - **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`)

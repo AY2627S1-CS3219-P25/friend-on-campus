@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Success messages no longer claim credits were transferred or refunded; Credit Service settles or returns
+ * escrow asynchronously after the Order event (author's Notification Redesign §9).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added POST /:id/unassign endpoint allowing the assigned courier to drop an ACCEPTED errand before pickup.
  * Author review: <to be completed by yanhwee>
@@ -207,14 +212,14 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
-  // 8. Confirm Delivery / Complete Errand (Requester only, escrow settlement)
+  // 8. Confirm Delivery / Complete Errand (Requester only; Credit settles escrow on the order.completed event)
   router.post('/:id/complete', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const requesterId = resolveUserId(req, res);
     const order = await orderService.completeOrder(req.params.id, requesterId);
     res.json({
       success: true,
       data: order,
-      message: 'Delivery confirmed! Credits transferred to courier.',
+      message: 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.',
     });
   }));
 
@@ -225,7 +230,7 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     res.json({
       success: true,
       data: order,
-      message: 'Errand cancelled. Escrow credits refunded.',
+      message: 'Errand cancelled. Reserved credits are returned once Credit Service processes the cancellation.',
     });
   }));
 
@@ -240,25 +245,25 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
-  // 10. Admin Force-Cancel Errand (Admin only, triggers escrow refund)
+  // 10. Admin Force-Cancel Errand (Admin only; Credit refunds escrow on the order.cancelled event)
   router.post('/:id/admin/cancel', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const adminUserId = resolveUserId(req, res);
     const order = await orderService.adminCancelOrder(req.params.id, adminUserId, req.body);
     res.json({
       success: true,
       data: order,
-      message: 'Order cancelled by administrator. Escrow credits refunded.',
+      message: 'Order cancelled by administrator. Reserved credits are returned once Credit Service processes it.',
     });
   }));
 
-  // 11. Admin Force-Complete Errand (Admin only, triggers escrow release to courier)
+  // 11. Admin Force-Complete Errand (Admin only; Credit settles escrow on the order.completed event)
   router.post('/:id/admin/complete', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const adminUserId = resolveUserId(req, res);
     const order = await orderService.adminCompleteOrder(req.params.id, adminUserId, req.body);
     res.json({
       success: true,
       data: order,
-      message: 'Order completed by administrator. Credits transferred to courier.',
+      message: 'Order completed by administrator. Courier payment is settled by Credit Service.',
     });
   }));
 

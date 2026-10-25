@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: createDeliver receives the hub (push and inboxChanged) and the app gets hub.inboxChanged for read changes.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Rewritten as wiring only, per the author's Notification Service Design: store, WebSocket hub, REST app and
  * consumer. The unauthenticated echo handler and POST /api/notifications/broadcast of the starter stub are removed.
@@ -35,6 +39,7 @@ const app = createApp({
   port: config.port,
   isReady: async () => consumerReady() && (await store.ping()),
   status: () => ({ activeWsClients: hub.connectionCount(), rabbitmq: consumerReady() ? 'UP' : 'DOWN' }),
+  onInboxChanged: hub.inboxChanged,
 });
 
 // REST and WebSocket share one HTTP server; the gateway forwards /ws/ to its root path.
@@ -47,7 +52,7 @@ server.listen(config.port, () => {
 // A broker or channel failure exits the process, and Compose restarts it (restart: unless-stopped).
 startNotificationConsumer(
   config.rabbitmq,
-  createDeliver(store, hub.push),
+  createDeliver(store, hub),
   () => { console.error('RabbitMQ consumer failed; exiting for restart'); process.exit(1); },
 )
   .then((consumer) => { consumerReady = consumer.isReady; })

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
+ * Scope: openSocket accepts ws client options so a test can open a socket that never answers pings.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Imported PrismaClient from ../src/database/client instead of directly from generated folder.
  * Author review: <to be completed by author after review>
@@ -54,9 +58,9 @@ export async function until<T>(check: () => T | Promise<T>, label: string, timeo
   throw new Error(`Timed out: ${label}`);
 }
 
-/** Connects and records every JSON frame and the close code. */
-export async function openSocket(url: string) {
-  const ws = new WebSocket(url);
+/** Connects and records every JSON frame and the close code. Options go to the ws client (e.g. autoPong: false). */
+export async function openSocket(url: string, options: ConstructorParameters<typeof WebSocket>[2] = {}) {
+  const ws = new WebSocket(url, [], options);
   const frames: any[] = [];
   let closeCode: number | undefined;
   ws.on('message', (data) => frames.push(JSON.parse(data.toString())));
