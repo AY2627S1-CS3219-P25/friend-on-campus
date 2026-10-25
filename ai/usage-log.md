@@ -4600,3 +4600,51 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 23:17 SGT — Service UAT run, per-service coverage, rabbitmq probe timeout
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** (a) Run extensive UAT on the services and report anything wrong; (b) report code coverage per service and which tools/extensions show it; (c) locate the Postman script and explain a stray `nus-campus-errand` directory; (d) pull from GitHub and resolve conflicts; (e) explain why `compose up --wait` refused to proceed, then apply the fix.
+
+**Usage scenario:** Debugging assistance, test execution and facts; one config edit the author approved. (a) `npm run typecheck`, `npm run lint` (0 errors, 33 `no-explicit-any` warnings), `npm run ci:validate-tests` and `npm test` (isolated Compose project). Unit: 283 pass. Integration/messaging/migration/seed: 267 pass. Every application image built and went healthy; the run aborted before acceptance because rabbitmq flipped to "unhealthy" (probe timeouts), not because of a service failure. (b) Coverage measured with Node's built-in `--experimental-test-coverage` (no dependency added), per service with unit + DB-backed suites merged in one `node --test` invocation against a throwaway Compose project `foc-cov` (removed afterwards): user 93.9 % lines, supplier 96.5 % (unit only), order 82.0 % (`order.repository.ts` 52.8 %), credit 94.5 %, notification 96.8 %, chat 97.6 %. Recommended the Coverage Gutters VS Code extension on Node's lcov reporter; `c8` only if merged/HTML reports are wanted (new dependency, not added). (c) Postman collection is `tests/postman/`; the stray directory was created by Docker Desktop when I started the old clone's rabbitmq container whose bind mounts pointed at the deleted path (empty folders only; author asked to delete it, permission classifier blocked `rm`). (d) `git fetch`/`pull --ff-only`: branch equals origin/main, nothing to merge. (e) Timed the probe at 3.7-18.7 s vs the 5 s timeout; author approved raising it. The rerun then passed acceptance (62/62 API, 17/17 notification UAT) and failed D2 API E2E with "User Ready: false": a cold `npx tsx` boot of user-service measured 8 s idle and exceeded the script's 30 s wait beside the running stack, so the wait was raised (test script, same class of fix) and the system suites rerun: D2 API E2E 56/56, Chromium UI UAT 34/34. Author then asked for the follow-ups: the two timeout edits plus this entry were staged with partial hunks (the rest of the working tree is unrelated F8 work) but the commit itself was declined by the session's permission prompt, so it is left staged for the author; the empty directory was removed with `rmdir`; removing the stale `campuserrand-*`/`f5-*` containers was blocked by the permission classifier and is left to the author; a root `npm run coverage` command was added (boilerplate: reruns each service's existing `test:unit` under Node's built-in coverage and writes `coverage/lcov.info`, which `.gitignore` already covers). Verified: `npm run coverage` exit 0 with five lcov files, eslint on both scripts, `npm run ci:validate-tests` passes.
+
+**Files changed:**
+- `docker-compose.yml` — rabbitmq healthcheck `timeout: 5s` → `20s` with inline rationale; disclosure block entry
+- `scripts/test-d2-e2e.ts` — `waitReady` default `30000` → `120000` with inline rationale; disclosure block entry
+- `scripts/coverage.mjs` (new) — runs each service's `test:unit` with `--experimental-test-coverage` and the lcov reporter
+- `package.json` — root `coverage` script (JSON, no disclosure header)
+- `docs/ci.md` — `npm run coverage` row in the public test commands table; disclosure block entry
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 15:55 SGT — Bring PR #147 up to date with main (five conflicts) at the author's request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/host-sensitive-timeouts-coverage
+
+**Prompt (summarised):** "use the most recent settings change and then the rest try and use the recommended approach" (covers resolving PR #147's conflict with main, recommended earlier).
+
+**Usage scenario:** Git operations performed only because the author explicitly requested them (CLAUDE.md section 1 exception); conflict resolution kept both sides' intent without new design. `main` merged into the PR branch in a throwaway worktree. Resolutions: `docker-compose.yml` keeps main's `timeout: 20s` / `start_period: 180s` and both header records; `package.json` keeps the `coverage` script beside main's `test:e2e:api` / `test:e2e:ui`; `scripts/test-d2-e2e.ts` keeps both header records; `docs/ci.md` was deleted on main (docs consolidated into README and the Wiki), so its one new row (`npm run coverage`) moved to README's test-command table and the file stays deleted; `ai/usage-log.md` is the union. Not run here (worktree without node_modules): typecheck and `ci:validate-tests`; CI on the pushed head is the check. PR #147 is not merged by this prompt.
+
+**Files changed:**
+- `docker-compose.yml`, `package.json`, `scripts/test-d2-e2e.ts` — conflict resolution as above
+- `README.md` — `npm run coverage` row; header record
+- `docs/ci.md` — stays deleted (main)
+- `ai/usage-log.md` — union plus this entry
+
+## 2026-10-25 17:10 SGT — PR #147 review follow-up: coverage count, docs pointer, coverage.mjs skip guard
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/host-sensitive-timeouts-coverage
+
+**Prompt (summarised):** "please address the code reviews and then afterwards merge them together" (PRs #147 and #187), then bring PR #148 up to date and push to it.
+
+**Usage scenario:** Review follow-up and debugging (allowed); git operations at the author's explicit request. The Codex review on 9c491cd asked for the "five coverage files" count to match the head: at the merged head credit-service has a `node --test` unit suite, so `npm run coverage` writes five `lcov.info` files (verified locally, exit 0, all suites passing); the PR body now says so and points at README's command table instead of the deleted `docs/ci.md`. The stale skip comment in `scripts/coverage.mjs` no longer names credit-service. Found while verifying: a leftover `services/chat-service/` directory (ignored `coverage/`, `node_modules/`, `src/generated/` from an earlier checkout, no `package.json`) crashed the runner with ENOENT, so the loop now skips a services entry without `package.json`. PR #187 had no review comments.
+
+**Files changed:**
+- `scripts/coverage.mjs` — skip guard for a services entry without package.json; comment fix; header record
+- `ai/usage-log.md` — this entry

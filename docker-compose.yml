@@ -5,6 +5,11 @@
 # --wait aborted the four dependent services.
 # Author review: <to be completed by Reallyeasy1>
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+# Scope: Raised the rabbitmq health-probe timeout from 5 s to 20 s; the probe measured 3.7-18.7 s on a loaded Windows
+# host and the resulting "unhealthy" state aborted `docker compose up --wait` in npm test although the broker worked.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Google Antigravity Agent, date: 2026-10-22
 # Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe, and passed SEED_SAMPLE_ORDERS to credit-service so sample order escrow reservations are seeded alongside order-service.
 # Author review: <to be completed by yanhwee>
