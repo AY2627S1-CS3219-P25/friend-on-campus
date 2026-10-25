@@ -4587,3 +4587,16 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `.claude/settings.json` — git commit/push/merge and `gh pr create`/`gh pr merge` moved from deny to allow (no header possible)
 - `.gitignore` — `docs/evidence/` ignored
 - `ai/usage-log.md` — this entry
+
+## 2026-10-25 16:35 SGT — Clear the local tree, open issue #186 and PR #187 for the chore branch
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** chore/claude-usage-log-rules
+
+**Prompt (summarised):** "ok please handle them accordingly" (the follow-ups listed in the previous reply).
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). Restored `CLAUDE.md`, `.claude/settings.json` and `ai/usage-log.md` in the local checkout (their edits were already on the pushed chore branch) and switched the checkout from the merged `feature/notification-inbox` to `chore/claude-usage-log-rules`, which also hides the UAT screenshots via the new ignore rule. Opened issue #186 (acceptance criteria T1-T4 drafted from the three gaps) and PR #187 closing it. PR #147's CI on the merged head passed; it remains a draft and was not merged. No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
