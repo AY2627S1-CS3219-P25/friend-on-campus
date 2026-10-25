@@ -4884,3 +4884,17 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-25 19:20 SGT — Merge main (PRs #184, #185, #187, #147) into PR #148 and push it
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "...then pull from the chat service pull request accordingly and then commit the changes to the same pull request" (PR #148), after merging #147 and #187.
+
+**Usage scenario:** Git operations at the author's explicit request (CLAUDE.md section 1 exception); conflict resolution kept both sides' intent, no new design. `main` merged into `feature/chat-service` in a throwaway worktree (merge base 9c491cd after #147 landed; 12 conflicts). Resolutions: disclosure headers keep both sides' records; `TasksPage.tsx` keeps main's reworked card (pickup/deliver/complete/cancel/unassign actions, focus panel) and re-inserts the F8 chat toggle plus `ChatPanel` as its own block below the details, `data-testid="chat-toggle-btn"`; `App.tsx` passes `chat` beside main's task-action props; `package.json` keeps main's `scripts/dev.mjs` runner and the `chat` target is added there instead of the removed `dev:chat` script; the init SQL keeps main's slimmed grants plus `chat_svc`/`chat_db`/REVOKE; `docs/architecture.md` stays deleted and its chat section moves into `docs/architecture/communication-and-events.md`, a Chat row into `docs/architecture/system-overview.md`, `/api/chat` and `/ws/chat/` rows into `docs/infrastructure/api-gateway.md`, and a Chat row into `docs/README.md`'s coverage table; `package-lock.json` regenerated from main's with `npm install --package-lock-only`; `ai/usage-log.md` is the union (14 chat-side entries appended). Verified on the merged branch: `npm run typecheck` (all workspaces, 0 errors), `npm run lint` (clean), `npm run ci:validate-tests` (17 suites consistent), chat-service unit 27/27, `docker compose config`. Not run: DB-backed, messaging, acceptance and browser suites (CI on the pushed head covers them). PR #148 is not merged by this prompt.
+
+**Files changed:**
+- conflict resolutions listed above, plus `scripts/dev.mjs` (chat target; header record) and the three docs that received the moved chat facts (header records)
+- `ai/usage-log.md` — union plus this entry
