@@ -5017,3 +5017,16 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `docs/audits/source-inventory.md` — #148 head and #56 rows; header record
 - `docs/audits/review-findings.md` — Chat documentation checks block; header record
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 00:55 SGT — Update PR #148 with the Chat documentation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok update the pull request accordingly".
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). Committed the Chat README, the proposed D4 specification and the index/audit updates as 89842c8 and pushed to feature/chat-service. Rewrote the PR #148 body: F8 criteria list refreshed (F8.1.2 admin-read conflict and F8.3.2 "failed" gap stated), new sections for the review follow-up 2e4e93b, the main merge 603edcb and the documentation, current test counts (unit 31, PostgreSQL integration 6, messaging 2), the existing-volume bootstrap note, and the remaining D4 limits pointed at the specification rather than claimed. No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
