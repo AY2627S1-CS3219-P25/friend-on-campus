@@ -46,3 +46,7 @@ Thumbs.db
 # Claude Code: personal, per-machine settings (shared config lives in .claude/settings.json)
 # AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-09-21 - added the line below. Author review: <pending>
 .claude/settings.local.json
+
+# Browser UAT output (scripts/uat/uat-d2-ui.mjs writes its screenshots here; the directory left the repo on 2026-10-21)
+# AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-10-25 - added the two lines above and below. Author review: <pending>
+docs/evidence/
