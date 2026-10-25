@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Assigned deterministic UUIDs to development seed accounts so offline Credit and Order Service seeds align across services.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-09-20
  * Scope: Implemented database seeding for initial Admin and Student accounts for Milestone D2.
  * Author review: (to be completed by author after review)
@@ -24,15 +28,16 @@ import { hashPassword } from '../auth/password';
 import { prisma } from './client';
 
 interface SeedUser {
+  id: string;
   username: string;
   email: string;
   role: 'STUDENT' | 'ADMIN';
 }
 
 const seedUsers: SeedUser[] = [
-  { username: 'alice', email: 'alice@u.nus.edu', role: 'STUDENT' },
-  { username: 'bob', email: 'bob@u.nus.edu', role: 'STUDENT' },
-  { username: 'admin', email: 'admin@nus.edu.sg', role: 'ADMIN' },
+  { id: '20000000-0000-4000-8000-000000000001', username: 'alice', email: 'alice@u.nus.edu', role: 'STUDENT' },
+  { id: '20000000-0000-4000-8000-000000000002', username: 'bob', email: 'bob@u.nus.edu', role: 'STUDENT' },
+  { id: '20000000-0000-4000-8000-000000000003', username: 'admin', email: 'admin@nus.edu.sg', role: 'ADMIN' },
 ];
 
 async function main() {
@@ -56,6 +61,8 @@ async function main() {
 
     await prisma.user.create({ data: { ...user, passwordHash } });
   }
+
+  console.log(`[user-seed] Seeded ${seedUsers.length} development users.`);
 }
 
 main()

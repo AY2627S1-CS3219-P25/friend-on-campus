@@ -1,5 +1,15 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Version-2 outbox facts of the author's Notification Redesign (§6): a failed reservation now writes
+ * order.rejected; new suite asserts actor, reason code, committed version/status, cancellation assignee and
+ * priorCourierId on cancel, complete, unassign (courier and admin), rejection and both expiry paths.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Updated ACCEPTED order cancellation test to verify courierId preservation for courier history, and added unit tests for courier unassignOrder (ACCEPTED -> OPEN).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Verify development sample seeding requires explicit opt-in.
  * Author review: <to be completed by huangjiaxi1111>
@@ -40,7 +50,6 @@ import {
 } from '../src/orders/order.types';
 import {
   makeFakeOrderRepository,
-  makeFakePublisher,
   makeFakeSupplierClient,
 } from './helpers';
 
@@ -54,8 +63,8 @@ const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 it('sample seeding requires explicit true and does not access the database otherwise', async t => {
   const original = process.env.SEED_SAMPLE_ORDERS;
   const originalInsert = prisma.order.createMany;
-  const insert = t.mock.fn(async () => ({ count: 4 }));
-  prisma.order.createMany = insert as typeof originalInsert;
+  const insert = t.mock.fn(async (_args?: { data?: Array<{ id?: string; orderCode?: string }> }) => ({ count: 4 }));
+  prisma.order.createMany = insert as unknown as typeof originalInsert;
   try {
     for (const value of [undefined, 'false', 'TRUE', '1']) {
       if (value === undefined) delete process.env.SEED_SAMPLE_ORDERS;
@@ -66,6 +75,16 @@ it('sample seeding requires explicit true and does not access the database other
     process.env.SEED_SAMPLE_ORDERS = 'true';
     await seedOrders();
     assert.equal(insert.mock.callCount(), 1);
+    const seededData = insert.mock.calls[0]?.arguments[0]?.data ?? [];
+    assert.deepEqual(
+      seededData.map(item => item.id),
+      [
+        '30000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000002',
+        '30000000-0000-4000-8000-000000000003',
+        '30000000-0000-4000-8000-000000000004',
+      ],
+    );
   } finally {
     prisma.order.createMany = originalInsert;
     if (original === undefined) delete process.env.SEED_SAMPLE_ORDERS;
@@ -84,8 +103,6 @@ describe('Order Service Lifecycle and Concurrency', () => {
         isActive: true,
       },
     });
-    const fakePublisher = makeFakePublisher();
-
     const service = createOrderService({
       repository: fakeRepo.repo,
       supplierClient: fakeSupplier.client,
@@ -98,7 +115,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
         return fakeRepo.approve(pendingOrder.id);
       },
     };
-    return { fakeRepo, fakeSupplier, fakePublisher, service, fundedService };
+    return { fakeRepo, fakeSupplier, service, fundedService };
   }
 
   describe('createOrder & handleReservationResult', () => {
@@ -272,7 +289,9 @@ describe('Order Service Lifecycle and Concurrency', () => {
       });
       assert.equal(rejectedOrder.status, 'REJECTED');
       assert.equal(rejectedOrder.rejectionReason, 'Insufficient credits');
-      assert.equal(fakeRepo.outboxEvents.length, 1);
+      // AI-generated (edited by Reallyeasy1): the rejection is an Order-owned fact written with the REJECTED update.
+      assert.equal(fakeRepo.outboxEvents.length, 2);
+      assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.rejected');
     });
 
     it('transitions a PENDING order to EXPIRED and emits order.expired if reservation succeeds after expiresAt', async () => {
@@ -550,7 +569,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(payload.rewardCredits, 20);
     });
 
-    it('allows requester to cancel an ACCEPTED errand before pickup and unassigns courier', async () => {
+    it('allows requester to cancel an ACCEPTED errand before pickup and preserves courierId for courier history', async () => {
       const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
@@ -563,7 +582,45 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       const cancelled = await service.cancelOrder(order.id, REQUESTER_ID);
       assert.equal(cancelled.status, 'CANCELLED');
-      assert.equal(cancelled.courierId, null);
+      assert.equal(cancelled.courierId, COURIER_1_ID);
+
+      const courierActivity = await service.getUserActivity(COURIER_1_ID);
+      assert.equal(courierActivity.history.some((o) => o.id === order.id && o.status === 'CANCELLED'), true);
+    });
+
+    it('allows assigned courier to drop (unassign) an ACCEPTED errand before pickup and returns it to OPEN', async () => {
+      const { fundedService: service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Tea',
+        dropoffLocation: 'UTown',
+        rewardCredits: 12,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID, { courierContactNote: 'On my way' });
+
+      await assert.rejects(
+        () => service.unassignOrder(order.id, COURIER_2_ID),
+        OrderAuthorizationError,
+      );
+
+      const dropped = await service.unassignOrder(order.id, COURIER_1_ID);
+      assert.equal(dropped.status, 'OPEN');
+      assert.equal(dropped.courierId, null);
+      assert.equal(dropped.acceptedAt, null);
+      assert.equal(dropped.courierContactNote, null);
+
+      // Another courier can now accept the reopened order
+      const reaccepted = await service.acceptOrder(order.id, COURIER_2_ID);
+      assert.equal(reaccepted.status, 'ACCEPTED');
+      assert.equal(reaccepted.courierId, COURIER_2_ID);
+
+      // Once picked up (IN_TRANSIT), courier can no longer drop the errand
+      await service.pickupOrder(order.id, COURIER_2_ID);
+      await assert.rejects(
+        () => service.unassignOrder(order.id, COURIER_2_ID),
+        OrderStateConflictError,
+      );
     });
 
     it('rejects cancellation once errand is IN_TRANSIT or DELIVERED', async () => {
@@ -888,6 +945,160 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       assert.equal(resCode.total, 1);
       assert.equal(resCode.orders[0].id, o2.id);
+    });
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  describe('Version-2 outbox facts (Notification Redesign §6)', () => {
+    const last = (fakeRepo: ReturnType<typeof makeFakeOrderRepository>, eventType: string) => {
+      const row = [...fakeRepo.outboxEvents].reverse().find((e) => e.eventType === eventType);
+      assert.ok(row, `expected an outbox event ${eventType}`);
+      return JSON.parse(row.payload);
+    };
+    const envelope = (p: any) => [p.schemaVersion, p.producer, p.correlationId === p.orderId];
+
+    it('credit.reservation.failed commits REJECTED and an order.rejected fact with a safe reason code', async () => {
+      const { service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Lobster', dropoffLocation: 'Hall', rewardCredits: 500,
+      });
+      await fakeRepo.reject(order.id, 'Insufficient available credits for escrow hold');
+      const p = last(fakeRepo, 'order.rejected');
+      assert.deepEqual(envelope(p), [2, 'order-service', true]);
+      assert.deepEqual(
+        [p.actorRole, p.actorId, p.reasonCode, p.previousStatus, p.status, p.orderVersion],
+        ['SYSTEM', undefined, 'INSUFFICIENT_CREDITS', 'PENDING', 'REJECTED', 2],
+      );
+      assert.equal(p.orderCode, order.orderCode);
+
+      const other = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Pen', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await fakeRepo.reject(other.id, 'Reservation is already closed');
+      assert.equal(last(fakeRepo, 'order.rejected').reasonCode, 'RESERVATION_FAILED');
+    });
+
+    it('a successful reservation publishes order.created as a SYSTEM fact with the committed version', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      const p = last(fakeRepo, 'order.created');
+      assert.deepEqual([p.actorRole, p.previousStatus, p.status, p.orderVersion], ['SYSTEM', 'PENDING', 'OPEN', order.version]);
+    });
+
+    it('courier drop writes order.unassigned with priorCourierId and COURIER_DROPPED', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      const dropped = await service.unassignOrder(order.id, COURIER_1_ID);
+      const p = last(fakeRepo, 'order.unassigned');
+      assert.deepEqual(envelope(p), [2, 'order-service', true]);
+      assert.deepEqual(
+        [p.actorRole, p.actorId, p.reasonCode, p.priorCourierId, p.requesterId, p.previousStatus, p.status, p.orderVersion],
+        ['STUDENT', COURIER_1_ID, 'COURIER_DROPPED', COURIER_1_ID, REQUESTER_ID, 'ACCEPTED', 'OPEN', dropped.version],
+      );
+    });
+
+    it('admin unassign writes order.unassigned with ADMIN_UNASSIGNED and the administrator as actor', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.adminUnassignOrder(order.id, ADMIN_ID, { reason: 'Courier unreachable' });
+      const p = last(fakeRepo, 'order.unassigned');
+      assert.deepEqual([p.actorRole, p.actorId, p.reasonCode, p.priorCourierId], ['ADMIN', ADMIN_ID, 'ADMIN_UNASSIGNED', COURIER_1_ID]);
+      assert.equal(JSON.stringify(p).includes('unreachable'), false, 'admin reason text never leaves the order row');
+    });
+
+    it('requester cancellation of an ACCEPTED errand carries the assignee, actor and committed version', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      const cancelled = await service.cancelOrder(order.id, REQUESTER_ID);
+      const p = last(fakeRepo, 'order.cancelled');
+      assert.deepEqual(
+        [p.courierId, p.actorRole, p.actorId, p.reasonCode, p.previousStatus, p.status, p.orderVersion],
+        [COURIER_1_ID, 'STUDENT', REQUESTER_ID, 'REQUESTER_CANCELLED', 'ACCEPTED', 'CANCELLED', cancelled.version],
+      );
+
+      const open = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Pen', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.cancelOrder(open.id, REQUESTER_ID);
+      assert.equal(last(fakeRepo, 'order.cancelled').courierId, undefined, 'no assignee on an OPEN cancellation');
+    });
+
+    it('admin cancellation is ADMIN_CANCELLED with the administrator as actor', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.adminCancelOrder(order.id, ADMIN_ID, { reason: 'Policy' });
+      const p = last(fakeRepo, 'order.cancelled');
+      assert.deepEqual([p.actorRole, p.actorId, p.reasonCode, p.courierId], ['ADMIN', ADMIN_ID, 'ADMIN_CANCELLED', COURIER_1_ID]);
+    });
+
+    it('requester completion is REQUESTER_CONFIRMED and admin completion is ADMIN_CONFIRMED', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const deliver = async () => {
+        const order = await service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+        });
+        await service.acceptOrder(order.id, COURIER_1_ID);
+        await service.pickupOrder(order.id, COURIER_1_ID);
+        await service.deliverOrder(order.id, COURIER_1_ID);
+        return order;
+      };
+      const first = await deliver();
+      const completed = await service.completeOrder(first.id, REQUESTER_ID);
+      let p = last(fakeRepo, 'order.completed');
+      assert.deepEqual(
+        [p.actorRole, p.actorId, p.reasonCode, p.courierId, p.previousStatus, p.status, p.orderVersion],
+        ['STUDENT', REQUESTER_ID, 'REQUESTER_CONFIRMED', COURIER_1_ID, 'DELIVERED', 'COMPLETED', completed.version],
+      );
+      const second = await deliver();
+      await service.adminCompleteOrder(second.id, ADMIN_ID, { reason: 'Verified by phone' });
+      p = last(fakeRepo, 'order.completed');
+      assert.deepEqual([p.actorRole, p.actorId, p.reasonCode], ['ADMIN', ADMIN_ID, 'ADMIN_CONFIRMED']);
+    });
+
+    it('the sweeper marks expiry OPEN_EXPIRED and a late reservation marks it PUBLICATION_EXPIRED', async () => {
+      const { service, fundedService, fakeRepo } = setupTest();
+      const open = await fundedService.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      fakeRepo.orders.find((o) => o.id === open.id)!.expiresAt = new Date(Date.now() - 1000).toISOString();
+      await createExpirySweeper({ repository: fakeRepo.repo }).sweep();
+      let p = last(fakeRepo, 'order.expired');
+      assert.deepEqual([p.actorRole, p.reasonCode, p.previousStatus, p.status], ['SYSTEM', 'OPEN_EXPIRED', 'OPEN', 'EXPIRED']);
+
+      const pending = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Late', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      fakeRepo.orders.find((o) => o.id === pending.id)!.expiresAt = new Date(Date.now() - 1000).toISOString();
+      await fakeRepo.approve(pending.id);
+      p = last(fakeRepo, 'order.expired');
+      assert.deepEqual([p.reasonCode, p.previousStatus, p.status], ['PUBLICATION_EXPIRED', 'PENDING', 'EXPIRED']);
+    });
+
+    it('progress events carry the acting courier and the committed version', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      const accepted = await service.acceptOrder(order.id, COURIER_1_ID, undefined, 'bob');
+      const p = last(fakeRepo, 'order.accepted');
+      assert.deepEqual(
+        [p.schemaVersion, p.actorRole, p.actorId, p.courierUsername, p.previousStatus, p.status, p.orderVersion, p.reasonCode],
+        [2, 'STUDENT', COURIER_1_ID, 'bob', 'OPEN', 'ACCEPTED', accepted.version, undefined],
+      );
     });
   });
 });

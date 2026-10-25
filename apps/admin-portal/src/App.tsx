@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Removed dead AuditPage view and wired HealthPage to live /health and /ready probes across all 5 microservices.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic 3856-line Admin Portal App.tsx into modular pages, components, hooks, constants, and API modules while preserving 100% UI behavior and UAT selectors.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -8,7 +16,7 @@
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import {
   CreateSupplierRequest,
@@ -39,6 +47,11 @@ import {
   toggleUserStatusApi,
 } from './api/users';
 import { executeAdminOrderActionApi, fetchOrdersApi } from './api/orders';
+import {
+  fetchAllServicesHealthApi,
+  SERVICE_HEALTH_SPECS,
+  ServiceHealthStatus,
+} from './api/health';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { AdminSidebar } from './components/AdminSidebar';
 import { AdminHeader } from './components/AdminHeader';
@@ -50,7 +63,6 @@ import { SuppliersPage } from './pages/SuppliersPage';
 import { UsersPage } from './pages/UsersPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { HealthPage } from './pages/HealthPage';
-import { AuditPage } from './pages/AuditPage';
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<AdminNavSection>('suppliers');
@@ -154,6 +166,20 @@ export default function App() {
   const [orderActionError, setOrderActionError] = useState<string | null>(null);
   const [isConflictError, setIsConflictError] = useState(false);
 
+  // Microservice Health state
+  const [servicesHealth, setServicesHealth] = useState<ServiceHealthStatus[]>(() =>
+    SERVICE_HEALTH_SPECS.map((spec) => ({
+      ...spec,
+      overall: 'UNKNOWN',
+      liveness: 'UNKNOWN',
+      readiness: 'UNKNOWN',
+      latencyMs: null,
+      checkedAt: '',
+    }))
+  );
+  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
+  const healthInFlightRef = useRef(false);
+
   const {
     currentRole,
     authToken,
@@ -193,8 +219,8 @@ export default function App() {
     try {
       const items = await fetchSuppliersApi();
       setSuppliers(items);
-    } catch (err: any) {
-      console.warn('API error, falling back to cached list:', err.message);
+    } catch (err) {
+      console.warn('API error, falling back to cached list:', err instanceof Error ? err.message : err);
       setError('Could not connect to live Supplier Service API (/api/suppliers). Showing cached records.');
       setSuppliers(FALLBACK_SUPPLIERS);
     } finally {
@@ -212,8 +238,8 @@ export default function App() {
     try {
       const items = await fetchUsersApi(authFetch);
       setUsers(items);
-    } catch (err: any) {
-      console.warn('API error fetching users:', err.message);
+    } catch (err) {
+      console.warn('API error fetching users:', err instanceof Error ? err.message : err);
       setErrorUsers('Could not connect to live User Service API (/api/users).');
       setUsers([]);
     } finally {
@@ -227,14 +253,36 @@ export default function App() {
     try {
       const list = await fetchOrdersApi(authFetch);
       setOrders(list);
-    } catch (err: any) {
-      console.warn('API error fetching orders:', err.message);
+    } catch (err) {
+      console.warn('API error fetching orders:', err instanceof Error ? err.message : err);
       setErrorOrders('Could not connect to live Order Service API (/api/orders).');
       setOrders([]);
     } finally {
       setIsLoadingOrders(false);
     }
   };
+
+  const fetchServicesHealth = async () => {
+    if (healthInFlightRef.current) return;
+    healthInFlightRef.current = true;
+    setIsLoadingHealth(true);
+    try {
+      const results = await fetchAllServicesHealthApi();
+      setServicesHealth(results);
+    } finally {
+      healthInFlightRef.current = false;
+      setIsLoadingHealth(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeNav !== 'health') return;
+    void fetchServicesHealth();
+    const intervalId = window.setInterval(() => {
+      void fetchServicesHealth();
+    }, 15000);
+    return () => window.clearInterval(intervalId);
+  }, [activeNav]);
 
   const openOrderAction = (order: OrderDTO, type: 'cancel' | 'complete' | 'unassign') => {
     setTargetOrderForAction(order);
@@ -292,8 +340,8 @@ export default function App() {
         message: data.message || `Order ${updatedOrder.orderCode} successfully updated.`,
       });
       closeOrderActionModal();
-    } catch (err: any) {
-      setOrderActionError(err.message || 'An error occurred executing order state action.');
+    } catch (err) {
+      setOrderActionError((err instanceof Error && err.message) || 'An error occurred executing order state action.');
     } finally {
       setIsSubmittingOrderAction(false);
     }
@@ -335,8 +383,8 @@ export default function App() {
           message: data.message || data.error || `HTTP ${res.status}: Failed to create supplier`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Network error creating supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Network error creating supplier' });
     } finally {
       setIsSubmitting(false);
     }
@@ -385,8 +433,8 @@ export default function App() {
           message: data.message || data.error || `HTTP ${res.status}: Failed to update supplier`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Network error updating supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Network error updating supplier' });
     } finally {
       setIsSubmitting(false);
     }
@@ -419,8 +467,8 @@ export default function App() {
           message: data.message || data.error || `HTTP ${res.status}: Failed to delete supplier`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Network error deleting supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Network error deleting supplier' });
     } finally {
       setIsSubmitting(false);
     }
@@ -444,8 +492,8 @@ export default function App() {
         });
         return;
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Failed to toggle supplier' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Failed to toggle supplier' });
     }
   };
 
@@ -467,8 +515,8 @@ export default function App() {
           message: data.error || `HTTP ${res.status}: Failed to update user status`,
         });
       }
-    } catch (err: any) {
-      setActionAlert({ type: 'error', message: err.message || 'Failed to update user status' });
+    } catch (err) {
+      setActionAlert({ type: 'error', message: (err instanceof Error && err.message) || 'Failed to update user status' });
     } finally {
       setTogglingUserIds((prev) => {
         const next = new Set(prev);
@@ -497,8 +545,8 @@ export default function App() {
         const data = await res.json().catch(() => ({}));
         setDeleteUserError(data.error || `HTTP ${res.status}: Failed to delete user`);
       }
-    } catch (err: any) {
-      setDeleteUserError(err.message || 'Failed to delete user');
+    } catch (err) {
+      setDeleteUserError((err instanceof Error && err.message) || 'Failed to delete user');
     } finally {
       setIsDeletingUser(false);
     }
@@ -518,8 +566,8 @@ export default function App() {
       } else {
         setToggleRoleError(data.error || `HTTP ${res.status}: Failed to update user role`);
       }
-    } catch (err: any) {
-      setToggleRoleError(err.message || 'Failed to update user role');
+    } catch (err) {
+      setToggleRoleError((err instanceof Error && err.message) || 'Failed to update user role');
     } finally {
       setIsTogglingRole(false);
     }
@@ -773,9 +821,11 @@ export default function App() {
           isLoading={isLoading}
           isLoadingOrders={isLoadingOrders}
           isLoadingUsers={isLoadingUsers}
+          isLoadingHealth={isLoadingHealth}
           fetchSuppliers={fetchSuppliers}
           fetchOrders={fetchOrders}
           fetchUsers={fetchUsers}
+          fetchServicesHealth={fetchServicesHealth}
           setAddFormErrors={setAddFormErrors}
           setAddDuplicateConflict={setAddDuplicateConflict}
           setIsAddOpen={setIsAddOpen}
@@ -872,9 +922,13 @@ export default function App() {
             />
           )}
 
-          {activeNav === 'health' && <HealthPage />}
-
-          {activeNav === 'audit' && <AuditPage />}
+          {activeNav === 'health' && (
+            <HealthPage
+              servicesHealth={servicesHealth}
+              isLoadingHealth={isLoadingHealth}
+              onRefresh={fetchServicesHealth}
+            />
+          )}
         </main>
       </div>
 

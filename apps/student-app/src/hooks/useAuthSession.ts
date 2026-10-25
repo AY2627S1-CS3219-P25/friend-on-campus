@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted authentication session state, silent refresh, and authFetch hook from student-app App.tsx into hooks/useAuthSession.ts.
  * Author review: Verified by yanhwee
@@ -111,10 +115,10 @@ export function useAuthSession(onSessionCleared: () => void) {
       }
       setAuthToken(result.accessToken);
       setIsAuthenticated(true);
-    } catch (err: any) {
+    } catch (err) {
       setLoginError({
         code: 'NETWORK_ERROR',
-        message: err.message || 'Could not reach the authentication server.',
+        message: (err instanceof Error && err.message) || 'Could not reach the authentication server.',
       });
     } finally {
       setIsLoggingIn(false);
@@ -172,10 +176,10 @@ export function useAuthSession(onSessionCleared: () => void) {
       }
       setAuthToken(login.accessToken);
       setIsAuthenticated(true);
-    } catch (err: any) {
+    } catch (err) {
       setSignupError({
         code: 'NETWORK_ERROR',
-        message: err.message || 'Could not reach the registration server.',
+        message: (err instanceof Error && err.message) || 'Could not reach the registration server.',
       });
     } finally {
       setIsSigningUp(false);

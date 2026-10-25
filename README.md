@@ -1,5 +1,29 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Test-command table gained the `npm run coverage` row (moved here from the deleted docs/ci.md while merging main into PR #147).
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Google Antigravity Agent, date: 2026-10-22
+Scope: Fixed Local Development Workflow migration/seeding ordering (db:deploy before db:seed), documented root db:deploy and offline db:seed commands, added .env setup to Quick Start with Docker, and updated test:seed and test:acceptance descriptions.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated JWT key generation instructions after removing clipboard copying from scripts/generate-jwt-keys.mjs.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Consolidated CI/testing documentation from docs/ci.md into Testing & Verification, removed docs/ from the monorepo tree, and updated System Documentation links to point to the project Wiki.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated local development server commands, test category table, and monorepo structure tree for scripts/dev.mjs, scripts/prisma-migrate.mjs, and test:e2e:api.
+Author review: <to be completed by yanhwee>
+
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Refreshed facts to main @ 7f2d972: diagram arrows, Milestone Status (D2 done, D3 prepared, wiki link), access URLs for all services, seed commands, Testing & Verification categories, seed-account permissions, Monorepo Structure tree; merged the second disclosure block into this one.
 Author review: <to be completed by Reallyeasy1>
@@ -76,9 +100,11 @@ flowchart TB
     OrderSvc --> Postgres
     CreditSvc --> Postgres
     NotifSvc --> Postgres
-    OrderSvc -->|"escrow reserve (HTTP)"| CreditSvc
+    OrderSvc -->|"supplier lookup (HTTP)"| SupplierSvc
     UserSvc -.->|"publish user.registered"| RabbitMQ
     OrderSvc -.->|"publish order.*"| RabbitMQ
+    CreditSvc -.->|"publish credit.reservation.*"| RabbitMQ
+    RabbitMQ -.->|"consume credit.reservation.*"| OrderSvc
     RabbitMQ -.->|"consume user.registered, order.*"| CreditSvc
     RabbitMQ -.->|"consume order.*"| NotifSvc
 ```
@@ -101,12 +127,22 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 
 ## 🚀 Quick Start with Docker (Recommended)
 
-To spin up all microservices, frontends, PostgreSQL, RabbitMQ, and the Nginx Gateway:
+To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway (each service automatically runs `prisma migrate deploy` and seeds its database on container startup):
 
 ```bash
-# In project root:
+# 1. One-time environment setup (if .env does not exist yet):
+cp .env.example .env
+npm run generate:jwt-keys   # paste the printed JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env
+
+# 2. Build and start the full stack:
 docker compose up --build
 ```
+
+> **Upgrading or resetting an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC volumes), reset the volumes and remove orphaned containers before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
+> ```bash
+> docker compose down -v --remove-orphans
+> docker compose up --build
+> ```
 
 ### Accessing the Platform
 | Component | Local Access URL | Description |
@@ -138,9 +174,7 @@ npm install
 Copy `.env.example` to `.env` and generate an Ed25519 key pair for JWT access token signing:
 ```bash
 cp .env.example .env
-npm run generate:jwt-keys   # copies JWT_PRIVATE_KEY and JWT_PUBLIC_KEY to the clipboard; paste them into .env
-# where clipboard copying is unsupported, print them instead:
-npm run generate:jwt-keys -- --print
+npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste them into .env
 ```
 
 ### 3. Start PostgreSQL & RabbitMQ
@@ -148,42 +182,58 @@ npm run generate:jwt-keys -- --print
 docker compose up postgres rabbitmq -d
 ```
 
-### 4. Seed Databases (First Time Setup)
+### 4. Apply Database Migrations
+`docker/postgres-init/` only provisions the five empty databases and least-privilege service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`). Apply all committed Prisma migrations across every service before seeding or starting Debezium CDC:
 ```bash
-# Seed User Service (admin@nus.edu.sg, alice@u.nus.edu, bob@u.nus.edu)
-npm run db:seed --workspace=@campus-errand/user-service
+# Apply committed migrations across all 5 services (prisma migrate deploy)
+npm run db:deploy
 
-# Seed Supplier Service (21 verified NUS campus locations from CSV)
-npm run db:seed --workspace=@campus-errand/supplier-service
-
-# Seed Credit Service wallets for the three seeded accounts
-# (logs in through the User Service, so user-service must be running at USER_SERVICE_URL, default http://localhost:8001)
-npm run db:seed --workspace=@campus-errand/credit-service
-
-# Seed Order Service sample errands (skipped when order_db already contains orders)
-npm run db:seed --workspace=@campus-errand/order-service
+# Or apply migrations for an individual service:
+npm run db:deploy -w @campus-errand/user-service
 ```
-*(Apply each service's migrations first with `npm run db:migrate --workspace=@campus-errand/<service>`. Under Docker Compose every service runs `prisma migrate deploy` and its seed, where it has one, on container boot.)*
+*(Note: Use `db:deploy` to apply existing migrations—the least-privilege service roles do not have `CREATEDB` permissions for Prisma's shadow database. When authoring a new schema change with `npm run db:migrate -w @campus-errand/<service>`, supply a superuser `DATABASE_URL` or `SHADOW_DATABASE_URL`.)*
 
-### 5. Run Development Servers
+Transactional outbox events from User, Order, and Credit are published to RabbitMQ by Debezium (`debezium-user`, `debezium-order`, `debezium-credit`). Once migrations are applied, start the CDC connectors so outbox events flow during host-based development:
 ```bash
-# Backend microservices
-npm run dev:user        # Port 8001 (User & Auth Service)
-npm run dev:supplier    # Port 8002 (Supplier Directory Service)
-npm run dev:order       # Port 8003 (Order Service)
-npm run dev:credit      # Port 8004 (Credit Service)
-npm run dev:notif       # Port 8005 (Notification Service)
+docker compose up --no-deps -d debezium-user debezium-order debezium-credit
+```
 
-# Frontend applications
-npm run dev:student     # Port 5173 (Student Web App)
-npm run dev:admin       # Port 5174 (Admin Web Portal)
+### 5. Seed Databases (First-Time Setup)
+```bash
+# Seed all services at once (User, Supplier, Order, and Credit)
+npm run db:seed
+
+# Or seed individual workspaces:
+npm run db:seed -w @campus-errand/user-service     # admin@nus.edu.sg, alice@u.nus.edu, bob@u.nus.edu
+npm run db:seed -w @campus-errand/supplier-service # 21 verified NUS campus locations from CSV
+npm run db:seed -w @campus-errand/order-service    # sample OPEN errands (requires SEED_SAMPLE_ORDERS=true in .env)
+npm run db:seed -w @campus-errand/credit-service   # 100-credit wallets for the three seed accounts
+```
+*(When `user-service` is running at `USER_SERVICE_URL`, `credit-service` resolves the seed accounts via HTTP login; when run offline before starting dev servers, it falls back to the deterministic seed account UUIDs.)*
+
+### 6. Run Development Servers
+```bash
+# Run everything in parallel (5 backend services + 2 frontend apps)
+npm run dev
+
+# Or run only backend services or only frontend apps in parallel
+npm run dev:services    # Ports 8001–8005
+npm run dev:apps        # Ports 5173–5174
+
+# Or run individual workspaces (via scripts/dev.mjs filter or native npm -w)
+npm run dev -- user supplier
+npm run dev -w services/user-service         # Port 8001 (User & Auth Service)
+npm run dev -w services/supplier-service     # Port 8002 (Supplier Directory Service)
+npm run dev -w services/order-service        # Port 8003 (Order Service)
+npm run dev -w services/credit-service       # Port 8004 (Credit Service)
+npm run dev -w services/notification-service # Port 8005 (Notification Service)
+npm run dev -w apps/student-app              # Port 5173 (Student Web App)
+npm run dev -w apps/admin-portal             # Port 5174 (Admin Web Portal)
 ```
 
 ---
 
 ## 🧪 Testing & Verification
-
-CI jobs, prerequisites and the static test-matrix rules are documented in [`docs/ci.md`](./docs/ci.md).
 
 ### Full Isolated Suite
 Creates a uniquely named Compose project on free loopback ports, runs every category below (installing Chromium if needed), and removes only that project's containers and volumes:
@@ -196,13 +246,20 @@ npm test
 | :--- | :--- |
 | `npm run test:unit` | Unit suites (Node's built-in `node --test` via `tsx`, no framework): user, supplier, order and notification services |
 | `npm run test:integration` | PostgreSQL-backed suites: user-service admin guard, notification store and routes, credit-service |
-| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service |
-| `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation |
-| `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, then `scripts/uat/uat-notifications.mjs` |
-| `npm run test:e2e:api` | Milestone D2 API end-to-end suite (runs `npm run test:d2`, below) |
+| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service (`npm test` provisions isolated `credit_messaging_test` and `order_messaging_test` databases automatically; direct runs require migrated `_test` databases and the `*_TEST_*` env vars below) |
+| `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation (`test:migration` and `test:seed` run on `credit-service`) |
+| `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, `scripts/uat/uat-notifications.mjs`, and `scripts/uat/uat-cdc.mjs` |
+| `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
+| `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
-| `npm run ci:validate-tests` | Checks package test scripts against the static CI matrices |
+| `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
+
+### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
+- **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
+- **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
+- **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`POSTGRES_ADMIN_URL=... TEST_DATABASE_NAME=... node scripts/ci/create-test-database.mjs`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
+- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) and uploaded as CI workflow artifacts.
 
 ### Automated Milestone D2 End-to-End Suite
 Generates a test-only Ed25519 key pair and verifies account registration followed by
@@ -212,11 +269,11 @@ Service seed data present; it does not use the `.env` JWT key pair. It spawns us
 supplier-service itself on ports 8001/8002, so those ports must be free.
 
 ```bash
-npm run test:d2
+npm run test:e2e:api
 ```
 
 ### Lint, Build & Universal Typecheck
-Typechecks all 9 workspaces (2 apps, 5 services, 2 packages); each service's `typecheck` covers its tests too:
+Typechecks all 10 workspaces (2 apps, 5 services, 3 packages); each service's `typecheck` covers its tests too:
 ```bash
 npm run lint
 npm run build
@@ -252,23 +309,26 @@ friend-on-campus/
 │   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
 ├── packages/
 │   ├── auth/                    # @campus-errand/auth: offline Ed25519 access-token verification middleware
-│   └── common-dtos/             # Shared TypeScript schemas, DTOs & event types
+│   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
+│   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 ├── gateway/
 │   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
 ├── docker/
-│   ├── postgres-init/           # Creates the five logical databases (tables come from per-service migrations)
+│   ├── debezium/                # Debezium Server CDC configs for User, Order and Credit outboxes
+│   ├── postgres-init/           # Creates the five logical databases and least-privilege roles
 │   └── rabbitmq/                # Broker config and definitions: vhost, exchanges, service accounts, permissions
 ├── scripts/
 │   ├── ci/                      # Isolated aggregate test runner, test-matrix validator, test-database helper
 │   ├── uat/                     # Acceptance drivers: API, notifications, Chromium UI
+│   ├── dev.mjs                  # Parallel cross-platform workspace dev runner
 │   ├── generate-jwt-keys.mjs    # Ed25519 key pair for .env
+│   ├── prisma-migrate.mjs       # Shared Prisma migration runner with .env loading
 │   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
 ├── tests/
 │   └── postman/                 # Postman collection and environment
 ├── data/
 │   ├── csv/                     # NUS campus supplier seed datasets
 │   └── images/                  # Supplier images
-├── docs/                        # System specifications and CI documentation
 ├── ai/
 │   └── usage-log.md             # AI assistance usage disclosures per course policy
 ├── docker-compose.yml           # Full stack
@@ -277,12 +337,18 @@ friend-on-campus/
 
 ---
 
-## 📄 System Documentation & Specifications
+## 📄 System Documentation & Project Wiki
 
-- **Documentation Index**: [`docs/README.md`](./docs/README.md)
-- **System Architecture Specification**: [`docs/architecture.md`](./docs/architecture.md)
-- **Errand Lifecycle & Credit Economy Specification**: [`docs/errand-specification.md`](./docs/errand-specification.md)
-- **Security & Access Control Specification**: [`docs/security.md`](./docs/security.md)
-- **Continuous Integration & Testing**: [`docs/ci.md`](./docs/ci.md)
-- **Project wiki (milestone pages)**: [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)
-- **Claude Code set-up for this repo**: [`.claude/README.md`](./.claude/README.md)
+- **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
+- **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
+- **[Documentation verification and pending questions](docs/audits/review-findings.md)**: Actual check results, source boundaries and human review items.
+
+Full architectural documentation, domain specifications, and milestone presentation guides are maintained in the **[Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**:
+
+- **[Wiki Home](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**: Project overview & milestone navigation
+- **[System Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)**: Microservice topology, Debezium CDC outbox connectors, RabbitMQ quorum queues, and reservation saga choreography
+- **[Authentication & Roles](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Authentication-and-Roles)**: Ed25519 access tokens, rotating opaque refresh cookies, RBAC matrix, and least-privilege database/broker identities
+- **[Services & Domain Lifecycle](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Services)**: Order state machine (`PENDING` → `OPEN` → `ACCEPTED` → `IN_TRANSIT` → `DELIVERED` → `COMPLETED`), closed credit economy & escrow ledger, and real-time notifications
+- **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`)
+- **[Testing & Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Testing-and-Evidence)** & **[Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)**: Automated test matrix, acceptance evidence, and Milestone D3 presentation runbook
+- **Claude Code Set-up**: [`.claude/README.md`](./.claude/README.md) & [`CLAUDE.md`](./CLAUDE.md)

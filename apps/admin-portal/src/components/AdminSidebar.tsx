@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Removed dead Audit & Disputes navigation button and wired Microservice Health button to trigger fetchServicesHealth.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted desktop left sidebar component into src/components/AdminSidebar.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -7,7 +11,7 @@
 
 // AI-generated (edited by yanhwee)
 
-import { Activity, Building2, LogOut, Package, RefreshCw, Shield, Users } from 'lucide-react';
+import { Activity, Building2, LogOut, Package, RefreshCw, Users } from 'lucide-react';
 import { AdminNavSection } from '../constants';
 
 interface AdminSidebarProps {
@@ -92,18 +96,6 @@ export function AdminSidebar({
         >
           <Activity className="w-4 h-4" />
           <span>Microservice Health</span>
-        </button>
-
-        <button
-          onClick={() => setActiveNav('audit')}
-          className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg transition ${
-            activeNav === 'audit'
-              ? 'bg-blue-600 text-white shadow'
-              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-          }`}
-        >
-          <Shield className="w-4 h-4" />
-          <span>Audit & Disputes</span>
         </button>
       </nav>
 

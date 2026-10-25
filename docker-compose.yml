@@ -1,8 +1,18 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+# Scope: RabbitMQ health-probe budget: timeout 5 s -> 20 s (as PR #147) and start_period 60 s -> 180 s. A cold boot on a
+# 5 GB Docker Desktop VM took 231 s to open the listeners, so the probe gave up before Erlang had started and compose up
+# --wait aborted the four dependent services.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
 # Scope: Raised the rabbitmq health-probe timeout from 5 s to 20 s; the probe measured 3.7-18.7 s on a loaded Windows
 # host and the resulting "unhealthy" state aborted `docker compose up --wait` in npm test although the broker worked.
 # Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Google Antigravity Agent, date: 2026-10-22
+# Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe, and passed SEED_SAMPLE_ORDERS to credit-service so sample order escrow reservations are seeded alongside order-service.
+# Author review: <to be completed by yanhwee>
 #
 # Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 # Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
@@ -192,11 +202,8 @@ services:
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
       JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      RABBITMQ_URL: amqp://user_service:user-service-dev@rabbitmq:5672/campus
     depends_on:
       postgres:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     healthcheck:
       test:
@@ -234,7 +241,7 @@ services:
         - node
         - -e
         - >-
-          fetch('http://localhost:8002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+          fetch('http://localhost:8002/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
       interval: 5s
       timeout: 5s
       retries: 10
@@ -259,7 +266,6 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
-      - OUTBOX_CDC_ENABLED=${OUTBOX_CDC_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -288,6 +294,7 @@ services:
       - "8004:8004"
     environment:
       - PORT=8004
+      - SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}
       - DATABASE_URL=postgresql://credit_svc:credit-service-dev@postgres:5432/credit_db
       - USER_SERVICE_URL=http://user-service:8001
       - RABBITMQ_URL=amqp://credit_service:credit-service-dev@rabbitmq:5672/campus
@@ -420,18 +427,17 @@ services:
       # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
       test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
-      # AI-generated (edited by Reallyeasy1): each probe boots a throwaway Erlang VM; measured 3.7-18.7 s on a loaded
-      # Windows host, so 5 s produced false "unhealthy" states that abort `compose up --wait` (and npm test) while the
-      # broker was serving fine. 20 s covers the observed worst case.
+      # AI-generated (edited by Reallyeasy1): each probe boots a throwaway Erlang VM (3.4-5.5 s here, up to 18.7 s on a
+      # loaded host), and a cold boot took 231 s on a 5 GB VM; 60 s + 5 x 10 s gave up before Erlang had started.
       timeout: 20s
       retries: 5
-      start_period: 60s
+      start_period: 180s
 
-  # AI-generated (edited by yanhwee): optional log-based Debezium Server Outbox CDC connector (enable with --profile cdc)
-  debezium:
+  # AI-generated (edited by yanhwee): log-based Debezium Server Outbox CDC connector
+  debezium-order:
     image: quay.io/debezium/server:2.7
-    container_name: campuserrand-debezium
-    profiles: ["cdc"]
+    container_name: campuserrand-debezium-order
+    restart: unless-stopped
     volumes:
       - ./docker/debezium/application.properties:/debezium/conf/application.properties:ro
       - debezium_data:/debezium/data
@@ -440,8 +446,44 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      order-service:
+        condition: service_healthy
+
+  # AI-generated (edited by huangjiaxi1111)
+  debezium-user:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-user
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/user.properties:/debezium/conf/application.properties:ro
+      - debezium_user_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+
+  # AI-generated (edited by huangjiaxi1111)
+  debezium-credit:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-credit
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/credit.properties:/debezium/conf/application.properties:ro
+      - debezium_credit_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      credit-service:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   rabbitmq_data:
   debezium_data:
+  debezium_user_data:
+  debezium_credit_data:

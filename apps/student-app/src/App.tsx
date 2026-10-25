@@ -1,5 +1,29 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): AlertsPage receives the hook's view, total and setView.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Inbox wiring per the author's Notification Redesign (§2, §9, §10): opening a notification deep-links to the
+ * exact errand (?tab=tasks&orderId=, fetched live from Order Service) or the wallet, toasts follow the inbox rule,
+ * the Alerts page receives the REST-first hook's stale/paging state and the app's live order statuses, and the
+ * confirm/cancel banners no longer claim credits were transferred or refunded. Supersedes the same-day
+ * awaitingConfirmation fix.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage and forwarded optional courierContactNote on accept (F3.3.6).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Wires the chat socket hook (F8) and passes it to TasksPage.
  * Author review: <to be completed by Reallyeasy1>
@@ -30,11 +54,22 @@
 
 // AI-generated (edited by yanhwee)
 
-import { CreditTransactionDTO, CreditWalletDTO, OrderDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
+import { CreditTransactionDTO, CreditWalletDTO, NotificationDTO, OrderDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 import { RefreshCw } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { fetchWalletAndLedger } from './api/credits';
-import { acceptOrderById, fetchCombinedOrders } from './api/orders';
+import {
+  acceptOrderById,
+  cancelOrderById,
+  completeOrderById,
+  deliverOrderById,
+  fetchCombinedOrders,
+  FetchOrderResult,
+  fetchOrderById,
+  pickupOrderById,
+  TaskOrderAction,
+  unassignOrderById,
+} from './api/orders';
 import { fetchAllSuppliers } from './api/suppliers';
 import {
   deleteUserAccountById,
@@ -45,6 +80,7 @@ import { BottomNav } from './components/BottomNav';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
 import { useAuthSession } from './hooks/useAuthSession';
+import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
 import { useChat } from './chat/useChat';
 import { useOrderSubmission } from './orders/useOrderSubmission';
@@ -56,8 +92,24 @@ import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
 import { TasksPage } from './pages/TasksPage';
 
+// AI-generated (edited by Reallyeasy1)
+// Deep link a notification can open: /?tab=tasks&orderId=<id>. Read once; the app stays tab-based otherwise.
+function readDeepLink(): { tab: StudentTab | null; orderId: string | null } {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  const tabs: StudentTab[] = ['feed', 'post', 'spots', 'tasks', 'alerts', 'profile', 'wallet'];
+  const orderId = params.get('orderId');
+  return {
+    tab: tabs.includes(tab as StudentTab) ? (tab as StudentTab) : null,
+    orderId: orderId && /^[0-9a-f-]{36}$/i.test(orderId) ? orderId : null,
+  };
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<StudentTab>('feed');
+  const [activeTab, setActiveTab] = useState<StudentTab>(() => readDeepLink().tab ?? 'feed');
+  // The errand a notification opened; its live state is fetched so a stale notice never shows a stale action.
+  const [focusOrderId, setFocusOrderId] = useState<string | null>(() => readDeepLink().orderId);
+  const [focusOrder, setFocusOrder] = useState<FetchOrderResult | null>(null);
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
 
   // Profile Info state (GET/PATCH /api/users/me)
@@ -93,6 +145,10 @@ export default function App() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
+  const [taskActionInFlight, setTaskActionInFlight] = useState<{
+    orderId: string;
+    action: TaskOrderAction;
+  } | null>(null);
   const orderRequestId = useRef(0);
 
   // Post Form State
@@ -104,9 +160,11 @@ export default function App() {
     specialNotes: '',
     dropoffLocation: '',
     rewardCredits: 15,
+    durationMinutes: 30,
   });
 
   const [notification, setNotification] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<'ok' | 'alert'>('ok');
   const keepNoticeOnTabChange = useRef(false);
 
   useEffect(() => {
@@ -128,6 +186,8 @@ export default function App() {
     setOrders([]);
     setOrdersError(null);
     setOrdersLoading(false);
+    setAcceptingOrder(null);
+    setTaskActionInFlight(null);
     setNotification(null);
     setWallet(null);
     setLedger([]);
@@ -146,9 +206,40 @@ export default function App() {
     refreshToken: refreshAccessToken,
     authFetch,
     onNotification: (n) => {
-      setNotification(`🔔 ${n.title}`);
+      // AI-generated (edited by Reallyeasy1): quiet receipts and changes already on screen get no toast.
+      if (shouldToast(n, activeTab)) {
+        setNoticeTone(n.priority === 'HIGH' ? 'alert' : 'ok');
+        setNotification(`🔔 ${n.title}`);
+      }
+      void loadOrders.current();
     },
   });
+  // AI-generated (edited by Reallyeasy1)
+  // The order the app has loaded is fresher than the Notification Service's projection.
+  const liveStatus = (orderId: string) => orders.find((o) => o.id === orderId)?.status;
+  const openNotification = (n: NotificationDTO) => {
+    if (!n.readAt) void notifications.markRead(n.id);
+    if (n.actionType === 'REVIEW_WALLET') {
+      setActiveTab('wallet');
+      return;
+    }
+    setFocusOrderId(n.orderId);
+    setFocusOrder(null);
+    setActiveTab('tasks');
+    window.history.replaceState(null, '', `/?tab=tasks&orderId=${encodeURIComponent(n.orderId)}`);
+  };
+  const clearFocus = () => {
+    setFocusOrderId(null);
+    setFocusOrder(null);
+    window.history.replaceState(null, '', '/');
+  };
+  useEffect(() => {
+    if (!isAuthenticated || !focusOrderId) return;
+    let cancelled = false;
+    void fetchOrderById(authFetch, focusOrderId).then((result) => { if (!cancelled) setFocusOrder(result); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, focusOrderId, orders]);
   const wsStatus = notifications.status;
   // AI-generated (edited by Reallyeasy1): the chat socket (F8) beside the notification socket.
   const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
@@ -174,10 +265,16 @@ export default function App() {
     }
   };
 
+  // AI-generated (edited by Reallyeasy1): same shape as the orders effect below. The latest fetchCredits is read from a
+  // ref (it closes over authFetch and setters, so listing it would refetch on every render) and the request counter is
+  // bumped on cleanup so a response from the previous tab or session is ignored.
+  const loadCredits = useRef(fetchCredits);
+  loadCredits.current = fetchCredits;
   useEffect(() => {
-    if (isAuthenticated) void fetchCredits();
+    const requests = creditRequestId;
+    if (isAuthenticated) void loadCredits.current();
     return () => {
-      creditRequestId.current++;
+      requests.current++;
     };
   }, [isAuthenticated, activeTab]);
 
@@ -216,6 +313,7 @@ export default function App() {
       void fetchOrders();
       if (receipt.status === 'OPEN' && receipt.orderCode) {
         keepNoticeOnTabChange.current = activeTab === 'post';
+        setNoticeTone('ok');
         setNotification(`Errand ${receipt.orderCode} posted. Credits reserved.`);
         setFormData((current) => ({
           ...current,
@@ -223,6 +321,7 @@ export default function App() {
           specialNotes: '',
           dropoffLocation: '',
           rewardCredits: 15,
+          durationMinutes: 30,
         }));
         if (activeTab === 'post') setActiveTab('feed');
       }
@@ -336,19 +435,20 @@ export default function App() {
       specialNotes: formData.specialNotes,
       dropoffLocation: formData.dropoffLocation,
       rewardCredits: formData.rewardCredits,
-      durationMinutes: 30,
+      durationMinutes: Number.isFinite(formData.durationMinutes) ? formData.durationMinutes : 30,
     });
   };
 
-  const handleAcceptOrder = async (orderId: string) => {
-    if (acceptingOrder) return;
+  const handleAcceptOrder = async (orderId: string, courierContactNote?: string) => {
+    if (acceptingOrder || taskActionInFlight) return;
     const requestId = orderRequestId.current;
     setAcceptingOrder(orderId);
     setOrdersError(null);
     try {
-      const updated = await acceptOrderById(authFetch, orderId);
+      const updated = await acceptOrderById(authFetch, orderId, courierContactNote);
       if (requestId !== orderRequestId.current) return;
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
+      setNoticeTone('ok');
       setNotification('Errand accepted! Head to the pickup location.');
     } catch (error) {
       if (requestId === orderRequestId.current) {
@@ -358,6 +458,58 @@ export default function App() {
       }
     } finally {
       setAcceptingOrder(null);
+    }
+  };
+
+  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction) => {
+    if (taskActionInFlight || acceptingOrder) return;
+    const requestId = orderRequestId.current;
+    setTaskActionInFlight({ orderId, action });
+    setOrdersError(null);
+    try {
+      let updated: OrderDTO;
+      let successMessage: string;
+      switch (action) {
+        case 'pickup':
+          updated = await pickupOrderById(authFetch, orderId);
+          successMessage = 'Item picked up! Head to dropoff location.';
+          break;
+        case 'deliver':
+          updated = await deliverOrderById(authFetch, orderId);
+          successMessage = 'Item marked as delivered! Awaiting requester confirmation.';
+          break;
+        case 'complete':
+          updated = await completeOrderById(authFetch, orderId);
+          // AI-generated (edited by Reallyeasy1): the payment is Credit Service's commit, not this one.
+          successMessage = 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.';
+          break;
+        case 'cancel':
+          updated = await cancelOrderById(authFetch, orderId);
+          successMessage = 'Errand cancelled. Reserved credits are returned once Credit Service processes it.';
+          break;
+        case 'unassign':
+          updated = await unassignOrderById(authFetch, orderId);
+          successMessage = 'Errand dropped and returned to the open feed.';
+          break;
+      }
+      if (requestId !== orderRequestId.current) return;
+      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
+      setNoticeTone('ok');
+      setNotification(successMessage);
+      if (action === 'complete' || action === 'cancel') {
+        void fetchCredits();
+        setTimeout(() => {
+          if (isAuthenticated) void fetchCredits();
+        }, 600);
+      }
+    } catch (error) {
+      if (requestId === orderRequestId.current) {
+        setOrdersError(
+          error instanceof Error ? error.message : 'Unable to update this errand.'
+        );
+      }
+    } finally {
+      setTaskActionInFlight(null);
     }
   };
 
@@ -435,7 +587,7 @@ export default function App() {
         <div
           role="status"
           data-testid="action-notice"
-          className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all"
+          className={`${noticeTone === 'alert' ? 'bg-amber-600' : 'bg-emerald-600'} text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all`}
         >
           {notification}
         </div>
@@ -532,22 +684,42 @@ export default function App() {
         )}
 
         {activeTab === 'tasks' && (
-          <TasksPage orders={orders} currentUserId={currentUserId} chat={chat} />
+          <TasksPage
+            orders={orders}
+            currentUserId={currentUserId}
+            ordersLoading={ordersLoading}
+            actingOrderId={taskActionInFlight?.orderId ?? null}
+            actingAction={taskActionInFlight?.action ?? null}
+            onRefreshOrders={() => void fetchOrders()}
+            onPickupOrder={(orderId) => void handleTaskOrderAction(orderId, 'pickup')}
+            onDeliverOrder={(orderId) => void handleTaskOrderAction(orderId, 'deliver')}
+            onCompleteOrder={(orderId) => void handleTaskOrderAction(orderId, 'complete')}
+            onCancelOrder={(orderId) => void handleTaskOrderAction(orderId, 'cancel')}
+            onUnassignOrder={(orderId) => void handleTaskOrderAction(orderId, 'unassign')}
+            focusOrderId={focusOrderId}
+            focusOrder={focusOrder}
+            onClearFocus={clearFocus}
+            chat={chat}
+          />
         )}
 
         {activeTab === 'alerts' && (
           <AlertsPage
             items={notifications.items}
             unreadCount={notifications.unreadCount}
+            total={notifications.total}
+            view={notifications.view}
+            onViewChange={notifications.setView}
             isLoading={notifications.isLoading}
+            stale={notifications.stale}
             error={notifications.error}
+            hasMore={notifications.hasMore}
+            liveStatus={liveStatus}
             onMarkRead={notifications.markRead}
             onMarkAllRead={notifications.markAllRead}
             onRefresh={notifications.refresh}
-            onOpenErrand={(n) => {
-              if (!n.readAt) notifications.markRead(n.id);
-              setActiveTab('tasks');
-            }}
+            onLoadMore={notifications.loadMore}
+            onOpen={openNotification}
           />
         )}
 

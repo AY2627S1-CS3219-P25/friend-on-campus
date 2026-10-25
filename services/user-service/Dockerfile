@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-10-21
+# Scope: Remove the User application messaging dependency after moving outbox publication to Debezium.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Google Antigravity, date: 2026-10-20
 # Scope: Updated runtime Prisma generated client copy path to src/generated -> dist/generated.
 # Author review: <to be completed by author after review>

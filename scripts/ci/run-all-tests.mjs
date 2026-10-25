@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Start and await isolated Credit CDC for reservation messaging tests, then stop it before system suites.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Added the chat-service integration and messaging databases and test variables.
  * Author review: <to be completed by Reallyeasy1>
@@ -18,8 +22,8 @@
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by ngkhengyang)
-import { generateKeyPairSync } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
+import { generateKeyPairSync } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
 import path from 'node:path';
@@ -237,9 +241,15 @@ async function runDatabaseSuites() {
   await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.creditMessaging));
   await deployDatabase('@campus-errand/notification-service', databaseUrl(databases.notificationMessaging));
   await deployDatabase('@campus-errand/chat-service', databaseUrl(databases.chatMessaging));
+  await compose(['up', '-d', 'debezium-credit-messaging']);
+  await run(process.execPath, ['scripts/ci/wait-for-cdc.mjs'], {
+    env: { ...testEnvironment, CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMessaging) },
+    timeoutMinutes: 2,
+  });
   await runNpm('test:messaging', {
     ...testEnvironment,
     ORDER_TEST_DATABASE_URL: databaseUrl(databases.orderMessaging),
+    SAGA_TEST_EXCHANGE: 'credit-test.saga-cdc.events',
     CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMessaging),
     CREDIT_TEST_RABBITMQ_URL: rabbitmqUrl('credit_test', 'credit-test-dev'),
     NOTIFICATION_TEST_DATABASE_URL: databaseUrl(databases.notificationMessaging),
@@ -247,6 +257,7 @@ async function runDatabaseSuites() {
     CHAT_TEST_DATABASE_URL: databaseUrl(databases.chatMessaging),
     CHAT_TEST_RABBITMQ_URL: rabbitmqUrl('chat_service', 'chat-service-dev'),
   }, 25);
+  await compose(['stop', 'debezium-credit-messaging']);
 
   await runNpm('test:migration', {
     ...testEnvironment,

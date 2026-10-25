@@ -1,24 +1,24 @@
 {
   "permissions": {
-    "deny": [
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git merge:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr merge:*)",
-      "Read(./**/.env)",
-      "Read(./**/.env.local)"
-    ],
     "allow": [
       "Bash(npm run typecheck:*)",
-      "Bash(npm run test:d2:*)",
+      "Bash(npm run test:e2e:api:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git branch --show-current)",
       "Bash(gh issue view:*)",
       "Bash(gh issue list:*)",
-      "Bash(gh api user:*)"
+      "Bash(gh api user:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)"
+    ],
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/.env.local)"
     ]
   },
   "hooks": {

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Removed dead 'audit' navigation section from AdminNavSection union.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted shared admin portal constants, types, JWT claim decoders, and supplier validation helpers into src/constants.ts.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -9,7 +13,7 @@
 
 import { SupplierCategory, UserRole } from '@campus-errand/common-dtos';
 
-export type AdminNavSection = 'suppliers' | 'orders' | 'health' | 'audit' | 'users';
+export type AdminNavSection = 'suppliers' | 'orders' | 'health' | 'users';
 
 export type DemoRole = 'ADMIN' | 'STUDENT' | 'GUEST';
 

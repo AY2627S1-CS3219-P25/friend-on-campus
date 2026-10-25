@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Assigned deterministic UUIDs to the 4 seeded sample orders so Credit Service can seed matching escrow reservations.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Add two sample errands and insert missing seeds without changing existing orders.
  * Author review: <to be completed by huangjiaxi1111>
@@ -19,6 +23,7 @@ export async function seedOrders() {
 
   const sampleOrders = [
     {
+      id: '30000000-0000-4000-8000-000000000001',
       orderCode: 'ORD-98214',
       requesterId: '20000000-0000-4000-8000-000000000001',
       courierId: null,
@@ -36,6 +41,7 @@ export async function seedOrders() {
       version: 1,
     },
     {
+      id: '30000000-0000-4000-8000-000000000002',
       orderCode: 'ORD-54312',
       requesterId: '20000000-0000-4000-8000-000000000002',
       courierId: null,
@@ -54,6 +60,7 @@ export async function seedOrders() {
     },
     // AI-generated (edited by huangjiaxi1111)
     {
+      id: '30000000-0000-4000-8000-000000000003',
       orderCode: 'ORD-76128',
       requesterId: '20000000-0000-4000-8000-000000000001',
       courierId: null,
@@ -71,6 +78,7 @@ export async function seedOrders() {
       version: 1,
     },
     {
+      id: '30000000-0000-4000-8000-000000000004',
       orderCode: 'ORD-86429',
       requesterId: '20000000-0000-4000-8000-000000000002',
       courierId: null,

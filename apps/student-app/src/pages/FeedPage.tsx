@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Forwarded optional courierContactNote in onAcceptOrder prop (F3.3.6).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted errand feed page from student-app App.tsx into pages/FeedPage.tsx.
  * Author review: Verified by yanhwee
@@ -20,7 +24,7 @@ interface FeedPageProps {
   ordersError: string | null;
   currentUserId: string | null;
   acceptingOrderId: string | null;
-  onAcceptOrder: (orderId: string) => void;
+  onAcceptOrder: (orderId: string, courierContactNote?: string) => void;
 }
 
 export function FeedPage({

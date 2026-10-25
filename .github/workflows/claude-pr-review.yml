@@ -11,6 +11,16 @@
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
 # Scope: Raised --max-turns from 40 to 1500 at the author's request and updated the comment beside it.
 # Author review: <to be completed by Reallyeasy1>
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+# Scope: Added the CLAUDE_PR_REVIEW_ENABLED repository-variable switch to the job condition, at the author's request.
+# Author review: <to be completed by Reallyeasy1>
+#
+# On/off switch: the repository variable CLAUDE_PR_REVIEW_ENABLED (Settings >
+# Secrets and variables > Actions > Variables, or `gh variable set
+# CLAUDE_PR_REVIEW_ENABLED --body true|false`). The review runs unless the
+# variable is exactly "false", so an unset variable keeps it on. The job is
+# skipped, not failed, while it is off.
 #
 # Automated Claude Code review of pull requests.
 #
@@ -41,8 +51,10 @@ concurrency:
 jobs:
   review:
     name: Claude Code review
-    # Skip drafts (reviewed when marked ready) and fork PRs (no secrets).
+    # Skip when switched off (see the header), drafts (reviewed when marked
+    # ready) and fork PRs (no secrets).
     if: >-
+      vars.CLAUDE_PR_REVIEW_ENABLED != 'false' &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest

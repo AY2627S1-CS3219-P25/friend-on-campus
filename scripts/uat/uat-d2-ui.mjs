@@ -1,4 +1,15 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+// Scope: UO5/UO6 expect the truthful completion and cancellation copy of the author's Notification Redesign (§9).
+// Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Google Antigravity Agent, date: 2026-10-22
+// Scope: Updated UO2 to click the inline Confirm button after clicking Accept Errand on the feed card.
+// Author review: <to be completed by yanhwee>
+//
+// Tool: Google Antigravity Agent, date: 2026-10-21
+// Scope: Added UO1-UO6 student order lifecycle E2E UI checks (post with durationMinutes, accept, pickup, deliver, complete, cancel, and history persistence) and standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (Issue #132).
+// Author review: <to be completed by yanhwee>
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
 // Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).
@@ -24,19 +35,20 @@
 // Run: npx playwright install chromium && npm run test:e2e:ui
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
-// Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;
-// results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
-import { chromium } from 'playwright';
-import { randomUUID } from 'node:crypto';
+// Screenshots go to test-results/screenshots/<check>-<desktop|mobile>.png (or SHOTS);
+// results to test-results/uat-d2-ui-results.json (or UAT_OUT).
 import amqp from 'amqplib';
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 
 const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
-const SHOTS = process.env.SHOTS ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../docs/evidence/d2/screenshots');
+// AI-generated (edited by yanhwee)
+const TEST_RESULTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-results');
+const SHOTS = process.env.SHOTS ?? path.join(TEST_RESULTS_DIR, 'screenshots');
 const PW = 'Password123!';
 const AMQP_URL = process.env.AMQP_URL ?? 'amqp://order_service:order-service-dev@localhost:5672/campus';
 const DESKTOP = { width: 1440, height: 900 };
@@ -446,9 +458,141 @@ const browser = await chromium.launch();
   await ctx.close();
 }
 
+// ============================================================ STUDENT ORDER LIFECYCLE (F3 / ISSUE #132), DESKTOP
+// AI-generated (edited by yanhwee)
+{
+  const aliceCtx = await browser.newContext({ viewport: DESKTOP });
+  const bobCtx = await browser.newContext({ viewport: DESKTOP });
+  const alicePage = await aliceCtx.newPage();
+  const bobPage = await bobCtx.newPage();
+  alicePage.setDefaultTimeout(20000);
+  bobPage.setDefaultTimeout(20000);
+
+  const lifecycleItem = `UAT Lifecycle Matcha ${stamp}`;
+  const cancelItem = `UAT Cancel Errand ${stamp}`;
+  let lifecycleCode = '';
+  let cancelCode = '';
+
+  await step('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
+    await alicePage.goto(`${GW}/`);
+    await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
+    await alicePage.locator('input[type=password]').fill(PW);
+    await alicePage.getByRole('button', { name: 'Log In' }).click();
+    await alicePage.getByRole('button', { name: 'Post' }).first().waitFor();
+    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+
+    await alicePage.locator('select:visible').first().waitFor();
+    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
+    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
+    await alicePage.getByLabel('Reward credits').fill('5');
+    const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
+    if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
+
+    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
+    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    await banner.waitFor({ timeout: 20000 });
+    const bannerText = await banner.innerText();
+    const match = bannerText.match(/(ORD-\w+)/);
+    if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
+    lifecycleCode = match[1];
+
+    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
+    await aliceCard.waitFor();
+    await aliceCard.getByTestId('cancel-order-btn').waitFor();
+    await shot(alicePage, 'student-order-posted-desktop');
+    return `${lifecycleCode} OPEN`;
+  });
+
+  await step('UO2', 'student (desktop): courier accepts the errand on Feed and sees Mark Picked Up in Tasks accepted', async () => {
+    await bobPage.goto(`${GW}/`);
+    await bobPage.locator('input[type=email]').fill('bob@u.nus.edu');
+    await bobPage.locator('input[type=password]').fill(PW);
+    await bobPage.getByRole('button', { name: 'Log In' }).click();
+    await bobPage.getByRole('button', { name: 'Tasks' }).first().waitFor();
+
+    const feedCard = bobPage.locator('div.bg-white', { hasText: lifecycleItem }).first();
+    await feedCard.waitFor();
+    await feedCard.getByRole('button', { name: 'Accept Errand' }).click();
+    await feedCard.getByTestId('confirm-accept-order-btn').click();
+    await bobPage.getByText('Errand accepted! Head to the pickup location.').waitFor();
+
+    await bobPage.getByRole('button', { name: 'Tasks' }).first().click();
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.waitFor();
+    await bobCard.getByTestId('pickup-order-btn').waitFor();
+    await shot(bobPage, 'student-order-accepted-desktop');
+    return `${lifecycleCode} ACCEPTED`;
+  });
+
+  await step('UO3', 'student (desktop): courier clicks Mark Picked Up -> status transitions to IN TRANSIT with Mark Delivered', async () => {
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByTestId('pickup-order-btn').click();
+    await bobCard.getByTestId('deliver-order-btn').waitFor();
+    const txt = await bobCard.innerText();
+    if (!/IN TRANSIT/i.test(txt)) throw new Error(`expected IN TRANSIT on card: ${txt}`);
+    await shot(bobPage, 'student-order-in-transit-desktop');
+    return `${lifecycleCode} IN_TRANSIT`;
+  });
+
+  await step('UO4', 'student (desktop): courier clicks Mark Delivered -> status transitions to DELIVERED', async () => {
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByTestId('deliver-order-btn').click();
+    await bobCard.getByText(/Delivered · Waiting for requester confirmation/i).waitFor();
+    const txt = await bobCard.innerText();
+    if (!/DELIVERED/i.test(txt)) throw new Error(`expected DELIVERED on card: ${txt}`);
+    await shot(bobPage, 'student-order-delivered-desktop');
+    return `${lifecycleCode} DELIVERED`;
+  });
+
+  await step('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
+    await alicePage.getByRole('button', { name: 'Refresh' }).click();
+    const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
+    await aliceCard.getByTestId('complete-order-btn').waitFor();
+    await aliceCard.getByTestId('complete-order-btn').click();
+    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
+    await shot(alicePage, 'student-order-completed-requester-desktop');
+
+    await bobPage.getByRole('button', { name: 'Refresh' }).click();
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByText(/Completed · 5 credits are paid once Credit Service settles the escrow/i).waitFor();
+    await shot(bobPage, 'student-order-completed-courier-desktop');
+    return `${lifecycleCode} COMPLETED in requester + courier history`;
+  });
+
+  await step('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
+    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.locator('select:visible').first().waitFor();
+    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
+    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
+    await alicePage.getByLabel('Reward credits').fill('3');
+    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
+
+    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    await banner.waitFor({ timeout: 20000 });
+    const bannerText = await banner.innerText();
+    const match = bannerText.match(/(ORD-\w+)/);
+    if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
+    cancelCode = match[1];
+
+    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
+    await cancelCard.getByTestId('cancel-order-btn').waitFor();
+    await cancelCard.getByTestId('cancel-order-btn').click();
+    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
+    await shot(alicePage, 'student-order-cancelled-desktop');
+    return `${cancelCode} CANCELLED in requester history`;
+  });
+
+  await aliceCtx.close();
+  await bobCtx.close();
+}
+
 await browser.close();
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} UI checks passed; screenshots in ${SHOTS}`);
-const out = process.env.UAT_OUT ?? path.join(tmpdir(), 'uat-d2-ui-results.json');
+// AI-generated (edited by yanhwee)
+const out = process.env.UAT_OUT ?? path.join(TEST_RESULTS_DIR, 'uat-d2-ui-results.json');
+mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));
 console.log(`results written to ${out}`);
