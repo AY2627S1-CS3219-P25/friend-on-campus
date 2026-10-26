@@ -1,5 +1,11 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+// Scope: UO0 preflight: the requester seed account must still afford the credits UO1 and UO6 reserve; earlier runs
+// drain it, which previously surfaced only as a timeout on Post Errand. PR #194 review: UO1-UO6 are skipped when it
+// fails, the wallet and login responses are checked, the rewards are named constants, one apiLogin helper.
+// Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: UO1-UO6 drive accept, pickup, deliver, confirm delivery and cancel through the errand details page (issues
 // #188, #189): each card is opened via its open-errand-link, the action is clicked on the page, Back returns to the list.
 // Author review: <to be completed by Reallyeasy1>
@@ -65,6 +71,14 @@ const record = (id, name, pass, detail = '') => {
   results.push({ id, name, pass, detail });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${id.padEnd(7)} ${name}${detail ? '  -> ' + detail : ''}`);
 };
+// AI-generated (edited by Reallyeasy1): one API login for the steps that need a token; a failed login names the cause.
+async function apiLogin(email) {
+  const res = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: PW }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success || !body.data?.accessToken) throw new Error(`login ${email} failed: HTTP ${res.status} ${body.error ?? ''}`.trim());
+  return body.data.accessToken;
+}
+
 async function step(id, name, fn) {
   try {
     const detail = await fn();
@@ -402,8 +416,7 @@ const browser = await chromium.launch();
   await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
     await page.getByText('WS Hub: connected').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
     await page.getByRole('button', { name: /^Alerts/ }).first().waitFor();
-    const login = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob@u.nus.edu', password: PW }) });
-    const token = (await login.json()).data.accessToken;
+    const token = await apiLogin('bob@u.nus.edu');
     bobId = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub;
     // Clear anything left from earlier runs through the app itself, so the badge reflects what the app knows.
     await page.getByRole('button', { name: /^Alerts/ }).first().click();
@@ -477,6 +490,8 @@ const browser = await chromium.launch();
   const cancelItem = `UAT Cancel Errand ${stamp}`;
   let lifecycleCode = '';
   let cancelCode = '';
+  const LIFECYCLE_REWARD = 5;
+  const CANCEL_REWARD = 3;
 
   // AI-generated (edited by Reallyeasy1): the errand details page (#188) owns the actions; cards only link to it.
   const openErrand = async (page, card) => {
@@ -489,7 +504,31 @@ const browser = await chromium.launch();
     await page.getByTestId('errand-details').waitFor({ state: 'detached' });
   };
 
-  await step('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
+  // AI-generated (edited by Reallyeasy1): earlier runs leave escrows behind, so the requester may no longer afford
+  // the credits UO1 and UO6 reserve; say so here, and skip UO1-UO6 rather than let them time out on Post Errand.
+  const needed = LIFECYCLE_REWARD + CANCEL_REWARD;
+  let lifecycleBlocked = null;
+  await step('UO0', `preflight: requester seed account can afford the lifecycle errands (${needed} credits)`, async () => {
+    try {
+      const token = await apiLogin('alice@u.nus.edu');
+      const res = await fetch(`${GW}/api/credits/wallet`, { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success || typeof body.data?.availableCredits !== 'number') throw new Error(`wallet read failed: HTTP ${res.status} ${body.error ?? ''}`.trim());
+      const available = body.data.availableCredits;
+      // db:seed keeps existing balances (credit-service seed.ts), so re-seeding cannot refill a drained account.
+      if (available < needed) throw new Error(`alice has ${available} credits, needs ${needed}: top the account up or reset credit_db (db:seed keeps existing balances)`);
+      return `${available} credits available`;
+    } catch (e) {
+      lifecycleBlocked = e.message;
+      throw e;
+    }
+  });
+  const lifecycleStep = (id, name, fn) => step(id, name, async () => {
+    if (lifecycleBlocked) throw new Error(`skipped after UO0: ${lifecycleBlocked}`);
+    return fn();
+  });
+
+  await lifecycleStep('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
     await alicePage.goto(`${GW}/`);
     await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
     await alicePage.locator('input[type=password]').fill(PW);
@@ -500,7 +539,7 @@ const browser = await chromium.launch();
     await alicePage.locator('select:visible').first().waitFor();
     await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
     await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
-    await alicePage.getByLabel('Reward credits').fill('5');
+    await alicePage.getByLabel('Reward credits').fill(String(LIFECYCLE_REWARD));
     const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
     if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
 
@@ -524,7 +563,7 @@ const browser = await chromium.launch();
     return `${lifecycleCode} OPEN`;
   });
 
-  await step('UO2', 'student (desktop): courier accepts the errand on Feed and sees Mark Picked Up in Tasks accepted', async () => {
+  await lifecycleStep('UO2', 'student (desktop): courier accepts the errand on Feed and sees Mark Picked Up in Tasks accepted', async () => {
     await bobPage.goto(`${GW}/`);
     await bobPage.locator('input[type=email]').fill('bob@u.nus.edu');
     await bobPage.locator('input[type=password]').fill(PW);
@@ -549,7 +588,7 @@ const browser = await chromium.launch();
     return `${lifecycleCode} ACCEPTED`;
   });
 
-  await step('UO3', 'student (desktop): courier clicks Mark Picked Up -> status transitions to IN TRANSIT with Mark Delivered', async () => {
+  await lifecycleStep('UO3', 'student (desktop): courier clicks Mark Picked Up -> status transitions to IN TRANSIT with Mark Delivered', async () => {
     const details = bobPage.getByTestId('errand-details');
     await details.getByTestId('pickup-order-btn').click();
     await details.getByTestId('deliver-order-btn').waitFor();
@@ -559,7 +598,7 @@ const browser = await chromium.launch();
     return `${lifecycleCode} IN_TRANSIT`;
   });
 
-  await step('UO4', 'student (desktop): courier clicks Mark Delivered -> status transitions to DELIVERED', async () => {
+  await lifecycleStep('UO4', 'student (desktop): courier clicks Mark Delivered -> status transitions to DELIVERED', async () => {
     const details = bobPage.getByTestId('errand-details');
     await details.getByTestId('deliver-order-btn').click();
     await details.getByText(/Delivered · Waiting for requester confirmation/i).waitFor();
@@ -569,13 +608,13 @@ const browser = await chromium.launch();
     return `${lifecycleCode} DELIVERED`;
   });
 
-  await step('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
+  await lifecycleStep('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
     await alicePage.getByRole('button', { name: 'Refresh' }).click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
     await aliceCard.getByText(/Delivered · Review and confirm/i).waitFor();
     const aliceDetails = await openErrand(alicePage, aliceCard);
     await aliceDetails.getByTestId('complete-order-btn').click();
-    await aliceDetails.getByText(/5 credits paid to the courier once Credit Service settles the escrow/i).first().waitFor(); // timeline row and reward chip both say it
+    await aliceDetails.getByText(new RegExp(`${LIFECYCLE_REWARD} credits paid to the courier once Credit Service settles the escrow`, 'i')).first().waitFor(); // timeline row and reward chip both say it
     await shot(alicePage, 'student-order-completed-requester-desktop');
     await backFromErrand(alicePage);
     await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
@@ -583,17 +622,17 @@ const browser = await chromium.launch();
     await backFromErrand(bobPage);
     await bobPage.getByRole('button', { name: 'Refresh' }).click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
-    await bobCard.getByText(/Completed · 5 credits are paid once Credit Service settles the escrow/i).waitFor();
+    await bobCard.getByText(new RegExp(`Completed · ${LIFECYCLE_REWARD} credits are paid once Credit Service settles the escrow`, 'i')).waitFor();
     await shot(bobPage, 'student-order-completed-courier-desktop');
     return `${lifecycleCode} COMPLETED in requester + courier history`;
   });
 
-  await step('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
+  await lifecycleStep('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
     await alicePage.getByRole('button', { name: 'Post' }).first().click();
     await alicePage.locator('select:visible').first().waitFor();
     await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
     await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
-    await alicePage.getByLabel('Reward credits').fill('3');
+    await alicePage.getByLabel('Reward credits').fill(String(CANCEL_REWARD));
     await alicePage.getByRole('button', { name: 'Post Errand' }).click();
 
     const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
