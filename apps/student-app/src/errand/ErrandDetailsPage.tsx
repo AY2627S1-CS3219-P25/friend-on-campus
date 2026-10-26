@@ -57,17 +57,21 @@ function Card({ children, testId, className = '' }: { children: ReactNode; testI
 }
 
 /** The person on the other side of the errand: role and contact note only (author's option 1: no names). */
-function Participant({ order, role }: { order: OrderDTO; role: Role }) {
+function Participant({ order, role, hadCourier }: { order: OrderDTO; role: Role; hadCourier: boolean }) {
   const courierSide = role === 'requester' || role === 'other';
   const ended = endState(order);
-  const title = courierSide ? (order.courierId ? 'Your courier' : ended ? 'No courier' : 'No courier yet') : 'Requester';
+  // A drop clears the Order's courier fields; the retained chat conversation is the sign a courier once accepted.
+  const dropped = !order.courierId && hadCourier;
+  const title = courierSide ? (order.courierId ? 'Your courier' : dropped ? 'Courier dropped out' : ended ? 'No courier' : 'No courier yet') : 'Requester';
   const note = courierSide ? order.courierContactNote : order.requesterContactNote;
   const meta = courierSide
     ? order.courierId
       ? `Accepted ${order.acceptedAt ? dateTimeOf(order.acceptedAt) : 'this errand'}`
-      : ended
-        ? `Nobody accepted before it was ${ended.label.toLowerCase()}`
-        : role === 'other' ? 'Accept to become the courier' : 'Waiting for a student to accept'
+      : dropped
+        ? ended ? `A courier accepted, then dropped it before it was ${ended.label.toLowerCase()}` : 'A courier accepted, then dropped it; back on the feed'
+        : ended
+          ? `Nobody accepted before it was ${ended.label.toLowerCase()}`
+          : role === 'other' ? 'Accept to become the courier' : 'Waiting for a student to accept'
     : `Posted ${dateTimeOf(order.createdAt)}`;
   return (
     <Card className="p-4 flex items-center gap-3" testId="participant-card">
@@ -392,7 +396,7 @@ export function ErrandDetailsPage({ orderId, result, currentUserId, chat, onBack
           {/* Left column: who, what, where it stands. */}
           <div className="space-y-3">
             {order.status === 'OPEN' && <Countdown expiresAt={order.expiresAt} />}
-            <Participant order={order} role={role} />
+            <Participant order={order} role={role} hadCourier={Boolean(chat.threads[order.id]?.conversation)} />
             <Timeline order={order} role={role} />
             <ItemCard order={order} />
           </div>
