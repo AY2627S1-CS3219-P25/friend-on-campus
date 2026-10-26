@@ -5264,3 +5264,18 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 19:40 SGT — Workflow fixes from the stranded-entry review; issue #193 and pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/usage-log-merges
+
+**Prompt (summarised):** "ok please work on this" — apply the improvements suggested in the previous reply and open the pull request.
+
+**Usage scenario:** Documentation improvements, implementation code in a test script, and Git/GitHub operations at the author's explicit request (CLAUDE.md section 1). Issue #193 created (a retry in a different command form succeeded). CLAUDE.md gains three rules the author had just seen bite: a merge prompt's log entry is committed on the feature branch before merging; review-thread replies are posted in the fix prompt; editor windows are closed before a worktree is removed. The UAT script gains a UO0 preflight that reads the requester seed account's wallet and fails with a re-seed hint when it holds under 8 credits (UO1 reserves 5, UO6 reserves 3), replacing the earlier silent timeout on Post Errand. Verified: `node --check` and `npx eslint` on the script pass; a throwaway probe of the wallet call as the requester returned 200 with 8 available and 29 in escrow from earlier runs. The full UAT was not re-run. Committed on `docs/usage-log-merges`, pushed, PR opened against `main` closing #193.
+
+**Files changed:**
+- `CLAUDE.md` — section 2 merge-prompt rule; section 6 thread-reply and worktree rules; disclosure record.
+- `scripts/uat/uat-d2-ui.mjs` — UO0 preflight step; disclosure record.
+- `ai/usage-log.md` — this entry

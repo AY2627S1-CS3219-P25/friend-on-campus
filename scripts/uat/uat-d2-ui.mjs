@@ -1,5 +1,10 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+// Scope: UO0 preflight: the requester seed account must still afford the 8 credits UO1 and UO6 reserve; earlier runs
+// drain it, which previously surfaced only as a timeout on Post Errand.
+// Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: UO1-UO6 drive accept, pickup, deliver, confirm delivery and cancel through the errand details page (issues
 // #188, #189): each card is opened via its open-errand-link, the action is clicked on the page, Back returns to the list.
 // Author review: <to be completed by Reallyeasy1>
@@ -488,6 +493,17 @@ const browser = await chromium.launch();
     await page.getByTestId('errand-back-btn').click();
     await page.getByTestId('errand-details').waitFor({ state: 'detached' });
   };
+
+  // AI-generated (edited by Reallyeasy1): earlier runs leave escrows behind, so the requester may no longer afford
+  // the 5 + 3 credits UO1 and UO6 reserve; say so here instead of timing out on Post Errand.
+  await step('UO0', 'preflight: requester seed account can afford the lifecycle errands (8 credits)', async () => {
+    const login = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'alice@u.nus.edu', password: PW }) });
+    const token = (await login.json()).data.accessToken;
+    const wallet = await fetch(`${GW}/api/credits/wallet`, { headers: { Authorization: `Bearer ${token}` } });
+    const available = (await wallet.json()).data?.availableCredits ?? 0;
+    if (available < 8) throw new Error(`alice has ${available} credits, needs 8: re-seed with npm run db:seed -w @campus-errand/credit-service`);
+    return `${available} credits available`;
+  });
 
   await step('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
     await alicePage.goto(`${GW}/`);
