@@ -7,6 +7,10 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted errand feed page from student-app App.tsx into pages/FeedPage.tsx.
  * Author review: Verified by yanhwee
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Errand details page (issues #188, #189): feed cards open the errand's page; the accept props left this file.
+ * Author review: <to be completed by Reallyeasy1>
  */
 
 // AI-generated (edited by yanhwee)
@@ -23,8 +27,8 @@ interface FeedPageProps {
   ordersLoading: boolean;
   ordersError: string | null;
   currentUserId: string | null;
-  acceptingOrderId: string | null;
-  onAcceptOrder: (orderId: string, courierContactNote?: string) => void;
+  /** Opens the errand's details page (#188), which carries Accept. */
+  onOpenErrand: (orderId: string) => void;
 }
 
 export function FeedPage({
@@ -34,8 +38,7 @@ export function FeedPage({
   ordersLoading,
   ordersError,
   currentUserId,
-  acceptingOrderId,
-  onAcceptOrder,
+  onOpenErrand,
 }: FeedPageProps) {
   return (
     <div className="space-y-4">
@@ -76,8 +79,7 @@ export function FeedPage({
             key={order.id}
             order={order}
             currentUserId={currentUserId}
-            acceptingOrderId={acceptingOrderId}
-            onAcceptOrder={onAcceptOrder}
+            onOpenErrand={onOpenErrand}
           />
         ))}
       </div>

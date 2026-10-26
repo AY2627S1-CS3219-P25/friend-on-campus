@@ -5030,3 +5030,28 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 05:40 SGT — Errand details page (issues #188, #189): plan, implementation, verification
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-page (worktree `../foc-details`, based on feature/chat-service fe1327f)
+
+**Prompt (summarised):** "ok i would like you to work on this first" — implement the errand details page issues (#188 page, #189 actions) from the design approved in conversation.
+
+**Usage scenario:** Implementation code once the author finalised the design (CLAUDE.md section 1): the author decided the page content, that the page owns every status action including Accept, option 1 (contact notes, no names), and approved the plan's scope. Calls stated as mine: no router (existing `?tab=&orderId=` deep link pushed with `history.pushState`), file layout under `src/errand/`, cards as stretched footer links, and, after the reviewer agent's finding, contact notes shown to participants only (flagged for the author in the PR body draft). One `reviewer` agent pass (read-only) was used; its two high findings (Show more opened the page, nav dead while the page was open) and the low ones were fixed. Left to the author: review, commit and push, open the PR (body drafted at the scratchpad path given in chat), the contact-note gate, and the plan file's framing. Verification run: `npm run typecheck` (all workspaces), `npm run lint`, `npm run ci:validate-tests`, student-app `test:unit` (17 pass, 8 new), browser UAT `scripts/uat/uat-d2-ui.mjs` 40/40 on the final build (last run with the two seed logins swapped because `alice` had 3 credits left, below the 5 the lifecycle errand reserves; the committed script is unchanged), plus throwaway Playwright checks for Back / scroll restore / refresh / Alerts / 390 px / Show more (not committed). The student-app container was rebuilt from the worktree into the running Compose stack for these runs.
+
+**Files changed:**
+- `apps/student-app/src/errand/details.ts` — new: pure helpers (tracker steps, end state, escrow state and copy, viewer role, countdown, conversation rule, status badge classes).
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — new: the page (header, tracker, countdown, sections, other side's contact note, embedded chat, actions gated by status and role, error with reload).
+- `apps/student-app/src/App.tsx` — open/close/reload of the page over the active tab, `pushState` + `popstate`, scroll and return-tab restore, nav tabs leave the page, `actionError` separate from `ordersError`, page state cleared on logout; FeedPage/TasksPage props updated.
+- `apps/student-app/src/pages/TasksPage.tsx` — cards are summaries with a stretched "View details" link; action buttons, chat toggle and focus panel removed; status badge classes moved to `errand/details.ts`.
+- `apps/student-app/src/components/ErrandCard.tsx` — feed card is a summary with a stretched link; accept confirm step removed.
+- `apps/student-app/src/pages/FeedPage.tsx` — `onOpenErrand` instead of the accept props.
+- `apps/student-app/src/components/ExpandableNotes.tsx` — Show more button raised above a card's stretched link.
+- `apps/student-app/test/errand-details.test.ts` — new: 8 unit tests for the helpers.
+- `apps/student-app/package.json` — `test:unit` registers the new test file (JSON, no disclosure header; `ci:validate-tests` passes).
+- `scripts/uat/uat-d2-ui.mjs` — UO1–UO6 act through the page.
+- `docs/superpowers/plans/2026-10-26-errand-details-page.md` — new: implementation plan from the approved design.
+- `docs/README.md` — inventory row for the plan.
+- `ai/usage-log.md` — this entry

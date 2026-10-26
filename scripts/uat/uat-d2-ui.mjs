@@ -1,4 +1,9 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+// Scope: UO1-UO6 drive accept, pickup, deliver, confirm delivery and cancel through the errand details page (issues
+// #188, #189): each card is opened via its open-errand-link, the action is clicked on the page, Back returns to the list.
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
 // Scope: UO5/UO6 expect the truthful completion and cancellation copy of the author's Notification Redesign (§9).
 // Author review: <to be completed by Reallyeasy1>
@@ -473,6 +478,17 @@ const browser = await chromium.launch();
   let lifecycleCode = '';
   let cancelCode = '';
 
+  // AI-generated (edited by Reallyeasy1): the errand details page (#188) owns the actions; cards only link to it.
+  const openErrand = async (page, card) => {
+    await card.getByTestId('open-errand-link').click();
+    await page.getByTestId('status-tracker').waitFor();
+    return page.getByTestId('errand-details');
+  };
+  const backFromErrand = async (page) => {
+    await page.getByTestId('errand-back-btn').click();
+    await page.getByTestId('errand-details').waitFor({ state: 'detached' });
+  };
+
   await step('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
     await alicePage.goto(`${GW}/`);
     await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
@@ -499,8 +515,12 @@ const browser = await chromium.launch();
     await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
     await aliceCard.waitFor();
-    await aliceCard.getByTestId('cancel-order-btn').waitFor();
+    const details = await openErrand(alicePage, aliceCard);
+    await details.getByTestId('cancel-order-btn').waitFor();
+    await details.getByTestId('expiry-countdown').waitFor();
     await shot(alicePage, 'student-order-posted-desktop');
+    await backFromErrand(alicePage);
+    await aliceCard.waitFor();
     return `${lifecycleCode} OPEN`;
   });
 
@@ -511,36 +531,40 @@ const browser = await chromium.launch();
     await bobPage.getByRole('button', { name: 'Log In' }).click();
     await bobPage.getByRole('button', { name: 'Tasks' }).first().waitFor();
 
-    const feedCard = bobPage.locator('div.bg-white', { hasText: lifecycleItem }).first();
+    const feedCard = bobPage.locator('article', { hasText: lifecycleItem }).first();
     await feedCard.waitFor();
-    await feedCard.getByRole('button', { name: 'Accept Errand' }).click();
-    await feedCard.getByTestId('confirm-accept-order-btn').click();
+    const feedDetails = await openErrand(bobPage, feedCard);
+    await feedDetails.getByTestId('accept-order-btn').click();
+    await feedDetails.getByTestId('confirm-accept-order-btn').click();
     await bobPage.getByText('Errand accepted! Head to the pickup location.').waitFor();
+    await feedDetails.getByTestId('pickup-order-btn').waitFor();
+    await backFromErrand(bobPage);
 
     await bobPage.getByRole('button', { name: 'Tasks' }).first().click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
     await bobCard.waitFor();
-    await bobCard.getByTestId('pickup-order-btn').waitFor();
+    const details = await openErrand(bobPage, bobCard);
+    await details.getByTestId('pickup-order-btn').waitFor();
     await shot(bobPage, 'student-order-accepted-desktop');
     return `${lifecycleCode} ACCEPTED`;
   });
 
   await step('UO3', 'student (desktop): courier clicks Mark Picked Up -> status transitions to IN TRANSIT with Mark Delivered', async () => {
-    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
-    await bobCard.getByTestId('pickup-order-btn').click();
-    await bobCard.getByTestId('deliver-order-btn').waitFor();
-    const txt = await bobCard.innerText();
-    if (!/IN TRANSIT/i.test(txt)) throw new Error(`expected IN TRANSIT on card: ${txt}`);
+    const details = bobPage.getByTestId('errand-details');
+    await details.getByTestId('pickup-order-btn').click();
+    await details.getByTestId('deliver-order-btn').waitFor();
+    const txt = await details.innerText();
+    if (!/IN TRANSIT/i.test(txt)) throw new Error(`expected IN TRANSIT on the page: ${txt}`);
     await shot(bobPage, 'student-order-in-transit-desktop');
     return `${lifecycleCode} IN_TRANSIT`;
   });
 
   await step('UO4', 'student (desktop): courier clicks Mark Delivered -> status transitions to DELIVERED', async () => {
-    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
-    await bobCard.getByTestId('deliver-order-btn').click();
-    await bobCard.getByText(/Delivered · Waiting for requester confirmation/i).waitFor();
-    const txt = await bobCard.innerText();
-    if (!/DELIVERED/i.test(txt)) throw new Error(`expected DELIVERED on card: ${txt}`);
+    const details = bobPage.getByTestId('errand-details');
+    await details.getByTestId('deliver-order-btn').click();
+    await details.getByText(/Delivered · Waiting for requester confirmation/i).waitFor();
+    const txt = await details.innerText();
+    if (!/DELIVERED/i.test(txt)) throw new Error(`expected DELIVERED on the page: ${txt}`);
     await shot(bobPage, 'student-order-delivered-desktop');
     return `${lifecycleCode} DELIVERED`;
   });
@@ -548,11 +572,15 @@ const browser = await chromium.launch();
   await step('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
     await alicePage.getByRole('button', { name: 'Refresh' }).click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
-    await aliceCard.getByTestId('complete-order-btn').waitFor();
-    await aliceCard.getByTestId('complete-order-btn').click();
-    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
+    await aliceCard.getByText(/Delivered · Review and confirm/i).waitFor();
+    const aliceDetails = await openErrand(alicePage, aliceCard);
+    await aliceDetails.getByTestId('complete-order-btn').click();
+    await aliceDetails.getByText(/5 credits paid to the courier once Credit Service settles the escrow/i).waitFor();
     await shot(alicePage, 'student-order-completed-requester-desktop');
+    await backFromErrand(alicePage);
+    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
 
+    await backFromErrand(bobPage);
     await bobPage.getByRole('button', { name: 'Refresh' }).click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
     await bobCard.getByText(/Completed · 5 credits are paid once Credit Service settles the escrow/i).waitFor();
@@ -577,10 +605,13 @@ const browser = await chromium.launch();
 
     await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
     const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
-    await cancelCard.getByTestId('cancel-order-btn').waitFor();
-    await cancelCard.getByTestId('cancel-order-btn').click();
-    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
+    await cancelCard.waitFor();
+    const cancelDetails = await openErrand(alicePage, cancelCard);
+    await cancelDetails.getByTestId('cancel-order-btn').click();
+    await cancelDetails.getByTestId('end-state').getByText(/Cancelled/i).waitFor();
     await shot(alicePage, 'student-order-cancelled-desktop');
+    await backFromErrand(alicePage);
+    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
     return `${cancelCode} CANCELLED in requester history`;
   });
 

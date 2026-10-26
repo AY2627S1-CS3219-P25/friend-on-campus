@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+Scope: Inventory row for the errand details page implementation plan (docs/superpowers/plans/, issues #188 and #189).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Chat row now links the new chat-service README and D4 specification (PR #148 head f39ab1f, pending); two inventory rows added.
 Author review: <to be completed by Reallyeasy1>
@@ -94,6 +98,7 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 | [services/user-service/README.md](services/user-service/README.md) | User Service implementation |
 | [services/user-service/contracts-and-data.md](services/user-service/contracts-and-data.md) | User contracts and data |
 | [services/user-service/runtime-and-testing.md](services/user-service/runtime-and-testing.md) | User runtime, failure behavior and tests |
+| [superpowers/plans/2026-10-26-errand-details-page.md](superpowers/plans/2026-10-26-errand-details-page.md) | Implementation plan for the student-app errand details page (issues #188, #189; author-approved design of 2026-10-26, not a specification) |
 
 ## Maintenance and pending work
 
