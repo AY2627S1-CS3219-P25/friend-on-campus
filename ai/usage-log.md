@@ -5031,6 +5031,56 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - `ai/usage-log.md` — this entry
 
+## 2026-10-26 02:36 SGT — PR #148 second review round: the four unresolved findings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Look at PR #148 and address its code reviews.
+
+**Usage scenario:** Debugging assistance and implementation code under the author's existing design (CLAUDE.md section 1). Verified each of the four unresolved inline findings from the 2026-10-25 review against the code before changing anything; the seven resolved threads were left alone. Fixes stay inside the existing schema and contracts: no new columns, DTO changes or dependencies. Left for the author: review of the fixes, posting the thread replies, committing and pushing, and running the PostgreSQL integration suite (Docker was not running here, so `test:integration` was not executed; `npm run typecheck`, `npm run lint`, `npm run ci:validate-tests`, chat-service `test:unit` (36 pass) and student-app `test:unit` (11 pass) were run and pass).
+
+**Files changed:**
+- `services/chat-service/src/conversations/store.ts` — upsertAccepted re-runs its courierSince guard when the row it finds was inserted concurrently and is older than this accept (instead of reporting `ignored`); a supplied closedAt (terminal Order fallback) is applied set-once to an existing row via close().
+- `services/chat-service/src/config.ts` — loads the service-local and repository-root `.env` like notification-service; honours `CHAT_DATABASE_URL` and `CHAT_SERVICE_PORT`.
+- `apps/student-app/src/chat/useChat.ts` — `ChatThread.loadedThrough` coverage cursor (contiguous fetched history, extended by contiguous live frames); every AUTH_OK, the first included, reloads loaded or in-flight threads from that cursor; `mergeMessage` and new `coveredThrough` exported for tests.
+- `services/chat-service/test/helpers.ts` — in-memory store applies closedAt set-once on an existing row, mirroring the Prisma store.
+- `services/chat-service/test/store.test.ts` — new: scripted-Prisma regressions for the concurrent first insert, the ignored replay, and closedAt on an existing row.
+- `services/chat-service/test/service.test.ts` — regression: terminal fallback racing an accept event that creates the row returns a closed conversation and later sends are refused.
+- `services/chat-service/test/store.integration.test.ts` — PostgreSQL case for closedAt applied set-once to an existing row (not executed here: Docker unavailable).
+- `services/chat-service/test/config.test.ts` — new: config falls back to CHAT_DATABASE_URL and CHAT_SERVICE_PORT.
+- `apps/student-app/test/chat.test.ts` — new: coverage-cursor regression for REST [1], peer sends 2 before the first AUTH_OK, live 3.
+- `services/chat-service/package.json`, `apps/student-app/package.json` — new test files added to `test:unit` (JSON, no disclosure header; `npm run ci:validate-tests` passes).
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 02:50 SGT — Deploy the review fixes on Docker Desktop
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok deploy on docker desktop" (after the PR #148 second-round review fixes).
+
+**Usage scenario:** Debugging/verification assistance (CLAUDE.md section 1). Confirmed the Docker engine was up, rebuilt the chat-service and student-app images (`docker compose up -d --build chat-service student-app`), started the rest of the stack, waited for health (all 11 health-checked containers healthy; chat-service applied migration 20261025000000_courier_since on startup), probed the gateway and /ready, and ran the chat-service PostgreSQL integration suite against the Compose database (7 pass, including the new set-once closedAt case). No source files changed; nothing committed or pushed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 03:20 SGT — Errand details page: design conversation and GitHub issues #188, #189
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Plan an order/task details page for the student app first, then add it as GitHub issues.
+
+**Usage scenario:** Requirements work, interpreting and formatting (CLAUDE.md section 1), and GitHub issue creation at the author's explicit request. The author decided the content (Grab-style order page: status tracker with timestamps, countdown, pickup/dropoff/item/credits sections, embedded chat), that the page owns every status action including Accept from the Feed, and chose option 1 (contact notes, no names) for the other party. Declined the author's request to make and justify the choice between the three ways of showing the other party's name (data schema / interface decision and trade-off analysis are not allowed); listed the facts from the code for each option instead. One call made and stated as mine: no router, the page reuses the existing `?tab=&orderId=` deep link with `history.pushState`. No priority, milestone or ordering set; only the `enhancement` label. No code written.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) issue #188 — `[UI] Errand details page: full view of one errand opened from Feed and Tasks cards`, criteria DP1.1–DP1.8
+- (GitHub) issue #189 — `[UI] Errand status actions move onto the details page; cards become summaries`, criteria DP2.1–DP2.6
 ## 2026-10-26 05:40 SGT — Errand details page (issues #188, #189): plan, implementation, verification
 
 **Tool:** Claude Code (model: Claude Fable 5.1)

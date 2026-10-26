@@ -12,6 +12,12 @@
  * already takes, refuses a closed conversation or a non-participant there, and returns the recipients from that
  * locked state.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Review fixes (PR #148, second round): upsertAccepted re-runs its guard when the row it finds was inserted
+ * concurrently and is older than this accept, and applies a supplied closedAt (the terminal Order fallback) to an
+ * existing row set-once, so a fallback racing an event-created row does not leave it open.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import type { PrismaClient } from '../database/client';
@@ -74,7 +80,8 @@ export interface ConversationStore {
   findByOrderId(orderId: string): Promise<ConversationRow | null>;
   /**
    * Creates the row, or on a later accept replaces the courier (S1 answer 2). An accept whose timestamp is not after
-   * courierSince is ignored, so a redelivered or older event cannot restore a former courier. closedAt is left as it is.
+   * courierSince is ignored, so a redelivered or older event cannot restore a former courier. A supplied closedAt
+   * (the terminal Order fallback) is applied set-once to a new or an existing row; otherwise closedAt is left as it is.
    */
   upsertAccepted(conversation: NewConversation): Promise<UpsertResult>;
   /** Each returns false when no row exists (S3 answer 3: ignored) or the timestamp was already set. */
@@ -140,34 +147,43 @@ export function createConversationStore(prisma: PrismaClient): ConversationStore
 
     async upsertAccepted(conversation) {
       const at = new Date(conversation.createdAt);
+      const where = { orderId: conversation.orderId };
       // An existing row changes courier only for an accept newer than the one recorded (P1: no replay rollback).
       const updated = await prisma.conversation.updateMany({
-        where: { orderId: conversation.orderId, courierSince: { lt: at } },
+        where: { ...where, courierSince: { lt: at } },
         data: { courierId: conversation.courierId, courierSince: at },
       });
+      let outcome: UpsertResult['outcome'] = 'recouriered';
       if (updated.count === 0) {
-        const existing = await prisma.conversation.findUnique({ where: { orderId: conversation.orderId } });
-        if (existing) return { conversation: toConversationRow(existing), outcome: 'ignored' };
-        try {
-          const created = await prisma.conversation.create({
-            data: {
-              orderId: conversation.orderId,
-              requesterId: conversation.requesterId,
-              courierId: conversation.courierId,
-              courierSince: at,
-              createdAt: at,
-              closedAt: conversation.closedAt ? new Date(conversation.closedAt) : null,
-            },
-          });
-          return { conversation: toConversationRow(created), outcome: 'created' };
-        } catch (error) {
-          // Two first accepts for one order raced on the unique order id; the other one won, so apply this one as an update.
-          if (!(error instanceof Error && 'code' in error && (error as { code?: string }).code === 'P2002')) throw error;
-          return this.upsertAccepted(conversation);
+        const existing = await prisma.conversation.findUnique({ where });
+        if (!existing) {
+          try {
+            const created = await prisma.conversation.create({
+              data: {
+                ...where,
+                requesterId: conversation.requesterId,
+                courierId: conversation.courierId,
+                courierSince: at,
+                createdAt: at,
+                closedAt: conversation.closedAt ? new Date(conversation.closedAt) : null,
+              },
+            });
+            return { conversation: toConversationRow(created), outcome: 'created' };
+          } catch (error) {
+            // Two first accepts for one order raced on the unique order id; the other one won, so apply this one as an update.
+            if (!(error instanceof Error && 'code' in error && (error as { code?: string }).code === 'P2002')) throw error;
+            return this.upsertAccepted(conversation);
+          }
         }
+        // No match can also mean the row was inserted between the UPDATE and this read; if that row is older than this
+        // accept the guard has not been applied yet, so run it again instead of reporting a replay.
+        if (existing.courierSince < at) return this.upsertAccepted(conversation);
+        outcome = 'ignored';
       }
-      const row = await prisma.conversation.findUniqueOrThrow({ where: { orderId: conversation.orderId } });
-      return { conversation: toConversationRow(row), outcome: 'recouriered' };
+      // The terminal fallback's closure applies even when an event created the row meanwhile (set-once, like close()).
+      if (conversation.closedAt) await this.close(conversation.orderId, conversation.closedAt);
+      const row = await prisma.conversation.findUniqueOrThrow({ where });
+      return { conversation: toConversationRow(row), outcome };
     },
 
     async markPickedUp(orderId, at) {

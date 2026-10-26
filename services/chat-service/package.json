@@ -8,7 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
-    "test:unit": "node --import tsx --test test/app.test.ts test/events.test.ts test/service.test.ts test/hub.test.ts test/routes.test.ts",
+    "test:unit": "node --import tsx --test test/app.test.ts test/config.test.ts test/events.test.ts test/service.test.ts test/store.test.ts test/hub.test.ts test/routes.test.ts",
     "test:integration": "node --import tsx --test test/store.integration.test.ts",
     "test:messaging": "node --import tsx --test test/messaging.integration.test.ts",
     "build": "tsc",

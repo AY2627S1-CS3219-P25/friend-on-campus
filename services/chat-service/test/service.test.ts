@@ -11,6 +11,11 @@
  * Scope: Review fixes (PR #148 P1, P2): regressions for a close or re-courier committed between send's pre-check and
  * the append (racingStore), and for accept A, accept B, replay A keeping only B authorised.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Review fix (PR #148, second round): a terminal Order fallback whose row is created by an accept event during
+ * the lookup still returns a closed conversation and later sends are refused.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -176,4 +181,23 @@ test('P1: after accept A, accept B and a replay of A, only B may read and send',
   assert.equal((await service.send(ORDER, principal(BOB), 'back?')).kind, 'forbidden');
   assert.equal((await service.history(ORDER, principal(CAROL), { afterSequence: 0, limit: 10 })).kind, 'found', 'Carol keeps access');
   assert.equal((await service.send(ORDER, principal(CAROL, { username: 'carol' }), 'still me')).kind, 'sent');
+});
+
+test('P2: a terminal fallback racing an accept event that creates the row still closes it, and later sends are refused', async () => {
+  const { store, conversations } = memoryStore();
+  const completed: OrderLookupResult = { ...accepted, order: { ...accepted.order, status: 'COMPLETED', completedAt: '2026-10-20T06:00:00.000Z' } };
+  // The Order lookup is where the delayed order.accepted lands: open saw no row, the event creates one, open continues.
+  const orders: OrderClient = {
+    async getOrder() {
+      await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+      return completed;
+    },
+  };
+  const service = createConversationService({ store, orders });
+  const opened = await service.open(ORDER, principal(ALICE), TOKEN);
+  assert.equal(opened.kind, 'found');
+  assert.equal(opened.kind === 'found' && opened.conversation.closedAt, '2026-10-20T06:00:00.000Z', 'F8.3.2: read-only from the fallback');
+  assert.equal(conversations.get(ORDER)?.closedAt, '2026-10-20T06:00:00.000Z', 'the row itself is closed, not just the response');
+  assert.equal((await service.send(ORDER, principal(ALICE), 'too late')).kind, 'closed');
+  assert.equal((await service.send(ORDER, principal(BOB), 'too late')).kind, 'closed');
 });
