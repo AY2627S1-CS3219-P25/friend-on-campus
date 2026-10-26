@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Multi-client UAT finding: no courier alert exists for a newly posted errand, so the Feed polls quietly (no
+ * loading state) every 15 s while it is on screen and when the tab becomes visible again.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
  * Author review: <to be completed by Reallyeasy1>
@@ -102,6 +107,9 @@ import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
 import { TasksPage } from './pages/TasksPage';
 import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
+
+/** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
+const FEED_POLL_MS = 15_000;
 
 // AI-generated (edited by Reallyeasy1)
 // Deep link a notification can open: /?tab=tasks&orderId=<id>. Read once; the app stays tab-based otherwise.
@@ -345,16 +353,23 @@ export default function App() {
     };
   }, [isAuthenticated, activeTab]);
 
-  const fetchOrders = async () => {
+  // AI-generated (edited by Reallyeasy1): a quiet reload keeps the list on screen (no "Loading errands…", no error
+  // banner) for polls, and a list that started before a local change (accept, pickup, …) is dropped as stale so it
+  // cannot overwrite that change (PR #196 review).
+  const ordersMutatedAt = useRef(0);
+  const fetchOrders = async (quiet = false) => {
     const requestId = ++orderRequestId.current;
-    setOrdersLoading(true);
-    setOrdersError(null);
+    const startedAt = Date.now();
+    if (!quiet) {
+      setOrdersLoading(true);
+      setOrdersError(null);
+    }
     try {
       const combined = await fetchCombinedOrders(authFetch);
-      if (requestId !== orderRequestId.current) return;
+      if (requestId !== orderRequestId.current || ordersMutatedAt.current >= startedAt) return;
       setOrders(combined);
     } catch {
-      if (requestId === orderRequestId.current) {
+      if (!quiet && requestId === orderRequestId.current) {
         setOrdersError('Unable to load errands. Please try again.');
       }
     } finally {
@@ -371,6 +386,21 @@ export default function App() {
       requests.current++;
     };
   }, [currentUserId, activeTab]);
+
+  // AI-generated (edited by Reallyeasy1): couriers get no alert when an errand is posted (Notification Service's
+  // order.created goes to the requester only), so the Feed polls while it is on screen and the tab is visible.
+  // ponytail: a 15 s poll of the two list calls; a courier-side push would need a new notification recipient.
+  const feedOnScreen = Boolean(currentUserId) && !focusOrderId && activeTab === 'feed';
+  useEffect(() => {
+    if (!feedOnScreen) return;
+    const tick = () => { if (document.visibilityState === 'visible') void loadOrders.current(true); };
+    const timer = setInterval(tick, FEED_POLL_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [feedOnScreen]);
 
   const submission = useOrderSubmission({
     userId: currentUserId,
@@ -514,6 +544,7 @@ export default function App() {
     try {
       const updated = await acceptOrderById(authFetch, orderId, courierContactNote);
       if (requestId !== orderRequestId.current) return;
+      ordersMutatedAt.current = Date.now();
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
       setNoticeTone('ok');
       setNotification('Errand accepted! Head to the pickup location.');
@@ -558,6 +589,7 @@ export default function App() {
           break;
       }
       if (requestId !== orderRequestId.current) return;
+      ordersMutatedAt.current = Date.now();
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
       setNoticeTone('ok');
       setNotification(successMessage);
