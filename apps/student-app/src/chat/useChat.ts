@@ -11,6 +11,12 @@
  * Scope: Review fixes (PR #148): a pending send is settled only by the echo carrying its clientId; history pages by
  * afterSequence until the last page; after a reconnect every loaded thread catches up from its last sequence.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Review fix (PR #148, second round): every AUTH_OK, the first included, reconciles the loaded threads from a
+ * cursor that is the contiguous coverage of fetched history (loadedThrough), not the highest displayed sequence, so a
+ * message that landed between the REST read and the socket authentication is fetched and a gap is never skipped over.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -21,6 +27,8 @@ export type ChatSocketStatus = 'connecting' | 'connected' | 'disconnected';
 export interface ChatThread {
   conversation: ConversationDTO | null;
   messages: ChatMessageDTO[];
+  /** Every message with a sequence up to this one is present (history fetched, extended by contiguous live frames). */
+  loadedThrough: number;
   isLoading: boolean;
   /** Why the conversation could not be loaded (404, 403, 503), or null. */
   loadError: string | null;
@@ -35,11 +43,23 @@ const SEND_TIMEOUT_MS = 10_000;
 /** The server's maximum page; a page shorter than this is the last one. */
 const PAGE_SIZE = 100;
 
-const EMPTY: ChatThread = { conversation: null, messages: [], isLoading: false, loadError: null };
+const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null };
 
-function mergeMessage(list: ChatMessageDTO[], message: ChatMessageDTO): ChatMessageDTO[] {
+export function mergeMessage(list: ChatMessageDTO[], message: ChatMessageDTO): ChatMessageDTO[] {
   if (list.some((m) => m.id === message.id)) return list;
   return [...list, message].sort((a, b) => a.sequence - b.sequence);
+}
+
+/**
+ * Extends `through` (the sequence history is known to be complete up to) over the messages that follow it without a
+ * gap. [1, 3] with through 1 stays 1, so the next catch-up fetches from 1 and recovers 2; [1, 2, 3] gives 3.
+ */
+export function coveredThrough(messages: ChatMessageDTO[], through: number): number {
+  for (const message of messages) {
+    if (message.sequence === through + 1) through = message.sequence;
+    else if (message.sequence > through + 1) break;
+  }
+  return through;
 }
 
 export function useChat(options: {
@@ -75,7 +95,7 @@ export function useChat(options: {
   /**
    * History for one errand: GET /api/chat/:orderId (opens the conversation on the server when needed), paged by
    * afterSequence until a page comes back short, so a long conversation is complete (F8.3.1). `afterSequence` lets a
-   * reconnect fetch only what was missed.
+   * catch-up fetch only what was missed; the thread's `loadedThrough` is the cursor for that.
    */
   const load = useCallback(async (orderId: string, afterSequence = 0) => {
     setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: true, loadError: null } }));
@@ -93,16 +113,17 @@ export function useChat(options: {
         if (data.messages.length < PAGE_SIZE) break;
         after = data.messages[data.messages.length - 1].sequence;
       }
-      setThreads((current) => ({
-        ...current,
-        [orderId]: {
-          conversation,
-          // Frames that arrived while loading are kept; the history wins on ids it also carries.
-          messages: pages.reduce(mergeMessage, current[orderId]?.messages ?? []),
-          isLoading: false,
-          loadError: null,
-        },
-      }));
+      setThreads((current) => {
+        const thread = current[orderId] ?? EMPTY;
+        // Frames that arrived while loading are kept; the history wins on ids it also carries.
+        const messages = pages.reduce(mergeMessage, thread.messages);
+        // Pages are contiguous from afterSequence, so coverage reaches the last one fetched, then any live frames after it.
+        const fetchedThrough = pages.length ? pages[pages.length - 1].sequence : afterSequence;
+        return {
+          ...current,
+          [orderId]: { conversation, messages, loadedThrough: coveredThrough(messages, Math.max(thread.loadedThrough, fetchedThrough)), isLoading: false, loadError: null },
+        };
+      });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not load the conversation';
       setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: false, loadError: message } }));
@@ -134,7 +155,6 @@ export function useChat(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
-    let hadConnected = false;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/chat/`;
 
@@ -153,17 +173,20 @@ export function useChat(options: {
           attempt = 0;
           socketRef.current = ws;
           setStatus('connected');
-          // After a reconnect (token expiry, sleep, a network blip) every loaded thread catches up from its last
-          // known sequence, so messages sent during the gap appear without collapsing the panel (F8.2.1).
-          if (hadConnected) {
-            for (const [orderId, thread] of Object.entries(threadsRef.current)) {
-              if (thread.conversation) void load(orderId, thread.messages.at(-1)?.sequence ?? 0);
-            }
+          // Live frames only reach an authenticated socket, so anything committed after a thread's REST read and
+          // before this AUTH_OK (the first one included; a reconnect after token expiry, sleep or a network blip too)
+          // is fetched now from the coverage cursor, and the panel need not be collapsed (F8.2.1). A load still in
+          // flight is repeated from its cursor as well; mergeMessage makes the overlap harmless.
+          for (const [orderId, thread] of Object.entries(threadsRef.current)) {
+            if (thread.conversation || thread.isLoading) void load(orderId, thread.loadedThrough);
           }
-          hadConnected = true;
         } else if (frame.type === 'MESSAGE') {
           const { orderId, message } = frame;
-          setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), messages: mergeMessage(current[orderId]?.messages ?? [], message) } }));
+          setThreads((current) => {
+            const thread = current[orderId] ?? EMPTY;
+            const messages = mergeMessage(thread.messages, message);
+            return { ...current, [orderId]: { ...thread, messages, loadedThrough: coveredThrough(messages, thread.loadedThrough) } };
+          });
           // Only the sender's own echo carries the client id; a frame from anyone else settles nothing (F8.2.3).
           settle(frame.clientId, { ok: true });
         } else if (frame.type === 'ERROR') {

@@ -11,6 +11,11 @@
  * Scope: Review fixes (PR #148 P1, P2): the in-memory store mirrors the Prisma one's courierSince replay guard and the
  * participant/closure recheck in append (shared checkAppend), with the new return shapes.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Review fix (PR #148, second round): the in-memory upsertAccepted applies a supplied closedAt to an existing row
+ * set-once, as the Prisma store now does.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
@@ -97,7 +102,9 @@ export function memoryStore() {
     async upsertAccepted(c) {
       const existing = conversations.get(c.orderId);
       if (existing) {
-        // Same rule as the Prisma store: only an accept newer than courierSince moves the courier (P1).
+        // Same rules as the Prisma store: only an accept newer than courierSince moves the courier (P1), and a
+        // supplied closedAt (terminal fallback) is applied set-once.
+        if (c.closedAt) setOnce(c.orderId, 'closedAt', c.closedAt);
         if (!(new Date(c.createdAt) > new Date(existing.courierSince))) return { conversation: existing, outcome: 'ignored' };
         existing.courierId = c.courierId;
         existing.courierSince = c.createdAt;
