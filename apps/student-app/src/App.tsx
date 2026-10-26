@@ -102,14 +102,14 @@ import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
 import { FeedPage } from './pages/FeedPage';
-
-/** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
-const FEED_POLL_MS = 15_000;
 import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
 import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
 import { TasksPage } from './pages/TasksPage';
 import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
+
+/** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
+const FEED_POLL_MS = 15_000;
 
 // AI-generated (edited by Reallyeasy1)
 // Deep link a notification can open: /?tab=tasks&orderId=<id>. Read once; the app stays tab-based otherwise.
@@ -353,17 +353,23 @@ export default function App() {
     };
   }, [isAuthenticated, activeTab]);
 
-  // AI-generated (edited by Reallyeasy1): a quiet reload keeps the list on screen (no "Loading errands…") for polls.
+  // AI-generated (edited by Reallyeasy1): a quiet reload keeps the list on screen (no "Loading errands…", no error
+  // banner) for polls, and a list that started before a local change (accept, pickup, …) is dropped as stale so it
+  // cannot overwrite that change (PR #196 review).
+  const ordersMutatedAt = useRef(0);
   const fetchOrders = async (quiet = false) => {
     const requestId = ++orderRequestId.current;
-    if (!quiet) setOrdersLoading(true);
-    setOrdersError(null);
+    const startedAt = Date.now();
+    if (!quiet) {
+      setOrdersLoading(true);
+      setOrdersError(null);
+    }
     try {
       const combined = await fetchCombinedOrders(authFetch);
-      if (requestId !== orderRequestId.current) return;
+      if (requestId !== orderRequestId.current || ordersMutatedAt.current >= startedAt) return;
       setOrders(combined);
     } catch {
-      if (requestId === orderRequestId.current) {
+      if (!quiet && requestId === orderRequestId.current) {
         setOrdersError('Unable to load errands. Please try again.');
       }
     } finally {
@@ -538,6 +544,7 @@ export default function App() {
     try {
       const updated = await acceptOrderById(authFetch, orderId, courierContactNote);
       if (requestId !== orderRequestId.current) return;
+      ordersMutatedAt.current = Date.now();
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
       setNoticeTone('ok');
       setNotification('Errand accepted! Head to the pickup location.');
@@ -582,6 +589,7 @@ export default function App() {
           break;
       }
       if (requestId !== orderRequestId.current) return;
+      ordersMutatedAt.current = Date.now();
       setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
       setNoticeTone('ok');
       setNotification(successMessage);

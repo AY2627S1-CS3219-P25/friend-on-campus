@@ -101,13 +101,26 @@ export function useChat(options: {
   const threadsRef = useRef(threads);
   threadsRef.current = threads;
 
+  // AI-generated (edited by Reallyeasy1): the threads whose panel is on screen; only those are reconciled on the
+  // timer, so a session that opened many errands does not re-read them all every 30 s. ChatPanel registers itself.
+  const watched = useRef(new Set<string>());
+  const watch = useCallback((orderId: string) => {
+    watched.current.add(orderId);
+    return () => { watched.current.delete(orderId); };
+  }, []);
+
   /**
    * History for one errand: GET /api/chat/:orderId (opens the conversation on the server when needed), paged by
    * afterSequence until a page comes back short, so a long conversation is complete (F8.3.1). `afterSequence` lets a
    * catch-up fetch only what was missed; the thread's `loadedThrough` is the cursor for that.
    */
+  // AI-generated (edited by Reallyeasy1): a quiet catch-up (reconcile timer, focus) leaves isLoading alone so the
+  // panel neither shows "Loading…" nor re-scrolls, never surfaces an error, and never runs twice at once for a thread
+  // (focus and visibilitychange both fire on a tab return).
+  const inFlight = useRef(new Set<string>());
   const load = useCallback(async (orderId: string, afterSequence = 0, quiet = false) => {
-    // A quiet catch-up leaves isLoading alone so the panel neither shows "Loading…" nor re-scrolls.
+    if (quiet && inFlight.current.has(orderId)) return;
+    inFlight.current.add(orderId);
     if (!quiet) setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: true, loadError: null } }));
     try {
       let after = afterSequence;
@@ -135,10 +148,13 @@ export function useChat(options: {
         };
       });
     } catch (e) {
-      // A quiet catch-up that fails (the service is restarting, say) leaves the thread as it was; the next one retries.
+      // AI-generated (edited by Reallyeasy1): a quiet catch-up that fails (the service is restarting, say) leaves the
+      // thread as it was; the next one retries.
       if (quiet) return;
       const message = e instanceof Error ? e.message : 'Could not load the conversation';
       setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: false, loadError: message } }));
+    } finally {
+      inFlight.current.delete(orderId);
     }
   }, []);
 
@@ -229,15 +245,22 @@ export function useChat(options: {
     connect(options.token);
 
     // AI-generated (edited by Reallyeasy1): the browser hears about a lost network before a half-open socket does
-    // (the hub's ping evicts only the server side). Offline: say so, which also disables Send. Online: drop the
-    // socket so the reconnect's AUTH_OK catch-up fills the gap. For drops the browser never reports, open threads
-    // are reconciled quietly from their cursor on a timer and when the tab regains focus (as useNotifications does).
-    const onOffline = () => setStatus('disconnected');
-    const onOnline = () => socket?.close();
+    // (the hub's ping evicts only the server side). Offline: close the socket, which settles pending sends with
+    // "Connection lost" and disables Send. Online: forget the backoff and reconnect at once (closing a socket that is
+    // still there, else connecting), so the AUTH_OK catch-up fills the gap within a second. For drops the browser
+    // never reports, the threads with a panel on screen are reconciled quietly from their cursor on a timer and when
+    // the tab regains focus (as useNotifications does).
+    const onOffline = () => { if (socket) socket.close(); else setStatus('disconnected'); };
+    const onOnline = () => {
+      clearTimeout(timer);
+      attempt = 0;
+      if (socket) socket.close(); else connect(latest.current.token);
+    };
     const reconcile = () => {
       if (document.visibilityState !== 'visible') return;
-      for (const [orderId, thread] of Object.entries(threadsRef.current)) {
-        if (thread.conversation && !thread.conversation.closedAt && !thread.isLoading) void load(orderId, thread.loadedThrough, true);
+      for (const orderId of watched.current) {
+        const thread = threadsRef.current[orderId];
+        if (thread?.conversation && !thread.conversation.closedAt) void load(orderId, thread.loadedThrough, true);
       }
     };
     window.addEventListener('offline', onOffline);
@@ -260,7 +283,7 @@ export function useChat(options: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.enabled]);
 
-  return { status, threads, load, send };
+  return { status, threads, load, send, watch };
 }
 
 export type ChatApi = ReturnType<typeof useChat>;

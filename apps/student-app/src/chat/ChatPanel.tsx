@@ -1,6 +1,11 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: PR #196 review: the panel registers its thread with the chat hook while mounted, so only on-screen threads
+ * are reconciled on the hook's timer.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: Restyled to the author's errand-page wireframe (issue #188): "Live errand chat" header with the connection
  * state in words, own messages in NUS blue on the right, a pill composer with a round orange send button, a taller
  * list that fills the card's height on desktop and scrolls inside it; opens at the newest message and follows new
@@ -93,6 +98,9 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
 
   // The server pushes no frame when a conversation closes; the card's status is the signal that it may have.
   useEffect(() => { void load(orderId); }, [load, orderId, status]);
+  // AI-generated (edited by Reallyeasy1): while this panel is on screen its thread is reconciled on the hook's timer.
+  const watch = chat.watch;
+  useEffect(() => watch(orderId), [watch, orderId]);
   // Chat-app scrolling: open at the newest message, follow new ones only while the reader is already at the bottom
   // (a reader who scrolled up to re-read is not yanked down); the reader's own send always lands at the bottom.
   const stickToBottom = useRef(true);

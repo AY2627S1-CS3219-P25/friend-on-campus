@@ -5255,3 +5255,19 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 20:45 SGT — Review of PR #196 and fixes for its eight findings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/realtime-uat-observations
+
+**Prompt (summarised):** Review the open pull requests (#194 and #196; no reviewer comments existed, CI green on both) and fix what the review finds.
+
+**Usage scenario:** Code review (the `/code-review` skill at high effort, run per PR) followed by debugging assistance and implementation code; every finding was checked against the code before changing it, and one suggested fix was replaced by a safer one. #196 findings, all valid: (1) `online` only closed an existing socket and never reset the backoff, so after a long outage the client could wait up to 30 s: it now clears the pending timer, resets the attempt and reconnects at once (RT07 reconnect 1.1 s → 128 ms). (2) The quiet Feed poll cleared and set `ordersError`, flashing a red banner on a blip: a quiet poll now touches neither the loading nor the error state. (3) The reconcile re-read every thread ever opened: ChatPanel now registers its thread with the hook while mounted (`watch`) and only those are reconciled. (4) Quiet loads had no in-flight guard, so focus + visibilitychange fetched twice: a per-thread in-flight set. (5) A poll response in flight when the user accepted could overwrite the accepted order with the stale list: the reviewer suggested bumping the request counter in the action handlers, which would have left a loud load's spinner stuck, so instead every list fetch records its start time and a response that started before the last local mutation is dropped. (6) `offline` left the half-open socket and its pending sends: the socket is closed, which settles pending sends with "Connection lost". (7) `FEED_POLL_MS` sat between imports: moved below them. (8) Missing inline AI markers on the `load` changes: added. Verified: lint, student-app typecheck, unit tests 19/19, container rebuilt, 14-check multi-client UAT 14/14.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — constant placement; quiet polls leave loading/error alone; stale list responses dropped after a local mutation.
+- `apps/student-app/src/chat/useChat.ts` — online resets the backoff and reconnects; offline closes the socket; in-flight guard; `watch`; inline markers.
+- `apps/student-app/src/chat/ChatPanel.tsx` — registers its thread while mounted; disclosure record.
+- `ai/usage-log.md` — this entry
