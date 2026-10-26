@@ -5366,3 +5366,16 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — conflict resolution and this entry
+
+## 2026-10-26 21:20 SGT — PRs #194 and #196 merged to main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/realtime-uat-observations (merge of main)
+
+**Prompt (summarised):** "ok please merge them" — merge the two reviewed pull requests.
+
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). #194 merged first (78b3a1b). `main` then merged into this branch; the only conflict was `ai/usage-log.md`, resolved by keeping every entry from both sides in time order. This entry rides in that merge commit, per the section 2 rule that a merge prompt's entry is committed before the merge; #196 is merged once CI is green on this head.
+
+**Files changed:**
+- `ai/usage-log.md` — conflict resolution and this entry
