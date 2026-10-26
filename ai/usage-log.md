@@ -5251,3 +5251,16 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 19:20 SGT — Usage-log branch pushed for a pull request; issue creation blocked
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/usage-log-merges
+
+**Prompt (summarised):** "tell me how to improve on this, maybe make it a pull request also" — advice on avoiding stranded usage-log entries, and open a pull request for the `docs/usage-log-merges` branch.
+
+**Usage scenario:** Git/GitHub operations at the author's explicit request (CLAUDE.md section 1 exception) and workflow advice; no requirements, architecture or planning decisions. Committed this entry on the branch and pushed it. Creating the issue the PR must close was denied by the session permission classifier (both `gh issue create` and the GitHub connector), so the issue text was handed to the author; the PR is opened once the issue number exists.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
