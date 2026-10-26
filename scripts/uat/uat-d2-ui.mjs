@@ -575,7 +575,7 @@ const browser = await chromium.launch();
     await aliceCard.getByText(/Delivered · Review and confirm/i).waitFor();
     const aliceDetails = await openErrand(alicePage, aliceCard);
     await aliceDetails.getByTestId('complete-order-btn').click();
-    await aliceDetails.getByText(/5 credits paid to the courier once Credit Service settles the escrow/i).waitFor();
+    await aliceDetails.getByText(/5 credits paid to the courier once Credit Service settles the escrow/i).first().waitFor(); // timeline row and reward chip both say it
     await shot(alicePage, 'student-order-completed-requester-desktop');
     await backFromErrand(alicePage);
     await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
