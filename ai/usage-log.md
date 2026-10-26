@@ -5131,3 +5131,17 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx` — right column wrapper absolute on desktop inside a `lg:relative lg:min-h-[34rem]` cell.
 - `apps/student-app/src/chat/ChatPanel.tsx` — stick-to-bottom scrolling (`onScroll` tracks whether the reader is at the bottom; effect keyed on the last message id), `lg:min-h-0` on the list, `overscroll-contain`.
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 16:55 SGT — Commit the chat column changes onto PR #192
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle
+
+**Prompt (summarised):** "ok now i would like you to commit and then create a pull request".
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). The equal-height column and chat scrolling changes live on the branch of the open PR #192, so they were committed as ba67934 (with the two previous usage-log entries), pushed, and the PR #192 description was updated to cover them; no third PR was opened, which the author was told. No code changed in this prompt.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) PR #192 — description updated for commit ba67934
