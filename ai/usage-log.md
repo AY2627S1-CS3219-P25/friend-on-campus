@@ -5212,9 +5212,6 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/App.tsx` (feature/errand-details-page, c898f31) — origin tab kept in the list entry's URL.
 - `services/chat-service/**`, `apps/student-app/src/chat/useChat.ts`, tests (feature/chat-service, eff3893) — the four #148 fixes committed; see the 02:36 entry for the file list.
 - `ai/usage-log.md` — this entry
-<<<<<<< HEAD
-## 2026-10-26 19:55 SGT — Multi-client real-time UAT of notifications and chat on the local stack
-=======
 
 ## 2026-10-26 17:50 SGT — PRs #148, #190 and #192 merged to main (addendum to the 17:40 entry)
 
@@ -5256,13 +5253,39 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `ai/usage-log.md` — this entry
 
 ## 2026-10-26 19:20 SGT — Usage-log branch pushed for a pull request; issue creation blocked
->>>>>>> origin/main
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
 **Author:** Reallyeasy1
 **Branch:** docs/usage-log-merges
 
-<<<<<<< HEAD
+**Prompt (summarised):** "tell me how to improve on this, maybe make it a pull request also" — advice on avoiding stranded usage-log entries, and open a pull request for the `docs/usage-log-merges` branch.
+
+**Usage scenario:** Git/GitHub operations at the author's explicit request (CLAUDE.md section 1 exception) and workflow advice; no requirements, architecture or planning decisions. Committed this entry on the branch and pushed it. Creating the issue the PR must close was denied by the session permission classifier (both `gh issue create` and the GitHub connector), so the issue text was handed to the author; the PR is opened once the issue number exists.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 19:40 SGT — Workflow fixes from the stranded-entry review; issue #193 and pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/usage-log-merges
+
+**Prompt (summarised):** "ok please work on this" — apply the improvements suggested in the previous reply and open the pull request.
+
+**Usage scenario:** Documentation improvements, implementation code in a test script, and Git/GitHub operations at the author's explicit request (CLAUDE.md section 1). Issue #193 created (a retry in a different command form succeeded). CLAUDE.md gains three rules the author had just seen bite: a merge prompt's log entry is committed on the feature branch before merging; review-thread replies are posted in the fix prompt; editor windows are closed before a worktree is removed. The UAT script gains a UO0 preflight that reads the requester seed account's wallet and fails with a re-seed hint when it holds under 8 credits (UO1 reserves 5, UO6 reserves 3), replacing the earlier silent timeout on Post Errand. Verified: `node --check` and `npx eslint` on the script pass; a throwaway probe of the wallet call as the requester returned 200 with 8 available and 29 in escrow from earlier runs. The full UAT was not re-run. Committed on `docs/usage-log-merges`, pushed, PR opened against `main` closing #193.
+
+**Files changed:**
+- `CLAUDE.md` — section 2 merge-prompt rule; section 6 thread-reply and worktree rules; disclosure record.
+- `scripts/uat/uat-d2-ui.mjs` — UO0 preflight step; disclosure record.
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 19:55 SGT — Multi-client real-time UAT of notifications and chat on the local stack
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/usage-log-merges
+
 **Prompt (summarised):** Use Playwright to run extensive UAT on localhost with multiple clients, to see whether the notification and chat services stay consistent in real time.
 
 **Usage scenario:** Testing and acceptance evidence (allowed: writing tests, debugging assistance). The Playwright MCP server timed out at session start, so a throwaway driver in the git-ignored `test-results/uat-realtime/` uses the repo's `playwright` dependency with four browser contexts: the requester on two clients (desktop and phone), the courier, and a second courier registered through the API for an accept race. 14 checks: live posting receipt, accept race (one winner, one alert per client), two-way chat latency, a 5+5 concurrent burst (identical order on three clients), client offline/online, reload persistence, a `docker restart` of the Chat Service under load (drop seen in 283 ms, Send disabled meanwhile, reconnect in 7.3 s, history identical), pickup/deliver/complete/cancel propagation, cross-client unread counts and mark-all-read, HTTP/console hygiene. Final run 14/14; two earlier runs failed only in the driver (badge read on the desktop errand page where the top navigation is not rendered; click on the disabled Send button). Observations handed to the author, not decided: the Feed is not live for couriers (no `order.created` alert for them), the chat hub has no heartbeat, the desktop errand page hides the alerts badge, a truncated timestamp on the phone participant card. Nothing in the product was changed.
@@ -5315,27 +5338,6 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/App.tsx` — constant placement; quiet polls leave loading/error alone; stale list responses dropped after a local mutation.
 - `apps/student-app/src/chat/useChat.ts` — online resets the backoff and reconnects; offline closes the socket; in-flight guard; `watch`; inline markers.
 - `apps/student-app/src/chat/ChatPanel.tsx` — registers its thread while mounted; disclosure record.
-=======
-**Prompt (summarised):** "tell me how to improve on this, maybe make it a pull request also" — advice on avoiding stranded usage-log entries, and open a pull request for the `docs/usage-log-merges` branch.
-
-**Usage scenario:** Git/GitHub operations at the author's explicit request (CLAUDE.md section 1 exception) and workflow advice; no requirements, architecture or planning decisions. Committed this entry on the branch and pushed it. Creating the issue the PR must close was denied by the session permission classifier (both `gh issue create` and the GitHub connector), so the issue text was handed to the author; the PR is opened once the issue number exists.
-
-**Files changed:**
-- `ai/usage-log.md` — this entry
-
-## 2026-10-26 19:40 SGT — Workflow fixes from the stranded-entry review; issue #193 and pull request
-
-**Tool:** Claude Code (model: Claude Fable 5.1)
-**Author:** Reallyeasy1
-**Branch:** docs/usage-log-merges
-
-**Prompt (summarised):** "ok please work on this" — apply the improvements suggested in the previous reply and open the pull request.
-
-**Usage scenario:** Documentation improvements, implementation code in a test script, and Git/GitHub operations at the author's explicit request (CLAUDE.md section 1). Issue #193 created (a retry in a different command form succeeded). CLAUDE.md gains three rules the author had just seen bite: a merge prompt's log entry is committed on the feature branch before merging; review-thread replies are posted in the fix prompt; editor windows are closed before a worktree is removed. The UAT script gains a UO0 preflight that reads the requester seed account's wallet and fails with a re-seed hint when it holds under 8 credits (UO1 reserves 5, UO6 reserves 3), replacing the earlier silent timeout on Post Errand. Verified: `node --check` and `npx eslint` on the script pass; a throwaway probe of the wallet call as the requester returned 200 with 8 available and 29 in escrow from earlier runs. The full UAT was not re-run. Committed on `docs/usage-log-merges`, pushed, PR opened against `main` closing #193.
-
-**Files changed:**
-- `CLAUDE.md` — section 2 merge-prompt rule; section 6 thread-reply and worktree rules; disclosure record.
-- `scripts/uat/uat-d2-ui.mjs` — UO0 preflight step; disclosure record.
 - `ai/usage-log.md` — this entry
 
 ## 2026-10-26 21:05 SGT — Review of PR #194 and fixes for its seven findings
@@ -5351,7 +5353,6 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - `scripts/uat/uat-d2-ui.mjs` — `apiLogin`, checked wallet read, factual hint, UO1-UO6 skipped after a failed UO0, reward constants; disclosure record.
 - `CLAUDE.md` — section 6 review-reply rule conditioned on approval with the hand-over fallback; disclosure scope.
->>>>>>> origin/main
 - `ai/usage-log.md` — this entry
 
 ## 2026-10-26 21:20 SGT — PRs #194 and #196 merged to main
@@ -5362,20 +5363,7 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Prompt (summarised):** "ok please merge them" — merge the two reviewed pull requests.
 
-**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). #194 merged first (78b3a1b). `main` then merged into this branch; the only conflict was `ai/usage-log.md`, resolved by keeping every entry from both sides in time order. This entry rides in that merge commit, per the section 2 rule that a merge prompt's entry is committed before the merge; #196 is merged once CI is green on this head.
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). #194 merged first (78b3a1b). `main` then merged into this branch; the only conflict was `ai/usage-log.md`, where git interleaved entries mid-body. A first textual resolution left markers in and was pushed as 1e7aa89; this commit rebuilds the file from the merge base plus both sides' appended entries in time order. #196 is merged once CI is green on this head.
 
 **Files changed:**
-- `ai/usage-log.md` — conflict resolution and this entry
-
-## 2026-10-26 21:20 SGT — PRs #194 and #196 merged to main
-
-**Tool:** Claude Code (model: Claude Fable 5.1)
-**Author:** Reallyeasy1
-**Branch:** fix/realtime-uat-observations (merge of main)
-
-**Prompt (summarised):** "ok please merge them" — merge the two reviewed pull requests.
-
-**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). #194 merged first (78b3a1b). `main` then merged into this branch; the only conflict was `ai/usage-log.md`, resolved by keeping every entry from both sides in time order. This entry rides in that merge commit, per the section 2 rule that a merge prompt's entry is committed before the merge; #196 is merged once CI is green on this head.
-
-**Files changed:**
-- `ai/usage-log.md` — conflict resolution and this entry
+- `ai/usage-log.md` — rebuilt merge resolution and this entry
