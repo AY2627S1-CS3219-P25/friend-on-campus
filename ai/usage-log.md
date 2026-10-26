@@ -5119,3 +5119,96 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - `ai/usage-log.md` — this entry
 - (GitHub) PR #190 — `feat(student-app): errand details page owning the status actions (#188, #189)`
+
+## 2026-10-26 15:50 SGT — Errand details page restyled to the author's wireframe
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-page (PR #190, uncommitted in the worktree)
+
+**Prompt (summarised):** Make the errand details page look like the attached wireframe (back header with status pill, participant card, vertical timeline with check markers, live chat card, one big bottom action with a caption), in the app's colours, for desktop and mobile.
+
+**Usage scenario:** Implementation code to the author's visual design (CLAUDE.md section 1; the wireframe is the author's). Calls stated as mine: NUS blue checks with an orange ring for the current step; timeline rows carry the errand's own facts (pickup spot, dropoff, escrow amount); participant card shows the role and contact note only (author's option 1); two columns on desktop (timeline and details left, chat and action right), single column on phones with the action below the chat as in the wireframe (a sticky variant covered the chat composer and was dropped); countdown in days from 48 h; chat hidden for an errand that ended before any courier accepted. Verified: student-app `test:unit` 17 pass, `npm run typecheck`, `npm run lint`, `npm run ci:validate-tests`, browser UAT 40/40 on the rebuilt container, screenshots at 390 px and 1440 px of the open, accepted, completed and cancelled states. Left to the author: visual sign-off, commit and push to PR #190.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — restyled: header row with back chevron and status pill, participant card, vertical timeline with data-bearing rows and red end row, item card with pickup / dropoff / reward chips, primary action with caption and secondary ghost action, desktop two-column layout.
+- `apps/student-app/src/chat/ChatPanel.tsx` — "Live errand chat" header with the connection state in words, own messages in NUS blue, pill composer with a round orange send button, taller list; behaviour unchanged.
+- `apps/student-app/src/errand/details.ts` — `formatCountdown` reads in days from 48 hours.
+- `apps/student-app/test/errand-details.test.ts` — countdown cases for 47 h and 175 d.
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 16:05 SGT — Issue #191 and PR #192 for the errand page restyle
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle
+
+**Prompt (summarised):** "i would like you to now create a pull request out of this" (the wireframe restyle); the author chose a stacked PR with a new issue over pushing into PR #190.
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception), plus issue formatting (requirements work: the wireframe and layout are the author's). Opened issue #191 with criteria DP3.1–DP3.5, created `feature/errand-details-restyle` from `feature/errand-details-page` (be870a4), committed the restyle as d9b2639 with the previous usage-log entry, pushed, and opened PR #192 against `feature/errand-details-page` with `Closes #191`. Merge order noted in the PR: #190 first, then #192. No code changed in this prompt.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) issue #191 — `[UI] Errand details page: match the author's wireframe (timeline, participant card, chat, one primary action)`
+- (GitHub) PR #192 — `feat(student-app): restyle the errand details page to the author's wireframe (#191)`
+
+## 2026-10-26 16:25 SGT — Errand page: chat column stretched to the left column's height on desktop
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle (PR #192, uncommitted in the worktree)
+
+**Prompt (summarised):** On desktop, make the chat section the same height as the left side of the errand page.
+
+**Usage scenario:** Implementation code to the author's layout request (CLAUDE.md section 1). The desktop grid now stretches its rows, the right column is a flex column, the chat card grows to fill it and its message list fills the card (the fixed max height stays on phones); the action and footer sit at the column's bottom; the sticky right column was dropped since it cannot stretch. Measured in the browser at 1440 px: both columns 560.5 px. Verified: student-app `test:unit` 17 pass, typecheck and lint clean, screenshots at 1440 px (with and without chat) and 390 px. Left to the author: visual sign-off and pushing the commit to PR #192.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — `lg:items-stretch` grid, right column as a flex column, chat card `lg:flex-1`; sticky removed.
+- `apps/student-app/src/chat/ChatPanel.tsx` — section and list grow to the card's height on desktop (`lg:flex-1 lg:max-h-none`).
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 16:45 SGT — Errand page chat: scroll inside the card, follow new messages like a chat app
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle (PR #192, uncommitted in the worktree)
+
+**Prompt (summarised):** When messages exceed the chat area, scroll inside it like conventional chat apps instead of growing the page.
+
+**Usage scenario:** Implementation code to the author's request (CLAUDE.md section 1). On desktop the right column's content is taken out of flow (absolute, filling its grid cell, with a 34 rem floor), so the row is sized by the left column and the message list is the only thing that scrolls; the list opens at the newest message, follows new messages only while the reader is already at the bottom, and always follows the reader's own send. Measured at 1440 px: both columns 561 px, list 308 px showing 430 px of messages, at bottom before and after a send, no horizontal overflow. Verified: student-app `test:unit` 17 pass, typecheck and lint clean. Left to the author: sign-off and pushing to PR #192.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — right column wrapper absolute on desktop inside a `lg:relative lg:min-h-[34rem]` cell.
+- `apps/student-app/src/chat/ChatPanel.tsx` — stick-to-bottom scrolling (`onScroll` tracks whether the reader is at the bottom; effect keyed on the last message id), `lg:min-h-0` on the list, `overscroll-contain`.
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 16:55 SGT — Commit the chat column changes onto PR #192
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle
+
+**Prompt (summarised):** "ok now i would like you to commit and then create a pull request".
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). The equal-height column and chat scrolling changes live on the branch of the open PR #192, so they were committed as ba67934 (with the two previous usage-log entries), pushed, and the PR #192 description was updated to cover them; no third PR was opened, which the author was told. No code changed in this prompt.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) PR #192 — description updated for commit ba67934
+
+## 2026-10-26 17:40 SGT — Review findings on PRs #148, #190 and #192 fixed before merging to main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service (eff3893), feature/errand-details-page (c898f31), feature/errand-details-restyle (this commit)
+
+**Prompt (summarised):** Look at all the code reviews on the open pull requests, attend to them, then merge them to main.
+
+**Usage scenario:** Debugging assistance, implementation code and Git/GitHub operations at the author's explicit request (CLAUDE.md section 1). Every finding was verified against the code before changing anything; all were valid. #148: the four second-round findings fixed this morning were committed as eff3893 and pushed (CI green). #190: the origin tab lived in a ref cleared by the first Back, so Back → Forward → Back or a refresh lost it; the list entry's URL now carries the tab (openErrand rewrites it before pushing, selectTab keeps it in step, popstate reads it) — c898f31, checked in the browser for Tasks and Alerts origins and after a refresh. #192: the "never accepted" chat guard also hid retained history after a courier drop (drop clears courierId / acceptedAt on the Order while Chat keeps the conversation), so the panel is shown from ACCEPTED on and the service's 404 is a quiet empty state; the completed timeline row and the accept caption no longer claim the payout before Credit Service settles the escrow — checked in the browser with accept → message → drop → cancel and with a never-accepted cancelled errand. Posting the thread replies was blocked by the session's permission classifier (external writes), so the reply texts were given to the author in chat; merging to main follows this commit once CI is green, in the order #148, #190, #192, as the author asked.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — chat panel kept for every status from ACCEPTED on; completion row and accept caption conditional on settlement.
+- `apps/student-app/src/chat/ChatPanel.tsx` — the Chat Service's 404 (never accepted) rendered as an empty state, composer hidden.
+- `apps/student-app/src/App.tsx` (feature/errand-details-page, c898f31) — origin tab kept in the list entry's URL.
+- `services/chat-service/**`, `apps/student-app/src/chat/useChat.ts`, tests (feature/chat-service, eff3893) — the four #148 fixes committed; see the 02:36 entry for the file list.
+- `ai/usage-log.md` — this entry

@@ -88,10 +88,11 @@ export function viewerRole(order: Pick<OrderDTO, 'requesterId' | 'courierId'>, u
   return 'other';
 }
 
-/** m:ss under an hour, h:mm:ss above, 0:00 once the expiry has passed. */
+/** m:ss under an hour, h:mm:ss above, "Nd Nh" from two days, 0:00 once the expiry has passed. */
 export function formatCountdown(expiresAt: string, nowMs: number): string {
   const total = Math.max(0, Math.floor((new Date(expiresAt).getTime() - nowMs) / 1000));
   const hours = Math.floor(total / 3600);
+  if (hours >= 48) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = total % 60;
   const two = (n: number) => String(n).padStart(2, '0');

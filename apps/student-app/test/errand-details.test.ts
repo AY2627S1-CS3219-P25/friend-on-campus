@@ -66,10 +66,12 @@ test('viewerRole: requester, courier, other (former courier or admin)', () => {
   assert.equal(viewerRole({ requesterId: 'alice', courierId: null }, null), 'other');
 });
 
-test('formatCountdown: m:ss under an hour, h:mm:ss above, 0:00 when past', () => {
+test('formatCountdown: m:ss under an hour, h:mm:ss above, days from 48 h, 0:00 when past', () => {
   const now = Date.parse(T0);
   assert.equal(formatCountdown(new Date(now + 303_000).toISOString(), now), '5:03');
   assert.equal(formatCountdown(new Date(now + 3_723_000).toISOString(), now), '1:02:03');
+  assert.equal(formatCountdown(new Date(now + 47 * 3_600_000).toISOString(), now), '47:00:00');
+  assert.equal(formatCountdown(new Date(now + 175 * 86_400_000 + 5 * 3_600_000).toISOString(), now), '175d 5h', 'long-lived seed errands read in days');
   assert.equal(formatCountdown(new Date(now - 1_000).toISOString(), now), '0:00', 'expiry already passed (sweeper lag)');
 });
 
