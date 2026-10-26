@@ -16,6 +16,10 @@ Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated Section 5 commands to reflect scripts/dev.mjs parallel dev runner, standard npm workspace -w invocations, and test:e2e:api replacing legacy test:d2 alias.
 Author review: <to be completed by yanhwee>
 
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+Scope: Section 4 repo map: added services/chat-service (:8006, chat_db), the /ws/chat/ gateway route and the sixth database.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-20
 Scope: Updated Section 4 Prisma CLI and root .env loading notes.
 Author review: <to be completed by author after review>
@@ -182,12 +186,13 @@ services/supplier-service      :8002  Prisma (supplier_db)      entry src/index.
 services/order-service         :8003  Prisma (order_db)         entry src/index.ts, Debezium CDC outbox
 services/credit-service        :8004  Prisma (credit_db)        entry src/index.ts, logic src/credits/
 services/notification-service  :8005  Prisma (notification_db)  entry src/index.ts, REST + ws + consumer
+services/chat-service          :8006  Prisma (chat_db)          entry src/index.ts, REST + ws hub + consumer (F8)
 apps/student-app               :5173  modular src/ (App.tsx, pages/, components/, hooks/, api/)
 apps/admin-portal              :5174  modular src/ (App.tsx, pages/, components/, hooks/, api/)
 packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
 packages/common-dtos                  shared DTOs, OrderStatus, events, ApiResponse<T>
 packages/messaging                    @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
-gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
+gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /ws/chat/ -> chat, /admin/, /
 docker/                               debezium/, postgres-init/, rabbitmq/
 ```
 

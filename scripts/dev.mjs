@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Added the chat target (services group) when merging main into PR #148; the dev:chat npm script it replaces was removed with the other per-service scripts.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity, date: 2026-10-21
  * Scope: Zero-dependency parallel workspace dev runner with prefixed log output and cross-platform signal cleanup.
  * Author review: <to be completed by author after review>
@@ -26,6 +30,7 @@ const TARGETS = {
   order: { group: 'services', workspace: '@campus-errand/order-service' },
   credit: { group: 'services', workspace: '@campus-errand/credit-service' },
   notif: { group: 'services', workspace: '@campus-errand/notification-service' },
+  chat: { group: 'services', workspace: '@campus-errand/chat-service' },
 };
 
 const requested = process.argv.slice(2);

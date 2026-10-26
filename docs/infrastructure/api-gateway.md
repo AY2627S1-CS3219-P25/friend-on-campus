@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the /api/chat and /ws/chat/ routes of the Chat Service (F8, PR #148) while merging main into that PR.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -19,8 +23,10 @@ The gateway is routing infrastructure. Service middleware performs authenticatio
 | /api/credits/escrow prefix | Gateway 403; there is no current Credit HTTP escrow mutation route |
 | /api/credits[/] | Credit 8004 |
 | /api/notifications[/] | Notification 8005 |
+| /api/chat[/] | Chat 8006 |
 | /api/health/{user,supplier,order,credit,notification}/{health,ready} | Rewrite to target service probe |
 | /ws/ | Notification root path, HTTP/1.1 WebSocket upgrade |
+| /ws/chat/ | Chat root path, HTTP/1.1 WebSocket upgrade (86400 s read/send timeout) |
 | /admin | Redirect to /admin/ |
 | /admin/ | Admin static frontend |
 | /images/ | Mounted supplier image files |

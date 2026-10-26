@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the Chat Service socket and history section (F8, PR #148), moved from the former docs/architecture.md section 3E while merging main into that PR.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -50,6 +54,15 @@ sequenceDiagram
 ```
 
 The diagram groups separate connector deliveries. Supplier validation happens before the first Order transaction. An expired successful reservation produces a refund-triggering event; the expiry sweeper itself selects OPEN orders, not all PENDING orders.
+
+## Chat socket and history (Chat Service, F8)
+
+The gateway forwards `/ws/chat/` to the root path of `chat-service` (port 8006) and `/api/chat` to its REST routes; both share one HTTP server.
+
+- Handshake as on the Notification socket: first frame `{ "type": "AUTH", "token": "<access token>" }`, reply `{ "type": "AUTH_OK" }`, close `4401` on a missing, invalid or expired token, 30 s ping eviction. Sockets are filed by user id.
+- The client sends `{ "type": "SEND", "orderId", "text", "clientId"? }`. The server stores the message and pushes `{ "type": "MESSAGE", "orderId", "message" }` to every socket of both participants, or answers the sender with `{ "type": "ERROR", "orderId", "clientId", "code", "message" }` (`NOT_FOUND`, `FORBIDDEN`, `CLOSED`, `EMPTY`, `NO_USERNAME`, `BAD_FRAME`).
+- History: `GET /api/chat/:orderId?afterSequence=&limit=` returns the conversation and its messages in sequence order to the requester, the assigned courier and admins; when no conversation row exists it is created from `GET /api/orders/:id` on the Order Service (the caller's token forwarded), and a 404 or an unavailable Order Service answers 404 or 503.
+- Conversation rows are projected from `order.accepted` (create, or replace the courier), `order.in_transit` and `order.delivered` (timestamps) and `order.completed`, `order.cancelled`, `order.expired` (`closedAt`); events for an order with no row are acknowledged without effect. Messages may be sent only while `closedAt` is null; the sender's username and role are copied from the access token.
 
 ## Failure behavior
 

@@ -151,6 +151,11 @@ jobs:
             script: test:unit
             database: none
             rabbitmq: false
+          - name: chat-service
+            workspace: '@campus-errand/chat-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: order-service
             workspace: '@campus-errand/order-service'
             script: test:unit
@@ -202,6 +207,11 @@ jobs:
             script: test:integration
             database: deploy
             rabbitmq: false
+          - name: chat-service
+            workspace: '@campus-errand/chat-service'
+            script: test:integration
+            database: deploy
+            rabbitmq: false
           - name: user-service
             workspace: '@campus-errand/user-service'
             script: test:integration
@@ -247,6 +257,7 @@ jobs:
           ADMIN_GUARD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CHAT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
       - name: Collect PostgreSQL logs
         if: failure()
         run: |
@@ -275,6 +286,11 @@ jobs:
             rabbitmq: true
           - name: notification-service
             workspace: '@campus-errand/notification-service'
+            script: test:messaging
+            database: deploy
+            rabbitmq: true
+          - name: chat-service
+            workspace: '@campus-errand/chat-service'
             script: test:messaging
             database: deploy
             rabbitmq: true
@@ -382,6 +398,8 @@ jobs:
           CREDIT_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
           NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           NOTIFICATION_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
+          CHAT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CHAT_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
       - name: Collect PostgreSQL and RabbitMQ logs
         if: failure()
         run: |

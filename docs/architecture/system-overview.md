@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the Chat Service (F8, PR #148) row to the runtime table while merging main into that PR.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -42,6 +46,7 @@ The shared outbox node groups three separate databases and connectors for readab
 | Order | 8003 | order_db | services/order-service/src/index.ts |
 | Credit | 8004 | credit_db | services/credit-service/src/index.ts |
 | Notification | 8005 | notification_db | services/notification-service/src/index.ts |
+| Chat | 8006 | chat_db | services/chat-service/src/index.ts |
 | Student / Admin | 5173 / 5174 | Browser state; no service database | apps/*/src/main.tsx |
 | Gateway | 80 | None | gateway/nginx.conf |
 

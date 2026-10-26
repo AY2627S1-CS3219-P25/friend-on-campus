@@ -131,6 +131,8 @@ services:
         condition: service_healthy
       notification-service:
         condition: service_healthy
+      chat-service:
+        condition: service_healthy
 
   # ----------------------------------------------------
   # Frontend Applications (statically built React served by NGINX)
@@ -347,6 +349,42 @@ services:
         - -e
         - >-
           fetch('http://localhost:8005/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # AI-generated (edited by Reallyeasy1): Chat Service (F8), same shape as notification-service.
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: campuserrand-chat-service
+    init: true # node is PID 1 and ignores SIGTERM without an init
+    # The service exits when its broker connection fails and relies on this to come back.
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      - PORT=8006
+      - DATABASE_URL=postgresql://chat_svc:chat-service-dev@postgres:5432/chat_db
+      - RABBITMQ_URL=amqp://chat_service:chat-service-dev@rabbitmq:5672/campus
+      - ORDER_SERVICE_URL=http://order-service:8003
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8006/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
       interval: 5s
       timeout: 5s
       retries: 10

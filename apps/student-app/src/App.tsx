@@ -24,6 +24,10 @@
  * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
  * Author review: <to be completed by yanhwee>
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Wires the chat socket hook (F8) and passes it to TasksPage.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic student-app App.tsx into modular api/, hooks/, components/, and pages/ architecture.
  * Author review: Verified by yanhwee
@@ -78,6 +82,7 @@ import { HeaderNav, StudentTab } from './components/HeaderNav';
 import { useAuthSession } from './hooks/useAuthSession';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
+import { useChat } from './chat/useChat';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -236,6 +241,8 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, focusOrderId, orders]);
   const wsStatus = notifications.status;
+  // AI-generated (edited by Reallyeasy1): the chat socket (F8) beside the notification socket.
+  const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const fetchCredits = async () => {
@@ -692,6 +699,7 @@ export default function App() {
             focusOrderId={focusOrderId}
             focusOrder={focusOrder}
             onClearFocus={clearFocus}
+            chat={chat}
           />
         )}
 

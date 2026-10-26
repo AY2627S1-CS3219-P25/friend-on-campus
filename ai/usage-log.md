@@ -4648,3 +4648,436 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - `scripts/coverage.mjs` — skip guard for a services entry without package.json; comment fix; header record
 - `ai/usage-log.md` — this entry
+
+## 2026-10-20 18:30 SGT — F8 decisions recorded; Chat Service scaffold
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service (from main @ a6aff23)
+
+**Prompt (summarised):** Decisions D1–D9 given as "232221222"; confirmed; "start working on it" and "make sure to branch off".
+
+**Usage scenario:** Boilerplate generation and documentation, after the author finalised the nine F8 decisions (new Chat Service; events plus Order Service fallback; separate WebSocket path; inbound socket frame; message table plus conversation row; username from the token claim; writes open in ACCEPTED/IN_TRANSIT/DELIVERED and FAILED to be requested; admins may read; Tasks card expanded in place). Wrote the decisions into the brief's Decision record and scaffolded `services/chat-service` as a copy of the Notification Service's shape, with no F8 logic: the conversation and message schema, the socket frames, the routes and the DTOs are listed in the brief (S1–S8) for the author to specify. Checks: workspace and repo typecheck, lint, 3 smoke tests, `ci:validate-tests`, `docker compose config`. No container build or stack start. Nothing committed.
+
+**Files changed:**
+- `services/chat-service/package.json` — new workspace manifest (JSON, no header)
+- `services/chat-service/tsconfig.json`, `tsconfig.test.json` — copied from notification-service (JSON, no header)
+- `services/chat-service/prisma/schema.prisma` — generator and datasource only, no models
+- `services/chat-service/prisma/migrations/migration_lock.toml` — provider
+- `services/chat-service/src/config.ts` — port 8006, chat_db, chat_service broker account, chat-service.events* queues
+- `services/chat-service/src/app.ts` — /health, /ready, error handler
+- `services/chat-service/src/database/client.ts` — Prisma client, copied
+- `services/chat-service/src/messaging/rabbitmq.ts` — consumer, copied with x-chat-* headers
+- `services/chat-service/src/index.ts` — wiring; consumer bound to six order.* keys, acknowledges without effect
+- `services/chat-service/test/app.test.ts` — smoke tests
+- `services/chat-service/Dockerfile` — copied with name and port substituted
+- `docker/postgres-init/01-init-databases.sql` — chat_svc role, chat_db, grants
+- `docker/rabbitmq/definitions.json` — chat_service user and permissions (JSON, no header; password hash generated locally)
+- `docker-compose.yml`, `docker-compose.test.yml` — chat-service block, gateway depends_on
+- `gateway/nginx.conf` — chat upstream, /api/chat routes, /ws/chat/ upgrade
+- `.github/workflows/ci.yml` — unit matrix entry for chat-service
+- `.env.example` — CHAT_DATABASE_URL, CHAT_SERVICE_PORT
+- `package.json`, `package-lock.json` — dev:chat script, workspace link (JSON, no header)
+- `CLAUDE.md`, `docs/architecture.md`, `docs/README.md` — the sixth service in the repo map, gateway table, ports and service table
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 18:50 SGT — Why the schema, frames, routes and DTOs were left to the author
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Why not write the conversation and message columns, the socket frames, the routes and the shared DTOs too?
+
+**Usage scenario:** Learning support. Explained that the course AI policy (Appendix 2) names "deciding data schemas, defining interfaces" as prohibited, that the usage log records such work, and that the Notification Service precedent was an author-written design implemented by AI. Offered to translate the author's plain-English answers to S1–S8 into Prisma, TypeScript and Express.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 19:00 SGT — Asked to recommend the schema and design for approval
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Recommend the data schema and the design first, then the author approves.
+
+**Usage scenario:** Declined under the course AI policy (Appendix 2: proposing architecture, deciding schemas, defining interfaces) and CLAUDE.md section 1. Offered the allowed routes: the author drafts and the AI fact-checks against the code, or a question-and-answer transcription of the author's decisions.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 19:05 SGT — "try again": started the S1 question round
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok try again".
+
+**Usage scenario:** Learning support. Kept the decline on recommending; asked the five S1 questions (conversation row: creation trigger, courier after unassign, closed flag vs derived, timestamps, identity) for the author to answer so the schema is theirs.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 19:15 SGT — S1 answers recorded; S2 questions
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** S1 answers: created on order.accepted at the consumer; keep the old courier id until the next accept; closed flag "whichever is better"; both timestamps; own uuid with unique order id.
+
+**Usage scenario:** Learning support. Recorded the four decided answers; for the closed-state question gave the two facts (stored flag via the same consumer, or derived via a fallback call on each send) and asked the author to choose rather than choosing. Asked the four S2 (message row) questions.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 19:30 SGT — S2 answers; Conversation and Message schema transcribed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** S2 answers: long text shown truncated with expand (UI); sender username and role from the token; per-conversation sequence; "anything that would be good" for extra fields.
+
+**Usage scenario:** Implementation of the author's schema decisions (S1 and S2). Pointed out that the chosen closedAt timestamp already is the stored closed state, that text truncation is a UI matter (S8), and that no extra fields were added because none were specified. Wrote the two Prisma models and generated the init migration with `prisma migrate diff` (no hand edits); regenerated the client; typecheck and the 3 smoke tests pass.
+
+**Files changed:**
+- `services/chat-service/prisma/schema.prisma` — Conversation and Message models per S1 and S2
+- `services/chat-service/prisma/migrations/20261020000000_init/migration.sql` — generated from the schema
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 19:35 SGT — S3 and S4 questions
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** (continuation) asked the author the S3 event-handling and S4 fallback questions.
+
+**Usage scenario:** Learning support; no code written. Questions only, for the author's answers.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 20:10 SGT — S3 and S4 implemented: projection, store, fallback client, rules
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** S3 answers: record in_transit and delivered on the row; the rest "whichever is better".
+
+**Usage scenario:** Implementation of the author's decisions. For the four "whichever" answers, showed that each follows from earlier decisions and the code (second accept only after unassign; required courier column makes terminal-without-row an ignore; "fallback" means lookup only when no row; no row to trust means unavailable) and proceeded on that basis, flagging it for veto. Wrote the Prisma store, the event projection, the Order Service client (caller's token forwarded), the conversation rules service, an in-memory test store and 17 unit tests; regenerated the init migration and client. Checks: typecheck, 20/20 unit tests, lint, ci:validate-tests. Three gaps recorded in the brief for the author (out-of-order accept after completed; token without username claim; FAILED/DISPUTED handling).
+
+**Files changed:**
+- `services/chat-service/prisma/schema.prisma` — pickedUpAt, deliveredAt on Conversation
+- `services/chat-service/prisma/migrations/20261020000000_init/migration.sql` — regenerated
+- `services/chat-service/src/conversations/store.ts` — Prisma store (upsert, set-once marks, append with sequence, list)
+- `services/chat-service/src/conversations/events.ts` — event validation, projection, consumer start
+- `services/chat-service/src/conversations/service.ts` — open with fallback, read and send rules, history
+- `services/chat-service/src/clients/order.client.ts` — GET /api/orders/:id with the caller's token
+- `services/chat-service/src/config.ts` — orderServiceUrl
+- `services/chat-service/src/index.ts` — wiring
+- `services/chat-service/test/helpers.ts`, `test/events.test.ts`, `test/service.test.ts` — unit tests
+- `services/chat-service/package.json` — test:unit lists the new files (JSON, no header)
+- `docker-compose.yml`, `.env.example` — ORDER_SERVICE_URL
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 20:15 SGT — S5 questions (socket protocol)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** (continuation) asked the five S5 questions on the /ws/chat/ protocol: handshake, scope, client frames, server frames, history on open.
+
+**Usage scenario:** Learning support; questions only, no code.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 21:10 SGT — S5 and S6: chat socket hub, history route, shared contract
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** S5 answers: "whichever suits the design better" for all five.
+
+**Usage scenario:** Implementation by copying the author's existing Notification Service socket design (AUTH handshake, sockets by user id, REST history) rather than inventing a protocol; the only additions are the SEND, MESSAGE and ERROR frames that carry the rules already decided in S3/S4. Added the chat contract to common-dtos, the hub, the history route, wiring, and 7 socket and route unit tests (27 total). Checks: chat typecheck, repo typecheck, lint, ci:validate-tests. Author to veto any line; the brief records what was copied and what was deliberately not added.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — ConversationDTO, ChatMessageDTO, ChatClientFrame, ChatServerFrame, ChatErrorCode, ChatHistoryResponse
+- `services/chat-service/src/ws/hub.ts` — chat hub (copy of the notification hub plus SEND/MESSAGE/ERROR)
+- `services/chat-service/src/chat/routes.ts` — GET /api/chat/:orderId
+- `services/chat-service/src/conversations/service.ts` — messages() for an opened conversation
+- `services/chat-service/src/app.ts` — mounts /api/chat
+- `services/chat-service/src/index.ts` — WebSocket server on the HTTP server, hub wiring
+- `services/chat-service/test/helpers.ts` — token signer and socket client copied from notification-service tests
+- `services/chat-service/test/hub.test.ts`, `test/routes.test.ts` — new suites
+- `services/chat-service/package.json` — test:unit lists them (JSON, no header)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 22:30 SGT — Chat Service: infrastructure tests, student app panel, spec, verification
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** (continuation) complete the remaining F8 work items after S5/S6.
+
+**Usage scenario:** Implementation and tests of the author's decided design, plus documentation. Added the PostgreSQL store suite and the RabbitMQ consumer suite with their CI matrix entries and local-runner databases; the concurrent-append test failed under the retry approach, so sequence allocation now runs under the conversation row lock (same contract, implementation detail). Student app: socket hook copied from the bell's, the chat panel inside the Tasks card per D9 and the criteria, dev proxy entries. Spec: docs/architecture.md section 3E. Verified: 27 unit, 4 integration, 2 messaging tests; image build; repo typecheck, lint, matrix validator; student app build. A migration-comment semicolon broke the test helper's statement splitter and was removed. Nothing committed.
+
+**Files changed:**
+- `services/chat-service/test/store.integration.test.ts`, `test/messaging.integration.test.ts` — new suites
+- `services/chat-service/test/helpers.ts` — makeTestDatabase
+- `services/chat-service/src/conversations/store.ts` — append under row lock
+- `services/chat-service/prisma/migrations/20261020000000_init/migration.sql` — header comment without a semicolon
+- `services/chat-service/package.json` — test:integration, test:messaging (JSON, no header)
+- `.github/workflows/ci.yml` — chat-service integration and messaging entries and test variables
+- `scripts/ci/run-all-tests.mjs` — chat databases and variables
+- `apps/student-app/src/chat/useChat.ts`, `src/chat/ChatPanel.tsx` — new
+- `apps/student-app/src/pages/TasksPage.tsx` — chat toggle and panel per card
+- `apps/student-app/src/App.tsx` — hook wiring
+- `apps/student-app/vite.config.ts` — /api/chat and /ws/chat proxies
+- `.env.example` — CHAT_SERVICE_URL
+- `docs/architecture.md` — section 3E
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 23:10 SGT — Broker account verified; old clone compared before deletion
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** (a) continuation of the F8 build; (b) "there are 2 directories in the project directory, check the difference and delete the least updated".
+
+**Usage scenario:** Debugging assistance and facts. (a) Verified the generated `chat_service` password hash by starting a throwaway rabbitmq:3.13 with the project's definitions.json (probed as the rabbitmq user per CLAUDE.md): login and queue declare succeed, a wrong password is refused. (b) Compared `nus-campus-errand` (old clone, last commit 2026-10-12, all branches pushed, 17 modified files, 2 stashes, an untracked UAT script, a .env) with `friend-on-campus` (current); listed the facts for the author and did not delete anything.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-20 23:30 SGT — Old clone removed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Keep one project directory only (friend-on-campus); remove nus-campus-errand.
+
+**Usage scenario:** Housekeeping on the author's explicit request. Confirmed all branches of the old clone were pushed, exported its uncommitted diff, two stashes and the untracked uat-order-lifecycle.mjs to ../nus-campus-errand-backup-2026-10-20/ (no .env copied), then deleted the directory.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-21 00:05 SGT — Chat Service (F8) committed and PR opened
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "maybe make a pull request for chat service as well" (after the author allowed git commands in `.claude/settings.json`).
+
+**Usage scenario:** Git/GitHub bookkeeping on the author's explicit request; no code changed. Read issue #56 (F8.1–F8.3.2), mapped each criterion to the existing chat-service tests and student-app chat components, committed the F8 working tree as one commit (everything except `.claude/settings.json`, which is the author's permission-policy change and a separate decision), pushed `feature/chat-service` explicitly to its own remote branch (its upstream was `origin/main`), and opened a PR against `main` with `Closes #56`. The tree had already passed typecheck, lint, unit (chat 27), integration/messaging (chat 6) and the full isolated `npm test` earlier this session; no browser UAT covers the chat UI yet, which the PR says.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 19:20 SGT — Merge main (PRs #184, #185, #187, #147) into PR #148 and push it
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "...then pull from the chat service pull request accordingly and then commit the changes to the same pull request" (PR #148), after merging #147 and #187.
+
+**Usage scenario:** Git operations at the author's explicit request (CLAUDE.md section 1 exception); conflict resolution kept both sides' intent, no new design. `main` merged into `feature/chat-service` in a throwaway worktree (merge base 9c491cd after #147 landed; 12 conflicts). Resolutions: disclosure headers keep both sides' records; `TasksPage.tsx` keeps main's reworked card (pickup/deliver/complete/cancel/unassign actions, focus panel) and re-inserts the F8 chat toggle plus `ChatPanel` as its own block below the details, `data-testid="chat-toggle-btn"`; `App.tsx` passes `chat` beside main's task-action props; `package.json` keeps main's `scripts/dev.mjs` runner and the `chat` target is added there instead of the removed `dev:chat` script; the init SQL keeps main's slimmed grants plus `chat_svc`/`chat_db`/REVOKE; `docs/architecture.md` stays deleted and its chat section moves into `docs/architecture/communication-and-events.md`, a Chat row into `docs/architecture/system-overview.md`, `/api/chat` and `/ws/chat/` rows into `docs/infrastructure/api-gateway.md`, and a Chat row into `docs/README.md`'s coverage table; `package-lock.json` regenerated from main's with `npm install --package-lock-only`; `ai/usage-log.md` is the union (14 chat-side entries appended). Verified on the merged branch: `npm run typecheck` (all workspaces, 0 errors), `npm run lint` (clean), `npm run ci:validate-tests` (17 suites consistent), chat-service unit 27/27, `docker compose config`. Not run: DB-backed, messaging, acceptance and browser suites (CI on the pushed head covers them). PR #148 is not merged by this prompt.
+
+**Files changed:**
+- conflict resolutions listed above, plus `scripts/dev.mjs` (chat target; header record) and the three docs that received the moved chat facts (header records)
+- `ai/usage-log.md` — union plus this entry
+
+## 2026-10-25 21:30 SGT — PR #148 review fixes: replay guard (P1), locked recheck (P2), client-id echo, paging, clamp, live read-only
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "see if you can resolve the code review comments on this pull request here and then push to the branch of the pull request" (PR #148).
+
+**Usage scenario:** Review follow-up: implementation and tests for defects the reviewers (Codex review of 7622df5 by the author, Claude PR review) described with reproduction steps; git push at the author's explicit request. Changes: (P1) `conversations.courier_since` added by migration `20261025000000_courier_since` (backfilled from created_at) and the store applies an order.accepted only when its timestamp is newer than courierSince, so accept A, accept B, replay A leaves B the courier (projection reports 'ignored'); the upsert now returns `{ conversation, outcome }`. (P2) `store.append` re-reads requester, courier and closedAt under the FOR UPDATE lock it already took, returns `not_found`/`forbidden`/`closed` from that state and the recipients from the locked row; `service.send` keeps its fast pre-checks and takes the verdict from the store; `checkAppend` is shared with the in-memory test store. (Medium) the sender's MESSAGE echo carries the SEND's clientId (optional `clientId` on the MESSAGE server frame in common-dtos, an additive field the review proposed) and `useChat` settles only that pending send. (Medium) `useChat.load` pages by afterSequence until a short page and, after a reconnect, every loaded thread reloads from its last sequence. (Low) `afterSequence` clamped to 2147483647. (Low) `ChatPanel` takes the card's status and reloads when it changes. (Low) the stale "scaffold" wording was already removed when main was merged (docs/architecture.md no longer exists; CLAUDE.md row updated). Left for the author: the column addition is the one schema change, made because the P1 finding needs a per-row assignment time and the author's review asked for the guard; confirm or name another design. Verified: typecheck (common-dtos, chat-service, student-app), ESLint on the changed paths, chat-service unit 31/31 (5 new), PostgreSQL integration 6/6 (2 new, Docker PostgreSQL after creating chat_svc/chat_db on the existing volume), RabbitMQ messaging 2/2. Not run: browser UAT.
+
+**Files changed:**
+- `services/chat-service/prisma/schema.prisma`, `prisma/migrations/20261025000000_courier_since/migration.sql` — courierSince column
+- `services/chat-service/src/conversations/store.ts` — replay guard, UpsertResult, locked recheck in append (AppendResult), checkAppend
+- `services/chat-service/src/conversations/service.ts`, `events.ts` — use the new store results
+- `services/chat-service/src/ws/hub.ts` — clientId on the sender's echo
+- `services/chat-service/src/chat/routes.ts` — INTEGER clamp
+- `services/chat-service/test/helpers.ts`, `events.test.ts`, `service.test.ts`, `store.integration.test.ts`, `hub.test.ts`, `routes.test.ts` — regressions
+- `packages/common-dtos/src/index.ts` — optional clientId on the MESSAGE frame
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx`, `apps/student-app/src/pages/TasksPage.tsx` — settle by clientId, paging and reconnect reload, status-driven reload
+- `ai/usage-log.md` — this entry
+
+## 2026-10-25 22:30 SGT — Why Docker Desktop was not running
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "why is docker desktop not running".
+
+**Usage scenario:** Debugging assistance (allowed); facts only, no changes. Windows System log: clean shutdown at 13:15:02 and boot at 13:15:11 SGT (no user-initiated 1074 event recorded); Docker Desktop's backend, proxy and Electron logs were last closed at 13:14:42, i.e. the previous Docker instance ended with that restart. Docker Desktop's settings have AutoStart=false (the Run-key entry exists but the app honours its own setting), so it did not come back after the boot; nothing in this session needed the daemon until the chat-service database tests (`docker compose config` parses the file without the engine), which is when the absence surfaced. The 21:54 start is the one made in the previous prompt.
+
+**Files changed:**
+- none
+
+## 2026-10-25 22:45 SGT — Docker Desktop "The Compose app is no longer running"
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Screenshot of Docker Desktop's Compose project page showing "The Compose app is no longer running", "this is what it showed".
+
+**Usage scenario:** Debugging assistance and a local environment action (allowed). The engine had the project half up after the 13:15 reboot: postgres, rabbitmq, credit/notification/order services and the Debezium connectors restarted with Docker; user-service, supplier-service, gateway, student-app and admin-portal sat in Exited (255), the status a container keeps when the daemon stops under it. Docker Desktop shows that message for a project in this partial state. Ran `docker compose up -d --wait` (no build) to start the rest; result reported in the reply. No repository file changed.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:00 SGT — Remove Docker containers no longer used
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "consider removing containers that are not used anymore".
+
+**Usage scenario:** Local environment maintenance (allowed), destructive step taken only after the author chose the "old leftovers" option. Inventory: 56 containers, 42 stopped, together ~400 MB; the reclaimable disk is in images (19.9 GB before, 39.4 GB after the containers stopped pinning them) and build cache (5.2 GB). Removed 29 containers idle 3 to 17 months with `docker rm` (no `-v`): eight unnamed my-image/ubuntu test containers, a 13-month rabbitmq, the five jbtestsuite containers, amoura/jbt, lumi-openclaw, the seven chatapp containers, the three yiphehua containers and the two lodestar containers. Named volumes untouched; the old rabbitmq's anonymous volume is now dangling. Kept, by the author's choice: 13 containers from projects used in the last 8 weeks (remarkably-backend/docs, oculith, waredrip, lenor-uat-redis, subbuddy-pg, irr-chatbot). Images and build cache not pruned (not selected). No repository file changed.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:10 SGT — Prune Docker images and build cache
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok please do" (the image and build-cache prune offered after the container cleanup).
+
+**Usage scenario:** Local environment maintenance at the author's request (allowed); no repository file changed. `docker image prune` (dangling) reclaimed 0.4 GB, `docker builder prune` 5.2 GB, and `docker image prune -a` (images no container references, i.e. the removed projects' images and pulled-but-unused bases) 43.1 GB across 302 image layers/tags. Images now 23, all in use, 14.75 GB. Not touched: volumes (8.4 GB dangling, mostly the removed projects' named database volumes and the old rabbitmq's anonymous one; left for the author since they hold data). friend-on-campus stack unaffected, 14 containers running.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:20 SGT — Should the environment-maintenance log entries be committed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok then should it be committed" (the uncommitted usage-log entries from the Docker questions and cleanup).
+
+**Usage scenario:** Learning support (allowed); no code change. Answer given: yes, the usage log is a repository file and CLAUDE.md section 2 requires an entry per prompt, so the entries belong in version control; the lowest-friction home is a small docs(usage-log) commit on this branch pushed to PR #148, because the file is append-only and a separate branch would only create another union conflict. Commit left for the author's explicit go-ahead.
+
+**Files changed:**
+- none
+
+## 2026-10-25 23:25 SGT — Commit the environment-maintenance log entries to PR #148
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok please do so" (commit and push the uncommitted usage-log entries).
+
+**Usage scenario:** Git operations at the author's explicit request (CLAUDE.md section 1 exception). One docs(usage-log) commit with the six entries from tonight's Docker questions and cleanup plus this one, pushed to feature/chat-service (PR #148). No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 00:40 SGT — Chat Service D4 documentation: README and proposed implementation specification
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Pasted task: inspect the current Chat Service implementation (PR #148) and produce implementation-ready specifications for its remaining D4 work inside docs/, reconciling fixes already present, labelling proposals, updating the index/coverage/audit records, validating, and stopping before implementation.
+
+**Usage scenario:** Documentation (allowed) with the CLAUDE.md section 1 boundary applied: no schema, interface, pattern or trade-off was decided. Inspected PR #148 head f39ab1f252414bca5c5ef7d08f3d45b9e16007a0, main 9a361461de0e8b3e5d237ebaa64f5b8197c97171 and wiki revision a463e3bd77dd0327414543dba62cd2feb9c9c2a9 (cloned read-only to the scratchpad; not edited). Wrote `docs/services/chat-service/README.md` (implementation at the PR head, module map, wiring, migrations, tests, known limits) and `docs/services/chat-service/d4-implementation-specification.md` (status: proposal). The specification separates [impl]/[main]/[approved]/[proposal] statements; reconciles the seven review findings against code and tests with their residual limits; lists fourteen remaining limitations with the smallest change each needs; registers CHAT-D4-01..10 against F8 with Given/When/Then; records decisions D1-D7 and D-F with their conflicting sources and leaves them unapproved (the wiki's recommendation is quoted as the wiki's); restates the wiki's proposed authorization, persistence/idempotency, contract, frontend and operations designs as conditional sections, naming the gaps the wiki leaves open instead of filling them (read fallback during an Order outage, legacy-client handling, frame shape A vs B); maps requirements to source-inspected tests and proposed additions; gives a file-impact table and four increments estimated at 7-10 build + 3-4 verification hours against the existing 10 + 4 constraint, with the overrun rule. Facts recorded on the way: Order GET /:id returns any non-PENDING/REJECTED order to any authenticated user (participant check stays in Chat); main now publishes order.unassigned and OrderDTO.version, which the wiki page treats as not on main (drift D26); REST returns courierSince although ConversationDTO lacks it (D28); no FAILED status for F8.3.2 (D29). Updated docs/README.md (Chat row, two inventory rows), coverage matrix (Chat row), drift register (D26-D30, decision pointer), source inventory (#148 head, #56 row) and review findings (dated executed-checks block). Executed: chat-service unit tests 31/31; ad-hoc link/anchor/Mermaid/inventory check over the six touched docs (186 links ok, 3 diagrams, both new files inventoried, pre-existing omission of docs/superpowers/plans/2026-10-22-notification-inbox.md noted); git diff --check. Not run: database/broker/browser suites, full typecheck/lint (no code changed). No application code, schema, migration, infrastructure, CI, policy or .claude file changed; nothing committed or pushed; no issue, PR or wiki edit.
+
+**Files changed:**
+- `docs/services/chat-service/README.md` — new
+- `docs/services/chat-service/d4-implementation-specification.md` — new (proposal)
+- `docs/README.md` — Chat row and inventory rows; header record
+- `docs/audits/documentation-coverage.md` — Chat row; header record
+- `docs/audits/documentation-drift.md` — D26-D30 and decision-register pointer; header record
+- `docs/audits/source-inventory.md` — #148 head and #56 rows; header record
+- `docs/audits/review-findings.md` — Chat documentation checks block; header record
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 00:55 SGT — Update PR #148 with the Chat documentation
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok update the pull request accordingly".
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). Committed the Chat README, the proposed D4 specification and the index/audit updates as 89842c8 and pushed to feature/chat-service. Rewrote the PR #148 body: F8 criteria list refreshed (F8.1.2 admin-read conflict and F8.3.2 "failed" gap stated), new sections for the review follow-up 2e4e93b, the main merge 603edcb and the documentation, current test counts (unit 31, PostgreSQL integration 6, messaging 2), the existing-volume bootstrap note, and the remaining D4 limits pointed at the specification rather than claimed. No code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 02:36 SGT — PR #148 second review round: the four unresolved findings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Look at PR #148 and address its code reviews.
+
+**Usage scenario:** Debugging assistance and implementation code under the author's existing design (CLAUDE.md section 1). Verified each of the four unresolved inline findings from the 2026-10-25 review against the code before changing anything; the seven resolved threads were left alone. Fixes stay inside the existing schema and contracts: no new columns, DTO changes or dependencies. Left for the author: review of the fixes, posting the thread replies, committing and pushing, and running the PostgreSQL integration suite (Docker was not running here, so `test:integration` was not executed; `npm run typecheck`, `npm run lint`, `npm run ci:validate-tests`, chat-service `test:unit` (36 pass) and student-app `test:unit` (11 pass) were run and pass).
+
+**Files changed:**
+- `services/chat-service/src/conversations/store.ts` — upsertAccepted re-runs its courierSince guard when the row it finds was inserted concurrently and is older than this accept (instead of reporting `ignored`); a supplied closedAt (terminal Order fallback) is applied set-once to an existing row via close().
+- `services/chat-service/src/config.ts` — loads the service-local and repository-root `.env` like notification-service; honours `CHAT_DATABASE_URL` and `CHAT_SERVICE_PORT`.
+- `apps/student-app/src/chat/useChat.ts` — `ChatThread.loadedThrough` coverage cursor (contiguous fetched history, extended by contiguous live frames); every AUTH_OK, the first included, reloads loaded or in-flight threads from that cursor; `mergeMessage` and new `coveredThrough` exported for tests.
+- `services/chat-service/test/helpers.ts` — in-memory store applies closedAt set-once on an existing row, mirroring the Prisma store.
+- `services/chat-service/test/store.test.ts` — new: scripted-Prisma regressions for the concurrent first insert, the ignored replay, and closedAt on an existing row.
+- `services/chat-service/test/service.test.ts` — regression: terminal fallback racing an accept event that creates the row returns a closed conversation and later sends are refused.
+- `services/chat-service/test/store.integration.test.ts` — PostgreSQL case for closedAt applied set-once to an existing row (not executed here: Docker unavailable).
+- `services/chat-service/test/config.test.ts` — new: config falls back to CHAT_DATABASE_URL and CHAT_SERVICE_PORT.
+- `apps/student-app/test/chat.test.ts` — new: coverage-cursor regression for REST [1], peer sends 2 before the first AUTH_OK, live 3.
+- `services/chat-service/package.json`, `apps/student-app/package.json` — new test files added to `test:unit` (JSON, no disclosure header; `npm run ci:validate-tests` passes).
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 02:50 SGT — Deploy the review fixes on Docker Desktop
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** "ok deploy on docker desktop" (after the PR #148 second-round review fixes).
+
+**Usage scenario:** Debugging/verification assistance (CLAUDE.md section 1). Confirmed the Docker engine was up, rebuilt the chat-service and student-app images (`docker compose up -d --build chat-service student-app`), started the rest of the stack, waited for health (all 11 health-checked containers healthy; chat-service applied migration 20261025000000_courier_since on startup), probed the gateway and /ready, and ran the chat-service PostgreSQL integration suite against the Compose database (7 pass, including the new set-once closedAt case). No source files changed; nothing committed or pushed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 03:20 SGT — Errand details page: design conversation and GitHub issues #188, #189
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service
+
+**Prompt (summarised):** Plan an order/task details page for the student app first, then add it as GitHub issues.
+
+**Usage scenario:** Requirements work, interpreting and formatting (CLAUDE.md section 1), and GitHub issue creation at the author's explicit request. The author decided the content (Grab-style order page: status tracker with timestamps, countdown, pickup/dropoff/item/credits sections, embedded chat), that the page owns every status action including Accept from the Feed, and chose option 1 (contact notes, no names) for the other party. Declined the author's request to make and justify the choice between the three ways of showing the other party's name (data schema / interface decision and trade-off analysis are not allowed); listed the facts from the code for each option instead. One call made and stated as mine: no router, the page reuses the existing `?tab=&orderId=` deep link with `history.pushState`. No priority, milestone or ordering set; only the `enhancement` label. No code written.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) issue #188 — `[UI] Errand details page: full view of one errand opened from Feed and Tasks cards`, criteria DP1.1–DP1.8
+- (GitHub) issue #189 — `[UI] Errand status actions move onto the details page; cards become summaries`, criteria DP2.1–DP2.6

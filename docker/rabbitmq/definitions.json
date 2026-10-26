@@ -4,7 +4,9 @@
       "name": "campus_admin",
       "password_hash": "JP+wnscC+r1mqPN+RmL7UdeWGCshqd22qKS2oLnbfYM5g2vb",
       "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": ["administrator"]
+      "tags": [
+        "administrator"
+      ]
     },
     {
       "name": "user_service",
@@ -33,6 +35,12 @@
     {
       "name": "credit_test",
       "password_hash": "qyvQla5dIhYFRYKL46uQwwxgRSdPsqXMQlrX0inBcdeZlVIE",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "chat_service",
+      "password_hash": "T+pXpYAX3XXMtYFEhOA2HCoIO6UX4a3zpjUyeuB7+zXuPY8Y",
       "hashing_algorithm": "rabbit_password_hashing_sha256",
       "tags": []
     }
@@ -104,6 +112,13 @@
       "configure": "^credit-test\\..+$",
       "write": "^(amq\\.default|credit-test\\..+)$",
       "read": "^credit-test\\..+$"
+    },
+    {
+      "user": "chat_service",
+      "vhost": "campus",
+      "configure": "^(campus\\.events|chat-service\\.events(?:\\..+)?)$",
+      "write": "^(amq\\.default|chat-service\\.events(?:\\..+)?)$",
+      "read": "^(campus\\.events|chat-service\\.events(?:\\..+)?)$"
     }
   ],
   "topic_permissions": [

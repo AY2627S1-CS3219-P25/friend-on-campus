@@ -36,6 +36,9 @@ services:
   notification-service:
     container_name: !reset null
     ports: !reset []
+  chat-service:
+    container_name: !reset null
+    ports: !reset []
   postgres:
     container_name: !reset null
     ports: !override

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the dated "Chat documentation checks" block (executed chat-service unit run, link/anchor/Mermaid validation, inventory check); earlier checks not rerun.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -29,6 +33,20 @@ Environment: Node 24.19.0, npm 11.9.0. Existing lockfile dependencies were insta
 | PR184 actual-hook/component harness at a5e1f5b | PASS: reproduced all four documented frontend defects with controlled fetch/React SSR; not browser UAT |
 
 The independent PR reviewer also executed the PR's nine inbox-helper tests (9/9), compared all five main event-family Credit fingerprints against the PR (equal), and checked Order event enrichment uses committed state/version and prior assignee. These are narrowly scoped source-execution checks, not a complete PR build or integration run. The root independently reran the four-defect harness and observed all four assertions pass.
+
+### Chat documentation checks, 2026-10-25 (PR #148 head `f39ab1f`, `main` `9a36146`)
+
+Scope: the [Chat README](../services/chat-service/README.md) and [D4 specification](../services/chat-service/d4-implementation-specification.md) only. Earlier rows above were not rerun. Environment: Node 24, npm 11, existing workspace install; Docker PostgreSQL/RabbitMQ were running locally but no database-backed suite was executed for this documentation task.
+
+| Check | Actual outcome |
+|---|---|
+| `npm run test:unit -w services/chat-service` at `f39ab1f` | PASS; 31 tests, 0 failed/skipped (executed) |
+| Relative links, anchors and Mermaid block types across the two new and four edited docs (ad-hoc script) | PASS; 186 links/fragments, 3 diagrams (`sequenceDiagram`/`flowchart`); no renderer, visual rendering not verified |
+| Inventory completeness (`docs/**/*.md` vs index) | Both new files listed; pre-existing omission of `docs/superpowers/plans/2026-10-22-notification-inbox.md` noted, not changed |
+| `git diff --check` | PASS |
+| Source-inspected, not executed | `store.integration.test.ts`, `messaging.integration.test.ts`, `hub.test.ts`, `routes.test.ts` beyond the unit run; no browser scenario exists for Chat |
+
+Human decisions D1-D7 and D-F in the specification's register remain pending; nothing in these documents is approved behavior.
 
 ## Review findings and resolution
 

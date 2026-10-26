@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+ * Scope: Review fix (PR #148): the expanded ChatPanel receives the card's status so it can switch to read-only live.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§2, §9): a focus panel for the errand a notification opened (live
  * status from Order Service, "no longer available" for a former participant), the matching card highlighted and
@@ -14,18 +18,26 @@
  * Scope: Added courier pickup/deliver actions and requester confirm-delivery (complete)/cancel actions on task cards in pages/TasksPage.tsx (Issue #132).
  * Author review: <to be completed by yanhwee>
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Each card of an accepted-or-later errand gains a Chat toggle that expands the conversation in place
+ * (author's D9, F8.1.1); OPEN errands have no conversation yet and show no toggle.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx.
  * Author review: Verified by yanhwee
  */
 
 // AI-generated (edited by yanhwee)
+// AI-generated (edited by Reallyeasy1)
 
 import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
-import { CheckCircle2, Coins, PackageCheck, RefreshCw, Truck, XCircle } from 'lucide-react';
-import { useEffect } from 'react';
+import { CheckCircle2, Coins, MessageCircle, PackageCheck, RefreshCw, Truck, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { FetchOrderResult, TaskOrderAction } from '../api/orders';
 import { ExpandableNotes } from '../components/ExpandableNotes';
+import { ChatPanel } from '../chat/ChatPanel';
+import type { ChatApi } from '../chat/useChat';
 
 interface TasksPageProps {
   orders: OrderDTO[];
@@ -44,7 +56,11 @@ interface TasksPageProps {
   /** Its authoritative state, fetched from Order Service when the focus was set; null while loading. */
   focusOrder?: FetchOrderResult | null;
   onClearFocus?: () => void;
+  chat: ChatApi;
 }
+
+/** A conversation exists from accept onwards (F8.1); before that the card has nothing to open. */
+const CHAT_STATUSES: ReadonlySet<OrderStatus> = new Set(['ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'DISPUTED']);
 
 function getStatusBadgeClasses(status: OrderStatus): string {
   switch (status) {
@@ -76,6 +92,7 @@ export function TasksPage({
   focusOrderId = null,
   focusOrder = null,
   onClearFocus,
+  chat,
 }: TasksPageProps) {
   // AI-generated (edited by Reallyeasy1)
   // The notification only pointed here; the current order status decides what the card offers.
@@ -85,6 +102,8 @@ export function TasksPage({
     card?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [focusOrderId, orders.length]);
   const focused = focusOrder?.status === 'ok' ? focusOrder.order : null;
+  // AI-generated (edited by Reallyeasy1): which card has its chat (F8) expanded in place (author D9).
+  const [openChat, setOpenChat] = useState<string | null>(null);
 
   const groups = [
     {
@@ -210,6 +229,24 @@ export function TasksPage({
                       Dropoff: {task.dropoffLocation}
                     </p>
                   </div>
+
+                  {CHAT_STATUSES.has(task.status) && (
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <button
+                        type="button"
+                        data-testid="chat-toggle-btn"
+                        aria-expanded={openChat === task.id}
+                        onClick={() => setOpenChat((current) => (current === task.id ? null : task.id))}
+                        className="flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        {openChat === task.id ? 'Hide chat' : 'Chat'}
+                      </button>
+                      {openChat === task.id && (
+                        <ChatPanel orderId={task.id} status={task.status} currentUserId={currentUserId} chat={chat} />
+                      )}
+                    </div>
+                  )}
 
                   {group.key === 'accepted' && (
                     <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
