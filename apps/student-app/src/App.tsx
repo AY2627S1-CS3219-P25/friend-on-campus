@@ -10,7 +10,8 @@
  * ?tab=&orderId= deep link (popstate restores the tab, scroll position restored on close); Feed and Tasks cards and
  * the Alerts actions open it; the lifecycle handlers and their in-flight / error state now feed the page. Review
  * pass of the same day: nav tabs leave the page (selectTab), action failures live in actionError, apart from the
- * list poll's ordersError.
+ * list poll's ordersError. PR #190 review: the origin tab is kept in the list entry's URL instead of a ref, so
+ * Back → Forward → Back and refresh keep it.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
@@ -125,8 +126,6 @@ export default function App() {
   // Failures of the page's actions (service 400 / 403 / 409 text), kept apart from the list poll's ordersError.
   const [actionError, setActionError] = useState<string | null>(null);
   const savedScroll = useRef<number | null>(null);
-  // The tab to return to on close or Back: a notification opens the page over Tasks but came from Alerts.
-  const returnTab = useRef<StudentTab | null>(null);
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
 
   // Profile Info state (GET/PATCH /api/users/me)
@@ -247,10 +246,12 @@ export default function App() {
   };
   // AI-generated (edited by Reallyeasy1)
   // The details page (#188) is the existing deep link made navigable: opening pushes /?tab=&orderId= so Back returns
-  // to the tab the card was on; closing pops that entry when it exists, else rewrites the URL in place.
+  // to the tab the card was on; closing pops that entry when it exists, else rewrites the URL in place. The list
+  // entry's URL is first synchronised with the tab the user is on (Alerts included), so history itself carries the
+  // origin and Back → Forward → Back or a refresh land on the same tab (PR #190 review).
   const openErrand = (orderId: string, tab: 'feed' | 'tasks') => {
     savedScroll.current = window.scrollY;
-    returnTab.current = activeTab;
+    window.history.replaceState(null, '', `/?tab=${activeTab}`);
     setActiveTab(tab);
     setFocusOrderId(orderId);
     setFocusOrder(null);
@@ -263,36 +264,31 @@ export default function App() {
       window.history.back(); // popstate below clears the focus
       return;
     }
-    const tab = returnTab.current ?? activeTab;
-    returnTab.current = null;
-    setActiveTab(tab);
     setFocusOrderId(null);
     setFocusOrder(null);
-    window.history.replaceState(null, '', `/?tab=${tab}`);
+    window.history.replaceState(null, '', `/?tab=${activeTab}`);
   };
   const reloadErrand = () => {
     setFocusOrder(null);
     setActionError(null);
     setReloadKey((k) => k + 1);
   };
-  // A nav tab tapped while an errand page is open leaves the page; the URL is rewritten in place.
+  // A nav tab tapped while an errand page is open leaves the page; the URL always follows the tab, so a later Back
+  // from a details page returns here.
   const selectTab = (tab: StudentTab) => {
     if (focusOrderId) {
-      returnTab.current = null;
       savedScroll.current = null;
       setFocusOrderId(null);
       setFocusOrder(null);
-      window.history.replaceState(null, '', `/?tab=${tab}`);
     }
+    window.history.replaceState(null, '', `/?tab=${tab}`);
     setActiveTab(tab);
   };
   useEffect(() => {
     const onPopState = () => {
+      // Every history entry carries its tab in the URL (openErrand and selectTab keep it in sync).
       const link = readDeepLink();
-      // Back from the page: the tab the card or notification was on; forward to the page: the tab in its URL.
-      const previous = returnTab.current;
-      returnTab.current = null;
-      setActiveTab((current) => (link.orderId ? link.tab ?? current : previous ?? link.tab ?? current));
+      setActiveTab((current) => link.tab ?? current);
       setFocusOrderId(link.orderId);
       setFocusOrder(null);
     };
