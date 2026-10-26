@@ -5238,3 +5238,16 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 19:05 SGT — Push to main blocked by branch rules, merged local branches deleted, worktree leftovers reported
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** "ok continue on this, also what is foc-details" — finish the loose ends from the previous prompt and explain the `foc-details` folder.
+
+**Usage scenario:** Git/GitHub operations at the author's explicit request (CLAUDE.md section 1 exception), plus an explanation. Attempted to push `main` (aa40cbe plus this entry); the repository rule set requires a pull request for `main`, so the two usage-log commits were moved to branch `docs/usage-log-merges` and local `main` reset to `origin/main`. A PR needs an issue to close; left for the author to decide. Deleted the three local branches already merged into main (`feature/chat-service`, `feature/errand-details-page`, `feature/errand-details-restyle`); their remote copies had been auto-deleted on merge. The leftover `../foc-details` folder is held open by three editor TypeScript-server processes running from its `node_modules`; ending them was denied by the session permission rules, so the folder is left for the author.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
