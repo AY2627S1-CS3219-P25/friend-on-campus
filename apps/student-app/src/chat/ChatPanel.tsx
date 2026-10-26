@@ -3,7 +3,8 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: Restyled to the author's errand-page wireframe (issue #188): "Live errand chat" header with the connection
  * state in words, own messages in NUS blue on the right, a pill composer with a round orange send button, a taller
- * list. Behaviour unchanged.
+ * list that fills the card's height on desktop and scrolls inside it; opens at the newest message and follows new
+ * ones only while the reader is at the bottom.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
@@ -92,7 +93,21 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
 
   // The server pushes no frame when a conversation closes; the card's status is the signal that it may have.
   useEffect(() => { void load(orderId); }, [load, orderId, status]);
-  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [thread?.messages.length]);
+  // Chat-app scrolling: open at the newest message, follow new ones only while the reader is already at the bottom
+  // (a reader who scrolled up to re-read is not yanked down); the reader's own send always lands at the bottom.
+  const stickToBottom = useRef(true);
+  const onListScroll = () => {
+    const el = list.current;
+    if (el) stickToBottom.current = el.scrollHeight - el.clientHeight - el.scrollTop < 24;
+  };
+  const lastId = thread?.messages.at(-1)?.id;
+  const lastMine = thread?.messages.at(-1)?.senderId === currentUserId;
+  useEffect(() => {
+    const el = list.current;
+    if (!el) return;
+    if (stickToBottom.current || lastMine) el.scrollTo({ top: el.scrollHeight });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastId, thread?.isLoading]);
 
   const closed = Boolean(thread?.conversation?.closedAt);
   const handleSend = async (event: React.FormEvent) => {
@@ -107,7 +122,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   };
 
   return (
-    <section aria-label="Live errand chat" className="space-y-3" data-testid="chat-panel">
+    <section aria-label="Live errand chat" className="flex flex-col gap-3 lg:flex-1 lg:min-h-0" data-testid="chat-panel">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900"><MessageCircle className="h-4 w-4 text-nus-blue" /> Live errand chat</h3>
         <SocketDot status={chat.status} />
@@ -120,7 +135,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         </p>
       )}
 
-      <ul ref={list} className="max-h-80 min-h-[8rem] overflow-y-auto space-y-2 pr-1" aria-live="polite">
+      <ul ref={list} onScroll={onListScroll} className="max-h-80 min-h-[8rem] overflow-y-auto overscroll-contain space-y-2 pr-1 lg:flex-1 lg:min-h-0 lg:max-h-none" aria-live="polite">
         {thread?.isLoading && !thread.messages.length && (
           <li className="text-xs text-slate-400 flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Loading…</li>
         )}

@@ -9,7 +9,7 @@
  * participants only, accept note kept when the accept fails, tracker state also conveyed with aria-current and hidden
  * text, countdown copy after expiry. Restyled the same day to the author's wireframe: back header with status pill,
  * participant card, vertical timeline whose rows carry the pickup spot, dropoff and escrow amount, live chat card,
- * one primary action with a caption (sticky above the bottom nav on phones), two columns on desktop.
+ * one primary action with a caption, two columns on desktop with the chat card stretched to the left column's height.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -382,28 +382,32 @@ export function ErrandDetailsPage({ orderId, result, currentUserId, chat, onBack
       )}
 
       {order && (
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-6 lg:items-start">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-6 lg:items-stretch">
           {/* Left column: who, what, where it stands. */}
           <div className="space-y-3">
             {order.status === 'OPEN' && <Countdown expiresAt={order.expiresAt} />}
             <Participant order={order} role={role} />
             <Timeline order={order} role={role} />
             <ItemCard order={order} />
-            {!showChat && <div className="hidden lg:block" />}
           </div>
 
           {/* Right column on desktop: the live chat and the action. On phones they follow in the single column. */}
-          <div className="mt-3 lg:mt-0 space-y-3 lg:sticky lg:top-24">
-            {showChat && (
-              <Card className="p-4">
-                <ChatPanel orderId={order.id} status={order.status} currentUserId={currentUserId} chat={chat} />
-              </Card>
-            )}
-            {actionBlock}
-            <footer className="text-[11px] text-slate-400 space-y-0.5 px-1 pt-1">
-              <p className="break-all">Order ID {order.id}</p>
-              <p>Posted {dateTimeOf(order.createdAt)}</p>
-            </footer>
+          {/* The right column is as tall as the left one on desktop: the chat card grows, the action and footer sit at the bottom. */}
+          {/* On desktop the row is sized by the left column only: the right column's content is taken out of flow
+              (absolute, filling the grid cell) so a long chat scrolls inside its card instead of stretching the page. */}
+          <div className="mt-3 lg:mt-0 lg:relative lg:min-h-[34rem]">
+            <div className="flex flex-col gap-3 lg:absolute lg:inset-0">
+              {showChat && (
+                <Card className="p-4 lg:flex-1 lg:flex lg:flex-col lg:min-h-0">
+                  <ChatPanel orderId={order.id} status={order.status} currentUserId={currentUserId} chat={chat} />
+                </Card>
+              )}
+              {actionBlock}
+              <footer className="text-[11px] text-slate-400 space-y-0.5 px-1 pt-1">
+                <p className="break-all">Order ID {order.id}</p>
+                <p>Posted {dateTimeOf(order.createdAt)}</p>
+              </footer>
+            </div>
           </div>
         </div>
       )}

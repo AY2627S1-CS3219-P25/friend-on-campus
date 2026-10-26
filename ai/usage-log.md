@@ -5101,3 +5101,33 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `ai/usage-log.md` — this entry
 - (GitHub) issue #191 — `[UI] Errand details page: match the author's wireframe (timeline, participant card, chat, one primary action)`
 - (GitHub) PR #192 — `feat(student-app): restyle the errand details page to the author's wireframe (#191)`
+
+## 2026-10-26 16:25 SGT — Errand page: chat column stretched to the left column's height on desktop
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle (PR #192, uncommitted in the worktree)
+
+**Prompt (summarised):** On desktop, make the chat section the same height as the left side of the errand page.
+
+**Usage scenario:** Implementation code to the author's layout request (CLAUDE.md section 1). The desktop grid now stretches its rows, the right column is a flex column, the chat card grows to fill it and its message list fills the card (the fixed max height stays on phones); the action and footer sit at the column's bottom; the sticky right column was dropped since it cannot stretch. Measured in the browser at 1440 px: both columns 560.5 px. Verified: student-app `test:unit` 17 pass, typecheck and lint clean, screenshots at 1440 px (with and without chat) and 390 px. Left to the author: visual sign-off and pushing the commit to PR #192.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — `lg:items-stretch` grid, right column as a flex column, chat card `lg:flex-1`; sticky removed.
+- `apps/student-app/src/chat/ChatPanel.tsx` — section and list grow to the card's height on desktop (`lg:flex-1 lg:max-h-none`).
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 16:45 SGT — Errand page chat: scroll inside the card, follow new messages like a chat app
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle (PR #192, uncommitted in the worktree)
+
+**Prompt (summarised):** When messages exceed the chat area, scroll inside it like conventional chat apps instead of growing the page.
+
+**Usage scenario:** Implementation code to the author's request (CLAUDE.md section 1). On desktop the right column's content is taken out of flow (absolute, filling its grid cell, with a 34 rem floor), so the row is sized by the left column and the message list is the only thing that scrolls; the list opens at the newest message, follows new messages only while the reader is already at the bottom, and always follows the reader's own send. Measured at 1440 px: both columns 561 px, list 308 px showing 430 px of messages, at bottom before and after a send, no horizontal overflow. Verified: student-app `test:unit` 17 pass, typecheck and lint clean. Left to the author: sign-off and pushing to PR #192.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — right column wrapper absolute on desktop inside a `lg:relative lg:min-h-[34rem]` cell.
+- `apps/student-app/src/chat/ChatPanel.tsx` — stick-to-bottom scrolling (`onScroll` tracks whether the reader is at the bottom; effect keyed on the last message id), `lg:min-h-0` on the list, `overscroll-contain`.
+- `ai/usage-log.md` — this entry
