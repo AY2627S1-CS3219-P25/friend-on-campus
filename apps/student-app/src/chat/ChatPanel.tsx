@@ -4,7 +4,7 @@
  * Scope: Restyled to the author's errand-page wireframe (issue #188): "Live errand chat" header with the connection
  * state in words, own messages in NUS blue on the right, a pill composer with a round orange send button, a taller
  * list that fills the card's height on desktop and scrolls inside it; opens at the newest message and follows new
- * ones only while the reader is at the bottom.
+ * ones only while the reader is at the bottom. PR #192 review: the service's 404 (never accepted) is an empty state.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
@@ -110,6 +110,8 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   }, [lastId, thread?.isLoading]);
 
   const closed = Boolean(thread?.conversation?.closedAt);
+  // The Chat Service answers 404 for an errand nobody ever accepted; that is an empty state, not a failure.
+  const noConversation = Boolean(thread?.loadError && /no conversation exists/i.test(thread.loadError));
   const handleSend = async (event: React.FormEvent) => {
     event.preventDefault();
     if (draft.trim().length === 0) { setSendError('A message cannot be empty'); return; }
@@ -128,7 +130,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         <SocketDot status={chat.status} />
       </div>
 
-      {thread?.loadError && (
+      {thread?.loadError && !noConversation && (
         <p className="rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs px-2 py-1.5">
           {thread.loadError}{' '}
           <button type="button" onClick={() => void load(orderId)} className="font-bold underline">Retry</button>
@@ -139,6 +141,9 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         {thread?.isLoading && !thread.messages.length && (
           <li className="text-xs text-slate-400 flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Loading…</li>
         )}
+        {noConversation && (
+          <li className="text-xs text-slate-400">No conversation for this errand: no courier accepted it.</li>
+        )}
         {thread && !thread.isLoading && !thread.loadError && thread.messages.length === 0 && (
           <li className="text-xs text-slate-400">No messages yet. Say where you are or when you’ll arrive.</li>
         )}
@@ -147,7 +152,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         ))}
       </ul>
 
-      {closed ? (
+      {noConversation ? null : closed ? (
         <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">This errand is finished; the conversation is read-only.</p>
       ) : (
         <form onSubmit={handleSend} className="space-y-1">

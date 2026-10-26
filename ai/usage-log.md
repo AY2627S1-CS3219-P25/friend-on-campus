@@ -5145,3 +5145,20 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - `ai/usage-log.md` — this entry
 - (GitHub) PR #192 — description updated for commit ba67934
+
+## 2026-10-26 17:40 SGT — Review findings on PRs #148, #190 and #192 fixed before merging to main
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/chat-service (eff3893), feature/errand-details-page (c898f31), feature/errand-details-restyle (this commit)
+
+**Prompt (summarised):** Look at all the code reviews on the open pull requests, attend to them, then merge them to main.
+
+**Usage scenario:** Debugging assistance, implementation code and Git/GitHub operations at the author's explicit request (CLAUDE.md section 1). Every finding was verified against the code before changing anything; all were valid. #148: the four second-round findings fixed this morning were committed as eff3893 and pushed (CI green). #190: the origin tab lived in a ref cleared by the first Back, so Back → Forward → Back or a refresh lost it; the list entry's URL now carries the tab (openErrand rewrites it before pushing, selectTab keeps it in step, popstate reads it) — c898f31, checked in the browser for Tasks and Alerts origins and after a refresh. #192: the "never accepted" chat guard also hid retained history after a courier drop (drop clears courierId / acceptedAt on the Order while Chat keeps the conversation), so the panel is shown from ACCEPTED on and the service's 404 is a quiet empty state; the completed timeline row and the accept caption no longer claim the payout before Credit Service settles the escrow — checked in the browser with accept → message → drop → cancel and with a never-accepted cancelled errand. Posting the thread replies was blocked by the session's permission classifier (external writes), so the reply texts were given to the author in chat; merging to main follows this commit once CI is green, in the order #148, #190, #192, as the author asked.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — chat panel kept for every status from ACCEPTED on; completion row and accept caption conditional on settlement.
+- `apps/student-app/src/chat/ChatPanel.tsx` — the Chat Service's 404 (never accepted) rendered as an empty state, composer hidden.
+- `apps/student-app/src/App.tsx` (feature/errand-details-page, c898f31) — origin tab kept in the list entry's URL.
+- `services/chat-service/**`, `apps/student-app/src/chat/useChat.ts`, tests (feature/chat-service, eff3893) — the four #148 fixes committed; see the 02:36 entry for the file list.
+- `ai/usage-log.md` — this entry

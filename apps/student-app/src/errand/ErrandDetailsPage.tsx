@@ -10,6 +10,8 @@
  * text, countdown copy after expiry. Restyled the same day to the author's wireframe: back header with status pill,
  * participant card, vertical timeline whose rows carry the pickup spot, dropoff and escrow amount, live chat card,
  * one primary action with a caption, two columns on desktop with the chat card stretched to the left column's height.
+ * PR #192 review: the chat panel is kept for retained history after a drop, and the completion row no longer claims
+ * the payout before Credit Service settles it.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -119,8 +121,10 @@ function rowCopy(step: TrackerStep, order: OrderDTO, role: Role): { title: strin
       };
     case 'completed':
       return {
-        title: step.state === 'done' ? `Completed · ${credits} released` : `Confirmation & ${credits} release`,
-        detail: at ? `${at} · Credit Service settles the escrow` : 'Pending',
+        // Order completion and the credit transfer are separate steps: the wording stays conditional until Credit
+        // Service has settled the escrow (PR #192 review).
+        title: step.state === 'done' ? 'Completed · delivery confirmed' : `Confirmation, then ${credits} release`,
+        detail: at ? `${at} · ${credits} paid to the courier once Credit Service settles the escrow` : 'Pending',
       };
   }
 }
@@ -266,7 +270,7 @@ function Actions({ order, role, actingAction, onAccept, onAction }: {
         <button type="button" data-testid="accept-order-btn" disabled={busy} onClick={() => setConfirmingAccept(true)} className={ACCENT}>
           {label('accept', `Accept errand · earn ${credits} credits`, 'Accepting…')}
         </button>
-        {caption(`You become the courier. The ${credits} credits are released to you once the requester confirms delivery.`)}
+        {caption(`You become the courier. The ${credits} credits are paid to you after the requester confirms delivery and Credit Service settles the escrow.`)}
       </div>
     );
   }
@@ -336,8 +340,10 @@ export function ErrandDetailsPage({ orderId, result, currentUserId, chat, onBack
   const actions = order && showsActions(order.status, role)
     ? <Actions order={order} role={role} actingAction={actingAction} onAccept={onAccept} onAction={onAction} />
     : null;
-  // A conversation exists from the accept onwards; an errand cancelled or expired while still open never had one.
-  const showChat = Boolean(order && hasConversation(order.status) && role !== 'other' && (order.acceptedAt || order.courierId));
+  // A conversation exists from the first accept onwards and is retained after a courier drops the errand, while the
+  // Order DTO then clears courierId / acceptedAt; so the panel is shown for every status from ACCEPTED on and the
+  // Chat Service's 404 (never accepted) is rendered quietly by ChatPanel (PR #192 review).
+  const showChat = Boolean(order && hasConversation(order.status) && role !== 'other');
 
   const actionBlock = (actions || actionError) && (
     <div data-testid="errand-actions" className="space-y-2">
