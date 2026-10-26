@@ -5055,3 +5055,17 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `docs/superpowers/plans/2026-10-26-errand-details-page.md` — new: implementation plan from the approved design.
 - `docs/README.md` — inventory row for the plan.
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 05:55 SGT — Commit and open PR #190 (errand details page)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-page
+
+**Prompt (summarised):** "ok i would like you to commit and create pull request first".
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). Committed the errand details page work as 42481c8 (with the previous usage-log entry), pushed `feature/errand-details-page`, and opened PR #190 against `feature/chat-service` (the page embeds the chat panel from PR #148; to be retargeted to `main` once #148 merges) with `Closes #188` and `Closes #189` under Linked issues, the DP criteria covered, the test steps and the verification record. No code changed in this prompt.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) PR #190 — `feat(student-app): errand details page owning the status actions (#188, #189)`
