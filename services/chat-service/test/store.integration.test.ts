@@ -10,6 +10,10 @@
  * Scope: Review fixes (PR #148 P1, P2): courierSince and the upsert outcome, the replay/redelivery guard, and append's
  * locked recheck (closed, non-participant, missing, recipients from the row) on real PostgreSQL.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Review fix (PR #148, second round): a terminal fallback's closedAt is applied set-once to an existing row.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 // Opt in with CHAT_TEST_DATABASE_URL pointing to any PostgreSQL database.
@@ -81,6 +85,15 @@ describe('conversation store (PostgreSQL)', { skip: !databaseUrl }, () => {
     assert.equal((await store.append(message(ALICE, 'late'))).kind, 'closed');
     assert.equal((await store.append({ ...message(ALICE, 'nowhere'), conversationId: randomUUID() })).kind, 'not_found');
     assert.deepEqual((await store.listMessages(conversation.id, { afterSequence: 0, limit: 10 })).map((m) => m.text), ['hi', 'hello courier']);
+  });
+
+  it('P2: a terminal fallback applies its closedAt to a row an event created, once', async () => {
+    const orderId = randomUUID();
+    await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0 });
+    const fallback = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0, closedAt: T1 });
+    assert.deepEqual([fallback.outcome, fallback.conversation.closedAt], ['ignored', T1]);
+    const again = await store.upsertAccepted({ orderId, requesterId: ALICE, courierId: BOB, createdAt: T0, closedAt: '2026-10-20T07:00:00.000Z' });
+    assert.equal(again.conversation.closedAt, T1, 'set-once: the first closure stands');
   });
 
   it('records pickup, delivery and close once; a repeat or a missing row is false', async () => {
