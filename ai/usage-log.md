@@ -5069,3 +5069,20 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Files changed:**
 - `ai/usage-log.md` — this entry
 - (GitHub) PR #190 — `feat(student-app): errand details page owning the status actions (#188, #189)`
+
+## 2026-10-26 15:50 SGT — Errand details page restyled to the author's wireframe
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-page (PR #190, uncommitted in the worktree)
+
+**Prompt (summarised):** Make the errand details page look like the attached wireframe (back header with status pill, participant card, vertical timeline with check markers, live chat card, one big bottom action with a caption), in the app's colours, for desktop and mobile.
+
+**Usage scenario:** Implementation code to the author's visual design (CLAUDE.md section 1; the wireframe is the author's). Calls stated as mine: NUS blue checks with an orange ring for the current step; timeline rows carry the errand's own facts (pickup spot, dropoff, escrow amount); participant card shows the role and contact note only (author's option 1); two columns on desktop (timeline and details left, chat and action right), single column on phones with the action below the chat as in the wireframe (a sticky variant covered the chat composer and was dropped); countdown in days from 48 h; chat hidden for an errand that ended before any courier accepted. Verified: student-app `test:unit` 17 pass, `npm run typecheck`, `npm run lint`, `npm run ci:validate-tests`, browser UAT 40/40 on the rebuilt container, screenshots at 390 px and 1440 px of the open, accepted, completed and cancelled states. Left to the author: visual sign-off, commit and push to PR #190.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — restyled: header row with back chevron and status pill, participant card, vertical timeline with data-bearing rows and red end row, item card with pickup / dropoff / reward chips, primary action with caption and secondary ghost action, desktop two-column layout.
+- `apps/student-app/src/chat/ChatPanel.tsx` — "Live errand chat" header with the connection state in words, own messages in NUS blue, pill composer with a round orange send button, taller list; behaviour unchanged.
+- `apps/student-app/src/errand/details.ts` — `formatCountdown` reads in days from 48 hours.
+- `apps/student-app/test/errand-details.test.ts` — countdown cases for 47 h and 175 d.
+- `ai/usage-log.md` — this entry
