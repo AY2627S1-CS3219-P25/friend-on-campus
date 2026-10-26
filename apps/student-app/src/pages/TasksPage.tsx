@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Errand details page (issues #188, #189; author's design of 2026-10-26): each task card is now a summary that
+ * links to the errand's page (/?tab=tasks&orderId=), which owns the chat panel and every status action; the action
+ * buttons, chat toggle and the notification focus panel left this file. Status badge classes moved to errand/details.ts.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
  * Scope: Review fix (PR #148): the expanded ChatPanel receives the card's status so it can switch to read-only live.
  * Author review: <to be completed by Reallyeasy1>
@@ -31,80 +37,37 @@
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by Reallyeasy1)
 
-import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
-import { CheckCircle2, Coins, MessageCircle, PackageCheck, RefreshCw, Truck, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { FetchOrderResult, TaskOrderAction } from '../api/orders';
+import { OrderDTO } from '@campus-errand/common-dtos';
+import { ArrowRight, Coins, RefreshCw } from 'lucide-react';
 import { ExpandableNotes } from '../components/ExpandableNotes';
-import { ChatPanel } from '../chat/ChatPanel';
-import type { ChatApi } from '../chat/useChat';
+import { statusBadgeClasses } from '../errand/details';
 
 interface TasksPageProps {
   orders: OrderDTO[];
   currentUserId: string | null;
   ordersLoading?: boolean;
-  actingOrderId: string | null;
-  actingAction: TaskOrderAction | null;
   onRefreshOrders?: () => void;
-  onPickupOrder: (orderId: string) => void;
-  onDeliverOrder: (orderId: string) => void;
-  onCompleteOrder: (orderId: string) => void;
-  onCancelOrder: (orderId: string) => void;
-  onUnassignOrder: (orderId: string) => void;
-  /** The errand a notification opened (deep link); null when Tasks was opened directly. */
-  focusOrderId?: string | null;
-  /** Its authoritative state, fetched from Order Service when the focus was set; null while loading. */
-  focusOrder?: FetchOrderResult | null;
-  onClearFocus?: () => void;
-  chat: ChatApi;
+  /** Opens the errand's details page (#188), which carries the chat and the actions. */
+  onOpenErrand: (orderId: string) => void;
 }
 
-/** A conversation exists from accept onwards (F8.1); before that the card has nothing to open. */
-const CHAT_STATUSES: ReadonlySet<OrderStatus> = new Set(['ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'DISPUTED']);
-
-function getStatusBadgeClasses(status: OrderStatus): string {
-  switch (status) {
-    case 'COMPLETED':
-      return 'text-emerald-700 bg-emerald-50 border border-emerald-200';
-    case 'DELIVERED':
-      return 'text-blue-700 bg-blue-50 border border-blue-200';
-    case 'CANCELLED':
-    case 'EXPIRED':
-    case 'REJECTED':
-      return 'text-rose-700 bg-rose-50 border border-rose-200';
-    default:
-      return 'text-amber-700 bg-amber-50 border border-amber-200';
+/** One line under the card so the list still tells the state at a glance; the page has the detail and the actions. */
+function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string; tone: string } | null {
+  switch (task.status) {
+    case 'PENDING': return { text: 'Reserving credits…', tone: 'text-amber-700' };
+    case 'OPEN': return side === 'posted' ? { text: 'Open · Waiting for a courier', tone: 'text-amber-700' } : null;
+    case 'ACCEPTED': return { text: side === 'accepted' ? 'Accepted · Head to the pickup spot' : 'Accepted · A courier is on it', tone: 'text-amber-700' };
+    case 'IN_TRANSIT': return { text: side === 'accepted' ? 'In transit · Deliver to the dropoff' : 'In transit · Courier has picked up your item', tone: 'text-amber-700' };
+    case 'DELIVERED': return { text: side === 'posted' ? 'Delivered · Review and confirm' : 'Delivered · Waiting for requester confirmation', tone: 'text-blue-700' };
+    case 'COMPLETED': return { text: side === 'posted' ? 'Completed · Delivery confirmed' : `Completed · ${task.rewardCredits} credits are paid once Credit Service settles the escrow`, tone: 'text-emerald-700' };
+    case 'CANCELLED': return { text: side === 'posted' ? 'Cancelled · Reserved credits are returned by Credit Service' : 'Cancelled · Order was cancelled before completion', tone: 'text-slate-500' };
+    case 'EXPIRED': return { text: 'Expired · Reserved credits are returned by Credit Service', tone: 'text-slate-500' };
+    case 'REJECTED': return { text: task.rejectionReason ? `Declined: ${task.rejectionReason}` : 'Declined · Credit reservation failed', tone: 'text-rose-700' };
+    case 'DISPUTED': return { text: 'Disputed · An admin is reviewing this errand', tone: 'text-rose-700' };
   }
 }
 
-export function TasksPage({
-  orders,
-  currentUserId,
-  ordersLoading = false,
-  actingOrderId,
-  actingAction,
-  onRefreshOrders,
-  onPickupOrder,
-  onDeliverOrder,
-  onCompleteOrder,
-  onCancelOrder,
-  onUnassignOrder,
-  focusOrderId = null,
-  focusOrder = null,
-  onClearFocus,
-  chat,
-}: TasksPageProps) {
-  // AI-generated (edited by Reallyeasy1)
-  // The notification only pointed here; the current order status decides what the card offers.
-  useEffect(() => {
-    if (!focusOrderId) return;
-    const card = document.querySelector<HTMLElement>(`[data-order-id="${focusOrderId}"]`);
-    card?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }, [focusOrderId, orders.length]);
-  const focused = focusOrder?.status === 'ok' ? focusOrder.order : null;
-  // AI-generated (edited by Reallyeasy1): which card has its chat (F8) expanded in place (author D9).
-  const [openChat, setOpenChat] = useState<string | null>(null);
-
+export function TasksPage({ orders, currentUserId, ordersLoading = false, onRefreshOrders, onOpenErrand }: TasksPageProps) {
   const groups = [
     {
       key: 'posted' as const,
@@ -136,40 +99,6 @@ export function TasksPage({
           </button>
         )}
       </div>
-      {focusOrderId && (
-        <section
-          role="status"
-          data-testid="focused-errand"
-          className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-slate-800 flex flex-wrap items-center gap-3"
-        >
-          {focusOrder === null && <span>Checking the errand's current status…</span>}
-          {focused && (
-            <>
-              <span className="font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded">{focused.orderCode}</span>
-              <span className={`text-xs font-bold px-2 py-1 rounded ${getStatusBadgeClasses(focused.status)}`}>
-                {focused.status.replace(/_/g, ' ')}
-              </span>
-              <span className="text-slate-600">
-                {focused.status === 'DELIVERED' && focused.requesterId === currentUserId
-                  ? 'Delivered: review it and confirm below.'
-                  : focused.requesterId === currentUserId || focused.courierId === currentUserId
-                    ? 'This is the current state of the errand; the card below has the actions it allows.'
-                    : 'You are no longer part of this errand; this is its current state.'}
-              </span>
-            </>
-          )}
-          {focusOrder && focusOrder.status !== 'ok' && (
-            <span className="text-slate-600">
-              {focusOrder.status === 'error' ? focusOrder.message : 'This errand is no longer available to you.'}
-            </span>
-          )}
-          {onClearFocus && (
-            <button type="button" onClick={onClearFocus} className="ml-auto text-xs font-bold text-blue-700 underline">
-              Dismiss
-            </button>
-          )}
-        </section>
-      )}
       {groups.map((group) => (
         <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
           <div>
@@ -186,35 +115,24 @@ export function TasksPage({
               </p>
             )}
             {group.tasks.map((task) => {
-              const isBusyThisCard = actingOrderId === task.id;
-              const disableAllActions = actingOrderId !== null;
-
+              const line = statusLine(task, group.key);
               return (
                 <article
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className={`bg-white rounded-xl p-4 shadow-sm border space-y-2 flex flex-col justify-between ${
-                    task.id === focusOrderId ? 'border-nus-orange ring-2 ring-nus-orange/60' : 'border-slate-200'
-                  }`}
+                  className="relative bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition focus-within:ring-2 focus-within:ring-nus-orange"
                 >
                   <div className="space-y-2">
                     <div className="flex flex-wrap justify-between items-center gap-2">
                       <span className="text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
                         {task.orderCode}
                       </span>
-                      <span
-                        className={`text-xs font-bold px-2 py-1 rounded ${getStatusBadgeClasses(
-                          task.status
-                        )}`}
-                      >
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${statusBadgeClasses(task.status)}`}>
                         {task.status.replace(/_/g, ' ')}
                       </span>
                     </div>
-                    <p
-                      title={task.itemDescription}
-                      className="text-sm font-bold text-slate-800 h-10 leading-5 line-clamp-2"
-                    >
+                    <p title={task.itemDescription} className="text-sm font-bold text-slate-800 h-10 leading-5 line-clamp-2">
                       {task.itemDescription}
                     </p>
                     <p className="flex items-center gap-1 text-sm font-bold text-amber-700">
@@ -228,173 +146,21 @@ export function TasksPage({
                     <p title={task.dropoffLocation} className="truncate text-xs text-slate-500">
                       Dropoff: {task.dropoffLocation}
                     </p>
-                  </div>
-
-                  {CHAT_STATUSES.has(task.status) && (
-                    <div className="pt-2 border-t border-slate-100 space-y-2">
-                      <button
-                        type="button"
-                        data-testid="chat-toggle-btn"
-                        aria-expanded={openChat === task.id}
-                        onClick={() => setOpenChat((current) => (current === task.id ? null : task.id))}
-                        className="flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline"
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                      {line ? <p className={`text-xs font-medium ${line.tone}`}>{line.text}</p> : <span />}
+                      {/* Stretched over the whole card (after:inset-0): the card is the link without wrapping other
+                          interactive content; the notes' Show more sits above it (z-10). */}
+                      <a
+                        href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
+                        data-testid="open-errand-link"
+                        aria-label={`View details of errand ${task.orderCode}`}
+                        onClick={(event) => { event.preventDefault(); onOpenErrand(task.id); }}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 whitespace-nowrap rounded focus:outline-none after:absolute after:inset-0 after:rounded-xl after:content-['']"
                       >
-                        <MessageCircle className="h-4 w-4" />
-                        {openChat === task.id ? 'Hide chat' : 'Chat'}
-                      </button>
-                      {openChat === task.id && (
-                        <ChatPanel orderId={task.id} status={task.status} currentUserId={currentUserId} chat={chat} />
-                      )}
+                        View details <ArrowRight className="h-3.5 w-3.5" />
+                      </a>
                     </div>
-                  )}
-
-                  {group.key === 'accepted' && (
-                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                      {task.status === 'ACCEPTED' && (
-                        <div className="w-full flex flex-col sm:flex-row gap-2">
-                          <button
-                            type="button"
-                            data-testid="pickup-order-btn"
-                            onClick={() => onPickupOrder(task.id)}
-                            disabled={disableAllActions}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-nus-blue hover:bg-blue-800 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Truck className="h-3.5 w-3.5" />
-                            <span>
-                              {isBusyThisCard && actingAction === 'pickup'
-                                ? 'Marking Picked Up…'
-                                : 'Mark Picked Up'}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            data-testid="unassign-order-btn"
-                            onClick={() => onUnassignOrder(task.id)}
-                            disabled={disableAllActions}
-                            className="inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs px-3 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <XCircle className="h-3.5 w-3.5" />
-                            <span>
-                              {isBusyThisCard && actingAction === 'unassign'
-                                ? 'Dropping…'
-                                : 'Drop Errand'}
-                            </span>
-                          </button>
-                        </div>
-                      )}
-
-                      {task.status === 'IN_TRANSIT' && (
-                        <button
-                          type="button"
-                          data-testid="deliver-order-btn"
-                          onClick={() => onDeliverOrder(task.id)}
-                          disabled={disableAllActions}
-                          className="w-full inline-flex items-center justify-center gap-1.5 bg-nus-orange hover:bg-orange-600 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <PackageCheck className="h-3.5 w-3.5" />
-                          <span>
-                            {isBusyThisCard && actingAction === 'deliver'
-                              ? 'Marking Delivered…'
-                              : 'Mark Delivered'}
-                          </span>
-                        </button>
-                      )}
-
-                      {task.status === 'DELIVERED' && (
-                        <p className="text-xs font-medium text-blue-700">
-                          Delivered · Waiting for requester confirmation
-                        </p>
-                      )}
-
-                      {task.status === 'COMPLETED' && (
-                        <p className="text-xs font-medium text-emerald-700">
-                          Completed · {task.rewardCredits} credits are paid once Credit Service settles the escrow
-                        </p>
-                      )}
-
-                      {task.status === 'CANCELLED' && (
-                        <p className="text-xs font-medium text-slate-500">
-                          Cancelled · Order was cancelled before completion
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {group.key === 'posted' && (
-                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                      {task.status === 'DELIVERED' && (
-                        <button
-                          type="button"
-                          data-testid="complete-order-btn"
-                          onClick={() => onCompleteOrder(task.id)}
-                          disabled={disableAllActions}
-                          className="w-full inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>
-                            {isBusyThisCard && actingAction === 'complete'
-                              ? 'Confirming Delivery…'
-                              : 'Confirm Delivery'}
-                          </span>
-                        </button>
-                      )}
-
-                      {(task.status === 'OPEN' || task.status === 'ACCEPTED') && (
-                        <button
-                          type="button"
-                          data-testid="cancel-order-btn"
-                          onClick={() => onCancelOrder(task.id)}
-                          disabled={disableAllActions}
-                          className="w-full inline-flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs px-3 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <XCircle className="h-3.5 w-3.5" />
-                          <span>
-                            {isBusyThisCard && actingAction === 'cancel'
-                              ? 'Cancelling…'
-                              : 'Cancel Errand'}
-                          </span>
-                        </button>
-                      )}
-
-                      {task.status === 'PENDING' && (
-                        <p className="text-xs font-medium text-amber-700">
-                          Reserving credits…
-                        </p>
-                      )}
-
-                      {task.status === 'IN_TRANSIT' && (
-                        <p className="text-xs font-medium text-amber-700">
-                          In transit · Courier has picked up your item
-                        </p>
-                      )}
-
-                      {task.status === 'COMPLETED' && (
-                        <p className="text-xs font-medium text-emerald-700">
-                          Completed · Delivery confirmed
-                        </p>
-                      )}
-
-                      {task.status === 'CANCELLED' && (
-                        <p className="text-xs font-medium text-slate-500">
-                          Cancelled · Reserved credits are returned by Credit Service
-                        </p>
-                      )}
-
-                      {task.status === 'EXPIRED' && (
-                        <p className="text-xs font-medium text-slate-500">
-                          Expired · Reserved credits are returned by Credit Service
-                        </p>
-                      )}
-
-                      {task.status === 'REJECTED' && (
-                        <p className="text-xs font-medium text-rose-700">
-                          {task.rejectionReason
-                            ? `Declined: ${task.rejectionReason}`
-                            : 'Declined · Credit reservation failed'}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  </div>
                 </article>
               );
             })}

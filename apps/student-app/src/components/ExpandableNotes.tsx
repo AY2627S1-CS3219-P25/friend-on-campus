@@ -3,6 +3,11 @@
  * Tool: Google Antigravity Agent, date: 2026-10-20
  * Scope: Extracted ExpandableNotes component from student-app App.tsx into components/ExpandableNotes.tsx.
  * Author review: Verified by yanhwee
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Errand details page (issue #189): the Show more button is raised above a card's stretched details link so it
+ * expands the notes instead of opening the page.
+ * Author review: <to be completed by Reallyeasy1>
  */
 
 // AI-generated (edited by huangjiaxi1111)
@@ -44,7 +49,7 @@ export function ExpandableNotes({ notes }: { notes?: string }) {
             aria-expanded={expanded}
             aria-controls={notesId}
             onClick={() => setExpanded((value) => !value)}
-            className="text-sm font-semibold text-blue-700 hover:underline"
+            className="relative z-10 text-sm font-semibold text-blue-700 hover:underline"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>

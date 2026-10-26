@@ -4,6 +4,16 @@
  * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
  * Author review: <to be completed by Reallyeasy1>
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Errand details page (issues #188, #189; author's design of 2026-10-26): the focus state becomes the open
+ * errand, rendered as ErrandDetailsPage over the active tab; openErrand / closeErrand push and pop the existing
+ * ?tab=&orderId= deep link (popstate restores the tab, scroll position restored on close); Feed and Tasks cards and
+ * the Alerts actions open it; the lifecycle handlers and their in-flight / error state now feed the page. Review
+ * pass of the same day: nav tabs leave the page (selectTab), action failures live in actionError, apart from the
+ * list poll's ordersError. PR #190 review: the origin tab is kept in the list entry's URL instead of a ref, so
+ * Back → Forward → Back and refresh keep it.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Review fix (PR #184): AlertsPage receives the hook's view, total and setView.
  * Author review: <to be completed by Reallyeasy1>
@@ -91,6 +101,7 @@ import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
 import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
 import { TasksPage } from './pages/TasksPage';
+import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
 
 // AI-generated (edited by Reallyeasy1)
 // Deep link a notification can open: /?tab=tasks&orderId=<id>. Read once; the app stays tab-based otherwise.
@@ -110,6 +121,11 @@ export default function App() {
   // The errand a notification opened; its live state is fetched so a stale notice never shows a stale action.
   const [focusOrderId, setFocusOrderId] = useState<string | null>(() => readDeepLink().orderId);
   const [focusOrder, setFocusOrder] = useState<FetchOrderResult | null>(null);
+  // AI-generated (edited by Reallyeasy1): the page's manual reload, and the list's scroll offset to return to.
+  const [reloadKey, setReloadKey] = useState(0);
+  // Failures of the page's actions (service 400 / 403 / 409 text), kept apart from the list poll's ordersError.
+  const [actionError, setActionError] = useState<string | null>(null);
+  const savedScroll = useRef<number | null>(null);
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
 
   // Profile Info state (GET/PATCH /api/users/me)
@@ -188,6 +204,9 @@ export default function App() {
     setOrdersLoading(false);
     setAcceptingOrder(null);
     setTaskActionInFlight(null);
+    setFocusOrderId(null);
+    setFocusOrder(null);
+    setActionError(null);
     setNotification(null);
     setWallet(null);
     setLedger([]);
@@ -220,26 +239,74 @@ export default function App() {
   const openNotification = (n: NotificationDTO) => {
     if (!n.readAt) void notifications.markRead(n.id);
     if (n.actionType === 'REVIEW_WALLET') {
-      setActiveTab('wallet');
+      selectTab('wallet');
       return;
     }
-    setFocusOrderId(n.orderId);
-    setFocusOrder(null);
-    setActiveTab('tasks');
-    window.history.replaceState(null, '', `/?tab=tasks&orderId=${encodeURIComponent(n.orderId)}`);
+    openErrand(n.orderId, 'tasks');
   };
-  const clearFocus = () => {
+  // AI-generated (edited by Reallyeasy1)
+  // The details page (#188) is the existing deep link made navigable: opening pushes /?tab=&orderId= so Back returns
+  // to the tab the card was on; closing pops that entry when it exists, else rewrites the URL in place. The list
+  // entry's URL is first synchronised with the tab the user is on (Alerts included), so history itself carries the
+  // origin and Back → Forward → Back or a refresh land on the same tab (PR #190 review).
+  const openErrand = (orderId: string, tab: 'feed' | 'tasks') => {
+    savedScroll.current = window.scrollY;
+    window.history.replaceState(null, '', `/?tab=${activeTab}`);
+    setActiveTab(tab);
+    setFocusOrderId(orderId);
+    setFocusOrder(null);
+    setActionError(null);
+    window.history.pushState({ errand: orderId }, '', `/?tab=${tab}&orderId=${encodeURIComponent(orderId)}`);
+    window.scrollTo(0, 0);
+  };
+  const closeErrand = () => {
+    if ((window.history.state as { errand?: string } | null)?.errand) {
+      window.history.back(); // popstate below clears the focus
+      return;
+    }
     setFocusOrderId(null);
     setFocusOrder(null);
-    window.history.replaceState(null, '', '/');
+    window.history.replaceState(null, '', `/?tab=${activeTab}`);
   };
+  const reloadErrand = () => {
+    setFocusOrder(null);
+    setActionError(null);
+    setReloadKey((k) => k + 1);
+  };
+  // A nav tab tapped while an errand page is open leaves the page; the URL always follows the tab, so a later Back
+  // from a details page returns here.
+  const selectTab = (tab: StudentTab) => {
+    if (focusOrderId) {
+      savedScroll.current = null;
+      setFocusOrderId(null);
+      setFocusOrder(null);
+    }
+    window.history.replaceState(null, '', `/?tab=${tab}`);
+    setActiveTab(tab);
+  };
+  useEffect(() => {
+    const onPopState = () => {
+      // Every history entry carries its tab in the URL (openErrand and selectTab keep it in sync).
+      const link = readDeepLink();
+      setActiveTab((current) => link.tab ?? current);
+      setFocusOrderId(link.orderId);
+      setFocusOrder(null);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+  useEffect(() => {
+    if (focusOrderId !== null || savedScroll.current === null) return;
+    window.scrollTo(0, savedScroll.current);
+    savedScroll.current = null;
+  }, [focusOrderId]);
   useEffect(() => {
     if (!isAuthenticated || !focusOrderId) return;
     let cancelled = false;
     void fetchOrderById(authFetch, focusOrderId).then((result) => { if (!cancelled) setFocusOrder(result); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, focusOrderId, orders]);
+  }, [isAuthenticated, focusOrderId, orders, reloadKey]);
   const wsStatus = notifications.status;
   // AI-generated (edited by Reallyeasy1): the chat socket (F8) beside the notification socket.
   const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
@@ -443,7 +510,7 @@ export default function App() {
     if (acceptingOrder || taskActionInFlight) return;
     const requestId = orderRequestId.current;
     setAcceptingOrder(orderId);
-    setOrdersError(null);
+    setActionError(null);
     try {
       const updated = await acceptOrderById(authFetch, orderId, courierContactNote);
       if (requestId !== orderRequestId.current) return;
@@ -452,9 +519,7 @@ export default function App() {
       setNotification('Errand accepted! Head to the pickup location.');
     } catch (error) {
       if (requestId === orderRequestId.current) {
-        setOrdersError(
-          error instanceof Error ? error.message : 'Unable to accept this errand.'
-        );
+        setActionError(error instanceof Error ? error.message : 'Unable to accept this errand.');
       }
     } finally {
       setAcceptingOrder(null);
@@ -465,7 +530,7 @@ export default function App() {
     if (taskActionInFlight || acceptingOrder) return;
     const requestId = orderRequestId.current;
     setTaskActionInFlight({ orderId, action });
-    setOrdersError(null);
+    setActionError(null);
     try {
       let updated: OrderDTO;
       let successMessage: string;
@@ -504,9 +569,7 @@ export default function App() {
       }
     } catch (error) {
       if (requestId === orderRequestId.current) {
-        setOrdersError(
-          error instanceof Error ? error.message : 'Unable to update this errand.'
-        );
+        setActionError(error instanceof Error ? error.message : 'Unable to update this errand.');
       }
     } finally {
       setTaskActionInFlight(null);
@@ -566,15 +629,18 @@ export default function App() {
   }
 
   const openProfileTab = () => {
-    setActiveTab('profile');
+    selectTab('profile');
     void fetchProfile();
   };
+
+  // AI-generated (edited by Reallyeasy1): while an errand is open its page stands in for the tab's content.
+  const page: StudentTab | null = focusOrderId ? null : activeTab;
 
   return (
     <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
       <HeaderNav
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={selectTab}
         onOpenProfile={openProfileTab}
         unreadNotificationsCount={notifications.unreadCount}
         wallet={wallet}
@@ -621,7 +687,7 @@ export default function App() {
             {submission.error}
           </div>
         )}
-        {ordersError && (activeTab === 'feed' || activeTab === 'tasks') && (
+        {ordersError && (page === 'feed' || page === 'tasks') && (
           <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
             {ordersError}{' '}
             <button onClick={() => void fetchOrders()} className="font-bold underline">
@@ -629,7 +695,7 @@ export default function App() {
             </button>
           </div>
         )}
-        {supplierError && (activeTab === 'post' || activeTab === 'spots') && (
+        {supplierError && (page === 'post' || page === 'spots') && (
           <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
             {supplierError}{' '}
             <button onClick={() => void fetchLiveSuppliers()} className="font-bold underline">
@@ -638,7 +704,24 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'feed' && (
+        {focusOrderId && (
+          <ErrandDetailsPage
+            orderId={focusOrderId}
+            result={focusOrder}
+            currentUserId={currentUserId}
+            chat={chat}
+            onBack={closeErrand}
+            onReload={reloadErrand}
+            actingAction={
+              acceptingOrder === focusOrderId ? 'accept' : taskActionInFlight?.orderId === focusOrderId ? taskActionInFlight.action : null
+            }
+            actionError={actionError}
+            onAccept={(orderId, note) => void handleAcceptOrder(orderId, note)}
+            onAction={(orderId, action) => void handleTaskOrderAction(orderId, action)}
+          />
+        )}
+
+        {page === 'feed' && (
           <FeedPage
             filteredOrders={filteredOrders}
             selectedZone={selectedZone}
@@ -646,12 +729,11 @@ export default function App() {
             ordersLoading={ordersLoading}
             ordersError={ordersError}
             currentUserId={currentUserId}
-            acceptingOrderId={acceptingOrder}
-            onAcceptOrder={handleAcceptOrder}
+            onOpenErrand={(orderId) => openErrand(orderId, 'feed')}
           />
         )}
 
-        {activeTab === 'post' && (
+        {page === 'post' && (
           <PostErrandPage
             formData={formData}
             setFormData={setFormData}
@@ -665,7 +747,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'spots' && (
+        {page === 'spots' && (
           <SpotsPage
             filteredSuppliers={filteredSuppliers}
             supplierSearch={supplierSearch}
@@ -683,27 +765,17 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'tasks' && (
+        {page === 'tasks' && (
           <TasksPage
             orders={orders}
             currentUserId={currentUserId}
             ordersLoading={ordersLoading}
-            actingOrderId={taskActionInFlight?.orderId ?? null}
-            actingAction={taskActionInFlight?.action ?? null}
             onRefreshOrders={() => void fetchOrders()}
-            onPickupOrder={(orderId) => void handleTaskOrderAction(orderId, 'pickup')}
-            onDeliverOrder={(orderId) => void handleTaskOrderAction(orderId, 'deliver')}
-            onCompleteOrder={(orderId) => void handleTaskOrderAction(orderId, 'complete')}
-            onCancelOrder={(orderId) => void handleTaskOrderAction(orderId, 'cancel')}
-            onUnassignOrder={(orderId) => void handleTaskOrderAction(orderId, 'unassign')}
-            focusOrderId={focusOrderId}
-            focusOrder={focusOrder}
-            onClearFocus={clearFocus}
-            chat={chat}
+            onOpenErrand={(orderId) => openErrand(orderId, 'tasks')}
           />
         )}
 
-        {activeTab === 'alerts' && (
+        {page === 'alerts' && (
           <AlertsPage
             items={notifications.items}
             unreadCount={notifications.unreadCount}
@@ -723,9 +795,9 @@ export default function App() {
           />
         )}
 
-        {(activeTab === 'profile' || activeTab === 'wallet') && (
+        {(page === 'profile' || page === 'wallet') && (
           <ProfileWalletPage
-            mode={activeTab}
+            mode={page}
             profile={profile}
             isLoadingProfile={isLoadingProfile}
             profileError={profileError}
@@ -755,7 +827,7 @@ export default function App() {
 
       <BottomNav
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={selectTab}
         onOpenProfile={openProfileTab}
         unreadNotificationsCount={notifications.unreadCount}
       />
