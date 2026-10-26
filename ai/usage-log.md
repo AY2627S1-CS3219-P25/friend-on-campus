@@ -5086,3 +5086,18 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/errand/details.ts` — `formatCountdown` reads in days from 48 hours.
 - `apps/student-app/test/errand-details.test.ts` — countdown cases for 47 h and 175 d.
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 16:05 SGT — Issue #191 and PR #192 for the errand page restyle
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feature/errand-details-restyle
+
+**Prompt (summarised):** "i would like you to now create a pull request out of this" (the wireframe restyle); the author chose a stacked PR with a new issue over pushing into PR #190.
+
+**Usage scenario:** Git and GitHub operations at the author's explicit request (CLAUDE.md section 1 exception), plus issue formatting (requirements work: the wireframe and layout are the author's). Opened issue #191 with criteria DP3.1–DP3.5, created `feature/errand-details-restyle` from `feature/errand-details-page` (be870a4), committed the restyle as d9b2639 with the previous usage-log entry, pushed, and opened PR #192 against `feature/errand-details-page` with `Closes #191`. Merge order noted in the PR: #190 first, then #192. No code changed in this prompt.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+- (GitHub) issue #191 — `[UI] Errand details page: match the author's wireframe (timeline, participant card, chat, one primary action)`
+- (GitHub) PR #192 — `feat(student-app): restyle the errand details page to the author's wireframe (#191)`
