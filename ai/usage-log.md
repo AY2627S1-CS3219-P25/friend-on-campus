@@ -5212,3 +5212,29 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/App.tsx` (feature/errand-details-page, c898f31) — origin tab kept in the list entry's URL.
 - `services/chat-service/**`, `apps/student-app/src/chat/useChat.ts`, tests (feature/chat-service, eff3893) — the four #148 fixes committed; see the 02:36 entry for the file list.
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 17:50 SGT — PRs #148, #190 and #192 merged to main (addendum to the 17:40 entry)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; the author commits this entry with the next change)
+
+**Prompt (summarised):** Same prompt as the 17:40 entry: attend to the review findings, then merge the pull requests to main.
+
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception), recorded after the fact because the merges happened after the fix commit that carried the 17:40 entry. Merged with merge commits, each after its CI was green on the exact head: #148 (e0bfcc8), then #190 retargeted to main after merging main into its branch (conflicts resolved in `ai/usage-log.md`, both sets of entries kept, and `apps/student-app/package.json`, `test:unit` now lists `inbox`, `chat` and `errand-details` tests) → 770f550, then #192 retargeted after a clean merge of main → f046d97. Also on #192 before merging: the participant card says a courier dropped out when the retained chat shows one accepted (86aeb3c), and UAT step UO5 takes the first match of the settlement copy, which now appears twice on the page (a8322f1). Browser UAT on the stack-tip build: lifecycle 40/40 with the two seed logins swapped except UO5 before the locator fix; the requester seed account holds too few credits for the committed script's 5-credit errand. Issues #56, #188, #189 and #191 closed by the merges. Thread replies were not posted (session permission); texts given to the author in chat. Main checkout switched to `main` at f046d97; worktree `../foc-details` kept on `feature/errand-details-restyle`.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 18:56 SGT — Review-thread replies posted, merge log entry committed, worktree removed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main
+
+**Prompt (summarised):** "ok please work on this" — the two items left from the merge prompt: post the seven review-thread replies that the session could not post earlier, and commit the usage-log entry recording the merges; also remove the finished `../foc-details` worktree.
+
+**Usage scenario:** GitHub operations and Git commit at the author's explicit request (CLAUDE.md section 1 exception). Posted one reply per thread naming the fix commit and its regression test or browser check: PR #148 (store.ts:150, store.ts:154, useChat.ts:160, config.ts:12 — eff3893), PR #190 (App.tsx:295 — c898f31), PR #192 (ErrandDetailsPage.tsx:340 and :123 — a30ca66). Committed the 17:50 merge entry together with this one on `main`; not pushed. Worktree `../foc-details` removed from git's list; one `node_modules` directory inside it is held open by another process and is left for the author to delete.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
