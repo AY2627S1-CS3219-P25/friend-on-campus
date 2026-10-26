@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Multi-client UAT finding: no courier alert exists for a newly posted errand, so the Feed polls quietly (no
+ * loading state) every 15 s while it is on screen and when the tab becomes visible again.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
  * Author review: <to be completed by Reallyeasy1>
@@ -97,6 +102,9 @@ import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
 import { FeedPage } from './pages/FeedPage';
+
+/** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
+const FEED_POLL_MS = 15_000;
 import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
 import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
@@ -345,9 +353,10 @@ export default function App() {
     };
   }, [isAuthenticated, activeTab]);
 
-  const fetchOrders = async () => {
+  // AI-generated (edited by Reallyeasy1): a quiet reload keeps the list on screen (no "Loading errands…") for polls.
+  const fetchOrders = async (quiet = false) => {
     const requestId = ++orderRequestId.current;
-    setOrdersLoading(true);
+    if (!quiet) setOrdersLoading(true);
     setOrdersError(null);
     try {
       const combined = await fetchCombinedOrders(authFetch);
@@ -371,6 +380,21 @@ export default function App() {
       requests.current++;
     };
   }, [currentUserId, activeTab]);
+
+  // AI-generated (edited by Reallyeasy1): couriers get no alert when an errand is posted (Notification Service's
+  // order.created goes to the requester only), so the Feed polls while it is on screen and the tab is visible.
+  // ponytail: a 15 s poll of the two list calls; a courier-side push would need a new notification recipient.
+  const feedOnScreen = Boolean(currentUserId) && !focusOrderId && activeTab === 'feed';
+  useEffect(() => {
+    if (!feedOnScreen) return;
+    const tick = () => { if (document.visibilityState === 'visible') void loadOrders.current(true); };
+    const timer = setInterval(tick, FEED_POLL_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [feedOnScreen]);
 
   const submission = useOrderSubmission({
     userId: currentUserId,

@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Multi-client UAT finding: a half-open socket kept the indicator on "Connected". The browser's offline event
+ * now marks the chat disconnected (which disables Send), the online event drops the socket so the reconnect's AUTH_OK
+ * catch-up fills the gap, and open threads are reconciled quietly from their cursor every 30 s and on focus, in the
+ * shape of useNotifications' reconcile.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Client side of the Chat Service contract (F8), in the shape of notifications/useNotifications.ts: AUTH
  * frame on /ws/chat/ after login, reconnect with backoff, token refresh on 4401, history over REST per errand,
@@ -40,6 +47,8 @@ export type SendOutcome = { ok: true } | { ok: false; code: ChatErrorCode | 'DIS
 const UNAUTHORIZED = 4401;
 const MAX_BACKOFF_MS = 30_000;
 const SEND_TIMEOUT_MS = 10_000;
+/** Open threads re-read from their cursor this often while the tab is visible, for drops the browser never reports. */
+const RECONCILE_MS = 30_000;
 /** The server's maximum page; a page shorter than this is the last one. */
 const PAGE_SIZE = 100;
 
@@ -97,8 +106,9 @@ export function useChat(options: {
    * afterSequence until a page comes back short, so a long conversation is complete (F8.3.1). `afterSequence` lets a
    * catch-up fetch only what was missed; the thread's `loadedThrough` is the cursor for that.
    */
-  const load = useCallback(async (orderId: string, afterSequence = 0) => {
-    setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: true, loadError: null } }));
+  const load = useCallback(async (orderId: string, afterSequence = 0, quiet = false) => {
+    // A quiet catch-up leaves isLoading alone so the panel neither shows "Loading…" nor re-scrolls.
+    if (!quiet) setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: true, loadError: null } }));
     try {
       let after = afterSequence;
       let conversation: ConversationDTO | null = null;
@@ -125,6 +135,8 @@ export function useChat(options: {
         };
       });
     } catch (e) {
+      // A quiet catch-up that fails (the service is restarting, say) leaves the thread as it was; the next one retries.
+      if (quiet) return;
       const message = e instanceof Error ? e.message : 'Could not load the conversation';
       setThreads((current) => ({ ...current, [orderId]: { ...(current[orderId] ?? EMPTY), isLoading: false, loadError: message } }));
     }
@@ -216,9 +228,32 @@ export function useChat(options: {
 
     connect(options.token);
 
+    // AI-generated (edited by Reallyeasy1): the browser hears about a lost network before a half-open socket does
+    // (the hub's ping evicts only the server side). Offline: say so, which also disables Send. Online: drop the
+    // socket so the reconnect's AUTH_OK catch-up fills the gap. For drops the browser never reports, open threads
+    // are reconciled quietly from their cursor on a timer and when the tab regains focus (as useNotifications does).
+    const onOffline = () => setStatus('disconnected');
+    const onOnline = () => socket?.close();
+    const reconcile = () => {
+      if (document.visibilityState !== 'visible') return;
+      for (const [orderId, thread] of Object.entries(threadsRef.current)) {
+        if (thread.conversation && !thread.conversation.closedAt && !thread.isLoading) void load(orderId, thread.loadedThrough, true);
+      }
+    };
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('focus', reconcile);
+    document.addEventListener('visibilitychange', reconcile);
+    const reconcileTimer = setInterval(reconcile, RECONCILE_MS);
+
     return () => {
       stopped = true;
       clearTimeout(timer);
+      clearInterval(reconcileTimer);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('focus', reconcile);
+      document.removeEventListener('visibilitychange', reconcile);
       socket?.close(1000);
     };
     // Reconnecting on every token change would drop the socket each refresh; the latest token is read from the ref.

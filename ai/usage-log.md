@@ -5212,3 +5212,46 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/App.tsx` (feature/errand-details-page, c898f31) — origin tab kept in the list entry's URL.
 - `services/chat-service/**`, `apps/student-app/src/chat/useChat.ts`, tests (feature/chat-service, eff3893) — the four #148 fixes committed; see the 02:36 entry for the file list.
 - `ai/usage-log.md` — this entry
+## 2026-10-26 19:55 SGT — Multi-client real-time UAT of notifications and chat on the local stack
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/usage-log-merges
+
+**Prompt (summarised):** Use Playwright to run extensive UAT on localhost with multiple clients, to see whether the notification and chat services stay consistent in real time.
+
+**Usage scenario:** Testing and acceptance evidence (allowed: writing tests, debugging assistance). The Playwright MCP server timed out at session start, so a throwaway driver in the git-ignored `test-results/uat-realtime/` uses the repo's `playwright` dependency with four browser contexts: the requester on two clients (desktop and phone), the courier, and a second courier registered through the API for an accept race. 14 checks: live posting receipt, accept race (one winner, one alert per client), two-way chat latency, a 5+5 concurrent burst (identical order on three clients), client offline/online, reload persistence, a `docker restart` of the Chat Service under load (drop seen in 283 ms, Send disabled meanwhile, reconnect in 7.3 s, history identical), pickup/deliver/complete/cancel propagation, cross-client unread counts and mark-all-read, HTTP/console hygiene. Final run 14/14; two earlier runs failed only in the driver (badge read on the desktop errand page where the top navigation is not rendered; click on the disabled Send button). Observations handed to the author, not decided: the Feed is not live for couriers (no `order.created` alert for them), the chat hub has no heartbeat, the desktop errand page hides the alerts badge, a truncated timestamp on the phone participant card. Nothing in the product was changed.
+
+**Files changed:**
+- `test-results/uat-realtime/run.mjs`, `uat-test-cases.md`, `uat-results.md`, `uat-results.json`, screenshots — git-ignored evidence
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 20:10 SGT — Fixes for the real-time UAT observations (Feed poll, chat offline handling, timestamp wrap)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/realtime-uat-observations
+
+**Prompt (summarised):** Fix the four observations from the multi-client UAT: Feed not live for couriers, chat hub "no heartbeat", alerts badge hidden on the desktop errand page, truncated participant timestamp on phones.
+
+**Usage scenario:** Debugging assistance and implementation code following existing patterns; no new interface or schema. Each observation was re-verified first: the badge one was wrong (a probe shows it on the errand page at both widths) and the heartbeat one was half wrong (the chat hub already pings and evicts like the Notification hub; the client side was the gap). Changes: the Feed polls quietly every 15 s while on screen and on tab visibility (no courier alert exists for `order.created`; a push would need a new notification recipient, left to the author); the chat client marks itself disconnected on the browser's `offline` event, drops the socket on `online` so the AUTH_OK catch-up fills the gap, and reconciles open threads quietly from their cursor every 30 s and on focus, in the shape of `useNotifications`; a failed quiet reconcile leaves the thread untouched; the participant card line wraps instead of truncating. Verified: typecheck (all workspaces), lint (a first placement of the poll effect after an early return was caught by the rule of hooks and moved), student-app unit tests 19/19, student-app container rebuilt, the 14-check multi-client UAT passed twice with RT03/RT07 tightened to assert the fixed behaviour. Not committed; branch created from `main` with the previous prompt's log entry carried over.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — `FEED_POLL_MS`, quiet `fetchOrders(quiet)`, Feed poll effect; disclosure record.
+- `apps/student-app/src/chat/useChat.ts` — `RECONCILE_MS`, quiet `load(..., quiet)`, offline/online/focus/visibility handling and the reconcile timer; disclosure record.
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — participant meta line wraps; disclosure record.
+- `test-results/uat-realtime/*` (git-ignored) — driver RT03/RT07 tightened, probe, results and test-case docs updated.
+- `ai/usage-log.md` — this entry
+
+## 2026-10-26 20:20 SGT — Issue #195, commit and pull request for the real-time fixes
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/realtime-uat-observations
+
+**Prompt (summarised):** "ok please do so" — create the issue and the pull request for the real-time UAT fixes.
+
+**Usage scenario:** GitHub operations and Git commit/push at the author's explicit request (CLAUDE.md section 1 exception). Issue #195 created with the acceptance criteria; the branch committed and pushed; PR opened against `main` closing #195.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry

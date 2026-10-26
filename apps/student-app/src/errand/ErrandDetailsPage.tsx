@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: UAT finding: the participant card's "Accepted <date>" line wraps instead of truncating at phone width.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: The errand details page the author designed on 2026-10-26 (issues #188 and #189): header, status tracker with
  * the order's timestamps and a red end state, expiry countdown while open, pickup / dropoff / item / credits, the other
  * side's contact note (no names: author's option 1), the embedded chat panel, and every status action (Accept with its
@@ -80,7 +84,7 @@ function Participant({ order, role, hadCourier }: { order: OrderDTO; role: Role;
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-bold text-slate-900 leading-tight">{title}</p>
-        <p className="text-xs text-slate-500 mt-0.5 truncate" title={meta}>{meta}</p>
+        <p className="text-xs text-slate-500 mt-0.5 break-words">{meta}</p>
       </div>
       {/* Contact notes are shown to participants only; a pasted link must not show a phone number to anyone else. */}
       {role !== 'other' && (
