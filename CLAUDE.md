@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-Scope: Section 2: the entry for a merge prompt is committed on the feature branch before the merge. Section 6: reply to review threads in the fix prompt; close editor windows before removing a worktree.
+Scope: Section 2: the entry for a merge prompt is committed on the feature branch before the merge. Section 6: reply to review threads in the fix prompt when replying is approved, else hand the texts over; close editor windows before removing a worktree.
 Author review: <to be completed by Reallyeasy1>
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
@@ -226,7 +226,7 @@ See `README.md` for full local dev, seeding, and test commands. Key agent verifi
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
 - **Every PR must link the issue(s) it closes.** The PR body must contain one closing-keyword line per issue (`Closes #<n>`, `Fixes #<n>`, or `Resolves #<n>`) under the **Linked issues** section of `.github/pull_request_template.md`. When drafting a PR body for the author, never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
 - Never commit, push, merge, force-push, or open/close issues and PRs yourself, unless the human user explicitly approves or requests you to do so.
-- When the author asks you to address review findings, reply in each review thread in the **same prompt** as the fix commit, quoting the commit hash and the regression test or manual check. Do not hand reply texts to the author for later.
+- When the author asks you to address review findings and has approved replying, post the reply in each review thread in the **same prompt** as the fix commit, quoting the commit hash and the regression test or manual check. If posting is not approved or is denied by the session's permissions, hand the reply texts to the author in that same reply.
 - Worktrees: before `git worktree remove`, make sure no editor window is open on that folder. Editor language servers run from its `node_modules` and keep the directory locked.
 
 ## 7. Source documents

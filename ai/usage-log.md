@@ -5279,3 +5279,18 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `CLAUDE.md` — section 2 merge-prompt rule; section 6 thread-reply and worktree rules; disclosure record.
 - `scripts/uat/uat-d2-ui.mjs` — UO0 preflight step; disclosure record.
 - `ai/usage-log.md` — this entry
+
+## 2026-10-26 21:05 SGT — Review of PR #194 and fixes for its seven findings
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/usage-log-merges
+
+**Prompt (summarised):** Review the open pull requests and fix what the review finds (this entry: PR #194).
+
+**Usage scenario:** Code review (`/code-review` at high effort) followed by implementation in a test script and a wording fix in CLAUDE.md; each finding was checked first. All seven held. UAT script: (1) the re-seed hint was wrong because the credit seed keeps existing balances (`services/credit-service/src/database/seed.ts`), so the message now says to top the account up or reset credit_db; (2) a failed UO0 did not stop UO1-UO6, which then timed out one after another: a `lifecycleStep` wrapper now skips them with the UO0 reason; (3) `?? 0` turned any non-success wallet response into "0 credits": status and `success` are checked and reported; (4) the login response was dereferenced blind: (5) one `apiLogin(email)` helper, also used by UD2, names the cause of a failed login; (6) the threshold `8` was a separate literal from the reward fills: `LIFECYCLE_REWARD` and `CANCEL_REWARD` are named once and the UO5 copy assertions derive from them. CLAUDE.md: the new section 6 rule told the agent to post review replies on its own, conflicting with the line above it and unfulfillable when the session denies the write; it is now conditioned on the author's approval and keeps the hand-over fallback. Verified: `node --check`, ESLint, the full D2 UI UAT 41/41 (UO0 reported 16 credits available), and a throwaway copy with an unaffordable reward to exercise the skip path.
+
+**Files changed:**
+- `scripts/uat/uat-d2-ui.mjs` — `apiLogin`, checked wallet read, factual hint, UO1-UO6 skipped after a failed UO0, reward constants; disclosure record.
+- `CLAUDE.md` — section 6 review-reply rule conditioned on approval with the hand-over fallback; disclosure scope.
+- `ai/usage-log.md` — this entry
