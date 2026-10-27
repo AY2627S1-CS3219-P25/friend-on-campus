@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
+Scope: Issues #173/#169/#206: upstreams resolved per request through Docker DNS (variables, 10 s TTL), 3 s connect timeout, Chat health routes; diagnostics paragraph updated accordingly.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Added the /api/chat and /ws/chat/ routes of the Chat Service (F8, PR #148) while merging main into that PR.
 Author review: <to be completed by Reallyeasy1>
@@ -24,7 +28,7 @@ The gateway is routing infrastructure. Service middleware performs authenticatio
 | /api/credits[/] | Credit 8004 |
 | /api/notifications[/] | Notification 8005 |
 | /api/chat[/] | Chat 8006 |
-| /api/health/{user,supplier,order,credit,notification}/{health,ready} | Rewrite to target service probe |
+| /api/health/{user,supplier,order,credit,notification,chat}/{health,ready} | Rewrite to target service probe |
 | /ws/ | Notification root path, HTTP/1.1 WebSocket upgrade |
 | /ws/chat/ | Chat root path, HTTP/1.1 WebSocket upgrade (86400 s read/send timeout) |
 | /admin | Redirect to /admin/ |
@@ -39,7 +43,7 @@ Host Vite configs default to individual backend services; `GATEWAY_URL` can rout
 
 ## Failure diagnostics
 
-Compare service `/ready` directly with gateway probes when diagnosing 502. Static upstream resolution can retain a replaced container's address (tracked in issue #173). A process health response does not establish database or consumer readiness. NGINX connect timeout and frontend request cancellation are separate concerns; existing timeout issues are not fixed here.
+Compare service `/ready` directly with gateway probes when diagnosing 502. Upstream names are held in variables and resolved through Docker's embedded DNS (`resolver 127.0.0.11 valid=10s`), so a replaced container's address is picked up within the TTL without a gateway restart (issue #173; the earlier static `upstream` blocks cached the address for the life of the process). `proxy_connect_timeout` is 3 s, so a stopped backend yields 502 quickly instead of after the 60 s default (issue #169); the two SPAs bound their mount-time refresh call to 8 s for the same reason. A process health response does not establish database or consumer readiness.
 
 No production route changes are included. Verify path tables against gateway plus both app NGINX/Vite files when deployments change. Browser UAT tests one configured ingress and does not prove every direct-port path has identical behavior.
 

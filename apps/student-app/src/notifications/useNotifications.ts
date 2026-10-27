@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
+ * Scope: Issue #208 (simulated UAT case E04, 2 of 3 attempts): after the browser went offline and online the badge
+ * never caught up while the chat socket reconnected. The browser's offline event now closes the socket (status
+ * disconnected, as useChat does), the online event resets the backoff, reconnects at once and refreshes with the
+ * failure counter cleared, and every inbox request is bounded by a timeout so a request that hangs across the
+ * network change can no longer keep the serialized refresh in flight forever.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Review fixes (PR #184): the hook owns the selected view and fetches it from the server (view=/unread= query)
  * instead of filtering loaded All rows, so an older Important/Action/Unread row is never hidden behind an empty state;
@@ -34,6 +42,8 @@ const MAX_BACKOFF_MS = 30_000;
 const PAGE_SIZE = 50;
 const RECONCILE_MS = 30_000;
 const RECONCILE_MAX_MS = 5 * 60_000;
+/** An inbox request that outlives this is abandoned so the next refresh can run (a hang across offline/online). */
+const FETCH_TIMEOUT_MS = 15_000;
 
 export function useNotifications(options: {
   /** Open the socket only while logged in. */
@@ -67,7 +77,7 @@ export function useNotifications(options: {
   const failures = useRef(0);
 
   const fetchPage = useCallback(async (page: number): Promise<NotificationPageDTO> => {
-    const res = await latest.current.authFetch(`/api/notifications?${inboxQuery(currentView.current, page, PAGE_SIZE)}`);
+    const res = await latest.current.authFetch(`/api/notifications?${inboxQuery(currentView.current, page, PAGE_SIZE)}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error ?? `HTTP ${res.status}`);
     return data.data as NotificationPageDTO;
@@ -149,8 +159,11 @@ export function useNotifications(options: {
       return;
     }
     const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    // AI-generated (edited by Reallyeasy1): back online, the failures accumulated while offline must not delay the
+    // catch-up (the timer backs off from them); the socket effect below reconnects at the same moment.
+    const onOnline = () => { failures.current = 0; void refresh(); };
     window.addEventListener('focus', onVisible);
-    window.addEventListener('online', onVisible);
+    window.addEventListener('online', onOnline);
     document.addEventListener('visibilitychange', onVisible);
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
@@ -163,7 +176,7 @@ export function useNotifications(options: {
     schedule();
     return () => {
       window.removeEventListener('focus', onVisible);
-      window.removeEventListener('online', onVisible);
+      window.removeEventListener('online', onOnline);
       document.removeEventListener('visibilitychange', onVisible);
       clearTimeout(timer);
     };
@@ -237,9 +250,23 @@ export function useNotifications(options: {
 
     connect(options.token);
 
+    // AI-generated (edited by Reallyeasy1): a half-open socket after a network drop never reports itself (the hub's
+    // ping evicts the server side only). Offline: close it, so the status is honest. Online: forget the backoff and
+    // reconnect at once; the AUTH_OK refresh then catches up (issue #208).
+    const onOffline = () => { if (socket) socket.close(); else setStatus('disconnected'); };
+    const onOnline = () => {
+      clearTimeout(timer);
+      attempt = 0;
+      if (socket) socket.close(); else connect(latest.current.token);
+    };
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+
     return () => {
       stopped = true;
       clearTimeout(timer);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
       socket?.close(1000);
     };
     // Reconnecting on every token change would drop the socket each refresh; the latest token is read from the ref.

@@ -5367,3 +5367,24 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — rebuilt merge resolution and this entry
+
+## 2026-10-27 15:24 SGT — Fixes for the infra, chat and notification issues found by the simulated UAT (#173, #169, #206, #202, #208)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/uat-infra-chat-notification (worktree from origin/main d2f750b)
+
+**Prompt (summarised):** "please work on bugs that is related to infra/chat/notification service" (from the issues filed after the UAT run).
+
+**Usage scenario:** Writing implementation code for defects whose observed behaviour and acceptance checks are recorded in issues #173, #169, #206, #202 and #208; no schema, DTO or event contract changed. Approach choices to confirm by the author: the gateway now resolves service names per request through Docker DNS with variables (the issue's suggested fix) and a 3 s connect timeout; the chat hook settles an unconfirmed send from the server's history (same sender, same text, stored at or after the send) instead of declaring it not sent, and otherwise reports UNCONFIRMED; the notification hook closes its socket on the browser's offline event, reconnects and refreshes with the backoff cleared on online, and bounds inbox requests to 15 s. Verified: typecheck of both apps, student-app unit tests 20/20 (one new test), ESLint on the changed files, `nginx -t`, and a runtime check with a throwaway nginx on the isolated UAT network: all routes and the WebSocket upgrade work, /api/health/chat/* answer, a service moved to a new address was reached 11.9 s later without a gateway restart (the static config needed a restart and crashed while the name was unresolvable), and a stopped backend answered 502 in 3.0 s. Browser verification against the fix build, after the author's go-ahead: E04 PASS (hub indicator honest while offline, catch-up 989 ms) and H03 PASS (lost echo reconciled from history, no duplicate); the first H03 attempt showed the reconciliation reading a render-lagged ref, fixed with a ref written inside the state updater (latestThreads). The earlier E04 "never catches up" readings were a driver error (saturated "9+" badge parsed as 0), recorded in the UAT package. Committed and pushed, PR opened at the author's request.
+
+**Files changed:**
+- `gateway/nginx.conf` — resolver 127.0.0.11 with 10 s TTL, variable proxy_pass targets, proxy_connect_timeout 3 s, Chat health routes; upstream blocks removed; disclosure record
+- `apps/admin-portal/src/api/health.ts` — Chat Service as the sixth probed service; disclosure record
+- `apps/admin-portal/src/pages/HealthPage.tsx` — probe caption counts the probed list; disclosure record
+- `apps/admin-portal/src/api/auth.ts`, `apps/student-app/src/api/auth.ts` — mount-time refresh bounded to 8 s (#169)
+- `apps/student-app/src/notifications/useNotifications.ts` — offline/online socket handling, online clears the backoff, 15 s request timeout (#208); disclosure record
+- `apps/student-app/src/chat/useChat.ts` — findDeliveredCopy, UNCONFIRMED outcome, reconciliation after timeout and after reconnect catch-up (#202); disclosure record
+- `apps/student-app/test/chat.test.ts` — unit test for findDeliveredCopy; disclosure record
+- `docs/infrastructure/api-gateway.md` — chat health route, resolver and timeout notes; disclosure record
+- `ai/usage-log.md` — this entry
