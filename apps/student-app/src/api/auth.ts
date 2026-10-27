@@ -65,7 +65,9 @@ export async function registerUserAccount(payload: {
 
 export async function refreshSessionAccessToken(): Promise<string | null> {
   try {
-    const res = await fetch('/api/auth/refresh', { method: 'POST' });
+    // AI-generated (edited by Reallyeasy1): issue #169; a gateway that cannot reach User Service must not hold the
+    // session check (and the whole app) on a spinner; after the timeout the login form shows with its error path.
+    const res = await fetch('/api/auth/refresh', { method: 'POST', signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     if (!res.ok || !data.success) return null;
     return data.data.accessToken as string;
