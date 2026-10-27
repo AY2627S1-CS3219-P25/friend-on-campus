@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+Scope: Test-command table gained the `npm run test:e2e:ui:realtime` row and the artifacts note names `test-results/uat-realtime/` (issue #197).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Test-command table gained the `npm run coverage` row (moved here from the deleted docs/ci.md while merging main into PR #147).
 Author review: <to be completed by Reallyeasy1>
@@ -251,6 +255,7 @@ npm test
 | `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, `scripts/uat/uat-notifications.mjs`, and `scripts/uat/uat-cdc.mjs` |
 | `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
+| `npm run test:e2e:ui:realtime` | Multi-client real-time UAT (`scripts/uat/uat-realtime.mjs`, Playwright): the requester on two clients, two couriers racing for one errand; checks notifications and chat stay consistent live. Registers one throwaway `uatcourier-<stamp>@u.nus.edu` account. `UAT_RESTART_CHAT=1` adds a Chat Service container restart under load (opt-in; runs `docker restart` on the host) |
 | `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
 | `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
@@ -259,7 +264,7 @@ npm test
 - **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
 - **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
 - **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`POSTGRES_ADMIN_URL=... TEST_DATABASE_NAME=... node scripts/ci/create-test-database.mjs`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
-- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) and uploaded as CI workflow artifacts.
+- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`, `test-results/uat-realtime/`) and uploaded as CI workflow artifacts.
 
 ### Automated Milestone D2 End-to-End Suite
 Generates a test-only Ed25519 key pair and verifies account registration followed by

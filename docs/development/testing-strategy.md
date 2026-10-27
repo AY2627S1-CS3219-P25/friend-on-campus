@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+Scope: Driver environment matrix rows for scripts/uat/uat-realtime.mjs (issue #197).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -49,6 +53,10 @@ Set variables for the specific driver. A variable not listed for that driver has
 | uat-cdc.mjs | BASE_URL / GW | BASE_URL wins, then GW, then http://localhost |
 | uat-cdc.mjs | CDC_TIMEOUT_MS | 60000 |
 | uat-cdc.mjs | UAT_OUT | test-results/uat-cdc-results.json |
+| uat-realtime.mjs | GW | http://localhost; browser ingress for all four clients |
+| uat-realtime.mjs | UAT_RESTART_CHAT | unset; `1` enables the Chat Service restart check, which runs `docker restart` on the host |
+| uat-realtime.mjs | UAT_CHAT_CONTAINER | campuserrand-chat-service; the container that check restarts |
+| uat-realtime.mjs | UAT_OUT | test-results/uat-realtime/uat-realtime-results.json; screenshots beside it |
 
 Notification UAT supports neither UAT_OUT nor SHOTS: it reports to stdout. WS_URL configures that standalone driver, not the browser's notification hook; browser sockets derive from page origin. Driver authentication/publisher defaults are local-development settings, not production credentials.
 
