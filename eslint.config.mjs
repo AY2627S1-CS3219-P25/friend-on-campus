@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+// Scope: scripts/uat/uat-realtime.mjs shares the browser globals block with uat-d2-ui.mjs (page.evaluate callbacks; issue #197).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Google Antigravity Agent, date: 2026-10-21
 // Scope: Added **/test-results/** to ESLint ignores.
 // Author review: <to be completed by author after review>
@@ -107,7 +111,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["scripts/uat/uat-d2-ui.mjs"],
+    files: ["scripts/uat/uat-d2-ui.mjs", "scripts/uat/uat-realtime.mjs"],
     languageOptions: {
       globals: globals.browser,
     },

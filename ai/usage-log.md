@@ -5387,4 +5387,64 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 - `apps/student-app/src/chat/useChat.ts` — findDeliveredCopy, UNCONFIRMED outcome, reconciliation after timeout and after reconnect catch-up (#202); disclosure record
 - `apps/student-app/test/chat.test.ts` — unit test for findDeliveredCopy; disclosure record
 - `docs/infrastructure/api-gateway.md` — chat health route, resolver and timeout notes; disclosure record
+## 2026-10-26 21:40 SGT — Issues #197 and #198 raised from the multi-client UAT
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; this entry rides with the next branch, as `main` only accepts pull requests)
+
+**Prompt (summarised):** After the merges, check whether issues were raised for the multi-client real-time UAT and raise any that are missing.
+
+**Usage scenario:** GitHub operations at the author's explicit request; facts recorded, decisions left to the author. #195 already covered the fixed gaps (closed by #196). Raised #197: commit the git-ignored multi-client driver as `scripts/uat/uat-realtime.mjs` with an npm script, a throwaway courier, an opt-in Chat Service restart, and the CI matrix kept in step (related to #64). Raised #198: couriers get no live signal when an errand is posted; the 15 s Feed poll from #195 is a stopgap; the recipient and transport choice is the author's. Merged local copies of the two PR branches deleted; their remote copies were auto-deleted on merge.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-26 21:18 SGT — Multi-client real-time UAT driver committed as scripts/uat/uat-realtime.mjs (issue #197)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/realtime-uat-driver
+
+**Prompt (summarised):** Pick up issue #197: bring the git-ignored multi-client real-time driver into the repo with an npm script, CI step, matrix validator entry and documentation. (Entry written in the following prompt; the session ended before the log was appended.)
+
+**Usage scenario:** Writing implementation code for a test driver whose checks, acceptance criteria and placement the author fixed in issue #197; boilerplate (npm script, CI step, validator entry, README and testing-strategy rows). The driver follows the conventions of `scripts/uat/uat-d2-ui.mjs`. Left to the author: whether the realtime step belongs in the same `browser-uat` job or its own, and whether the restart check should ever run in CI (it stays opt-in).
+
+**Files changed:**
+- `scripts/uat/uat-realtime.mjs` — new: four Playwright contexts (requester desktop and phone, courier, API-registered second courier), checks RT01-RT14, opt-in Chat Service restart behind `UAT_RESTART_CHAT=1`, results and screenshots under `test-results/uat-realtime/`
+- `package.json` — `test:e2e:ui:realtime` script (JSON, no disclosure header)
+- `.github/workflows/ci.yml` — browser-uat job runs the realtime UAT after `test:e2e:ui`; disclosure record
+- `scripts/ci/validate-test-matrix.mjs` — `test:e2e:ui:realtime` added to `rootSystemScripts`; disclosure record
+- `README.md` — test-categories row and artifacts note; disclosure record
+- `docs/development/testing-strategy.md` — driver environment matrix rows; disclosure record
+
+## 2026-10-26 21:19 SGT — Verification and fixes for the real-time UAT driver branch
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/realtime-uat-driver
+
+**Prompt (summarised):** "continue on the previous session": finish and verify the uncommitted work on this branch.
+
+**Usage scenario:** Debugging assistance and boilerplate. Three findings from the checks, all fixed: ESLint rejected `document` inside the driver's `page.evaluate` callback (the file now shares the browser-globals block with `uat-d2-ui.mjs`); the validator recognised the script name but did not require the CI step, so removing the step passed silently (it is now a required `browser-uat` command, and the removal check fails as intended); the throwaway courier was `uatcourier<stamp>` where issue #197 says `uatcourier-<stamp>` (the username rule only caps length, so the hyphen is used). Verified: `node --check`, `npm run lint` (exit 0), `npm run typecheck` (exit 0), `npm run ci:validate-tests` (17 suites, 4 system commands). After the author started Docker Desktop, the stack was rebuilt (`docker compose up --build -d --wait`) and the driver run twice through the npm script: 14/14 with RT14 skipped (default), then 14/14 with `UAT_RESTART_CHAT=1` (RT14 ran: clients saw the drop 288 ms after the restart began, Send disabled during downtime, all reconnected 6177 ms later, history identical); chat container healthy afterwards. A PR body draft (Closes #197) was left in the session scratchpad for the author. No commit or push.
+
+**Files changed:**
+- `eslint.config.mjs` — `scripts/uat/uat-realtime.mjs` added to the browser-globals block; disclosure record
+- `scripts/ci/validate-test-matrix.mjs` — `['browser-uat', 'npm run test:e2e:ui:realtime']` in `systemJobs`; disclosure scope updated
+- `scripts/uat/uat-realtime.mjs` — courier name `uatcourier-<stamp>` in code and header comment
+- `README.md` — courier name in the test-categories row
+- `ai/usage-log.md` — the two entries above
+
+## 2026-10-26 23:16 SGT — Commit, push and PR for the real-time UAT driver (issue #197)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/realtime-uat-driver
+
+**Prompt (summarised):** "ok please do so": commit the verified branch, push it and open the pull request.
+
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). One commit with the eight files, pushed to origin; PR opened against `main` with `Closes #197` and the acceptance criteria (1)-(5) mapped, related #64. Merge is left to the author once CI is green.
+
+**Files changed:**
 - `ai/usage-log.md` — this entry
