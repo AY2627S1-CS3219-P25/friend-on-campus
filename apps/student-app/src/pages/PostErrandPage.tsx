@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Disambiguated stepper button aria-labels ('Decrease amount' / 'Increase amount') to resolve Playwright getByLabel('Reward credits') strict mode collision.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Restored exact UAT drop-off location and notes placeholders to preserve CI test suite compatibility.
  * Author review: <to be completed by yanhwee>
  *
@@ -577,7 +581,7 @@ export function PostErrandPage({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  aria-label="Decrease reward credits"
+                  aria-label="Decrease amount"
                   disabled={formData.rewardCredits <= 1 || submissionBusy}
                   onClick={() =>
                     setFormData((f) => ({
@@ -617,7 +621,7 @@ export function PostErrandPage({
                 </div>
                 <button
                   type="button"
-                  aria-label="Increase reward credits"
+                  aria-label="Increase amount"
                   disabled={submissionBusy || (availableCredits !== null && formData.rewardCredits >= availableCredits)}
                   onClick={() =>
                     setFormData((f) => ({

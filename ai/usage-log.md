@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Disambiguated stepper button aria-labels ('Decrease amount' and 'Increase amount') in student-app PostErrandPage to resolve Playwright getByLabel('Reward credits') strict mode collision across UO1, UO6, RT02, and RT12.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Restored exact UAT placeholder strings in student-app SpotsPage ('Search food, cafes, lockers, print hubs...') and PostErrandPage ('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)', 'e.g. Less ice, separate paper bag, PIN code for lockers') to fix CI Browser UAT job failures while maintaining light elegant theme.
 Author review: <to be completed by yanhwee>
 
