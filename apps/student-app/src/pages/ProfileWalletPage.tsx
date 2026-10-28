@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Modernized ProfileWalletPage with digital NUS student identity card, fintech-style escrow balance card, category-iconized ledger transactions, and isolated danger zone for account deletion.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted profile and credit wallet/ledger page from student-app App.tsx into pages/ProfileWalletPage.tsx.
  * Author review: Verified by yanhwee
@@ -8,13 +12,27 @@
 // AI-generated (edited by yanhwee)
 
 import { CreditTransactionDTO, CreditWalletDTO, UserDTO } from '@campus-errand/common-dtos';
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CheckCircle2,
+  Gift,
+  Lock,
+  LogOut,
+  Mail,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 
 interface ProfileWalletPageProps {
   mode: 'profile' | 'wallet';
   profile: UserDTO | null;
   isLoadingProfile: boolean;
   profileError: { code: string; message: string } | null;
+  onRefreshProfile?: () => void;
   isEditingProfile: boolean;
   editUsernameDraft: string;
   onChangeUsernameDraft: (draft: string) => void;
@@ -38,6 +56,7 @@ export function ProfileWalletPage({
   profile,
   isLoadingProfile,
   profileError,
+  onRefreshProfile,
   isEditingProfile,
   editUsernameDraft,
   onChangeUsernameDraft,
@@ -57,283 +76,506 @@ export function ProfileWalletPage({
 }: ProfileWalletPageProps) {
   if (mode === 'profile') {
     return (
-      <div className="w-full">
-        <section aria-labelledby="profile-heading" className="min-w-0 space-y-4">
-          <h2 id="profile-heading" className="text-xl lg:text-2xl font-bold text-slate-800">
-            Profile Info
-          </h2>
+      <div className="w-full max-w-3xl mx-auto space-y-6">
+        <section aria-labelledby="profile-heading" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 id="profile-heading" className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                Student Profile
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                NUS student identity and account credentials
+              </p>
+            </div>
+            {profile && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Verified Student
+              </span>
+            )}
+          </div>
 
           {isLoadingProfile && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center space-x-2">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Loading profile…</span>
+            <div className="p-4 bg-nus-blue-50/80 border border-nus-blue-100 rounded-2xl text-nus-blue text-sm flex items-center gap-2.5 shadow-subtle">
+              <RefreshCw className="w-4 h-4 animate-spin text-nus-blue" />
+              <span className="font-medium">Loading profile details…</span>
             </div>
           )}
 
           {profileError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-              <p className="font-bold">{profileError.code}</p>
-              <p>{profileError.message}</p>
-            </div>
-          )}
-
-          {profile && (
-            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-5">
-              <p className="text-xs text-slate-400 md:col-span-2">
-                Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
-              </p>
-
+            <div
+              role="alert"
+              className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm space-y-2 shadow-subtle flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
               <div>
-                <label
-                  htmlFor="profile-username"
-                  className="block text-sm font-bold text-slate-700 mb-1"
-                >
-                  Username: <span className="text-rose-600">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-1">
-                  Must be 1-50 characters and unique (case-insensitive).
-                </p>
-                {updateProfileError && (
-                  <p className="text-xs text-rose-600 mb-1">{updateProfileError.message}</p>
-                )}
-                <input
-                  type="text"
-                  id="profile-username"
-                  value={isEditingProfile ? editUsernameDraft : profile.username}
-                  disabled={!isEditingProfile || isUpdatingProfile}
-                  onChange={(e) => onChangeUsernameDraft(e.target.value)}
-                  className={`w-full text-sm p-2.5 rounded-lg border ${
-                    isEditingProfile
-                      ? 'border-nus-blue bg-white'
-                      : 'border-slate-200 bg-slate-50 text-slate-500'
-                  }`}
-                />
+                <p className="font-bold">{profileError.code}</p>
+                <p className="text-xs text-rose-700">{profileError.message}</p>
               </div>
-
-              <div>
-                <label
-                  htmlFor="profile-email"
-                  className="block text-sm font-bold text-slate-700 mb-1"
-                >
-                  Email: <span className="text-rose-600">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-1">
-                  Read-only here. Must be a valid, unique email address.
-                </p>
-                <input
-                  type="text"
-                  id="profile-email"
-                  value={profile.email}
-                  disabled
-                  className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Role:</label>
-                <p className="text-xs text-slate-400 mb-1">Read-only. Set by an administrator.</p>
-                <div
-                  className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
-                    profile.userRole === 'ADMIN'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  {profile.userRole}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Status:</label>
-                <p className="text-xs text-slate-400 mb-1">
-                  Read-only. Whether your account is active.
-                </p>
-                <div
-                  className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
-                    profile.status
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                  }`}
-                >
-                  {profile.status ? 'Active' : 'Disabled'}
-                </div>
-              </div>
-
-              {!isEditingProfile ? (
+              {onRefreshProfile && (
                 <button
-                  onClick={onStartEditingProfile}
-                  className="md:col-span-2 w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition"
+                  type="button"
+                  onClick={onRefreshProfile}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer"
                 >
-                  Edit
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry</span>
                 </button>
-              ) : (
-                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    onClick={onCancelEditingProfile}
-                    disabled={isUpdatingProfile}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-2 rounded-lg transition disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={onUpdateProfile}
-                    disabled={isUpdatingProfile}
-                    className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition disabled:opacity-60"
-                  >
-                    {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                    <span>{isUpdatingProfile ? 'Updating…' : 'Update'}</span>
-                  </button>
-                </div>
               )}
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {!profile && !isLoadingProfile && !profileError && (
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-subtle text-center space-y-3">
+              <p className="text-sm text-slate-600">Profile data is not loaded yet.</p>
+              {onRefreshProfile && (
+                <button
+                  type="button"
+                  onClick={onRefreshProfile}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-nus-blue text-white rounded-xl text-xs font-bold shadow hover:bg-blue-900 transition cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Fetch Profile</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {profile && (
+            <div className="space-y-6">
+              {/* Digital NUS Student Pass Card */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002855] via-[#001f42] to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-white/10">
+                {/* Background watermarks */}
+                <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-nus-orange/15 blur-2xl pointer-events-none" />
+                <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none font-black text-6xl tracking-widest">
+                  NUS
+                </div>
+
+                <div className="relative z-10 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full bg-nus-orange" />
+                      <span className="text-xs font-extrabold tracking-widest uppercase text-blue-200">
+                        NUS Student Pass
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/10 text-blue-100 border border-white/10">
+                      CAMPUS-ID
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-nus-orange to-amber-400 p-0.5 shadow-lg shrink-0">
+                      <div className="h-full w-full rounded-[14px] bg-[#002855] flex items-center justify-center text-white font-extrabold text-2xl">
+                        {profile.username.charAt(0).toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xl sm:text-2xl font-black text-white truncate">
+                        {profile.username}
+                      </h3>
+                      <p className="text-xs text-blue-200 flex items-center gap-1.5 mt-0.5 truncate">
+                        <Mail className="w-3.5 h-3.5 text-blue-300" />
+                        <span>{profile.email}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10 text-xs">
+                    <div>
+                      <span className="text-[10px] text-blue-300 uppercase tracking-wider block font-semibold">
+                        Role
+                      </span>
+                      <span className="font-extrabold text-amber-300 text-sm mt-0.5 block">
+                        {profile.userRole}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-blue-300 uppercase tracking-wider block font-semibold">
+                        Status
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-bold text-emerald-400 text-sm mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {profile.status ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <span className="text-[10px] text-blue-300 uppercase tracking-wider block font-semibold">
+                        Affiliation
+                      </span>
+                      <span className="font-medium text-blue-100 text-xs mt-0.5 block">
+                        National University of Singapore
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Details & Username Edit Form */}
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-subtle space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="font-bold text-slate-900 text-base">Account Credentials</h3>
+                  <span className="text-xs text-slate-400">
+                    Fields with <span className="text-rose-600 font-bold">*</span> are compulsory
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Username Field */}
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="profile-username"
+                      className="block text-xs font-bold text-slate-700"
+                    >
+                      Username: <span className="text-rose-600">*</span>
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      Must be 1-50 characters and unique (case-insensitive).
+                    </p>
+                    {updateProfileError && (
+                      <p className="text-xs text-rose-600 font-semibold">{updateProfileError.message}</p>
+                    )}
+                    <input
+                      type="text"
+                      id="profile-username"
+                      value={isEditingProfile ? editUsernameDraft : profile.username}
+                      disabled={!isEditingProfile || isUpdatingProfile}
+                      onChange={(e) => onChangeUsernameDraft(e.target.value)}
+                      className={`w-full text-sm p-2.5 rounded-xl border transition ${
+                        isEditingProfile
+                          ? 'border-nus-blue bg-white focus:ring-2 focus:ring-nus-blue/20'
+                          : 'border-slate-200 bg-slate-50 text-slate-600'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Email Field */}
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="profile-email"
+                      className="block text-xs font-bold text-slate-700"
+                    >
+                      Email: <span className="text-rose-600">*</span>
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      Read-only campus email address.
+                    </p>
+                    <input
+                      type="text"
+                      id="profile-email"
+                      value={profile.email}
+                      disabled
+                      className="w-full text-sm p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                {/* Edit Controls */}
+                <div className="pt-2">
+                  {!isEditingProfile ? (
+                    <button
+                      type="button"
+                      onClick={onStartEditingProfile}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition"
+                    >
+                      Edit Username
+                    </button>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={onCancelEditingProfile}
+                        disabled={isUpdatingProfile}
+                        className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onUpdateProfile}
+                        disabled={isUpdatingProfile}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition disabled:opacity-60"
+                      >
+                        {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                        <span>{isUpdatingProfile ? 'Updating…' : 'Save Changes'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Session Log Out */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-subtle flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm">Session Management</h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Sign out of this browser device. Your active errands will remain pending or in progress.
+              </p>
+            </div>
             <button
+              type="button"
               onClick={onLogout}
               disabled={isLoggingOut}
-              className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+              className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl transition disabled:opacity-60 cursor-pointer"
             >
-              {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
+              {isLoggingOut ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-600" />
+              ) : (
+                <LogOut className="w-4 h-4 text-slate-600" />
+              )}
               <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
             </button>
+          </div>
 
-            <button
-              onClick={onOpenDeleteAccountModal}
-              className="w-full flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-            >
-              <span>Delete Account</span>
-            </button>
+          {/* Danger Zone: Collapsible/Isolated Account Deletion Card */}
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/40 p-5 space-y-3">
+            <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
+              <ShieldAlert className="w-4 h-4 text-rose-600" />
+              <span>Danger Zone: Account Deletion</span>
+            </div>
+            <p className="text-xs text-rose-700 leading-relaxed">
+              Permanently deletes your account and invalidates all associated records across the microservices ecosystem. This action is irreversible.
+            </p>
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={onOpenDeleteAccountModal}
+                disabled={!profile}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-rose-700 bg-white border border-rose-300 hover:bg-rose-50 hover:border-rose-400 disabled:opacity-50 shadow-sm transition cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Delete My Account</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>
     );
   }
 
+  // mode === 'wallet'
   return (
-    <div className="w-full">
-      <section
-        aria-labelledby="credit-heading"
-        className="min-w-0 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
-      >
-        <div className="lg:col-span-2 flex flex-wrap items-center justify-between gap-2">
-          <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">
-            Credit Wallet & Ledger
-          </h2>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      <section aria-labelledby="credit-heading" className="space-y-6">
+        {/* Header & Refresh */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 id="credit-heading" className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                Credit Wallet &amp; Ledger
+              </h2>
+              <span className="text-xs bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2.5 py-0.5 rounded-full">
+                Saga Escrow
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Closed campus economy powered by Credit Service &amp; Escrow Saga
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={onRefreshCredits}
             disabled={isLoadingCredits}
-            className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-subtle hover:bg-slate-50 disabled:opacity-50 transition"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoadingCredits ? 'animate-spin' : ''}`} />
-            {creditError ? 'Retry credits' : 'Refresh credits'}
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
+            <span>{creditError ? 'Retry credits' : 'Refresh wallet'}</span>
           </button>
         </div>
+
         {isLoadingCredits && (
-          <p role="status" className="lg:col-span-2 text-sm text-slate-500">
-            Loading wallet and transactions…
+          <p role="status" className="text-xs sm:text-sm text-slate-500 flex items-center gap-2">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin text-nus-blue" />
+            <span>Loading wallet and transactions…</span>
           </p>
         )}
+
         {creditError && (
           <p
             role="alert"
-            className="lg:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"
+            className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs sm:text-sm text-rose-700 shadow-subtle"
           >
             {creditError}
           </p>
         )}
 
-        {/* Balance Card */}
         {wallet && (
-          <>
-            <div className="bg-gradient-to-br from-nus-blue to-blue-950 text-white rounded-2xl p-5 shadow-lg">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-sm font-bold tracking-wider text-blue-200 uppercase">
-                  NUS Closed Economy
-                </span>
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              </div>
-              <p className="text-sm text-blue-200 font-semibold">Total Account Balance</p>
-              <div className="flex items-baseline space-x-1 mt-1">
-                <span className="text-3xl font-black text-amber-300">
-                  {wallet.availableCredits + wallet.escrowCredits}
-                </span>
-                <span className="text-sm text-blue-200 font-bold">Credits</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Digital Wallet Card (Left / 5 columns) */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002855] via-[#001f42] to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-white/10">
+                {/* Decorative glows */}
+                <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-nus-blue/40 blur-2xl pointer-events-none" />
+                <div className="absolute -left-8 -bottom-8 w-44 h-44 rounded-full bg-amber-500/15 blur-2xl pointer-events-none" />
+
+                <div className="relative z-10 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-extrabold tracking-widest text-blue-200 uppercase">
+                      NUS Closed Economy
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Secured</span>
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-blue-200/90 font-medium">Total Account Value</p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <span className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight">
+                        {wallet.availableCredits + wallet.escrowCredits}
+                      </span>
+                      <span className="text-sm text-blue-200 font-extrabold uppercase">Credits</span>
+                    </div>
+                  </div>
+
+                  {/* Dual Sub-Wallets: Available vs Escrow */}
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10">
+                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+                      <span className="text-[10px] text-blue-200/80 uppercase tracking-wider block font-semibold">
+                        Available to Spend
+                      </span>
+                      <span className="text-lg font-black text-emerald-400 mt-0.5 block">
+                        {wallet.availableCredits} C
+                      </span>
+                    </div>
+                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+                      <span className="text-[10px] text-blue-200/80 uppercase tracking-wider block font-semibold">
+                        Held in Escrow
+                      </span>
+                      <span className="text-lg font-black text-amber-300 mt-0.5 block">
+                        {wallet.escrowCredits} C
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 text-xs text-blue-200/80 flex items-center justify-between">
+                    <span>Total earned to date:</span>
+                    <span className="font-bold text-white">+{wallet.totalEarnedCredits} C</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-blue-800/80">
-                <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                  <span className="text-xs text-blue-200 block">Available to Spend</span>
-                  <span className="text-base font-bold text-emerald-400">
-                    {wallet.availableCredits} C
-                  </span>
-                </div>
-                <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                  <span className="text-xs text-blue-200 block">Held in Escrow</span>
-                  <span className="text-base font-bold text-amber-300">
-                    {wallet.escrowCredits} C
-                  </span>
-                </div>
+              {/* Escrow Saga Explainer Tip */}
+              <div className="rounded-2xl p-4 bg-blue-50/70 border border-blue-100 text-xs text-nus-blue space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-nus-blue" />
+                  <span>How Escrow Protection Works</span>
+                </p>
+                <p className="text-slate-600 leading-relaxed">
+                  When you post an errand, reward credits are held in escrow. They are released to the courier only upon your confirmed delivery.
+                </p>
               </div>
-              <p className="mt-3 text-sm text-blue-200">
-                Total earned: {wallet.totalEarnedCredits} C
-              </p>
             </div>
 
-            {/* Transaction Ledger */}
-            <div>
-              <h3 className="font-bold text-sm text-slate-800 mb-2">Recent Ledger Transactions</h3>
-              <div className="space-y-2">
+            {/* Transaction Ledger (Right / 7 columns) */}
+            <div className="lg:col-span-7 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-sm text-slate-800">Recent Ledger Activity</h3>
+                <span className="text-xs text-slate-500 font-medium">
+                  {ledger.length} {ledger.length === 1 ? 'transaction' : 'transactions'}
+                </span>
+              </div>
+
+              <div className="space-y-2.5">
                 {ledger.length === 0 && (
-                  <p className="text-sm text-slate-500">No credit transactions yet.</p>
+                  <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center bg-white/60">
+                    <p className="text-sm font-bold text-slate-700">No credit transactions yet.</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Post an errand or complete deliveries to generate ledger entries.
+                    </p>
+                  </div>
                 )}
+
                 {ledger.map((transaction) => {
-                  const labels = {
+                  const incoming =
+                    transaction.transactionType === 'ESCROW_REFUND' ||
+                    transaction.transactionType === 'WELCOME_GRANT' ||
+                    transaction.toUserId === wallet.userId;
+
+                  const getTransactionIcon = () => {
+                    switch (transaction.transactionType) {
+                      case 'WELCOME_GRANT':
+                        return <Gift className="w-4 h-4 text-emerald-600" />;
+                      case 'ESCROW_HOLD':
+                        return <Lock className="w-4 h-4 text-amber-600" />;
+                      case 'ESCROW_RELEASE':
+                        return <ArrowDownRight className="w-4 h-4 text-emerald-600" />;
+                      case 'ESCROW_REFUND':
+                        return <RotateCcw className="w-4 h-4 text-blue-600" />;
+                      default:
+                        return incoming ? (
+                          <ArrowDownRight className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <ArrowUpRight className="w-4 h-4 text-amber-600" />
+                        );
+                    }
+                  };
+
+                  const labels: Record<string, string> = {
                     WELCOME_GRANT: 'Welcome Grant',
                     ESCROW_HOLD: 'Escrow Hold',
                     ESCROW_RELEASE: 'Escrow Settlement',
                     ESCROW_REFUND: 'Escrow Refund',
                   };
-                  const incoming =
-                    transaction.transactionType === 'ESCROW_REFUND' ||
-                    transaction.toUserId === wallet.userId;
+
                   return (
                     <div
                       key={transaction.id}
-                      className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-start gap-3"
+                      className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-subtle flex items-start justify-between gap-3 hover:border-slate-300 transition"
                     >
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-800">
-                          {labels[transaction.transactionType]}
-                        </p>
-                        <p className="text-xs text-slate-500 break-words">
-                          {transaction.description}
-                        </p>
-                        <p className="text-xs text-slate-400 break-all">
-                          {transaction.transactionCode}
-                        </p>
-                        <time
-                          className="text-xs text-slate-400"
-                          dateTime={transaction.createdAt}
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div
+                          className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            incoming ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
+                          }`}
                         >
-                          {new Date(transaction.createdAt).toLocaleString()}
-                        </time>
+                          {getTransactionIcon()}
+                        </div>
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="font-bold text-slate-900 text-sm">
+                            {labels[transaction.transactionType] || transaction.transactionType}
+                          </p>
+                          <p className="text-xs text-slate-600 break-words line-clamp-1">
+                            {transaction.description}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                              {transaction.transactionCode}
+                            </span>
+                            <time
+                              className="text-[10px] text-slate-400"
+                              dateTime={transaction.createdAt}
+                            >
+                              {new Date(transaction.createdAt).toLocaleString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </time>
+                          </div>
+                        </div>
                       </div>
-                      <span
-                        className={`shrink-0 font-bold ${
-                          incoming ? 'text-emerald-600' : 'text-amber-600'
-                        }`}
-                      >
-                        {incoming ? '+' : '−'}
-                        {transaction.amount} C
-                      </span>
+
+                      <div className="shrink-0 text-right">
+                        <span
+                          className={`text-sm sm:text-base font-extrabold ${
+                            incoming ? 'text-emerald-600' : 'text-amber-600'
+                          }`}
+                        >
+                          {incoming ? '+' : '−'}
+                          {transaction.amount} C
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          </>
+          </div>
         )}
       </section>
     </div>

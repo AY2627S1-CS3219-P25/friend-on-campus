@@ -5503,3 +5503,32 @@ Documentation improvement per course policy.
 **Files changed:**
 - `README.md` — added SoCLaaS optional configuration to Local Development Workflow, updated service diagram label and monorepo structure
 - `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 15:35 SGT — Student-App UI/UX Modernization & Multi-Click Submission Fix
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Improve and modernize the frontend UI/UX of `apps/student-app` for the CS3219 final submission deliverable. Address user pain points including multi-click errand creation on form/balance issues spawning duplicate failed/rejected orders, and elevate the overall aesthetic into a polished, responsive campus application.
+
+**Usage scenario:**
+Frontend UI/UX design elevation, bug fixing, form validation safety, and component refactoring for student application final deliverable. Preserved all existing API contracts, DTO interfaces, data-testid attributes, and test suite guarantees.
+
+**Files changed:**
+- `apps/student-app/tailwind.config.js` — added NUS blue/orange palette shades and subtle elevation shadow utilities
+- `apps/student-app/src/App.tsx` — handled `REJECTED` order receipts in submission callback with explicit rejection notices; added credit overdraw guard before dispatch
+- `apps/student-app/src/pages/PostErrandPage.tsx` — implemented synchronous submission lock (`isSubmittingRef`) debouncing rapid multi-clicks; added balance safety guards with preset reward chips (3 C, 5 C, 8 C, 15 C) and two-step progress feedback
+- `apps/student-app/src/pages/AuthGatePage.tsx` — redesigned with NUS navy gradient aesthetic, 1-Click Demo Evaluator Access buttons for Alice and Bob, password visibility toggle, and accessibility labels
+- `apps/student-app/src/components/HeaderNav.tsx` — elevated to frosted glass header with inline real-time WebSocket pulse status and dual-credit balance pill
+- `apps/student-app/src/components/BottomNav.tsx` — streamlined mobile navigation bar with tactile touch targets and active glow indicators
+- `apps/student-app/src/components/ErrandCard.tsx` — elevated card styling with visual pickup-to-dropoff route connector, dynamic relative expiry countdown, and glowing reward pill
+- `apps/student-app/src/pages/FeedPage.tsx` — added campus zone filter chips, skeleton loading shimmers, and friendly empty state with zone reset
+- `apps/student-app/src/components/SpotCard.tsx` — enhanced campus spot cards with category icons, live availability pills, and ergonomic CTA button
+- `apps/student-app/src/pages/SpotsPage.tsx` — redesigned spots directory with search quick-clear, category shortcut filter chips, and responsive grid
+- `apps/student-app/src/pages/TasksPage.tsx` — added segmented filter tabs (All / Posted / Delivering), visual milestone stepper bars, and route snippets
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — added Digital NUS Student Pass card, fintech-style escrow balance card, category-iconized ledger transactions, and isolated danger zone card for account deletion
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — modernized errand tracking page with pulsing active tracker rings and route card layout
+- `ai/usage-log.md` — this entry
