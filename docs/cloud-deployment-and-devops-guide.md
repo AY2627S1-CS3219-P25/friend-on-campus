@@ -40,9 +40,15 @@
      * [2.6.4 Why the Application Load Balancer (ALB) is Essential (Even Before Autoscaling)](#264-why-the-application-load-balancer-alb-is-essential-even-before-autoscaling)
      * [2.6.5 The K3s ServiceLB vs. AWS ALB Port-Binding Insight](#265-the-k3s-servicelb-vs-aws-alb-port-binding-insight)
      * [2.6.6 Worker Fleet Sizing Rationale: Aggregate Pod Memory vs. ASG Scale-Down](#266-worker-fleet-sizing-rationale-aggregate-pod-memory-vs-asg-scale-down)
+   * [2.7 Complete AWS Component Inventory & Billability Breakdown](#27-complete-aws-component-inventory--billability-breakdown)
+     * [2.7.1 Complete Resource Inventory & Cost Summary](#271-complete-resource-inventory--cost-summary)
+     * [2.7.2 Deep Dive: Is Amazon ECR Billable?](#272-deep-dive-is-amazon-ecr-billable)
+     * [2.7.3 Why HTTP Instead of HTTPS on the ALB? (Custom Domain & ACM Constraints)](#273-why-http-instead-of-https-on-the-alb-custom-domain--acm-constraints)
+     * [2.7.4 Student Budget Ceiling Math: 24/7 vs. Nightly Pausing](#274-student-budget-ceiling-math-247-vs-nightly-pausing)
 3. [Container Orchestration with Lightweight Kubernetes (K3s)](#3-container-orchestration-with-lightweight-kubernetes-k3s)
    * [3.1 The Container Evolution: Bare Metal $\to$ VMs $\to$ Docker Compose $\to$ Kubernetes](#31-the-container-evolution-bare-metal-to-vms-to-docker-compose-to-kubernetes)
    * [3.2 Why K3s over Upstream EKS or Docker Swarm?](#32-why-k3s-over-upstream-eks-or-docker-swarm)
+     * [3.2.1 What is `kubectl`? Is It Part of K3s?](#321-what-is-kubectl-is-it-part-of-k3s)
    * [3.3 The 7 Core Kubernetes Primitives in Plain English](#33-the-7-core-kubernetes-primitives-in-plain-english)
    * [3.4 Multi-Node Overlay Networking: Flannel VXLAN, Pod CIDRs, and CoreDNS in Plain English](#34-multi-node-overlay-networking-flannel-vxlan-pod-cidrs-and-coredns-in-plain-english)
    * [3.5 File-by-File Breakdown of `infra/k8s/`](#35-file-by-file-breakdown-of-infrak8s)
@@ -52,6 +58,7 @@
      * [`03-stateful-data.yaml`](#03-stateful-datayaml)
      * [`04-stateless-services.yaml`](#04-stateless-servicesyaml)
      * [`05-frontends-gateway.yaml`](#05-frontends-gatewayyaml)
+       * [The Two-Tier Gateway Pattern: Traefik (Cluster Ingress) vs. NGINX (Application API Gateway)](#the-two-tier-gateway-pattern-traefik-cluster-ingress-vs-nginx-application-api-gateway)
      * [`06-ingress.yaml`](#06-ingressyaml)
      * [`07-hpa.yaml`](#07-hpayaml)
 4. [Continuous Delivery (CD) with GitHub Actions & AWS](#4-continuous-delivery-cd-with-github-actions--aws)
@@ -729,6 +736,99 @@ When combining K3s with an external AWS Application Load Balancer, a common subt
 
 ---
 
+### 2.7 Complete AWS Component Inventory & Billability Breakdown
+
+Every cloud infrastructure decision in Friend on Campus was made to maximize reliability, architectural realism, and security while remaining strictly under our **S$50 SGD course budget ceiling**.
+
+#### 2.7.1 Complete Resource Inventory & Cost Summary
+
+The following table summarizes all AWS resources provisioned by Terraform, their architectural purpose, and their billing structure:
+
+| AWS Component | Terraform Resource | Role in Architecture | Is It Billable? | Cost Rate & Impact |
+| :--- | :--- | :--- | :--- | :--- |
+| **Amazon ECR** | `aws_ecr_repository.repositories` | Private container registry storing Docker images for all 6 microservices, NGINX gateway & 2 web apps | **Partially (Negligible)** | • **Free Tier:** 500 MB/month free storage.<br/>• **Storage:** \$0.10 USD/GB/mo.<br/>• **Data Transfer:** **\$0.00 (100% Free)** when EC2 nodes pull within the same region (`ap-southeast-1`).<br/>*Total cost: < \$0.20–\$0.40 USD/month.* |
+| **EC2 Compute** | `aws_instance.k3s_master`, `aws_autoscaling_group.worker_asg` | 1 Master (`t3.medium`) + 2 Workers (`t3.small`) running K3s and container workloads | **Yes (Active Compute)** | • `t3.medium`: \$0.0416/hr.<br/>• `t3.small` $\times$ 2: \$0.0416/hr total.<br/>• **\$0.00/hr when stopped** via nightly pause commands. |
+| **AWS ALB** | `aws_lb.main`, `aws_lb_target_group.http` | Multi-AZ Application Load Balancer routing internet traffic to workers on port 80 | **Yes (Fixed Hourly)** | $\sim$\$0.0225/hr ($\sim$\$0.54/day or $\sim$\$16/mo if left running 24/7). Stays provisioned until `terraform destroy`. |
+| **Amazon EBS** | `aws_ebs_volume.stateful_data`, EC2 root disks | 25 GB gp3 SSD for PostgreSQL/RabbitMQ/Debezium persistence + 20 GB root disks per node | **Yes (Storage)** | \$0.08 USD/GB/month.<br/>$\sim$85 GB total storage = $\sim$\$6.80/month ($\sim$\$0.22/day). Stays billable while instances are paused to preserve data. |
+| **Public IPv4** | AWS VPC auto-assignment | Public IP addresses assigned to the ALB and EC2 instances | **Yes (AWS Policy)** | \$0.005/hr per IPv4 address ($\sim$\$0.12/day total). |
+| **Amazon VPC & Subnets** | `aws_vpc.main`, `aws_subnet.*` | Isolated virtual private network (CIDR `10.0.0.0/16`) spanned across 2 availability zones | **100% Free** | AWS charges \$0.00 for VPCs, subnets, and route tables. |
+| **Internet Gateway** | `aws_internet_gateway.main` | Outbound and inbound internet gateway for public VPC subnets | **100% Free** | Zero hourly or configuration fees. |
+| **Security Groups** | `aws_security_group.alb`, `aws_security_group.k3s_nodes` | Stateful virtual firewalls enforcing ALB port 80 and internal node communication | **100% Free** | Zero charges for security groups or security rules. |
+| **AWS IAM & OIDC** | `aws_iam_role.github_actions_cd_role`, instance profiles | Keyless GitHub Actions CD role & EC2 instance profiles | **100% Free** | Zero charges for IAM roles, OIDC identity federation, or STS assume-role calls. |
+| **AWS Systems Manager (SSM)** | AWS managed daemon | Zero-SSH terminal access via SSM Session Manager | **100% Free** | Standard SSM Session Manager is completely free (eliminates the cost of an EC2 SSH bastion host!). |
+
+#### 2.7.2 Deep Dive: Is Amazon ECR Billable?
+
+Students are often concerned whether maintaining 9 distinct container repositories in Amazon ECR will inflate cloud costs:
+
+1. **Repository Creation**: **Free**. AWS charges \$0.00 to create, name, or delete ECR repositories.
+2. **Data Ingress & Intra-Region Egress**:
+   * Pushing newly built images from GitHub Actions to ECR is **\$0.00** (AWS does not charge for internet data transfer into AWS).
+   * Pulling images from ECR onto EC2 worker instances located in the same region (`ap-southeast-1`) is **\$0.00** (AWS does not charge for intra-region transfer between ECR and EC2).
+3. **Storage Billing & The Automated Cleanup Policy**:
+   * Storage is charged at **\$0.10 USD per GB-month** after AWS Free Tier's 500 MB/month allowance.
+   * If left unmanaged, storing 10 builds of 9 services (90 images $\times$ 400 MB = 36 GB) would accumulate $\sim$\$3.60/month.
+   * **Our Terraform Solution**: In [`infra/terraform/ecr.tf`](../infra/terraform/ecr.tf), we configured an automated ECR lifecycle rule:
+     ```hcl
+     {
+       rulePriority = 1
+       description  = "Keep only the last 3 tagged images and purge untagged layers"
+       selection = {
+         tagStatus   = "any"
+         countType   = "imageCountMoreThan"
+         countNumber = 3
+       }
+       action = { type = "expire" }
+     }
+     ```
+   * Because stale and untagged layers are automatically deleted, total ECR storage across all 9 repositories never exceeds 2–3 GB, costing **under S$0.40 SGD per month**.
+
+#### 2.7.3 Why HTTP Instead of HTTPS on the ALB? (Custom Domain & ACM Constraints)
+
+Notice that the ALB endpoint is currently accessed via `http://` rather than `https://`:
+* **The AWS Domain Ownership Constraint**:
+  * AWS assigns each Application Load Balancer a dynamic, AWS-owned DNS name (e.g. `foc-production-alb-144589427.ap-southeast-1.elb.amazonaws.com`).
+  * To serve HTTPS with a trusted green browser padlock, an SSL/TLS certificate must be issued by a public Certificate Authority (such as AWS Certificate Manager or Let's Encrypt).
+  * Public Certificate Authorities **only** issue SSL certificates to verified owners of registered domains (e.g. `yourname.com` via DNS CNAME validation). AWS owns `amazonaws.com`, and public CAs strictly prohibit issuing SSL certificates for cloud provider shared domain names (`*.elb.amazonaws.com`).
+* **Academic Course Alignment**:
+  * For university capstone projects, purchasing a custom domain (e.g. via Route 53 or Namecheap for \$12 USD) is optional. Exposing port 80 (HTTP) on the ALB is the standard course pattern for milestone evaluation, automated grading, and load testing.
+* **Production-Ready HTTPS in Terraform**:
+  * Our [`infra/terraform/alb.tf`](../infra/terraform/alb.tf) file is **already fully coded for HTTPS**:
+    ```hcl
+    # Optional HTTPS Port 443 Listener (Activated when certificate_arn is supplied)
+    resource "aws_lb_listener" "https" {
+      count             = var.certificate_arn != "" ? 1 : 0
+      load_balancer_arn = aws_lb.main.arn
+      port              = 443
+      protocol          = "HTTPS"
+      ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      certificate_arn   = var.certificate_arn
+
+      default_action {
+        type             = "forward"
+        target_group_arn = aws_lb_target_group.http.arn
+      }
+    }
+    ```
+  * If a team purchases a custom domain, they simply request an ACM certificate, add `certificate_arn = "arn:aws:acm:..."` to `terraform.tfvars`, and Terraform instantly provisions the HTTPS port 443 listener with TLS 1.3 encryption without touching any infrastructure code.
+
+#### 2.7.4 Student Budget Ceiling Math: 24/7 vs. Nightly Pausing
+
+* **Scenario A: Running 24/7 (Continuous)**:
+  * ALB: \$0.54 / day
+  * EC2 Compute (1 Master + 2 Workers): \$0.0832/hr $\times$ 24 = \$2.00 / day
+  * EBS Storage (85 GB total): \$0.22 / day
+  * IPv4 & ECR: $\sim$\$0.15 / day
+  * **Daily Total**: $\sim$\$2.91 USD/day ($\sim$S$3.80 SGD/day).
+  * For a 10-day grading period, total cost is $\approx$S$38 SGD, well under the S$50 budget cap!
+* **Scenario B: Nightly Budget Pause (Recommended)**:
+  * Running EC2 compute for 6 hours/day during active development:
+  * Compute cost drops from \$2.00/day to **\$0.50/day**.
+  * **Daily Total**: $\sim$\$1.41 USD/day ($\sim$S$1.85 SGD/day).
+  * Preserves maximum budget credits for final benchmarks and live presentations.
+
+---
+
 ## 3. Container Orchestration with Lightweight Kubernetes (K3s)
 
 ### 3.1 The Container Evolution: Bare Metal $\to$ VMs $\to$ Docker Compose $\to$ Kubernetes
@@ -768,6 +868,33 @@ In CS3219, we specifically chose **K3s** (created by Rancher / SUSE):
 2. **Zero Control-Plane Cost**: AWS charges \$73.00 USD/month just to operate an EKS control plane. K3s bundles the Kubernetes API server, scheduler, and controller manager into a tiny single binary that runs directly on our EC2 master node for \$0 extra.
 3. **Low Resource Overhead**: Standard Kubernetes consumes over 2GB of RAM just for system components. K3s strips out legacy, in-tree cloud provider code and replaces heavy components with lightweight alternatives (like sqlite/embedded etcd and Flannel network mesh), running smoothly on a modest `t3.medium` instance.
 4. **Superior to Docker Swarm**: While Docker Swarm is simple, it lacks automated horizontal pod autoscaling (HPA) driven by live metrics and does not have the rich ecosystem of Kubernetes resources (Ingress, ConfigMaps, Secrets, PVCs). Adopting Kubernetes directly satisfies the CS3219 **Category N4 rubric**.
+
+---
+
+### 3.2.1 What is `kubectl`? Is It Part of K3s?
+
+Students frequently ask:
+> *"What is `kubectl`? Is it a separate tool, or is it part of K3s?"*
+
+1. **What `kubectl` is**:
+   * `kubectl` (pronounced "kube-control" or "kube-cuddle") is the official Kubernetes command-line interface (CLI).
+   * It acts as the **remote control / steering wheel** for any Kubernetes cluster. It does not run containers itself; instead, it sends REST API requests (in JSON/YAML) over HTTPS to the Kubernetes API server (running on port 6443) instructing it to create pods, query cluster health, or stream logs.
+2. **Is it part of K3s?**:
+   * **Yes and No**:
+     * In upstream Kubernetes (like AWS EKS or standard K8s), `kubectl` is a separate standalone binary that you must manually install on your computer.
+     * In K3s, Rancher **packaged `kubectl` directly inside the single `k3s` binary**!
+   * When you install K3s on a Linux server, you can immediately run:
+     ```bash
+     k3s kubectl get pods -n foc
+     ```
+   * Furthermore, the K3s installation script creates a convenient symlink at `/usr/local/bin/kubectl` pointing directly to the `k3s` binary. This means standard commands like `kubectl get nodes` or `kubectl apply -f infra/k8s/` work out of the box with zero additional software installation!
+3. **Client-Server Architecture**:
+   ```mermaid
+   flowchart LR
+       Admin["Developer / SSM Shell<br/>(kubectl get pods)"] -->|HTTPS :6443<br/>/etc/rancher/k3s/k3s.yaml| APIServer["K3s Control Plane Server<br/>(kube-apiserver)"]
+       APIServer --> State["Embedded Cluster State<br/>(sqlite / etcd)"]
+       APIServer --> Kubelet["Worker Nodes<br/>(kubelet daemon)"]
+   ```
 
 ---
 
@@ -1009,6 +1136,29 @@ spec:
                 port:
                   number: 80
 ```
+
+##### The Two-Tier Gateway Pattern: Traefik (Cluster Ingress) vs. NGINX (Application API Gateway)
+
+Students frequently ask:
+> *"If Traefik is an Ingress controller, why do we also deploy an NGINX API Gateway? Doesn't NGINX do routing too?"*
+
+This architecture intentionally implements the **Two-Tier Gateway Pattern**:
+
+1. **Tier 1: Traefik (Kubernetes Infrastructure Ingress)**:
+   * Traefik lives at the **cluster boundary**.
+   * Its role is Kubernetes infrastructure plumbing: binding to host port 80 via K3s ServiceLB, fulfilling the Kubernetes `Ingress` specification, and safely bringing external HTTP traffic from the AWS ALB into the internal pod overlay network.
+   * In `06-ingress.yaml`, Traefik's rule forwards all incoming traffic (`path: /`) straight into the `api-gateway` service.
+2. **Tier 2: NGINX (Application API Gateway)**:
+   * NGINX lives inside the application layer (`gateway/nginx.conf`).
+   * It handles all application-level routing, security controls, and protocol negotiation:
+     * Routes `/api/orders` $\to$ `order-service:8003`.
+     * Routes `/api/auth` and `/api/users` $\to$ `user-service:8001`.
+     * Strictly blocks external access to internal escrow endpoints (`/api/credits/escrow`) with **HTTP 403 Forbidden**.
+     * Handles WebSocket protocol upgrades (`/ws/chat/` $\to$ HTTP 101 Switching Protocols).
+     * Routes `/admin` to the Admin Portal SPA and `/` to the Student App SPA.
+3. **The Engineering Benefit: 100% Local Parity**:
+   * In local development, developers run `docker-compose up` without Kubernetes or Traefik.
+   * Because all microservice routing, WebSocket upgrades, and security blocks are defined inside NGINX, the application behaves **identically** on a local developer's laptop as it does inside the cloud Kubernetes cluster, eliminating "works on my machine" bugs.
 
 #### `07-hpa.yaml`
 Defines the **Horizontal Pod Autoscalers (HPA)** for `order-service`, `credit-service`, and `api-gateway`:

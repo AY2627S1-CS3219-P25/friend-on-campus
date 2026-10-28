@@ -186,7 +186,7 @@ npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste t
 ```
 
 #### Optional: Natural-Language Errand Assistant (F6 / SoCLaaS)
-To enable zero-shot LLM parsing in the errand creation flow, obtain an API key from the [NUS School of Computing SoCLaaS Gateway](https://dochub.comp.nus.edu.sg/cf/guides/soclaas/start) and configure it in `.env`:
+To enable zero-shot LLM parsing in the errand creation flow, obtain an API key from the [NUS School of Computing SoCLaaS Portal](https://soclaas-portal.comp.nus.edu.sg/) (only accessible on school network, use VPN if needed) and configure it in `.env`:
 ```env
 SOCLAAS_BASE_URL=https://soclaas-api.comp.nus.edu.sg/v1
 SOCLAAS_API_KEY=your_soclaas_api_key_here
