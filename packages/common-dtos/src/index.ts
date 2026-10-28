@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Added ParseErrandDraftRequest, ParsedErrandItemDTO, and ParsedErrandDraftDTO for Natural-Language Errand Creation Assistant (F6).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
  * Scope: Review fix (PR #148): optional clientId on the MESSAGE server frame (the sender's own echo).
  * Author review: <to be completed by Reallyeasy1>
@@ -267,6 +271,35 @@ export interface CreateOrderRequest {
   requesterContactNote?: string;
   rewardCredits: number;
   durationMinutes?: number;
+}
+
+// AI-generated (edited by yanhwee)
+export interface ParseErrandDraftRequest {
+  prompt: string;
+}
+
+// AI-generated (edited by yanhwee)
+export interface ParsedErrandItemDTO {
+  itemDescription: string;
+  quantity: number;
+  estimatedUnitCost?: number;
+  unitSize?: string;
+}
+
+// AI-generated (edited by yanhwee)
+export interface ParsedErrandDraftDTO {
+  supplierId?: string;
+  supplierName?: string;
+  matchedSupplierName?: string;
+  itemDescription: string;
+  items?: ParsedErrandItemDTO[];
+  totalEstimatedCost?: number;
+  dropoffLocation: string;
+  rewardCredits: number;
+  durationMinutes: number;
+  specialNotes?: string;
+  warnings?: string[];
+  rawModelResponse?: string;
 }
 
 export interface AcceptOrderRequest {

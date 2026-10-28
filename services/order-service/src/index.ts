@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Wired AssistantService with SoCLaaS gateway and supplier client into Order Service startup.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Wire the reservation saga and result consumer into startup, readiness and shutdown.
  * Author review: <to be completed by huangjiaxi1111>
@@ -13,6 +17,7 @@ import { authMiddleware } from '@campus-errand/auth';
 import type { NextFunction, Request, Response } from 'express';
 import type { Server } from 'node:http';
 import { createApp } from './app';
+import { createAssistantService } from './assistant/assistant.service';
 import { createSupplierClient } from './clients/supplier.client';
 import { config } from './config';
 import { prisma } from './database/client';
@@ -103,6 +108,7 @@ async function main() {
 
   const orderRepo = createOrderRepository(prisma);
   const supplierClient = createSupplierClient(config.supplierServiceUrl);
+  const assistantService = createAssistantService(supplierClient, config.assistant);
   const orderService = createOrderService({
     repository: orderRepo,
     supplierClient,
@@ -119,6 +125,7 @@ async function main() {
   // Create Express application
   const app = createApp({
     orderService,
+    assistantService,
     authenticate,
     port: config.port,
     isReady: async () => {

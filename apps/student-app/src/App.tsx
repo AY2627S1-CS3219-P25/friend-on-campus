@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Passed authFetch to PostErrandPage for F6 Natural-Language Errand Assistant.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: Multi-client UAT finding: no courier alert exists for a newly posted errand, so the Feed polls quietly (no
  * loading state) every 15 s while it is on screen and when the tab becomes visible again.
@@ -776,6 +780,7 @@ export default function App() {
             submissionBusy={submission.busy}
             submissionPosting={submission.posting}
             onSubmit={handlePostSubmit}
+            authFetch={authFetch}
           />
         )}
 
