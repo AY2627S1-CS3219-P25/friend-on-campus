@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Updated README.md developer setup documentation for F6 SoCLaaS environment variables, offline fallback resilience, and monorepo structure.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Natural-Language Errand Creation Assistant (F6 / Issues #53, #137, #138): shared DTOs, Order Service SoCLaaS LLM integration, offline fallback, D1 §3.3 timing constraint enforcement, and student-app UI assistant drawer with prefill.
 Author review: <to be completed by yanhwee>
 
@@ -5482,4 +5486,20 @@ Code implementation, architectural alignment, test suite development, and docume
 - `apps/student-app/test/assistant.test.ts` — added unit tests for `parseErrandDraft`
 - `apps/student-app/package.json` — updated `test:unit` script to execute assistant tests
 - `.env.example`, `docker-compose.yml` — documented and bound `SOCLAAS_*` environment variables
+- `ai/usage-log.md` — this entry
+
+## 2026-10-28 15:00 SGT — Document F6 SoCLaaS Setup & Offline Resilience in README.md
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** docs/f6-readme-setup
+
+**Prompt (summarised):**
+Update root README.md to document developer setup for the Natural-Language Errand Creation Assistant (F6), including the NUS SoCLaaS environment variables, offline fallback resilience guarantee, and service architecture mappings.
+
+**Usage scenario:**
+Documentation improvement per course policy.
+
+**Files changed:**
+- `README.md` — added SoCLaaS optional configuration to Local Development Workflow, updated service diagram label and monorepo structure
 - `ai/usage-log.md` — this entry
