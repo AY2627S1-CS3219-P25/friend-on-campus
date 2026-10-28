@@ -15,6 +15,7 @@
    * [1.2 Architectural Decision: General Compute (EC2) vs. Managed Cloud (RDS/EKS)](#12-architectural-decision-general-compute-ec2-vs-managed-cloud-rdseks)
    * [1.3 Cluster Topology & The Two-Tier Autoscaling Architecture](#13-cluster-topology--the-two-tier-autoscaling-architecture)
    * [1.4 The S\$50 SGD Student Budget Constraint: How We Run 24/7 Safely](#14-the-s50-sgd-student-budget-constraint-how-we-run-247-safely)
+   * [1.5 End-to-End Developer Workflow: What Developers Actually Do (Step-by-Step)](#15-end-to-end-developer-workflow-what-developers-actually-do-step-by-step)
 2. [Infrastructure as Code (IaC) with Terraform & AWS](#2-infrastructure-as-code-iac-with-terraform--aws)
    * [2.1 What is Infrastructure as Code and Why Does It Matter?](#21-what-is-infrastructure-as-code-and-why-does-it-matter)
    * [2.2 How Terraform Works Under the Hood](#22-how-terraform-works-under-the-hood)
@@ -71,8 +72,9 @@
    * [6.1 Day-to-Day Operations: Connecting to Instances via AWS SSM](#61-day-to-day-operations-connecting-to-instances-via-aws-ssm)
    * [6.2 Controlling K3s Remotely via `kubectl`](#62-controlling-k3s-remotely-via-kubectl)
    * [6.3 Everyday Diagnosis & Log Triage Commands](#63-everyday-diagnosis--log-triage-commands)
-   * [6.4 Preserving the Student Budget (Nightly Stop & Resume)](#64-preserving-the-student-budget-nightly-stop--resume)
-   * [6.5 Clean Teardown (`terraform destroy`)](#65-clean-teardown-terraform-destroy)
+   * [6.4 Common Kubernetes Troubleshooting Scenarios (`CrashLoopBackOff`, `ImagePullBackOff`, `Pending`)](#64-common-kubernetes-troubleshooting-scenarios-crashloopbackoff-imagepullbackoff-pending)
+   * [6.5 Preserving the Student Budget (Nightly Stop & Resume)](#65-preserving-the-student-budget-nightly-stop--resume)
+   * [6.6 Clean Teardown (`terraform destroy`)](#66-clean-teardown-terraform-destroy)
 
 ---
 
@@ -240,6 +242,169 @@ The National University of Singapore provisions student AWS accounts with a stri
 5. **Grand Total 16-Day 24/7 Cost**:
    $$\$29.84\text{ (EC2)} + \$9.68\text{ (ALB)} + \$3.52\text{ (EBS)} = \mathbf{\$43.04\text{ USD}} \quad (< \mathbf{\$50.00\text{ Budget}})$$
    This allows the cluster to run continuously 24/7 without worrying about manual shutdowns.
+
+---
+
+### 1.5 End-to-End Developer Workflow: What Developers Actually Do (Step-by-Step)
+
+When students first encounter cloud computing, a common source of confusion is understanding **who runs what, where, and when**:
+* *"Do I need to run `terraform apply` every time I change a TypeScript file?"* $\to$ **No!**
+* *"Do I need to SSH into AWS to deploy my changes?"* $\to$ **No!**
+* *"What happens when I `git push origin main`?"* $\to$ **GitHub Actions builds the containers and deploys them to AWS automatically!**
+
+To understand this clearly, we separate cloud operations into **two distinct lifecycles**:
+1. **The Infrastructure Lifecycle (Day 1 / One-Time Setup)**: Building the virtual datacenter (VPC, subnets, load balancer, EC2 instances, storage disks, IAM roles). This is executed **once locally** by one team member using Terraform.
+2. **The Application Lifecycle (Day 2 / Continuous Delivery)**: Building and deploying updated application code. This is executed **automatically in the cloud** via GitHub Actions whenever any team member pushes code to Git.
+
+```mermaid
+flowchart TD
+    subgraph Day1["Phase 1: Day 1 — Infrastructure Genesis (One Developer, Local Laptop)"]
+        D1A["1. Configure AWS CLI<br/>aws sso login"] --> D1B["2. Apply Terraform<br/>cd infra/terraform && terraform apply"]
+        D1B --> D1C["AWS Provisions Infrastructure<br/>VPC, Subnets, ALB, ECR, EBS, IAM OIDC & EC2 Nodes"]
+        D1C --> D1D["3. Initial K8s Manifest Bootstrap<br/>kubectl apply -f infra/k8s/"]
+    end
+
+    subgraph Day2["Phase 2: Day 2 — Everyday Feature Work (All Developers)"]
+        D2A["Developer edits code locally<br/>services/order-service/..."] --> D2B["Test Locally<br/>npm run test:unit && npm run dev"]
+        D2B --> D2C["Push to GitHub<br/>git push origin main"]
+        D2C --> D2D["GitHub Actions (deploy.yml)<br/>Keyless OIDC Auth with AWS IAM"]
+        D2D --> D2E["Docker Buildx<br/>Builds linux/amd64 images & pushes to Amazon ECR"]
+        D2E --> D2F["AWS Systems Manager (SSM)<br/>Sends remote command to Master Node"]
+        D2F --> D2G["K3s Zero-Downtime Rolling Update<br/>kubectl set image & rollout status"]
+    end
+
+    subgraph Day3["Phase 3: Verification & Load Testing (Any Team Member)"]
+        D3A["Verify Web Application<br/>Open http://ALB-DNS-NAME in browser"]
+        D3B["Run k6 Concurrency Tests locally<br/>k6 run tests/k6/discovery-load.js"]
+        D3C["Observe Live Autoscaling in terminal<br/>kubectl get hpa -n foc -w"]
+    end
+
+    Day1 --> Day2
+    Day2 --> Day3
+```
+
+#### Detailed Step-by-Step Walkthrough
+
+##### Phase 1: Day 1 — Cloud Datacenter Genesis (One Developer, Local Laptop)
+Only **one designated teammate** needs to perform this setup once to create the AWS environment:
+
+1. **Authenticate with AWS**:
+   ```bash
+   # Log in to your AWS Academy or IAM Identity Center session
+   aws sso login   # or export AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY
+   ```
+2. **Provision Cloud Infrastructure via Terraform**:
+   ```bash
+   cd infra/terraform
+   cp terraform.tfvars.example terraform.tfvars
+   # Configure variables: aws_region = "ap-southeast-1", github_repo = "AY2627S1-CS3219-P25/friend-on-campus"
+   
+   terraform init
+   terraform plan
+   terraform apply -auto-approve
+   ```
+   Terraform takes $\approx$3 minutes to provision the VPC, subnets, Application Load Balancer, ECR container repositories, EBS gp3 volume, IAM OIDC trust policies, and the EC2 Master + Worker ASG instances.
+3. **Capture Outputs**:
+   ```bash
+   # Note down these values from the terminal:
+   terraform output alb_dns_name          # e.g., foc-prod-alb-123456789.ap-southeast-1.elb.amazonaws.com
+   terraform output master_instance_id    # e.g., i-0abcd1234efgh5678
+   terraform output ecr_repository_urls   # Map of ECR repository URIs
+   ```
+4. **Initial Kubernetes Manifest Bootstrap**:
+   Connect to the Master Node via AWS Systems Manager (no SSH key needed) and apply the initial K8s manifests:
+   ```bash
+   MASTER_ID=$(terraform output -raw master_instance_id)
+   aws ssm start-session --target "$MASTER_ID"
+   
+   # Inside the Master EC2 instance shell:
+   sudo -i
+   kubectl get nodes -o wide   # Verify Master and Worker nodes are in 'Ready' state
+   
+   # Apply K8s manifests (Namespace, Storage, Secrets, Postgres, RabbitMQ, Services, Ingress, HPA)
+   kubectl apply -f /path/to/infra/k8s/
+   ```
+   At this point, the cloud cluster is live, the database is mounted on persistent EBS, RabbitMQ is routing messages, and the ALB is ready to receive web traffic!
+
+---
+
+##### Phase 2: Day 2 — Everyday Feature Work & Continuous Delivery (All Developers)
+Once the infrastructure is up, **no developer ever needs to run Terraform or manually SSH into AWS again** for everyday coding.
+
+1. **Develop and Test Locally as Usual**:
+   Developers write code on their own machines, run local unit tests, and verify features:
+   ```bash
+   # Work on features or bugfixes
+   npm run dev:services
+   npm run test:unit
+   ```
+2. **Commit and Push to GitHub**:
+   ```bash
+   git checkout -b feat/order-cancellation
+   # ... write code ...
+   git commit -m "feat(order): add errand cancellation window"
+   git push origin feat/order-cancellation
+   ```
+3. **Open Pull Request & Merge**:
+   - The Pull Request triggers `.github/workflows/ci.yml` (running linting, typechecking, and unit tests).
+   - Once approved and merged into `main`, GitHub Actions triggers `.github/workflows/deploy.yml`.
+4. **What GitHub Actions Executes Automatically (Under the Hood)**:
+   - **Step 1 (Keyless AWS Authentication)**: GitHub Actions requests an OIDC cryptographic token and exchanges it with AWS STS for temporary IAM role credentials (`configure-aws-credentials`). No permanent AWS keys are stored in GitHub Secrets!
+   - **Step 2 (Cross-Platform Container Build)**: Docker Buildx builds the service container image targeting `linux/amd64` (ensuring compatibility with AWS EC2 even if built on an Apple Silicon M1/M2/M3 Mac).
+   - **Step 3 (Push to ECR)**: Pushes the container image to Amazon ECR tagged with the Git commit SHA (e.g., `user-service:95399d8`).
+   - **Step 4 (Remote Deployment via AWS SSM)**: GitHub Actions uses AWS Systems Manager Run Command to send an update command directly to the Master EC2 instance:
+     ```bash
+     kubectl set image deployment/order-service \
+       order-service=<AWS_ACCOUNT_ID>.dkr.ecr.ap-southeast-1.amazonaws.com/foc-prod/order-service:95399d8 \
+       -n foc
+     kubectl rollout status deployment/order-service -n foc --timeout=180s
+     ```
+   - **Step 5 (Zero-Downtime Rolling Update)**: Kubernetes spins up new Pods with the new image, waits for readiness probes to report HTTP 200, shifts ALB traffic to the new Pods, and terminates the old Pods. Live users experience **zero downtime**!
+
+---
+
+##### Phase 3: Day 3 & Ongoing — Verification, Concurrency & Load Testing (Any Team Member)
+Any teammate can verify the deployment or collect rubric evidence from their own laptop:
+
+1. **Access the Live Platform in a Web Browser**:
+   Open the ALB DNS URL in any browser:
+   * **Student Web App**: `http://<ALB_DNS_NAME>/`
+   * **Admin Portal**: `http://<ALB_DNS_NAME>/admin/`
+   * **API Health Check**: `http://<ALB_DNS_NAME>/api/orders/health`
+2. **Run Distributed Concurrency & Load Tests with k6**:
+   Run k6 directly from your local terminal against the live AWS ALB:
+   ```bash
+   # Scenario A: Verify race condition prevention (Category N3)
+   k6 run --env BASE_URL=http://<ALB_DNS_NAME> tests/k6/order-claim-race.js
+   
+   # Scenario B: Generate traffic spike to trigger live autoscaling (Category N4)
+   k6 run --env BASE_URL=http://<ALB_DNS_NAME> tests/k6/discovery-load.js
+   ```
+3. **Observe Live Cluster Scaling**:
+   Open an SSM terminal to watch the Horizontal Pod Autoscaler and EC2 Auto Scaling Group respond in real time:
+   ```bash
+   # Terminal 1: Watch pods scale from 2 to 5 replicas
+   kubectl get hpa -n foc -w
+   
+   # Terminal 2: Watch worker nodes and pod placement
+   kubectl get pods -n foc -o wide -w
+   ```
+4. **Preserving Student Budget (Nightly Stop & Resume)**:
+   When you finish working for the day, pause the cluster using the commands in [Section 6.5](#65-preserving-the-student-budget-nightly-stop--resume). When you wake up, resume with one command.
+
+---
+
+#### Summary: Who Runs What, Where, and When?
+
+| Operation | When to Run | Who Executes It | Where It Runs | Tool Used | Output / Result |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Cloud Provisioning** | Day 1 (once) | 1 designated teammate | Local laptop | Terraform CLI | VPC, ALB, ECR, EBS, EC2 Master & Worker ASG created |
+| **Initial K8s Bootstrap** | Day 1 (once) | 1 designated teammate | Master EC2 shell | AWS SSM + `kubectl` | Postgres, RabbitMQ, microservices & Ingress booted |
+| **Feature Development** | Day 2+ (daily) | All developers | Local laptop | Node.js, `npm run dev` | Code changes and local test passes |
+| **Deploying Code Updates** | Day 2+ (continuous) | **Automated** | GitHub Actions Cloud | GitHub Actions CD + AWS SSM | Docker images built, pushed to ECR, rolled out to K3s |
+| **Milestone D4 Verification** | Whenever testing | Any teammate | Local laptop | k6 CLI + Web Browser | Concurrency proof & live HPA scaling evidence |
+| **Nightly Pause / Resume** | End / start of day | Any teammate with AWS access | Local laptop | AWS CLI (`aws autoscaling`, `aws ec2`) | Compute charges drop to \$0.00 while preserving all data |
+| **Complete Cloud Teardown** | End of semester | 1 designated teammate | Local laptop | Terraform CLI (`terraform destroy`) | All AWS resources permanently deleted |
 
 ---
 
@@ -1269,7 +1434,35 @@ kubectl get ingress -n foc
 
 ---
 
-### 6.4 Preserving the Student Budget (Nightly Stop & Resume)
+### 6.4 Common Kubernetes Troubleshooting Scenarios (`CrashLoopBackOff`, `ImagePullBackOff`, `Pending`)
+
+When operating a Kubernetes cluster, pods may periodically enter error states. The table below lists the most common issues students encounter and their exact resolutions:
+
+| Pod Status / Error | What It Means (Root Cause) | Diagnostic Command | How to Fix It |
+| :--- | :--- | :--- | :--- |
+| `CrashLoopBackOff` | The application process started inside the container but terminated with a non-zero exit code immediately (e.g. database connection refused, missing environment variable, or uncaught exception). Kubernetes continuously restarts it with an exponential backoff delay. | `kubectl logs -n foc <pod-name> --previous` | Inspect the fatal error stack trace in the logs. If it says `ECONNREFUSED 5432`, ensure the PostgreSQL pod is `Running` and migrations have executed. If a required secret is missing, verify `foc-secrets` in `01-configmaps-secrets.yaml`. |
+| `ImagePullBackOff` / `ErrImagePull` | K3s cannot pull the specified container image from Amazon ECR. Either the image tag does not exist, the repository URL is mistyped, or the EC2 node lacks IAM permissions to authenticate with ECR. | `kubectl describe pod -n foc <pod-name>` | 1. Check the `Events` section at the bottom of `describe pod`.<br/>2. Verify the repository URI and tag exist in the AWS ECR console or via `aws ecr describe-images`.<br/>3. Verify the EC2 node's IAM instance profile includes `arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly`. |
+| `Pending` | Kubernetes cannot find a node with enough unreserved CPU or RAM to place the pod, or a required PersistentVolumeClaim (PVC) cannot be bound. | `kubectl describe pod -n foc <pod-name>` | Check `Events`: If it says `0/2 nodes are available: 2 Insufficient memory`, your pod resource `requests` exceed node capacity. Either lower the `requests` in `04-stateless-services.yaml` or allow the Auto Scaling Group to launch an additional `t3.small` worker. If it mentions PVC binding, check `kubectl get pvc -n foc`. |
+| `OOMKilled` (Exit Code 137) | The container attempted to consume more RAM than its configured `resources.limits.memory` cap, triggering the Linux kernel's Out-Of-Memory Killer. | `kubectl describe pod -n foc <pod-name>` | Look for `Last State: Terminated` with `Reason: OOMKilled`. Increase `resources.limits.memory` in the deployment YAML (e.g., from `256Mi` to `384Mi` or `512Mi`), or inspect your Node.js application for memory leaks. |
+| `CreateContainerConfigError` | Kubernetes cannot create the container because a referenced `ConfigMap` or `Secret` key does not exist. | `kubectl describe pod -n foc <pod-name>` | Look at the error message for the missing key name. Ensure `01-configmaps-secrets.yaml` was applied before `03-stateful-data.yaml` and `04-stateless-services.yaml`. |
+| `502 Bad Gateway` from ALB | The Application Load Balancer cannot reach the backend pods, or Traefik Ingress cannot reach the `api-gateway` service. | `kubectl get endpoints -n foc` | Verify that the target Kubernetes service has active `Endpoints` (healthy pods). If endpoints are empty (`<none>`), the service's `selector` labels do not match the pod's `labels`. |
+
+#### Universal Triage Sequence
+When debugging an unhealthy pod, always execute this three-step sequence:
+```bash
+# Step 1: Check pod status and restart counts
+kubectl get pods -n foc -o wide
+
+# Step 2: Read live or previous crash logs
+kubectl logs -n foc <pod-name> --previous --tail=50
+
+# Step 3: Inspect Kubernetes cluster events and failure reasons
+kubectl describe pod -n foc <pod-name>
+```
+
+---
+
+### 6.5 Preserving the Student Budget (Nightly Stop & Resume)
 
 To preserve the S\$50 SGD student budget, you must stop cluster resources when you finish working.
 
@@ -1308,7 +1501,7 @@ Within 60–90 seconds, the worker instances boot up, automatically execute thei
 
 ---
 
-### 6.5 Clean Teardown (`terraform destroy`)
+### 6.6 Clean Teardown (`terraform destroy`)
 
 When Milestone D4 grading is complete and the semester concludes, delete every cloud resource with a single command:
 ```bash
