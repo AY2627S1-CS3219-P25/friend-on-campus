@@ -119,9 +119,12 @@ resource "aws_iam_role_policy" "github_actions_policy" {
         Sid    = "SSMDeployExecution"
         Effect = "Allow"
         Action = [
+          "ec2:DescribeInstances",
           "ssm:SendCommand",
           "ssm:GetCommandInvocation",
-          "ssm:DescribeInstanceInformation"
+          "ssm:DescribeInstanceInformation",
+          "ssm:ListCommands",
+          "ssm:ListCommandInvocations"
         ]
         Resource = "*"
       }
