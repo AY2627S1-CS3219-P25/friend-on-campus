@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Refined PostErrandPage layout to remove redundant header wallet card and styled AI Errand Assistant in consistent light theme.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned PostErrandPage UI/UX, implemented synchronous double-click submission lock, balance validation guards, presets, and progressive status feedback.
  * Author review: <to be completed by yanhwee>
  *
@@ -215,21 +219,11 @@ export function PostErrandPage({
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Post New Errand</h2>
-          <p className="text-sm text-slate-500">
-            Request items from NUS campus spots. Fellow students deliver for reward credits.
-          </p>
-        </div>
-        {wallet && (
-          <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-amber-50 px-3.5 py-1.5 rounded-xl border border-blue-200/60 shadow-xs">
-            <Coins className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-semibold text-slate-600">Wallet:</span>
-            <span className="text-sm font-black text-slate-900">{wallet.availableCredits} C Available</span>
-            <span className="text-xs text-slate-400">({wallet.escrowCredits} C held)</span>
-          </div>
-        )}
+      <div className="border-b border-slate-200/80 pb-3">
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Post New Errand</h2>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Request items from NUS campus spots. Fellow students deliver for reward credits.
+        </p>
       </div>
 
       {/* Backend / Network Submission Alerts */}
@@ -275,16 +269,16 @@ export function PostErrandPage({
       {/* AI Errand Assistant Panel (F6) */}
       <section
         aria-label="AI Errand Assistant"
-        className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white rounded-2xl p-5 md:p-6 shadow-md border border-blue-900/40 relative overflow-hidden"
+        className="bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-orange-50/40 text-slate-800 rounded-2xl p-5 md:p-6 shadow-xs border border-blue-200/80 relative overflow-hidden"
       >
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2.5">
-              <span className="p-1.5 rounded-lg bg-nus-orange/20 text-nus-orange border border-nus-orange/30">
+              <span className="p-1.5 rounded-lg bg-nus-orange/10 text-nus-orange border border-nus-orange/20">
                 <Sparkles className="w-4 h-4" />
               </span>
-              <h3 className="text-base font-bold text-white tracking-tight">AI Errand Assistant</h3>
-              <span className="text-[11px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-400/20">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">AI Errand Assistant</h3>
+              <span className="text-[11px] bg-nus-blue/10 text-nus-blue font-semibold px-2 py-0.5 rounded-full border border-nus-blue/20">
                 NUS SoCLaaS M3
               </span>
             </div>
@@ -292,14 +286,14 @@ export function PostErrandPage({
               <button
                 type="button"
                 onClick={handleClearAssistant}
-                className="text-xs text-blue-300 hover:text-white flex items-center gap-1 cursor-pointer transition"
+                className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer transition"
               >
                 <X className="w-3.5 h-3.5" /> Clear prompt
               </button>
             )}
           </div>
 
-          <p className="text-xs text-blue-200/80 mb-3 max-w-2xl">
+          <p className="text-xs text-slate-600 mb-3 max-w-2xl">
             Type your request in plain natural English. The assistant parses pickup spot, items, dropoff destination, and
             reward credits into a draft for you to review and customize.
           </p>
@@ -312,18 +306,18 @@ export function PostErrandPage({
               onChange={(e) => setAssistantPrompt(e.target.value)}
               disabled={isExtracting || submissionBusy}
               placeholder="e.g. Can someone buy 2 iced lattes from TOMORO COFFEE to COM2 #02-04 by 3pm? Offering 6 credits"
-              className="w-full text-sm p-3.5 rounded-xl border border-blue-800/80 bg-slate-900/80 text-white placeholder-slate-400 focus:ring-2 focus:ring-nus-orange focus:border-transparent outline-none resize-none shadow-inner"
+              className="w-full text-sm p-3.5 rounded-xl border border-blue-200/90 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-nus-blue/30 focus:border-nus-blue outline-none resize-none shadow-2xs"
             />
 
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-medium text-blue-300/80">Quick prompts:</span>
+                <span className="text-xs font-semibold text-slate-600">Quick prompts:</span>
                 {TEMPLATE_PROMPTS.map((tmpl, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setAssistantPrompt(tmpl.prompt)}
-                    className="text-xs bg-white/10 hover:bg-white/20 text-blue-100 px-2.5 py-1 rounded-lg border border-white/10 transition cursor-pointer"
+                    className="text-xs bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200/90 shadow-2xs transition cursor-pointer"
                   >
                     {tmpl.label}
                   </button>
@@ -334,7 +328,7 @@ export function PostErrandPage({
                 type="button"
                 onClick={handleExtractDraft}
                 disabled={isExtracting || !assistantPrompt.trim() || submissionBusy}
-                className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isExtracting ? (
                   <>
@@ -352,14 +346,14 @@ export function PostErrandPage({
           </div>
 
           {extractError && (
-            <div className="mt-3 p-3 rounded-xl bg-rose-950/70 border border-rose-800 text-xs text-rose-200 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
               <span>{extractError}</span>
             </div>
           )}
 
           {extractedDraft && (
-            <div className="mt-4 bg-white/95 text-slate-900 rounded-xl border border-white/20 p-4 space-y-3 shadow-lg">
+            <div className="mt-4 bg-white text-slate-900 rounded-xl border border-slate-200 p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
                 <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -368,7 +362,7 @@ export function PostErrandPage({
                 <button
                   type="button"
                   onClick={handleApplyDraft}
-                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
                 >
                   <ArrowDown className="w-3.5 h-3.5" />
                   Apply to Form Below
@@ -387,23 +381,23 @@ export function PostErrandPage({
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="p-2 bg-slate-50 rounded-lg">
+                <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
                   <span className="text-slate-500 font-medium block">Pickup Spot:</span>
                   <span className="font-bold text-slate-900">
                     {extractedDraft.matchedSupplierName || extractedDraft.supplierName || '⚠️ Not matched (select below)'}
                   </span>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
+                <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
                   <span className="text-slate-500 font-medium block">Delivery Drop-off:</span>
                   <span className="font-bold text-slate-900">
                     {extractedDraft.dropoffLocation || '⚠️ Missing (enter below)'}
                   </span>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg md:col-span-2">
+                <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-100 md:col-span-2">
                   <span className="text-slate-500 font-medium block">Item Summary:</span>
                   <span className="font-semibold text-slate-800">{extractedDraft.itemDescription}</span>
                 </div>
-                <div className="flex gap-4 p-2 bg-slate-50 rounded-lg md:col-span-2">
+                <div className="flex gap-4 p-2.5 bg-slate-50/80 rounded-lg border border-slate-100 md:col-span-2">
                   <div>
                     <span className="text-slate-500 font-medium block">Reward Offer:</span>
                     <span className="font-bold text-amber-700">{extractedDraft.rewardCredits} Credits</span>
@@ -414,7 +408,7 @@ export function PostErrandPage({
                   </div>
                 </div>
                 {extractedDraft.specialNotes && (
-                  <div className="md:col-span-2 p-2 bg-slate-50 rounded-lg">
+                  <div className="md:col-span-2 p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
                     <span className="text-slate-500 font-medium block">Special Notes:</span>
                     <span className="text-slate-700 italic">{extractedDraft.specialNotes}</span>
                   </div>
@@ -424,8 +418,8 @@ export function PostErrandPage({
           )}
 
           {appliedNotice && (
-            <div className="mt-3 p-3 rounded-xl bg-emerald-950/80 border border-emerald-700 text-xs text-emerald-200 flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>
                 Draft applied to the form below! Review details and click <strong>Post Errand</strong> to submit.
               </span>

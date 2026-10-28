@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Fixed zone filter chip horizontal clipping on "ALL" chip with padded scroll container.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Elevated FeedPage with polished campus zone filter chips, skeleton loading shimmers, animated empty state with quick reset, and real-time open errand counters.
  * Author review: <to be completed by yanhwee>
  *
@@ -73,7 +77,7 @@ export function FeedPage({
       </div>
 
       {/* Zone Filter Chips */}
-      <div className="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 md:flex-wrap no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto p-1.5 md:flex-wrap no-scrollbar">
         {FEED_ZONES.map((zone) => {
           const isSelected = selectedZone === zone;
           return (

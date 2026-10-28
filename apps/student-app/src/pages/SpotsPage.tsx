@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Refined category filter chips padding to prevent negative overflow clipping.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned SpotsPage with search quick-clear, category shortcut filter chips, skeleton loading states, and responsive grid layout.
  * Author review: <to be completed by yanhwee>
  *
@@ -74,7 +78,7 @@ export function SpotsPage({
       </div>
 
       {/* Category Shortcuts */}
-      <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto p-1 md:flex-wrap no-scrollbar">
         {CATEGORY_SHORTCUTS.map((cat) => {
           const isSelected =
             cat === 'All'

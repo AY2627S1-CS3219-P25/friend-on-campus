@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned HeaderNav to light frosted theme, replaced graduation cap with brand package mark, organized navigation into Errand Workspace and Personal Account Hub.
+ * Scope: Redesigned HeaderNav to compact single-row frosted layout, inline WS Hub indicator, unified mobile/desktop alerts, and removed duplicate escrow subline.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
@@ -48,17 +48,17 @@ export function HeaderNav({
   wsStatus,
 }: HeaderNavProps) {
   return (
-    <header className="bg-white/95 backdrop-blur-md text-slate-800 px-4 py-3 md:px-6 lg:px-8 sticky top-0 z-30 shadow-xs border-b border-slate-200/90">
+    <header className="bg-white/95 backdrop-blur-md text-slate-800 px-4 py-2.5 md:py-3 md:px-6 lg:px-8 sticky top-0 z-30 shadow-xs border-b border-slate-200/90">
       <div className="student-header-row">
-        {/* Brand and Student Badge */}
-        <div className="flex items-center gap-3">
+        {/* Brand, Student Badge & Inline Live Hub */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             type="button"
             onClick={() => onSelectTab('feed')}
             className="flex items-center gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="CampusErrand Home"
           >
-            <div className="relative w-8 h-8 rounded-xl bg-nus-blue flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+            <div className="relative w-8 h-8 rounded-xl bg-nus-blue flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
               <Package className="w-4 h-4 text-white" />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-nus-orange ring-2 ring-white" />
             </div>
@@ -71,9 +71,25 @@ export function HeaderNav({
                   STUDENT
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block font-medium">
-                Peer-to-Peer Campus Delivery
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-[11px] text-slate-500 hidden sm:block font-medium">
+                  Peer-to-Peer Campus Delivery
+                </p>
+                {showWsStatus && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        wsStatus === 'connected'
+                          ? 'bg-emerald-500 motion-safe:animate-pulse'
+                          : wsStatus === 'connecting'
+                          ? 'bg-amber-500'
+                          : 'bg-rose-500'
+                      }`}
+                    />
+                    <span>WS Hub: {wsStatus}</span>
+                  </span>
+                )}
+              </div>
             </div>
           </button>
         </div>
@@ -138,13 +154,17 @@ export function HeaderNav({
 
         {/* Right Section: Personal Account & Financial Hub */}
         <div className="flex items-center gap-2">
-          <NotificationBell
-            variant="top"
-            unreadCount={unreadNotificationsCount}
-            active={activeTab === 'alerts'}
-            onClick={() => onSelectTab('alerts')}
-          />
+          {/* Alerts Bell (Desktop only; on mobile it lives in the ergonomic bottom dock) */}
+          <div className="hidden md:flex">
+            <NotificationBell
+              variant="top"
+              unreadCount={unreadNotificationsCount}
+              active={activeTab === 'alerts'}
+              onClick={() => onSelectTab('alerts')}
+            />
+          </div>
 
+          {/* Interactive Wallet Balance Capsule */}
           <button
             type="button"
             aria-label="Open wallet"
@@ -174,6 +194,7 @@ export function HeaderNav({
             </div>
           </button>
 
+          {/* Profile Button (Desktop only; on mobile it lives in the bottom dock) */}
           <button
             type="button"
             aria-current={activeTab === 'profile' ? 'page' : undefined}
@@ -188,29 +209,6 @@ export function HeaderNav({
             <span>Profile</span>
           </button>
         </div>
-      </div>
-
-      {/* Real-time WebSocket connection and escrow subline */}
-      <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
-        {showWsStatus ? (
-          <span className="flex items-center space-x-1.5 text-slate-500 font-medium">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                wsStatus === 'connected'
-                  ? 'bg-emerald-500 motion-safe:animate-pulse'
-                  : wsStatus === 'connecting'
-                  ? 'bg-amber-500'
-                  : 'bg-rose-500'
-              }`}
-            />
-            <span>WS Hub: {wsStatus}</span>
-          </span>
-        ) : (
-          <span />
-        )}
-        <span className="text-slate-500 font-medium">
-          Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}
-        </span>
       </div>
     </header>
   );

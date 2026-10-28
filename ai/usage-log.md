@@ -5581,3 +5581,33 @@ Frontend UI/UX design polish, layout bug fixing, information architecture clarif
 - `apps/student-app/src/notifications/NotificationBell.tsx` — styled top-nav bell for high-contrast light theme
 - `apps/student-app/src/pages/FeedPage.tsx` — updated header title with NUS brand accents
 - `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 17:10 SGT — Navigation Consistency, Light AI Assistant & Layout Spacing Polish
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Refine layout, spacing, and styling based on user feedback:
+1. Eliminate duplicate Alerts button on mobile (hidden in top navbar on mobile view).
+2. Unify top navigation into a single continuous row (brand, tabs, wallet, profile) without wrapping credits above tabs on medium screens.
+3. Remove duplicate escrow label in the header subline.
+4. Fix horizontal overflow clipping on the "ALL" zone chip in FeedPage.
+5. Convert AI Errand Assistant into a consistent light theme.
+6. Align mobile vs desktop navigation hierarchy.
+7. Reduce excessive dead whitespace between top navbar and page content.
+8. Remove redundant wallet balance badge from PostErrandPage header.
+
+**Usage scenario:**
+UI/UX polish and layout ergonomics fix for student application final deliverable. Preserved 100% Playwright UAT locator compatibility (`WS Hub: connected`, `Feed`, `Post`, `Spots`, `Tasks`, `Alerts`, `Profile`, `Log In`, `Sign In`).
+
+**Files changed:**
+- `apps/student-app/src/index.css` — changed `.student-header-row` to flexbox; removed grid row wrapping on medium screens
+- `apps/student-app/src/components/HeaderNav.tsx` — single horizontal row, inline WS Hub status, desktop-only top alert bell, removed redundant escrow subline
+- `apps/student-app/src/App.tsx` — reduced `<main>` vertical padding (`pt-3.5 pb-8 md:pt-4 md:pb-10 lg:px-8`)
+- `apps/student-app/src/pages/FeedPage.tsx` — added `p-1.5` to zone filter chip scroll container to prevent button clipping
+- `apps/student-app/src/pages/SpotsPage.tsx` — added `p-1` to category shortcuts scroll container
+- `apps/student-app/src/pages/PostErrandPage.tsx` — removed redundant header wallet badge; redesigned AI Errand Assistant container, textarea, chips, and draft card to light theme
+- `ai/usage-log.md` — this entry
