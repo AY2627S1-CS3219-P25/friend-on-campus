@@ -31,7 +31,7 @@ variable "worker_instance_type" {
 variable "worker_min_size" {
   description = "Minimum number of worker EC2 instances in the Auto Scaling Group"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "worker_desired_capacity" {

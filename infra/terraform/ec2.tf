@@ -78,7 +78,6 @@ resource "aws_instance" "k3s_master" {
               curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
                 --token ${local.k3s_token} \
                 --tls-san $LOCAL_IP \
-                --disable servicelb \
                 --node-label foc.role=data-node \
                 --write-kubeconfig-mode 644" sh -
 

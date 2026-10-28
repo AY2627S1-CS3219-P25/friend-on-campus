@@ -149,6 +149,12 @@ spec:
             - name: persistent-data
               mountPath: /var/lib/rabbitmq
               subPath: rabbitmq
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq/definitions.json
+              subPath: definitions.json
           resources:
             requests:
               cpu: "200m"
@@ -170,6 +176,9 @@ spec:
         - name: persistent-data
           persistentVolumeClaim:
             claimName: foc-data-pvc
+        - name: rabbitmq-config
+          configMap:
+            name: rabbitmq-definitions
 
 ---
 apiVersion: v1
