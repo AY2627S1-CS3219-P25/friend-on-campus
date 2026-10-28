@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Injected AssistantService into Express application factory for F6 NLP Errand Assistant.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Express application factory for Order Service configuring CORS, JSON middleware, health and readiness checks, and routing.
  * Author review: (to be completed by author after review)
@@ -7,12 +11,14 @@
 // AI-generated (edited by yanhwee)
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import cors from 'cors';
+import type { AssistantService } from './assistant/assistant.service';
 import { createOrderRouter } from './orders/order.routes';
 import type { OrderService } from './orders/order.service';
 
 export interface AppDependencies {
   orderService: OrderService;
   authenticate: RequestHandler;
+  assistantService?: AssistantService;
   port?: number | string;
   isReady?: () => Promise<boolean>;
 }
@@ -64,7 +70,7 @@ export function createApp(deps: AppDependencies) {
   });
 
   // Mount API routes
-  app.use('/api/orders', createOrderRouter(deps.orderService, deps.authenticate));
+  app.use('/api/orders', createOrderRouter(deps.orderService, deps.authenticate, deps.assistantService));
 
   // JSON parse error handler
   app.use(jsonParseErrorHandler);
