@@ -203,24 +203,35 @@ flowchart TB
    - When a sudden burst of student orders arrives, the microservice containers spike in CPU.
    - K3s Horizontal Pod Autoscaler immediately scales replicas (e.g. `order-service` expands from 2 to 5 pods) within existing worker memory and CPU headroom in **1–2 seconds**.
 2. **Tier 2 (AWS EC2 Auto Scaling Group - ASG)**:
-   - If high load continues and all worker instances exceed 75% average CPU (`ASGAverageCPUUtilization`), CloudWatch alerts the Auto Scaling Group.
-   - The ASG launches a new `t3.medium` EC2 worker instance via `aws_launch_template.k3s_worker`.
+   - If high load continues and worker CPU exceeds 75% average (`ASGAverageCPUUtilization`), CloudWatch alerts the Auto Scaling Group.
+   - The ASG launches a new `t3.small` EC2 worker instance via `aws_launch_template.k3s_worker`.
    - The new instance executes its `user_data` bootstrap script, waits for the master node API to respond, installs the K3s agent, and automatically registers itself with the cluster.
    - The ALB dynamically adds the new worker to its Target Group, and K3s immediately distributes pod workloads onto the newly added compute node!
-3. **Hard Budget Ceiling**:
-   - The worker ASG enforces `min_size = 1`, `desired_capacity = 2`, and `max_size = 3`.
-   - Even under continuous synthetic load testing, AWS will **never launch more than 3 worker instances**, keeping maximum cluster compute costs capped at $\le$\$0.208/hour.
+3. **Hard Budget Ceiling & Cost Optimization**:
+   - The worker ASG enforces `min_size = 1`, `desired_capacity = 1`, and `max_size = 3`.
+   - Baseline worker instances run on cost-effective `t3.small` (2 vCPU, 2GB RAM at \$0.0259/hr), while the stateful master runs on `t3.medium` (2 vCPU, 4GB RAM at \$0.0518/hr) to ensure database stability.
+   - Even under continuous synthetic load testing, AWS will **never launch more than 3 worker instances**, keeping maximum cluster compute costs strictly capped.
 
 ---
 
-### 1.4 The S\$50 SGD Student Budget Constraint: How We Keep Costs Low
+### 1.4 The S\$50 SGD Student Budget Constraint: How We Run 24/7 Safely
 
-The National University of Singapore provisions student AWS accounts with a strict S\$50 SGD credit allocation. Exceeding this budget causes the account to be locked. Our infrastructure is specifically engineered to maximize learning while minimizing cost:
+The National University of Singapore provisions student AWS accounts with a strict S\$50 SGD credit allocation. Exceeding this budget causes the account to be locked. Our infrastructure is specifically engineered to run **24/7 continuously across a 16-day submission window** without exceeding this cap:
 
 1. **Zero Control-Plane Tax**: We use K3s instead of AWS EKS, avoiding the fixed \$73 USD/month EKS control plane surcharge.
-2. **Right-Sized Instances**: We use 3 $\times$ `t3.medium` instances (2 vCPUs, 4GB RAM each). Total compute cost is approximately \$0.052 per instance-hour $\times$ 3 = **\$0.156/hour** ($\approx$\$3.74 USD / S\$5.00 SGD per 24 hours of continuous runtime).
-3. **ECR Image Lifecycle Management**: Private Docker image registries incur storage costs (\$0.10/GB/month). We enforce an automated lifecycle policy in `ecr.tf` that purges untagged images older than 3 days and retains at most 10 images per microservice.
-4. **Nightly Shutdown Support**: When you finish working for the day, stopping the 3 EC2 instances reduces the running cost to nearly zero (you only pay $\approx$\$0.10/day for the idle EBS volume storage).
+2. **Right-Sized Compute Splitting**:
+   * **Node 1 (Master / Data Node)**: Fixed `t3.medium` (4GB RAM) dedicated to PostgreSQL 16, RabbitMQ, and Debezium CDC to prevent Out-Of-Memory (OOM) crashes (\$0.0518/hr).
+   * **Worker Pool**: Elastic `t3.small` (2GB RAM) running stateless microservices and frontends (\$0.0259/hr — 50% cheaper).
+   * **16-Day 24/7 Compute Cost**: $(\$0.0518 + \$0.0259) \times 384\text{ hours} = \mathbf{\$29.84\text{ USD}}$.
+3. **Optimized Storage Allocation**:
+   * Persistent EBS gp3 Data Volume: **25 GB** ($\approx$\$1.17 for 16 days).
+   * Master Root Disk: **30 GB** gp3; Worker Root Disk: **20 GB** gp3 ($\approx$\$2.35 for 16 days).
+4. **Predictable Load Balancer & ECR Lifecycle**:
+   * AWS Application Load Balancer: \$0.0252/hr $\times$ 384 hours = **\$9.68 USD**.
+   * ECR lifecycle policies automatically purge untagged images older than 3 days.
+5. **Grand Total 16-Day 24/7 Cost**:
+   $$\$29.84\text{ (EC2)} + \$9.68\text{ (ALB)} + \$3.52\text{ (EBS)} = \mathbf{\$43.04\text{ USD}} \quad (< \mathbf{\$50.00\text{ Budget}})$$
+   This allows the cluster to run continuously 24/7 without worrying about manual shutdowns.
 
 ---
 
@@ -325,12 +336,12 @@ Centralizes input parameters so configuration can be tuned without modifying res
 * `aws_region`: Defaults to `ap-southeast-1` (Singapore) for lowest network latency to NUS.
 * `environment`: Environment namespace (defaults to `prod`).
 * `master_instance_type`: EC2 instance type for Node 1 (defaults to `t3.medium`).
-* `worker_instance_type`: EC2 instance type for Worker Nodes (defaults to `t3.medium`).
+* `worker_instance_type`: EC2 instance type for Worker Nodes (defaults to `t3.small`).
 * `worker_min_size`: Minimum number of worker EC2 instances in the Auto Scaling Group (defaults to `1`).
-* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `2`).
+* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `1`).
 * `worker_max_size`: Hard ceiling on worker EC2 instances to protect student budget (defaults to `3`).
 * `worker_cpu_target`: Target average CPU percentage across workers before triggering scale-out (defaults to `75.0`%).
-* `ebs_volume_size`: Size of persistent EBS volume (defaults to `50` GB).
+* `ebs_volume_size`: Size of persistent EBS volume (defaults to `25` GB).
 * `github_repository`: Target GitHub repository for keyless OIDC authentication (`AY2627S1-CS3219-P25/friend-on-campus`).
 
 #### `vpc.tf`
@@ -366,7 +377,7 @@ Configures AWS Identity and Access Management (IAM) according to the **Principle
 
 #### `ebs.tf`
 Provisions the dedicated storage volume for our database and messaging layer:
-* `aws_ebs_volume.data_volume`: A 50GB **General Purpose SSD (gp3)** volume provisioned in `ap-southeast-1a` (the exact AZ where Node 1 resides). Configured with `encrypted = true` and `kms_key_id = "alias/aws/ebs"` for transparent encryption at rest.
+* `aws_ebs_volume.data_volume`: A 25GB **General Purpose SSD (gp3)** volume provisioned in `ap-southeast-1a` (the exact AZ where Node 1 resides). Configured with `encrypted = true` and `kms_key_id = "alias/aws/ebs"` for transparent encryption at rest.
 * `aws_volume_attachment.master_data`: Attaches this EBS volume to Node 1 as block device `/dev/sdf`.
 
 #### `ec2.tf`
@@ -379,11 +390,11 @@ Provisions the virtual compute instances and automated scaling infrastructure:
   * Adds an entry to `/etc/fstab` and mounts the volume to `/var/foc-data`.
   * Installs K3s server using Rancher's official script with `--node-label foc.role=data-node`.
 * `aws_launch_template.k3s_worker` (Tier 2 Autoscaling Template):
-  * Defines the standardized blueprint for all stateless worker nodes: Ubuntu 24.04 LTS, `t3.medium`, 30GB gp3 encrypted root disk, cluster security group, and SSM instance profile.
+  * Defines the standardized blueprint for all stateless worker nodes: Ubuntu 24.04 LTS, `t3.small` (2 vCPU, 2GB RAM), 20GB gp3 encrypted root disk, cluster security group, and SSM instance profile.
   * Contains an autonomous bootstrap script (`user_data`) encoded in base64: polls the master K3s API server on port 6443, installs the K3s agent, and registers the worker with `--node-label foc.role=worker-node`.
 * `aws_autoscaling_group.k3s_workers` (Tier 2 Elastic Worker Pool):
   * Manages the worker EC2 fleet across multiple Availability Zones (`public_a` and `public_b`).
-  * Enforces `min_size = 1`, `desired_capacity = 2`, and `max_size = 3`.
+  * Enforces `min_size = 1`, `desired_capacity = 1`, and `max_size = 3`.
   * Automatically registers and deregisters EC2 instances with the Application Load Balancer target group (`target_group_arns`).
   * Configured with rolling `instance_refresh` so updates to the launch template can roll out zero-downtime updates across the worker fleet.
 * `aws_autoscaling_policy.worker_cpu_policy` (Target Tracking Scaling Policy):
@@ -1029,10 +1040,10 @@ aws ec2 start-instances --instance-ids \
 
 # Wait ~45 seconds for Node 1 K3s control plane to initialize, then:
 
-# 2. Restore worker ASG desired capacity to 2 instances
+# 2. Restore worker ASG desired capacity to 1 instance (or 2 for high availability)
 aws autoscaling set-desired-capacity \
   --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
-  --desired-capacity 2
+  --desired-capacity 1
 ```
 Within 60–90 seconds, the worker instances boot up, automatically execute their bootstrap script, join the K3s cluster, register with the ALB, and K3s schedules all microservice pods across the pool!
 

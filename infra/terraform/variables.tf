@@ -25,7 +25,7 @@ variable "master_instance_type" {
 variable "worker_instance_type" {
   description = "Instance type for K3s Worker Nodes (Stateless microservices, HPA, Ingress)"
   type        = string
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "worker_min_size" {
@@ -37,7 +37,7 @@ variable "worker_min_size" {
 variable "worker_desired_capacity" {
   description = "Baseline desired number of worker EC2 instances in the Auto Scaling Group"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "worker_max_size" {
@@ -55,7 +55,7 @@ variable "worker_cpu_target" {
 variable "ebs_volume_size" {
   description = "Size in GB of persistent gp3 EBS volume for stateful data storage (/var/foc-data)"
   type        = number
-  default     = 50
+  default     = 25
 }
 
 variable "k3s_token" {
