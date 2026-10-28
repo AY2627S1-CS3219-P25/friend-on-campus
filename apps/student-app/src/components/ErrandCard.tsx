@@ -55,13 +55,13 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
     <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle border border-slate-200/90 hover:border-nus-blue/40 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100">
-            <span className="h-1.5 w-1.5 rounded-full bg-nus-blue" />
-            {order.campusZone}
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 whitespace-nowrap min-w-0">
+            <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0" />
+            <span className="truncate">{order.campusZone}</span>
           </span>
-          <div className="inline-flex items-center gap-1.5 text-amber-700 font-extrabold text-xs sm:text-sm bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-1 rounded-full border border-amber-200 shadow-sm">
-            <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+          <div className="inline-flex items-center gap-1.5 text-amber-800 font-black text-xs bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1 rounded-full border border-amber-200/90 shadow-2xs whitespace-nowrap shrink-0">
+            <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
             <span>+{order.rewardCredits} Credits</span>
           </div>
         </div>
@@ -105,15 +105,15 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
       {/* Footer: Expiration & Action CTA */}
       <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
         <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
             expiry.critical
               ? 'bg-rose-50 text-rose-700 border border-rose-200 font-bold'
               : expiry.urgent
               ? 'bg-amber-50 text-amber-700 border border-amber-200'
-              : 'text-slate-500'
+              : 'text-slate-500 bg-slate-50 border border-slate-100'
           }`}
         >
-          <Clock className="w-3.5 h-3.5" />
+          <Clock className="w-3.5 h-3.5 shrink-0" />
           <span>{expiry.label}</span>
         </span>
 
@@ -126,7 +126,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
             event.preventDefault();
             onOpenErrand(order.id);
           }}
-          className={`inline-flex items-center gap-1 font-bold rounded-lg transition-all focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] ${
+          className={`inline-flex items-center gap-1 font-bold rounded-lg whitespace-nowrap shrink-0 transition-all focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] ${
             mine
               ? 'text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 border border-slate-200'
               : 'text-xs sm:text-sm text-nus-orange group-hover:text-orange-600 group-hover:translate-x-0.5'

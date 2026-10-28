@@ -5554,3 +5554,30 @@ Aligned Playwright locator strict-mode rules and text assertions across the rede
 - `apps/student-app/src/components/HeaderNav.tsx`
 - `apps/student-app/src/pages/PostErrandPage.tsx`
 - `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 16:50 SGT — Visual Polish: Light Theme Auth, Card Label Wrapping, Brand Logo & Header Nav IA
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Refine UI aesthetics across the student app:
+1. Redesign `AuthGatePage.tsx` into a clean, fully light theme, remove cluttering security and milestone footers, replace the graduation cap icon with an elegant brand mark, and center the password visibility toggle icon.
+2. Fix wrapping of badges and labels inside `ErrandCard.tsx` (e.g. Arts & Social Sciences, reward credits).
+3. Remove artificial "CAMPUS-ID" label from the student pass card in `ProfileWalletPage.tsx`.
+4. Modernize top navigation (`HeaderNav.tsx`) into a frosted light-themed header, unifying Errand Marketplace tabs (Feed, Post, Spots, Tasks) in the center and Personal Account Hub (Alerts, Wallet, Profile) on the right.
+5. Update page header titles with vibrant NUS branding accents.
+
+**Usage scenario:**
+Frontend UI/UX design polish, layout bug fixing, information architecture clarification, and aesthetic refinement for student application final deliverable. All Playwright UAT locators (`Log In`, `Sign In`, `Admin Log In`, `Feed`, `Post`, `Spots`, `Tasks`, `Profile`, `Alerts`, `STUDENT`, `WS Hub: connected`) fully preserved.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — converted to light theme, centered eye toggle, replaced hat icon with package brand mark, cleaned footers
+- `apps/student-app/src/components/ErrandCard.tsx` — added `whitespace-nowrap` to zone badges, reward pills, and footer timestamps to prevent awkward line breaks
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — removed awkward `CAMPUS-ID` badge and overlapping watermark
+- `apps/student-app/src/components/HeaderNav.tsx` — converted to frosted light theme, restructured Errand Workspace vs Personal Account Hub, updated package brand mark and STUDENT badge
+- `apps/student-app/src/notifications/NotificationBell.tsx` — styled top-nav bell for high-contrast light theme
+- `apps/student-app/src/pages/FeedPage.tsx` — updated header title with NUS brand accents
+- `ai/usage-log.md` — this entry

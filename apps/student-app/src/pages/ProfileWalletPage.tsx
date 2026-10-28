@@ -144,23 +144,18 @@ export function ProfileWalletPage({
             <div className="space-y-6">
               {/* Digital NUS Student Pass Card */}
               <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002855] via-[#001f42] to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-white/10">
-                {/* Background watermarks */}
+                {/* Background ambient lighting */}
                 <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-nus-orange/15 blur-2xl pointer-events-none" />
-                <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none font-black text-6xl tracking-widest">
-                  NUS
-                </div>
+                <div className="absolute -left-8 -top-8 w-44 h-44 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
 
                 <div className="relative z-10 space-y-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-nus-orange" />
+                      <div className="h-2 w-2 rounded-full bg-nus-orange" />
                       <span className="text-xs font-extrabold tracking-widest uppercase text-blue-200">
                         NUS Student Pass
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white/10 text-blue-100 border border-white/10">
-                      CAMPUS-ID
-                    </span>
                   </div>
 
                   <div className="flex items-center gap-4">

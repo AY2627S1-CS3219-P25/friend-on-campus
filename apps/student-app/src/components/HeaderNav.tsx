@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned HeaderNav with modern frosted-glass bar, inline WebSocket status chip, and transparent credit wallet chip.
+ * Scope: Redesigned HeaderNav to light frosted theme, replaced graduation cap with brand package mark, organized navigation into Errand Workspace and Personal Account Hub.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
@@ -16,8 +16,8 @@ import {
   Clock,
   Coins,
   Compass,
-  GraduationCap,
   Lock,
+  Package,
   PlusCircle,
   Store,
   UserCircle,
@@ -48,9 +48,9 @@ export function HeaderNav({
   wsStatus,
 }: HeaderNavProps) {
   return (
-    <header className="bg-[#002855]/95 backdrop-blur-md text-white px-4 py-3 md:px-6 lg:px-8 sticky top-0 z-30 shadow-md border-b border-white/10">
+    <header className="bg-white/95 backdrop-blur-md text-slate-800 px-4 py-3 md:px-6 lg:px-8 sticky top-0 z-30 shadow-xs border-b border-slate-200/90">
       <div className="student-header-row">
-        {/* Brand and Live Indicator */}
+        {/* Brand and Student Badge */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -58,37 +58,38 @@ export function HeaderNav({
             className="flex items-center gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="CampusErrand Home"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-nus-blue to-blue-600 flex items-center justify-center text-white border border-white/20 shadow-xs group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-4 h-4 text-amber-300" />
+            <div className="relative w-8 h-8 rounded-xl bg-nus-blue flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+              <Package className="w-4 h-4 text-white" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-nus-orange ring-2 ring-white" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-sm md:text-base tracking-tight text-white">
-                  NUS CampusErrand
+                <span className="font-black text-sm md:text-base tracking-tight text-slate-900">
+                  <span className="text-nus-blue">NUS</span> Campus<span className="text-nus-orange">Errand</span>
                 </span>
-                <span className="bg-nus-orange text-xs font-black px-1.5 py-0.5 rounded tracking-normal text-white">
+                <span className="bg-orange-50 text-nus-orange border border-orange-200/80 text-[10px] font-black px-1.5 py-0.5 rounded-full tracking-wider">
                   STUDENT
                 </span>
               </div>
-              <p className="text-[11px] text-blue-200/80 hidden sm:block">
+              <p className="text-[11px] text-slate-500 hidden sm:block font-medium">
                 Peer-to-Peer Campus Delivery
               </p>
             </div>
           </button>
         </div>
 
-        {/* Desktop Top Navigation Bar */}
+        {/* Desktop Top Navigation Bar (Errand Workspace) */}
         <nav
           aria-label="Main navigation"
-          className="student-top-nav hidden md:flex items-center gap-1 bg-blue-950/50 rounded-2xl p-1 border border-blue-400/20"
+          className="student-top-nav hidden md:flex items-center gap-1 bg-slate-100/90 rounded-2xl p-1 border border-slate-200/80 shadow-2xs"
         >
           <button
             aria-current={activeTab === 'feed' ? 'page' : undefined}
             onClick={() => onSelectTab('feed')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'feed'
-                ? 'bg-nus-orange text-white shadow-xs'
-                : 'text-blue-200 hover:text-white hover:bg-white/10'
+                ? 'bg-nus-blue text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
             }`}
           >
             <Compass className="w-3.5 h-3.5" />
@@ -98,10 +99,10 @@ export function HeaderNav({
           <button
             aria-current={activeTab === 'post' ? 'page' : undefined}
             onClick={() => onSelectTab('post')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'post'
-                ? 'bg-nus-orange text-white shadow-xs'
-                : 'text-blue-200 hover:text-white hover:bg-white/10'
+                ? 'bg-nus-blue text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
             }`}
           >
             <PlusCircle className="w-3.5 h-3.5" />
@@ -111,10 +112,10 @@ export function HeaderNav({
           <button
             aria-current={activeTab === 'spots' ? 'page' : undefined}
             onClick={() => onSelectTab('spots')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'spots'
-                ? 'bg-nus-orange text-white shadow-xs'
-                : 'text-blue-200 hover:text-white hover:bg-white/10'
+                ? 'bg-nus-blue text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
             }`}
           >
             <Store className="w-3.5 h-3.5" />
@@ -124,39 +125,26 @@ export function HeaderNav({
           <button
             aria-current={activeTab === 'tasks' ? 'page' : undefined}
             onClick={() => onSelectTab('tasks')}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'tasks'
-                ? 'bg-nus-orange text-white shadow-xs'
-                : 'text-blue-200 hover:text-white hover:bg-white/10'
+                ? 'bg-nus-blue text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
             <span>Tasks</span>
           </button>
+        </nav>
 
-          <button
-            aria-current={activeTab === 'profile' ? 'page' : undefined}
-            onClick={onOpenProfile}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'profile'
-                ? 'bg-nus-orange text-white shadow-xs'
-                : 'text-blue-200 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            <UserCircle className="w-3.5 h-3.5" />
-            <span>Profile</span>
-          </button>
-
+        {/* Right Section: Personal Account & Financial Hub */}
+        <div className="flex items-center gap-2">
           <NotificationBell
             variant="top"
             unreadCount={unreadNotificationsCount}
             active={activeTab === 'alerts'}
             onClick={() => onSelectTab('alerts')}
           />
-        </nav>
 
-        {/* Right Section: Interactive Wallet Button & Secondary Status */}
-        <div className="flex items-center gap-2">
           <button
             type="button"
             aria-label="Open wallet"
@@ -164,13 +152,13 @@ export function HeaderNav({
             onClick={() => onSelectTab('wallet')}
             className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
               activeTab === 'wallet'
-                ? 'bg-amber-400/20 border-amber-300 text-amber-200 shadow-sm'
-                : 'bg-blue-950/60 border-blue-400/30 hover:border-amber-400/60 hover:bg-blue-900/80 text-white'
+                ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-xs ring-2 ring-amber-300/40'
+                : 'bg-amber-50/80 border-amber-200/80 hover:bg-amber-100/70 hover:border-amber-300 text-amber-900 shadow-2xs'
             }`}
           >
-            <Coins className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+            <Coins className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
             <div className="flex flex-col text-left leading-none">
-              <span className="text-xs font-black text-amber-300" aria-live="polite">
+              <span className="text-xs font-black text-amber-900" aria-live="polite">
                 {wallet
                   ? `${wallet.availableCredits} C`
                   : isLoadingCredits
@@ -178,27 +166,41 @@ export function HeaderNav({
                   : '0 C'}
               </span>
               {wallet && wallet.escrowCredits > 0 && (
-                <span className="text-[10px] text-blue-200/80 flex items-center gap-0.5 mt-0.5">
+                <span className="text-[10px] text-amber-700/80 flex items-center gap-0.5 mt-0.5 font-medium">
                   <Lock className="w-2.5 h-2.5" />
                   {wallet.escrowCredits} held
                 </span>
               )}
             </div>
           </button>
+
+          <button
+            type="button"
+            aria-current={activeTab === 'profile' ? 'page' : undefined}
+            onClick={onOpenProfile}
+            className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              activeTab === 'profile'
+                ? 'bg-nus-blue text-white border-nus-blue shadow-xs'
+                : 'bg-white text-slate-700 border-slate-200/80 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
+            }`}
+          >
+            <UserCircle className="w-4 h-4" />
+            <span>Profile</span>
+          </button>
         </div>
       </div>
 
       {/* Real-time WebSocket connection and escrow subline */}
-      <div className="mt-2.5 pt-2 border-t border-blue-800/60 flex justify-between items-center text-xs">
+      <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
         {showWsStatus ? (
-          <span className="flex items-center space-x-1.5 text-blue-200">
+          <span className="flex items-center space-x-1.5 text-slate-500 font-medium">
             <span
               className={`w-2 h-2 rounded-full ${
                 wsStatus === 'connected'
-                  ? 'bg-emerald-400 motion-safe:animate-pulse'
+                  ? 'bg-emerald-500 motion-safe:animate-pulse'
                   : wsStatus === 'connecting'
-                  ? 'bg-amber-400'
-                  : 'bg-rose-400'
+                  ? 'bg-amber-500'
+                  : 'bg-rose-500'
               }`}
             />
             <span>WS Hub: {wsStatus}</span>
@@ -206,7 +208,7 @@ export function HeaderNav({
         ) : (
           <span />
         )}
-        <span className="text-blue-300">
+        <span className="text-slate-500 font-medium">
           Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}
         </span>
       </div>

@@ -1,7 +1,7 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned AuthGatePage with NUS campus portal aesthetic, 1-click evaluator demo accounts, password reveal toggles, input icons, and accessibility id/htmlFor labels.
+ * Scope: Redesigned AuthGatePage with modern light theme, Package brand identity, vertically centered password reveal toggles, and clean campus delivery header.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
@@ -15,9 +15,9 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  GraduationCap,
   Lock,
   Mail,
+  Package,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -78,35 +78,42 @@ export function AuthGatePage({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-[#002855] to-slate-900 px-4 py-12 relative overflow-hidden">
-      {/* Decorative background blurs */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50/60 via-slate-50 to-orange-50/40 px-4 py-12 relative overflow-hidden">
+      {/* Decorative ambient background lighting */}
       <div
         aria-hidden="true"
-        className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"
+        className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-300/15 rounded-full blur-3xl pointer-events-none"
       />
       <div
         aria-hidden="true"
-        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-orange-600/20 rounded-full blur-3xl pointer-events-none"
+        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-orange-300/15 rounded-full blur-3xl pointer-events-none"
       />
 
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#003D7C] to-blue-700 text-white shadow-xl border border-white/20 mb-1">
-            <GraduationCap className="w-8 h-8 text-amber-300" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#003D7C] to-blue-600 text-white shadow-xl shadow-blue-900/15 border border-blue-200/60 ring-4 ring-blue-50/80 relative mb-1">
+            <Package className="w-7 h-7 text-white stroke-[2.2]" />
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-nus-orange border-2 border-white"></span>
+            </span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center justify-center gap-2">
-            <span>NUS CampusErrand</span>
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight flex items-center justify-center gap-2">
+            <span className="text-nus-blue">NUS</span>
+            <span className="text-slate-900">
+              Campus<span className="text-nus-orange">Errand</span>
+            </span>
           </h1>
-          <p className="text-xs font-semibold text-blue-200 tracking-wide uppercase">
-            Peer-to-Peer Student Network • CS3219 Milestone 3
+          <p className="text-xs font-semibold text-slate-500 tracking-wide">
+            Peer-to-Peer Campus Delivery
           </p>
         </div>
 
-        {/* Main Auth Glass Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 p-6 md:p-8 space-y-5">
+        {/* Main Auth Card */}
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/80 p-6 md:p-8 space-y-5">
           {/* Segmented Mode Selector */}
-          <div className="flex p-1 bg-slate-100 rounded-xl">
+          <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200/60">
             <button
               type="button"
               onClick={() => {
@@ -140,13 +147,13 @@ export function AuthGatePage({
           {authView === 'login' ? (
             <form onSubmit={onLoginSubmit} className="space-y-4">
               {/* Evaluator Quick Demo Accounts Callout */}
-              <div className="bg-gradient-to-br from-blue-50/90 to-amber-50/80 rounded-2xl p-3.5 border border-blue-200/80 shadow-xs space-y-2">
+              <div className="bg-slate-50/90 rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black uppercase tracking-wider text-nus-blue flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     Demo Evaluator 1-Click Access
                   </span>
-                  <span className="text-[10px] bg-blue-100/80 text-blue-800 font-bold px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] bg-blue-100/70 text-nus-blue font-bold px-1.5 py-0.5 rounded">
                     Auto-Fill
                   </span>
                 </div>
@@ -157,7 +164,7 @@ export function AuthGatePage({
                     className="p-2 bg-white rounded-xl border border-slate-200 hover:border-nus-blue text-left transition hover:shadow-xs group cursor-pointer"
                   >
                     <div className="flex items-center gap-1 font-black text-xs text-slate-900 group-hover:text-nus-blue">
-                      <span>🎓 Alice</span>
+                      <span>👤 Alice</span>
                     </div>
                     <p className="text-[10px] text-slate-500 font-medium">Requester • 73 C</p>
                   </button>
@@ -190,11 +197,11 @@ export function AuthGatePage({
 
               {/* Email Input */}
               <div>
-                <label htmlFor="login-email-input" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="login-email-input" className="block text-xs font-bold text-slate-700 mb-1.5">
                   NUS Student Email
                 </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                <div className="relative flex items-center">
+                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     id="login-email-input"
                     type="email"
@@ -204,18 +211,18 @@ export function AuthGatePage({
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     disabled={isLoggingIn}
-                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               {/* Password Input */}
               <div>
-                <label htmlFor="login-password-input" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="login-password-input" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Password
                 </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     id="login-password-input"
                     type={showLoginPassword ? 'text' : 'password'}
@@ -225,12 +232,12 @@ export function AuthGatePage({
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     disabled={isLoggingIn}
-                    className="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition"
+                    className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition text-slate-900 placeholder:text-slate-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword((v) => !v)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                     aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
                   >
                     {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -293,11 +300,11 @@ export function AuthGatePage({
 
               {/* Username */}
               <div>
-                <label htmlFor="signup-username-input" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="signup-username-input" className="block text-xs font-bold text-slate-700 mb-1.5">
                   NUS Display Username <span className="text-rose-600">*</span>
                 </label>
-                <div className="relative">
-                  <User className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                <div className="relative flex items-center">
+                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     id="signup-username-input"
                     type="text"
@@ -308,7 +315,7 @@ export function AuthGatePage({
                     value={signupData.username}
                     onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
                     disabled={isSigningUp}
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">1–50 alphanumeric characters or underscores.</p>
@@ -316,11 +323,11 @@ export function AuthGatePage({
 
               {/* Email */}
               <div>
-                <label htmlFor="signup-email-input" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="signup-email-input" className="block text-xs font-bold text-slate-700 mb-1.5">
                   NUS Email Address <span className="text-rose-600">*</span>
                 </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                <div className="relative flex items-center">
+                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     id="signup-email-input"
                     type="email"
@@ -330,18 +337,18 @@ export function AuthGatePage({
                     value={signupData.email}
                     onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                     disabled={isSigningUp}
-                    className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               {/* Password */}
               <div>
-                <label htmlFor="signup-password-input" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="signup-password-input" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Password <span className="text-rose-600">*</span>
                 </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     id="signup-password-input"
                     type={showSignupPassword ? 'text' : 'password'}
@@ -353,12 +360,12 @@ export function AuthGatePage({
                     value={signupData.password}
                     onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                     disabled={isSigningUp}
-                    className="w-full pl-9 pr-10 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition"
+                    className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSignupPassword((v) => !v)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                     aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
                   >
                     {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -368,11 +375,11 @@ export function AuthGatePage({
 
               {/* Re-type Password */}
               <div>
-                <label htmlFor="signup-retype-password-input" className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="signup-retype-password-input" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Re-type Password <span className="text-rose-600">*</span>
                 </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     id="signup-retype-password-input"
                     type={showSignupRetype ? 'text' : 'password'}
@@ -384,12 +391,12 @@ export function AuthGatePage({
                     value={signupData.retypePassword}
                     onChange={(e) => setSignupData({ ...signupData, retypePassword: e.target.value })}
                     disabled={isSigningUp}
-                    className="w-full pl-9 pr-10 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition"
+                    className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSignupRetype((v) => !v)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                     aria-label={showSignupRetype ? 'Hide password' : 'Show password'}
                   >
                     {showSignupRetype ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -421,12 +428,6 @@ export function AuthGatePage({
               </p>
             </form>
           )}
-        </div>
-
-        {/* Security & Project Footer */}
-        <div className="text-center text-xs text-blue-200/60 flex items-center justify-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Secured by NUS JWT Auth • Credit Escrow Sagas Active</span>
         </div>
       </div>
     </div>

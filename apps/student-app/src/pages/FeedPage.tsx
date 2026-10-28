@@ -51,8 +51,8 @@ export function FeedPage({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              Campus Errand Feed
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Campus Errand <span className="text-nus-orange">Feed</span>
             </h2>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100">
               <Sparkles className="w-3 h-3 text-nus-orange" />
