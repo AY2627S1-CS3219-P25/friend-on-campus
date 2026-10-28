@@ -5532,3 +5532,25 @@ Frontend UI/UX design elevation, bug fixing, form validation safety, and compone
 - `apps/student-app/src/pages/ProfileWalletPage.tsx` — added Digital NUS Student Pass card, fintech-style escrow balance card, category-iconized ledger transactions, and isolated danger zone card for account deletion
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx` — modernized errand tracking page with pulsing active tracker rings and route card layout
 - `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 16:20 SGT — Browser UAT Playwright Selector Compatibility Alignment
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Verify and fix Browser UAT test suite failures (`npm run test:e2e:ui` and `npm run test:e2e:ui:realtime`) identified in CI for PR #214.
+
+**Usage scenario:**
+Aligned Playwright locator strict-mode rules and text assertions across the redesigned student app:
+1. `AuthGatePage.tsx`: Renamed tab switcher button from "Student Log In" to "Sign In" so `getByRole('button', { name: 'Log In' })` resolves unambiguously without strict mode locator collision against the submit button. Aligned exact link label "Admin Log In" for `US1A`.
+2. `HeaderNav.tsx`: Restored `<span>WS Hub: {wsStatus}</span>` sub-status line across mobile and desktop viewports satisfying `UD2` and `RT01` WebSocket assertions; standardized role badge to exact "STUDENT".
+3. `PostErrandPage.tsx`: Added explicit `aria-label="Post Errand"` to submit CTA button ensuring exact match for `UO1`, `UO6`, and `RT02`.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx`
+- `apps/student-app/src/components/HeaderNav.tsx`
+- `apps/student-app/src/pages/PostErrandPage.tsx`
+- `ai/usage-log.md` — this entry

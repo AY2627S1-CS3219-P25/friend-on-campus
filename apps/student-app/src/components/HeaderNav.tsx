@@ -66,7 +66,7 @@ export function HeaderNav({
                 <span className="font-black text-sm md:text-base tracking-tight text-white">
                   NUS CampusErrand
                 </span>
-                <span className="bg-nus-orange text-[10px] font-black px-1.5 py-0.2 rounded text-white tracking-wide">
+                <span className="bg-nus-orange text-xs font-black px-1.5 py-0.5 rounded tracking-normal text-white">
                   STUDENT
                 </span>
               </div>
@@ -75,25 +75,6 @@ export function HeaderNav({
               </p>
             </div>
           </button>
-
-          {/* Inline WS Hub Indicator */}
-          {showWsStatus && (
-            <div
-              title={`Real-Time Socket: ${wsStatus}`}
-              className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-950/60 border border-blue-400/20 text-[11px] text-blue-200"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  wsStatus === 'connected'
-                    ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
-                    : wsStatus === 'connecting'
-                    ? 'bg-amber-400 animate-pulse'
-                    : 'bg-rose-400'
-                }`}
-              />
-              <span className="capitalize">{wsStatus === 'connected' ? 'Live' : wsStatus}</span>
-            </div>
-          )}
         </div>
 
         {/* Desktop Top Navigation Bar */}
@@ -205,6 +186,29 @@ export function HeaderNav({
             </div>
           </button>
         </div>
+      </div>
+
+      {/* Real-time WebSocket connection and escrow subline */}
+      <div className="mt-2.5 pt-2 border-t border-blue-800/60 flex justify-between items-center text-xs">
+        {showWsStatus ? (
+          <span className="flex items-center space-x-1.5 text-blue-200">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                wsStatus === 'connected'
+                  ? 'bg-emerald-400 motion-safe:animate-pulse'
+                  : wsStatus === 'connecting'
+                  ? 'bg-amber-400'
+                  : 'bg-rose-400'
+              }`}
+            />
+            <span>WS Hub: {wsStatus}</span>
+          </span>
+        ) : (
+          <span />
+        )}
+        <span className="text-blue-300">
+          Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}
+        </span>
       </div>
     </header>
   );

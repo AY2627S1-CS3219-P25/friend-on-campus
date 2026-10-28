@@ -119,7 +119,7 @@ export function AuthGatePage({
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              Student Log In
+              Sign In
             </button>
             <button
               type="button"
@@ -260,8 +260,8 @@ export function AuthGatePage({
                 disabled={isLoggingIn}
                 className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:bg-slate-300 text-white font-black text-sm py-3 rounded-xl shadow-md transition-all cursor-pointer"
               >
-                {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isLoggingIn ? 'Verifying credentials…' : 'Log In to CampusErrand'}</span>
+                {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin text-white" aria-hidden="true" />}
+                <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
               </button>
 
               {/* Secondary Navigation */}
@@ -271,8 +271,8 @@ export function AuthGatePage({
                   href="/admin/"
                   className="font-bold text-nus-blue hover:underline flex items-center gap-1"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Admin Portal
+                  <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+                  Admin Log In
                 </a>
               </div>
             </form>
@@ -416,7 +416,7 @@ export function AuthGatePage({
                   }}
                   className="text-nus-blue font-bold underline cursor-pointer"
                 >
-                  Log in here
+                  Sign in here
                 </button>
               </p>
             </form>

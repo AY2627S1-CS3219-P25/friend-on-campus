@@ -750,6 +750,7 @@ export function PostErrandPage({
 
               <button
                 type="submit"
+                aria-label="Post Errand"
                 disabled={
                   submissionBusy ||
                   isSuppliersLoading ||
@@ -759,7 +760,7 @@ export function PostErrandPage({
                   !formData.itemDescription.trim() ||
                   !formData.dropoffLocation.trim()
                 }
-                className="w-full bg-nus-blue hover:bg-blue-900 disabled:bg-slate-300 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-nus-orange hover:bg-orange-600 disabled:bg-slate-300 text-white font-extrabold text-sm py-3.5 px-4 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 {submissionPosting ? (
                   <>
