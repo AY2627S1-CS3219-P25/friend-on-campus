@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Restored exact UAT search placeholder 'Search food, cafes, lockers, print hubs...' to preserve CI test suite compatibility.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for category shortcut filters.
  * Author review: <to be completed by yanhwee>
  *
@@ -63,7 +67,7 @@ export function SpotsPage({
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search canteens, cafes, lockers, print hubs..."
+            placeholder="Search food, cafes, lockers, print hubs..."
             value={supplierSearch}
             onChange={(e) => onChangeSearch(e.target.value)}
             className="w-full pl-10 pr-9 py-2.5 text-sm bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-nus-blue shadow-subtle transition"

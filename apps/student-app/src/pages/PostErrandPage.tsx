@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Restored exact UAT drop-off location and notes placeholders to preserve CI test suite compatibility.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Removed legacy milestone text from form footer.
  * Author review: <to be completed by yanhwee>
  *
@@ -523,7 +527,7 @@ export function PostErrandPage({
                 type="text"
                 required
                 maxLength={255}
-                placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing grey hoodie at window desk)"
+                placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
                 value={formData.dropoffLocation}
                 onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
                 className="w-full text-sm p-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-nus-blue focus:border-transparent outline-none transition"
@@ -543,7 +547,7 @@ export function PostErrandPage({
                 id="errand-special-notes"
                 rows={2}
                 maxLength={1000}
-                placeholder="e.g. Less ice, separate paper bag, contactless drop at seat"
+                placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
                 value={formData.specialNotes}
                 onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
                 className="w-full text-sm p-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-nus-blue focus:border-transparent outline-none transition resize-none"

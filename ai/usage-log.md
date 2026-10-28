@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Restored exact UAT placeholder strings in student-app SpotsPage ('Search food, cafes, lockers, print hubs...') and PostErrandPage ('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)', 'e.g. Less ice, separate paper bag, PIN code for lockers') to fix CI Browser UAT job failures while maintaining light elegant theme.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Light elegant theme unification across all student-app buttons, cards, modals, and tabs (replacing dark navy and muddy tints with warm orange, crisp white pills, and luminous blue accents; full UAT locator preservation).
 Author review: <to be completed by yanhwee>
 
