@@ -93,31 +93,37 @@ resource "aws_instance" "k3s_master" {
 }
 
 # ==============================================================================
-# Nodes 2 & 3: K3s Stateless Worker Nodes (Microservices + HPA + Ingress)
+# Tier 2 Autoscaling: K3s Stateless Worker Nodes (Launch Template & ASG)
 # ==============================================================================
 
-resource "aws_instance" "k3s_worker" {
-  count                = var.worker_count
-  ami                  = data.aws_ssm_parameter.ubuntu_ami.value
-  instance_type        = var.worker_instance_type
-  subnet_id            = count.index % 2 == 0 ? aws_subnet.public_a.id : aws_subnet.public_b.id
-  iam_instance_profile = aws_iam_instance_profile.ec2_node.name
+# Launch Template for K3s Stateless Worker Nodes
+resource "aws_launch_template" "k3s_worker" {
+  name_prefix   = "foc-${var.environment}-worker-lt-"
+  image_id      = data.aws_ssm_parameter.ubuntu_ami.value
+  instance_type = var.worker_instance_type
 
-  vpc_security_group_ids = [
-    aws_security_group.cluster.id
-  ]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_node.name
+  }
 
-  root_block_device {
-    volume_size           = 30
-    volume_type           = "gp3"
-    encrypted             = true
-    delete_on_termination = true
-    tags = {
-      Name = "foc-${var.environment}-worker-${count.index + 1}-root"
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.cluster.id]
+  }
+
+  block_device_mappings {
+    device_name = "/dev/sda1"
+
+    ebs {
+      volume_size           = 30
+      volume_type           = "gp3"
+      encrypted             = true
+      delete_on_termination = true
     }
   }
 
-  user_data = <<-EOF
+  # Autonomous Bootstrap Script: Joins K3s cluster upon booting
+  user_data = base64encode(<<-EOF
               #!/bin/bash
               set -ex
 
@@ -136,16 +142,94 @@ resource "aws_instance" "k3s_worker" {
                 K3S_TOKEN="${local.k3s_token}" \
                 INSTALL_K3S_EXEC="agent --node-label foc.role=worker-node" sh -
 
-              echo "K3s Worker ${count.index + 1} Joined Cluster"
+              echo "K3s Worker Joined Cluster Successfully"
               EOF
+  )
 
-  tags = {
-    Name     = "foc-${var.environment}-k3s-worker-${count.index + 1}"
-    Role     = "k3s-worker"
-    NodeType = "stateless-compute"
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name     = "foc-${var.environment}-k3s-worker"
+      Role     = "k3s-worker"
+      NodeType = "stateless-compute"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+    tags = {
+      Name = "foc-${var.environment}-worker-root"
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Auto Scaling Group managing stateless worker pool across Multi-AZ subnets
+resource "aws_autoscaling_group" "k3s_workers" {
+  name_prefix         = "foc-${var.environment}-worker-asg-"
+  min_size            = var.worker_min_size
+  max_size            = var.worker_max_size
+  desired_capacity    = var.worker_desired_capacity
+  vpc_zone_identifier = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+  target_group_arns   = [aws_lb_target_group.http.arn]
+
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+
+  launch_template {
+    id      = aws_launch_template.k3s_worker.id
+    version = "$Latest"
+  }
+
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "foc-${var.environment}-k3s-worker-asg"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Role"
+    value               = "k3s-worker"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "NodeType"
+    value               = "stateless-compute"
+    propagate_at_launch = true
   }
 
   depends_on = [
     aws_instance.k3s_master
   ]
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes        = [desired_capacity]
+  }
+}
+
+# Target Tracking Scaling Policy: Dynamically provisions EC2 workers on sustained CPU spikes
+resource "aws_autoscaling_policy" "worker_cpu_policy" {
+  name                   = "foc-${var.environment}-worker-cpu-target"
+  autoscaling_group_name = aws_autoscaling_group.k3s_workers.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value     = var.worker_cpu_target
+    disable_scale_in = false
+  }
 }

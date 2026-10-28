@@ -28,10 +28,28 @@ variable "worker_instance_type" {
   default     = "t3.medium"
 }
 
-variable "worker_count" {
-  description = "Number of stateless worker EC2 instances"
+variable "worker_min_size" {
+  description = "Minimum number of worker EC2 instances in the Auto Scaling Group"
+  type        = number
+  default     = 1
+}
+
+variable "worker_desired_capacity" {
+  description = "Baseline desired number of worker EC2 instances in the Auto Scaling Group"
   type        = number
   default     = 2
+}
+
+variable "worker_max_size" {
+  description = "Maximum number of worker EC2 instances (hard ceiling to protect student budget)"
+  type        = number
+  default     = 3
+}
+
+variable "worker_cpu_target" {
+  description = "Target average CPU utilization percentage to trigger EC2 Auto Scaling Group scale-out"
+  type        = number
+  default     = 75.0
 }
 
 variable "ebs_volume_size" {

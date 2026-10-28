@@ -99,9 +99,9 @@ resource "aws_iam_role_policy" "github_actions_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "ECRAuthAndPush"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "ECRAuthAndPush"
+        Effect = "Allow"
+        Action = [
           "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
@@ -116,9 +116,9 @@ resource "aws_iam_role_policy" "github_actions_policy" {
         Resource = "*"
       },
       {
-        Sid      = "SSMDeployExecution"
-        Effect   = "Allow"
-        Action   = [
+        Sid    = "SSMDeployExecution"
+        Effect = "Allow"
+        Action = [
           "ssm:SendCommand",
           "ssm:GetCommandInvocation",
           "ssm:DescribeInstanceInformation"

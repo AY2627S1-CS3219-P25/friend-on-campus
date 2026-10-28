@@ -13,7 +13,7 @@
 1. [Introduction: From Local Laptop to Production Cloud](#1-introduction-from-local-laptop-to-production-cloud)
    * [1.1 The Microservices Dilemma: Why Not Just `docker-compose up` on a VM?](#11-the-microservices-dilemma-why-not-just-docker-compose-up-on-a-vm)
    * [1.2 Architectural Decision: General Compute (EC2) vs. Managed Cloud (RDS/EKS)](#12-architectural-decision-general-compute-ec2-vs-managed-cloud-rdseks)
-   * [1.3 The Two-Tier Node Separation Principle](#13-the-two-tier-node-separation-principle)
+   * [1.3 Cluster Topology & The Two-Tier Autoscaling Architecture](#13-cluster-topology--the-two-tier-autoscaling-architecture)
    * [1.4 The S\$50 SGD Student Budget Constraint: How We Keep Costs Low](#14-the-s50-sgd-student-budget-constraint-how-we-keep-costs-low)
 2. [Infrastructure as Code (IaC) with Terraform & AWS](#2-infrastructure-as-code-iac-with-terraform--aws)
    * [2.1 What is Infrastructure as Code and Why Does It Matter?](#21-what-is-infrastructure-as-code-and-why-does-it-matter)
@@ -126,7 +126,7 @@ flowchart LR
 
 ---
 
-### 1.3 The Two-Tier Node Separation Principle
+### 1.3 Cluster Topology & The Two-Tier Autoscaling Architecture
 
 In a distributed architecture, workloads fall into two distinct categories:
 1. **Stateful Workloads**: Services that store data on disk and cannot be casually killed or duplicated (PostgreSQL 16, RabbitMQ message logs, Debezium CDC replication offsets).
@@ -134,7 +134,9 @@ In a distributed architecture, workloads fall into two distinct categories:
 
 Mixing these two haphazardly across a cluster causes operational headaches. If Kubernetes randomly moves a PostgreSQL database pod between worker nodes, that database loses access to its underlying disk storage!
 
-To solve this cleanly, our cluster implements the **Two-Tier Node Separation Principle**:
+Furthermore, modern cloud systems experience unpredictable surges in traffic (e.g. lunch rushes on campus). To handle this reliably and economically, our system implements **Two-Tier Autoscaling**:
+* **Tier 1 (Pod-Level Autoscaling via Kubernetes HPA)**: Evaluates pod CPU metrics every 15 seconds. Pods scale up from 2 to 5 replicas in **1 to 2 seconds** when pod CPU utilization exceeds 60%.
+* **Tier 2 (VM/Node-Level Autoscaling via AWS EC2 Auto Scaling Group)**: Evaluates aggregate cluster CPU metrics across worker instances. If worker CPU exceeds 75% for sustained periods, AWS spins up a new worker EC2 instance in **2 to 3 minutes**, which autonomously joins the K3s cluster.
 
 ```mermaid
 flowchart TB
@@ -143,11 +145,11 @@ flowchart TB
         Admins["System Administrators"]
     end
 
-    subgraph AWS_VPC["AWS VPC (10.0.0.0/16) — Region: ap-southeast-1"]
-        ALB["AWS Application Load Balancer (ALB)<br/>• Port 80 (HTTP) & Port 443 (HTTPS)<br/>• Health Probes to Cluster Nodes"]
+    subgraph AWS_VPC["AWS VPC (10.0.0.0/16) — Multi-AZ (ap-southeast-1a & 1b)"]
+        ALB["AWS Application Load Balancer (ALB)<br/>• Port 80 (HTTP) & Port 443 (HTTPS)<br/>• Dynamic Target Group Routing"]
 
-        subgraph Cluster["3-Node K3s Kubernetes Cluster"]
-            subgraph Node1["Node 1: Stateful Data Node (t3.medium)<br/>Label: foc.role=data-node"]
+        subgraph StatefulTier["Stateful Tier: Dedicated Master Node (Single AZ ap-southeast-1a)"]
+            subgraph Node1["Node 1: Master & Data Node (t3.medium)<br/>Label: foc.role=data-node"]
                 K3sMaster["K3s Control Plane Server"]
                 Postgres["PostgreSQL 16 (6 Logical DBs)"]
                 RabbitMQ["RabbitMQ 3.13 (Quorum Queues)"]
@@ -157,23 +159,23 @@ flowchart TB
                 RabbitMQ --- EBS
                 Debezium --- EBS
             end
+        end
 
-            subgraph Node2["Node 2: Stateless Worker 1 (t3.medium)<br/>Label: foc.role=worker-node"]
-                Ingress1["Traefik Ingress Controller"]
-                Gateway1["api-gateway (NGINX)"]
-                OrderSvc1["order-service (Pod 1)"]
-                CreditSvc1["credit-service (Pod 1)"]
-                UserSvc1["user-service (Pod 1)"]
-                Frontends1["student-app & admin-portal"]
-            end
+        subgraph StatelessTier["Stateless Tier: EC2 Auto Scaling Group (Multi-AZ, 1 to 3 instances)"]
+            subgraph ASG["AWS Auto Scaling Group (foc-prod-worker-asg)"]
+                subgraph Node2["Worker EC2 Instance A (t3.medium)<br/>Label: foc.role=worker-node"]
+                    Ingress1["Traefik Ingress Controller"]
+                    Gateway1["api-gateway (NGINX)"]
+                    PodsA["Microservice Pods (Tier 1 HPA Replicas)"]
+                    Frontends1["student-app & admin-portal"]
+                end
 
-            subgraph Node3["Node 3: Stateless Worker 2 (t3.medium)<br/>Label: foc.role=worker-node"]
-                Ingress2["Traefik Ingress Controller"]
-                Gateway2["api-gateway (NGINX)"]
-                OrderSvc2["order-service (Pod 2)"]
-                CreditSvc2["credit-service (Pod 2)"]
-                UserSvc2["user-service (Pod 2)"]
-                Frontends2["student-app & admin-portal"]
+                subgraph Node3["Worker EC2 Instance B (t3.medium)<br/>Label: foc.role=worker-node"]
+                    Ingress2["Traefik Ingress Controller"]
+                    Gateway2["api-gateway (NGINX)"]
+                    PodsB["Microservice Pods (Tier 1 HPA Replicas)"]
+                    Frontends2["student-app & admin-portal"]
+                end
             end
         end
     end
@@ -187,17 +189,27 @@ flowchart TB
     Ingress1 --> Gateway1
     Ingress2 --> Gateway2
 
-    Gateway1 --> OrderSvc1
-    Gateway2 --> OrderSvc2
+    Gateway1 --> PodsA
+    Gateway2 --> PodsB
 
-    OrderSvc1 <-->|Flannel Overlay Network| Postgres
-    OrderSvc2 <-->|Flannel Overlay Network| Postgres
-    OrderSvc1 <-->|Flannel Overlay Network| RabbitMQ
-    OrderSvc2 <-->|Flannel Overlay Network| RabbitMQ
+    PodsA <-->|Flannel Overlay Network| Postgres
+    PodsB <-->|Flannel Overlay Network| Postgres
+    PodsA <-->|Flannel Overlay Network| RabbitMQ
+    PodsB <-->|Flannel Overlay Network| RabbitMQ
 ```
 
-* **Node 1 (Data Node)**: Fixed network identity, attached to an encrypted 50GB gp3 EBS volume. All stateful containers are pinned here using Kubernetes `nodeSelector: { foc.role: "data-node" }`.
-* **Nodes 2 & 3 (Stateless Worker Nodes)**: Host microservices and frontends. If traffic spikes, Kubernetes spins up more replicas dynamically across these workers. If Node 3 crashes, Node 2 immediately shoulders the traffic.
+#### How the Two Tiers Collaborate:
+1. **Tier 1 (Horizontal Pod Autoscaler - HPA)**:
+   - When a sudden burst of student orders arrives, the microservice containers spike in CPU.
+   - K3s Horizontal Pod Autoscaler immediately scales replicas (e.g. `order-service` expands from 2 to 5 pods) within existing worker memory and CPU headroom in **1–2 seconds**.
+2. **Tier 2 (AWS EC2 Auto Scaling Group - ASG)**:
+   - If high load continues and all worker instances exceed 75% average CPU (`ASGAverageCPUUtilization`), CloudWatch alerts the Auto Scaling Group.
+   - The ASG launches a new `t3.medium` EC2 worker instance via `aws_launch_template.k3s_worker`.
+   - The new instance executes its `user_data` bootstrap script, waits for the master node API to respond, installs the K3s agent, and automatically registers itself with the cluster.
+   - The ALB dynamically adds the new worker to its Target Group, and K3s immediately distributes pod workloads onto the newly added compute node!
+3. **Hard Budget Ceiling**:
+   - The worker ASG enforces `min_size = 1`, `desired_capacity = 2`, and `max_size = 3`.
+   - Even under continuous synthetic load testing, AWS will **never launch more than 3 worker instances**, keeping maximum cluster compute costs capped at $\le$\$0.208/hour.
 
 ---
 
@@ -314,8 +326,11 @@ Centralizes input parameters so configuration can be tuned without modifying res
 * `environment`: Environment namespace (defaults to `prod`).
 * `master_instance_type`: EC2 instance type for Node 1 (defaults to `t3.medium`).
 * `worker_instance_type`: EC2 instance type for Worker Nodes (defaults to `t3.medium`).
-* `worker_count`: Number of stateless worker nodes (defaults to `2`).
-* `data_volume_size_gb`: Size of persistent EBS volume (defaults to `50` GB).
+* `worker_min_size`: Minimum number of worker EC2 instances in the Auto Scaling Group (defaults to `1`).
+* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `2`).
+* `worker_max_size`: Hard ceiling on worker EC2 instances to protect student budget (defaults to `3`).
+* `worker_cpu_target`: Target average CPU percentage across workers before triggering scale-out (defaults to `75.0`%).
+* `ebs_volume_size`: Size of persistent EBS volume (defaults to `50` GB).
 * `github_repository`: Target GitHub repository for keyless OIDC authentication (`AY2627S1-CS3219-P25/friend-on-campus`).
 
 #### `vpc.tf`
@@ -355,24 +370,32 @@ Provisions the dedicated storage volume for our database and messaging layer:
 * `aws_volume_attachment.master_data`: Attaches this EBS volume to Node 1 as block device `/dev/sdf`.
 
 #### `ec2.tf`
-Provisions the actual virtual compute instances:
+Provisions the virtual compute instances and automated scaling infrastructure:
 * `data.aws_ssm_parameter.ubuntu_ami`: Automatically queries the AWS public SSM parameter store for the latest official AMI ID of **Canonical Ubuntu 24.04 LTS (Noble Numbat)** for `amd64`. This ensures our base OS is always patched with modern security updates.
-* `aws_instance.k3s_master` (Node 1):
+* `aws_instance.k3s_master` (Node 1 - Stateful Data Node):
   * Runs our bootstrap shell script via `user_data`.
   * Detects the attached EBS disk (`/dev/nvme1n1` or `/dev/xvdf`).
   * If the disk has no filesystem, formats it with `mkfs.ext4`.
   * Adds an entry to `/etc/fstab` and mounts the volume to `/var/foc-data`.
   * Installs K3s server using Rancher's official script with `--node-label foc.role=data-node`.
-* `aws_instance.k3s_worker` (Nodes 2 & 3):
-  * Spawns worker nodes distributed across our public subnets.
-  * Waits for the master node's K3s API server on port 6443 to report healthy.
-  * Installs the K3s agent and joins the cluster with `--node-label foc.role=worker-node`.
+* `aws_launch_template.k3s_worker` (Tier 2 Autoscaling Template):
+  * Defines the standardized blueprint for all stateless worker nodes: Ubuntu 24.04 LTS, `t3.medium`, 30GB gp3 encrypted root disk, cluster security group, and SSM instance profile.
+  * Contains an autonomous bootstrap script (`user_data`) encoded in base64: polls the master K3s API server on port 6443, installs the K3s agent, and registers the worker with `--node-label foc.role=worker-node`.
+* `aws_autoscaling_group.k3s_workers` (Tier 2 Elastic Worker Pool):
+  * Manages the worker EC2 fleet across multiple Availability Zones (`public_a` and `public_b`).
+  * Enforces `min_size = 1`, `desired_capacity = 2`, and `max_size = 3`.
+  * Automatically registers and deregisters EC2 instances with the Application Load Balancer target group (`target_group_arns`).
+  * Configured with rolling `instance_refresh` so updates to the launch template can roll out zero-downtime updates across the worker fleet.
+* `aws_autoscaling_policy.worker_cpu_policy` (Target Tracking Scaling Policy):
+  * Continuously evaluates `ASGAverageCPUUtilization`.
+  * When average worker CPU utilization exceeds 75%, AWS CloudWatch instructs the Auto Scaling Group to add an EC2 instance. When CPU load normalizes, it gracefully scales back in down to the baseline.
 
 #### `alb.tf`
 Provisions the public entrance to our system:
-* `aws_lb.main`: An Internet-facing Application Load Balancer spanning multiple Availability Zones.
+* `aws_lb.main`: An Internet-facing Application Load Balancer spanning multiple Availability Zones (`ap-southeast-1a` and `ap-southeast-1b`).
 * `aws_lb_target_group.http`: Routes traffic on port 80 to the cluster instances. Regularly checks `/health` every 15 seconds to ensure only healthy nodes receive user traffic.
-* `aws_lb_target_group_attachment`: Enrolls Node 1, Node 2, and Node 3 into the load balancer pool.
+* `aws_lb_target_group_attachment.master`: Registers Node 1 into the load balancer pool.
+* **Dynamic Worker Target Registration**: Worker nodes are not statically attached! Instead, `aws_autoscaling_group.k3s_workers` dynamically registers each newly launched worker instance and deregisters terminated instances directly via `target_group_arns`.
 * `aws_lb_listener.http`: Listens on public HTTP port 80 and forwards requests to the target group.
 
 #### `ecr.tf`
@@ -383,9 +406,12 @@ Each repository includes an automated **Lifecycle Policy** that purges untagged 
 #### `outputs.tf`
 Defines the output variables printed in the terminal after running `terraform apply`:
 * `alb_url`: The public web address to open in your browser to view the application.
-* `master_instance_id` & `worker_instance_ids`: The EC2 instance identifiers.
-* `ssm_connect_master`: A pre-formatted command to open an instant terminal shell on Node 1 via AWS SSM.
-* `fetch_kubeconfig_command`: A command to download the cluster's `kubeconfig` to your local machine.
+* `master_instance_id` & `master_public_ip`: Identifiers for Node 1.
+* `worker_asg_name`: The name of the EC2 Auto Scaling Group (`foc-prod-worker-asg-...`).
+* `worker_asg_capacity`: Map showing `min_size`, `desired_capacity`, and `max_size`.
+* `list_worker_instances_command`: Pre-formatted AWS CLI command to query active worker instance IDs, lifecycle states, and health statuses directly from the ASG.
+* `ssm_connect_master`: Pre-formatted command to open an instant terminal shell on Node 1 via AWS SSM.
+* `fetch_kubeconfig_command`: Command to download the cluster's `kubeconfig` to your local machine.
 
 #### `terraform.tfvars.example`
 A reference template illustrating how students can customize instance types or domain certificates without editing core `.tf` files.
@@ -975,26 +1001,40 @@ kubectl get ingress -n foc
 
 ### 6.4 Preserving the Student Budget (Nightly Stop & Resume)
 
-To preserve the S\$50 SGD student budget, stop the EC2 instances at the end of each work session:
+To preserve the S\$50 SGD student budget, you must stop cluster resources when you finish working.
 
-#### Nightly Stop:
+> [!WARNING]
+> **Critical ASG Behavior**: In an AWS Auto Scaling Group, if you directly execute `aws ec2 stop-instances` on worker instances, the Auto Scaling Group's health check will observe that the instances stopped responding, consider them **unhealthy**, terminate them, and immediately launch brand new instances!
+> To properly pause an ASG worker tier, you must set its **desired capacity to 0**.
+
+#### Nightly Stop (Cluster Pause):
 ```bash
-# Stop all 3 cluster instances
+# 1. Scale worker Auto Scaling Group to 0 instances (cleanly terminates worker VMs, halting compute charges)
+aws autoscaling set-desired-capacity \
+  --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
+  --desired-capacity 0
+
+# 2. Stop Node 1 (persistent master/data node)
 aws ec2 stop-instances --instance-ids \
-  $(cd infra/terraform && terraform output -raw master_instance_id) \
-  $(cd infra/terraform && terraform output -json worker_instance_ids | jq -r '.[]')
+  $(cd infra/terraform && terraform output -raw master_instance_id)
 ```
-* While stopped, you pay **zero** for CPU and RAM. You only pay pennies for the idle EBS disk storage ($\approx$\$0.10/day).
-* All database data, RabbitMQ queues, and Docker images remain completely safe on the EBS volume.
+* While paused, you pay **\$0.00** for EC2 compute. You only pay pennies for idle EBS disk storage ($\approx$\$0.10/day).
+* All database data, RabbitMQ messages, and configurations remain completely safe on the encrypted EBS volume.
 
-#### Morning Resume:
+#### Morning Resume (Cluster Wakeup):
 ```bash
-# Start all 3 cluster instances
+# 1. Start Node 1 (persistent master/data node)
 aws ec2 start-instances --instance-ids \
-  $(cd infra/terraform && terraform output -raw master_instance_id) \
-  $(cd infra/terraform && terraform output -json worker_instance_ids | jq -r '.[]')
+  $(cd infra/terraform && terraform output -raw master_instance_id)
+
+# Wait ~45 seconds for Node 1 K3s control plane to initialize, then:
+
+# 2. Restore worker ASG desired capacity to 2 instances
+aws autoscaling set-desired-capacity \
+  --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
+  --desired-capacity 2
 ```
-Within 60 seconds, the instances boot up, K3s reconnects the nodes, mounts `/var/foc-data`, and automatically restarts all pods!
+Within 60–90 seconds, the worker instances boot up, automatically execute their bootstrap script, join the K3s cluster, register with the ALB, and K3s schedules all microservice pods across the pool!
 
 ---
 

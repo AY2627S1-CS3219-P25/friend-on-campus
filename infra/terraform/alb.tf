@@ -46,13 +46,8 @@ resource "aws_lb_target_group_attachment" "master" {
   port             = 80
 }
 
-# Attach Worker nodes to Target Group
-resource "aws_lb_target_group_attachment" "workers" {
-  count            = var.worker_count
-  target_group_arn = aws_lb_target_group.http.arn
-  target_id        = aws_instance.k3s_worker[count.index].id
-  port             = 80
-}
+# Note: Worker nodes are dynamically registered and deregistered with this Target Group
+# by the aws_autoscaling_group resource in ec2.tf via target_group_arns!
 
 # HTTP Port 80 Listener
 resource "aws_lb_listener" "http" {

@@ -27,19 +27,23 @@ output "master_public_ip" {
   value       = aws_instance.k3s_master.public_ip
 }
 
-output "worker_instance_ids" {
-  description = "EC2 instance IDs of K3s Worker Nodes"
-  value       = aws_instance.k3s_worker[*].id
+output "worker_asg_name" {
+  description = "Name of the EC2 Auto Scaling Group managing stateless K3s workers"
+  value       = aws_autoscaling_group.k3s_workers.name
 }
 
-output "worker_private_ips" {
-  description = "Private IPs of K3s Worker Nodes"
-  value       = aws_instance.k3s_worker[*].private_ip
+output "worker_asg_capacity" {
+  description = "Capacity settings of the worker Auto Scaling Group"
+  value = {
+    min_size         = aws_autoscaling_group.k3s_workers.min_size
+    desired_capacity = aws_autoscaling_group.k3s_workers.desired_capacity
+    max_size         = aws_autoscaling_group.k3s_workers.max_size
+  }
 }
 
-output "worker_public_ips" {
-  description = "Public IPs of K3s Worker Nodes"
-  value       = aws_instance.k3s_worker[*].public_ip
+output "list_worker_instances_command" {
+  description = "AWS CLI command to list active worker EC2 instance IDs from the Auto Scaling Group"
+  value       = "aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names ${aws_autoscaling_group.k3s_workers.name} --query 'AutoScalingGroups[0].Instances[*].[InstanceId,LifecycleState,HealthStatus]' --output table"
 }
 
 output "ebs_volume_id" {
