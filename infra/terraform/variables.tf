@@ -37,7 +37,7 @@ variable "worker_min_size" {
 variable "worker_desired_capacity" {
   description = "Baseline desired number of worker EC2 instances in the Auto Scaling Group"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "worker_max_size" {

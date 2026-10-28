@@ -239,6 +239,11 @@ jobs:
           set -e
           export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
+          echo "==> [0/3] Ensuring ECR authentication credentials are fresh"
+          if [ -x /usr/local/bin/refresh-ecr.sh ]; then
+            /usr/local/bin/refresh-ecr.sh || true
+          fi
+
           echo "==> [1/3] Refreshing K8s Manifests"
           cd /opt/friend-on-campus || true
           if [ -d "/opt/friend-on-campus/.git" ]; then
@@ -264,11 +269,14 @@ jobs:
           EOF
           )
 
+          # Safely encode commands using jq to prevent shell-escaping/JSON parse errors
+          PARAMETERS=$(jq -n --arg cmd "$COMMANDS" '{"commands": [$cmd]}')
+
           # Send Command via AWS SSM
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$MASTER_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[\"$COMMANDS\"]" \
+            --parameters "$PARAMETERS" \
             --comment "Continuous Deployment from GitHub Actions ($GITHUB_SHA)" \
             --query "Command.CommandId" \
             --output text)
