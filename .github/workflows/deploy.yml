@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main
+      - feat/cloud-and-k6
     paths:
       - 'services/**'
       - 'apps/**'
       - 'packages/**'
-      - 'docker/**'
+      - 'gateway/**'
+      - 'data/images/**'
       - 'infra/k8s/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
