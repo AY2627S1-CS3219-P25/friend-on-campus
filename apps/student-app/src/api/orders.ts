@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Added parseErrandDraft for F6 Natural-Language Errand Assistant.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: fetchOrderById for the notification deep link: the errand's live status from GET /api/orders/:id, with 403
  * and 404 kept apart so a former courier sees "no longer available" rather than a stale action (Notification Redesign §2).
@@ -20,7 +24,7 @@
 
 // AI-generated (edited by yanhwee)
 
-import { OrderDTO } from '@campus-errand/common-dtos';
+import { OrderDTO, ParsedErrandDraftDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './auth';
 
 export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel' | 'unassign';
@@ -153,4 +157,20 @@ export async function unassignOrderById(
     'unassign',
     'Unable to drop this errand.'
   );
+}
+
+// AI-generated (edited by yanhwee)
+export async function parseErrandDraft(
+  authFetch: AuthFetchFn,
+  prompt: string
+): Promise<ParsedErrandDraftDTO> {
+  const res = await authFetch('/api/orders/assistant/draft', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success) {
+    throw new Error(body.error || `Failed to extract errand draft (HTTP ${res.status})`);
+  }
+  return body.data as ParsedErrandDraftDTO;
 }

@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-28
-Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, and recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration.
+Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
 Author review: <to be completed by yanhwee>
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
@@ -91,7 +91,7 @@ flowchart TB
     subgraph Services["Backend Microservices (Node.js + Express + TypeScript)"]
         UserSvc["User Service (M2)<br/>:8001 (Auth, Profiles, RBAC)"]
         SupplierSvc["Supplier Service (M3)<br/>:8002 (Campus Directory CRUD)"]
-        OrderSvc["Order Service (M1)<br/>:8003 (State Machine)"]
+        OrderSvc["Order Service (M1)<br/>:8003 (State Machine, AI Assistant)"]
         CreditSvc["Credit Service (M4)<br/>:8004 (Escrow & Ledger)"]
         NotifSvc["Notification Service (M5)<br/>:8005 (WebSockets)"]
     end
@@ -184,6 +184,15 @@ Copy `.env.example` to `.env` and generate an Ed25519 key pair for JWT access to
 cp .env.example .env
 npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste them into .env
 ```
+
+#### Optional: Natural-Language Errand Assistant (F6 / SoCLaaS)
+To enable zero-shot LLM parsing in the errand creation flow, obtain an API key from the [NUS School of Computing SoCLaaS Gateway](https://dochub.comp.nus.edu.sg/cf/guides/soclaas/start) and configure it in `.env`:
+```env
+SOCLAAS_BASE_URL=https://soclaas-api.comp.nus.edu.sg/v1
+SOCLAAS_API_KEY=your_soclaas_api_key_here
+SOCLAAS_MODEL=default
+```
+> **Note (Offline Fallback Resilience):** If `SOCLAAS_API_KEY` is omitted or left empty, `order-service` gracefully falls back to a deterministic offline regex/heuristic parser. An API key is **not** required for local development or automated tests.
 
 ### 3. Start PostgreSQL & RabbitMQ
 ```bash
@@ -382,7 +391,7 @@ friend-on-campus/
 ├── services/
 │   ├── user-service/            # Port 8001: Auth, Profiles, RBAC (M2)
 │   ├── supplier-service/        # Port 8002: Campus Locations CRUD (M3)
-│   ├── order-service/           # Port 8003: Lifecycle State Machine (M1)
+│   ├── order-service/           # Port 8003: Lifecycle State Machine (M1) & NLP Assistant (F6)
 │   ├── credit-service/          # Port 8004: Closed Economy Ledger & Escrow (M4)
 │   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
 ├── packages/

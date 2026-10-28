@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Updated README.md developer setup documentation for F6 SoCLaaS environment variables, offline fallback resilience, and monorepo structure.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Natural-Language Errand Creation Assistant (F6 / Issues #53, #137, #138): shared DTOs, Order Service SoCLaaS LLM integration, offline fallback, D1 §3.3 timing constraint enforcement, and student-app UI assistant drawer with prefill.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Recorded the initial read-only plan and approved documentation/configuration execution, including direct PR #184 inspection.
 Author review: <to be completed by Reallyeasy1>
@@ -5447,4 +5455,51 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 **Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). One commit with the eight files, pushed to origin; PR opened against `main` with `Closes #197` and the acceptance criteria (1)-(5) mapped, related #64. Merge is left to the author once CI is green.
 
 **Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-28 11:30 SGT — Natural-Language Errand Creation Assistant (F6, Issues #53, #137, #138)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/f6-nlp-assistant
+
+**Prompt (summarised):**
+Implement the Natural-Language Errand Creation Assistant (N2H Feature F6 / Category N2, Issues #53, #137, #138) using Approach B (Zero-Shot LLM Structured Extraction backed by NUS School of Computing SoCLaaS Gateway). Implement end-to-end backend parsing, active supplier grounding, D1 §3.3 timing constraint enforcement (durationMinutes = 30 default for clock deadlines, preserving deadline notes in specialNotes with warnings), resilient offline fallback heuristic, and human-in-the-loop frontend drafting and form prefilling in student-app PostErrandPage.
+
+**Usage scenario:**
+Code implementation, architectural alignment, test suite development, and documentation for course project deliverable. Human-in-the-loop design strictly preserves user confirmation before credit escrow reservation or order submission.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — added `ParseErrandDraftRequest`, `ParsedErrandItemDTO`, `ParsedErrandDraftDTO` contracts
+- `services/order-service/src/config.ts` — added SoCLaaS assistant configuration bindings
+- `services/order-service/src/clients/supplier.client.ts` — added `listActiveSuppliers` method
+- `services/order-service/src/assistant/assistant.service.ts` — created Assistant service with active supplier grounding, OpenAI-compatible SoCLaaS completions, D1 §3.3 timing rule enforcement, and offline fallback heuristic
+- `services/order-service/src/orders/order.routes.ts` — mounted authenticated `POST /api/orders/assistant/draft`
+- `services/order-service/src/app.ts` — injected `assistantService` into Express app factory
+- `services/order-service/src/index.ts` — wired `createAssistantService` into service entrypoint
+- `services/order-service/test/helpers.ts` — updated mock supplier client to support `listActiveSuppliers`
+- `services/order-service/test/assistant.service.test.ts` — unit and integration test suite for assistant service, timing constraints, and HTTP endpoints
+- `services/order-service/package.json` — updated `test:unit` script to execute assistant tests
+- `apps/student-app/src/api/orders.ts` — added `parseErrandDraft` client API helper
+- `apps/student-app/src/pages/PostErrandPage.tsx` — added AI Errand Assistant UI box with prompt templates, extraction trigger, draft summary card, warning notices, and human-in-the-loop prefilling
+- `apps/student-app/src/App.tsx` — forwarded `authFetch` to `PostErrandPage`
+- `apps/student-app/test/assistant.test.ts` — added unit tests for `parseErrandDraft`
+- `apps/student-app/package.json` — updated `test:unit` script to execute assistant tests
+- `.env.example`, `docker-compose.yml` — documented and bound `SOCLAAS_*` environment variables
+- `ai/usage-log.md` — this entry
+
+## 2026-10-28 15:00 SGT — Document F6 SoCLaaS Setup & Offline Resilience in README.md
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** docs/f6-readme-setup
+
+**Prompt (summarised):**
+Update root README.md to document developer setup for the Natural-Language Errand Creation Assistant (F6), including the NUS SoCLaaS environment variables, offline fallback resilience guarantee, and service architecture mappings.
+
+**Usage scenario:**
+Documentation improvement per course policy.
+
+**Files changed:**
+- `README.md` — added SoCLaaS optional configuration to Local Development Workflow, updated service diagram label and monorepo structure
 - `ai/usage-log.md` — this entry

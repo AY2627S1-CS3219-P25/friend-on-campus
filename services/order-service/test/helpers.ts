@@ -698,6 +698,10 @@ export function makeFakeSupplierClient(knownSuppliers: Record<string, SupplierDe
       if (!s) return { kind: 'not_found' };
       return { kind: 'found', supplier: s };
     },
+    async listActiveSuppliers() {
+      if (!isAvailable) return [];
+      return Array.from(suppliers.values()).filter((s) => s.isActive);
+    },
   };
 
   return {
