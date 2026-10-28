@@ -162,7 +162,7 @@ flowchart TB
                 Postgres["PostgreSQL 16 (6 Logical DBs)"]
                 RabbitMQ["RabbitMQ 3.13 (Quorum Queues)"]
                 Debezium["Debezium Server 2.7 (User, Order, Credit)"]
-                EBS[("25GB gp3 Amazon EBS<br/>Mounted at /var/foc-data")]
+                EBS["25GB gp3 Amazon EBS<br/>Mounted at /var/foc-data"]
                 Postgres --- EBS
                 RabbitMQ --- EBS
                 Debezium --- EBS
@@ -447,12 +447,12 @@ The answer lies in how Terraform manages state, security, and lifecycle boundari
 ```mermaid
 flowchart TD
     subgraph DevLaptop["Developer Laptop"]
-        T_Local["terraform apply"] --> State_Local["terraform.tfstate (Local Disk)"]
-        State_Local -.->|Excluded by .gitignore<br/>(Contains Passwords & Keys)| Git[("GitHub Repository")]
+        T_Local["terraform apply"] --> State_Local["terraform.tfstate (Local Disk)<br/>Contains Secrets & Passwords"]
+        State_Local -.->|Excluded by .gitignore| Git["GitHub Repository"]
     end
 
     subgraph GitHubActions["GitHub Actions Runner"]
-        Git --> FreshClone["Clones Fresh Repo (NO .tfstate!)"]
+        Git --> FreshClone["Clones Fresh Repo (No .tfstate)"]
         FreshClone --> T_GH["terraform apply"]
         T_GH --> Collision["💥 ERROR: Resource Already Exists!<br/>• VPC 10.0.0.0/16 already exists<br/>• ECR Repository foc/order-service already exists<br/>• IAM Role already exists"]
     end
@@ -649,7 +649,7 @@ flowchart TD
             F1 --- cni1 --- PodOrder
         end
 
-        MasterEC2 <==>|"VXLAN UDP Port 8472 (Encapsulated Traffic)"| WorkerEC2
+        MasterEC2 <-->|VXLAN UDP Port 8472| WorkerEC2
     end
 ```
 
@@ -888,8 +888,8 @@ sequenceDiagram
     autonumber
     participant CD as GitHub Actions CD
     participant DB as PostgreSQL 16
-    participant OldPods as Running Pods (v1)
-    participant NewPods as New Pods (v2)
+    participant OldPods as "Running Pods (v1)"
+    participant NewPods as "New Pods (v2)"
     participant K8s as K3s Controller
 
     Note over OldPods: Pods (v1) actively serving users
@@ -1034,9 +1034,9 @@ flowchart LR
         end
     end
 
-    k6 ==>|"Public Internet HTTP Requests"| ALB
+    k6 -->|Public Internet Traffic| ALB
     ALB --> Ingress --> Pods
-    Term2 -.->|"SSM Tunnel / kubectl"| Cluster
+    Term2 -.->|SSM Tunnel / kubectl| Cluster
 ```
 
 #### Why Local Execution is the Recommended Architecture:
@@ -1081,10 +1081,10 @@ In a campus peer-to-peer errand platform, multiple student couriers may attempt 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Courier1 as Courier A (VU 1)
-    actor Courier2 as Courier B (VU 2)
+    actor Courier1 as "Courier A (VU 1)"
+    actor Courier2 as "Courier B (VU 2)"
     participant Svc as order-service
-    participant DB as PostgreSQL 16 (order_db)
+    participant DB as "PostgreSQL 16 (order_db)"
 
     Note over Courier1,Courier2: Both couriers hit 'Accept Errand' at the EXACT same millisecond!
     Courier1->>Svc: POST /api/orders/:id/accept
@@ -1171,7 +1171,7 @@ flowchart LR
     ALB --> Gateway["api-gateway"]
     Gateway --> OrderSvc["order-service (2 Pods)"]
     
-    MetricsServer["K3s Metrics Server"] -.->|Detects CPU > 60%| HPA["Horizontal Pod Autoscaler"]
+    MetricsServer["K3s Metrics Server"] -.->|Detects CPU over 60%| HPA["Horizontal Pod Autoscaler"]
     HPA -->|Auto-Scale Trigger| Deployment["order-service Deployment"]
     Deployment -->|Scale Out| Pods["order-service (5 Pods Spanning Nodes 2 & 3!)"]
 ```
