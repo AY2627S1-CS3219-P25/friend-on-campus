@@ -228,8 +228,8 @@ flowchart TB
    - The new instance executes its `user_data` bootstrap script, waits for the master node API to respond, installs the K3s agent, and automatically registers itself with the cluster.
    - The ALB dynamically adds the new worker to its Target Group, and K3s immediately distributes pod workloads onto the newly added compute node!
 3. **Hard Budget Ceiling & Cost Optimization**:
-   - The worker ASG enforces `min_size = 1`, `desired_capacity = 1`, and `max_size = 3`.
-   - Baseline worker instances run on cost-effective `t3.small` (2 vCPU, 2GB RAM at \$0.0259/hr), while the stateful master runs on `t3.medium` (2 vCPU, 4GB RAM at \$0.0518/hr) to ensure database stability.
+   - The worker ASG enforces `min_size = 2`, `desired_capacity = 2`, and `max_size = 3`.
+   - Baseline worker instances run on cost-effective `t3.small` (2 vCPU, 2GB RAM at \$0.0259/hr), while the stateful master runs on `t3.medium` (2 vCPU, 4GB RAM at \$0.0518/hr) to ensure database stability. Having 2 baseline workers provides 4 GB aggregated RAM across distinct Availability Zones (`ap-southeast-1a` and `ap-southeast-1b`), comfortably accommodating all 17 microservice pods without eviction.
    - Even under continuous synthetic load testing, AWS will **never launch more than 3 worker instances**, keeping maximum cluster compute costs strictly capped.
 
 ---
@@ -520,8 +520,8 @@ Centralizes input parameters so configuration can be tuned without modifying res
 * `environment`: Environment namespace (defaults to `prod`).
 * `master_instance_type`: EC2 instance type for Node 1 (defaults to `t3.medium`).
 * `worker_instance_type`: EC2 instance type for Worker Nodes (defaults to `t3.small`).
-* `worker_min_size`: Minimum number of worker EC2 instances in the Auto Scaling Group (defaults to `1`).
-* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `1`).
+* `worker_min_size`: Minimum number of worker EC2 instances in the Auto Scaling Group (defaults to `2`).
+* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `2`).
 * `worker_max_size`: Hard ceiling on worker EC2 instances to protect student budget (defaults to `3`).
 * `worker_cpu_target`: Target average CPU percentage across workers before triggering scale-out (defaults to `75.0`%).
 * `ebs_volume_size`: Size of persistent EBS volume (defaults to `25` GB).
@@ -1645,13 +1645,14 @@ To preserve the S\$50 SGD student budget, you must stop cluster resources when y
 
 > [!WARNING]
 > **Critical ASG Behavior**: In an AWS Auto Scaling Group, if you directly execute `aws ec2 stop-instances` on worker instances, the Auto Scaling Group's health check will observe that the instances stopped responding, consider them **unhealthy**, terminate them, and immediately launch brand new instances!
-> To properly pause an ASG worker tier, you must set its **desired capacity to 0**.
+> To properly pause an ASG worker tier, you must update its **min size and desired capacity to 0**.
 
 #### Nightly Stop (Cluster Pause):
 ```bash
 # 1. Scale worker Auto Scaling Group to 0 instances (cleanly terminates worker VMs, halting compute charges)
-aws autoscaling set-desired-capacity \
+aws autoscaling update-auto-scaling-group \
   --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
+  --min-size 0 \
   --desired-capacity 0
 
 # 2. Stop Node 1 (persistent master/data node)
@@ -1669,10 +1670,11 @@ aws ec2 start-instances --instance-ids \
 
 # Wait ~45 seconds for Node 1 K3s control plane to initialize, then:
 
-# 2. Restore worker ASG desired capacity to 1 instance (or 2 for high availability)
-aws autoscaling set-desired-capacity \
+# 2. Restore worker ASG min size and desired capacity to baseline (2 instances across 2 AZs)
+aws autoscaling update-auto-scaling-group \
   --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
-  --desired-capacity 1
+  --min-size 2 \
+  --desired-capacity 2
 ```
 Within 60–90 seconds, the worker instances boot up, automatically execute their bootstrap script, join the K3s cluster, register with the ALB, and K3s schedules all microservice pods across the pool!
 
