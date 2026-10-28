@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Light elegant theme unification across all student-app buttons, cards, modals, and tabs (replacing dark navy and muddy tints with warm orange, crisp white pills, and luminous blue accents; full UAT locator preservation).
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Updated README.md developer setup documentation for F6 SoCLaaS environment variables, offline fallback resilience, and monorepo structure.
 Author review: <to be completed by yanhwee>
 
@@ -5610,4 +5614,39 @@ UI/UX polish and layout ergonomics fix for student application final deliverable
 - `apps/student-app/src/pages/FeedPage.tsx` — added `p-1.5` to zone filter chip scroll container to prevent button clipping
 - `apps/student-app/src/pages/SpotsPage.tsx` — added `p-1` to category shortcuts scroll container
 - `apps/student-app/src/pages/PostErrandPage.tsx` — removed redundant header wallet badge; redesigned AI Errand Assistant container, textarea, chips, and draft card to light theme
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 17:25 SGT — Student App Light Elegant Theme: Button & Card Color Harmonization
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Unify all buttons, cards, and modal components across student-app into an elegant, light-first theme:
+1. Prevent ellipsis truncation of errand campus zone badges in `ErrandCard.tsx`.
+2. Convert interactive CTA buttons (`View & accept`, `Pick for Errand`, `View details`) into light, tactile pill buttons with subtle borders and shadows.
+3. Redesign the top header wallet balance capsule from muddy amber to a crisp white glass pill with clear dark typography.
+4. Transform the Digital NUS Student Pass card and Digital Wallet card in `ProfileWalletPage.tsx` from dark navy backgrounds into bright, pristine light cards with subtle gradients, emerald/amber sub-wallets, and clean typographic hierarchy.
+5. Upgrade primary submit and action buttons across `AuthGatePage.tsx`, `ProfileWalletPage.tsx`, `NotificationBell.tsx`, `ErrandDetailsPage.tsx`, and `DeleteAccountModal.tsx` to warm vibrant NUS orange or bright royal blue, eliminating heavy dark navy buttons.
+6. Remove obsolete Milestone 3 text from `PostErrandPage.tsx`.
+
+**Usage scenario:**
+Frontend visual polish and light elegant aesthetic refinement for student application final deliverable. Preserved 100% Playwright UAT locator compatibility (`Log In`, `Sign In`, `Admin Log In`, `Feed`, `Post`, `Spots`, `Tasks`, `Profile`, `Alerts`, `STUDENT`, `WS Hub: connected`).
+
+**Files changed:**
+- `apps/student-app/src/components/ErrandCard.tsx` — removed zone truncation, upgraded View & Accept CTA to light pill button
+- `apps/student-app/src/components/HeaderNav.tsx` — light elegant active tabs, profile button, and white glass wallet capsule
+- `apps/student-app/src/pages/AuthGatePage.tsx` — luminous blue-indigo brand mark, warm orange Log In button
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — converted NUS Student Pass card and Digital Wallet card to light theme; updated username edit/save buttons
+- `apps/student-app/src/pages/SpotsPage.tsx` — light category shortcut filter chips; light reset filter button
+- `apps/student-app/src/components/SpotCard.tsx` — light interactive pill button for Pick for Errand CTA
+- `apps/student-app/src/notifications/NotificationBell.tsx` — light tab filter pills and high-contrast CTA button
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — upgraded primary action buttons to bright royal blue
+- `apps/student-app/src/pages/TasksPage.tsx` — upgraded View Details link to light interactive pill button
+- `apps/student-app/src/components/DeleteAccountModal.tsx` — updated Return to Login button to warm orange
+- `apps/student-app/src/chat/ChatPanel.tsx` — upgraded outgoing bubble to bright royal blue
+- `apps/student-app/src/pages/FeedPage.tsx` — updated reset zone filter button to light button
+- `apps/student-app/src/pages/PostErrandPage.tsx` — removed legacy milestone text from footer
 - `ai/usage-log.md` — this entry

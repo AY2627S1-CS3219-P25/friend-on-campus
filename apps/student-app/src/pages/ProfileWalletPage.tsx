@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Redesigned NUS Student Pass card and Digital Wallet card in light elegant theme, updated action buttons to warm orange/light styles without dark button colors.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Modernized ProfileWalletPage with digital NUS student identity card, fintech-style escrow balance card, category-iconized ledger transactions, and isolated danger zone for account deletion.
  * Author review: <to be completed by yanhwee>
  *
@@ -131,7 +135,7 @@ export function ProfileWalletPage({
                 <button
                   type="button"
                   onClick={onRefreshProfile}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-nus-blue text-white rounded-xl text-xs font-bold shadow hover:bg-blue-900 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-200/90 shadow-2xs transition cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Fetch Profile</span>
@@ -143,61 +147,61 @@ export function ProfileWalletPage({
           {profile && (
             <div className="space-y-6">
               {/* Digital NUS Student Pass Card */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002855] via-[#001f42] to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-white/10">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-slate-50/80 to-blue-50/50 p-6 sm:p-7 text-slate-900 shadow-sm border border-slate-200/90">
                 {/* Background ambient lighting */}
-                <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-nus-orange/15 blur-2xl pointer-events-none" />
-                <div className="absolute -left-8 -top-8 w-44 h-44 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
+                <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-orange-300/10 blur-2xl pointer-events-none" />
+                <div className="absolute -left-8 -top-8 w-44 h-44 rounded-full bg-blue-400/10 blur-2xl pointer-events-none" />
 
                 <div className="relative z-10 space-y-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-nus-orange" />
-                      <span className="text-xs font-extrabold tracking-widest uppercase text-blue-200">
+                      <span className="text-xs font-extrabold tracking-widest uppercase text-blue-700">
                         NUS Student Pass
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-nus-orange to-amber-400 p-0.5 shadow-lg shrink-0">
-                      <div className="h-full w-full rounded-[14px] bg-[#002855] flex items-center justify-center text-white font-extrabold text-2xl">
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 p-0.5 shadow-sm shrink-0">
+                      <div className="h-full w-full rounded-[14px] bg-white flex items-center justify-center text-blue-700 font-extrabold text-2xl">
                         {profile.username.charAt(0).toUpperCase()}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-xl sm:text-2xl font-black text-white truncate">
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900 truncate">
                         {profile.username}
                       </h3>
-                      <p className="text-xs text-blue-200 flex items-center gap-1.5 mt-0.5 truncate">
-                        <Mail className="w-3.5 h-3.5 text-blue-300" />
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 truncate">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <span>{profile.email}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200/80 text-xs">
                     <div>
-                      <span className="text-[10px] text-blue-300 uppercase tracking-wider block font-semibold">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
                         Role
                       </span>
-                      <span className="font-extrabold text-amber-300 text-sm mt-0.5 block">
+                      <span className="font-extrabold text-nus-orange text-sm mt-0.5 block">
                         {profile.userRole}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-blue-300 uppercase tracking-wider block font-semibold">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
                         Status
                       </span>
-                      <span className="inline-flex items-center gap-1 font-bold text-emerald-400 text-sm mt-0.5">
+                      <span className="inline-flex items-center gap-1 font-bold text-emerald-600 text-sm mt-0.5">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         {profile.status ? 'Active' : 'Disabled'}
                       </span>
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <span className="text-[10px] text-blue-300 uppercase tracking-wider block font-semibold">
+                      <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
                         Affiliation
                       </span>
-                      <span className="font-medium text-blue-100 text-xs mt-0.5 block">
+                      <span className="font-medium text-slate-600 text-xs mt-0.5 block">
                         National University of Singapore
                       </span>
                     </div>
@@ -270,7 +274,7 @@ export function ProfileWalletPage({
                     <button
                       type="button"
                       onClick={onStartEditingProfile}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-nus-orange hover:bg-orange-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition cursor-pointer"
                     >
                       Edit Username
                     </button>
@@ -280,7 +284,7 @@ export function ProfileWalletPage({
                         type="button"
                         onClick={onCancelEditingProfile}
                         disabled={isUpdatingProfile}
-                        className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition disabled:opacity-50"
+                        className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition disabled:opacity-50 cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -288,7 +292,7 @@ export function ProfileWalletPage({
                         type="button"
                         onClick={onUpdateProfile}
                         disabled={isUpdatingProfile}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-nus-blue hover:bg-blue-900 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm transition disabled:opacity-60"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-nus-orange hover:bg-orange-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition disabled:opacity-60 cursor-pointer"
                       >
                         {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                         <span>{isUpdatingProfile ? 'Updating…' : 'Save Changes'}</span>
@@ -400,55 +404,55 @@ export function ProfileWalletPage({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Digital Wallet Card (Left / 5 columns) */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#002855] via-[#001f42] to-slate-950 p-6 sm:p-7 text-white shadow-xl border border-white/10">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-amber-50/25 to-orange-50/25 p-6 sm:p-7 text-slate-900 shadow-sm border border-slate-200/90">
                 {/* Decorative glows */}
-                <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-nus-blue/40 blur-2xl pointer-events-none" />
-                <div className="absolute -left-8 -bottom-8 w-44 h-44 rounded-full bg-amber-500/15 blur-2xl pointer-events-none" />
+                <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-amber-300/15 blur-2xl pointer-events-none" />
+                <div className="absolute -left-8 -bottom-8 w-44 h-44 rounded-full bg-blue-300/10 blur-2xl pointer-events-none" />
 
                 <div className="relative z-10 space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] font-extrabold tracking-widest text-blue-200 uppercase">
+                    <span className="text-[11px] font-extrabold tracking-widest text-slate-600 uppercase">
                       NUS Closed Economy
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Secured</span>
                     </span>
                   </div>
 
                   <div>
-                    <p className="text-xs text-blue-200/90 font-medium">Total Account Value</p>
+                    <p className="text-xs text-slate-500 font-semibold">Total Account Value</p>
                     <div className="flex items-baseline gap-1.5 mt-1">
-                      <span className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight">
+                      <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
                         {wallet.availableCredits + wallet.escrowCredits}
                       </span>
-                      <span className="text-sm text-blue-200 font-extrabold uppercase">Credits</span>
+                      <span className="text-sm text-slate-500 font-extrabold uppercase">Credits</span>
                     </div>
                   </div>
 
                   {/* Dual Sub-Wallets: Available vs Escrow */}
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/10">
-                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-                      <span className="text-[10px] text-blue-200/80 uppercase tracking-wider block font-semibold">
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/80">
+                    <div className="bg-white/90 backdrop-blur-sm p-3.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
+                      <span className="text-[10px] text-emerald-700 uppercase tracking-wider block font-bold">
                         Available to Spend
                       </span>
-                      <span className="text-lg font-black text-emerald-400 mt-0.5 block">
+                      <span className="text-xl font-black text-emerald-600 mt-0.5 block">
                         {wallet.availableCredits} C
                       </span>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-                      <span className="text-[10px] text-blue-200/80 uppercase tracking-wider block font-semibold">
+                    <div className="bg-white/90 backdrop-blur-sm p-3.5 rounded-2xl border border-amber-200/80 shadow-2xs">
+                      <span className="text-[10px] text-amber-800 uppercase tracking-wider block font-bold">
                         Held in Escrow
                       </span>
-                      <span className="text-lg font-black text-amber-300 mt-0.5 block">
+                      <span className="text-xl font-black text-amber-700 mt-0.5 block">
                         {wallet.escrowCredits} C
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-2 text-xs text-blue-200/80 flex items-center justify-between">
+                  <div className="pt-2 text-xs text-slate-500 flex items-center justify-between border-t border-slate-200/60">
                     <span>Total earned to date:</span>
-                    <span className="font-bold text-white">+{wallet.totalEarnedCredits} C</span>
+                    <span className="font-bold text-slate-800">+{wallet.totalEarnedCredits} C</span>
                   </div>
                 </div>
               </div>

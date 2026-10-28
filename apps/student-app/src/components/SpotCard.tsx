@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light interactive pill button styling for Pick for Errand CTA.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Modernized campus spot directory card with category icons, live availability indicators, zone pills, and ergonomic CTA button.
  * Author review: <to be completed by yanhwee>
  *
@@ -81,10 +85,10 @@ export function SpotCard({ supplier, onPickForErrand }: SpotCardProps) {
           type="button"
           disabled={!supplier.isActive}
           onClick={() => onPickForErrand(supplier)}
-          className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-nus-orange hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 transition group-hover:translate-x-0.5"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-nus-orange bg-orange-50/80 hover:bg-orange-100 border border-orange-200/80 hover:border-orange-300 px-3 py-1.5 rounded-xl shadow-2xs hover:shadow-xs disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 transition cursor-pointer"
         >
           <span>Pick for Errand</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
     </div>

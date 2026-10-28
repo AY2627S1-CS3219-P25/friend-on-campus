@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme update for primary action buttons.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Modernized ErrandDetailsPage with pulsing active tracker rings, route card layout, tactile action buttons, and responsive grid layout.
  * Author review: <to be completed by yanhwee>
  *
@@ -75,7 +79,7 @@ const dateTimeOf = (iso: string) =>
 const CARD = 'bg-white rounded-2xl border border-slate-200/90 shadow-subtle';
 const BIG =
   'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm sm:text-base font-extrabold transition disabled:opacity-50 disabled:cursor-not-allowed';
-const PRIMARY = `${BIG} bg-nus-blue hover:bg-blue-900 text-white shadow-md shadow-nus-blue/20`;
+const PRIMARY = `${BIG} bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer`;
 const ACCENT = `${BIG} bg-nus-orange hover:bg-orange-600 text-white shadow-md shadow-nus-orange/20`;
 const GHOST =
   'w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border';

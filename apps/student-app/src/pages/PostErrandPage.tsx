@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Removed legacy milestone text from form footer.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refined PostErrandPage layout to remove redundant header wallet card and styled AI Errand Assistant in consistent light theme.
  * Author review: <to be completed by yanhwee>
  *
@@ -781,7 +785,7 @@ export function PostErrandPage({
               </button>
 
               <p className="text-[11px] text-center text-slate-400">
-                Peer-to-peer campus delivery • Milestone 3 SAGAS protected
+                Peer-to-peer campus delivery with automatic escrow protection
               </p>
             </div>
           </aside>

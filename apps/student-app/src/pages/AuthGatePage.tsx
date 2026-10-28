@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme update - vibrant orange CTA button, luminous brand mark gradient, accessible states.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned AuthGatePage with modern light theme, Package brand identity, vertically centered password reveal toggles, and clean campus delivery header.
  * Author review: <to be completed by yanhwee>
  *
@@ -92,7 +96,7 @@ export function AuthGatePage({
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#003D7C] to-blue-600 text-white shadow-xl shadow-blue-900/15 border border-blue-200/60 ring-4 ring-blue-50/80 relative mb-1">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-500 text-white shadow-xl shadow-blue-500/20 border border-blue-200/60 ring-4 ring-blue-50/80 relative mb-1">
             <Package className="w-7 h-7 text-white stroke-[2.2]" />
             <span className="absolute -top-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
@@ -100,7 +104,7 @@ export function AuthGatePage({
             </span>
           </div>
           <h1 className="text-2xl lg:text-3xl font-black tracking-tight flex items-center justify-center gap-2">
-            <span className="text-nus-blue">NUS</span>
+            <span className="text-blue-700">NUS</span>
             <span className="text-slate-900">
               Campus<span className="text-nus-orange">Errand</span>
             </span>
@@ -265,7 +269,7 @@ export function AuthGatePage({
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:bg-slate-300 text-white font-black text-sm py-3 rounded-xl shadow-md transition-all cursor-pointer"
+                className="w-full flex items-center justify-center space-x-2 bg-nus-orange hover:bg-orange-600 disabled:bg-slate-300 text-white font-bold text-sm py-3 rounded-xl shadow-sm transition-all cursor-pointer"
               >
                 {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin text-white" aria-hidden="true" />}
                 <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>

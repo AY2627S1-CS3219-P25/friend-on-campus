@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme update for category shortcut filters.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refined category filter chips padding to prevent negative overflow clipping.
  * Author review: <to be completed by yanhwee>
  *
@@ -89,9 +93,9 @@ export function SpotsPage({
               key={cat}
               type="button"
               onClick={() => onChangeSearch(cat === 'All' ? '' : cat)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer ${
                 isSelected
-                  ? 'bg-nus-blue text-white shadow-sm'
+                  ? 'bg-blue-50 text-nus-blue border border-blue-300 font-bold shadow-2xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
@@ -143,7 +147,7 @@ export function SpotsPage({
                 <button
                   type="button"
                   onClick={() => onChangeSearch('')}
-                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-nus-blue text-white hover:bg-nus-blue/90 shadow-sm transition"
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-2xs transition cursor-pointer"
                 >
                   <Compass className="w-3.5 h-3.5" />
                   <span>Show All Spots</span>

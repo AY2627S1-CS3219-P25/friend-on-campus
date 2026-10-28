@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme styling for alert filter tabs and primary CTA button.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Review fix (PR #184): the view is a prop the hook fetches server side; tab counts are only the ones the server
  * vouches for (the active view's total and the unread count) instead of counts over the rows loaded so far; Load more
@@ -283,8 +287,8 @@ export function NotificationPanel({
             {cta && (
               <button
                 onClick={() => onOpen(selected)}
-                className={`mt-3 inline-flex items-center space-x-1.5 text-sm font-bold text-white px-4 py-2 rounded-lg shadow-sm ${FOCUS} ${
-                  cta.label === 'Review delivery' ? 'bg-nus-orange hover:bg-orange-600' : 'bg-nus-blue hover:bg-blue-800'
+                className={`mt-3 inline-flex items-center space-x-1.5 text-sm font-bold text-white px-4 py-2 rounded-xl shadow-xs ${FOCUS} ${
+                  cta.label === 'Review delivery' ? 'bg-nus-orange hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
                 <span>{cta.label}</span>
@@ -307,7 +311,11 @@ export function NotificationPanel({
               role="tab"
               aria-selected={view === key}
               onClick={() => onViewChange(key)}
-              className={`px-3 py-1.5 rounded-full transition ${FOCUS} ${view === key ? 'bg-nus-blue text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-full transition cursor-pointer ${FOCUS} ${
+                view === key
+                  ? 'bg-blue-50 text-nus-blue border border-blue-200/90 font-bold shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
               {label}{countOf(key) === null ? '' : ` · ${countOf(key)}`}
             </button>

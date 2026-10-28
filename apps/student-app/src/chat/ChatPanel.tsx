@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme update for outgoing chat bubble styling.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: PR #196 review: the panel registers its thread with the chat hook while mounted, so only on-screen threads
  * are reconciled on the hook's timer.
@@ -70,7 +74,7 @@ function Bubble({ message, mine }: { message: ChatMessageDTO; mine: boolean }) {
   const time = new Date(message.sentAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
   return (
     <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[85%] px-3.5 py-2 ${mine ? 'bg-nus-blue text-white rounded-2xl rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'}`}>
+      <div className={`max-w-[85%] px-3.5 py-2 shadow-2xs ${mine ? 'bg-blue-600 text-white rounded-2xl rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'}`}>
         <p className={`text-[11px] mb-0.5 ${mine ? 'text-blue-100' : 'text-slate-500'}`}>
           <span className={`font-semibold ${mine ? 'text-white' : 'text-slate-700'}`}>{mine ? 'You' : message.senderUsername}</span>
           {' · '}

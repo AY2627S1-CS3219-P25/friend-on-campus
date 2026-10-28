@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light interactive pill button styling for View Details CTA.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Modernized TasksPage with segmented role filter tabs (All / Posted / Delivering), visual progress step bars, route snippets, and ergonomic interactive cards.
  * Author review: <to be completed by yanhwee>
  *
@@ -362,10 +366,10 @@ export function TasksPage({
                         event.preventDefault();
                         onOpenErrand(task.id);
                       }}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-nus-blue hover:text-blue-900 whitespace-nowrap rounded focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:translate-x-0.5 transition-transform"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all"
                     >
                       <span>View details</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </a>
                   </div>
                 </article>

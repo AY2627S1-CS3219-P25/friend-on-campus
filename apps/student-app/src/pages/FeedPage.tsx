@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme update for reset zone filter button.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Fixed zone filter chip horizontal clipping on "ALL" chip with padded scroll container.
  * Author review: <to be completed by yanhwee>
  *
@@ -154,7 +158,7 @@ export function FeedPage({
             <button
               type="button"
               onClick={() => onSelectZone('ALL')}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-nus-blue text-white hover:bg-nus-blue/90 shadow-sm transition"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-2xs transition cursor-pointer"
             >
               <Compass className="w-3.5 h-3.5" />
               <span>Show All Campus Zones</span>
