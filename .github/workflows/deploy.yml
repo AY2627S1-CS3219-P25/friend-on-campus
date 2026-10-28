@@ -234,13 +234,6 @@ jobs:
           IMAGE_TAG="${{ github.sha }}"
           RUN_MIGRATIONS="${{ github.event.inputs.run_migrations || 'true' }}"
 
-          # Conditionally prepare SoCLaaS key injection if repository secret is configured
-          INJECT_SOCLAAS_CMD=""
-          if [ -n "$SOCLAAS_API_KEY" ]; then
-            INJECT_SOCLAAS_CMD="echo '==> Injecting SOCLAAS_API_KEY secret into foc-secrets'
-kubectl patch secret foc-secrets -n foc -p '{\"stringData\":{\"SOCLAAS_API_KEY\":\"$SOCLAAS_API_KEY\"}}' || true"
-          fi
-
           echo "Initiating SSM Run Command on Master ($MASTER_ID)..."
 
           # Remote command executed directly on K3s master
@@ -260,7 +253,10 @@ kubectl patch secret foc-secrets -n foc -p '{\"stringData\":{\"SOCLAAS_API_KEY\"
             kubectl apply -f infra/k8s/
           fi
 
-          $INJECT_SOCLAAS_CMD
+          if [ -n "$SOCLAAS_API_KEY" ]; then
+            echo "==> Injecting SOCLAAS_API_KEY secret into foc-secrets"
+            kubectl patch secret foc-secrets -n foc -p "{\"stringData\":{\"SOCLAAS_API_KEY\":\"$SOCLAAS_API_KEY\"}}" || true
+          fi
 
           echo "==> [2/3] Rolling update container images to tag: $IMAGE_TAG"
           for deploy in user-service supplier-service order-service credit-service notification-service chat-service api-gateway student-app admin-portal; do
