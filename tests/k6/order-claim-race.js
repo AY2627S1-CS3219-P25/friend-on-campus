@@ -87,7 +87,7 @@ export function setup() {
         orderId = eligible.id;
         console.log(`[k6 Setup] Found open target errand ID: ${orderId} (${eligible.orderCode || ''})`);
       }
-    } catch (e) {
+    } catch {
       console.warn('[k6 Setup] Could not parse orders list.');
     }
   }
@@ -190,6 +190,6 @@ export default function (data) {
   });
 }
 
-export function teardown(data) {
+export function teardown() {
   console.log('[k6 Teardown] Race condition verification completed.');
 }
