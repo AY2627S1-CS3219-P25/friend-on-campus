@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme update for Return to Login button.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted account deletion confirmation and success modals from student-app App.tsx into components/DeleteAccountModal.tsx.
  * Author review: Verified by yanhwee
@@ -109,7 +113,7 @@ export function DeleteAccountModal({
             </div>
             <button
               onClick={onReturnToLogin}
-              className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
+              className="w-full bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm py-2.5 rounded-xl shadow-xs transition cursor-pointer"
             >
               Return to Login
             </button>

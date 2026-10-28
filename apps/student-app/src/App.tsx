@@ -1,6 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Refined main viewport padding to eliminate excessive vertical whitespace under the sticky navbar.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Redesigned student-app UI/UX, handled order submission rejection states, prevented multi-click duplicate submissions and credit balance overdraw.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Passed authFetch to PostErrandPage for F6 Natural-Language Errand Assistant.
  * Author review: <to be completed by yanhwee>
  *
@@ -425,6 +433,16 @@ export default function App() {
           durationMinutes: 30,
         }));
         if (activeTab === 'post') setActiveTab('feed');
+      } else if (receipt.status === 'REJECTED') {
+        keepNoticeOnTabChange.current = activeTab === 'post';
+        setNoticeTone('alert');
+        setNotification(
+          `Errand posting rejected: ${receipt.rejectionReason || 'Credit reservation failed or insufficient funds.'}`
+        );
+      } else if (receipt.status === 'CANCELLED' || receipt.status === 'EXPIRED') {
+        keepNoticeOnTabChange.current = activeTab === 'post';
+        setNoticeTone('alert');
+        setNotification('Errand posting was cancelled or expired.');
       }
     },
   });
@@ -443,6 +461,14 @@ export default function App() {
       setIsLoadingProfile(false);
     }
   };
+
+  const loadProfile = useRef(fetchProfile);
+  loadProfile.current = fetchProfile;
+  useEffect(() => {
+    if (isAuthenticated && (activeTab === 'profile' || activeTab === 'wallet')) {
+      void loadProfile.current();
+    }
+  }, [isAuthenticated, activeTab]);
 
   const startEditingProfile = () => {
     if (!profile) return;
@@ -527,6 +553,13 @@ export default function App() {
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (submission.busy || !suppliers.some((s) => s.id === formData.supplierId && s.isActive)) {
+      return;
+    }
+    if (wallet && formData.rewardCredits > wallet.availableCredits) {
+      setNoticeTone('alert');
+      setNotification(
+        `Insufficient credits: You offered ${formData.rewardCredits} C, but you only have ${wallet.availableCredits} C available.`
+      );
       return;
     }
     setNotification(null);
@@ -695,7 +728,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="student-main flex-1 min-w-0 px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
+      <main className="student-main flex-1 min-w-0 px-4 pt-3.5 pb-8 md:px-6 md:pt-4 md:pb-10 lg:px-8">
         {(submission.unconfirmed ||
           (submission.receipt && submission.receipt.status !== 'OPEN')) && (
           <div
@@ -779,6 +812,8 @@ export default function App() {
             wallet={wallet}
             submissionBusy={submission.busy}
             submissionPosting={submission.posting}
+            submissionError={submission.error}
+            submissionUnconfirmed={submission.unconfirmed}
             onSubmit={handlePostSubmit}
             authFetch={authFetch}
           />
@@ -838,6 +873,7 @@ export default function App() {
             profile={profile}
             isLoadingProfile={isLoadingProfile}
             profileError={profileError}
+            onRefreshProfile={() => void fetchProfile()}
             isEditingProfile={isEditingProfile}
             editUsernameDraft={editUsernameDraft}
             onChangeUsernameDraft={setEditUsernameDraft}

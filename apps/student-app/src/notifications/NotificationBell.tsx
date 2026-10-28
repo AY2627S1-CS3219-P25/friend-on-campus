@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Light elegant theme styling for alert filter tabs and primary CTA button.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Review fix (PR #184): the view is a prop the hook fetches server side; tab counts are only the ones the server
  * vouches for (the active view's total and the unread count) instead of counts over the rows loaded so far; Load more
@@ -91,16 +95,18 @@ export function NotificationBell({ unreadCount, active, onClick, variant }: {
       aria-label={label}
       aria-pressed={active}
       onClick={onClick}
-      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${FOCUS} ${
-        active ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
+      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${FOCUS} ${
+        active
+          ? 'bg-nus-orange text-white border-nus-orange shadow-xs'
+          : 'bg-white text-slate-700 border-slate-200/80 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
       }`}
     >
-      <Bell className="w-4 h-4" />
+      <Bell className="w-3.5 h-3.5" />
       <span>Alerts</span>
       {unreadCount > 0 && (
         <span
           data-testid="notification-badge"
-          className={`min-w-[1.25rem] h-5 px-1.5 rounded-full text-[11px] font-black leading-5 text-center ${
+          className={`min-w-[1.25rem] h-4.5 px-1.5 rounded-full text-[10px] font-black leading-4 text-center ${
             active ? 'bg-white text-nus-orange' : 'bg-rose-500 text-white'
           }`}
         >
@@ -281,8 +287,8 @@ export function NotificationPanel({
             {cta && (
               <button
                 onClick={() => onOpen(selected)}
-                className={`mt-3 inline-flex items-center space-x-1.5 text-sm font-bold text-white px-4 py-2 rounded-lg shadow-sm ${FOCUS} ${
-                  cta.label === 'Review delivery' ? 'bg-nus-orange hover:bg-orange-600' : 'bg-nus-blue hover:bg-blue-800'
+                className={`mt-3 inline-flex items-center space-x-1.5 text-sm font-bold text-white px-4 py-2 rounded-xl shadow-xs ${FOCUS} ${
+                  cta.label === 'Review delivery' ? 'bg-nus-orange hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
                 <span>{cta.label}</span>
@@ -305,7 +311,11 @@ export function NotificationPanel({
               role="tab"
               aria-selected={view === key}
               onClick={() => onViewChange(key)}
-              className={`px-3 py-1.5 rounded-full transition ${FOCUS} ${view === key ? 'bg-nus-blue text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-full transition cursor-pointer ${FOCUS} ${
+                view === key
+                  ? 'bg-blue-50 text-nus-blue border border-blue-200/90 font-bold shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
               {label}{countOf(key) === null ? '' : ` · ${countOf(key)}`}
             </button>
