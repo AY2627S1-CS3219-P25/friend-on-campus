@@ -46,7 +46,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.TARGET_HOST || 'http://localhost';
+const BASE_URL = __ENV.TARGET_HOST || __ENV.BASE_URL || 'http://localhost';
 
 export function setup() {
   console.log(`[k6 Setup] Commencing Autoscaling Load Test against: ${BASE_URL}`);

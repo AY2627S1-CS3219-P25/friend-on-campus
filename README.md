@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, and recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration.
+Author review: <to be completed by yanhwee>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 Scope: Test-command table gained the `npm run test:e2e:ui:realtime` row and the artifacts note names `test-results/uat-realtime/` (issue #197).
 Author review: <to be completed by Reallyeasy1>
@@ -298,7 +302,7 @@ Friend on Campus implements a **Two-Tier Autoscaling Cloud-Native Architecture**
                 ▼                                                                 ▼
 ┌───────────────────────────────┐               ┌──────────────────────────────────────────────────┐
 │   Node 1: Master & Data Node  │               │   Stateless Worker Tier (Auto Scaling Group)     │
-│       (t3.medium / Fixed)     │               │   (t3.small / min=1, desired=1, max=3)          │
+│       (t3.medium / Fixed)     │               │   (t3.small / min=2, desired=2, max=3)          │
 │ • K3s Control Plane Server    │               │ • Traefik Ingress Controller                     │
 │ • PostgreSQL 16 (6 databases) │               │ • NGINX API Gateway                              │
 │ • RabbitMQ 3.13 Quorum Queues │               │ • 6 Microservices (Tier 1 HPA Replicas: 2 → 5)  │
@@ -330,10 +334,13 @@ aws ssm start-session --target $(cd infra/terraform && terraform output -raw mas
 kubectl get pods -n foc -o wide
 
 # 4. Run distributed concurrency verification (Milestone D4 Category N3)
-k6 run --env BASE_URL=http://<ALB_DNS_NAME> tests/k6/order-claim-race.js
+# Via local k6:
+TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/order-claim-race.js
+# Or via Docker (no local installation required):
+docker run --rm -i -e TARGET_HOST=http://<ALB_DNS_NAME> -v "$PWD/tests/k6:/scripts" grafana/k6 run /scripts/order-claim-race.js
 
 # 5. Run traffic spike test to trigger live HPA autoscaling (Milestone D4 Category N4)
-k6 run --env BASE_URL=http://<ALB_DNS_NAME> tests/k6/discovery-load.js
+TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/discovery-load.js
 
 # 6. Nightly Budget Pause (Halts compute billing to preserve S$50 SGD budget)
 aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 0
@@ -341,10 +348,13 @@ aws ec2 stop-instances --instance-ids $(cd infra/terraform && terraform output -
 
 # 7. Morning Cluster Resume (Wakes up cluster in ~60-90 seconds)
 aws ec2 start-instances --instance-ids $(cd infra/terraform && terraform output -raw master_instance_id)
-aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 1
+aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 2
 ```
 
-> 📖 **Comprehensive Walkthrough**: For in-depth architectural explanations, cost calculations, Kubernetes networking deep-dive, and troubleshooting runbooks, see the [Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md).
+> 📖 **Comprehensive Guides**:
+> - [Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md): Architectural deep-dive, two-tier autoscaling, OIDC CD, and cost budgets.
+> - [Kubernetes Manifests & Topology Guide](infra/k8s/README.md): Step-by-step breakdown of manifests `00` through `07`, ServiceLB networking, and persistence.
+
 
 ---
 

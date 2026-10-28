@@ -199,3 +199,154 @@ spec:
   selector:
     app: rabbitmq
   type: ClusterIP
+
+---
+# ==============================================================================
+# 3. Debezium Server CDC Outbox Connectors (Order, Credit, User)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debezium-order
+  namespace: foc
+  labels:
+    app: debezium-order
+    tier: cdc
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: debezium-order
+  template:
+    metadata:
+      labels:
+        app: debezium-order
+        tier: cdc
+    spec:
+      nodeSelector:
+        foc.role: data-node
+      containers:
+        - name: debezium-order
+          image: quay.io/debezium/server:2.7
+          volumeMounts:
+            - name: persistent-data
+              mountPath: /debezium/data
+              subPath: debezium/order
+            - name: debezium-config
+              mountPath: /debezium/conf/application.properties
+              subPath: order.properties
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: persistent-data
+          persistentVolumeClaim:
+            claimName: foc-data-pvc
+        - name: debezium-config
+          configMap:
+            name: debezium-configs
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debezium-credit
+  namespace: foc
+  labels:
+    app: debezium-credit
+    tier: cdc
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: debezium-credit
+  template:
+    metadata:
+      labels:
+        app: debezium-credit
+        tier: cdc
+    spec:
+      nodeSelector:
+        foc.role: data-node
+      containers:
+        - name: debezium-credit
+          image: quay.io/debezium/server:2.7
+          volumeMounts:
+            - name: persistent-data
+              mountPath: /debezium/data
+              subPath: debezium/credit
+            - name: debezium-config
+              mountPath: /debezium/conf/application.properties
+              subPath: credit.properties
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: persistent-data
+          persistentVolumeClaim:
+            claimName: foc-data-pvc
+        - name: debezium-config
+          configMap:
+            name: debezium-configs
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debezium-user
+  namespace: foc
+  labels:
+    app: debezium-user
+    tier: cdc
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: debezium-user
+  template:
+    metadata:
+      labels:
+        app: debezium-user
+        tier: cdc
+    spec:
+      nodeSelector:
+        foc.role: data-node
+      containers:
+        - name: debezium-user
+          image: quay.io/debezium/server:2.7
+          volumeMounts:
+            - name: persistent-data
+              mountPath: /debezium/data
+              subPath: debezium/user
+            - name: debezium-config
+              mountPath: /debezium/conf/application.properties
+              subPath: user.properties
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      volumes:
+        - name: persistent-data
+          persistentVolumeClaim:
+            claimName: foc-data-pvc
+        - name: debezium-config
+          configMap:
+            name: debezium-configs
+

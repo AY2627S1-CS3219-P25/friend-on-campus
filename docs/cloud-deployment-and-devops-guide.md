@@ -38,6 +38,8 @@
      * [2.6.2 Compute Architecture: x86_64 (t3) vs. AWS Graviton ARM64 (t4g)](#262-compute-architecture-x86_64-t3-vs-aws-graviton-arm64-t4g)
      * [2.6.3 Why Stateless Worker Nodes Still Need 20 GB Root Disk (The Kubelet DiskPressure Trap)](#263-why-stateless-worker-nodes-still-need-20-gb-root-disk-the-kubelet-diskpressure-trap)
      * [2.6.4 Why the Application Load Balancer (ALB) is Essential (Even Before Autoscaling)](#264-why-the-application-load-balancer-alb-is-essential-even-before-autoscaling)
+     * [2.6.5 The K3s ServiceLB vs. AWS ALB Port-Binding Insight](#265-the-k3s-servicelb-vs-aws-alb-port-binding-insight)
+     * [2.6.6 Worker Fleet Sizing Rationale: Aggregate Pod Memory vs. ASG Scale-Down](#266-worker-fleet-sizing-rationale-aggregate-pod-memory-vs-asg-scale-down)
 3. [Container Orchestration with Lightweight Kubernetes (K3s)](#3-container-orchestration-with-lightweight-kubernetes-k3s)
    * [3.1 The Container Evolution: Bare Metal $\to$ VMs $\to$ Docker Compose $\to$ Kubernetes](#31-the-container-evolution-bare-metal-to-vms-to-docker-compose-to-kubernetes)
    * [3.2 Why K3s over Upstream EKS or Docker Swarm?](#32-why-k3s-over-upstream-eks-or-docker-swarm)
@@ -171,7 +173,7 @@ flowchart TB
             end
         end
 
-        subgraph StatelessTier["Stateless Tier: EC2 Auto Scaling Group (Multi-AZ, 1 to 3 instances)"]
+        subgraph StatelessTier["Stateless Tier: EC2 Auto Scaling Group (Multi-AZ, min=2, desired=2, max=3 instances)"]
             subgraph ASG["AWS Auto Scaling Group (foc-prod-worker-asg)"]
                 subgraph Node2["Worker EC2 Instance A (t3.small)<br/>Label: foc.role=worker-node"]
                     Ingress1["Traefik Ingress Controller"]
@@ -561,13 +563,13 @@ Provisions the virtual compute instances and automated scaling infrastructure:
   * Detects the attached EBS disk (`/dev/nvme1n1` or `/dev/xvdf`).
   * If the disk has no filesystem, formats it with `mkfs.ext4`.
   * Adds an entry to `/etc/fstab` and mounts the volume to `/var/foc-data`.
-  * Installs K3s server using Rancher's official script with `--node-label foc.role=data-node`.
+  * Installs K3s server using Rancher's official script with `--node-label foc.role=data-node`. (Note: Built-in `servicelb` is kept active so Klipper LB binds `HostPort: 80` across all cluster nodes for AWS ALB target forwarding).
 * `aws_launch_template.k3s_worker` (Tier 2 Autoscaling Template):
   * Defines the standardized blueprint for all stateless worker nodes: Ubuntu 24.04 LTS, `t3.small` (2 vCPU, 2GB RAM), 20GB gp3 encrypted root disk, cluster security group, and SSM instance profile.
   * Contains an autonomous bootstrap script (`user_data`) encoded in base64: polls the master K3s API server on port 6443, installs the K3s agent, and registers the worker with `--node-label foc.role=worker-node`.
 * `aws_autoscaling_group.k3s_workers` (Tier 2 Elastic Worker Pool):
   * Manages the worker EC2 fleet across multiple Availability Zones (`public_a` and `public_b`).
-  * Enforces `min_size = 1`, `desired_capacity = 1`, and `max_size = 3`.
+  * Enforces `min_size = 2`, `desired_capacity = 2`, and `max_size = 3`. Having 2 baseline workers provides 4 GB aggregated RAM across distinct Availability Zones, comfortably accommodating all 17 microservice pods without eviction.
   * Automatically registers and deregisters EC2 instances with the Application Load Balancer target group (`target_group_arns`).
   * Configured with rolling `instance_refresh` so updates to the launch template can roll out zero-downtime updates across the worker fleet.
 * `aws_autoscaling_policy.worker_cpu_policy` (Target Tracking Scaling Policy):
@@ -711,6 +713,19 @@ While autoscaling requires a load balancer to dynamically attach and detach newl
    * The ALB continuously pings `/health` every 15 seconds. If a worker instance is booting, under heavy CPU load, or undergoing an OS update, the ALB instantly stops routing traffic to that node. External clients never experience abrupt `502 Bad Gateway` or `Connection Refused` errors.
 5. **Defense-in-Depth Security**:
    * Backend compute instances should never be directly reachable on the public internet. Placing the ALB in the public subnet allows us to lock down the cluster security group so that EC2 instances accept HTTP traffic *exclusively* from the ALB security group, eliminating direct bot scans and arbitrary port probing.
+
+#### 2.6.5 The K3s ServiceLB vs. AWS ALB Port-Binding Insight
+When combining K3s with an external AWS Application Load Balancer, a common subtle bug arises:
+* **The Symptom**: The ALB Target Group marks all EC2 instances as `unhealthy`, returning `502 Bad Gateway` or `503 Service Temporarily Unavailable` to users, even though `kubectl get pods` shows all microservices running.
+* **The Root Cause**: If K3s is launched with `--disable servicelb`, K3s's built-in Klipper LoadBalancer controller is disabled. As a result, Traefik's `LoadBalancer` service cannot allocate a host port, listening only on a random internal `NodePort` (e.g. `30318`). Nothing binds to host port 80 on the EC2 instances. The AWS ALB target health check expects port 80 and receives `Connection Refused`!
+* **The Solution**: Keep `servicelb` enabled in K3s. Klipper runs a lightweight DaemonSet (`svclb-traefik`) that binds `HostPort: 80` on every cluster node. The ALB target group can then forward traffic directly to port 80 of any node in the VPC, routing seamlessly to Traefik.
+
+#### 2.6.6 Worker Fleet Sizing Rationale: Aggregate Pod Memory vs. ASG Scale-Down
+* **The Memory Math**: Our microservice architecture runs 6 backend services (2 replicas each = 12 pods), 2 gateway replicas, 2 student app replicas, and 1 admin portal replica = **17 stateless pods**.
+* With baseline V8 heap requirements, runtime libraries, and OS overhead, these 17 pods require $\approx$3.5 GB of aggregated RAM.
+* **The Scale-Down Trap**: If `worker_min_size` is set to `1`, an idle cluster with low CPU utilization will cause CloudWatch's Target Tracking Alarm to scale down the worker Auto Scaling Group from 2 to 1 `t3.small` instance.
+* Since a single `t3.small` only has 2 GB RAM, attempting to squeeze 3.5 GB of pods onto 1 node triggers severe memory starvation, OOM killing, and pod evictions.
+* **The Architectural Guarantee**: Setting `worker_min_size = 2` guarantees 2 active worker instances (4 GB RAM total) across two distinct Availability Zones (`ap-southeast-1a` and `ap-southeast-1b`), providing high availability and steady headroom.
 
 ---
 
@@ -895,7 +910,7 @@ metadata:
 Namespaces partition cluster resources, preventing naming collisions with Kubernetes internal system pods (`kube-system`).
 
 #### `01-configmaps-secrets.yaml`
-Contains all cluster configuration and credentials:
+Contains all cluster configuration, declarative definitions, and credentials:
 * `foc-common-config`: Exposes cluster-internal microservice hostnames:
   * `USER_SERVICE_URL: "http://user-service:8001"`
   * `SUPPLIER_SERVICE_URL: "http://supplier-service:8002"`
@@ -903,8 +918,10 @@ Contains all cluster configuration and credentials:
   * `CREDIT_SERVICE_URL: "http://credit-service:8004"`
   * `NOTIFICATION_SERVICE_URL: "http://notification-service:8005"`
   * `RABBITMQ_URL: "amqp://foc_user:foc_password@rabbitmq:5672"`
-* `foc-secrets`: Securely encodes database passwords, RabbitMQ credentials, and JWT signing keys.
+* `foc-secrets`: Securely encodes database passwords, RabbitMQ credentials, and JWT signing keys (Ed25519 public/private keys).
 * `postgres-init-script`: Embeds the SQL initialization script (`01-init-databases.sql`) that runs on PostgreSQL's first boot, provisioning all 6 logical databases (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`, `chat_db`) and granting least-privilege user credentials.
+* `rabbitmq-definitions`: Declarative broker topology (`rabbitmq.conf` + `definitions.json`) that preloads the `campus` vhost, least-privilege service accounts (`order_service`, `credit_service`, `user_service`, etc.), quorum queues (`credit-service.events`, `order-service.events`), DLQs, and topic bindings upon broker boot without requiring manual HTTP API calls.
+* `debezium-configs`: Configuration properties (`order.properties`, `credit.properties`, `user.properties`) configuring the Quarkus SmallRye Debezium EventRouter SMT to stream PostgreSQL outbox events directly to RabbitMQ topic exchange routing keys.
 
 #### `02-storage.yaml`
 Establishes durable persistence by binding Kubernetes to our Amazon EBS volume:
@@ -931,10 +948,11 @@ Deploys our stateful persistence layer, pinned to Node 1 via `nodeSelector: { fo
 * **RabbitMQ 3.13**:
   * Deploys the message broker with the management plugin enabled.
   * Mounts subpath `rabbitmq` to persist Quorum Queues across pod restarts.
-* **Debezium Server 2.7 (CDC Connectors)**:
-  * Deploys 3 lightweight CDC connectors for User, Order, and Credit services.
-  * Captures real-time changes from PostgreSQL outbox tables and publishes event streams into RabbitMQ exchanges.
-  * Mounts subpath `debezium` to persist WAL replication offsets.
+  * Mounts `rabbitmq-definitions` to `/etc/rabbitmq/` for idempotent declarative broker bootstrapping.
+* **Debezium Server 2.7 CDC Connectors (`debezium-order`, `debezium-credit`, `debezium-user`)**:
+  * Deploys 3 lightweight CDC connectors pinned to Node 1.
+  * Captures real-time changes from PostgreSQL outbox tables via `pgoutput` logical replication and publishes event streams into RabbitMQ `campus.events` exchange.
+  * Mounts subpaths `debezium/order`, `debezium/credit`, and `debezium/user` on the persistent EBS volume to persist WAL replication offsets across restarts.
 
 #### `04-stateless-services.yaml`
 Deploys our 6 core backend microservices: `user-service`, `supplier-service`, `order-service`, `credit-service`, `notification-service`, and `chat-service`.
@@ -974,6 +992,7 @@ Every microservice manifest includes three production best practices:
 Deploys the client presentation tier:
 * `student-app` & `admin-portal`: 2 replicas each. Runs static React single-page applications compiled with Vite and served through an optimized NGINX alpine container.
 * `api-gateway`: 2 replicas. Runs our custom NGINX reverse-proxy gateway. It handles request routing, verifies authorization tokens, and manages WebSocket connection upgrades (`/ws/` and `/ws/chat/`).
+  * **Decoupled Readiness Probe (`GET /health`)**: Probes NGINX's own internal `/health` endpoint instead of `/`. If the probe targeted `/`, NGINX would proxy to `student-app:5173`. When `student-app` restarts or reschedules, the probe would fail with `502 Bad Gateway`, causing Kubernetes to evict all gateway endpoints and triggering a cascading cluster-wide 503 outage. Decoupling ensures robust gateway availability.
 
 #### `06-ingress.yaml`
 Configures K3s's built-in **Traefik Ingress Controller**. Maps all public HTTP/HTTPS traffic entering the cluster on port 80/443 to the internal `api-gateway` service:
@@ -1208,6 +1227,13 @@ flowchart LR
 1. **$0.00 Extra Cloud Spend**:
    * Commercial cloud load generators (such as k6 Cloud SaaS or dedicated EC2 stress-testing instances) burn AWS credits and compute hours.
    * Running k6 locally costs **$0.00**, preserving our entire \$50 sandbox credit for continuous 24/7 cluster runtime.
+   * **Zero Installation Required**: If `k6` is not installed locally on your Mac/Linux laptop, run it via Docker with zero setup:
+     ```bash
+     docker run --rm -i \
+       -e TARGET_HOST="http://<ALB_DNS>" \
+       -v "$PWD/tests/k6:/scripts" \
+       grafana/k6 run /scripts/order-claim-race.js
+     ```
 2. **True End-to-End Client Simulation**:
    * In production, NUS students do not place orders from *inside* the AWS VPC; they browse from student hostels, laptops, and mobile phones across the internet.
    * Running k6 locally simulates genuine external network behavior across the full path:
@@ -1215,10 +1241,10 @@ flowchart LR
    * In contrast, executing load tests inside the VPC would bypass the public internet and load balancer listeners, masking realistic ingress latency and connection handling.
 3. **Interactive Side-by-Side Verification & Grading Demos**:
    * Running locally allows side-by-side terminal verification during Milestone D4 grading presentations:
-     * **Terminal 1 (Load Generator)**: Run `TARGET_HOST="http://<ALB_DNS>" k6 run tests/k6/discovery-load.js`
+     * **Terminal 1 (Load Generator)**: Run `TARGET_HOST="http://<ALB_DNS>" k6 run tests/k6/discovery-load.js` (or via Docker)
      * **Terminal 2 (Pod Autoscaling)**: Run `kubectl get hpa -n foc -w` to watch HPA CPU metrics climb and replica count scale from 2 to 5.
      * **Terminal 3 (Pod Placement)**: Run `kubectl get pods -n foc -o wide -w` to watch newly spawned pods schedule dynamically across worker nodes.
-     * **Terminal 4 (EC2 Autoscaling)**: Run `aws autoscaling describe-auto-scaling-groups ...` to monitor the AWS EC2 Auto Scaling Group scale from 1 to 2 worker instances under sustained load.
+     * **Terminal 4 (EC2 Autoscaling)**: Run `aws autoscaling describe-auto-scaling-groups ...` to monitor the AWS EC2 Auto Scaling Group scale under sustained peak load.
 4. **When do Enterprises Deploy Cloud Load Runners?**:
    * Enterprise teams only need distributed cloud runners (such as the Kubernetes `k6-operator`) when testing massive industrial scale (e.g., 50,000+ to 100,000+ concurrent Virtual Users) where a single laptop's Wi-Fi bandwidth or operating system file descriptor limits (`ulimit -n`) become saturated.
    * For CS3219 milestone benchmarks (100–300 concurrent Virtual Users), a modern laptop easily drives this load while consuming less than 5% CPU.

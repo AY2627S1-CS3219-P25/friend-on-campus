@@ -21,7 +21,7 @@
  */
 
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 
 // Custom metric counters to track single-winner guarantee
@@ -48,7 +48,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.TARGET_HOST || 'http://localhost';
+const BASE_URL = __ENV.TARGET_HOST || __ENV.BASE_URL || 'http://localhost';
 
 // Setup phase: Authenticate courier and retrieve or create an OPEN errand
 export function setup() {
@@ -69,12 +69,11 @@ export function setup() {
     const data = JSON.parse(loginRes.body);
     token = data.data ? data.data.accessToken : data.accessToken;
   } else {
-    console.warn(`[k6 Setup] Login failed (HTTP ${loginRes.status}). Using pre-seeded mock token.`);
+    console.warn(`[k6 Setup] Bob login failed (HTTP ${loginRes.status}).`);
   }
 
-  // 2. Discover an OPEN errand created by someone other than Bob
-  let orderId = '30000000-0000-4000-8000-000000000001'; // Default Alice seed order
-
+  // 2. Discover an existing OPEN errand not created by Bob
+  let orderId = null;
   const listRes = http.get(`${BASE_URL}/api/orders?status=OPEN`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -89,7 +88,65 @@ export function setup() {
         console.log(`[k6 Setup] Found open target errand ID: ${orderId} (${eligible.orderCode || ''})`);
       }
     } catch (e) {
-      console.warn('[k6 Setup] Could not parse orders list, using default seed order.');
+      console.warn('[k6 Setup] Could not parse orders list.');
+    }
+  }
+
+  // 3. If no open order exists, create a fresh errand as Alice and await CDC outbox transition to OPEN
+  if (!orderId) {
+    console.log('[k6 Setup] No open order found. Creating a fresh errand as Alice...');
+    const aliceLogin = http.post(
+      `${BASE_URL}/api/auth/login`,
+      JSON.stringify({
+        email: 'alice@u.nus.edu',
+        password: 'Password123!',
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (aliceLogin.status === 200) {
+      const aData = JSON.parse(aliceLogin.body);
+      const aliceToken = aData.data ? aData.data.accessToken : aData.accessToken;
+
+      const createRes = http.post(
+        `${BASE_URL}/api/orders`,
+        JSON.stringify({
+          supplierId: '10000000-0000-4000-8000-000000000001',
+          itemDescription: `Race Test Item - ${Date.now()}`,
+          dropoffLocation: 'COM1 Basement',
+          rewardCredits: 5,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${aliceToken}`,
+          },
+        }
+      );
+
+      if (createRes.status === 201 || createRes.status === 202) {
+        const created = JSON.parse(createRes.body);
+        orderId = (created.data && created.data.id) ? created.data.id : created.id;
+        console.log(`[k6 Setup] Errand created: ${orderId}. Waiting for CDC outbox saga to mark OPEN...`);
+
+        // Poll up to 10 seconds for the outbox saga (Order -> Debezium -> Credit -> Debezium -> Order) to mark status OPEN
+        for (let i = 0; i < 10; i++) {
+          sleep(1);
+          const checkRes = http.get(`${BASE_URL}/api/orders/${orderId}`, {
+            headers: { Authorization: `Bearer ${aliceToken}` },
+          });
+          if (checkRes.status === 200) {
+            const current = JSON.parse(checkRes.body);
+            const status = current.data ? current.data.status : current.status;
+            if (status === 'OPEN') {
+              console.log(`[k6 Setup] Errand ${orderId} is now OPEN and ready for race test!`);
+              break;
+            }
+          }
+        }
+      } else {
+        console.warn(`[k6 Setup] Errand creation failed with HTTP ${createRes.status}: ${createRes.body}`);
+      }
     }
   }
 
