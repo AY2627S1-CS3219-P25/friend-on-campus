@@ -253,16 +253,24 @@ jobs:
 
           echo "==> [2/3] Rolling update container images to tag: $IMAGE_TAG"
           for deploy in user-service supplier-service order-service credit-service notification-service chat-service api-gateway student-app admin-portal; do
+            IMAGE_REPO="foc/\$deploy"
+            if [ "\$deploy" = "api-gateway" ]; then
+              IMAGE_REPO="foc/gateway"
+            fi
             if kubectl get deployment "\$deploy" -n foc >/dev/null 2>&1; then
-              echo "Updating deployment: \$deploy"
-              kubectl set image deployment/"\$deploy" "\$deploy"=${{ env.ECR_REGISTRY }}/foc/"\$deploy":$IMAGE_TAG -n foc || true
+              if /usr/local/bin/aws ecr describe-images --repository-name "\$IMAGE_REPO" --image-ids imageTag="$IMAGE_TAG" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
+                echo "Updating deployment: \$deploy with tag $IMAGE_TAG (ECR repo: \$IMAGE_REPO)"
+                kubectl set image deployment/"\$deploy" "\$deploy"=${{ env.ECR_REGISTRY }}/"\$IMAGE_REPO":$IMAGE_TAG -n foc || true
+              else
+                echo "Tag $IMAGE_TAG not found for \$IMAGE_REPO, skipping deployment update."
+              fi
             fi
           done
 
           echo "==> [3/3] Verifying Pod Rollout Status"
-          kubectl rollout status deployment/order-service -n foc --timeout=180s || true
-          kubectl rollout status deployment/credit-service -n foc --timeout=180s || true
-          kubectl rollout status deployment/api-gateway -n foc --timeout=180s || true
+          kubectl rollout status deployment/order-service -n foc --timeout=120s || true
+          kubectl rollout status deployment/credit-service -n foc --timeout=120s || true
+          kubectl rollout status deployment/api-gateway -n foc --timeout=120s || true
 
           echo "==> Deployment Successfully Finalized!"
           kubectl get pods -n foc -o wide
@@ -284,10 +292,19 @@ jobs:
           echo "SSM Command Dispatched. Command ID: $CMD_ID"
           echo "Waiting for command execution to complete..."
 
-          # Poll command invocation until Success or Failure
-          aws ssm wait command-executed \
-            --command-id "$CMD_ID" \
-            --instance-id "$MASTER_ID"
+          # Resilient polling loop for SSM execution
+          for i in {1..60}; do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$CMD_ID" \
+              --instance-id "$MASTER_ID" \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+            echo "SSM Command Status: $STATUS ($i/60)"
+            if [ "$STATUS" = "Success" ] || [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+              break
+            fi
+            sleep 5
+          done
 
           # Retrieve stdout and stderr logs
           OUTPUT=$(aws ssm get-command-invocation \
