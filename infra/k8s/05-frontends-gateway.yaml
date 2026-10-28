@@ -25,7 +25,7 @@ spec:
           image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/student-app:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
+            - containerPort: 5173
               name: http
           resources:
             requests:
@@ -43,8 +43,8 @@ metadata:
   namespace: foc
 spec:
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 5173
+      targetPort: 5173
       name: http
   selector:
     app: student-app
@@ -78,7 +78,7 @@ spec:
           image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/admin-portal:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
+            - containerPort: 5174
               name: http
           resources:
             requests:
@@ -96,8 +96,8 @@ metadata:
   namespace: foc
 spec:
   ports:
-    - port: 80
-      targetPort: 80
+    - port: 5174
+      targetPort: 5174
       name: http
   selector:
     app: admin-portal

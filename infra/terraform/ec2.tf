@@ -47,7 +47,7 @@ resource "aws_instance" "k3s_master" {
 
               # Update system and install utilities
               apt-get update
-              apt-get install -y curl e2fsprogs nvme-cli net-tools
+              apt-get install -y git curl e2fsprogs nvme-cli net-tools
 
               # Locate attached EBS data volume (/dev/nvme1n1 or /dev/xvdf)
               DATA_DEV=""
@@ -83,6 +83,20 @@ resource "aws_instance" "k3s_master" {
                 --write-kubeconfig-mode 644" sh -
 
               echo "K3s Master Installation Complete"
+
+              # Clone application repository to /opt/friend-on-campus
+              mkdir -p /opt
+              git clone https://github.com/AY2627S1-CS3219-P25/friend-on-campus.git /opt/friend-on-campus || true
+              cd /opt/friend-on-campus || true
+              if [ -d "/opt/friend-on-campus/.git" ]; then
+                git checkout feat/cloud-and-k6 || git checkout main || true
+                export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+                kubectl apply -f infra/k8s/00-namespace.yaml || true
+                kubectl apply -f infra/k8s/01-configmaps-secrets.yaml || true
+                kubectl apply -f infra/k8s/02-storage.yaml || true
+                kubectl apply -f infra/k8s/03-stateful-data.yaml || true
+                echo "Pre-applied foundational storage and database manifests"
+              fi
               EOF
 
   tags = {

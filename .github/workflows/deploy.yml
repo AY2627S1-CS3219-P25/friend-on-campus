@@ -89,7 +89,8 @@ jobs:
               - 'services/chat-service/**'
               - 'packages/**'
             gateway:
-              - 'docker/gateway/**'
+              - 'gateway/**'
+              - 'data/images/**'
             student-app:
               - 'apps/student-app/**'
             admin-portal:
@@ -167,8 +168,8 @@ jobs:
         run: |
           SERVICE="${{ matrix.service }}"
           if [[ "$SERVICE" == "gateway" ]]; then
-            echo "dockerfile=docker/gateway/Dockerfile" >> "$GITHUB_OUTPUT"
-            echo "context=docker/gateway" >> "$GITHUB_OUTPUT"
+            echo "dockerfile=gateway/Dockerfile" >> "$GITHUB_OUTPUT"
+            echo "context=." >> "$GITHUB_OUTPUT"
           elif [[ "$SERVICE" == *"app"* ]] || [[ "$SERVICE" == *"portal"* ]]; then
             echo "dockerfile=apps/$SERVICE/Dockerfile" >> "$GITHUB_OUTPUT"
             echo "context=." >> "$GITHUB_OUTPUT"
@@ -236,15 +237,11 @@ jobs:
           set -e
           export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-          echo "==> [1/3] Refreshing K8s Secrets & Ingress Manifests"
+          echo "==> [1/3] Refreshing K8s Manifests"
           cd /opt/friend-on-campus || true
           if [ -d "/opt/friend-on-campus/.git" ]; then
-            git fetch origin main && git checkout -f main
-            kubectl apply -f infra/k8s/00-namespace.yaml
-            kubectl apply -f infra/k8s/01-configmaps-secrets.yaml
-            kubectl apply -f infra/k8s/02-storage.yaml
-            kubectl apply -f infra/k8s/06-ingress.yaml
-            kubectl apply -f infra/k8s/07-hpa.yaml
+            git fetch origin && (git checkout -f ${{ github.ref_name }} || git checkout -f main) && git pull || true
+            kubectl apply -f infra/k8s/
           fi
 
           echo "==> [2/3] Rolling update container images to tag: $IMAGE_TAG"
