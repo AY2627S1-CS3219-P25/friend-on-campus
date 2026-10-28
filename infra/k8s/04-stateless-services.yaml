@@ -1,0 +1,625 @@
+# ==============================================================================
+# 1. User Service (Authentication & User Profiles - Port 8001)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: foc
+  labels:
+    app: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: user-service
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        foc.role: worker-node
+      containers:
+        - name: user-service
+          image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/user-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: PORT
+              value: "8001"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: USER_DATABASE_URL
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_AUDIENCE
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PUBLIC_KEY
+            - name: JWT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PRIVATE_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 8001
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: foc
+spec:
+  ports:
+    - port: 8001
+      targetPort: 8001
+      name: http
+  selector:
+    app: user-service
+  type: ClusterIP
+
+---
+# ==============================================================================
+# 2. Supplier Service (Campus Merchants & Menus - Port 8002)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supplier-service
+  namespace: foc
+  labels:
+    app: supplier-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: supplier-service
+  template:
+    metadata:
+      labels:
+        app: supplier-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: supplier-service
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        foc.role: worker-node
+      containers:
+        - name: supplier-service
+          image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/supplier-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8002
+              name: http
+          env:
+            - name: PORT
+              value: "8002"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: SUPPLIER_DATABASE_URL
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_AUDIENCE
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PUBLIC_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8002
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 8002
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supplier-service
+  namespace: foc
+spec:
+  ports:
+    - port: 8002
+      targetPort: 8002
+      name: http
+  selector:
+    app: supplier-service
+  type: ClusterIP
+
+---
+# ==============================================================================
+# 3. Order Service (Errand Requests, Claims & State Machine - Port 8003)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: foc
+  labels:
+    app: order-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: order-service
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        foc.role: worker-node
+      containers:
+        - name: order-service
+          image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/order-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8003
+              name: http
+          env:
+            - name: PORT
+              value: "8003"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: ORDER_DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: ORDER_RABBITMQ_URL
+            - name: SUPPLIER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: SUPPLIER_SERVICE_URL
+            - name: SEED_SAMPLE_ORDERS
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: SEED_SAMPLE_ORDERS
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_AUDIENCE
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PUBLIC_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: foc
+spec:
+  ports:
+    - port: 8003
+      targetPort: 8003
+      name: http
+  selector:
+    app: order-service
+  type: ClusterIP
+
+---
+# ==============================================================================
+# 4. Credit Service (Ledger & Escrow Locks - Port 8004)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credit-service
+  namespace: foc
+  labels:
+    app: credit-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: credit-service
+  template:
+    metadata:
+      labels:
+        app: credit-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: credit-service
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        foc.role: worker-node
+      containers:
+        - name: credit-service
+          image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/credit-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8004
+              name: http
+          env:
+            - name: PORT
+              value: "8004"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: CREDIT_DATABASE_URL
+            - name: USER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: USER_SERVICE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: CREDIT_RABBITMQ_URL
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_AUDIENCE
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PUBLIC_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: credit-service
+  namespace: foc
+spec:
+  ports:
+    - port: 8004
+      targetPort: 8004
+      name: http
+  selector:
+    app: credit-service
+  type: ClusterIP
+
+---
+# ==============================================================================
+# 5. Notification Service (Push Notifications - Port 8005)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: foc
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: notification-service
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        foc.role: worker-node
+      containers:
+        - name: notification-service
+          image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/notification-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8005
+              name: http
+          env:
+            - name: PORT
+              value: "8005"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: NOTIFICATION_DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: NOTIFICATION_RABBITMQ_URL
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_AUDIENCE
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PUBLIC_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8005
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 8005
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: foc
+spec:
+  ports:
+    - port: 8005
+      targetPort: 8005
+      name: http
+  selector:
+    app: notification-service
+  type: ClusterIP
+
+---
+# ==============================================================================
+# 6. Chat Service (WebSocket & Real-time Chat - Port 8006)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-service
+  namespace: foc
+  labels:
+    app: chat-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chat-service
+  template:
+    metadata:
+      labels:
+        app: chat-service
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: chat-service
+                topologyKey: kubernetes.io/hostname
+      nodeSelector:
+        foc.role: worker-node
+      containers:
+        - name: chat-service
+          image: 891498120071.dkr.ecr.ap-southeast-1.amazonaws.com/foc/chat-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8006
+              name: http
+          env:
+            - name: PORT
+              value: "8006"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: CHAT_DATABASE_URL
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: CHAT_RABBITMQ_URL
+            - name: ORDER_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: ORDER_SERVICE_URL
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: foc-common-config
+                  key: JWT_AUDIENCE
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: foc-secrets
+                  key: JWT_PUBLIC_KEY
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8006
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 8006
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+  namespace: foc
+spec:
+  ports:
+    - port: 8006
+      targetPort: 8006
+      name: http
+  selector:
+    app: chat-service
+  type: ClusterIP

@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-10-28
+// Scope: Added k6 globals (__ENV, __VU, __ITER) for tests/k6 scripts.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: scripts/uat/uat-realtime.mjs shares the browser globals block with uat-d2-ui.mjs (page.evaluate callbacks; issue #197).
 // Author review: <to be completed by Reallyeasy1>
@@ -114,6 +118,17 @@ export default tseslint.config(
     files: ["scripts/uat/uat-d2-ui.mjs", "scripts/uat/uat-realtime.mjs"],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    files: ["tests/k6/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        __ENV: "readonly",
+        __VU: "readonly",
+        __ITER: "readonly",
+      },
     },
   },
 );
