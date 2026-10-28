@@ -50,3 +50,19 @@ Thumbs.db
 # Browser UAT output (scripts/uat/uat-d2-ui.mjs writes its screenshots here; the directory left the repo on 2026-10-21)
 # AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-10-25 - added the two lines above and below. Author review: <pending>
 docs/evidence/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
