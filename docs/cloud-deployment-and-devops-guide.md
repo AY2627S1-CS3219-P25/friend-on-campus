@@ -83,7 +83,8 @@
    * [6.3 Everyday Diagnosis & Log Triage Commands](#63-everyday-diagnosis--log-triage-commands)
    * [6.4 Common Kubernetes Troubleshooting Scenarios (`CrashLoopBackOff`, `ImagePullBackOff`, `Pending`)](#64-common-kubernetes-troubleshooting-scenarios-crashloopbackoff-imagepullbackoff-pending)
    * [6.5 Preserving the Student Budget (Nightly Stop & Resume)](#65-preserving-the-student-budget-nightly-stop--resume)
-   * [6.6 Clean Teardown (`terraform destroy`)](#66-clean-teardown-terraform-destroy)
+   * [6.6 Managing Secrets & Enabling the Natural-Language Assistant (F6 / SoCLaaS)](#66-managing-secrets--enabling-the-natural-language-assistant-f6--soclaas)
+   * [6.7 Clean Teardown (`terraform destroy`)](#67-clean-teardown-terraform-destroy)
 
 ---
 
@@ -1677,7 +1678,47 @@ Within 60–90 seconds, the worker instances boot up, automatically execute thei
 
 ---
 
-### 6.6 Clean Teardown (`terraform destroy`)
+### 6.6 Managing Secrets & Enabling the Natural-Language Assistant (F6 / SoCLaaS)
+
+The **Natural-Language Errand Creation Assistant (F6)** allows students to enter natural conversational requests (e.g., *"I need chicken rice from Deck by 2pm"*) which are extracted into structured form fields by a zero-shot LLM via the **NUS School of Computing SoCLaaS Gateway**.
+
+#### 1. Built-in Offline Fallback Guarantee
+If `SOCLAAS_API_KEY` is not set or empty, `order-service` automatically falls back to an offline regex and heuristic keyword matching engine.
+* The application will **never crash** or throw 500 errors if an API key is missing.
+* In `infra/k8s/04-stateless-services.yaml`, the secret reference is marked `optional: true`, allowing pods to start smoothly without requiring the key in git.
+
+#### 2. Cloud Security: Never Commit Secrets into Git
+Never commit personal API keys or production database credentials to `infra/k8s/01-configmaps-secrets.yaml` in the GitHub repository.
+
+#### 3. How to Enable the Live SoCLaaS LLM in Cloud Production
+There are two ways to securely provide your SoCLaaS API key to the cluster:
+
+##### Option A: Automatic via GitHub Actions Secrets (Recommended)
+1. In your GitHub repository, navigate to **Settings** $\to$ **Secrets and variables** $\to$ **Actions**.
+2. Click **New repository secret**.
+3. Name: `SOCLAAS_API_KEY`.
+4. Value: Paste your key from the [NUS School of Computing SoCLaaS Portal](https://soclaas-portal.comp.nus.edu.sg/).
+5. On the next CD deployment (`.github/workflows/deploy.yml`), GitHub Actions automatically injects the secret into Kubernetes `foc-secrets` during rollout.
+
+##### Option B: Instant Patch via AWS Systems Manager (SSM)
+To enable the key immediately without triggering a full GitHub Actions build:
+```bash
+# 1. Retrieve master instance ID
+MASTER_ID=$(cd infra/terraform && terraform output -raw master_instance_id)
+
+# 2. Patch Kubernetes Secret and restart order-service
+aws ssm send-command \
+  --instance-ids "$MASTER_ID" \
+  --document-name "AWS-RunShellScript" \
+  --parameters '{"commands": [
+    "kubectl patch secret foc-secrets -n foc -p '\''{\"stringData\":{\"SOCLAAS_API_KEY\":\"YOUR_ACTUAL_KEY\"}}'\''",
+    "kubectl rollout restart deployment/order-service -n foc"
+  ]}'
+```
+
+---
+
+### 6.7 Clean Teardown (`terraform destroy`)
 
 When Milestone D4 grading is complete and the semester concludes, delete every cloud resource with a single command:
 ```bash
