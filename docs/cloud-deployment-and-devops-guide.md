@@ -138,7 +138,7 @@ flowchart LR
 | :--- | :--- | :--- |
 | **Change Data Capture (Debezium CDC)** | **Native & Flawless**: PostgreSQL runs with `-c wal_level=logical`. Logical replication slots and `pgoutput` function identically to local development. | **Complex & Constrained**: AWS RDS restricts superuser access, requires custom parameter groups (`rds.logical_replication=1`), manual replication grants, and unmonitored slots can lock disk space. |
 | **Multi-Database Initialization** | **Automated via Init Script**: Mounts `01-init-databases.sql` on first boot, creating 6 isolated databases and 6 dedicated users with restricted grants. | **Manual Network Scripts**: RDS provides no `/docker-entrypoint-initdb.d/` mechanism. Requires running external SQL scripts over the public internet. |
-| **Cost & Budget Control** | **Predictable & Budget-Friendly**: 1 `t3.medium` master + elastic `t3.small` workers run the entire cluster continuously 24/7 for 16 days for $\approx$\$43.04 USD, comfortably within the NUS S\$50 SGD student cap. | **Prohibitive for Students**: AWS EKS control plane alone costs **\$73.00 USD/month** before compute! Adding RDS (\$30/mo) and Amazon MQ (\$25/mo) would exhaust student credits in days. |
+| **Cost & Budget Control** | **Predictable & Budget-Friendly**: 1 `t3.medium` master + 2 `t3.small` workers run the entire cluster continuously 24/7 for a 10-day evaluation window for $\approx$\$36.20 USD ($\approx$S\$47.80 SGD), or across 16 days with nightly pausing for $\approx$\$29.76 USD ($\approx$S\$39.30 SGD), safely within the NUS S\$50 SGD student cap. | **Prohibitive for Students**: AWS EKS control plane alone costs **\$73.00 USD/month** before compute! Adding RDS (\$30/mo) and Amazon MQ (\$25/mo) would exhaust student credits in days. |
 | **Cloud Portability (Course Theme)** | **100% Cloud-Agnostic**: The exact same K8s manifests and Docker containers run identically on AWS, Google Cloud (GCP), Microsoft Azure, or bare-metal servers. | **Vendor Lock-In**: Deep dependency on proprietary AWS-specific APIs, parameter groups, and control planes. |
 
 > [!NOTE]
@@ -228,30 +228,36 @@ flowchart TB
    - The new instance executes its `user_data` bootstrap script, waits for the master node API to respond, installs the K3s agent, and automatically registers itself with the cluster.
    - The ALB dynamically adds the new worker to its Target Group, and K3s immediately distributes pod workloads onto the newly added compute node!
 3. **Hard Budget Ceiling & Cost Optimization**:
-   - The worker ASG enforces `min_size = 1`, `desired_capacity = 1`, and `max_size = 3`.
-   - Baseline worker instances run on cost-effective `t3.small` (2 vCPU, 2GB RAM at \$0.0259/hr), while the stateful master runs on `t3.medium` (2 vCPU, 4GB RAM at \$0.0518/hr) to ensure database stability.
+   - The worker ASG enforces `min_size = 2`, `desired_capacity = 2`, and `max_size = 3`.
+   - Baseline worker instances run on cost-effective `t3.small` (2 vCPU, 2GB RAM at \$0.0259/hr), while the stateful master runs on `t3.medium` (2 vCPU, 4GB RAM at \$0.0518/hr) to ensure database stability. Having 2 baseline workers provides 4 GB aggregated RAM across distinct Availability Zones (`ap-southeast-1a` and `ap-southeast-1b`), comfortably accommodating all 17 microservice pods without eviction.
    - Even under continuous synthetic load testing, AWS will **never launch more than 3 worker instances**, keeping maximum cluster compute costs strictly capped.
 
 ---
 
-### 1.4 The S\$50 SGD Student Budget Constraint: How We Run 24/7 Safely
+### 1.4 The S\$50 SGD Student Budget Constraint: How We Run Safely Under the Cap
 
-The National University of Singapore provisions student AWS accounts with a strict S\$50 SGD credit allocation. Exceeding this budget causes the account to be locked. Our infrastructure is specifically engineered to run **24/7 continuously across a 16-day submission window** without exceeding this cap:
+The National University of Singapore provisions student AWS accounts with a strict S\$50 SGD credit allocation. Exceeding this budget causes the account to be locked. Our infrastructure is specifically engineered to run **safely within this cap** across both intensive evaluation periods and extended multi-week development:
 
 1. **Zero Control-Plane Tax**: We use K3s instead of AWS EKS, avoiding the fixed \$73 USD/month EKS control plane surcharge.
-2. **Right-Sized Compute Splitting**:
-   * **Node 1 (Master / Data Node)**: Fixed `t3.medium` (4GB RAM) dedicated to PostgreSQL 16, RabbitMQ, and Debezium CDC to prevent Out-Of-Memory (OOM) crashes (\$0.0518/hr).
-   * **Worker Pool**: Elastic `t3.small` (2GB RAM) running stateless microservices and frontends (\$0.0259/hr — 50% cheaper).
-   * **16-Day 24/7 Compute Cost**: $(\$0.0518 + \$0.0259) \times 384\text{ hours} = \mathbf{\$29.84\text{ USD}}$.
+2. **Right-Sized Compute Splitting (1 Master + 2 Workers)**:
+   * **Node 1 (Master / Data Node)**: Fixed `t3.medium` (4GB RAM) dedicated to PostgreSQL 16, RabbitMQ, and Debezium CDC to prevent Out-Of-Memory (OOM) crashes (\$0.0518/hr in `ap-southeast-1`).
+   * **Worker Pool**: 2 $\times$ `t3.small` (2GB RAM each) running stateless microservices and frontends ($2 \times \$0.0259\text{/hr} = \$0.0518\text{/hr}$).
+   * **Aggregate Cluster Memory**: 4 GB RAM across workers accommodates all 17 microservice pods without eviction across 2 Availability Zones (`ap-southeast-1a` and `ap-southeast-1b`).
+   * **Total Hourly Compute**: $\$0.0518 + \$0.0518 = \mathbf{\$0.1036\text{ USD/hr}}$.
 3. **Optimized Storage Allocation**:
-   * Persistent EBS gp3 Data Volume: **25 GB** ($\approx$\$1.17 for 16 days).
-   * Master Root Disk: **30 GB** gp3; Worker Root Disk: **20 GB** gp3 ($\approx$\$2.35 for 16 days).
+   * Persistent EBS `gp3` Data Volume: **25 GB** (\$0.088/GB-mo).
+   * Master Root Disk: **30 GB** `gp3`; 2 $\times$ Worker Root Disks: **40 GB** `gp3` ($2 \times 20\text{ GB}$).
+   * Total EBS: 95 GB `gp3` ($\approx$\$8.36/month or $\approx$\$0.28/day).
 4. **Predictable Load Balancer & ECR Lifecycle**:
-   * AWS Application Load Balancer: \$0.0252/hr $\times$ 384 hours = **\$9.68 USD**.
-   * ECR lifecycle policies automatically purge untagged images older than 3 days.
-5. **Grand Total 16-Day 24/7 Cost**:
-   $$\$29.84\text{ (EC2)} + \$9.68\text{ (ALB)} + \$3.52\text{ (EBS)} = \mathbf{\$43.04\text{ USD}} \quad (< \mathbf{\$50.00\text{ Budget}})$$
-   This allows the cluster to run continuously 24/7 without worrying about manual shutdowns.
+   * AWS Application Load Balancer: \$0.0252/hr ($\approx$\$0.605/day).
+   * ECR lifecycle policies automatically purge untagged images older than 3 days (< \$0.01/day).
+5. **Real-World Budget Scenarios**:
+   * **Scenario A: 10-Day Continuous 24/7 Grading Window (Zero Shutdown)**:
+     $$\$24.86\text{ (Compute)} + \$6.05\text{ (ALB)} + \$2.79\text{ (EBS)} + \$2.50\text{ (IPv4/ECR)} = \mathbf{\$36.20\text{ USD}} \quad (\approx\mathbf{S\$47.80\text{ SGD}})$$
+     Allows the cluster to stay live 24/7 uninterrupted throughout the entire project grading and evaluation milestone!
+   * **Scenario B: 16-Day Active Development with Nightly Budget Pause (Section 6.5)**:
+     $$\$13.26\text{ (8 hrs/day Compute)} + \$9.68\text{ (ALB)} + \$4.45\text{ (EBS)} + \$2.37\text{ (IPv4/ECR)} = \mathbf{\$29.76\text{ USD}} \quad (\approx\mathbf{S\$39.30\text{ SGD}})$$
+     Pausing compute overnight preserves over S\$10 SGD in credit headroom during active development sprints.
 
 ---
 
@@ -520,8 +526,8 @@ Centralizes input parameters so configuration can be tuned without modifying res
 * `environment`: Environment namespace (defaults to `prod`).
 * `master_instance_type`: EC2 instance type for Node 1 (defaults to `t3.medium`).
 * `worker_instance_type`: EC2 instance type for Worker Nodes (defaults to `t3.small`).
-* `worker_min_size`: Minimum number of worker EC2 instances in the Auto Scaling Group (defaults to `1`).
-* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `1`).
+* `worker_min_size`: Minimum number of worker EC2 instances in the Auto Scaling Group (defaults to `2`).
+* `worker_desired_capacity`: Baseline desired number of worker EC2 instances (defaults to `2`).
 * `worker_max_size`: Hard ceiling on worker EC2 instances to protect student budget (defaults to `3`).
 * `worker_cpu_target`: Target average CPU percentage across workers before triggering scale-out (defaults to `75.0`%).
 * `ebs_volume_size`: Size of persistent EBS volume (defaults to `25` GB).
@@ -680,7 +686,7 @@ AWS offers Graviton processors (`t4g.small` at \$0.0208/hr), which are ~20% chea
 
 However, we intentionally standardized on **x86_64 (`t3`)**:
 * **Architecture Hazards**: `t4g` uses ARM64 (`aarch64`). If any Node.js native C++ addon (`bcrypt`, Prisma query engine), Java native library in Debezium, or prebuilt container base image lacks ARM64 support, container startup crashes with `exec format error`.
-* **Zero Compatibility Friction**: `t3` (x86_64) guarantees 100% binary compatibility with standard Docker images, eliminating cross-compilation risks 16 days before project submission while still keeping 24/7 costs well within the \$50 credit cap (~$43 USD).
+* **Zero Compatibility Friction**: `t3` (x86_64) guarantees 100% binary compatibility with standard Docker images, eliminating cross-compilation risks before project submission while still keeping 24/7 evaluation costs safely within the S\$50 credit cap (~S\$47.80 SGD).
 
 #### 2.6.3 Why Stateless Worker Nodes Still Need 20 GB Root Disk (The Kubelet DiskPressure Trap)
 Students often ask: *"If worker nodes are stateless, why do they need 20 GB of disk space?"*
@@ -748,10 +754,10 @@ The following table summarizes all AWS resources provisioned by Terraform, their
 | AWS Component | Terraform Resource | Role in Architecture | Is It Billable? | Cost Rate & Impact |
 | :--- | :--- | :--- | :--- | :--- |
 | **Amazon ECR** | `aws_ecr_repository.repositories` | Private container registry storing Docker images for all 6 microservices, NGINX gateway & 2 web apps | **Partially (Negligible)** | • **Free Tier:** 500 MB/month free storage.<br/>• **Storage:** \$0.10 USD/GB/mo.<br/>• **Data Transfer:** **\$0.00 (100% Free)** when EC2 nodes pull within the same region (`ap-southeast-1`).<br/>*Total cost: < \$0.20–\$0.40 USD/month.* |
-| **EC2 Compute** | `aws_instance.k3s_master`, `aws_autoscaling_group.worker_asg` | 1 Master (`t3.medium`) + 2 Workers (`t3.small`) running K3s and container workloads | **Yes (Active Compute)** | • `t3.medium`: \$0.0416/hr.<br/>• `t3.small` $\times$ 2: \$0.0416/hr total.<br/>• **\$0.00/hr when stopped** via nightly pause commands. |
-| **AWS ALB** | `aws_lb.main`, `aws_lb_target_group.http` | Multi-AZ Application Load Balancer routing internet traffic to workers on port 80 | **Yes (Fixed Hourly)** | $\sim$\$0.0225/hr ($\sim$\$0.54/day or $\sim$\$16/mo if left running 24/7). Stays provisioned until `terraform destroy`. |
-| **Amazon EBS** | `aws_ebs_volume.stateful_data`, EC2 root disks | 25 GB gp3 SSD for PostgreSQL/RabbitMQ/Debezium persistence + 20 GB root disks per node | **Yes (Storage)** | \$0.08 USD/GB/month.<br/>$\sim$85 GB total storage = $\sim$\$6.80/month ($\sim$\$0.22/day). Stays billable while instances are paused to preserve data. |
-| **Public IPv4** | AWS VPC auto-assignment | Public IP addresses assigned to the ALB and EC2 instances | **Yes (AWS Policy)** | \$0.005/hr per IPv4 address ($\sim$\$0.12/day total). |
+| **EC2 Compute** | `aws_instance.k3s_master`, `aws_autoscaling_group.worker_asg` | 1 Master (`t3.medium`) + 2 Workers (`t3.small`) running K3s and container workloads across 2 AZs | **Yes (Active Compute)** | • `t3.medium`: \$0.0518/hr.<br/>• `t3.small` $\times$ 2: \$0.0518/hr total ($2 \times \$0.0259$).<br/>• **Total compute:** \$0.1036/hr ($\approx$\$2.49/day).<br/>• **\$0.00/hr when stopped** via nightly pause commands. |
+| **AWS ALB** | `aws_lb.main`, `aws_lb_target_group.http` | Multi-AZ Application Load Balancer routing internet traffic to workers on port 80 | **Yes (Fixed Hourly)** | \$0.0252/hr ($\approx$\$0.605/day or $\approx$\$18.14/mo if left running 24/7). Stays provisioned until `terraform destroy`. |
+| **Amazon EBS** | `aws_ebs_volume.stateful_data`, EC2 root disks | 25 GB gp3 SSD for PostgreSQL/RabbitMQ/Debezium persistence + 30 GB master root + 40 GB worker roots | **Yes (Storage)** | \$0.088 USD/GB/month in `ap-southeast-1`.<br/>95 GB total storage = $\approx$\$8.36/month ($\approx$\$0.28/day). Stays billable while instances are paused to preserve data. |
+| **Public IPv4** | AWS VPC auto-assignment | Public IP addresses assigned to the ALB and EC2 instances | **Yes (AWS Policy)** | \$0.005/hr per IPv4 address ($\approx$\$0.24/day total across nodes and ALB). |
 | **Amazon VPC & Subnets** | `aws_vpc.main`, `aws_subnet.*` | Isolated virtual private network (CIDR `10.0.0.0/16`) spanned across 2 availability zones | **100% Free** | AWS charges \$0.00 for VPCs, subnets, and route tables. |
 | **Internet Gateway** | `aws_internet_gateway.main` | Outbound and inbound internet gateway for public VPC subnets | **100% Free** | Zero hourly or configuration fees. |
 | **Security Groups** | `aws_security_group.alb`, `aws_security_group.k3s_nodes` | Stateful virtual firewalls enforcing ALB port 80 and internal node communication | **100% Free** | Zero charges for security groups or security rules. |
@@ -815,18 +821,19 @@ Notice that the ALB endpoint is currently accessed via `http://` rather than `ht
 
 #### 2.7.4 Student Budget Ceiling Math: 24/7 vs. Nightly Pausing
 
-* **Scenario A: Running 24/7 (Continuous)**:
-  * ALB: \$0.54 / day
-  * EC2 Compute (1 Master + 2 Workers): \$0.0832/hr $\times$ 24 = \$2.00 / day
-  * EBS Storage (85 GB total): \$0.22 / day
-  * IPv4 & ECR: $\sim$\$0.15 / day
-  * **Daily Total**: $\sim$\$2.91 USD/day ($\sim$S$3.80 SGD/day).
-  * For a 10-day grading period, total cost is $\approx$S$38 SGD, well under the S$50 budget cap!
-* **Scenario B: Nightly Budget Pause (Recommended)**:
-  * Running EC2 compute for 6 hours/day during active development:
-  * Compute cost drops from \$2.00/day to **\$0.50/day**.
-  * **Daily Total**: $\sim$\$1.41 USD/day ($\sim$S$1.85 SGD/day).
-  * Preserves maximum budget credits for final benchmarks and live presentations.
+* **Scenario A: Running 24/7 (Continuous Grading / Evaluation Window)**:
+  * ALB: \$0.60 / day (\$0.0252/hr $\times$ 24)
+  * EC2 Compute (1 Master + 2 Workers in `ap-southeast-1`): \$0.1036/hr $\times$ 24 = \$2.49 / day
+  * EBS Storage (95 GB gp3 total across data volume and 3 VM root disks): \$0.28 / day
+  * Public IPv4 & ECR: $\sim$\$0.25 / day
+  * **Daily Total**: $\sim$\$3.62 USD/day ($\sim$S\$4.78 SGD/day).
+  * For a 10-day grading period, total cost is $\approx$\$36.20 USD ($\approx$S\$47.80 SGD), safely under the S\$50 SGD budget cap without needing to turn off the cluster!
+* **Scenario B: Nightly Budget Pause (Recommended for Multi-Week Development)**:
+  * Running EC2 compute for 8 hours/day during active development:
+  * Compute cost drops from \$2.49/day to **\$0.83/day** ($8\text{ hrs} \times \$0.1036$).
+  * ALB (\$0.60/day) + EBS (\$0.28/day) + IPv4/ECR ($\sim$\$0.15/day) = \$1.03/day.
+  * **Daily Total**: $\sim$\$1.86 USD/day ($\sim$S\$2.45 SGD/day).
+  * For 16 days of active development, total cost is $\approx$\$29.76 USD ($\approx$S\$39.30 SGD), preserving over S\$10 SGD in credit headroom for benchmarks and milestone presentations.
 
 ---
 
@@ -1645,13 +1652,14 @@ To preserve the S\$50 SGD student budget, you must stop cluster resources when y
 
 > [!WARNING]
 > **Critical ASG Behavior**: In an AWS Auto Scaling Group, if you directly execute `aws ec2 stop-instances` on worker instances, the Auto Scaling Group's health check will observe that the instances stopped responding, consider them **unhealthy**, terminate them, and immediately launch brand new instances!
-> To properly pause an ASG worker tier, you must set its **desired capacity to 0**.
+> To properly pause an ASG worker tier, you must update its **min size and desired capacity to 0**.
 
 #### Nightly Stop (Cluster Pause):
 ```bash
 # 1. Scale worker Auto Scaling Group to 0 instances (cleanly terminates worker VMs, halting compute charges)
-aws autoscaling set-desired-capacity \
+aws autoscaling update-auto-scaling-group \
   --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
+  --min-size 0 \
   --desired-capacity 0
 
 # 2. Stop Node 1 (persistent master/data node)
@@ -1669,10 +1677,11 @@ aws ec2 start-instances --instance-ids \
 
 # Wait ~45 seconds for Node 1 K3s control plane to initialize, then:
 
-# 2. Restore worker ASG desired capacity to 1 instance (or 2 for high availability)
-aws autoscaling set-desired-capacity \
+# 2. Restore worker ASG min size and desired capacity to baseline (2 instances across 2 AZs)
+aws autoscaling update-auto-scaling-group \
   --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) \
-  --desired-capacity 1
+  --min-size 2 \
+  --desired-capacity 2
 ```
 Within 60–90 seconds, the worker instances boot up, automatically execute their bootstrap script, join the K3s cluster, register with the ALB, and K3s schedules all microservice pods across the pool!
 
