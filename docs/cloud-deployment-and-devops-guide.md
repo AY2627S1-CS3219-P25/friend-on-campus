@@ -14,7 +14,7 @@
    * [1.1 The Microservices Dilemma: Why Not Just `docker-compose up` on a VM?](#11-the-microservices-dilemma-why-not-just-docker-compose-up-on-a-vm)
    * [1.2 Architectural Decision: General Compute (EC2) vs. Managed Cloud (RDS/EKS)](#12-architectural-decision-general-compute-ec2-vs-managed-cloud-rdseks)
    * [1.3 Cluster Topology & The Two-Tier Autoscaling Architecture](#13-cluster-topology--the-two-tier-autoscaling-architecture)
-   * [1.4 The S\$50 SGD Student Budget Constraint: How We Keep Costs Low](#14-the-s50-sgd-student-budget-constraint-how-we-keep-costs-low)
+   * [1.4 The S\$50 SGD Student Budget Constraint: How We Run 24/7 Safely](#14-the-s50-sgd-student-budget-constraint-how-we-run-247-safely)
 2. [Infrastructure as Code (IaC) with Terraform & AWS](#2-infrastructure-as-code-iac-with-terraform--aws)
    * [2.1 What is Infrastructure as Code and Why Does It Matter?](#21-what-is-infrastructure-as-code-and-why-does-it-matter)
    * [2.2 How Terraform Works Under the Hood](#22-how-terraform-works-under-the-hood)
@@ -31,11 +31,18 @@
      * [`ecr.tf`](#ecrtf)
      * [`outputs.tf`](#outputstf)
      * [`terraform.tfvars.example`](#terraformtfvarsexample)
+   * [2.5 Day 1 vs. Day 2: Why We Separate Terraform from GitHub Actions CD (The State Collision Trap)](#25-day-1-vs-day-2-why-we-separate-terraform-from-github-actions-cd-the-state-collision-trap)
+   * [2.6 Hardware, Compute & Storage Engineering Decisions](#26-hardware-compute--storage-engineering-decisions)
+     * [2.6.1 EBS gp3 SSD vs. st1 HDD: The 500 GB Minimum Provisioning Trap](#261-ebs-gp3-ssd-vs-st1-hdd-the-500-gb-minimum-provisioning-trap)
+     * [2.6.2 Compute Architecture: x86_64 (t3) vs. AWS Graviton ARM64 (t4g)](#262-compute-architecture-x86_64-t3-vs-aws-graviton-arm64-t4g)
+     * [2.6.3 Why Stateless Worker Nodes Still Need 20 GB Root Disk (The Kubelet DiskPressure Trap)](#263-why-stateless-worker-nodes-still-need-20-gb-root-disk-the-kubelet-diskpressure-trap)
+     * [2.6.4 Why the Application Load Balancer (ALB) is Essential (Even Before Autoscaling)](#264-why-the-application-load-balancer-alb-is-essential-even-before-autoscaling)
 3. [Container Orchestration with Lightweight Kubernetes (K3s)](#3-container-orchestration-with-lightweight-kubernetes-k3s)
    * [3.1 The Container Evolution: Bare Metal $\to$ VMs $\to$ Docker Compose $\to$ Kubernetes](#31-the-container-evolution-bare-metal-to-vms-to-docker-compose-to-kubernetes)
    * [3.2 Why K3s over Upstream EKS or Docker Swarm?](#32-why-k3s-over-upstream-eks-or-docker-swarm)
    * [3.3 The 7 Core Kubernetes Primitives in Plain English](#33-the-7-core-kubernetes-primitives-in-plain-english)
-   * [3.4 File-by-File Breakdown of `infra/k8s/`](#34-file-by-file-breakdown-of-infrak8s)
+   * [3.4 Multi-Node Overlay Networking: Flannel VXLAN, Pod CIDRs, and CoreDNS in Plain English](#34-multi-node-overlay-networking-flannel-vxlan-pod-cidrs-and-coredns-in-plain-english)
+   * [3.5 File-by-File Breakdown of `infra/k8s/`](#35-file-by-file-breakdown-of-infrak8s)
      * [`00-namespace.yaml`](#00-namespaceyaml)
      * [`01-configmaps-secrets.yaml`](#01-configmaps-secretsyaml)
      * [`02-storage.yaml`](#02-storageyaml)
@@ -55,10 +62,11 @@
      * [`.github/workflows/ci.yml`](#githubworkflowsciyml)
      * [`.github/workflows/deploy.yml`](#githubworkflowsdeployyml)
 5. [Distributed Load & Concurrency Testing with k6](#5-distributed-load--concurrency-testing-with-k6)
-   * [5.1 Why k6 over Apache JMeter or Apache Bench?](#51-why-k6-over-apache-jmeter-or-apache-bench)
-   * [5.2 Scenario A: Race Condition Verification (`order-claim-race.js`)](#52-scenario-a-race-condition-verification-order-claim-racejs)
-   * [5.3 Scenario B: Discovery Traffic Spikes & Live Autoscaling (`discovery-load.js`)](#53-scenario-b-discovery-traffic-spikes--live-autoscaling-discovery-loadjs)
-   * [5.4 Fulfilling CS3219 Rubric Categories N3 & N4 for Milestone D4](#54-fulfilling-cs3219-rubric-categories-n3--n4-for-milestone-d4)
+   * [5.1 Where k6 Runs: Local Laptop vs. Cloud Runners (Zero-Cost External Simulation)](#51-where-k6-runs-local-laptop-vs-cloud-runners-zero-cost-external-simulation)
+   * [5.2 Why k6 over Apache JMeter or Apache Bench?](#52-why-k6-over-apache-jmeter-or-apache-bench)
+   * [5.3 Scenario A: Race Condition Verification (`order-claim-race.js`)](#53-scenario-a-race-condition-verification-order-claim-racejs)
+   * [5.4 Scenario B: Discovery Traffic Spikes & Live Autoscaling (`discovery-load.js`)](#54-scenario-b-discovery-traffic-spikes--live-autoscaling-discovery-loadjs)
+   * [5.5 Fulfilling CS3219 Rubric Categories N3 & N4 for Milestone D4](#55-fulfilling-cs3219-rubric-categories-n3--n4-for-milestone-d4)
 6. [Operations, Troubleshooting & Student Runbook](#6-operations-troubleshooting--student-runbook)
    * [6.1 Day-to-Day Operations: Connecting to Instances via AWS SSM](#61-day-to-day-operations-connecting-to-instances-via-aws-ssm)
    * [6.2 Controlling K3s Remotely via `kubectl`](#62-controlling-k3s-remotely-via-kubectl)
@@ -118,7 +126,7 @@ flowchart LR
 | :--- | :--- | :--- |
 | **Change Data Capture (Debezium CDC)** | **Native & Flawless**: PostgreSQL runs with `-c wal_level=logical`. Logical replication slots and `pgoutput` function identically to local development. | **Complex & Constrained**: AWS RDS restricts superuser access, requires custom parameter groups (`rds.logical_replication=1`), manual replication grants, and unmonitored slots can lock disk space. |
 | **Multi-Database Initialization** | **Automated via Init Script**: Mounts `01-init-databases.sql` on first boot, creating 6 isolated databases and 6 dedicated users with restricted grants. | **Manual Network Scripts**: RDS provides no `/docker-entrypoint-initdb.d/` mechanism. Requires running external SQL scripts over the public internet. |
-| **Cost & Budget Control** | **Predictable & Budget-Friendly**: 3 `t3.medium` instances run the entire cluster for $\approx$\$4.50 USD/day, well within the NUS S\$50 SGD student cap. | **Prohibitive for Students**: AWS EKS control plane alone costs **\$73.00 USD/month** before compute! Adding RDS (\$30/mo) and Amazon MQ (\$25/mo) would exhaust student credits in days. |
+| **Cost & Budget Control** | **Predictable & Budget-Friendly**: 1 `t3.medium` master + elastic `t3.small` workers run the entire cluster continuously 24/7 for 16 days for $\approx$\$43.04 USD, comfortably within the NUS S\$50 SGD student cap. | **Prohibitive for Students**: AWS EKS control plane alone costs **\$73.00 USD/month** before compute! Adding RDS (\$30/mo) and Amazon MQ (\$25/mo) would exhaust student credits in days. |
 | **Cloud Portability (Course Theme)** | **100% Cloud-Agnostic**: The exact same K8s manifests and Docker containers run identically on AWS, Google Cloud (GCP), Microsoft Azure, or bare-metal servers. | **Vendor Lock-In**: Deep dependency on proprietary AWS-specific APIs, parameter groups, and control planes. |
 
 > [!NOTE]
@@ -154,7 +162,7 @@ flowchart TB
                 Postgres["PostgreSQL 16 (6 Logical DBs)"]
                 RabbitMQ["RabbitMQ 3.13 (Quorum Queues)"]
                 Debezium["Debezium Server 2.7 (User, Order, Credit)"]
-                EBS[("50GB gp3 Amazon EBS<br/>Mounted at /var/foc-data")]
+                EBS[("25GB gp3 Amazon EBS<br/>Mounted at /var/foc-data")]
                 Postgres --- EBS
                 RabbitMQ --- EBS
                 Debezium --- EBS
@@ -163,14 +171,14 @@ flowchart TB
 
         subgraph StatelessTier["Stateless Tier: EC2 Auto Scaling Group (Multi-AZ, 1 to 3 instances)"]
             subgraph ASG["AWS Auto Scaling Group (foc-prod-worker-asg)"]
-                subgraph Node2["Worker EC2 Instance A (t3.medium)<br/>Label: foc.role=worker-node"]
+                subgraph Node2["Worker EC2 Instance A (t3.small)<br/>Label: foc.role=worker-node"]
                     Ingress1["Traefik Ingress Controller"]
                     Gateway1["api-gateway (NGINX)"]
                     PodsA["Microservice Pods (Tier 1 HPA Replicas)"]
                     Frontends1["student-app & admin-portal"]
                 end
 
-                subgraph Node3["Worker EC2 Instance B (t3.medium)<br/>Label: foc.role=worker-node"]
+                subgraph Node3["Worker EC2 Instance B (t3.small)<br/>Label: foc.role=worker-node"]
                     Ingress2["Traefik Ingress Controller"]
                     Gateway2["api-gateway (NGINX)"]
                     PodsB["Microservice Pods (Tier 1 HPA Replicas)"]
@@ -429,6 +437,118 @@ A reference template illustrating how students can customize instance types or d
 
 ---
 
+### 2.5 Day 1 vs. Day 2: Why We Separate Terraform from GitHub Actions CD (The State Collision Trap)
+
+Students often wonder:
+> *"If GitHub Actions can run our automated tests and deployment, why shouldn't it run `terraform apply` on every commit as well?"*
+
+The answer lies in how Terraform manages state, security, and lifecycle boundaries:
+
+```mermaid
+flowchart TD
+    subgraph DevLaptop["Developer Laptop"]
+        T_Local["terraform apply"] --> State_Local["terraform.tfstate (Local Disk)"]
+        State_Local -.->|Excluded by .gitignore<br/>(Contains Passwords & Keys)| Git[("GitHub Repository")]
+    end
+
+    subgraph GitHubActions["GitHub Actions Runner"]
+        Git --> FreshClone["Clones Fresh Repo (NO .tfstate!)"]
+        FreshClone --> T_GH["terraform apply"]
+        T_GH --> Collision["💥 ERROR: Resource Already Exists!<br/>• VPC 10.0.0.0/16 already exists<br/>• ECR Repository foc/order-service already exists<br/>• IAM Role already exists"]
+    end
+```
+
+#### 1. The State Collision Problem (`terraform.tfstate`)
+* Terraform maintains an inventory file called `terraform.tfstate` mapping declared code resources to actual AWS resource IDs (VPC IDs, Subnet IDs, Security Group IDs).
+* This state file contains sensitive database passwords, generated cluster join tokens, and KMS keys. Therefore, **it is strictly excluded from Git via `.gitignore`**.
+* If GitHub Actions were to run `terraform apply`, it starts inside a fresh, blank runner with **no state file**. Terraform would assume zero resources exist in AWS and attempt to create everything from scratch!
+* AWS will immediately abort the run with fatal errors: *"VPC with CIDR 10.0.0.0/16 already exists"*, *"ECR repository foc/user-service already exists"*, and *"IAM role already exists"*.
+
+#### 2. The Clean Architectural Separation of Concerns
+In cloud engineering, we separate operations into two distinct lifecycles:
+* **Day 1: Infrastructure Provisioning (Terraform)**:
+  * Analogous to *building the airport and paving the runway*.
+  * Executed **once** from your local terminal (`terraform apply`).
+  * Establishes the VPC, ALB, ECR registries, IAM roles, and K3s EC2 instances.
+  * You only touch Terraform again when modifying cloud topology (e.g., adding a new subnet).
+* **Day 2: Application Delivery (GitHub Actions CD)**:
+  * Analogous to *landing airplanes on the runway*.
+  * Executed **automatically on every Git push** to `main`.
+  * Builds microservice Docker images, pushes them to ECR, and triggers a zero-downtime rolling update of pods on K3s via AWS Systems Manager (SSM).
+  * It does not touch cloud infrastructure.
+
+#### 3. What About Enterprise GitOps? (The Remote Backend)
+In large corporate environments where teams collaborate on infrastructure via CI/CD, engineers set up a **Terraform Remote Backend**:
+* An **Amazon S3 bucket** stores the central `terraform.tfstate` with server-side encryption.
+* An **Amazon DynamoDB table** provides state locking (preventing two engineers or CI jobs from applying simultaneously).
+* For a 16-day university project with strict sandbox policies, managing S3 backend buckets and DynamoDB locking tables introduces unnecessary moving parts and extra permission risks. Local `terraform apply` + GitHub Actions SSM deployment is the cleanest, most reliable pattern.
+
+---
+
+### 2.6 Hardware, Compute & Storage Engineering Decisions
+
+Every line of our Terraform configuration was deliberately chosen to optimize performance, stability, and budget.
+
+#### 2.6.1 EBS gp3 SSD vs. st1 HDD: The 500 GB Minimum Provisioning Trap
+Why did we choose **Amazon EBS `gp3` (General Purpose SSD)** over cheaper HDD storage tiers like `st1` (Throughput Optimized HDD)?
+1. **The 500 GB Minimum Size Constraint**:
+   * AWS enforces a strict minimum volume size of **500 GB** for `st1` volumes. You cannot provision a 25 GB or 50 GB `st1` disk.
+   * At \$0.045/GB-month, a 500 GB `st1` disk costs **\$22.50 / month minimum**!
+   * In contrast, our 25 GB `gp3` SSD costs only **\$2.20 / month** (\$0.088/GB-month $\times$ 25 GB).
+2. **Boot Drive Restrictions**:
+   * AWS EC2 explicitly forbids booting an operating system from `st1` or `sc1` magnetic drives. Root volumes must be SSD (`gp2` or `gp3`).
+3. **Database Random I/O**:
+   * Relational databases (PostgreSQL 16) perform random disk I/O when reading indexes and updating rows. Mechanical HDD heads introduce unacceptable latency. `gp3` delivers **3,000 IOPS baseline** with sub-millisecond seek times.
+
+#### 2.6.2 Compute Architecture: x86_64 (`t3`) vs. AWS Graviton ARM64 (`t4g`)
+AWS offers Graviton processors (`t4g.small` at \$0.0208/hr), which are ~20% cheaper than x86 `t3.small` (\$0.0259/hr). Over 16 days, switching to `t4g` would save $\approx$\$5 USD.
+
+However, we intentionally standardized on **x86_64 (`t3`)**:
+* **Architecture Hazards**: `t4g` uses ARM64 (`aarch64`). If any Node.js native C++ addon (`bcrypt`, Prisma query engine), Java native library in Debezium, or prebuilt container base image lacks ARM64 support, container startup crashes with `exec format error`.
+* **Zero Compatibility Friction**: `t3` (x86_64) guarantees 100% binary compatibility with standard Docker images, eliminating cross-compilation risks 16 days before project submission while still keeping 24/7 costs well within the \$50 credit cap (~$43 USD).
+
+#### 2.6.3 Why Stateless Worker Nodes Still Need 20 GB Root Disk (The Kubelet DiskPressure Trap)
+Students often ask: *"If worker nodes are stateless, why do they need 20 GB of disk space?"*
+
+```mermaid
+flowchart LR
+    RootDisk["20 GB Root Disk (Worker Node)"]
+    RootDisk --> OS["Ubuntu 24.04 OS & K3s binaries (~4 GB)"]
+    RootDisk --> Cache["Containerd Docker Image Cache (~4-5 GB)"]
+    RootDisk --> Logs["Pod stdout/stderr Logs & /tmp (~2 GB)"]
+    RootDisk --> Buffer["Kubelet Eviction Safety Buffer (~8 GB)"]
+```
+
+Even without a persistent database volume, a worker node stores:
+1. **Ubuntu 24.04 LTS OS & K3s Agent**: Kernel, systemd, containerd daemon, and networking tools consume ~3–4 GB.
+2. **Container Image Cache**: Every microservice image (`order-service`, `credit-service`, `gateway`, `traefik`, frontends) pulled from ECR is unpacked onto local disk. During rolling deployments, containerd downloads the new image before removing the old one (~4–5 GB).
+3. **Container Ephemeral Writes & Logs**: Microservice stdout/stderr logs (`/var/log/pods/`) and temporary files write to root disk.
+4. **The Kubelet `DiskPressure` Eviction Rule**:
+   * Kubernetes continuously checks node disk usage. **If disk utilization crosses 85%, the Kubelet enters `DiskPressure` state and begins forcefully evicting (killing) running pods!**
+   * A 20 GB disk guarantees sufficient operational headroom to prevent sudden pod eviction during stress tests.
+
+#### 2.6.4 Why the Application Load Balancer (ALB) is Essential (Even Before Autoscaling)
+Students frequently ask:
+> *"Is the AWS Application Load Balancer (ALB) only required if we have two-tier autoscaling? If we only ran a static master and worker, couldn't we save money by pointing users straight to an EC2 public IP?"*
+
+While autoscaling requires a load balancer to dynamically attach and detach newly spawned worker nodes, **the ALB is critical to production architecture even with zero autoscaling**:
+
+1. **Single Stable Entrypoint vs. Ephemeral EC2 Public IPs**:
+   * EC2 instances are dynamic virtual machines. If an EC2 instance reboots, stops, or is replaced by AWS during hardware maintenance, AWS changes its public IP address (unless an Elastic IP is bound, which AWS bills for).
+   * Relying on raw EC2 IP addresses breaks client connections, bookmarks, and frontend configurations whenever a node cycles.
+   * The ALB provides a single permanent AWS DNS address (`foc-prod-alb-xxxx.ap-southeast-1.elb.amazonaws.com`). The entire outside world talks to this unchanging DNS name, while instances behind it can restart or scale transparently.
+2. **Layer 7 Ingress Routing & SSL/TLS Termination**:
+   * The ALB operates at OSI Layer 7 (HTTP/HTTPS). It provides a centralized boundary to terminate SSL/TLS certificates and inspect HTTP headers before requests hit internal compute nodes.
+3. **Balancing Traffic Across Multiple Cluster Nodes**:
+   * In a multi-node K3s cluster, K3s runs Traefik Ingress Controller listeners on port 80 across all nodes. When thousands of external HTTP requests arrive, which EC2 node should receive them?
+   * Without an ALB, 100% of external traffic would choke the single EC2 master node. The ALB distributes incoming requests across all healthy EC2 nodes using round-robin and least outstanding requests.
+4. **Active Health Probing & Zero-Downtime Failover**:
+   * The ALB continuously pings `/health` every 15 seconds. If a worker instance is booting, under heavy CPU load, or undergoing an OS update, the ALB instantly stops routing traffic to that node. External clients never experience abrupt `502 Bad Gateway` or `Connection Refused` errors.
+5. **Defense-in-Depth Security**:
+   * Backend compute instances should never be directly reachable on the public internet. Placing the ALB in the public subnet allows us to lock down the cluster security group so that EC2 instances accept HTTP traffic *exclusively* from the ALB security group, eliminating direct bot scans and arbitrary port probing.
+
+---
+
 ## 3. Container Orchestration with Lightweight Kubernetes (K3s)
 
 ### 3.1 The Container Evolution: Bare Metal $\to$ VMs $\to$ Docker Compose $\to$ Kubernetes
@@ -499,13 +619,103 @@ flowchart TD
 4. **ConfigMap & Secret**:
    * `ConfigMap`: Stores non-sensitive configuration (hostnames, port numbers, log levels).
    * `Secret`: Stores sensitive credentials (passwords, JWT signing keys, connection strings) as base64-encoded environment variables.
-5. **PersistentVolume (PV) & PersistentVolumeClaim (PVC)**: The storage abstraction. A `PersistentVolume` represents a physical storage disk (our 50GB EBS volume). A `PersistentVolumeClaim` is a ticket requested by a container to claim storage on that disk.
+5. **PersistentVolume (PV) & PersistentVolumeClaim (PVC)**: The storage abstraction. A `PersistentVolume` represents a physical storage disk (our 25GB EBS volume). A `PersistentVolumeClaim` is a ticket requested by a container to claim storage on that disk.
 6. **Ingress**: The cluster's front door. It receives HTTP requests from the AWS ALB and routes them to the correct internal Service based on URL paths.
 7. **Horizontal Pod Autoscaler (HPA)**: The autopilot. It periodically checks the CPU and memory consumption of your pods. When traffic spikes and CPU exceeds a threshold (e.g. 60%), HPA instructs the Deployment to increase replicas from 2 to 5.
 
 ---
 
-### 3.4 File-by-File Breakdown of `infra/k8s/`
+### 3.4 Multi-Node Overlay Networking: Flannel VXLAN, Pod CIDRs, and CoreDNS in Plain English
+
+When running K3s across multiple EC2 instances (1 Master + 1 to 3 Workers), a fundamental networking question arises:
+> *"How do pods communicate across different EC2 instances? If `order-service` runs on Worker 1, how does it talk to `postgres` running on Master? Is this managed by AWS or by K3s?"*
+
+The answer is that Kubernetes uses a **two-layer networking model**: the **Underlay** (AWS VPC) and the **Overlay** (K3s Flannel).
+
+```mermaid
+flowchart TD
+    subgraph VPC["AWS VPC Underlay Network (10.0.0.0/16)"]
+        subgraph MasterEC2["Master Node (EC2: 10.0.1.10)"]
+            F0["Flannel Interface (flannel.1)"]
+            cni0["Bridge cni0 (10.42.0.0/24)"]
+            PodDB["PostgreSQL Pod<br/>(10.42.0.8)"]
+            F0 --- cni0 --- PodDB
+        end
+
+        subgraph WorkerEC2["Worker Node 1 (EC2: 10.0.1.20)"]
+            F1["Flannel Interface (flannel.1)"]
+            cni1["Bridge cni1 (10.42.1.0/24)"]
+            PodOrder["order-service Pod<br/>(10.42.1.15)"]
+            F1 --- cni1 --- PodOrder
+        end
+
+        MasterEC2 <==>|"VXLAN UDP Port 8472 (Encapsulated Traffic)"| WorkerEC2
+    end
+```
+
+#### 1. Underlay vs. Overlay: The Two Network Planes
+* **AWS VPC Underlay (`10.0.0.0/16`)**:
+  * Managed by AWS VPC routing tables.
+  * Assigns private IP addresses to each physical EC2 instance (e.g., Master = `10.0.1.10`, Worker 1 = `10.0.1.20`, Worker 2 = `10.0.1.21`).
+  * Instances talk to each other over standard AWS network interfaces.
+* **K3s Pod Overlay (`10.42.0.0/16`)**:
+  * Managed by **K3s and Flannel CNI** (Container Network Interface).
+  * Creates a software-defined, flat virtual network spanning the entire cluster.
+  * Every pod receives its own unique IP inside `10.42.0.0/16`, regardless of which EC2 instance it runs on. To the containers, all pods appear to sit on the exact same local Ethernet switch.
+
+#### 2. Subnet Slicing: Pod CIDR per Node
+When the K3s control plane starts, it automatically carves up the `10.42.0.0/16` overlay into dedicated non-overlapping `/24` subnets (each supporting 254 pods):
+* **Master Node**: Assigned `10.42.0.0/24` (Pods on master receive `10.42.0.2`, `10.42.0.3`...)
+* **Worker Node 1**: Assigned `10.42.1.0/24` (Pods on worker 1 receive `10.42.1.2`, `10.42.1.3`...)
+* **Worker Node 2**: Assigned `10.42.2.0/24` (Pods on worker 2 receive `10.42.2.2`, `10.42.2.3`...)
+
+Because every node has a distinct subnet slice, no two pods in the cluster will ever have an IP collision.
+
+#### 3. The Packet Journey: Flannel VXLAN Encapsulation
+What happens when Pod A (`order-service` on Worker 1, `10.42.1.15`) queries PostgreSQL on Master (`10.42.0.8:5432`)?
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant PodA as "Pod: order-service<br/>(10.42.1.15 on Worker 1)"
+    participant F1 as "flannel.1 Interface<br/>(Worker 1: 10.0.1.20)"
+    participant VPC as "AWS VPC Router"
+    participant F0 as "flannel.1 Interface<br/>(Master: 10.0.1.10)"
+    participant PodDB as "Pod: postgres<br/>(10.42.0.8 on Master)"
+
+    PodA->>F1: 1. Outgoing TCP Packet: [Src: 10.42.1.15 ➔ Dst: 10.42.0.8:5432]
+    Note over F1: 2. Flannel Route Lookup:<br/>Destination 10.42.0.0/24 lives on EC2 host 10.0.1.10.<br/>Encapsulation: Wraps the original TCP packet<br/>inside an outer UDP datagram!
+    F1->>VPC: 3. Outgoing UDP Packet: [Src: 10.0.1.20:8472 ➔ Dst: 10.0.1.10:8472]
+    VPC->>F0: 4. Standard AWS VPC delivers UDP packet across EC2 nodes
+    Note over F0: 5. VXLAN Decapsulation:<br/>Strips outer UDP wrapper,<br/>restores inner TCP packet: [Src: 10.42.1.15 ➔ Dst: 10.42.0.8:5432]
+    F0->>PodDB: 6. Delivers unwrapped packet to Postgres container via local cni0 bridge
+```
+
+* **Step 1**: Pod A generates a standard TCP packet targeting `10.42.0.8:5432`.
+* **Step 2**: The packet hits Worker 1's `flannel.1` virtual network tunnel device. Flannel inspects its kernel routing table and determines that `10.42.0.0/24` resides on EC2 host `10.0.1.10`.
+* **Step 3 (Encapsulation)**: Flannel wraps the entire original TCP/IP packet inside an outer **UDP datagram** addressed to `10.0.1.10:8472` (standard VXLAN port).
+* **Step 4**: The AWS VPC router delivers this standard UDP packet across EC2 instances. *(This is why our Terraform `security_groups.tf` opens UDP port 8472 between cluster instances!)*
+* **Step 5 (Decapsulation)**: Master's `flannel.1` interface catches the packet on port 8472, strips the outer UDP wrapper, and extracts the original packet.
+* **Step 6**: Master routes the packet through the local `cni0` bridge directly into the PostgreSQL container.
+
+Neither container has any awareness of the underlying EC2 instances or the VXLAN tunnel—they communicate using transparent TCP sockets.
+
+#### 4. Service Discovery with CoreDNS and ClusterIP
+Pods are ephemeral: when a pod crashes, restarts, or scales, its IP changes. You should **never** hardcode pod IP addresses in application configurations.
+
+Kubernetes solves this with **Services** and **CoreDNS**:
+1. **ClusterIP Subnet (`10.43.0.0/16`)**:
+   * Every Kubernetes Service gets a permanent, virtual ClusterIP (e.g., `credit-service` $\to$ `10.43.0.45`).
+   * This IP never changes for the entire lifetime of the Service.
+2. **CoreDNS In-Cluster Resolution**:
+   * When `order-service` calls `http://credit-service:8004`, it asks the internal CoreDNS server. CoreDNS resolves `credit-service` to `10.43.0.45`.
+3. **Layer 4 Load Balancing via Linux iptables/kube-proxy**:
+   * When traffic leaves the container destined for `10.43.0.45`, the Linux kernel's `iptables` / `netfilter` rules intercept the packet.
+   * `iptables` rewrites the destination IP (DNAT) to one of the live, healthy Pod IPs (e.g., `10.42.1.12` or `10.42.2.8`), automatically distributing load across all running pod replicas.
+
+---
+
+### 3.5 File-by-File Breakdown of `infra/k8s/`
 
 All Kubernetes manifests live in `infra/k8s/` and are applied in numeric sequence:
 
@@ -533,7 +743,7 @@ Contains all cluster configuration and credentials:
 
 #### `02-storage.yaml`
 Establishes durable persistence by binding Kubernetes to our Amazon EBS volume:
-* `foc-ebs-pv`: A 50GB `PersistentVolume` with `storageClassName: local-storage`. Crucially, it defines `nodeAffinity`:
+* `foc-ebs-pv`: A 25GB `PersistentVolume` with `storageClassName: local-storage`. Crucially, it defines `nodeAffinity`:
   ```yaml
   nodeAffinity:
     required:
@@ -801,7 +1011,56 @@ The production release pipeline:
 
 ## 5. Distributed Load & Concurrency Testing with k6
 
-### 5.1 Why k6 over Apache JMeter or Apache Bench?
+### 5.1 Where k6 Runs: Local Laptop vs. Cloud Runners (Zero-Cost External Simulation)
+
+Students often ask:
+> *"Does k6 run locally on my developer laptop, or is it deployed into AWS alongside the cluster?"*
+
+Our test suite is designed to run **locally from your development laptop**, directing simulated virtual user traffic over the public internet to the **AWS Application Load Balancer (ALB)** endpoint.
+
+```mermaid
+flowchart LR
+    subgraph LocalMachine["Developer Laptop (Mac / Linux / Windows)"]
+        k6["k6 CLI Runner<br/>(tests/k6/*.js)"]
+        Term1["Terminal: k6 run ..."]
+        Term2["Terminal: kubectl get hpa -w"]
+    end
+
+    subgraph AWSCloud["AWS Singapore Region (ap-southeast-1)"]
+        ALB["Application Load Balancer<br/>(Public DNS Entrypoint)"]
+        subgraph Cluster["K3s Cluster (VPC 10.0.0.0/16)"]
+            Ingress["Traefik Ingress Controller"]
+            Pods["Microservice Pods<br/>(order-service, credit-service...)"]
+        end
+    end
+
+    k6 ==>|"Public Internet HTTP Requests"| ALB
+    ALB --> Ingress --> Pods
+    Term2 -.->|"SSM Tunnel / kubectl"| Cluster
+```
+
+#### Why Local Execution is the Recommended Architecture:
+1. **$0.00 Extra Cloud Spend**:
+   * Commercial cloud load generators (such as k6 Cloud SaaS or dedicated EC2 stress-testing instances) burn AWS credits and compute hours.
+   * Running k6 locally costs **$0.00**, preserving our entire \$50 sandbox credit for continuous 24/7 cluster runtime.
+2. **True End-to-End Client Simulation**:
+   * In production, NUS students do not place orders from *inside* the AWS VPC; they browse from student hostels, laptops, and mobile phones across the internet.
+   * Running k6 locally simulates genuine external network behavior across the full path:
+     `Local Client ➔ Public Internet ➔ AWS Internet Gateway ➔ AWS ALB ➔ Traefik Ingress ➔ Pod Service`
+   * In contrast, executing load tests inside the VPC would bypass the public internet and load balancer listeners, masking realistic ingress latency and connection handling.
+3. **Interactive Side-by-Side Verification & Grading Demos**:
+   * Running locally allows side-by-side terminal verification during Milestone D4 grading presentations:
+     * **Terminal 1 (Load Generator)**: Run `TARGET_HOST="http://<ALB_DNS>" k6 run tests/k6/discovery-load.js`
+     * **Terminal 2 (Pod Autoscaling)**: Run `kubectl get hpa -n foc -w` to watch HPA CPU metrics climb and replica count scale from 2 to 5.
+     * **Terminal 3 (Pod Placement)**: Run `kubectl get pods -n foc -o wide -w` to watch newly spawned pods schedule dynamically across worker nodes.
+     * **Terminal 4 (EC2 Autoscaling)**: Run `aws autoscaling describe-auto-scaling-groups ...` to monitor the AWS EC2 Auto Scaling Group scale from 1 to 2 worker instances under sustained load.
+4. **When do Enterprises Deploy Cloud Load Runners?**:
+   * Enterprise teams only need distributed cloud runners (such as the Kubernetes `k6-operator`) when testing massive industrial scale (e.g., 50,000+ to 100,000+ concurrent Virtual Users) where a single laptop's Wi-Fi bandwidth or operating system file descriptor limits (`ulimit -n`) become saturated.
+   * For CS3219 milestone benchmarks (100–300 concurrent Virtual Users), a modern laptop easily drives this load while consuming less than 5% CPU.
+
+---
+
+### 5.2 Why k6 over Apache JMeter or Apache Bench?
 
 In CS3219, verifying Non-Functional Requirements (NFRs) like scalability, concurrency, and latency requires automated load testing.
 
@@ -812,7 +1071,7 @@ While older tools like Apache JMeter (heavy XML files and clunky Java GUI) or Ap
 
 ---
 
-### 5.2 Scenario A: Race Condition Verification (`order-claim-race.js`)
+### 5.3 Scenario A: Race Condition Verification (`order-claim-race.js`)
 
 #### The Academic Challenge:
 In a campus peer-to-peer errand platform, multiple student couriers may attempt to claim the exact same open errand simultaneously.
@@ -896,7 +1155,7 @@ When executed, k6 verifies that the system maintained strict ACID consistency ac
 
 ---
 
-### 5.3 Scenario B: Discovery Traffic Spikes & Live Autoscaling (`discovery-load.js`)
+### 5.4 Scenario B: Discovery Traffic Spikes & Live Autoscaling (`discovery-load.js`)
 
 #### The Academic Challenge:
 Satisfying **Category N4** requires: *"Kubernetes deployment and automated scaling, demonstrated with evidence."*
@@ -938,7 +1197,7 @@ flowchart LR
 
 ---
 
-### 5.4 Fulfilling CS3219 Rubric Categories N3 & N4 for Milestone D4
+### 5.5 Fulfilling CS3219 Rubric Categories N3 & N4 for Milestone D4
 
 | Rubric Category | Requirement | Concrete Evidence Produced by Our Stack |
 | :--- | :--- | :--- |
