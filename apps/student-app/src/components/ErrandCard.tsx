@@ -20,6 +20,15 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted errand card component from student-app App.tsx into components/ErrandCard.tsx.
  * Author review: Verified by yanhwee
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
+ * Scope: Fixed the zone badge and expiry badge overflowing past the card's edge on narrow widths — both sat in
+ * a `justify-between` flex row next to a `shrink-0` sibling (the credits badge / the View & accept button) with
+ * `whitespace-nowrap` on everything, so neither row could actually shrink to fit. Gave the zone/expiry badges
+ * `min-w-0` and made their label text truncate instead, matching the `truncate` pattern already used for
+ * supplierName/dropoffLocation below — the credits badge and the accept button stay fully protected (shrink-0)
+ * and never clip.
+ * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by yanhwee)
@@ -60,9 +69,10 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
       <div>
         {/* Header: Zone Badge + Reward Badge */}
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 whitespace-nowrap">
+          {/* AI-generated (edited by jagdeepsh) */}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 min-w-0">
             <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0" />
-            <span>{order.campusZone}</span>
+            <span className="truncate">{order.campusZone}</span>
           </span>
           <div className="inline-flex items-center gap-1.5 text-amber-800 font-black text-xs bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1 rounded-full border border-amber-200/90 shadow-2xs whitespace-nowrap shrink-0">
             <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
@@ -108,8 +118,9 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
 
       {/* Footer: Expiration & Action CTA */}
       <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+        {/* AI-generated (edited by jagdeepsh) */}
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition min-w-0 ${
             expiry.critical
               ? 'bg-rose-50 text-rose-700 border border-rose-200 font-bold'
               : expiry.urgent
@@ -118,7 +129,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           }`}
         >
           <Clock className="w-3.5 h-3.5 shrink-0" />
-          <span>{expiry.label}</span>
+          <span className="truncate">{expiry.label}</span>
         </span>
 
         {/* Stretched link covers whole card for seamless touch interaction */}

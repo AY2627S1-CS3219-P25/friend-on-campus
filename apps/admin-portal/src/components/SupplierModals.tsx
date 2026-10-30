@@ -3,6 +3,13 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted Supplier Filter, Add, Edit, Delete, and Details Inspection modals into src/components/SupplierModals.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
+ * Scope: Merge of admin_dashboard into main. Add Supplier modal: Latitude and Longitude are now required fields
+ * (red asterisk, validateSupplierForm check, no API call sent until both are filled with a valid number),
+ * matching the supplier-service DB columns made NOT NULL on 2026-10-17. newSupplier/setNewSupplier widened to
+ * number | '' for latitude/longitude so an empty number input is representable before the first keystroke.
+ * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by yanhwee)
@@ -42,8 +49,10 @@ interface SupplierModalsProps {
   setAddFormErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setAddDuplicateConflict: (conflict: SupplierLocationConflict | null) => void;
   addDuplicateConflict: SupplierLocationConflict | null;
-  newSupplier: CreateSupplierRequest;
-  setNewSupplier: React.Dispatch<React.SetStateAction<CreateSupplierRequest>>;
+  newSupplier: Omit<CreateSupplierRequest, 'latitude' | 'longitude'> & { latitude: number | ''; longitude: number | '' };
+  setNewSupplier: React.Dispatch<
+    React.SetStateAction<Omit<CreateSupplierRequest, 'latitude' | 'longitude'> & { latitude: number | ''; longitude: number | '' }>
+  >;
   addFormErrors: Record<string, string>;
   isSubmitting: boolean;
   editingSupplier: SupplierDTO | null;
@@ -349,6 +358,51 @@ export function SupplierModals({
                   value={newSupplier.floor || ''}
                   onChange={(e) => setNewSupplier({ ...newSupplier, floor: e.target.value })}
                   className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* AI-generated (edited by jagdeepsh) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  Latitude <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.latitude && <p className="text-xs text-rose-600 mb-1">{addFormErrors.latitude}</p>}
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 1.2966"
+                  value={newSupplier.latitude}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewSupplier({ ...newSupplier, latitude: val === '' ? '' : Number(val) });
+                    if (addFormErrors.latitude) setAddFormErrors({ ...addFormErrors, latitude: '' });
+                  }}
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.latitude ? 'border-rose-400' : 'border-slate-300'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                  Longitude <span className="text-rose-600">*</span>
+                </label>
+                {addFormErrors.longitude && <p className="text-xs text-rose-600 mb-1">{addFormErrors.longitude}</p>}
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="e.g. 103.7764"
+                  value={newSupplier.longitude}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewSupplier({ ...newSupplier, longitude: val === '' ? '' : Number(val) });
+                    if (addFormErrors.longitude) setAddFormErrors({ ...addFormErrors, longitude: '' });
+                  }}
+                  className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                    addFormErrors.longitude ? 'border-rose-400' : 'border-slate-300'
+                  }`}
                 />
               </div>
             </div>

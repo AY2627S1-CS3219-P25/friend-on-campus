@@ -88,7 +88,12 @@ export default function App() {
   // Add Supplier Modal state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newSupplier, setNewSupplier] = useState<CreateSupplierRequest>({
+  // AI-generated (edited by jagdeepsh)
+  // latitude/longitude are typed number | '' here (not CreateSupplierRequest's plain `number`) so an empty
+  // number input can be represented and caught by validateSupplierForm before the request is ever sent.
+  const [newSupplier, setNewSupplier] = useState<
+    Omit<CreateSupplierRequest, 'latitude' | 'longitude'> & { latitude: number | ''; longitude: number | '' }
+  >({
     supplierCode: '',
     name: '',
     campusZone: 'COM3',
@@ -97,6 +102,8 @@ export default function App() {
     description: '',
     building: '',
     floor: '',
+    latitude: '',
+    longitude: '',
     startingTime: '0800hrs',
     closingTime: '2000hrs',
   });
@@ -359,7 +366,7 @@ export default function App() {
     setIsSubmitting(true);
     setActionAlert(null);
     try {
-      const { res, data } = await createSupplierApi(authFetch, newSupplier);
+      const { res, data } = await createSupplierApi(authFetch, newSupplier as CreateSupplierRequest);
       if (res.ok && data.success) {
         setSuppliers((prev) => [data.data, ...prev]);
         setIsAddOpen(false);
@@ -373,6 +380,8 @@ export default function App() {
           description: '',
           building: '',
           floor: '',
+          latitude: '',
+          longitude: '',
           startingTime: '0800hrs',
           closingTime: '2000hrs',
         });
@@ -400,6 +409,8 @@ export default function App() {
       description: supplier.description || '',
       building: supplier.building || '',
       floor: supplier.floor || '',
+      latitude: supplier.latitude,
+      longitude: supplier.longitude,
       startingTime: supplier.startingTime || '',
       closingTime: supplier.closingTime || '',
       isActive: supplier.isActive,
