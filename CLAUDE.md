@@ -1,5 +1,37 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+Scope: Section 2: the entry for a merge prompt is committed on the feature branch before the merge. Section 6: reply to review threads in the fix prompt when replying is approved, else hand the texts over; close editor windows before removing a worktree.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Section 2: added timing and scope rules for the usage log (write before the final reply, question-only prompts count, log is the last file written, entry rides in approved commits, repeated hook warnings point at leftover paths).
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Slimmed down Sections 4, 5, 7, and 8 to keep CLAUDE.md focused on agent behavioral rules and remove duplicated system documentation and obsolete docs/ pointers.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Updated Section 5 commands to reflect scripts/dev.mjs parallel dev runner, standard npm workspace -w invocations, and test:e2e:api replacing legacy test:d2 alias.
+Author review: <to be completed by yanhwee>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+Scope: Section 4 repo map: added services/chat-service (:8006, chat_db), the /ws/chat/ gateway route and the sixth database.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Google Antigravity Agent, date: 2026-10-20
+Scope: Updated Section 4 Prisma CLI and root .env loading notes.
+Author review: <to be completed by author after review>
+
+Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
+Scope: Section 4 repo map only: App.tsx line counts updated to the real `wc -l` values (student-app 1703, admin-portal 3855) and `packages/auth` added.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
 Scope: Section 4: recorded why backend services run with `init: true` and the rabbitmq health probe runs via `su-exec rabbitmq` in Compose; corrected which services register SIGTERM handlers (PR #120 review).
 Author review: <to be completed by Reallyeasy1>
@@ -120,6 +152,14 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
    - `path` — what changed
    ```
 
+   Timing and scope rules (the `/usage-log` skill does the collecting and appending):
+   - Write the entry **before the final reply of every prompt**, in the same turn as the work. Never defer it to "the next prompt" or wait for the Stop hook to complain.
+   - Question-only prompts, explanations and "check this" prompts count too. Write `- none` under **Files changed**; one short entry per prompt, never batched across prompts after the fact.
+   - Make `ai/usage-log.md` the **last file written** in the turn, so the Stop hook (which compares file modification times) sees it as newest.
+   - When the author approves a commit or push, the entry describing that prompt goes **into that commit**, not left behind in the working tree.
+   - When a prompt ends with a merge to `main`, write and commit the entry on the feature branch **before** merging (phrase it as "merging once CI is green"). `main` requires a pull request, so an entry written on `main` afterwards needs its own issue and PR to land.
+   - If the hook still warns after the entry is written, do not add another entry: the warning is about other uncommitted or untracked paths. Name those paths to the author and let them decide (commit, revert, ignore, or delete).
+
 2. **Disclosure header.** Maintain exactly one consolidated disclosure block per file, at the top (after any frontmatter or shebang, using the file's comment syntax). Add new tool/date/scope and author-review records to that existing block rather than creating another heading. Preserve earlier attribution and review status. For a file without a block, use this format:
 
    ```
@@ -141,93 +181,59 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 - Messaging: RabbitMQ 3.13
 - New dependency needed? Ask first. If approved, add it to that workspace's `package.json` **and** automatically update the Dockerfile(s)/`docker-compose.yml` so the container build still works.
 
-## 4. Repo map
+## 4. Repo map & coding rules
 
-Compact map. **System specifications live in `docs/`:** high-level system topology in `docs/architecture.md`, errand lifecycle and credit rules in `docs/errand-specification.md`, and security/auth in `docs/security.md`. Code remains the source of truth for implementation.
+Architecture, setup, seed accounts, and test categories are documented in `README.md` and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki). Use [docs/README.md](docs/README.md) for source-linked implementation navigation and [documentation drift](docs/audits/documentation-drift.md) for unresolved source conflicts. Pending PRs and proposals do not establish current behavior or human approval. Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
 
 ```
-services/user-service          :8001  real (Prisma, user_db)      entry src/index.ts
-services/supplier-service      :8002  real (Prisma, supplier_db)  entry src/index.ts, logic src/suppliers/
-services/order-service         :8003  real (Prisma, order_db)     entry src/index.ts
-services/credit-service        :8004  Prisma, credit_db           entry src/index.ts, logic src/credits/
-services/notification-service  :8005  Prisma, notification_db     entry src/index.ts, REST + ws + consumer
-apps/student-app               :5173  one src/App.tsx (~730 lines), no router
-apps/admin-portal              :5174  one src/App.tsx (~1650 lines), no router
-packages/common-dtos                  shared user/auth DTOs, OrderStatus, events, ApiResponse<T>
-gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /admin/, /
-docker/postgres-init/*.sql            creates the 5 databases (tables managed per-service by migrations)
-docker-compose.yml                    everything above + postgres:16 (5432) + rabbitmq:3.13 (5672, 15672)
-scripts/test-d2-e2e.ts                D2 end-to-end suite        data/  supplier seed CSV + images
-docs/  ai/usage-log.md  .claude/      documentation, AI usage log, Claude Code config
+services/user-service          :8001  Prisma (user_db)          entry src/index.ts
+services/supplier-service      :8002  Prisma (supplier_db)      entry src/index.ts, logic src/suppliers/
+services/order-service         :8003  Prisma (order_db)         entry src/index.ts, Debezium CDC outbox
+services/credit-service        :8004  Prisma (credit_db)        entry src/index.ts, logic src/credits/
+services/notification-service  :8005  Prisma (notification_db)  entry src/index.ts, REST + ws + consumer
+services/chat-service          :8006  Prisma (chat_db)          entry src/index.ts, REST + ws hub + consumer (F8)
+apps/student-app               :5173  modular src/ (App.tsx, pages/, components/, hooks/, api/)
+apps/admin-portal              :5174  modular src/ (App.tsx, pages/, components/, hooks/, api/)
+packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
+packages/common-dtos                  shared DTOs, OrderStatus, events, ApiResponse<T>
+packages/messaging                    @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
+gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /ws/chat/ -> chat, /admin/, /
+docker/                               debezium/, postgres-init/, rabbitmq/
 ```
 
-Things that are easy to get wrong:
+Rules for working in this repo:
 
-- **Table schemas are managed per-service via Prisma migrations.** Tables are no longer created in `docker/postgres-init/*.sql` (which only provisions the empty logical databases). Each service deploys its own migrations on startup (`npx prisma migrate deploy`) or via `npm run db:migrate --workspace=@campus-errand/<service>`. Schema changes belong strictly in each service's `schema.prisma` and `prisma/migrations/`. When starting a fresh Postgres volume with `docker compose down -v`, each service runs its migrations and seeds upon container boot.
-- **Access tokens use Ed25519 in `Authorization: Bearer …`**. User Service signs them with `JWT_PRIVATE_KEY`; Supplier Service verifies them with the shared `@campus-errand/auth` package and `JWT_PUBLIC_KEY`, issuer, and audience. Refresh tokens are opaque and remain in an HttpOnly cookie. Keep these service settings aligned when the author approves an authentication-contract change.
-- **Prisma clients are per service**, generated into `src/database/generated/` (git-ignored). Import from `../database/client`, never from a root `@prisma/client`. Every Prisma CLI call needs `--schema src/database/prisma/schema.prisma` (the npm scripts already pass it).
-- `src/database/client.ts` calls `dotenv.config()` itself so standalone scripts (seed) see `.env`. `.env` files are git-ignored; never read, print or commit them. Root `.env.example` is the reference.
-- A service that gains a database should reuse the user/supplier `src/database/` layout rather than a new one.
-- `packages/common-dtos` is the contract between services and both apps. Changing it is an interface change — the author decides, you implement and run `npm run typecheck` across all workspaces.
-- Vite dev proxies are only for host-based development and send user, supplier and notification requests to their localhost ports. Compose builds static frontend assets and serves them with per-app NGINX configs; those configs preserve direct-port `/api`, `/ws`, and `/admin` proxy behaviour through the Compose gateway. `VITE_SHOW_WS_STATUS` is a student-app build argument, so changing it requires rebuilding that image.
-- Application Dockerfiles use multi-stage builds. Dependency/build stages copy the root lockfile and run workspace-scoped `npm ci` with the workspace root excluded. Backend runtime stages contain production dependencies, compiled workspace/service output, generated Prisma clients, and migration/seed inputs; frontend runtime stages contain only NGINX and built static assets. Every application runtime stage switches to its base image's built-in non-root user (`node` or `nginx`) after privileged setup. A new npm dependency still requires updating that workspace's manifest and the root lockfile; runtime-required tooling must be in `dependencies`, while build-only tooling stays in `devDependencies`. `.dockerignore` excludes `*.md`.
-- **Keep `init: true` on the backend services and the `su-exec rabbitmq` prefix on the rabbitmq health check in `docker-compose.yml`.** The backends `exec node dist/index.js` as PID 1; supplier-service and notification-service register no SIGTERM handler (user, order and credit do, in their `src/index.ts`), so without an init `docker stop` waits 10 s and SIGKILLs those two. RabbitMQ's health probe otherwise runs as root and, on a slow machine, can write a root-owned `.erlang.cookie` before the server (uid 100) boots, after which the broker exits with `eacces`. The container itself stays root on purpose: its entrypoint chowns `/var/lib/rabbitmq` on every start, which is what repairs a volume that already holds a root-owned cookie.
+- **Prisma migrations & isolated clients:** `docker/postgres-init/*.sql` only provisions empty logical databases and per-service roles. Schema changes belong strictly in each service's `prisma/schema.prisma` and `prisma/migrations/`. Import the Prisma client from `../database/client`, never directly from `src/generated/prisma` or a root `@prisma/client`.
+- **Environment variables:** Never read, print, or commit `.env` files. Root `.env.example` is the single reference; every new env var must be added there with a safe placeholder.
+- **Shared contracts (`packages/common-dtos`):** Changing shared DTOs or events is an interface change — the human author decides, you implement and run `npm run typecheck` across all workspaces.
+- **Authentication (`packages/auth`):** User Service signs Ed25519 access tokens with `JWT_PRIVATE_KEY`; downstream services verify them offline via `@campus-errand/auth` (`JWT_PUBLIC_KEY`, issuer, audience). Refresh tokens are opaque and remain in an `HttpOnly` cookie.
+- **Containers & Compose:** Do not remove `init: true` on backend services or `su-exec rabbitmq` on the RabbitMQ healthcheck in `docker-compose.yml` (see inline comments in `docker-compose.yml`). Every application Dockerfile runtime stage runs as its non-root user (`node` or `nginx`).
 
-## 5. Commands
+## 5. Verification & commands
 
-```bash
-npm install                                   # also runs prisma generate for every service
-docker compose up postgres rabbitmq -d        # backing services only
-docker compose up --build                     # whole stack
-npm run dev:user | dev:supplier | dev:order | dev:credit | dev:notif | dev:student | dev:admin
-npm run db:migrate --workspace=@campus-errand/<service>
-npm run db:seed    --workspace=@campus-errand/<service>
-npm run typecheck                             # all workspaces — run after every code change
-npm run test:unit                             # all workspace unit suites (Node only)
-npm run test:integration                      # PostgreSQL-backed integration suites; see docs/ci.md
-npm run test:messaging                        # PostgreSQL + RabbitMQ integration suites
-npm run test:migration | test:seed            # credit migration and seed validation
-npm run test:acceptance                       # API and notification UAT against the full Compose stack
-npm run test:e2e:api | test:e2e:ui            # D2 API E2E or Chromium UI UAT
-npm run test:e2e                              # API E2E then Chromium UI UAT against a prepared stack
-npm test                                      # full isolated suite; provisions Docker infrastructure and Chromium
-npm run test:d2                               # D2 end-to-end suite — see note below
-docker exec -it campuserrand-postgres psql -U postgres
-```
+See `README.md` for full local dev, seeding, and test commands. Key agent verification rules:
 
-`npm run test:d2` **spawns user-service and supplier-service itself** on 8001/8002 against `localhost:5432`. It needs Postgres up and both databases seeded, and ports 8001/8002 **free** — stop `docker compose` app containers and any `npm run dev:user|dev:supplier` first, or it tests whatever is already listening.
-
-**Set-up:** new machine or new teammate → `.claude/README.md` (prerequisites, plugins, checks, troubleshooting).
-
-**Plugins:** the team's list (core, recommended, situational, and what must stay off in this repo) is `.claude/PLUGINS.md`; the core set is enabled in `.claude/settings.json`. Do not suggest or use plugins from its "Not in this repo" section.
-
-**Code intelligence:** the `typescript-lsp` plugin is enabled for this project (`.claude/settings.json`). It needs the server on your PATH once per machine — `npm install -g typescript-language-server typescript` — and `npm install` in the repo so imports and the generated Prisma clients resolve. With it, prefer the `LSP` tool (go to definition, find references, hover) over grepping when tracing a type or function across workspaces, e.g. who uses a `common-dtos` type. It does not replace `npm run typecheck` before reporting.
-
-Unit tests use Node's built-in runner (`node --test` through `tsx`; no test framework is installed; needs Node 22.3+, pinned in the root `package.json` `engines`; the Dockerfiles stay on `node:20-alpine` because containers do not run the tests). Run them with `npm run test:unit`; user-service and notification-service list their unit files explicitly so their `*.integration.test.ts` suites are not selected. User-service tests use in-memory repositories, and supplier-service tests replace the Prisma client and repository with `mock.module` (hence `--experimental-test-module-mocks`). Each service's `typecheck` script uses `tsconfig.test.json`, which includes `src/**` and `test/**`, so `npm run typecheck` covers the tests too (`build` still uses `tsconfig.json`, src only). The root `lint` script runs ESLint across the repository. Do not add another test framework or linter unprompted.
-
-Before saying a change works: run `npm run typecheck` and the directly relevant root test categories. Run the full `npm test` when Docker and Chromium are available; it creates a uniquely named Compose project, runs every category, and removes only that project's containers and volumes. Report the real output and any unavailable infrastructure.
-
-CI (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`. Static matrices run unit, PostgreSQL integration, PostgreSQL/RabbitMQ messaging, migration, and seed scripts as separate checks. Compose-backed API/notification acceptance, D2 API E2E, and Chromium browser UAT are separate system-test jobs. A matrix-consistency job checks package scripts against the workflow, and the final gate requires every category to succeed. The naming convention, prerequisites, and infrastructure mapping are documented in `docs/ci.md`.
-
-**Mandatory test-suite maintenance:** whenever adding, renaming, moving, or removing a test suite or its `package.json` script, update the matching static matrix entry or system-test command in `.github/workflows/ci.yml` in the same change, then run `npm run ci:validate-tests`. Use the documented `test:<category>` name and infrastructure metadata; keep watch-mode commands outside CI.
+- **Before saying a change works:** always run `npm run typecheck` (which covers both `src/**` and `test/**` across all 10 workspaces) and the directly relevant test categories (`npm run test:unit`, `test:integration`, `test:messaging`, `test:e2e:api`, or full isolated `npm test`). Report the real output and any unavailable infrastructure.
+- **`npm run test:e2e:api` port requirement:** spawns `user-service` and `supplier-service` itself on ports 8001/8002 against `localhost:5432` (with seeded databases), so stop host/container listeners on 8001/8002 first.
+- **Test runner & linter:** Unit tests use Node's built-in `node --test` via `tsx` (no external test framework). Root `npm run lint` runs ESLint. Do not add another test framework or linter unprompted.
+- **Mandatory CI matrix sync:** whenever adding, renaming, moving, or removing a `test:*` script in any `package.json`, update `.github/workflows/ci.yml` in the same change and run `npm run ci:validate-tests`.
+- **Claude Code tooling:** see `.claude/README.md` (setup) and `.claude/PLUGINS.md` (allowed/forbidden plugins). Prefer the `LSP` tool over grepping when tracing TypeScript symbols across workspaces.
 
 ## 6. Git and GitHub
 
-- Team repo: `AY2627S1-CS3219-P25/friend-on-campus`. Some clones also have an `upstream` remote (`CS3219-AY2627S1/FoC-Template`) and `gh` may default to it — **always pass `-R AY2627S1-CS3219-P25/friend-on-campus`** to `gh issue` / `gh pr` commands.
-- Branches: `main` (releases) and `milestone-d2` (D2 demo baseline). The former `dev` branch no longer exists.
+- Team repo: `AY2627S1-CS3219-P25/friend-on-campus`. Always pass `-R AY2627S1-CS3219-P25/friend-on-campus` to `gh issue` / `gh pr` commands (some clones also have an `upstream` remote).
+- Branches: `main` (releases) and `milestone-d2` (D2 demo baseline).
 - Issues carry the acceptance criteria (`[F3.2]`, `[Order Service] [N3]`, …). Read the issue before implementing, and quote the criterion IDs you covered in your summary.
-- **Every PR must link the issue(s) it closes.** The PR body (not only the title or commits) must contain one closing-keyword line per issue — `Closes #<n>` (`Fixes #<n>` / `Resolves #<n>` also work) — so GitHub closes the issue when the PR is merged. `.github/pull_request_template.md` has a **Linked issues** section for this. The `Claude PR review` workflow (`.github/workflows/claude-pr-review.yml`) checks it on every push: it reads the linked issues, compares their acceptance criteria with the diff, searches open issues for related work the PR does not link, and reports all of this in a **Linked issues** section of its summary comment with `Closes #<n>` lines to paste. It does not fail the PR or edit its body; the author decides which issues a PR closes. When you draft a PR title/body for the author, use the template, take the issue number from the task or from the matching open issue, and never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
+- **Every PR must link the issue(s) it closes.** The PR body must contain one closing-keyword line per issue (`Closes #<n>`, `Fixes #<n>`, or `Resolves #<n>`) under the **Linked issues** section of `.github/pull_request_template.md`. When drafting a PR body for the author, never leave `Closes #` blank — if no issue matches, tell the author an issue must be created first.
 - Never commit, push, merge, force-push, or open/close issues and PRs yourself, unless the human user explicitly approves or requests you to do so.
+- When the author asks you to address review findings and has approved replying, post the reply in each review thread in the **same prompt** as the fix commit, quoting the commit hash and the regression test or manual check. If posting is not approved or is denied by the session's permissions, hand the reply texts to the author in that same reply.
+- Worktrees: before `git worktree remove`, make sure no editor window is open on that folder. Editor language servers run from its `node_modules` and keep the directory locked.
 
 ## 7. Source documents
 
 - D1 (requirements F1–F9, NFRs, sprint plan, state diagram): https://docs.google.com/document/d/1pGy36fN4PxwMNIlgRTL3MW0ZTM3tERtG15KpUSY3c3M
 - D2 / Sprint 2 plan (work packages, acceptance checks, API sketch): https://docs.google.com/document/d/1I8sma-xUGapxvc6mSDyOLj8kihsAhL5erxinlP82pv8
-- System specifications:
-  - System architecture: `docs/architecture.md`
-  - Errand lifecycle & credit economy: `docs/errand-specification.md`
-  - Security & access control: `docs/security.md`
-  - Central docs index: `docs/README.md`
+- Project Wiki (architecture, authentication & roles, services, data model, milestone runbooks): https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki
 - Data transfer objects and API schemas: `packages/common-dtos` (TypeScript source of truth)
 
 Where the documents, the issues and the code disagree, do not pick a side silently: point out the conflict and let the author decide.
@@ -238,7 +244,7 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 
 | Agent | Writes to | Workstream |
 |---|---|---|
-| `backend` | `services/**`, `packages/common-dtos`, Prisma schemas + `docker/postgres-init` SQL | Services, shared contracts, database work |
+| `backend` | `services/**`, `packages/**`, Prisma schemas + `docker/postgres-init` SQL | Services, shared contracts, database work |
 | `frontend` | `apps/**` | student-app, admin-portal |
 | `infrastructure` | Dockerfiles, `docker-compose.yml`, `gateway/`, `.env.example`, `.github/` | Containers, gateway, CI, startup/proxy debugging |
 | `reviewer` | `scripts/**` and test files only | Tests, acceptance evidence, drift, code review, AI-policy check |
@@ -246,7 +252,7 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 **When to delegate — default is don't.** Use 0 agents for most prompts. Number of agents = number of *independent* pieces of work in this task, not number of folders it touches.
 
 - Do it yourself when the task is small, sequential, or tightly coupled — e.g. an access-token change that touches User Service, Supplier Service verification, and nginx together is **one** piece of work: do it in the main session (or give the whole thing to one agent), never split it across agents editing both sides independently.
-- Delegate when a piece can genuinely proceed in parallel (a `backend` endpoint and the `frontend` screen against an already-agreed contract), when it needs heavy reading or noisy logs you do not want in context (`frontend` for the big `App.tsx` files, `infrastructure` for container logs), or when you want independent eyes (`reviewer` after you or another agent wrote the code).
+- Delegate when a piece can genuinely proceed in parallel (a `backend` endpoint and the `frontend` screen against an already-agreed contract), when it needs heavy reading or noisy logs you do not want in context, or when you want independent eyes (`reviewer` after you or another agent wrote the code).
 - Never run two agents whose file sets overlap, and never two instances of the same agent on the same service.
 - Do not explore the same code yourself that you just sent an agent to explore.
 
@@ -254,4 +260,3 @@ Four subagents. The **main session is the orchestrator**: it owns the task, inte
 - Every agent stops and returns a question when it needs a design decision the author has not stated. Relay it to the author verbatim; do not answer it yourself and re-launch.
 - Put the author's decided design **in the task text** — agents do not see this conversation.
 - Agents report files changed; the main session writes **one** `ai/usage-log.md` entry per prompt.
-- System specifications live in `docs/architecture.md`, `docs/errand-specification.md`, and `docs/security.md`. When architectural rules or domain state transitions change, keep the specifications aligned.

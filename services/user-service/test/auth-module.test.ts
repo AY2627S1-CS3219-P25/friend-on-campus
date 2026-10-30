@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Verify durable registration events and commit completion without a direct publisher.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: The login test expects the username to be passed to the token manager.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Added registration event publisher integration tests and error isolation checks.
  * Author review: <to be completed by huangjiaxi1111>
@@ -15,12 +23,11 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
-import { describe, it, beforeEach } from 'node:test';
-import assert from 'node:assert/strict';
 import type { UserRegisteredEvent } from '@campus-errand/common-dtos';
+import assert from 'node:assert/strict';
+import { beforeEach, describe, it } from 'node:test';
 import { AuthError, createAuthModule } from '../src/auth/auth-module';
 import { hashPassword, verifyPassword } from '../src/auth/password';
-import type { UserEventPublisher } from '../src/messaging/publisher';
 import { makeFakeAuthRepository, makeFakeTokens, makeUser } from './helpers';
 
 const LIFETIMES = {
@@ -87,30 +94,19 @@ describe('register', () => {
     );
   });
 
-  it('publishes a user.registered event with initialGrant 100 when a publisher is provided', async () => {
-    const publishedEvents: UserRegisteredEvent[] = [];
-    const testPublisher: UserEventPublisher = {
-      async publishUserRegistered(event) {
-        publishedEvents.push(event);
-        return true;
-      },
-      async close() {},
-    };
-    const authWithPublisher = createAuthModule({
-      repository: fake.repo,
-      tokens: makeFakeTokens(),
-      publisher: testPublisher,
-      ...LIFETIMES,
-    });
-
-    const user = await authWithPublisher.register({
+  it('records user.registered with initialGrant 100 for Debezium before returning the account', async () => {
+    const user = await auth.register({
       username: 'charlie',
       email: 'charlie@u.nus.edu',
       password: 'Password123!',
     });
 
-    assert.equal(publishedEvents.length, 1);
-    const event = publishedEvents[0];
+    assert.equal(fake.outboxEvents.length, 1);
+    const row = fake.outboxEvents[0];
+    const event: UserRegisteredEvent = JSON.parse(row.payload);
+    assert.equal(row.id, event.eventId);
+    assert.equal(row.eventType, 'user.registered');
+    assert.equal(row.status, 'PENDING');
     assert.equal(event.eventType, 'user.registered');
     assert.equal(event.userId, user.userId);
     assert.equal(event.email, 'charlie@u.nus.edu');
@@ -119,28 +115,13 @@ describe('register', () => {
     assert.ok(Number.isFinite(new Date(event.timestamp).getTime()));
   });
 
-  it('completes registration successfully even if the event publisher encounters a failure', async () => {
-    const failingPublisher: UserEventPublisher = {
-      async publishUserRegistered() {
-        return false;
-      },
-      async close() {},
-    };
-    const authWithFailingPublisher = createAuthModule({
-      repository: fake.repo,
-      tokens: makeFakeTokens(),
-      publisher: failingPublisher,
-      ...LIFETIMES,
-    });
-
-    const user = await authWithFailingPublisher.register({
-      username: 'david',
-      email: 'david@u.nus.edu',
-      password: 'Password123!',
-    });
-
-    assert.equal(user.username, 'david');
-    assert.equal(user.email, 'david@u.nus.edu');
+  it('does not report registration success when account/outbox persistence fails', async () => {
+    fake.repo.createUser = async () => { throw new Error('outbox write failed'); };
+    await assert.rejects(auth.register({
+      username: 'david', email: 'david@u.nus.edu', password: 'Password123!',
+    }), /outbox write failed/);
+    assert.equal(fake.users.size, 0);
+    assert.equal(fake.outboxEvents.length, 0);
   });
 });
 
@@ -159,7 +140,7 @@ describe('login', () => {
     assert.equal(result.user.username, 'alice');
     assert.equal(result.accessTokenExpiresInSeconds, 900);
     assert.equal(result.refreshToken, 'refresh-1');
-    assert.deepEqual(tokens.issued, [{ userId: makeUser().id, sessionId: 'session-1', role: 'STUDENT' }]);
+    assert.deepEqual(tokens.issued, [{ userId: makeUser().id, sessionId: 'session-1', role: 'STUDENT', username: 'alice' }]);
     const stored = fake.sessions.get(tokens.hashRefreshToken('refresh-1'));
     assert.ok(stored, 'session stored under the hash, not the raw token');
     assert.equal(stored.persistent, false);

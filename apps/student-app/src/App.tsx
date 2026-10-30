@@ -1,5 +1,71 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Refined main viewport padding to eliminate excessive vertical whitespace under the sticky navbar.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Redesigned student-app UI/UX, handled order submission rejection states, prevented multi-click duplicate submissions and credit balance overdraw.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Passed authFetch to PostErrandPage for F6 Natural-Language Errand Assistant.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Multi-client UAT finding: no courier alert exists for a newly posted errand, so the Feed polls quietly (no
+ * loading state) every 15 s while it is on screen and when the tab becomes visible again.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: Errand details page (issues #188, #189; author's design of 2026-10-26): the focus state becomes the open
+ * errand, rendered as ErrandDetailsPage over the active tab; openErrand / closeErrand push and pop the existing
+ * ?tab=&orderId= deep link (popstate restores the tab, scroll position restored on close); Feed and Tasks cards and
+ * the Alerts actions open it; the lifecycle handlers and their in-flight / error state now feed the page. Review
+ * pass of the same day: nav tabs leave the page (selectTab), action failures live in actionError, apart from the
+ * list poll's ordersError. PR #190 review: the origin tab is kept in the list entry's URL instead of a ref, so
+ * Back → Forward → Back and refresh keep it.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): AlertsPage receives the hook's view, total and setView.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Inbox wiring per the author's Notification Redesign (§2, §9, §10): opening a notification deep-links to the
+ * exact errand (?tab=tasks&orderId=, fetched live from Order Service) or the wallet, toasts follow the inbox rule,
+ * the Alerts page receives the REST-first hook's stale/paging state and the app's live order statuses, and the
+ * confirm/cancel banners no longer claim credits were transferred or refunded. Supersedes the same-day
+ * awaitingConfirmation fix.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage and forwarded optional courierContactNote on accept (F3.3.6).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Wires the chat socket hook (F8) and passes it to TasksPage.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-19
+ * Scope: Refactored monolithic student-app App.tsx into modular api/, hooks/, components/, and pages/ architecture.
+ * Author review: Verified by yanhwee
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Connect posting to the async reservation API; display saga outcomes and refresh real feed, activity and credits; remove mock suppliers and order mutations.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Restore the two original sample errand cards alongside live orders for demos; prevent sample IDs from reaching backend actions.
+ * Author review: <to be completed by huangjiaxi1111>
  *
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
  * Scope: Removed an unused logout error binding identified by the root lint configuration.
@@ -11,131 +77,75 @@
  * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
  * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
  * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Display authenticated Credit Service wallet and ledger data, handle loading/errors, and remove simulated balance changes.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive layouts and an Admin Log In link on the student login page.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Connected Student App to live Supplier Service API (/api/suppliers), added dynamic supplier dropdown in errand creation, and added campus supplier directory browsing tab.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Added a Log In / Sign Up gate in front of the whole app. Log In posts to /api/auth/login through the gateway with a loading-spinner button and a red error box (code + message) on failure. Sign Up posts to /api/auth/register with 7 fields (5 required, marked with a red asterisk), client-side validation before any API call (required fields filled, retype-password matches password, password 8-24 characters), and auto-logs the user in on success using the token returned by the register response. "Sign up"/"Log in" links toggle between the two forms in place. No role restriction (unlike the admin portal's login gate) — any successfully authenticated account is let in. The rest of the app (Feed/Post/Spots/Tasks/Wallet, mock orders/wallet data) is unchanged.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-21
- * Scope: Fixed the "Spots" tab hiding suppliers an admin has deactivated. fetchLiveSuppliers now fetches all suppliers (dropped the ?isActive=true query param) instead of only active ones. The Post Errand pickup dropdown still only ever offers active suppliers (new `activeSuppliers` derived list), so unavailable ones can't be selected as a pickup point, but the Spots tab now shows every supplier — inactive ones rendered dimmed (bg-slate-50, opacity-60) with a red "Unavailable" badge and a disabled, unclickable "Pick for Errand" button.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Merge of dev into the user-service PR: Log In posts { email, password } and reads data.data.accessToken;
- * Sign Up now sends the User Service (PR #76) registration contract { username, email, password } (the full name,
- * matric number, phone and Telegram fields were removed because the new user model has no such columns) and,
- * since registration no longer returns a token, auto-login is done with a follow-up /api/auth/login call.
- * Error boxes read the service's { error, code } shape.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Renamed the bottom-nav "Wallet" tab to "Profile" (UserCircle icon), keeping all existing wallet content unchanged but shifted below a new "Profile Info" section. Added GET /api/users/me (lazy-loaded when the tab opens) displaying User ID/Username/Email/Role/Status, all disabled by default with a "Loading users..." indicator and red error box on failure; red asterisks on Username/Email only (the two NOT NULL+unique fields per 01-init-databases.sql, per the author's choice — Role/Status are also NOT NULL but read-only here). "Edit" enables only the Username input and is replaced by a stacked "Cancel"/"Update" pair; "Update" shows a spinner and calls PATCH /api/users/me, updating the field from the server's returned value on success or showing an inline error (e.g. duplicate username) otherwise; "Cancel" discards the draft and reverts to view mode.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Removed the User ID field from Profile Info (now just Username/Email/Role/Status). Role and Status now render as colored badge divs instead of disabled text inputs: Role is emerald for STUDENT / blue for ADMIN, Status is emerald for Active / rose for Disabled — same "transparent tint + colored border" badge style already used in the admin portal.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Added a "Remember me?" checkbox to the Log In form, sent as keepLoggedIn in the /api/auth/login request (defaults to false everywhere else, e.g. Sign Up's auto-login call is unaffected) — this selects the backend's existing 30-day persistent session window instead of the standard 1-day one, verified live via the sessions table. Added a silent session-restore check on app load: a new mount effect calls POST /api/auth/refresh (the browser attaches the refresh_token cookie automatically) before deciding whether to show the login page; on success it restores the access token and logs the user back in without any interaction, on a 401 it falls through silently to the login page (expected for a first visit or an expired session, not an error). A brief spinner screen covers this check so a still-logged-in user never sees a flash of the login form.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Added a "Log Out" button (blue, full-width) at the bottom of the Profile page's Profile Info section, below the Transaction Ledger. Calls POST /api/auth/logout through the gateway (revokes the session server-side via the refresh_token cookie, no request body/headers needed); client-side auth state (isAuthenticated, authToken, login form fields, rememberMe, profile, activeTab reset to 'feed') is cleared unconditionally in a finally block, so a network failure calling the server never leaves the user stuck logged-in locally. Shows a spinner + "Logging out…" while in flight. Verified live with curl/cookie jars: logout returns 204, the matching sessions row is deleted, the refresh_token cookie is cleared server-side, and a subsequent /api/auth/refresh call correctly returns 401 INVALID_SESSION.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-24
- * Scope: Relabeled the login checkbox from "Remember me?" to "Keep me logged in" (copy-only change, no behavior change).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26
- * Scope: Addressed the PR #89 review finding on the mount-only refresh: factored the POST /api/auth/refresh call into a refreshAccessToken helper (one shared in-flight request, which also collapses the StrictMode double mount into a single refresh) and added an authFetch wrapper that attaches the bearer token and, on a 401, refreshes once and retries; if the refresh also fails it clears the local session without calling /api/auth/logout (a lost refresh-token rotation race must not revoke another tab's session). fetchProfile and handleUpdateProfile now go through authFetch; getAuthHeaders removed.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added a "Delete Account" button (red, full-width) below Log Out on the Profile page. Opens a
- * confirmation modal (warning text, inline error box on failure, a required "I understand this is
- * irreversible" checkbox gating the red confirm button) that calls DELETE /api/users/:id (via authFetch, same
- * 401-refresh-retry as every other authenticated call) for the logged-in user's own id. On success shows a
- * separate "Account Deleted" success modal whose "Return to Login" button calls the existing clearLocalSession()
- * and falls through to the login gate. No existing modal/overlay pattern existed in this file, so both modals
- * are new, styled to match this file's existing rose-error-box and RefreshCw-spinner conventions.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added a responsive desktop layout (top nav bar, wide multi-column content grids) gated on Tailwind's md: (768px) breakpoint, alongside the existing mobile phone-card layout.
- * Author review: [left for the human author to fill in]
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: Added a Map icon button beside the Post Errand pickup dropdown. Opens a new interactive map modal
- * (src/map/SupplierPickupMap.tsx, React Leaflet + OpenStreetMap tiles) dropping a pin for every active
- * supplier with coordinates; clicking a pin selects that supplier in formData (same fields the dropdown's
- * onChange already sets) and closes the map. New dependencies: leaflet, react-leaflet, @types/leaflet
- * (student-app package.json only — no Dockerfile change needed per CLAUDE.md).
- * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by yanhwee)
 
-import React, { useState, useEffect, useRef } from 'react';
+import { CreditTransactionDTO, CreditWalletDTO, NotificationDTO, OrderDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
+import { RefreshCw } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { fetchWalletAndLedger } from './api/credits';
 import {
-  Compass,
-  PlusCircle,
-  Clock,
-  UserCircle,
-  MapPin,
-  Map as MapIcon,
-  ArrowRight,
-  AlertCircle,
-  Coins,
-  ShieldCheck,
-  Store,
-  Search,
-  RefreshCw,
-  CheckCircle,
-} from 'lucide-react';
-import { OrderDTO, CreditWalletDTO, CreditTransactionDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
-import { NotificationBell, NotificationPanel } from './notifications/NotificationBell';
+  acceptOrderById,
+  cancelOrderById,
+  completeOrderById,
+  deliverOrderById,
+  fetchCombinedOrders,
+  FetchOrderResult,
+  fetchOrderById,
+  pickupOrderById,
+  TaskOrderAction,
+  unassignOrderById,
+} from './api/orders';
+import { fetchAllSuppliers } from './api/suppliers';
+import {
+  deleteUserAccountById,
+  fetchCurrentUserProfile,
+  updateCurrentUsername,
+} from './api/users';
+import { BottomNav } from './components/BottomNav';
+import { DeleteAccountModal } from './components/DeleteAccountModal';
+import { HeaderNav, StudentTab } from './components/HeaderNav';
+import { useAuthSession } from './hooks/useAuthSession';
+import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
-import { SupplierPickupMap } from './map/SupplierPickupMap';
+import { useChat } from './chat/useChat';
+import { useOrderSubmission } from './orders/useOrderSubmission';
+import { AlertsPage } from './pages/AlertsPage';
+import { AuthGatePage } from './pages/AuthGatePage';
+import { FeedPage } from './pages/FeedPage';
+import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
+import { ProfileWalletPage } from './pages/ProfileWalletPage';
+import { SpotsPage } from './pages/SpotsPage';
+import { TasksPage } from './pages/TasksPage';
+import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
+
+/** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
+const FEED_POLL_MS = 15_000;
+
+// AI-generated (edited by Reallyeasy1)
+// Deep link a notification can open: /?tab=tasks&orderId=<id>. Read once; the app stays tab-based otherwise.
+function readDeepLink(): { tab: StudentTab | null; orderId: string | null } {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  const tabs: StudentTab[] = ['feed', 'post', 'spots', 'tasks', 'alerts', 'profile', 'wallet'];
+  const orderId = params.get('orderId');
+  return {
+    tab: tabs.includes(tab as StudentTab) ? (tab as StudentTab) : null,
+    orderId: orderId && /^[0-9a-f-]{36}$/i.test(orderId) ? orderId : null,
+  };
+}
 
 export default function App() {
-  // Login / Sign Up Gate state
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [authToken, setAuthToken] = useState('');
-  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
-
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [loginError, setLoginError] = useState<{ code: string; message: string } | null>(null);
-
-  // AI-generated (edited by ngkhengyang)
-  const [signupData, setSignupData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    retypePassword: '',
-  });
-  const [isSigningUp, setIsSigningUp] = useState(false);
-  const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
-
-  const [activeTab, setActiveTab] = useState<'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<StudentTab>(() => readDeepLink().tab ?? 'feed');
+  // The errand a notification opened; its live state is fetched so a stale notice never shows a stale action.
+  const [focusOrderId, setFocusOrderId] = useState<string | null>(() => readDeepLink().orderId);
+  const [focusOrder, setFocusOrder] = useState<FetchOrderResult | null>(null);
+  // AI-generated (edited by Reallyeasy1): the page's manual reload, and the list's scroll offset to return to.
+  const [reloadKey, setReloadKey] = useState(0);
+  // Failures of the page's actions (service 400 / 403 / 409 text), kept apart from the list poll's ordersError.
+  const [actionError, setActionError] = useState<string | null>(null);
+  const savedScroll = useRef<number | null>(null);
   const [selectedZone, setSelectedZone] = useState<string>('ALL');
 
   // Profile Info state (GET/PATCH /api/users/me)
@@ -158,8 +168,7 @@ export default function App() {
   const [suppliers, setSuppliers] = useState<SupplierDTO[]>([]);
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
-  // AI-generated (edited by jagdeepsh)
-  const [isPickupMapOpen, setIsPickupMapOpen] = useState(false);
+  const [supplierError, setSupplierError] = useState<string | null>(null);
 
   // Credit Wallet & Ledger State
   const [wallet, setWallet] = useState<CreditWalletDTO | null>(null);
@@ -168,219 +177,159 @@ export default function App() {
   const [creditError, setCreditError] = useState<string | null>(null);
   const creditRequestId = useRef(0);
 
-  // Open Orders State
-  const [orders, setOrders] = useState<OrderDTO[]>([
-    {
-      id: 'ord-1001',
-      orderCode: 'E-1042',
-      requesterId: 'u1111111-1111-1111-1111-111111111111',
-      courierId: null,
-      supplierId: 's1',
-      supplierName: 'CoffeeBean @ COM3',
-      campusZone: 'COM3',
-      itemDescription: '1x Large Iced Hazelnut Latte (Oat Milk, Less Ice)',
-      specialNotes: 'Table near staircase #01-02',
-      dropoffLocation: 'COM2 #02-04 Discussion Room',
-      requesterContactNote: 'Wearing blue NUS Computing hoodie',
-      rewardCredits: 15,
-      status: 'OPEN',
-      expiresAt: new Date(Date.now() + 25 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      version: 1,
-    },
-    {
-      id: 'ord-1003',
-      orderCode: 'E-1045',
-      requesterId: 'u3333333-3333-3333-3333-333333333333',
-      courierId: null,
-      supplierId: 's3',
-      supplierName: 'PGP Mailroom & Smart Lockers',
-      campusZone: 'PGPR',
-      itemDescription: 'Shopee Parcel Collection (Locker Box #412)',
-      specialNotes: 'OTP Code: 6631',
-      dropoffLocation: 'PGPR Block 20 Level 4 Lounge',
-      rewardCredits: 18,
-      status: 'OPEN',
-      expiresAt: new Date(Date.now() + 18 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      version: 1,
-    },
-  ]);
+  const [orders, setOrders] = useState<OrderDTO[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
+  const [taskActionInFlight, setTaskActionInFlight] = useState<{
+    orderId: string;
+    action: TaskOrderAction;
+  } | null>(null);
+  const orderRequestId = useRef(0);
 
   // Post Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<PostErrandFormData>({
     supplierId: '',
-    supplierName: 'CoffeeBean @ COM3',
-    campusZone: 'COM3',
+    supplierName: '',
+    campusZone: '',
     itemDescription: '',
     specialNotes: '',
     dropoffLocation: '',
     rewardCredits: 15,
+    durationMinutes: 30,
   });
 
   const [notification, setNotification] = useState<string | null>(null);
+  const [noticeTone, setNoticeTone] = useState<'ok' | 'alert'>('ok');
+  const keepNoticeOnTabChange = useRef(false);
 
-  // AI-generated (edited by ngkhengyang)
-  // User Service contract (PR #76): POST /api/auth/login { email, password } -> { accessToken, user };
-  // errors are { error, code }.
-  const loginWithPassword = async (email: string, password: string, keepLoggedIn: boolean = false) => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, keepLoggedIn }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      return { ok: false as const, code: data.code || `HTTP_${res.status}`, message: data.error };
-    }
-    return { ok: true as const, accessToken: data.data.accessToken as string };
-  };
-
-  // Log In handler
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    setLoginError(null);
-    try {
-      const result = await loginWithPassword(loginEmail, loginPassword, rememberMe);
-      if (!result.ok) {
-        setLoginError({
-          code: result.code,
-          message: result.message || 'Login failed. Please check your credentials.',
-        });
-        return;
-      }
-      setAuthToken(result.accessToken);
-      setIsAuthenticated(true);
-    } catch (err: any) {
-      setLoginError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the authentication server.' });
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  // Sign Up handler
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignupError(null);
-
-    if (
-      !signupData.username.trim() ||
-      !signupData.email ||
-      !signupData.password ||
-      !signupData.retypePassword
-    ) {
-      setSignupError({ code: 'VALIDATION_ERROR', message: 'Please fill in all required fields marked with *.' });
-      return;
-    }
-    if (signupData.password !== signupData.retypePassword) {
-      setSignupError({ code: 'PASSWORD_MISMATCH', message: 'Passwords do not match.' });
-      return;
-    }
-    if (signupData.password.length < 8 || signupData.password.length > 24) {
-      setSignupError({ code: 'INVALID_PASSWORD', message: 'Password must be between 8 and 24 characters long.' });
-      return;
-    }
-
-    setIsSigningUp(true);
-    try {
-      // AI-generated (edited by ngkhengyang)
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: signupData.username.trim(),
-          email: signupData.email,
-          password: signupData.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setSignupError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Sign up failed.' });
-        return;
-      }
-      // Registration creates the account only; log in to get a session.
-      const login = await loginWithPassword(signupData.email, signupData.password);
-      if (!login.ok) {
-        setSignupError({ code: login.code, message: login.message || 'Account created, but automatic login failed. Please log in.' });
-        setAuthView('login');
-        return;
-      }
-      setAuthToken(login.accessToken);
-      setIsAuthenticated(true);
-    } catch (err: any) {
-      setSignupError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the registration server.' });
-    } finally {
-      setIsSigningUp(false);
-    }
-  };
-
-  // AI-generated (edited by Reallyeasy1)
-  // Get a new access token from the refresh_token cookie (the browser attaches it). Shared by the
-  // mount-time session restore and the 401 retry in authFetch. Concurrent callers share one in-flight
-  // request so a burst of 401s cannot race the server-side refresh-token rotation.
-  const refreshInFlight = useRef<Promise<string | null> | null>(null);
-  const refreshAccessToken = (): Promise<string | null> => {
-    if (!refreshInFlight.current) {
-      refreshInFlight.current = (async () => {
-        try {
-          const res = await fetch('/api/auth/refresh', { method: 'POST' });
-          const data = await res.json();
-          if (!res.ok || !data.success) return null;
-          const token: string = data.data.accessToken;
-          setAuthToken(token);
-          return token;
-        } catch {
-          // Network failure: treated the same as "no session to restore".
-          return null;
-        } finally {
-          refreshInFlight.current = null;
-        }
-      })();
-    }
-    return refreshInFlight.current;
-  };
-
-  // Silently try to restore a session from the refresh_token cookie on load, so a page
-  // refresh doesn't always force the user back to the login page. A failure (e.g. 401) just
-  // means there's no valid session to restore, expected for a first visit or an expired cookie.
   useEffect(() => {
-    refreshAccessToken()
-      .then((token) => {
-        if (token) setIsAuthenticated(true);
-      })
-      .finally(() => setIsCheckingSession(false));
-  }, []);
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(null), 5000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+  useEffect(() => {
+    if (keepNoticeOnTabChange.current) {
+      keepNoticeOnTabChange.current = false;
+      return;
+    }
+    setNotification(null);
+  }, [activeTab]);
 
-  // Authenticated fetch: attaches the bearer token and, when the access token has expired
-  // (401 after JWT_ACCESS_TOKEN_TTL, 15 min by default), refreshes once and retries. If the
-  // refresh fails too the session is gone, so drop the local session rather than keep a dead token.
-  const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
-      fetch(url, { ...init, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-    const res = await send(authToken);
-    if (res.status !== 401) return res;
-    const token = await refreshAccessToken();
-    if (token) return send(token);
-    clearLocalSession();
-    return res;
-  };
+  const auth = useAuthSession(() => {
+    creditRequestId.current++;
+    orderRequestId.current++;
+    setOrders([]);
+    setOrdersError(null);
+    setOrdersLoading(false);
+    setAcceptingOrder(null);
+    setTaskActionInFlight(null);
+    setFocusOrderId(null);
+    setFocusOrder(null);
+    setActionError(null);
+    setNotification(null);
+    setWallet(null);
+    setLedger([]);
+    setCreditError(null);
+    setIsLoadingCredits(false);
+    setProfile(null);
+    setActiveTab('feed');
+  });
 
-  // AI-generated (edited by Reallyeasy1)
-  // Notification Service: the socket opens once logged in and authenticates with the access token; new
-  // notifications arrive as frames, history and read state go over REST. A pushed notification also shows a toast.
+  const { isAuthenticated, isCheckingSession, authToken, authFetch, refreshAccessToken, currentUserId } =
+    auth;
+
   const notifications = useNotifications({
     enabled: isAuthenticated,
     token: authToken,
     refreshToken: refreshAccessToken,
     authFetch,
     onNotification: (n) => {
-      setNotification(`🔔 ${n.title}`);
-      window.setTimeout(() => setNotification((current) => (current === `🔔 ${n.title}` ? null : current)), 6000);
+      // AI-generated (edited by Reallyeasy1): quiet receipts and changes already on screen get no toast.
+      if (shouldToast(n, activeTab)) {
+        setNoticeTone(n.priority === 'HIGH' ? 'alert' : 'ok');
+        setNotification(`🔔 ${n.title}`);
+      }
+      void loadOrders.current();
     },
   });
+  // AI-generated (edited by Reallyeasy1)
+  // The order the app has loaded is fresher than the Notification Service's projection.
+  const liveStatus = (orderId: string) => orders.find((o) => o.id === orderId)?.status;
+  const openNotification = (n: NotificationDTO) => {
+    if (!n.readAt) void notifications.markRead(n.id);
+    if (n.actionType === 'REVIEW_WALLET') {
+      selectTab('wallet');
+      return;
+    }
+    openErrand(n.orderId, 'tasks');
+  };
+  // AI-generated (edited by Reallyeasy1)
+  // The details page (#188) is the existing deep link made navigable: opening pushes /?tab=&orderId= so Back returns
+  // to the tab the card was on; closing pops that entry when it exists, else rewrites the URL in place. The list
+  // entry's URL is first synchronised with the tab the user is on (Alerts included), so history itself carries the
+  // origin and Back → Forward → Back or a refresh land on the same tab (PR #190 review).
+  const openErrand = (orderId: string, tab: 'feed' | 'tasks') => {
+    savedScroll.current = window.scrollY;
+    window.history.replaceState(null, '', `/?tab=${activeTab}`);
+    setActiveTab(tab);
+    setFocusOrderId(orderId);
+    setFocusOrder(null);
+    setActionError(null);
+    window.history.pushState({ errand: orderId }, '', `/?tab=${tab}&orderId=${encodeURIComponent(orderId)}`);
+    window.scrollTo(0, 0);
+  };
+  const closeErrand = () => {
+    if ((window.history.state as { errand?: string } | null)?.errand) {
+      window.history.back(); // popstate below clears the focus
+      return;
+    }
+    setFocusOrderId(null);
+    setFocusOrder(null);
+    window.history.replaceState(null, '', `/?tab=${activeTab}`);
+  };
+  const reloadErrand = () => {
+    setFocusOrder(null);
+    setActionError(null);
+    setReloadKey((k) => k + 1);
+  };
+  // A nav tab tapped while an errand page is open leaves the page; the URL always follows the tab, so a later Back
+  // from a details page returns here.
+  const selectTab = (tab: StudentTab) => {
+    if (focusOrderId) {
+      savedScroll.current = null;
+      setFocusOrderId(null);
+      setFocusOrder(null);
+    }
+    window.history.replaceState(null, '', `/?tab=${tab}`);
+    setActiveTab(tab);
+  };
+  useEffect(() => {
+    const onPopState = () => {
+      // Every history entry carries its tab in the URL (openErrand and selectTab keep it in sync).
+      const link = readDeepLink();
+      setActiveTab((current) => link.tab ?? current);
+      setFocusOrderId(link.orderId);
+      setFocusOrder(null);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+  useEffect(() => {
+    if (focusOrderId !== null || savedScroll.current === null) return;
+    window.scrollTo(0, savedScroll.current);
+    savedScroll.current = null;
+  }, [focusOrderId]);
+  useEffect(() => {
+    if (!isAuthenticated || !focusOrderId) return;
+    let cancelled = false;
+    void fetchOrderById(authFetch, focusOrderId).then((result) => { if (!cancelled) setFocusOrder(result); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, focusOrderId, orders, reloadKey]);
   const wsStatus = notifications.status;
-  // Feature flag: the connection status line is a development aid; VITE_SHOW_WS_STATUS=false hides it.
+  // AI-generated (edited by Reallyeasy1): the chat socket (F8) beside the notification socket.
+  const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const fetchCredits = async () => {
@@ -390,58 +339,136 @@ export default function App() {
     setWallet(null);
     setLedger([]);
     try {
-      // Both endpoints only read persisted credit data.
-      const walletResponse = await authFetch('/api/credits/wallet');
-      const walletResult = await walletResponse.json();
+      const result = await fetchWalletAndLedger(authFetch);
       if (requestId !== creditRequestId.current) return;
-      if (walletResponse.status === 404) {
-        setCreditError('Your credit wallet has not been initialized yet.');
-        return;
-      }
-      if (!walletResponse.ok || !walletResult.success || !walletResult.data) {
-        throw new Error('Unable to load your credits. Please try again.');
-      }
-      const ledgerResponse = await authFetch('/api/credits/ledger');
-      const ledgerResult = await ledgerResponse.json();
-      if (requestId !== creditRequestId.current) return;
-      if (!ledgerResponse.ok || !ledgerResult.success || !Array.isArray(ledgerResult.data)) {
-        throw new Error('Unable to load your transactions. Please try again.');
-      }
-      setWallet(walletResult.data);
-      setLedger(ledgerResult.data);
-    } catch {
-      if (requestId === creditRequestId.current) {
-        setCreditError('Unable to load your wallet and transactions. Please try again.');
+      if (result.status === 'ok') {
+        setWallet(result.wallet);
+        setLedger(result.ledger);
+      } else {
+        setCreditError(result.message);
       }
     } finally {
       if (requestId === creditRequestId.current) setIsLoadingCredits(false);
     }
   };
 
-  // Refresh on sign-in and tab navigation; ignore responses from previous sessions or requests.
+  // AI-generated (edited by Reallyeasy1): same shape as the orders effect below. The latest fetchCredits is read from a
+  // ref (it closes over authFetch and setters, so listing it would refetch on every render) and the request counter is
+  // bumped on cleanup so a response from the previous tab or session is ignored.
+  const loadCredits = useRef(fetchCredits);
+  loadCredits.current = fetchCredits;
   useEffect(() => {
-    if (isAuthenticated) void fetchCredits();
-    return () => { creditRequestId.current++; };
+    const requests = creditRequestId;
+    if (isAuthenticated) void loadCredits.current();
+    return () => {
+      requests.current++;
+    };
   }, [isAuthenticated, activeTab]);
 
-  // Fetch the logged-in user's own profile (GET /api/users/me)
+  // AI-generated (edited by Reallyeasy1): a quiet reload keeps the list on screen (no "Loading errands…", no error
+  // banner) for polls, and a list that started before a local change (accept, pickup, …) is dropped as stale so it
+  // cannot overwrite that change (PR #196 review).
+  const ordersMutatedAt = useRef(0);
+  const fetchOrders = async (quiet = false) => {
+    const requestId = ++orderRequestId.current;
+    const startedAt = Date.now();
+    if (!quiet) {
+      setOrdersLoading(true);
+      setOrdersError(null);
+    }
+    try {
+      const combined = await fetchCombinedOrders(authFetch);
+      if (requestId !== orderRequestId.current || ordersMutatedAt.current >= startedAt) return;
+      setOrders(combined);
+    } catch {
+      if (!quiet && requestId === orderRequestId.current) {
+        setOrdersError('Unable to load errands. Please try again.');
+      }
+    } finally {
+      if (requestId === orderRequestId.current) setOrdersLoading(false);
+    }
+  };
+
+  const loadOrders = useRef(fetchOrders);
+  loadOrders.current = fetchOrders;
+  useEffect(() => {
+    const requests = orderRequestId;
+    if (currentUserId) void loadOrders.current();
+    return () => {
+      requests.current++;
+    };
+  }, [currentUserId, activeTab]);
+
+  // AI-generated (edited by Reallyeasy1): couriers get no alert when an errand is posted (Notification Service's
+  // order.created goes to the requester only), so the Feed polls while it is on screen and the tab is visible.
+  // ponytail: a 15 s poll of the two list calls; a courier-side push would need a new notification recipient.
+  const feedOnScreen = Boolean(currentUserId) && !focusOrderId && activeTab === 'feed';
+  useEffect(() => {
+    if (!feedOnScreen) return;
+    const tick = () => { if (document.visibilityState === 'visible') void loadOrders.current(true); };
+    const timer = setInterval(tick, FEED_POLL_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [feedOnScreen]);
+
+  const submission = useOrderSubmission({
+    userId: currentUserId,
+    authFetch,
+    onSettled: (receipt) => {
+      void fetchCredits();
+      void fetchOrders();
+      if (receipt.status === 'OPEN' && receipt.orderCode) {
+        keepNoticeOnTabChange.current = activeTab === 'post';
+        setNoticeTone('ok');
+        setNotification(`Errand ${receipt.orderCode} posted. Credits reserved.`);
+        setFormData((current) => ({
+          ...current,
+          itemDescription: '',
+          specialNotes: '',
+          dropoffLocation: '',
+          rewardCredits: 15,
+          durationMinutes: 30,
+        }));
+        if (activeTab === 'post') setActiveTab('feed');
+      } else if (receipt.status === 'REJECTED') {
+        keepNoticeOnTabChange.current = activeTab === 'post';
+        setNoticeTone('alert');
+        setNotification(
+          `Errand posting rejected: ${receipt.rejectionReason || 'Credit reservation failed or insufficient funds.'}`
+        );
+      } else if (receipt.status === 'CANCELLED' || receipt.status === 'EXPIRED') {
+        keepNoticeOnTabChange.current = activeTab === 'post';
+        setNoticeTone('alert');
+        setNotification('Errand posting was cancelled or expired.');
+      }
+    },
+  });
+
   const fetchProfile = async () => {
     setIsLoadingProfile(true);
     setProfileError(null);
     try {
-      const res = await authFetch('/api/users/me');
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setProfile(data.data.user);
+      const res = await fetchCurrentUserProfile(authFetch);
+      if (res.ok) {
+        setProfile(res.data);
       } else {
-        setProfileError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to load profile.' });
+        setProfileError({ code: res.code, message: res.message });
       }
-    } catch (err: any) {
-      setProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsLoadingProfile(false);
     }
   };
+
+  const loadProfile = useRef(fetchProfile);
+  loadProfile.current = fetchProfile;
+  useEffect(() => {
+    if (isAuthenticated && (activeTab === 'profile' || activeTab === 'wallet')) {
+      void loadProfile.current();
+    }
+  }, [isAuthenticated, activeTab]);
 
   const startEditingProfile = () => {
     if (!profile) return;
@@ -456,7 +483,6 @@ export default function App() {
     setEditUsernameDraft('');
   };
 
-  // Update the logged-in user's own username (PATCH /api/users/me)
   const handleUpdateProfile = async () => {
     if (!editUsernameDraft.trim()) {
       setUpdateProfileError({ code: 'VALIDATION_ERROR', message: 'Username is required.' });
@@ -465,215 +491,166 @@ export default function App() {
     setIsUpdatingProfile(true);
     setUpdateProfileError(null);
     try {
-      const res = await authFetch('/api/users/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ username: editUsernameDraft.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setProfile(data.data.user);
+      const res = await updateCurrentUsername(authFetch, editUsernameDraft.trim());
+      if (res.ok) {
+        setProfile(res.data);
         setIsEditingProfile(false);
       } else {
-        setUpdateProfileError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to update username.' });
+        setUpdateProfileError({ code: res.code, message: res.message });
       }
-    } catch (err: any) {
-      setUpdateProfileError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsUpdatingProfile(false);
     }
   };
 
-  // Permanently delete the logged-in user's own account (DELETE /api/users/:id)
   const handleDeleteAccount = async () => {
     if (!profile) return;
     setIsDeletingAccount(true);
     setDeleteAccountError(null);
     try {
-      const res = await authFetch(`/api/users/${profile.userId}`, { method: 'DELETE' });
-      if (res.status === 204) {
+      const res = await deleteUserAccountById(authFetch, profile.userId);
+      if (res.ok) {
         setShowDeleteAccountModal(false);
         setDeleteAccountConfirmed(false);
         setDeleteAccountSuccess(true);
       } else {
-        const data = await res.json().catch(() => ({}));
-        setDeleteAccountError({ code: data.code || `HTTP_${res.status}`, message: data.error || 'Failed to delete account.' });
+        setDeleteAccountError({ code: res.code, message: res.message });
       }
-    } catch (err: any) {
-      setDeleteAccountError({ code: 'NETWORK_ERROR', message: err.message || 'Could not reach the User Service.' });
     } finally {
       setIsDeletingAccount(false);
     }
   };
 
-  // Drop the client-side session without touching the server. Used by Log Out and by authFetch
-  // when a refresh fails: that 401 may be a lost rotation race, and the cookie may by then belong
-  // to another tab's live session, so POST /api/auth/logout must not be sent from that path.
-  const clearLocalSession = () => {
-    creditRequestId.current++;
-    setWallet(null);
-    setLedger([]);
-    setCreditError(null);
-    setIsLoadingCredits(false);
-    setIsAuthenticated(false);
-    setAuthToken('');
-    setLoginEmail('');
-    setLoginPassword('');
-    setLoginError(null);
-    setRememberMe(false);
-    setProfile(null);
-    setActiveTab('feed');
-  };
-
-  // Log out: revoke the session server-side, then clear client-side auth state regardless of outcome.
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {
-      // Network failure logging out server-side shouldn't block clearing the local session below.
-    } finally {
-      clearLocalSession();
-      setIsLoggingOut(false);
-    }
-  };
-
-  // Fetch all campus suppliers (active and inactive) from Supplier Service
   const fetchLiveSuppliers = async () => {
     setIsSuppliersLoading(true);
+    setSupplierError(null);
     try {
-      const res = await fetch('/api/suppliers', {
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      const items = await fetchAllSuppliers();
+      setSuppliers(items);
+      setFormData((current) => {
+        const selected =
+          items.find((item) => item.id === current.supplierId && item.isActive) ??
+          items.find((item) => item.isActive);
+        return {
+          ...current,
+          supplierId: selected?.id ?? '',
+          supplierName: selected?.name ?? '',
+          campusZone: selected?.campusZone ?? '',
+        };
       });
-      if (res.ok) {
-        const json = await res.json();
-        const items = Array.isArray(json.data) ? json.data : json.data?.suppliers || [];
-        if (items.length > 0) {
-          setSuppliers(items);
-          const firstActive = items.find((it: SupplierDTO) => it.isActive) || items[0];
-          setFormData((prev) => ({
-            ...prev,
-            supplierId: firstActive.id,
-            supplierName: firstActive.name,
-            campusZone: firstActive.campusZone,
-          }));
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Could not fetch live suppliers, falling back:', e);
+    } catch {
+      setSuppliers([]);
+      setSupplierError('Unable to load pickup spots. Please try again.');
     } finally {
       setIsSuppliersLoading(false);
     }
-
-    // Fallback campus spots if gateway is connecting
-    setSuppliers([
-      {
-        id: 's1',
-        supplierCode: 'SUP-001',
-        name: 'CoffeeBean @ COM3',
-        campusZone: 'COM3',
-        exactLocation: 'COM3 Level 1 Lobby',
-        category: 'Beverages',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 's2',
-        supplierCode: 'SUP-002',
-        name: 'Printers @ PCCommons',
-        campusZone: 'UTown',
-        exactLocation: 'Stephen Riady Centre Level 1',
-        category: 'Printing',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 's3',
-        supplierCode: 'SUP-003',
-        name: 'PGP Mailroom & Smart Lockers',
-        campusZone: 'PGPR',
-        exactLocation: "Prince George's Park Residences Foyer",
-        category: 'Parcels',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 's4',
-        supplierCode: 'SUP-004',
-        name: 'Fine Food Canteen (UTown)',
-        campusZone: 'UTown',
-        exactLocation: 'Town Plaza Level 1',
-        category: 'Food',
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
   };
 
   useEffect(() => {
-    fetchLiveSuppliers();
+    void fetchLiveSuppliers();
   }, []);
 
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!wallet) return;
-    if (wallet.availableCredits < formData.rewardCredits) {
-      alert('Insufficient available credits to post errand.');
+    if (submission.busy || !suppliers.some((s) => s.id === formData.supplierId && s.isActive)) {
       return;
     }
-
-    const newOrder: OrderDTO = {
-      id: `ord-${Date.now()}`,
-      orderCode: `E-${Math.floor(1000 + Math.random() * 9000)}`,
-      requesterId: wallet.userId,
-      courierId: null,
-      supplierId: formData.supplierId || 's1',
-      supplierName: formData.supplierName,
-      campusZone: formData.campusZone,
+    if (wallet && formData.rewardCredits > wallet.availableCredits) {
+      setNoticeTone('alert');
+      setNotification(
+        `Insufficient credits: You offered ${formData.rewardCredits} C, but you only have ${wallet.availableCredits} C available.`
+      );
+      return;
+    }
+    setNotification(null);
+    void submission.submit({
+      supplierId: formData.supplierId,
       itemDescription: formData.itemDescription,
       specialNotes: formData.specialNotes,
       dropoffLocation: formData.dropoffLocation,
       rewardCredits: formData.rewardCredits,
-      status: 'OPEN',
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      version: 1,
-    };
-
-    setOrders([newOrder, ...orders]);
-    setNotification(`Errand ${newOrder.orderCode} preview created. No credits reserved.`);
-    setActiveTab('feed');
-
-    setFormData({
-      supplierId: suppliers[0]?.id || '',
-      supplierName: suppliers[0]?.name || 'CoffeeBean @ COM3',
-      campusZone: suppliers[0]?.campusZone || 'COM3',
-      itemDescription: '',
-      specialNotes: '',
-      dropoffLocation: '',
-      rewardCredits: 15,
+      durationMinutes: Number.isFinite(formData.durationMinutes) ? formData.durationMinutes : 30,
     });
   };
 
-  const handleAcceptOrder = (orderId: string) => {
-    if (!wallet) return;
-    setOrders((prev) =>
-      prev.map((ord) =>
-        ord.id === orderId
-          ? { ...ord, status: 'ACCEPTED', courierId: wallet.userId, version: ord.version + 1 }
-          : ord
-      )
-    );
-    setNotification('Errand accepted! Head to the pickup location.');
+  const handleAcceptOrder = async (orderId: string, courierContactNote?: string) => {
+    if (acceptingOrder || taskActionInFlight) return;
+    const requestId = orderRequestId.current;
+    setAcceptingOrder(orderId);
+    setActionError(null);
+    try {
+      const updated = await acceptOrderById(authFetch, orderId, courierContactNote);
+      if (requestId !== orderRequestId.current) return;
+      ordersMutatedAt.current = Date.now();
+      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
+      setNoticeTone('ok');
+      setNotification('Errand accepted! Head to the pickup location.');
+    } catch (error) {
+      if (requestId === orderRequestId.current) {
+        setActionError(error instanceof Error ? error.message : 'Unable to accept this errand.');
+      }
+    } finally {
+      setAcceptingOrder(null);
+    }
+  };
+
+  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction) => {
+    if (taskActionInFlight || acceptingOrder) return;
+    const requestId = orderRequestId.current;
+    setTaskActionInFlight({ orderId, action });
+    setActionError(null);
+    try {
+      let updated: OrderDTO;
+      let successMessage: string;
+      switch (action) {
+        case 'pickup':
+          updated = await pickupOrderById(authFetch, orderId);
+          successMessage = 'Item picked up! Head to dropoff location.';
+          break;
+        case 'deliver':
+          updated = await deliverOrderById(authFetch, orderId);
+          successMessage = 'Item marked as delivered! Awaiting requester confirmation.';
+          break;
+        case 'complete':
+          updated = await completeOrderById(authFetch, orderId);
+          // AI-generated (edited by Reallyeasy1): the payment is Credit Service's commit, not this one.
+          successMessage = 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.';
+          break;
+        case 'cancel':
+          updated = await cancelOrderById(authFetch, orderId);
+          successMessage = 'Errand cancelled. Reserved credits are returned once Credit Service processes it.';
+          break;
+        case 'unassign':
+          updated = await unassignOrderById(authFetch, orderId);
+          successMessage = 'Errand dropped and returned to the open feed.';
+          break;
+      }
+      if (requestId !== orderRequestId.current) return;
+      ordersMutatedAt.current = Date.now();
+      setOrders((current) => current.map((order) => (order.id === orderId ? updated : order)));
+      setNoticeTone('ok');
+      setNotification(successMessage);
+      if (action === 'complete' || action === 'cancel') {
+        void fetchCredits();
+        setTimeout(() => {
+          if (isAuthenticated) void fetchCredits();
+        }, 600);
+      }
+    } catch (error) {
+      if (requestId === orderRequestId.current) {
+        setActionError(error instanceof Error ? error.message : 'Unable to update this errand.');
+      }
+    } finally {
+      setTaskActionInFlight(null);
+    }
   };
 
   const filteredOrders = orders.filter((o) => {
+    if (o.status !== 'OPEN' || o.requesterId === currentUserId) return false;
     if (selectedZone === 'ALL') return true;
     return o.campusZone === selectedZone;
   });
 
-  // Only active suppliers can be picked as a pickup spot for a new errand
   const activeSuppliers = suppliers.filter((s) => s.isActive);
 
   const filteredSuppliers = suppliers.filter((s) => {
@@ -697,1049 +674,255 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 px-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm space-y-5">
-          <div className="text-center space-y-1">
-            <h1 className="font-extrabold text-lg text-nus-blue">NUS CampusErrand</h1>
-            <p className="text-xs text-slate-400">Dual-Role Peer Network</p>
-          </div>
-
-          {authView === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <h2 className="text-base font-bold text-slate-900 text-center">Log In</h2>
-              {loginError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                  <p className="font-bold">{loginError.code}</p>
-                  <p>{loginError.message}</p>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  disabled={isLoggingIn}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  disabled={isLoggingIn}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <label className="flex items-center space-x-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  disabled={isLoggingIn}
-                  className="rounded border-slate-300 text-nus-blue focus:ring-nus-blue"
-                />
-                <span>Keep me logged in</span>
-              </label>
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
-              </button>
-              <p className="text-center text-xs text-slate-500">
-                If you don't have an account,{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthView('signup');
-                    setLoginError(null);
-                  }}
-                  className="text-nus-orange font-bold underline"
-                >
-                  Sign up
-                </button>{' '}
-                with us
-              </p>
-              <div className="border-t border-slate-200 pt-4">
-                <a
-                  href="/admin/"
-                  className="flex min-h-11 w-full items-center justify-center rounded-lg border border-nus-blue px-4 py-2.5 text-sm font-bold text-nus-blue transition hover:bg-blue-50"
-                >
-                  Admin Log In
-                </a>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleSignup} className="space-y-3">
-              <h2 className="text-base font-bold text-slate-900 text-center">Sign Up</h2>
-              {signupError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                  <p className="font-bold">{signupError.code}</p>
-                  <p>{signupError.message}</p>
-                </div>
-              )}
-              {/* AI-generated (edited by ngkhengyang) */}
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Username <span className="text-rose-600">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-1">1-50 characters.</p>
-                <input
-                  type="text"
-                  value={signupData.username}
-                  onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Email <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={signupData.email}
-                  onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Password <span className="text-rose-600">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-1">Must be 8-24 characters long.</p>
-                <input
-                  type="password"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                  Re-type Password <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={signupData.retypePassword}
-                  onChange={(e) => setSignupData({ ...signupData, retypePassword: e.target.value })}
-                  disabled={isSigningUp}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-nus-blue"
-                />
-              </div>
-              <p className="text-xs text-slate-400">
-                Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
-              </p>
-              <button
-                type="submit"
-                disabled={isSigningUp}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-orange hover:bg-orange-600 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                {isSigningUp && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isSigningUp ? 'Signing up...' : 'Sign Up'}</span>
-              </button>
-              <p className="text-center text-xs text-slate-500">
-                Already have an account,{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthView('login');
-                    setSignupError(null);
-                  }}
-                  className="text-nus-blue font-bold underline"
-                >
-                  Log in
-                </button>
-              </p>
-            </form>
-          )}
-        </div>
-      </div>
+      <AuthGatePage
+        authView={auth.authView}
+        setAuthView={auth.setAuthView}
+        loginEmail={auth.loginEmail}
+        setLoginEmail={auth.setLoginEmail}
+        loginPassword={auth.loginPassword}
+        setLoginPassword={auth.setLoginPassword}
+        rememberMe={auth.rememberMe}
+        setRememberMe={auth.setRememberMe}
+        isLoggingIn={auth.isLoggingIn}
+        loginError={auth.loginError}
+        setLoginError={auth.setLoginError}
+        onLoginSubmit={auth.handleLogin}
+        signupData={auth.signupData}
+        setSignupData={auth.setSignupData}
+        isSigningUp={auth.isSigningUp}
+        signupError={auth.signupError}
+        setSignupError={auth.setSignupError}
+        onSignupSubmit={auth.handleSignup}
+      />
     );
   }
 
+  const openProfileTab = () => {
+    selectTab('profile');
+    void fetchProfile();
+  };
+
+  // AI-generated (edited by Reallyeasy1): while an errand is open its page stands in for the tab's content.
+  const page: StudentTab | null = focusOrderId ? null : activeTab;
+
   return (
-    // AI-generated (edited by jagdeepsh) - original responsive shell
-    // AI-generated (edited by huangjiaxi1111) - fluid shell with viewport-based navigation
     <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
-      {/* Top Header */}
-      <header className="bg-nus-blue text-white px-4 py-4 md:px-6 lg:px-8 sticky top-0 z-30 shadow-md">
-        <div className="student-header-row">
-          <div>
-            <h1 className="font-extrabold text-base tracking-tight flex flex-wrap items-center gap-1.5">
-              <span>NUS CampusErrand</span>
-              <span className="bg-nus-orange text-xs font-black px-1.5 py-0.5 rounded tracking-normal">
-                STUDENT
-              </span>
-            </h1>
-            <p className="text-xs text-blue-200">Dual-Role Peer Network • Milestone D2</p>
-          </div>
+      <HeaderNav
+        activeTab={activeTab}
+        onSelectTab={selectTab}
+        onOpenProfile={openProfileTab}
+        unreadNotificationsCount={notifications.unreadCount}
+        wallet={wallet}
+        isLoadingCredits={isLoadingCredits}
+        showWsStatus={showWsStatus}
+        wsStatus={wsStatus}
+      />
 
-          {/* AI-generated (edited by jagdeepsh) - desktop top nav bar, replaces the bottom tab bar at md: and up */}
-          <nav aria-label="Main navigation" className="student-top-nav hidden md:flex flex-wrap items-center gap-1 bg-blue-900/40 rounded-2xl px-1.5 py-1 border border-blue-400/20">
-            <button
-              aria-current={activeTab === 'feed' ? 'page' : undefined}
-              onClick={() => setActiveTab('feed')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'feed' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              <span>Feed</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'post' ? 'page' : undefined}
-              onClick={() => setActiveTab('post')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'post' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Post</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'spots' ? 'page' : undefined}
-              onClick={() => setActiveTab('spots')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'spots' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <Store className="w-4 h-4" />
-              <span>Spots</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'tasks' ? 'page' : undefined}
-              onClick={() => setActiveTab('tasks')}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'tasks' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Tasks</span>
-            </button>
-
-            <button
-              aria-current={activeTab === 'profile' ? 'page' : undefined}
-              onClick={() => {
-                setActiveTab('profile');
-                fetchProfile();
-              }}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition ${
-                activeTab === 'profile' ? 'bg-nus-orange text-white shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-800/60'
-              }`}
-            >
-              <UserCircle className="w-4 h-4" />
-              <span>Profile</span>
-            </button>
-            <NotificationBell variant="top" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
-          </nav>
-
-          <div className="flex items-center space-x-1 bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">
-            <Coins className="w-3.5 h-3.5 text-amber-300" />
-            <span className="text-sm font-bold text-amber-300" aria-live="polite">
-              {wallet ? `${wallet.availableCredits} C` : isLoadingCredits ? 'Loading credits…' : 'Credits unavailable'}
-            </span>
-          </div>
-        </div>
-
-        {/* Status Line */}
-        <div className="mt-2.5 pt-2 border-t border-blue-800 flex justify-between items-center text-xs">
-          {showWsStatus ? (
-            <span className="flex items-center space-x-1.5 text-blue-200">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  wsStatus === 'connected'
-                    ? 'bg-emerald-400 motion-safe:animate-pulse'
-                    : wsStatus === 'connecting'
-                    ? 'bg-amber-400'
-                    : 'bg-rose-400'
-                }`}
-              />
-              <span>WS Hub: {wsStatus}</span>
-            </span>
-          ) : (
-            <span />
-          )}
-          <span className="text-blue-300">Escrow: {wallet ? `${wallet.escrowCredits} C Held` : '—'}</span>
-        </div>
-      </header>
-
-      {/* Notification Toast */}
       {notification && (
-        <div className="bg-emerald-600 text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all">
+        <div
+          role="status"
+          data-testid="action-notice"
+          className={`${noticeTone === 'alert' ? 'bg-amber-600' : 'bg-emerald-600'} text-white text-sm px-4 py-2 text-center font-medium shadow-md transition-all`}
+        >
           {notification}
         </div>
       )}
 
-      {/* Main Content Area */}
-      {/* AI-generated (edited by jagdeepsh) - relax bottom padding at md: since the fixed bottom nav is hidden there */}
-      <main className="student-main flex-1 min-w-0 px-4 pt-4 md:px-6 md:pt-6 lg:px-8 lg:pt-8">
-        {/* TAB 1: Errand Feed */}
-        {activeTab === 'feed' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Errand Feed</h2>
-              <span className="text-sm bg-slate-200 px-2 py-0.5 rounded-full text-slate-700 font-semibold">
-                {filteredOrders.length} Open
-              </span>
-            </div>
-
-            {/* Campus Zone Filter Pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap">
-              {['ALL', 'COM3', 'UTown', 'PGPR', 'FASS', 'Science', 'Engineering'].map((zone) => (
-                <button
-                  key={zone}
-                  onClick={() => setSelectedZone(zone)}
-                  className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap transition ${
-                    selectedZone === zone
-                      ? 'bg-nus-orange text-white shadow-sm'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  {zone}
-                </button>
-              ))}
-            </div>
-
-            {/* Errand Cards List */}
-            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="responsive-card-grid">
-              {filteredOrders.length === 0 && (
-                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No open errands in this zone.</p>
-              )}
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:shadow-md transition"
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-nus-blue border border-blue-100">
-                      {order.campusZone}
-                    </span>
-                    <div className="flex items-center space-x-1 text-amber-600 font-black text-sm bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                      <Coins className="w-3.5 h-3.5" />
-                      <span>+{order.rewardCredits} Credits</span>
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-slate-900 text-sm mt-2">{order.itemDescription}</h3>
-                  {order.specialNotes && (
-                    <p className="text-sm text-slate-500 italic mt-0.5">"{order.specialNotes}"</p>
-                  )}
-
-                  <div className="mt-3 bg-slate-50 rounded-lg p-2.5 space-y-1.5 text-sm text-slate-700">
-                    <div className="flex items-center space-x-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
-                      <span className="font-semibold text-slate-600">Pickup:</span>
-                      <span className="truncate">{order.supplierName}</span>
-                    </div>
-                    <div className="flex items-center space-x-1.5">
-                      <ArrowRight className="w-3.5 h-3.5 text-nus-orange shrink-0" />
-                      <span className="font-semibold text-slate-600">Dropoff:</span>
-                      <span className="truncate">{order.dropoffLocation}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3.5 flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-xs text-slate-400 flex items-center space-x-1">
-                      <Clock className="w-3 h-3" />
-                      <span>Expires in ~25m</span>
-                    </span>
-
-                    {order.status === 'OPEN' ? (
-                      <button
-                        onClick={() => handleAcceptOrder(order.id)}
-                        disabled={!wallet || isLoadingCredits}
-                        className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-3.5 py-1.5 rounded-lg shadow-sm transition flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <span>Accept Errand</span>
-                      </button>
-                    ) : (
-                      <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
-                        Accepted by You
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+      <main className="student-main flex-1 min-w-0 px-4 pt-3.5 pb-8 md:px-6 md:pt-4 md:pb-10 lg:px-8">
+        {(submission.unconfirmed ||
+          (submission.receipt && submission.receipt.status !== 'OPEN')) && (
+          <div
+            role="status"
+            data-testid="order-submission-status"
+            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          >
+            {submission.unconfirmed &&
+              'Awaiting confirmation. Your errand may still be pending and could become open. We could not confirm its status because the submission response was not received. Please wait before trying again; submitting again could create a duplicate errand.'}
+            {submission.receipt?.status === 'PENDING' &&
+              'Pending — waiting to open. We are reserving your credits. Your errand will appear once the reservation is confirmed. Please wait and do not submit this errand again.'}
+            {submission.receipt?.status === 'EXPIRED' &&
+              'Your submission expired and your reserved credits are being returned. You can submit a new errand.'}
+            {submission.receipt?.status === 'REJECTED' &&
+              `Errand not posted: ${
+                submission.receipt.rejectionReason || 'Credit reservation was declined.'
+              }`}
+          </div>
+        )}
+        {submission.error && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700"
+          >
+            {submission.error}
+          </div>
+        )}
+        {ordersError && (page === 'feed' || page === 'tasks') && (
+          <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
+            {ordersError}{' '}
+            <button onClick={() => void fetchOrders()} className="font-bold underline">
+              Retry loading errands
+            </button>
+          </div>
+        )}
+        {supplierError && (page === 'post' || page === 'spots') && (
+          <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
+            {supplierError}{' '}
+            <button onClick={() => void fetchLiveSuppliers()} className="font-bold underline">
+              Retry loading pickup spots
+            </button>
           </div>
         )}
 
-        {/* TAB 2: Post Errand */}
-        {activeTab === 'post' && (
-          <div className="space-y-4">
-            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Post New Errand</h2>
-            <form onSubmit={handlePostSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-6 items-start">
-              <div className="min-w-0 bg-white rounded-xl p-4 md:p-6 shadow-sm border border-slate-200 space-y-5">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-bold text-slate-700">
-                      Pickup Store / Spot (Live M3 Directory)
-                    </label>
-                    <span className="text-xs text-blue-600 font-semibold">
-                      {activeSuppliers.length} active spots
-                    </span>
-                  </div>
-                  {/* AI-generated (edited by jagdeepsh) */}
-                  <div className="flex items-stretch gap-2">
-                    <select
-                      value={formData.supplierId}
-                      onChange={(e) => {
-                        const chosen = suppliers.find((s) => s.id === e.target.value);
-                        if (chosen) {
-                          setFormData({
-                            ...formData,
-                            supplierId: chosen.id,
-                            supplierName: chosen.name,
-                            campusZone: chosen.campusZone,
-                          });
-                        }
-                      }}
-                      className="flex-1 min-w-0 text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                    >
-                      {activeSuppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.campusZone} - {s.category})
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setIsPickupMapOpen(true)}
-                      title="Pick a spot on the map"
-                      aria-label="Pick a spot on the map"
-                      className="shrink-0 px-3 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-nus-blue flex items-center justify-center"
-                    >
-                      <MapIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Selected Zone: <span className="font-bold text-slate-600">{formData.campusZone}</span>
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Item Description & Order Details</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
-                    value={formData.itemDescription}
-                    onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Drop-off Study Spot & Visual Cue</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
-                    value={formData.dropoffLocation}
-                    onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1">Special Delivery Notes (Optional)</label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
-                    value={formData.specialNotes}
-                    onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-nus-blue outline-none"
-                  />
-                </div>
-
-              </div>
-              <aside aria-label="Reward and posting" className="min-w-0 space-y-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 md:p-6">
-                  <div className="flex flex-wrap gap-3 items-center justify-between">
-                    <span className="text-sm font-bold text-amber-900">Courier Reward Credits:</span>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        aria-label="Decrease reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: Math.max(5, f.rewardCredits - 5) }))}
-                        className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
-                      >
-                        -
-                      </button>
-                      <span className="font-black text-sm text-amber-900">{formData.rewardCredits} C</span>
-                      <button
-                        type="button"
-                        aria-label="Increase reward"
-                        onClick={() => setFormData((f) => ({ ...f, rewardCredits: f.rewardCredits + 5 }))}
-                        className="w-11 h-11 rounded bg-amber-200 text-amber-900 font-bold text-sm"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Available: {wallet ? `${wallet.availableCredits} C` : '—'}. This preview does not reserve credits.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={!wallet || isLoadingCredits}
-                  className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Preview Errand
-                </button>
-              </aside>
-            </form>
-          </div>
+        {focusOrderId && (
+          <ErrandDetailsPage
+            orderId={focusOrderId}
+            result={focusOrder}
+            currentUserId={currentUserId}
+            chat={chat}
+            onBack={closeErrand}
+            onReload={reloadErrand}
+            actingAction={
+              acceptingOrder === focusOrderId ? 'accept' : taskActionInFlight?.orderId === focusOrderId ? taskActionInFlight.action : null
+            }
+            actionError={actionError}
+            onAccept={(orderId, note) => void handleAcceptOrder(orderId, note)}
+            onAction={(orderId, action) => void handleTaskOrderAction(orderId, action)}
+          />
         )}
 
-        {/* TAB 3: Campus Spots Directory (M3 Live Integration) */}
-        {activeTab === 'spots' && (
-          <div className="space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Campus Spots (M3)</h2>
-                <p className="text-sm text-slate-500">Live directory fetched from Supplier Service</p>
-              </div>
-              <span className="text-sm bg-blue-50 text-blue-700 border border-blue-200 font-bold px-2 py-0.5 rounded-full">
-                {filteredSuppliers.length} Verified
-              </span>
-            </div>
-
-              {/* Spot Search Bar */}
-            <div className="relative w-full lg:max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search food, cafes, lockers, print hubs..."
-                value={supplierSearch}
-                onChange={(e) => setSupplierSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm bg-white rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-nus-blue shadow-sm"
-              />
-            </div>
-
-            </div>
-
-            {/* Loading Indicator */}
-            {isSuppliersLoading && (
-              <div className="p-4 text-center text-sm text-slate-400">Loading campus spots...</div>
-            )}
-
-            {/* List of Verified Spots */}
-            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="responsive-card-grid">
-              {!isSuppliersLoading && filteredSuppliers.length === 0 && (
-                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No campus spots match your search.</p>
-              )}
-              {filteredSuppliers.map((s) => (
-                <div
-                  key={s.id}
-                  className={`rounded-xl p-3.5 border shadow-sm space-y-2 ${
-                    s.isActive ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
-                        {s.supplierCode}
-                      </span>
-                      <h3 className="font-bold text-sm text-slate-900 mt-1">{s.name}</h3>
-                      <p className="text-sm text-slate-500">{s.exactLocation}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-xs bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded">
-                        {s.campusZone}
-                      </span>
-                      {!s.isActive && (
-                        <span className="text-xs bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded">
-                          Unavailable
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                      {s.category}
-                    </span>
-                    <button
-                      disabled={!s.isActive}
-                      onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          supplierId: s.id,
-                          supplierName: s.name,
-                          campusZone: s.campusZone,
-                        }));
-                        setActiveTab('post');
-                      }}
-                      className="text-sm font-bold text-nus-orange hover:text-orange-700 flex items-center space-x-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:text-slate-400"
-                    >
-                      <span>Pick for Errand</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {page === 'feed' && (
+          <FeedPage
+            filteredOrders={filteredOrders}
+            selectedZone={selectedZone}
+            onSelectZone={setSelectedZone}
+            ordersLoading={ordersLoading}
+            ordersError={ordersError}
+            currentUserId={currentUserId}
+            onOpenErrand={(orderId) => openErrand(orderId, 'feed')}
+          />
         )}
 
-        {/* TAB 4: My Tasks */}
-        {activeTab === 'tasks' && (
-          <div className="space-y-4">
-            <h2 className="text-xl lg:text-2xl font-bold text-slate-800">My Active Tasks</h2>
-            {/* AI-generated (edited by jagdeepsh) - multi-column grid at md: and up */}
-            <div className="responsive-card-grid">
-              {!orders.some((o) => wallet && (o.courierId === wallet.userId || o.requesterId === wallet.userId)) && (
-                <p className="col-span-full rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500">No active tasks yet.</p>
-              )}
-              {orders
-                .filter((o) => wallet && (o.courierId === wallet.userId || o.requesterId === wallet.userId))
-                .map((task) => (
-                  <div key={task.id} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
-                        {task.orderCode}
-                      </span>
-                      <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-                        {task.status}
-                      </span>
-                    </div>
-                    <p className="text-sm font-bold text-slate-800">{task.itemDescription}</p>
-                    <p className="text-xs text-slate-500">Pickup: {task.supplierName}</p>
-                    <p className="text-xs text-slate-500">Dropoff: {task.dropoffLocation}</p>
-                  </div>
-                ))}
-            </div>
-          </div>
+        {page === 'post' && (
+          <PostErrandPage
+            formData={formData}
+            setFormData={setFormData}
+            suppliers={suppliers}
+            activeSuppliers={activeSuppliers}
+            isSuppliersLoading={isSuppliersLoading}
+            wallet={wallet}
+            submissionBusy={submission.busy}
+            submissionPosting={submission.posting}
+            submissionError={submission.error}
+            submissionUnconfirmed={submission.unconfirmed}
+            onSubmit={handlePostSubmit}
+            authFetch={authFetch}
+          />
         )}
 
-        {/* Alerts: notifications from the Notification Service */}
-        {activeTab === 'alerts' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Alerts</h2>
-              <p className="text-sm text-slate-500 mt-1">Every errand a courier has acted on, newest first. Open one to see its stages; unread alerts wait here until you do.</p>
-            </div>
-            <NotificationPanel
-              items={notifications.items}
-              unreadCount={notifications.unreadCount}
-              isLoading={notifications.isLoading}
-              error={notifications.error}
-              onMarkRead={notifications.markRead}
-              onMarkAllRead={notifications.markAllRead}
-              onRefresh={notifications.refresh}
-              // The errand's confirm-delivery action lives in Tasks once Order Service is real; today Tasks shows the local previews.
-              onOpenErrand={(n) => { if (!n.readAt) notifications.markRead(n.id); setActiveTab('tasks'); }}
-            />
-          </div>
+        {page === 'spots' && (
+          <SpotsPage
+            filteredSuppliers={filteredSuppliers}
+            supplierSearch={supplierSearch}
+            onChangeSearch={setSupplierSearch}
+            isSuppliersLoading={isSuppliersLoading}
+            onPickForErrand={(s) => {
+              setFormData((prev) => ({
+                ...prev,
+                supplierId: s.id,
+                supplierName: s.name,
+                campusZone: s.campusZone,
+              }));
+              setActiveTab('post');
+            }}
+          />
         )}
 
-        {/* TAB 5: Profile & Wallet */}
-        {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <section aria-labelledby="profile-heading" className="min-w-0 space-y-4">
-              <h2 id="profile-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Profile Info</h2>
+        {page === 'tasks' && (
+          <TasksPage
+            orders={orders}
+            currentUserId={currentUserId}
+            ordersLoading={ordersLoading}
+            onRefreshOrders={() => void fetchOrders()}
+            onOpenErrand={(orderId) => openErrand(orderId, 'tasks')}
+          />
+        )}
 
-              {isLoadingProfile && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center space-x-2">
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Loading profile…</span>
-                </div>
-              )}
+        {page === 'alerts' && (
+          <AlertsPage
+            items={notifications.items}
+            unreadCount={notifications.unreadCount}
+            total={notifications.total}
+            view={notifications.view}
+            onViewChange={notifications.setView}
+            isLoading={notifications.isLoading}
+            stale={notifications.stale}
+            error={notifications.error}
+            hasMore={notifications.hasMore}
+            liveStatus={liveStatus}
+            onMarkRead={notifications.markRead}
+            onMarkAllRead={notifications.markAllRead}
+            onRefresh={notifications.refresh}
+            onLoadMore={notifications.loadMore}
+            onOpen={openNotification}
+          />
+        )}
 
-              {profileError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                  <p className="font-bold">{profileError.code}</p>
-                  <p>{profileError.message}</p>
-                </div>
-              )}
-
-              {profile && (
-                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3">
-                  <p className="text-xs text-slate-400">
-                    Fields marked with <span className="text-rose-600 font-bold">*</span> are compulsory.
-                  </p>
-
-                  <div>
-                    <label htmlFor="profile-username" className="block text-sm font-bold text-slate-700 mb-1">
-                      Username: <span className="text-rose-600">*</span>
-                    </label>
-                    <p className="text-xs text-slate-400 mb-1">
-                      Must be 1-50 characters and unique (case-insensitive).
-                    </p>
-                    {updateProfileError && (
-                      <p className="text-xs text-rose-600 mb-1">{updateProfileError.message}</p>
-                    )}
-                    <input
-                      type="text"
-                      id="profile-username"
-                      value={isEditingProfile ? editUsernameDraft : profile.username}
-                      disabled={!isEditingProfile || isUpdatingProfile}
-                      onChange={(e) => setEditUsernameDraft(e.target.value)}
-                      className={`w-full text-sm p-2.5 rounded-lg border ${
-                        isEditingProfile ? 'border-nus-blue bg-white' : 'border-slate-200 bg-slate-50 text-slate-500'
-                      }`}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="profile-email" className="block text-sm font-bold text-slate-700 mb-1">
-                      Email: <span className="text-rose-600">*</span>
-                    </label>
-                    <p className="text-xs text-slate-400 mb-1">
-                      Read-only here. Must be a valid, unique email address.
-                    </p>
-                    <input
-                      type="text"
-                      id="profile-email"
-                      value={profile.email}
-                      disabled
-                      className="w-full text-sm p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Role:</label>
-                    <p className="text-xs text-slate-400 mb-1">Read-only. Set by an administrator.</p>
-                    <div
-                      className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
-                        profile.userRole === 'ADMIN'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      }`}
-                    >
-                      {profile.userRole}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Status:</label>
-                    <p className="text-xs text-slate-400 mb-1">Read-only. Whether your account is active.</p>
-                    <div
-                      className={`inline-block text-sm font-bold px-2.5 py-1 rounded-lg border ${
-                        profile.status
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border-rose-200'
-                      }`}
-                    >
-                      {profile.status ? 'Active' : 'Disabled'}
-                    </div>
-                  </div>
-
-                  {!isEditingProfile ? (
-                    <button
-                      onClick={startEditingProfile}
-                      className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition"
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <button
-                        onClick={cancelEditingProfile}
-                        disabled={isUpdatingProfile}
-                        className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-2 rounded-lg transition disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleUpdateProfile}
-                        disabled={isUpdatingProfile}
-                        className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2 rounded-lg transition disabled:opacity-60"
-                      >
-                        {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                        <span>{isUpdatingProfile ? 'Updating…' : 'Update'}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="w-full flex items-center justify-center space-x-2 bg-nus-blue hover:bg-blue-900 disabled:opacity-60 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                {isLoggingOut && <RefreshCw className="w-4 h-4 animate-spin" />}
-                <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowDeleteAccountModal(true);
-                  setDeleteAccountConfirmed(false);
-                  setDeleteAccountError(null);
-                }}
-                className="w-full flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-              >
-                <span>Delete Account</span>
-              </button>
-            </section>
-            <section aria-labelledby="credit-heading" className="min-w-0 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 id="credit-heading" className="text-xl lg:text-2xl font-bold text-slate-800">Credit Wallet & Ledger</h2>
-                <button type="button" onClick={() => void fetchCredits()} disabled={isLoadingCredits}
-                  className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50">
-                  <RefreshCw className={`h-4 w-4 ${isLoadingCredits ? 'animate-spin' : ''}`} />
-                  {creditError ? 'Retry credits' : 'Refresh credits'}
-                </button>
-              </div>
-              {isLoadingCredits && <p role="status" className="text-sm text-slate-500">Loading wallet and transactions…</p>}
-              {creditError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{creditError}</p>}
-
-              {/* Balance Card */}
-              {wallet && <>
-              <div className="bg-gradient-to-br from-nus-blue to-blue-950 text-white rounded-2xl p-5 shadow-lg">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-bold tracking-wider text-blue-200 uppercase">NUS Closed Economy</span>
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                </div>
-                <p className="text-sm text-blue-200 font-semibold">Total Account Balance</p>
-                <div className="flex items-baseline space-x-1 mt-1">
-                  <span className="text-3xl font-black text-amber-300">
-                    {wallet.availableCredits + wallet.escrowCredits}
-                  </span>
-                  <span className="text-sm text-blue-200 font-bold">Credits</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-blue-800/80">
-                  <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                    <span className="text-xs text-blue-200 block">Available to Spend</span>
-                    <span className="text-base font-bold text-emerald-400">{wallet.availableCredits} C</span>
-                  </div>
-                  <div className="bg-blue-900/50 p-2.5 rounded-lg border border-blue-700/50">
-                    <span className="text-xs text-blue-200 block">Held in Escrow</span>
-                    <span className="text-base font-bold text-amber-300">{wallet.escrowCredits} C</span>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm text-blue-200">Total earned: {wallet.totalEarnedCredits} C</p>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-900 flex items-start space-x-2">
-                <AlertCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Closed Economy Guarantee:</strong> Credits cannot be bought or withdrawn with real money.
-                  Complete errands for peers to earn more credits.
-                </span>
-              </div>
-
-              {/* Transaction Ledger */}
-              <div>
-                <h3 className="font-bold text-sm text-slate-800 mb-2">Recent Ledger Transactions</h3>
-                <div className="space-y-2">
-                  {ledger.length === 0 && <p className="text-sm text-slate-500">No credit transactions yet.</p>}
-                  {ledger.map(transaction => {
-                    const labels = { WELCOME_GRANT: 'Welcome Grant', ESCROW_HOLD: 'Escrow Hold',
-                      ESCROW_RELEASE: 'Escrow Settlement', ESCROW_REFUND: 'Escrow Refund' };
-                    const incoming = transaction.transactionType === 'ESCROW_REFUND' || transaction.toUserId === wallet.userId;
-                    return (
-                      <div key={transaction.id} className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex justify-between items-start gap-3">
-                        <div className="min-w-0">
-                          <p className="font-bold text-slate-800">{labels[transaction.transactionType]}</p>
-                          <p className="text-xs text-slate-500 break-words">{transaction.description}</p>
-                          <p className="text-xs text-slate-400 break-all">{transaction.transactionCode}</p>
-                          <time className="text-xs text-slate-400" dateTime={transaction.createdAt}>{new Date(transaction.createdAt).toLocaleString()}</time>
-                        </div>
-                        <span className={`shrink-0 font-bold ${incoming ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          {incoming ? '+' : '−'}{transaction.amount} C
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              </>}
-            </section>
-          </div>
+        {(page === 'profile' || page === 'wallet') && (
+          <ProfileWalletPage
+            mode={page}
+            profile={profile}
+            isLoadingProfile={isLoadingProfile}
+            profileError={profileError}
+            onRefreshProfile={() => void fetchProfile()}
+            isEditingProfile={isEditingProfile}
+            editUsernameDraft={editUsernameDraft}
+            onChangeUsernameDraft={setEditUsernameDraft}
+            isUpdatingProfile={isUpdatingProfile}
+            updateProfileError={updateProfileError}
+            onStartEditingProfile={startEditingProfile}
+            onCancelEditingProfile={cancelEditingProfile}
+            onUpdateProfile={handleUpdateProfile}
+            onLogout={auth.handleLogout}
+            isLoggingOut={auth.isLoggingOut}
+            onOpenDeleteAccountModal={() => {
+              setShowDeleteAccountModal(true);
+              setDeleteAccountConfirmed(false);
+              setDeleteAccountError(null);
+            }}
+            wallet={wallet}
+            ledger={ledger}
+            isLoadingCredits={isLoadingCredits}
+            creditError={creditError}
+            onRefreshCredits={() => void fetchCredits()}
+          />
         )}
       </main>
 
-      {/* Bottom Navigation Bar */}
-      {/* AI-generated (edited by jagdeepsh) - hidden at md: and up, replaced by the top nav bar in the header */}
-      <nav aria-label="Main navigation" className="student-bottom-nav fixed inset-x-0 bottom-0 w-full bg-white border-t border-slate-200 px-3 pt-2 flex justify-around items-center z-40 md:hidden">
-        <button
-          aria-current={activeTab === 'feed' ? 'page' : undefined}
-              onClick={() => setActiveTab('feed')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'feed' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Compass className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Feed</span>
-        </button>
+      <BottomNav
+        activeTab={activeTab}
+        onSelectTab={selectTab}
+        onOpenProfile={openProfileTab}
+        unreadNotificationsCount={notifications.unreadCount}
+      />
 
-        <button
-          aria-current={activeTab === 'post' ? 'page' : undefined}
-              onClick={() => setActiveTab('post')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'post' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <PlusCircle className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Post</span>
-        </button>
-
-        <button
-          aria-current={activeTab === 'spots' ? 'page' : undefined}
-              onClick={() => setActiveTab('spots')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'spots' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Store className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Spots</span>
-        </button>
-
-        <button
-          aria-current={activeTab === 'tasks' ? 'page' : undefined}
-              onClick={() => setActiveTab('tasks')}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'tasks' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Clock className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Tasks</span>
-        </button>
-
-        <NotificationBell variant="tab" unreadCount={notifications.unreadCount} active={activeTab === 'alerts'} onClick={() => setActiveTab('alerts')} />
-
-        <button
-          aria-current={activeTab === 'profile' ? 'page' : undefined}
-          onClick={() => {
-            setActiveTab('profile');
-            fetchProfile();
-          }}
-          className={`flex flex-col items-center py-1 transition ${
-            activeTab === 'profile' ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <UserCircle className="w-5 h-5" />
-          <span className="text-xs mt-0.5">Profile</span>
-        </button>
-      </nav>
-
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteAccountModal && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-rose-600">
-              <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-slate-900">Delete Account</h3>
-                <p className="text-sm text-slate-500">This action is permanent</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              Deleting your account will permanently remove your profile and cannot be undone. You will be logged out immediately.
-            </p>
-
-            {deleteAccountError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm space-y-0.5">
-                <p className="font-bold">{deleteAccountError.code}</p>
-                <p>{deleteAccountError.message}</p>
-              </div>
-            )}
-
-            <label className="flex items-start space-x-2 text-sm text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={deleteAccountConfirmed}
-                onChange={(e) => setDeleteAccountConfirmed(e.target.checked)}
-                disabled={isDeletingAccount}
-                className="rounded text-rose-600 focus:ring-rose-500 mt-0.5"
-              />
-              <span>I understand this action is irreversible and my account will be permanently deleted.</span>
-            </label>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={isDeletingAccount}
-                onClick={() => {
-                  setShowDeleteAccountModal(false);
-                  setDeleteAccountConfirmed(false);
-                  setDeleteAccountError(null);
-                }}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={!deleteAccountConfirmed || isDeletingAccount}
-                onClick={handleDeleteAccount}
-                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                {isDeletingAccount && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Account Success Modal */}
-      {deleteAccountSuccess && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="font-bold text-base text-slate-900">Account Deleted</h3>
-              <p className="text-sm text-slate-500 mt-1">Your account has been permanently deleted.</p>
-            </div>
-            <button
-              onClick={() => {
-                setDeleteAccountSuccess(false);
-                clearLocalSession();
-              }}
-              className="w-full bg-nus-blue hover:bg-blue-900 text-white font-bold text-sm py-2.5 rounded-lg shadow transition"
-            >
-              Return to Login
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* AI-generated (edited by jagdeepsh) */}
-      {/* Pickup Spot Map Modal */}
-      {isPickupMapOpen && (
-        <SupplierPickupMap
-          suppliers={activeSuppliers}
-          selectedSupplierId={formData.supplierId}
-          onSelect={(chosen) => {
-            setFormData({
-              ...formData,
-              supplierId: chosen.id,
-              supplierName: chosen.name,
-              campusZone: chosen.campusZone,
-            });
-          }}
-          onClose={() => setIsPickupMapOpen(false)}
-        />
-      )}
+      <DeleteAccountModal
+        showConfirmModal={showDeleteAccountModal}
+        confirmed={deleteAccountConfirmed}
+        onToggleConfirmed={setDeleteAccountConfirmed}
+        isDeleting={isDeletingAccount}
+        error={deleteAccountError}
+        onCancel={() => {
+          setShowDeleteAccountModal(false);
+          setDeleteAccountConfirmed(false);
+          setDeleteAccountError(null);
+        }}
+        onConfirmDelete={handleDeleteAccount}
+        showSuccessModal={deleteAccountSuccess}
+        onReturnToLogin={() => {
+          setDeleteAccountSuccess(false);
+          auth.clearLocalSession();
+        }}
+      />
     </div>
   );
 }

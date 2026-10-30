@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Google Antigravity Agent, date: 2026-10-21
+Scope: Removed obsolete docs/evidence/ reference from Playwright plugin description.
+Author review: <to be completed by author after review>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this list from the plugins installed on the author's machine (names, marketplaces and versions read
 from the local plugin registry) and the project's stack and AI-usage policy. Only plugins verified to exist are named.
@@ -23,10 +31,12 @@ Marketplaces: `claude-plugins-official` is built in. `claude-code-plugins` needs
 | Plugin | Install | Used for | Setup |
 |---|---|---|---|
 | `typescript-lsp` | `/plugin install typescript-lsp@claude-plugins-official` | Go-to-definition, find-references and hover across the workspaces (the `LSP` tool); tracing who uses a `common-dtos` type before it changes | Once per machine: `npm install -g typescript-language-server typescript`, then `npm install` in the repo; restart Claude Code |
-| `context7` | `/plugin install context7@claude-plugins-official` | Current docs for Prisma, Express, `amqplib`, `ws`, Vite, Tailwind | none |
-| `github` | `/plugin install github@claude-plugins-official` | Issues, milestones, PRs (the acceptance criteria live in the issues) | GitHub login; the repo is `AY2627S1-CS3219-P25/nus-campus-errand` |
-| `playwright` | `/plugin install playwright@claude-plugins-official` | Desktop (~1280px) and phone (~390px) checks and screenshots for #47, #71 and `docs/evidence/` | First use downloads a browser |
+| `context7` | `/plugin install context7@claude-plugins-official` | Current docs for Prisma, Express, `rabbitmq-client`, `ws`, Vite, Tailwind | Follow remote authentication prompts if required |
+| `github` | `/plugin install github@claude-plugins-official` | Issues, milestones, PRs (the acceptance criteria live in the issues) | Current MCP manifest uses `GITHUB_PERSONAL_ACCESS_TOKEN`; `gh auth login` alone does not configure this plugin. Supply credentials locally through the plugin setup, never in tracked files. Repo: `AY2627S1-CS3219-P25/friend-on-campus` |
+| `playwright` | `/plugin install playwright@claude-plugins-official` | Desktop (~1280px) and phone (~390px) browser checks and screenshots | First use downloads a browser |
 | `pr-review-toolkit` | `/plugin install pr-review-toolkit@claude-plugins-official` | `silent-failure-hunter` (swallowed errors in credit/order code), `pr-test-analyzer`, `code-reviewer`, `comment-analyzer` | none — see the caution on `type-design-analyzer` below |
+
+The five core identifiers and prerequisites were checked against [the official marketplace at 58267944](https://github.com/anthropics/claude-plugins-official/tree/58267944f92187b7d6a1c822165c96c81c864806). No plugins were installed or enabled by this documentation change. Personal optional/situational entries below remain suggestions, not proof of local installation or current compatibility; verify their manifests before use. See [configuration verification and limits](../docs/development/claude-code-workflow.md).
 
 ## 2. Recommended — personal choice, not forced on teammates
 

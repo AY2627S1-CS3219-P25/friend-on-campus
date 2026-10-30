@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: test:e2e:ui:realtime (scripts/uat/uat-realtime.mjs) is a recognised root system script and the browser-uat job must run it (issue #197).
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Removed legacy test:d2 alias from rootSystemScripts after inlining into test:e2e:api.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-12
  * Scope: Fail validation when a workspace test file is not selected by any classified test script.
  * Author review: <to be completed by ngkhengyang>
@@ -8,7 +16,7 @@
  * Scope: Validate static GitHub Actions test matrices against root/workspace package scripts without a YAML dependency.
  * Author review: <to be completed by ngkhengyang>
  */
-// AI-generated (edited by ngkhengyang)
+// AI-generated (edited by ngkhengyang, yanhwee)
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,10 +43,10 @@ const rootSystemScripts = new Set([
   'test:acceptance',
   'test:e2e:api',
   'test:e2e:ui',
+  'test:e2e:ui:realtime',
   'test:e2e',
-  'test:d2',
 ]);
-const requiredRootScripts = [...rootSystemScripts].filter((script) => script !== 'test:d2');
+const requiredRootScripts = [...rootSystemScripts];
 const testFilePattern = /\.test\.(?:[cm]?[jt]sx?)$/;
 const ignoredTestDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', 'generated']);
 const errors = [];
@@ -266,6 +274,7 @@ const systemJobs = [
   ['acceptance-tests', 'npm run test:acceptance'],
   ['e2e-api-tests', 'npm run test:e2e:api'],
   ['browser-uat', 'npm run test:e2e:ui'],
+  ['browser-uat', 'npm run test:e2e:ui:realtime'],
 ];
 for (const [jobId, command] of systemJobs) {
   if (!jobBlock(workflow, jobId).includes(command)) fail(`System job "${jobId}" must run "${command}".`);

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added unit test coverage for Supplier Service createApp() /health and /ready probes (200 READY and 503 NOT_READY).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: HTTP tests for src/backend/supplierRoutes.ts with the repository module replaced by an in-memory fake
  * (node:test module mock) and the real @campus-errand/auth middleware with a test key pair: public reads and
@@ -427,5 +431,41 @@ describe('PATCH /:id/toggle and DELETE /:id', () => {
   it('DELETE 404 for an unknown id', async () => {
     const res = await call('DELETE', '/api/suppliers/nope', { token: admin });
     assert.equal(res.status, 404);
+  });
+});
+
+// AI-generated (edited by yanhwee)
+describe('createApp /health and /ready probes', () => {
+  it('returns 200 UP on /health and reflects isReady() on /ready', async () => {
+    const { createApp } = await import('../src/app.js');
+    let readyState = true;
+    const probeApp = createApp({
+      port: 8002,
+      requireAuthentication: authMiddleware({ publicKey: PUBLIC_KEY, issuer: ISSUER, audience: AUDIENCE }),
+      requireAdminRole: requireAdmin,
+      isReady: async () => readyState,
+    });
+    const probeServer = probeApp.listen(0);
+    const probeBase = `http://127.0.0.1:${(probeServer.address() as AddressInfo).port}`;
+    try {
+      const healthRes = await fetch(`${probeBase}/health`);
+      assert.equal(healthRes.status, 200);
+      const healthBody = await healthRes.json();
+      assert.equal(healthBody.service, 'supplier-service');
+      assert.equal(healthBody.status, 'UP');
+
+      const readyRes = await fetch(`${probeBase}/ready`);
+      assert.equal(readyRes.status, 200);
+      const readyBody = await readyRes.json();
+      assert.equal(readyBody.status, 'READY');
+
+      readyState = false;
+      const notReadyRes = await fetch(`${probeBase}/ready`);
+      assert.equal(notReadyRes.status, 503);
+      const notReadyBody = await notReadyRes.json();
+      assert.equal(notReadyBody.status, 'NOT_READY');
+    } finally {
+      await new Promise<void>((resolve) => probeServer.close(() => resolve()));
+    }
   });
 });

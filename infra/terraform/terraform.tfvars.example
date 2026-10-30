@@ -1,0 +1,16 @@
+aws_region              = "ap-southeast-1"
+environment             = "production"
+vpc_cidr                = "10.0.0.0/16"
+master_instance_type    = "t3.medium"
+worker_instance_type    = "t3.small"
+worker_min_size         = 2
+worker_desired_capacity = 2
+worker_max_size         = 3
+worker_cpu_target       = 75.0
+ebs_volume_size         = 25
+
+# Set to your GitHub organization/repo to restrict OIDC trust (e.g. CS3219-AY2425S1/cs3219-project-ay2425s1-g25)
+github_repository    = "*"
+
+# Optional: Add ACM Certificate ARN if custom domain HTTPS is configured
+# certificate_arn    = "arn:aws:acm:ap-southeast-1:123456789012:certificate/..."

@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Tests for the optional username claim (F5.1.1): issued when given, exposed on the principal by
+ * @campus-errand/auth, absent tokens still verify, and non-string, empty or over-long claims are rejected.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: Unit tests for src/auth/tokens.ts (JWT structure and claims, Ed25519 signature verifiable with the
  * public key, refresh-token generation and hashing, private-key validation).
@@ -8,7 +13,8 @@
 // AI-generated (edited by Reallyeasy1)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPublicKey, generateKeyPairSync, verify } from 'node:crypto';
+import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } from 'node:crypto';
+import { readPublicKey, verifyAccessToken } from '@campus-errand/auth';
 import { createTokenManager } from '../src/auth/tokens';
 import { makeKeyPair } from './helpers';
 
@@ -19,9 +25,21 @@ const options = {
   accessTokenIssuer: 'test-issuer',
   accessTokenAudience: 'test-audience',
 };
+const verifyOptions = { publicKey: keys.publicKey, issuer: 'test-issuer', audience: 'test-audience' };
+const publicKey = readPublicKey(keys.publicKey);
 
 function decodePart(part: string): any {
   return JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
+}
+
+// AI-generated (edited by Reallyeasy1)
+/** Re-signs a real token's claims with the test private key after overriding some of them. */
+function reissue(token: string, overrides: Record<string, unknown>): string {
+  const [header, claims] = token.split('.');
+  const forged = Buffer.from(JSON.stringify({ ...decodePart(claims), ...overrides })).toString('base64url');
+  const privateKey = createPrivateKey({ key: Buffer.from(keys.privateKey, 'base64url'), format: 'der', type: 'pkcs8' });
+  const signature = sign(null, Buffer.from(`${header}.${forged}`), privateKey);
+  return `${header}.${forged}.${signature.toString('base64url')}`;
 }
 
 describe('createTokenManager', () => {
@@ -83,6 +101,27 @@ describe('issueAccessToken', () => {
       false,
     );
   });
+
+  // AI-generated (edited by Reallyeasy1)
+  it('carries the username claim when given, and the shared verifier exposes it on the principal (F5.1.1)', () => {
+    const token = tokens.issueAccessToken('user-1', 'session-1', 'STUDENT', 'alice');
+    const claims = decodePart(token.split('.')[1]);
+    assert.equal(claims.username, 'alice');
+    assert.deepEqual(Object.keys(claims).sort(), ['aud', 'exp', 'iat', 'iss', 'role', 'sid', 'sub', 'username']);
+    assert.equal(verifyAccessToken(token, publicKey, verifyOptions).username, 'alice');
+  });
+
+  it('a token without a username still verifies and the principal has none', () => {
+    const principal = verifyAccessToken(tokens.issueAccessToken('user-1', 'session-1', 'STUDENT'), publicKey, verifyOptions);
+    assert.deepEqual(principal, { userId: 'user-1', sessionId: 'session-1', role: 'STUDENT' });
+  });
+
+  for (const [name, username] of [['a number', 7], ['empty', ''], ['51 characters', 'x'.repeat(51)]] as const) {
+    it(`rejects a username claim that is ${name}`, () => {
+      const token = reissue(tokens.issueAccessToken('user-1', 'session-1', 'STUDENT'), { username });
+      assert.throws(() => verifyAccessToken(token, publicKey, verifyOptions), /INVALID_TOKEN/);
+    });
+  }
 
   it('changing one character of the claims breaks the signature', () => {
     const token = tokens.issueAccessToken('user-1', 'session-1', 'STUDENT');

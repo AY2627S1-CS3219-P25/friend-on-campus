@@ -1,5 +1,26 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Added POST /assistant/draft endpoint for Natural-Language Errand Creation Assistant (F6).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Success messages no longer claim credits were transferred or refunded; Credit Service settles or returns
+ * escrow asynchronously after the Order event (author's Notification Redesign §9).
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added POST /:id/unassign endpoint allowing the assigned courier to drop an ACCEPTED errand before pickup.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Return asynchronous submission receipts and expose owner-authorized submission polling.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: accept, pickup and deliver pass the caller's username from the verified token to the service (F5.1.1).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added admin force-cancel, force-complete, and courier unassign endpoints with RBAC checks and query search.
  * Author review: (to be completed by author after review)
@@ -9,11 +30,12 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
-import { Router, type Request, type Response, type RequestHandler, type ErrorRequestHandler } from 'express';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
-import type { ApiResponse, CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
+import type { ApiResponse, CreateOrderRequest, OrderDTO, ParseErrandDraftRequest } from '@campus-errand/common-dtos';
+import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
+import type { AssistantService } from '../assistant/assistant.service';
 import type { OrderService } from './order.service';
-import { OrderError, OrderValidationError } from './order.types';
+import { OrderAuthorizationError, OrderError, OrderValidationError } from './order.types';
 
 // ---------------------------------------------------------------------------
 // Route & Authentication Helpers
@@ -36,12 +58,17 @@ function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): Re
   };
 }
 
-function resolveUserId(_req: Request, res: Response): string {
+// AI-generated (edited by Reallyeasy1)
+function resolvePrincipal(res: Response): AuthenticatedPrincipal {
   const auth = res.locals.auth as AuthenticatedPrincipal | undefined;
   if (auth && auth.userId) {
-    return auth.userId;
+    return auth;
   }
   throw new OrderError('Authentication required: user ID could not be identified', 401);
+}
+
+function resolveUserId(_req: Request, res: Response): string {
+  return resolvePrincipal(res).userId;
 }
 
 const ensureAdminRole: RequestHandler = (_req, res, next) => {
@@ -77,21 +104,67 @@ const domainErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 // Router Factory
 // ---------------------------------------------------------------------------
 
-export function createOrderRouter(orderService: OrderService, authenticate: RequestHandler): Router {
+export function createOrderRouter(
+  orderService: OrderService,
+  authenticate: RequestHandler,
+  assistantService?: AssistantService
+): Router {
   const router = Router();
+
+  // 0. AI Errand Creation Assistant Draft (F6)
+  // AI-generated (edited by yanhwee)
+  router.post('/assistant/draft', authenticate, asyncRoute(async (req: Request, res: Response) => {
+    if (!assistantService) {
+      res.status(503).json({
+        success: false,
+        error: 'Assistant service is not configured or unavailable.',
+      });
+      return;
+    }
+
+    const { prompt } = req.body as ParseErrandDraftRequest;
+    if (typeof prompt !== 'string' || prompt.trim() === '') {
+      res.status(400).json({
+        success: false,
+        error: 'Prompt is required and must be a non-empty string.',
+      });
+      return;
+    }
+
+    const draft = await assistantService.parseErrandDraft(prompt);
+    res.json({
+      success: true,
+      data: draft,
+    });
+  }));
 
   // 1. List / Discover Open Errands (authenticated)
   router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {
-    const { status, campusZone, search, page, limit } = req.query;
+    const principal = resolvePrincipal(res);
+    const { status, campusZone, search, requesterId, courierId, page, limit } = req.query;
     const parsedPage = parsePositiveInt(page, 'page');
     const parsedLimit = parsePositiveInt(limit, 'limit', 100);
+    const trimmedRequesterId = typeof requesterId === 'string' ? requesterId.trim() : undefined;
+    const trimmedCourierId = typeof courierId === 'string' ? courierId.trim() : undefined;
+
+    if (
+      principal.role !== 'ADMIN' &&
+      ((trimmedRequesterId && trimmedRequesterId !== principal.userId) ||
+        (trimmedCourierId && trimmedCourierId !== principal.userId))
+    ) {
+      throw new OrderAuthorizationError('Only an administrator or the matching user can filter by requesterId or courierId');
+    }
 
     const result = await orderService.listOrders({
       status: typeof status === 'string' ? status : undefined,
       campusZone: typeof campusZone === 'string' ? campusZone : undefined,
       search: typeof search === 'string' ? search : undefined,
+      requesterId: trimmedRequesterId || undefined,
+      courierId: trimmedCourierId || undefined,
       page: parsedPage,
       limit: parsedLimit,
+      viewerId: principal.userId,
+      isAdmin: principal.role === 'ADMIN',
     });
 
     res.json({
@@ -113,30 +186,39 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 3. Get Errand Details by ID or Code (authenticated)
   router.get('/:id', authenticate, asyncRoute(async (req: Request, res: Response) => {
+    const principal = resolvePrincipal(res);
     const order = await orderService.getOrderById(req.params.id);
+    if (
+      (order.status === 'PENDING' || order.status === 'REJECTED') &&
+      order.requesterId !== principal.userId &&
+      principal.role !== 'ADMIN'
+    ) {
+      throw new OrderAuthorizationError('Only the requester can view this order');
+    }
     res.json({
       success: true,
       data: order,
     });
   }));
 
-  // 4. Create Errand Request (Requester only, synchronous escrow reservation)
+  // 4. Submit Errand Request (creates PENDING order; credit reservation completes asynchronously)
   router.post('/', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const requesterId = resolveUserId(req, res);
     const body = req.body as CreateOrderRequest;
 
     const newOrder = await orderService.createOrder(requesterId, body);
-    res.status(201).json({
+    res.location(`/api/orders/${newOrder.id}`).status(202).json({
       success: true,
       data: newOrder,
-      message: 'Order created and escrow reserved successfully',
+      message: 'Order received. Awaiting credit reservation.',
     });
   }));
 
   // 5. Accept Errand (Single courier assignment, self-accept check)
   router.post('/:id/accept', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    const courierId = resolveUserId(req, res);
-    const order = await orderService.acceptOrder(req.params.id, courierId, req.body);
+    // AI-generated (edited by Reallyeasy1)
+    const courier = resolvePrincipal(res);
+    const order = await orderService.acceptOrder(req.params.id, courier.userId, req.body, courier.username);
     res.json({
       success: true,
       data: order,
@@ -146,8 +228,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 6. Pickup Item (Assigned Courier only)
   router.post('/:id/pickup', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    const courierId = resolveUserId(req, res);
-    const order = await orderService.pickupOrder(req.params.id, courierId);
+    const courier = resolvePrincipal(res);
+    const order = await orderService.pickupOrder(req.params.id, courier.userId, courier.username);
     res.json({
       success: true,
       data: order,
@@ -157,8 +239,8 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
 
   // 7. Deliver Item (Assigned Courier only)
   router.post('/:id/deliver', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    const courierId = resolveUserId(req, res);
-    const order = await orderService.deliverOrder(req.params.id, courierId);
+    const courier = resolvePrincipal(res);
+    const order = await orderService.deliverOrder(req.params.id, courier.userId, courier.username);
     res.json({
       success: true,
       data: order,
@@ -166,14 +248,14 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     });
   }));
 
-  // 8. Confirm Delivery / Complete Errand (Requester only, escrow settlement)
+  // 8. Confirm Delivery / Complete Errand (Requester only; Credit settles escrow on the order.completed event)
   router.post('/:id/complete', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const requesterId = resolveUserId(req, res);
     const order = await orderService.completeOrder(req.params.id, requesterId);
     res.json({
       success: true,
       data: order,
-      message: 'Delivery confirmed! Credits transferred to courier.',
+      message: 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.',
     });
   }));
 
@@ -184,29 +266,40 @@ export function createOrderRouter(orderService: OrderService, authenticate: Requ
     res.json({
       success: true,
       data: order,
-      message: 'Errand cancelled. Escrow credits refunded.',
+      message: 'Errand cancelled. Reserved credits are returned once Credit Service processes the cancellation.',
     });
   }));
 
-  // 10. Admin Force-Cancel Errand (Admin only, triggers escrow refund)
+  // 9b. Drop / Unassign Errand (Assigned Courier only, before pickup, returns ACCEPTED back to OPEN)
+  router.post('/:id/unassign', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const courierId = resolveUserId(req, res);
+    const order = await orderService.unassignOrder(req.params.id, courierId);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Errand dropped and returned to open feed.',
+    });
+  }));
+
+  // 10. Admin Force-Cancel Errand (Admin only; Credit refunds escrow on the order.cancelled event)
   router.post('/:id/admin/cancel', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const adminUserId = resolveUserId(req, res);
     const order = await orderService.adminCancelOrder(req.params.id, adminUserId, req.body);
     res.json({
       success: true,
       data: order,
-      message: 'Order cancelled by administrator. Escrow credits refunded.',
+      message: 'Order cancelled by administrator. Reserved credits are returned once Credit Service processes it.',
     });
   }));
 
-  // 11. Admin Force-Complete Errand (Admin only, triggers escrow release to courier)
+  // 11. Admin Force-Complete Errand (Admin only; Credit settles escrow on the order.completed event)
   router.post('/:id/admin/complete', authenticate, ensureAdminRole, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
     const adminUserId = resolveUserId(req, res);
     const order = await orderService.adminCompleteOrder(req.params.id, adminUserId, req.body);
     res.json({
       success: true,
       data: order,
-      message: 'Order completed by administrator. Credits transferred to courier.',
+      message: 'Order completed by administrator. Courier payment is settled by Credit Service.',
     });
   }));
 

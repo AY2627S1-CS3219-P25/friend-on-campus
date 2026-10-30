@@ -21,8 +21,8 @@
 // AI-generated (edited by ngkhengyang)
 
 // AI-generated (edited by ngkhengyang)
-import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
+import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { AuthModule } from './auth-module';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';

@@ -1,5 +1,32 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): the list filter is built as Prisma.OrderWhereInput instead of Record<string, any>.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Per the author's Notification Redesign (§6, §11 increment 3): every outbox payload is completed with the
+ * committed version/status inside its transaction (completeEvent); order.rejected is written with the REJECTED
+ * update; both unassignment paths write order.unassigned with priorCourierId; repository-built created/expired
+ * events carry the SYSTEM actor and a reason code.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Preserved courierId on requester order cancellation for courier task history visibility and added courier unassignOrder (ACCEPTED -> OPEN) before pickup.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-21
+ * Scope: Included admin-cancelled courier orders (order.status === 'CANCELLED' where courierId === userId) in getUserActivity history.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity, date: 2026-10-19
+ * Scope: Implemented Saga Approach B2 state transitions (PENDING -> OPEN / REJECTED / EXPIRED) directly in OrderRepository with Debezium CDC outbox metadata.
+ * Author review: Reviewed and verified by yanhwee.
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Remove obsolete synchronous reservation compensation bookkeeping.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder with optimistic version checks and search options.
  * Author review: (to be completed by author after review)
@@ -9,14 +36,17 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
+import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
-import type { OrderDTO } from '@campus-errand/common-dtos';
-import type { PrismaClient } from '../database/client';
-import type { OrderLifecycleEvent } from '../messaging/event.publisher';
+import type { Order, Prisma, PrismaClient } from '../database/client';
 import {
+  completeEvent,
   OrderAuthorizationError,
+  type OrderEventDraft,
+  type OrderLifecycleEvent,
   OrderNotFoundError,
   OrderStateConflictError,
+  OrderValidationError,
   SelfAcceptForbiddenError,
   toOrderDTO,
 } from '../orders/order.types';
@@ -40,25 +70,33 @@ export interface ListOrdersOptions {
   status?: string;
   campusZone?: string;
   search?: string;
+  requesterId?: string;
+  courierId?: string;
   page?: number;
   limit?: number;
+  viewerId?: string;
+  isAdmin?: boolean;
 }
 
 export interface OrderRepository {
   createOrderWithOutbox(data: CreateOrderParams, event: OrderLifecycleEvent): Promise<OrderDTO>;
+  applyReservationResult(event: CreditReservationResultEvent): Promise<{ order: OrderDTO; outboxEvent?: OrderLifecycleEvent }>;
   findOrderById(id: string): Promise<OrderDTO | null>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
-  acceptOrder(orderId: string, courierId: string, courierContactNote: string | undefined, event: OrderLifecycleEvent): Promise<OrderDTO>;
-  pickupOrder(orderId: string, courierId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
-  deliverOrder(orderId: string, courierId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
-  completeOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
-  cancelOrder(orderId: string, requesterId: string, event: OrderLifecycleEvent): Promise<OrderDTO>;
-  adminCancelOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
-  adminCompleteOrder(orderId: string, adminUserId: string, reason: string, event: OrderLifecycleEvent, expectedVersion?: number): Promise<OrderDTO>;
-  adminUnassignOrder(orderId: string, adminUserId: string, reason: string, expectedVersion?: number): Promise<OrderDTO>;
+  // AI-generated (edited by Reallyeasy1)
+  // Mutations take an OrderEventDraft: the repository completes it with the committed row (completeEvent) before
+  // writing the outbox row in the same transaction.
+  acceptOrder(orderId: string, courierId: string, courierContactNote: string | undefined, event: OrderEventDraft): Promise<OrderDTO>;
+  pickupOrder(orderId: string, courierId: string, event: OrderEventDraft): Promise<OrderDTO>;
+  deliverOrder(orderId: string, courierId: string, event: OrderEventDraft): Promise<OrderDTO>;
+  completeOrder(orderId: string, requesterId: string, event: OrderEventDraft): Promise<OrderDTO>;
+  cancelOrder(orderId: string, requesterId: string, event: OrderEventDraft): Promise<OrderDTO>;
+  unassignOrder(orderId: string, courierId: string, event: OrderEventDraft): Promise<OrderDTO>;
+  adminCancelOrder(orderId: string, adminUserId: string, reason: string, event: OrderEventDraft, expectedVersion?: number): Promise<OrderDTO>;
+  adminCompleteOrder(orderId: string, adminUserId: string, reason: string, event: OrderEventDraft, expectedVersion?: number): Promise<OrderDTO>;
+  adminUnassignOrder(orderId: string, adminUserId: string, reason: string, event: OrderEventDraft, expectedVersion?: number): Promise<OrderDTO>;
   expireDueOrders(now: Date): Promise<number>;
-  recordCompensatingRefund(orderId: string, requesterId: string, rewardCredits: number): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,8 +106,9 @@ export interface OrderRepository {
 async function handleCreateOrderWithOutbox(
   prisma: PrismaClient,
   data: CreateOrderParams,
-  event: OrderLifecycleEvent
+  event: OrderEventDraft
 ): Promise<OrderDTO> {
+  const initialStatus = event.eventType === 'order.reservation.requested' ? 'PENDING' : 'OPEN';
   const created = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
@@ -84,7 +123,7 @@ async function handleCreateOrderWithOutbox(
         dropoffLocation: data.dropoffLocation,
         requesterContactNote: data.requesterContactNote,
         rewardCredits: data.rewardCredits,
-        status: 'OPEN',
+        status: initialStatus,
         expiresAt: data.expiresAt,
         version: 1,
       },
@@ -92,6 +131,9 @@ async function handleCreateOrderWithOutbox(
 
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: order.id,
         eventType: event.eventType,
         payload: JSON.stringify(event),
         status: 'PENDING',
@@ -104,11 +146,92 @@ async function handleCreateOrderWithOutbox(
   return toOrderDTO(created);
 }
 
+async function handleApplyReservationResult(
+  prisma: PrismaClient,
+  event: CreditReservationResultEvent
+): Promise<{ order: OrderDTO; outboxEvent?: OrderLifecycleEvent }> {
+  return await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${event.orderId}::uuid FOR UPDATE`;
+    const order = await tx.order.findUnique({ where: { id: event.orderId } });
+    if (!order) {
+      throw new OrderValidationError('Unknown reservation order');
+    }
+
+    if (order.requesterId !== event.requesterId || order.rewardCredits !== event.rewardCredits) {
+      throw new OrderValidationError('Reservation result does not match order');
+    }
+
+    // Idempotent no-op for duplicate/replayed reservation results
+    if (order.status !== 'PENDING') {
+      return { order: toOrderDTO(order) };
+    }
+
+    // AI-generated (edited by Reallyeasy1)
+    // The saga outcome is an Order-owned fact (Notification Redesign §9): the credit result decides the status, and
+    // the row and its outbox event commit together. The actor is SYSTEM because no student issued this transition.
+    const outcome = (eventType: 'order.rejected' | 'order.expired' | 'order.created', status: string) => ({
+      eventId: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      eventType,
+      orderId: order.id,
+      orderCode: order.orderCode,
+      requesterId: order.requesterId,
+      rewardCredits: order.rewardCredits,
+      ...systemActor(order.id),
+      _status: status,
+    });
+
+    const commit = async (draft: OrderEventDraft, data: Record<string, unknown>) => {
+      const updated = await tx.order.update({ where: { id: order.id }, data: { ...data, version: { increment: 1 } } });
+      const outboxEvent = completeEvent(draft, order, updated);
+      await tx.outboxEvent.create({
+        data: {
+          id: outboxEvent.eventId,
+          aggregateType: 'order',
+          aggregateId: order.id,
+          eventType: outboxEvent.eventType,
+          payload: JSON.stringify(outboxEvent),
+          status: 'PENDING',
+        },
+      });
+      return { order: toOrderDTO(updated), outboxEvent };
+    };
+
+    if (event.eventType === 'credit.reservation.failed') {
+      const reason = event.reason ?? 'Credit reservation failed';
+      const { _status, ...rejected } = outcome('order.rejected', 'REJECTED');
+      return commit(
+        { ...rejected, eventType: 'order.rejected', reasonCode: /insufficient/i.test(reason) ? 'INSUFFICIENT_CREDITS' : 'RESERVATION_FAILED' },
+        { status: _status, rejectionReason: reason },
+      );
+    }
+
+    // credit.reservation.succeeded
+    if (order.expiresAt.getTime() <= Date.now()) {
+      const { _status, ...expired } = outcome('order.expired', 'EXPIRED');
+      return commit({ ...expired, eventType: 'order.expired', reasonCode: 'PUBLICATION_EXPIRED' }, { status: _status });
+    }
+
+    const { _status, ...created } = outcome('order.created', 'OPEN');
+    return commit(
+      { ...created, eventType: 'order.created', campusZone: order.campusZone ?? 'Campus', expiresAt: order.expiresAt.toISOString() },
+      { status: _status },
+    );
+  });
+}
+
+// AI-generated (edited by Reallyeasy1)
+function systemActor(orderId: string) {
+  return { schemaVersion: 2 as const, producer: 'order-service' as const, correlationId: orderId, actorRole: 'SYSTEM' as const };
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function handleFindOrderById(
   prisma: PrismaClient,
   id: string
 ): Promise<OrderDTO | null> {
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const isUuid = UUID_REGEX.test(id);
   const order = isUuid
     ? await prisma.order.findUnique({ where: { id } })
     : await prisma.order.findUnique({ where: { orderCode: id } });
@@ -121,16 +244,50 @@ async function handleListOrders(
   prisma: PrismaClient,
   options: ListOrdersOptions
 ): Promise<{ orders: OrderDTO[]; total: number }> {
-  const { status, campusZone, search, page = 1, limit = 50 } = options;
+  const { status, campusZone, search, requesterId, courierId, page = 1, limit = 50, viewerId, isAdmin } = options;
   const skip = Math.max(0, (page - 1) * limit);
 
-  const where: Record<string, any> = {};
+  const trimmedRequesterId = requesterId?.trim();
+  const trimmedCourierId = courierId?.trim();
+  if (
+    (trimmedRequesterId && !UUID_REGEX.test(trimmedRequesterId)) ||
+    (trimmedCourierId && !UUID_REGEX.test(trimmedCourierId))
+  ) {
+    return { orders: [], total: 0 };
+  }
 
-  if (!status || status.toUpperCase() === 'OPEN') {
+  const where: Prisma.OrderWhereInput = {};
+  const andConditions: Prisma.OrderWhereInput[] = [];
+  const defaultStatus = trimmedRequesterId || trimmedCourierId ? 'ALL' : 'OPEN';
+  const normalizedStatus = status ? status.toUpperCase() : defaultStatus;
+
+  if (normalizedStatus === 'OPEN') {
     where.status = 'OPEN';
     where.expiresAt = { gt: new Date() };
-  } else if (status.toUpperCase() !== 'ALL') {
-    where.status = status.toUpperCase();
+  } else if (normalizedStatus !== 'ALL') {
+    where.status = normalizedStatus as Order['status'];
+    if (!isAdmin && viewerId && (normalizedStatus === 'PENDING' || normalizedStatus === 'REJECTED')) {
+      andConditions.push({ requesterId: viewerId });
+    }
+  } else if (!isAdmin && viewerId) {
+    andConditions.push({
+      OR: [
+        { status: { notIn: ['PENDING', 'REJECTED'] } },
+        { requesterId: viewerId },
+      ],
+    });
+  }
+
+  if (trimmedRequesterId) {
+    andConditions.push({ requesterId: trimmedRequesterId });
+  }
+
+  if (trimmedCourierId) {
+    andConditions.push({ courierId: trimmedCourierId });
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
   }
 
   if (campusZone && campusZone.trim() !== '') {
@@ -139,12 +296,16 @@ async function handleListOrders(
 
   if (search && search.trim() !== '') {
     const term = search.trim();
-    where.OR = [
+    const orConditions: Prisma.OrderWhereInput[] = [
       { orderCode: { contains: term, mode: 'insensitive' } },
       { itemDescription: { contains: term, mode: 'insensitive' } },
       { dropoffLocation: { contains: term, mode: 'insensitive' } },
       { supplierName: { contains: term, mode: 'insensitive' } },
     ];
+    if (UUID_REGEX.test(term)) {
+      orConditions.push({ requesterId: term }, { courierId: term });
+    }
+    where.OR = orConditions;
   }
 
   const [orders, total] = await Promise.all([
@@ -187,7 +348,7 @@ async function handleGetUserActivity(
     const isExpired = order.status === 'OPEN' && order.expiresAt <= now;
 
     if (order.requesterId === userId) {
-      if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status) || isExpired) {
+      if (['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status) || isExpired) {
         history.push(dto);
       } else {
         requested.push(dto);
@@ -197,7 +358,7 @@ async function handleGetUserActivity(
     if (order.courierId === userId) {
       if (['ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(order.status)) {
         delivering.push(dto);
-      } else if (order.status === 'COMPLETED') {
+      } else if (order.status === 'COMPLETED' || order.status === 'CANCELLED') {
         // Already in history if user was also requester, otherwise add
         if (!history.some((h) => h.id === dto.id)) {
           history.push(dto);
@@ -214,7 +375,7 @@ async function handleAcceptOrder(
   orderId: string,
   courierId: string,
   courierContactNote: string | undefined,
-  event: OrderLifecycleEvent
+  event: OrderEventDraft
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -254,15 +415,17 @@ async function handleAcceptOrder(
       throw new OrderStateConflictError('Order was claimed by another courier concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
@@ -271,7 +434,7 @@ async function handlePickupOrder(
   prisma: PrismaClient,
   orderId: string,
   courierId: string,
-  event: OrderLifecycleEvent
+  event: OrderEventDraft
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -305,15 +468,17 @@ async function handlePickupOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
@@ -322,7 +487,7 @@ async function handleDeliverOrder(
   prisma: PrismaClient,
   orderId: string,
   courierId: string,
-  event: OrderLifecycleEvent
+  event: OrderEventDraft
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -356,15 +521,17 @@ async function handleDeliverOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
@@ -373,7 +540,7 @@ async function handleCompleteOrder(
   prisma: PrismaClient,
   orderId: string,
   requesterId: string,
-  event: OrderLifecycleEvent
+  event: OrderEventDraft
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -407,15 +574,17 @@ async function handleCompleteOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
@@ -424,7 +593,7 @@ async function handleCancelOrder(
   prisma: PrismaClient,
   orderId: string,
   requesterId: string,
-  event: OrderLifecycleEvent
+  event: OrderEventDraft
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -436,11 +605,15 @@ async function handleCancelOrder(
       throw new OrderAuthorizationError('Only the requester can cancel this errand');
     }
 
+    if (order.status === 'PENDING') {
+      throw new OrderStateConflictError('Cannot cancel an errand while credit reservation is still pending');
+    }
+
     if (['IN_TRANSIT', 'DELIVERED', 'COMPLETED'].includes(order.status)) {
       throw new OrderStateConflictError('Cannot cancel an errand that has already been picked up or completed');
     }
 
-    if (['CANCELLED', 'EXPIRED'].includes(order.status)) {
+    if (['CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status)) {
       throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
     }
 
@@ -453,7 +626,6 @@ async function handleCancelOrder(
       },
       data: {
         status: 'CANCELLED',
-        courierId: null, // unassign courier if was accepted
         version: { increment: 1 },
       },
     });
@@ -462,39 +634,77 @@ async function handleCancelOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
 
-async function handleRecordCompensatingRefund(
+async function handleUnassignOrder(
   prisma: PrismaClient,
   orderId: string,
-  requesterId: string,
-  rewardCredits: number
-): Promise<void> {
-  const event = {
-    eventId: crypto.randomUUID(),
-    eventType: 'order.cancelled',
-    timestamp: new Date().toISOString(),
-    orderId,
-    requesterId,
-    rewardCredits,
-  };
-  await prisma.outboxEvent.create({
-    data: {
-      eventType: 'order.cancelled',
-      payload: JSON.stringify(event),
-      status: 'PENDING',
-    },
+  courierId: string,
+  event: OrderEventDraft
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (order.courierId !== courierId) {
+      throw new OrderAuthorizationError('Only the assigned courier can drop this errand');
+    }
+
+    if (order.status !== 'ACCEPTED') {
+      throw new OrderStateConflictError(
+        `Cannot drop errand from status ${order.status}. Errand can only be dropped before pickup.`
+      );
+    }
+
+    const updatedResult = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'ACCEPTED',
+        courierId,
+        version: order.version,
+      },
+      data: {
+        status: 'OPEN',
+        courierId: null,
+        acceptedAt: null,
+        courierContactNote: null,
+        version: { increment: 1 },
+      },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
+
+    // AI-generated (edited by Reallyeasy1)
+    // The reopened errand is a committed fact the requester must learn about (Notification Redesign §3).
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    await tx.outboxEvent.create({
+      data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
+        eventType: event.eventType,
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        status: 'PENDING',
+      },
+    });
+    return toOrderDTO(refreshed);
   });
 }
 
@@ -526,7 +736,8 @@ async function handleExpireDueOrders(
         });
 
         if (updated.count > 0) {
-          const event: OrderLifecycleEvent = {
+          const refreshed = await tx.order.findUniqueOrThrow({ where: { id: candidate.id } });
+          const event = completeEvent({
             eventType: 'order.expired',
             eventId: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
@@ -534,10 +745,15 @@ async function handleExpireDueOrders(
             orderCode: candidate.orderCode,
             requesterId: candidate.requesterId,
             rewardCredits: candidate.rewardCredits,
-          };
+            ...systemActor(candidate.id),
+            reasonCode: 'OPEN_EXPIRED',
+          }, candidate, refreshed);
 
           await tx.outboxEvent.create({
             data: {
+              id: event.eventId,
+              aggregateType: 'order',
+              aggregateId: candidate.id,
               eventType: event.eventType,
               payload: JSON.stringify(event),
               status: 'PENDING',
@@ -559,7 +775,7 @@ async function handleAdminCancelOrder(
   orderId: string,
   adminUserId: string,
   reason: string,
-  event: OrderLifecycleEvent,
+  event: OrderEventDraft,
   expectedVersion?: number
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
@@ -568,7 +784,11 @@ async function handleAdminCancelOrder(
       throw new OrderNotFoundError();
     }
 
-    if (['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(order.status)) {
+    if (order.status === 'PENDING') {
+      throw new OrderStateConflictError('Cannot cancel an errand while credit reservation is still pending');
+    }
+
+    if (['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'].includes(order.status)) {
       throw new OrderStateConflictError(`Errand is already in terminal state ${order.status}`);
     }
 
@@ -598,15 +818,17 @@ async function handleAdminCancelOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
@@ -616,7 +838,7 @@ async function handleAdminCompleteOrder(
   orderId: string,
   adminUserId: string,
   reason: string,
-  event: OrderLifecycleEvent,
+  event: OrderEventDraft,
   expectedVersion?: number
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
@@ -658,15 +880,17 @@ async function handleAdminCompleteOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
-
-    const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     return toOrderDTO(refreshed);
   });
 }
@@ -676,6 +900,7 @@ async function handleAdminUnassignOrder(
   orderId: string,
   adminUserId: string,
   reason: string,
+  event: OrderEventDraft,
   expectedVersion?: number
 ): Promise<OrderDTO> {
   return await prisma.$transaction(async (tx) => {
@@ -719,7 +944,18 @@ async function handleAdminUnassignOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
+    // AI-generated (edited by Reallyeasy1)
     const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    await tx.outboxEvent.create({
+      data: {
+        id: event.eventId,
+        aggregateType: 'order',
+        aggregateId: orderId,
+        eventType: event.eventType,
+        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        status: 'PENDING',
+      },
+    });
     return toOrderDTO(refreshed);
   });
 }
@@ -731,6 +967,7 @@ async function handleAdminUnassignOrder(
 export function createOrderRepository(prisma: PrismaClient): OrderRepository {
   return {
     createOrderWithOutbox: (data, event) => handleCreateOrderWithOutbox(prisma, data, event),
+    applyReservationResult: (event) => handleApplyReservationResult(prisma, event),
     findOrderById: (id) => handleFindOrderById(prisma, id),
     listOrders: (options) => handleListOrders(prisma, options),
     getUserActivity: (userId) => handleGetUserActivity(prisma, userId),
@@ -740,14 +977,13 @@ export function createOrderRepository(prisma: PrismaClient): OrderRepository {
     deliverOrder: (orderId, courierId, event) => handleDeliverOrder(prisma, orderId, courierId, event),
     completeOrder: (orderId, requesterId, event) => handleCompleteOrder(prisma, orderId, requesterId, event),
     cancelOrder: (orderId, requesterId, event) => handleCancelOrder(prisma, orderId, requesterId, event),
+    unassignOrder: (orderId, courierId, event) => handleUnassignOrder(prisma, orderId, courierId, event),
     adminCancelOrder: (orderId, adminUserId, reason, event, expectedVersion) =>
       handleAdminCancelOrder(prisma, orderId, adminUserId, reason, event, expectedVersion),
     adminCompleteOrder: (orderId, adminUserId, reason, event, expectedVersion) =>
       handleAdminCompleteOrder(prisma, orderId, adminUserId, reason, event, expectedVersion),
-    adminUnassignOrder: (orderId, adminUserId, reason, expectedVersion) =>
-      handleAdminUnassignOrder(prisma, orderId, adminUserId, reason, expectedVersion),
+    adminUnassignOrder: (orderId, adminUserId, reason, event, expectedVersion) =>
+      handleAdminUnassignOrder(prisma, orderId, adminUserId, reason, event, expectedVersion),
     expireDueOrders: (now) => handleExpireDueOrders(prisma, now),
-    recordCompensatingRefund: (orderId, requesterId, rewardCredits) =>
-      handleRecordCompensatingRefund(prisma, orderId, requesterId, rewardCredits),
   };
 }

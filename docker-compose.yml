@@ -1,4 +1,27 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+# Scope: RabbitMQ health-probe budget: timeout 5 s -> 20 s (as PR #147) and start_period 60 s -> 180 s. A cold boot on a
+# 5 GB Docker Desktop VM took 231 s to open the listeners, so the probe gave up before Erlang had started and compose up
+# --wait aborted the four dependent services.
+# Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+# Scope: Raised the rabbitmq health-probe timeout from 5 s to 20 s; the probe measured 3.7-18.7 s on a loaded Windows
+# host and the resulting "unhealthy" state aborted `docker compose up --wait` in npm test although the broker worked.
+# Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Google Antigravity Agent, date: 2026-10-22
+# Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe, and passed SEED_SAMPLE_ORDERS to credit-service so sample order escrow reservations are seeded alongside order-service.
+# Author review: <to be completed by yanhwee>
+#
+# Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
+# Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
+# Author review: Validated by Yee Yan Hwee (yanhwee)
+#
+# Tool: Codex (model: GPT-6), date: 2026-10-18
+# Scope: Restart Order after fatal consumer failures and remove the synchronous Credit URL.
+# Author review: <to be completed by huangjiaxi1111>
+#
 #
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
 # Scope: Backend services get `init: true` so SIGTERM reaches node (as PID 1 it ignored the signal and `docker stop` fell
@@ -78,6 +101,7 @@
 # Scope: Supplied Credit Service recovery and separate least-privilege RabbitMQ identities.
 # Author review: <to be completed by huangjiaxi1111>
 
+# AI-generated (edited by yanhwee)
 # AI-generated (edited by huangjiaxi1111)
 
 services:
@@ -91,6 +115,7 @@ services:
       - "80:80"
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./data/images:/usr/share/nginx/html/images:ro
     depends_on:
       student-app:
         condition: service_healthy
@@ -105,6 +130,8 @@ services:
       credit-service:
         condition: service_healthy
       notification-service:
+        condition: service_healthy
+      chat-service:
         condition: service_healthy
 
   # ----------------------------------------------------
@@ -166,7 +193,7 @@ services:
       - "8001:8001"
     environment:
       PORT: 8001
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/user_db
+      DATABASE_URL: postgresql://user_svc:user-service-dev@postgres:5432/user_db
       JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       JWT_ISSUER: ${JWT_ISSUER:-friend-on-campus-user-service}
@@ -175,11 +202,8 @@ services:
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL:-1d}
       JWT_PERSISTENT_REFRESH_TOKEN_TTL: ${JWT_PERSISTENT_REFRESH_TOKEN_TTL:-30d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      RABBITMQ_URL: amqp://user_service:user-service-dev@rabbitmq:5672/campus
     depends_on:
       postgres:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     healthcheck:
       test:
@@ -203,7 +227,7 @@ services:
       - "8002:8002"
     environment:
       - PORT=8002
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/supplier_db
+      - DATABASE_URL=postgresql://supplier_svc:supplier-service-dev@postgres:5432/supplier_db
       # AI-generated (edited by ngkhengyang)
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
@@ -217,7 +241,7 @@ services:
         - node
         - -e
         - >-
-          fetch('http://localhost:8002/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+          fetch('http://localhost:8002/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
       interval: 5s
       timeout: 5s
       retries: 10
@@ -228,18 +252,24 @@ services:
       context: .
       dockerfile: services/order-service/Dockerfile
     container_name: campuserrand-order-service
+    restart: unless-stopped
     init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8003:8003"
     environment:
       - PORT=8003
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/order_db
+      # AI-generated (edited by huangjiaxi1111): Local demo default; set false for deployments with real orders.
+      - SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}
+      - DATABASE_URL=postgresql://order_svc:order-service-dev@postgres:5432/order_db
       - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
-      - CREDIT_SERVICE_URL=http://credit-service:8004
       - SUPPLIER_SERVICE_URL=http://supplier-service:8002
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
+      # AI-generated (edited by yanhwee): NUS SoCLaaS LLM gateway configuration for Assistant (F6)
+      - SOCLAAS_BASE_URL=${SOCLAAS_BASE_URL:-https://soclaas-api.comp.nus.edu.sg/v1}
+      - SOCLAAS_API_KEY=${SOCLAAS_API_KEY:-}
+      - SOCLAAS_MODEL=${SOCLAAS_MODEL:-default}
     depends_on:
       postgres:
         condition: service_healthy
@@ -268,7 +298,8 @@ services:
       - "8004:8004"
     environment:
       - PORT=8004
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/credit_db
+      - SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}
+      - DATABASE_URL=postgresql://credit_svc:credit-service-dev@postgres:5432/credit_db
       - USER_SERVICE_URL=http://user-service:8001
       - RABBITMQ_URL=amqp://credit_service:credit-service-dev@rabbitmq:5672/campus
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
@@ -305,7 +336,7 @@ services:
       - "8005:8005"
     environment:
       - PORT=8005
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/notification_db
+      - DATABASE_URL=postgresql://notification_svc:notification-service-dev@postgres:5432/notification_db
       - RABBITMQ_URL=amqp://notification_service:notification-service-dev@rabbitmq:5672/campus
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
@@ -327,12 +358,50 @@ services:
       retries: 10
       start_period: 10s
 
+  # AI-generated (edited by Reallyeasy1): Chat Service (F8), same shape as notification-service.
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: campuserrand-chat-service
+    init: true # node is PID 1 and ignores SIGTERM without an init
+    # The service exits when its broker connection fails and relies on this to come back.
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      - PORT=8006
+      - DATABASE_URL=postgresql://chat_svc:chat-service-dev@postgres:5432/chat_db
+      - RABBITMQ_URL=amqp://chat_service:chat-service-dev@rabbitmq:5672/campus
+      - ORDER_SERVICE_URL=http://order-service:8003
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
+      - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://localhost:8006/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   # ----------------------------------------------------
   # Infrastructure: PostgreSQL & RabbitMQ
   # ----------------------------------------------------
   postgres:
     image: postgres:16.15-alpine3.24@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     container_name: campuserrand-postgres
+    # AI-generated (edited by yanhwee): enable logical WAL decoding for Debezium CDC Outbox Event Router
+    command: ["postgres", "-c", "wal_level=logical"]
     ports:
       - "5432:5432"
     environment:
@@ -362,10 +431,63 @@ services:
       # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
       test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
-      timeout: 5s
+      # AI-generated (edited by Reallyeasy1): each probe boots a throwaway Erlang VM (3.4-5.5 s here, up to 18.7 s on a
+      # loaded host), and a cold boot took 231 s on a 5 GB VM; 60 s + 5 x 10 s gave up before Erlang had started.
+      timeout: 20s
       retries: 5
-      start_period: 60s
+      start_period: 180s
+
+  # AI-generated (edited by yanhwee): log-based Debezium Server Outbox CDC connector
+  debezium-order:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-order
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/application.properties:/debezium/conf/application.properties:ro
+      - debezium_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+
+  # AI-generated (edited by huangjiaxi1111)
+  debezium-user:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-user
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/user.properties:/debezium/conf/application.properties:ro
+      - debezium_user_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+
+  # AI-generated (edited by huangjiaxi1111)
+  debezium-credit:
+    image: quay.io/debezium/server:2.7
+    container_name: campuserrand-debezium-credit
+    restart: unless-stopped
+    volumes:
+      - ./docker/debezium/credit.properties:/debezium/conf/application.properties:ro
+      - debezium_credit_data:/debezium/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      credit-service:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   rabbitmq_data:
+  debezium_data:
+  debezium_user_data:
+  debezium_credit_data:

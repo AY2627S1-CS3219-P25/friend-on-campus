@@ -1,5 +1,17 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Start and await isolated Credit CDC for reservation messaging tests, then stop it before system suites.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+ * Scope: Added the chat-service integration and messaging databases and test variables.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Provision an isolated Order database for the cross-service reservation messaging suite.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-5), date: 2026-10-11
  * Scope: Select isolated host ports, route every aggregate command through them, and invoke npm portably on Windows.
  * Author review: <to be completed by ngkhengyang>
@@ -8,9 +20,10 @@
  * Scope: Orchestrate the complete local test suite with isolated PostgreSQL, RabbitMQ, Compose, API E2E, and Chromium UAT resources.
  * Author review: <to be completed by ngkhengyang>
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by ngkhengyang)
-import { generateKeyPairSync } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
+import { generateKeyPairSync } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
 import path from 'node:path';
@@ -204,7 +217,10 @@ async function runDatabaseSuites() {
     notificationIntegration: 'notification_integration_test',
     userIntegration: 'user_integration_test',
     creditMessaging: 'credit_messaging_test',
+    orderMessaging: 'order_messaging_test',
     notificationMessaging: 'notification_messaging_test',
+    chatIntegration: 'chat_integration_test',
+    chatMessaging: 'chat_messaging_test',
     creditMigration: 'credit_migration_test',
     creditSeed: 'credit_seed_test',
   };
@@ -212,22 +228,36 @@ async function runDatabaseSuites() {
 
   await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.creditIntegration));
   await deployDatabase('@campus-errand/notification-service', databaseUrl(databases.notificationIntegration));
+  await deployDatabase('@campus-errand/chat-service', databaseUrl(databases.chatIntegration));
   await runNpm('test:integration', {
     ...testEnvironment,
     CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditIntegration),
     NOTIFICATION_TEST_DATABASE_URL: databaseUrl(databases.notificationIntegration),
+    CHAT_TEST_DATABASE_URL: databaseUrl(databases.chatIntegration),
     ADMIN_GUARD_TEST_DATABASE_URL: databaseUrl(databases.userIntegration),
   }, 20);
 
+  await deployDatabase('@campus-errand/order-service', databaseUrl(databases.orderMessaging));
   await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.creditMessaging));
   await deployDatabase('@campus-errand/notification-service', databaseUrl(databases.notificationMessaging));
+  await deployDatabase('@campus-errand/chat-service', databaseUrl(databases.chatMessaging));
+  await compose(['up', '-d', 'debezium-credit-messaging']);
+  await run(process.execPath, ['scripts/ci/wait-for-cdc.mjs'], {
+    env: { ...testEnvironment, CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMessaging) },
+    timeoutMinutes: 2,
+  });
   await runNpm('test:messaging', {
     ...testEnvironment,
+    ORDER_TEST_DATABASE_URL: databaseUrl(databases.orderMessaging),
+    SAGA_TEST_EXCHANGE: 'credit-test.saga-cdc.events',
     CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMessaging),
     CREDIT_TEST_RABBITMQ_URL: rabbitmqUrl('credit_test', 'credit-test-dev'),
     NOTIFICATION_TEST_DATABASE_URL: databaseUrl(databases.notificationMessaging),
     NOTIFICATION_TEST_RABBITMQ_URL: rabbitmqUrl('notification_service', 'notification-service-dev'),
+    CHAT_TEST_DATABASE_URL: databaseUrl(databases.chatMessaging),
+    CHAT_TEST_RABBITMQ_URL: rabbitmqUrl('chat_service', 'chat-service-dev'),
   }, 25);
+  await compose(['stop', 'debezium-credit-messaging']);
 
   await runNpm('test:migration', {
     ...testEnvironment,

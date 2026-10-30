@@ -1,4 +1,30 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+// Scope: UO0 preflight: the requester seed account must still afford the credits UO1 and UO6 reserve; earlier runs
+// drain it, which previously surfaced only as a timeout on Post Errand. PR #194 review: UO1-UO6 are skipped when it
+// fails, the wallet and login responses are checked, the rewards are named constants, one apiLogin helper.
+// Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+// Scope: UO1-UO6 drive accept, pickup, deliver, confirm delivery and cancel through the errand details page (issues
+// #188, #189): each card is opened via its open-errand-link, the action is clicked on the page, Back returns to the list.
+// Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+// Scope: UO5/UO6 expect the truthful completion and cancellation copy of the author's Notification Redesign (§9).
+// Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Google Antigravity Agent, date: 2026-10-22
+// Scope: Updated UO2 to click the inline Confirm button after clicking Accept Errand on the feed card.
+// Author review: <to be completed by yanhwee>
+//
+// Tool: Google Antigravity Agent, date: 2026-10-21
+// Scope: Added UO1-UO6 student order lifecycle E2E UI checks (post with durationMinutes, accept, pickup, deliver, complete, cancel, and history persistence) and standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (Issue #132).
+// Author review: <to be completed by yanhwee>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+// Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).
+// Author review: <to be completed by Reallyeasy1>
 //
 // Tool: Codex (model: GPT-5), date: 2026-10-11
 // Scope: Updated the manual run note now that Chromium Playwright is a locked repository dependency.
@@ -20,19 +46,20 @@
 // Run: npx playwright install chromium && npm run test:e2e:ui
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
-// Screenshots go to the repo's docs/evidence/d2/screenshots/<check>-<desktop|mobile>.png;
-// results to uat-d2-ui-results.json in the OS temp folder, or to the path in UAT_OUT.
-import { chromium } from 'playwright';
-import { randomUUID } from 'node:crypto';
+// Screenshots go to test-results/screenshots/<check>-<desktop|mobile>.png (or SHOTS);
+// results to test-results/uat-d2-ui-results.json (or UAT_OUT).
 import amqp from 'amqplib';
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 
 const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
-const SHOTS = process.env.SHOTS ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../docs/evidence/d2/screenshots');
+// AI-generated (edited by yanhwee)
+const TEST_RESULTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-results');
+const SHOTS = process.env.SHOTS ?? path.join(TEST_RESULTS_DIR, 'screenshots');
 const PW = 'Password123!';
 const AMQP_URL = process.env.AMQP_URL ?? 'amqp://order_service:order-service-dev@localhost:5672/campus';
 const DESKTOP = { width: 1440, height: 900 };
@@ -44,6 +71,14 @@ const record = (id, name, pass, detail = '') => {
   results.push({ id, name, pass, detail });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${id.padEnd(7)} ${name}${detail ? '  -> ' + detail : ''}`);
 };
+// AI-generated (edited by Reallyeasy1): one API login for the steps that need a token; a failed login names the cause.
+async function apiLogin(email) {
+  const res = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: PW }) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success || !body.data?.accessToken) throw new Error(`login ${email} failed: HTTP ${res.status} ${body.error ?? ''}`.trim());
+  return body.data.accessToken;
+}
+
 async function step(id, name, fn) {
   try {
     const detail = await fn();
@@ -381,8 +416,7 @@ const browser = await chromium.launch();
   await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
     await page.getByText('WS Hub: connected').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
     await page.getByRole('button', { name: /^Alerts/ }).first().waitFor();
-    const login = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'bob@u.nus.edu', password: PW }) });
-    const token = (await login.json()).data.accessToken;
+    const token = await apiLogin('bob@u.nus.edu');
     bobId = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub;
     // Clear anything left from earlier runs through the app itself, so the badge reflects what the app knows.
     await page.getByRole('button', { name: /^Alerts/ }).first().click();
@@ -398,7 +432,7 @@ const browser = await chromium.launch();
   await step('UD3', 'student (desktop): an order.accepted event for this user shows a toast and a badge of 1', async () => {
     const connection = await amqp.connect(AMQP_URL);
     const channel = await connection.createConfirmChannel();
-    const event = { eventId: randomUUID(), eventType: 'order.accepted', timestamp: new Date().toISOString(), orderId: randomUUID(), orderCode, requesterId: bobId, courierId: randomUUID() };
+    const event = { eventId: randomUUID(), eventType: 'order.accepted', timestamp: new Date().toISOString(), orderId: randomUUID(), orderCode, requesterId: bobId, courierId: randomUUID(), courierUsername: 'alice' };
     await new Promise((resolve, reject) => channel.publish('campus.events', 'order.accepted', Buffer.from(JSON.stringify(event)), { persistent: true }, (e) => (e ? reject(e) : resolve())));
     await channel.close();
     await connection.close();
@@ -442,9 +476,193 @@ const browser = await chromium.launch();
   await ctx.close();
 }
 
+// ============================================================ STUDENT ORDER LIFECYCLE (F3 / ISSUE #132), DESKTOP
+// AI-generated (edited by yanhwee)
+{
+  const aliceCtx = await browser.newContext({ viewport: DESKTOP });
+  const bobCtx = await browser.newContext({ viewport: DESKTOP });
+  const alicePage = await aliceCtx.newPage();
+  const bobPage = await bobCtx.newPage();
+  alicePage.setDefaultTimeout(20000);
+  bobPage.setDefaultTimeout(20000);
+
+  const lifecycleItem = `UAT Lifecycle Matcha ${stamp}`;
+  const cancelItem = `UAT Cancel Errand ${stamp}`;
+  let lifecycleCode = '';
+  let cancelCode = '';
+  const LIFECYCLE_REWARD = 5;
+  const CANCEL_REWARD = 3;
+
+  // AI-generated (edited by Reallyeasy1): the errand details page (#188) owns the actions; cards only link to it.
+  const openErrand = async (page, card) => {
+    await card.getByTestId('open-errand-link').click();
+    await page.getByTestId('status-tracker').waitFor();
+    return page.getByTestId('errand-details');
+  };
+  const backFromErrand = async (page) => {
+    await page.getByTestId('errand-back-btn').click();
+    await page.getByTestId('errand-details').waitFor({ state: 'detached' });
+  };
+
+  // AI-generated (edited by Reallyeasy1): earlier runs leave escrows behind, so the requester may no longer afford
+  // the credits UO1 and UO6 reserve; say so here, and skip UO1-UO6 rather than let them time out on Post Errand.
+  const needed = LIFECYCLE_REWARD + CANCEL_REWARD;
+  let lifecycleBlocked = null;
+  await step('UO0', `preflight: requester seed account can afford the lifecycle errands (${needed} credits)`, async () => {
+    try {
+      const token = await apiLogin('alice@u.nus.edu');
+      const res = await fetch(`${GW}/api/credits/wallet`, { headers: { Authorization: `Bearer ${token}` } });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.success || typeof body.data?.availableCredits !== 'number') throw new Error(`wallet read failed: HTTP ${res.status} ${body.error ?? ''}`.trim());
+      const available = body.data.availableCredits;
+      // db:seed keeps existing balances (credit-service seed.ts), so re-seeding cannot refill a drained account.
+      if (available < needed) throw new Error(`alice has ${available} credits, needs ${needed}: top the account up or reset credit_db (db:seed keeps existing balances)`);
+      return `${available} credits available`;
+    } catch (e) {
+      lifecycleBlocked = e.message;
+      throw e;
+    }
+  });
+  const lifecycleStep = (id, name, fn) => step(id, name, async () => {
+    if (lifecycleBlocked) throw new Error(`skipped after UO0: ${lifecycleBlocked}`);
+    return fn();
+  });
+
+  await lifecycleStep('UO1', 'student (desktop): requester posts an errand via Post tab and sees it in Tasks posted (OPEN)', async () => {
+    await alicePage.goto(`${GW}/`);
+    await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
+    await alicePage.locator('input[type=password]').fill(PW);
+    await alicePage.getByRole('button', { name: 'Log In' }).click();
+    await alicePage.getByRole('button', { name: 'Post' }).first().waitFor();
+    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+
+    await alicePage.locator('select:visible').first().waitFor();
+    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
+    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
+    await alicePage.getByLabel('Reward credits').fill(String(LIFECYCLE_REWARD));
+    const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
+    if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
+
+    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
+    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    await banner.waitFor({ timeout: 20000 });
+    const bannerText = await banner.innerText();
+    const match = bannerText.match(/(ORD-\w+)/);
+    if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
+    lifecycleCode = match[1];
+
+    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
+    await aliceCard.waitFor();
+    const details = await openErrand(alicePage, aliceCard);
+    await details.getByTestId('cancel-order-btn').waitFor();
+    await details.getByTestId('expiry-countdown').waitFor();
+    await shot(alicePage, 'student-order-posted-desktop');
+    await backFromErrand(alicePage);
+    await aliceCard.waitFor();
+    return `${lifecycleCode} OPEN`;
+  });
+
+  await lifecycleStep('UO2', 'student (desktop): courier accepts the errand on Feed and sees Mark Picked Up in Tasks accepted', async () => {
+    await bobPage.goto(`${GW}/`);
+    await bobPage.locator('input[type=email]').fill('bob@u.nus.edu');
+    await bobPage.locator('input[type=password]').fill(PW);
+    await bobPage.getByRole('button', { name: 'Log In' }).click();
+    await bobPage.getByRole('button', { name: 'Tasks' }).first().waitFor();
+
+    const feedCard = bobPage.locator('article', { hasText: lifecycleItem }).first();
+    await feedCard.waitFor();
+    const feedDetails = await openErrand(bobPage, feedCard);
+    await feedDetails.getByTestId('accept-order-btn').click();
+    await feedDetails.getByTestId('confirm-accept-order-btn').click();
+    await bobPage.getByText('Errand accepted! Head to the pickup location.').waitFor();
+    await feedDetails.getByTestId('pickup-order-btn').waitFor();
+    await backFromErrand(bobPage);
+
+    await bobPage.getByRole('button', { name: 'Tasks' }).first().click();
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.waitFor();
+    const details = await openErrand(bobPage, bobCard);
+    await details.getByTestId('pickup-order-btn').waitFor();
+    await shot(bobPage, 'student-order-accepted-desktop');
+    return `${lifecycleCode} ACCEPTED`;
+  });
+
+  await lifecycleStep('UO3', 'student (desktop): courier clicks Mark Picked Up -> status transitions to IN TRANSIT with Mark Delivered', async () => {
+    const details = bobPage.getByTestId('errand-details');
+    await details.getByTestId('pickup-order-btn').click();
+    await details.getByTestId('deliver-order-btn').waitFor();
+    const txt = await details.innerText();
+    if (!/IN TRANSIT/i.test(txt)) throw new Error(`expected IN TRANSIT on the page: ${txt}`);
+    await shot(bobPage, 'student-order-in-transit-desktop');
+    return `${lifecycleCode} IN_TRANSIT`;
+  });
+
+  await lifecycleStep('UO4', 'student (desktop): courier clicks Mark Delivered -> status transitions to DELIVERED', async () => {
+    const details = bobPage.getByTestId('errand-details');
+    await details.getByTestId('deliver-order-btn').click();
+    await details.getByText(/Delivered · Waiting for requester confirmation/i).waitFor();
+    const txt = await details.innerText();
+    if (!/DELIVERED/i.test(txt)) throw new Error(`expected DELIVERED on the page: ${txt}`);
+    await shot(bobPage, 'student-order-delivered-desktop');
+    return `${lifecycleCode} DELIVERED`;
+  });
+
+  await lifecycleStep('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
+    await alicePage.getByRole('button', { name: 'Refresh' }).click();
+    const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
+    await aliceCard.getByText(/Delivered · Review and confirm/i).waitFor();
+    const aliceDetails = await openErrand(alicePage, aliceCard);
+    await aliceDetails.getByTestId('complete-order-btn').click();
+    await aliceDetails.getByText(new RegExp(`${LIFECYCLE_REWARD} credits paid to the courier once Credit Service settles the escrow`, 'i')).first().waitFor(); // timeline row and reward chip both say it
+    await shot(alicePage, 'student-order-completed-requester-desktop');
+    await backFromErrand(alicePage);
+    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
+
+    await backFromErrand(bobPage);
+    await bobPage.getByRole('button', { name: 'Refresh' }).click();
+    const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
+    await bobCard.getByText(new RegExp(`Completed · ${LIFECYCLE_REWARD} credits are paid once Credit Service settles the escrow`, 'i')).waitFor();
+    await shot(bobPage, 'student-order-completed-courier-desktop');
+    return `${lifecycleCode} COMPLETED in requester + courier history`;
+  });
+
+  await lifecycleStep('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
+    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.locator('select:visible').first().waitFor();
+    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
+    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
+    await alicePage.getByLabel('Reward credits').fill(String(CANCEL_REWARD));
+    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
+
+    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    await banner.waitFor({ timeout: 20000 });
+    const bannerText = await banner.innerText();
+    const match = bannerText.match(/(ORD-\w+)/);
+    if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
+    cancelCode = match[1];
+
+    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
+    await cancelCard.waitFor();
+    const cancelDetails = await openErrand(alicePage, cancelCard);
+    await cancelDetails.getByTestId('cancel-order-btn').click();
+    await cancelDetails.getByTestId('end-state').getByText(/Cancelled/i).waitFor();
+    await shot(alicePage, 'student-order-cancelled-desktop');
+    await backFromErrand(alicePage);
+    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
+    return `${cancelCode} CANCELLED in requester history`;
+  });
+
+  await aliceCtx.close();
+  await bobCtx.close();
+}
+
 await browser.close();
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} UI checks passed; screenshots in ${SHOTS}`);
-const out = process.env.UAT_OUT ?? path.join(tmpdir(), 'uat-d2-ui-results.json');
+// AI-generated (edited by yanhwee)
+const out = process.env.UAT_OUT ?? path.join(TEST_RESULTS_DIR, 'uat-d2-ui-results.json');
+mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));
 console.log(`results written to ${out}`);

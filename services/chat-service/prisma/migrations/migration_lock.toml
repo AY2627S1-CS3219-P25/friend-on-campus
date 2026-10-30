@@ -1,0 +1,5 @@
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
+# Scope: Copied from notification-service: declares the PostgreSQL migration provider.
+# Author review: <to be completed by Reallyeasy1>
+provider = "postgresql"

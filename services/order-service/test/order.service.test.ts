@@ -1,5 +1,27 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Version-2 outbox facts of the author's Notification Redesign (§6): a failed reservation now writes
+ * order.rejected; new suite asserts actor, reason code, committed version/status, cancellation assignee and
+ * priorCourierId on cancel, complete, unassign (courier and admin), rejection and both expiry paths.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Updated ACCEPTED order cancellation test to verify courierId preservation for courier history, and added unit tests for courier unassignOrder (ACCEPTED -> OPEN).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Verify development sample seeding requires explicit opt-in.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Update creation tests for outbox submissions while preserving funded lifecycle coverage; cover the inclusive reward limit and reject overflow before persistence.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Tests that accept, pickup and deliver put the caller's username on the outbox event when present (F5.1.1).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added unit test suite for Admin Order Management: force-cancel, force-complete, unassign, optimistic concurrency guards, and query search.
  * Author review: (to be completed by author after review)
@@ -11,11 +33,15 @@
  * Scope: Unit test suite for Order Service core lifecycle state machine, escrow reservation, single-winner concurrency, and sweeper.
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createOrderService } from '../src/orders/order.service';
+import { describe, it } from 'node:test';
+// AI-generated (edited by huangjiaxi1111)
+import { prisma } from '../src/database/client';
+import { seedOrders } from '../src/database/seed';
 import { createExpirySweeper } from '../src/orders/expiry.sweeper';
+import { createOrderService } from '../src/orders/order.service';
 import {
   OrderAuthorizationError,
   OrderStateConflictError,
@@ -23,9 +49,7 @@ import {
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
 import {
-  makeFakeCreditClient,
   makeFakeOrderRepository,
-  makeFakePublisher,
   makeFakeSupplierClient,
 } from './helpers';
 
@@ -35,10 +59,42 @@ const COURIER_2_ID = '20000000-0000-4000-8000-000000000003';
 const ADMIN_ID = '90000000-0000-4000-8000-000000000001';
 const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 
+// AI-generated (edited by huangjiaxi1111)
+it('sample seeding requires explicit true and does not access the database otherwise', async t => {
+  const original = process.env.SEED_SAMPLE_ORDERS;
+  const originalInsert = prisma.order.createMany;
+  const insert = t.mock.fn(async (_args?: { data?: Array<{ id?: string; orderCode?: string }> }) => ({ count: 4 }));
+  prisma.order.createMany = insert as unknown as typeof originalInsert;
+  try {
+    for (const value of [undefined, 'false', 'TRUE', '1']) {
+      if (value === undefined) delete process.env.SEED_SAMPLE_ORDERS;
+      else process.env.SEED_SAMPLE_ORDERS = value;
+      await seedOrders();
+    }
+    assert.equal(insert.mock.callCount(), 0);
+    process.env.SEED_SAMPLE_ORDERS = 'true';
+    await seedOrders();
+    assert.equal(insert.mock.callCount(), 1);
+    const seededData = insert.mock.calls[0]?.arguments[0]?.data ?? [];
+    assert.deepEqual(
+      seededData.map(item => item.id),
+      [
+        '30000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000002',
+        '30000000-0000-4000-8000-000000000003',
+        '30000000-0000-4000-8000-000000000004',
+      ],
+    );
+  } finally {
+    prisma.order.createMany = originalInsert;
+    if (original === undefined) delete process.env.SEED_SAMPLE_ORDERS;
+    else process.env.SEED_SAMPLE_ORDERS = original;
+  }
+});
+
 describe('Order Service Lifecycle and Concurrency', () => {
   function setupTest() {
     const fakeRepo = makeFakeOrderRepository();
-    const fakeCredit = makeFakeCreditClient();
     const fakeSupplier = makeFakeSupplierClient({
       [SUPPLIER_ID]: {
         id: SUPPLIER_ID,
@@ -47,18 +103,22 @@ describe('Order Service Lifecycle and Concurrency', () => {
         isActive: true,
       },
     });
-    const fakePublisher = makeFakePublisher();
-
     const service = createOrderService({
       repository: fakeRepo.repo,
-      creditClient: fakeCredit.client,
       supplierClient: fakeSupplier.client,
     });
 
-    return { fakeRepo, fakeCredit, fakeSupplier, fakePublisher, service };
+    const fundedService = {
+      ...service,
+      createOrder: async (...args: Parameters<typeof service.createOrder>) => {
+        const pendingOrder = await service.createOrder(...args);
+        return fakeRepo.approve(pendingOrder.id);
+      },
+    };
+    return { fakeRepo, fakeSupplier, service, fundedService };
   }
 
-  describe('createOrder', () => {
+  describe('createOrder & handleReservationResult', () => {
     it('validates required fields and positive rewardCredits', async () => {
       const { service } = setupTest();
 
@@ -94,26 +154,25 @@ describe('Order Service Lifecycle and Concurrency', () => {
       );
     });
 
-    it('rejects order creation if Credit Service reports insufficient funds', async () => {
-      const { service, fakeCredit, fakeRepo } = setupTest();
-      fakeCredit.setSuccess(false, 'Insufficient available credits');
-
-      await assert.rejects(
-        () => service.createOrder(REQUESTER_ID, {
-          supplierId: SUPPLIER_ID,
-          itemDescription: 'Chicken Rice',
-          dropoffLocation: 'Kent Ridge Hall',
-          rewardCredits: 500,
-        }),
-        (err: Error) => {
-          assert(err instanceof OrderValidationError);
-          assert.equal(err.message, 'Insufficient available credits');
-          return true;
-        },
-      );
-
+    it('rejects oversized rewards before persisting an order', async () => {
+      const { service, fakeRepo } = setupTest();
+      for (const rewardCredits of [2147483648, Number.MAX_SAFE_INTEGER]) {
+        await assert.rejects(service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits,
+        }), (error: Error) => error instanceof OrderValidationError && error.status === 400);
+      }
       assert.equal(fakeRepo.orders.length, 0);
       assert.equal(fakeRepo.outboxEvents.length, 0);
+    });
+
+    it('accepts the maximum supported reward for asynchronous credit checking', async () => {
+      const { service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits: 2147483647,
+      });
+      assert.equal(order.status, 'PENDING');
+      assert.equal(order.rewardCredits, 2147483647);
+      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
     });
 
     it('rejects order creation if requesterId or supplierId is not a valid UUID', async () => {
@@ -189,154 +248,86 @@ describe('Order Service Lifecycle and Concurrency', () => {
       );
     });
 
-    it('records a compensating refund outbox event if repository insert fails after escrow hold', async () => {
-      const { fakeCredit, fakeSupplier } = setupTest();
-      const fakeRepo = makeFakeOrderRepository();
-
-      // Override createOrderWithOutbox to simulate DB crash
-      fakeRepo.repo.createOrderWithOutbox = async () => {
-        throw new Error('Database connection lost');
-      };
-
-      const service = createOrderService({
-        repository: fakeRepo.repo,
-        creditClient: fakeCredit.client,
-        supplierClient: fakeSupplier.client,
+    it('persists a PENDING order and order.reservation.requested outbox event, then transitions to OPEN + order.created on credit.reservation.succeeded', async () => {
+      const { service, fakeRepo } = setupTest();
+      const pendingOrder = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Chicken Rice', dropoffLocation: 'Hall', rewardCredits: 15,
       });
-
-      await assert.rejects(
-        () => service.createOrder(REQUESTER_ID, {
-          supplierId: SUPPLIER_ID,
-          itemDescription: 'Chicken Rice',
-          dropoffLocation: 'Kent Ridge Hall',
-          rewardCredits: 25,
-        }),
-        /Database connection lost/,
-      );
-
-      // Verify that escrow was reserved
-      assert.equal(fakeCredit.reservations.length, 1);
-      assert.equal(fakeCredit.reservations[0].amount, 25);
-
-      // Verify compensating refund outbox event was recorded
+      assert.equal(pendingOrder.status, 'PENDING');
+      assert.equal(fakeRepo.orders.length, 1);
       assert.equal(fakeRepo.outboxEvents.length, 1);
-      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.cancelled');
-      const refundPayload = JSON.parse(fakeRepo.outboxEvents[0].payload);
-      assert.equal(refundPayload.rewardCredits, 25);
-      assert.equal(refundPayload.requesterId, REQUESTER_ID);
-    });
+      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
 
-    it('retries compensating refund write if it initially fails and succeeds on retry', async () => {
-      const { fakeCredit, fakeSupplier } = setupTest();
-      const fakeRepo = makeFakeOrderRepository();
-
-      fakeRepo.repo.createOrderWithOutbox = async () => {
-        throw new Error('Database connection lost');
-      };
-
-      let refundAttempts = 0;
-      const originalRecordCompensatingRefund = fakeRepo.repo.recordCompensatingRefund;
-      fakeRepo.repo.recordCompensatingRefund = async (...args) => {
-        refundAttempts++;
-        if (refundAttempts < 3) {
-          throw new Error('DB temporarily busy');
-        }
-        return originalRecordCompensatingRefund.apply(fakeRepo.repo, args);
-      };
-
-      const service = createOrderService({
-        repository: fakeRepo.repo,
-        creditClient: fakeCredit.client,
-        supplierClient: fakeSupplier.client,
-      });
-
-      await assert.rejects(
-        () => service.createOrder(REQUESTER_ID, {
-          supplierId: SUPPLIER_ID,
-          itemDescription: 'Chicken Rice',
-          dropoffLocation: 'Kent Ridge Hall',
-          rewardCredits: 25,
-        }),
-        /Database connection lost/,
-      );
-
-      assert.equal(refundAttempts, 3);
-      assert.equal(fakeRepo.outboxEvents.length, 1);
-      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.cancelled');
-    });
-
-    it('logs [compensating_refund_lost] and rethrows if compensating refund write fails all retry attempts', async () => {
-      const { fakeCredit, fakeSupplier } = setupTest();
-      const fakeRepo = makeFakeOrderRepository();
-
-      fakeRepo.repo.createOrderWithOutbox = async () => {
-        throw new Error('Database connection lost');
-      };
-
-      let refundAttempts = 0;
-      fakeRepo.repo.recordCompensatingRefund = async () => {
-        refundAttempts++;
-        throw new Error('Persistent DB outage');
-      };
-
-      const service = createOrderService({
-        repository: fakeRepo.repo,
-        creditClient: fakeCredit.client,
-        supplierClient: fakeSupplier.client,
-      });
-
-      await assert.rejects(
-        () => service.createOrder(REQUESTER_ID, {
-          supplierId: SUPPLIER_ID,
-          itemDescription: 'Chicken Rice',
-          dropoffLocation: 'Kent Ridge Hall',
-          rewardCredits: 25,
-        }),
-        /Database connection lost/,
-      );
-
-      assert.equal(refundAttempts, 5);
-      assert.equal(fakeRepo.outboxEvents.length, 0);
-    });
-
-    it('creates order with OPEN status, reserves credit escrow, and records outbox event', async () => {
-      const { service, fakeCredit, fakeRepo } = setupTest();
-
-      const order = await service.createOrder(REQUESTER_ID, {
-        supplierId: SUPPLIER_ID,
-        itemDescription: 'Chicken Rice (Steamed)',
-        specialNotes: 'No cucumber please',
-        dropoffLocation: 'Kent Ridge Hall Block E',
-        requesterContactNote: 'Waiting at ground floor lobby',
+      const openedOrder = await service.handleReservationResult({
+        eventId: '30000000-0000-4000-8000-000000000001',
+        correlationId: pendingOrder.id,
+        timestamp: new Date().toISOString(),
+        eventType: 'credit.reservation.succeeded',
+        orderId: pendingOrder.id,
+        requesterId: REQUESTER_ID,
         rewardCredits: 15,
-        durationMinutes: 60,
       });
+      assert.equal(openedOrder.status, 'OPEN');
+      assert.equal(fakeRepo.outboxEvents.length, 2);
+      assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.created');
+    });
 
-      assert.equal(order.status, 'OPEN');
-      assert.equal(order.requesterId, REQUESTER_ID);
-      assert.equal(order.courierId, null);
-      assert.equal(order.supplierName, 'The Deck Canteen');
-      assert.equal(order.campusZone, 'FASS');
-      assert.equal(order.rewardCredits, 15);
-      assert.equal(order.version, 1);
+    it('transitions a PENDING order to REJECTED with rejectionReason on credit.reservation.failed', async () => {
+      const { service, fakeRepo } = setupTest();
+      const pendingOrder = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Lobster', dropoffLocation: 'Hall', rewardCredits: 500,
+      });
+      const rejectedOrder = await service.handleReservationResult({
+        eventId: '30000000-0000-4000-8000-000000000002',
+        correlationId: pendingOrder.id,
+        timestamp: new Date().toISOString(),
+        eventType: 'credit.reservation.failed',
+        orderId: pendingOrder.id,
+        requesterId: REQUESTER_ID,
+        rewardCredits: 500,
+        reason: 'Insufficient credits',
+      });
+      assert.equal(rejectedOrder.status, 'REJECTED');
+      assert.equal(rejectedOrder.rejectionReason, 'Insufficient credits');
+      // AI-generated (edited by Reallyeasy1): the rejection is an Order-owned fact written with the REJECTED update.
+      assert.equal(fakeRepo.outboxEvents.length, 2);
+      assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.rejected');
+    });
 
-      // Verify credit escrow reservation call
-      assert.equal(fakeCredit.reservations.length, 1);
-      assert.equal(fakeCredit.reservations[0].orderId, order.id);
-      assert.equal(fakeCredit.reservations[0].amount, 15);
+    it('transitions a PENDING order to EXPIRED and emits order.expired if reservation succeeds after expiresAt', async () => {
+      const { service, fakeRepo } = setupTest();
+      const pendingOrder = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Late Snack', dropoffLocation: 'Hall', rewardCredits: 12,
+      });
+      fakeRepo.orders[0].expiresAt = new Date(Date.now() - 5000).toISOString();
 
-      // Verify outbox event
-      assert.equal(fakeRepo.outboxEvents.length, 1);
-      assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.created');
-      const payload = JSON.parse(fakeRepo.outboxEvents[0].payload);
-      assert.equal(payload.orderId, order.id);
-      assert.equal(payload.rewardCredits, 15);
+      const expiredOrder = await service.handleReservationResult({
+        eventId: '30000000-0000-4000-8000-000000000003',
+        correlationId: pendingOrder.id,
+        timestamp: new Date().toISOString(),
+        eventType: 'credit.reservation.succeeded',
+        orderId: pendingOrder.id,
+        requesterId: REQUESTER_ID,
+        rewardCredits: 12,
+      });
+      assert.equal(expiredOrder.status, 'EXPIRED');
+      assert.equal(fakeRepo.outboxEvents.length, 2);
+      assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.expired');
+    });
+
+    it('does not create an order if its durable write fails', async () => {
+      const { service, fakeRepo } = setupTest();
+      fakeRepo.repo.createOrderWithOutbox = async () => { throw new Error('Database unavailable'); };
+      await assert.rejects(service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'Hall', rewardCredits: 10,
+      }), /Database unavailable/);
+      assert.equal(fakeRepo.orders.length, 0);
     });
   });
 
   describe('acceptOrder', () => {
     it('allows a courier to claim an open errand, setting status to ACCEPTED', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Waffles',
@@ -351,7 +342,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(accepted.status, 'ACCEPTED');
       assert.equal(accepted.courierId, COURIER_1_ID);
       assert.equal(accepted.courierContactNote, 'Arriving in 15 mins by shuttle');
-      assert.equal(accepted.version, 2);
+      assert.equal(accepted.version, 3);
 
       // Verify outbox event order.accepted
       const lastEvent = fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1];
@@ -361,8 +352,23 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(payload.courierId, COURIER_1_ID);
     });
 
+    // AI-generated (edited by Reallyeasy1)
+    it('puts the courier username on order.accepted when the caller has one, and omits it otherwise (F5.1.1)', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const request = { supplierId: SUPPLIER_ID, itemDescription: 'Kaya toast', dropoffLocation: 'COM1', rewardCredits: 5 };
+      const lastPayload = () => JSON.parse(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].payload);
+
+      const named = await service.createOrder(REQUESTER_ID, request);
+      await service.acceptOrder(named.id, COURIER_1_ID, undefined, 'bob');
+      assert.equal(lastPayload().courierUsername, 'bob');
+
+      const anonymous = await service.createOrder(REQUESTER_ID, request);
+      await service.acceptOrder(anonymous.id, COURIER_1_ID);
+      assert.equal('courierUsername' in lastPayload(), false);
+    });
+
     it('rejects self-fulfillment when requester attempts to claim their own errand', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Coffee',
@@ -377,7 +383,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('enforces single-winner concurrency by rejecting competing claims on already claimed errand', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Juice',
@@ -396,7 +402,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects claiming an order whose expiration deadline has passed', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Snack',
@@ -415,7 +421,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects courierContactNote if it is not a string or exceeds 255 characters', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Juice',
@@ -439,7 +445,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
   describe('pickupOrder, deliverOrder, completeOrder', () => {
     it('progresses full happy path: ACCEPTED -> IN_TRANSIT -> DELIVERED -> COMPLETED', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Fruit Cup',
@@ -450,20 +456,22 @@ describe('Order Service Lifecycle and Concurrency', () => {
       await service.acceptOrder(order.id, COURIER_1_ID);
 
       // 1. Pickup
-      const inTransit = await service.pickupOrder(order.id, COURIER_1_ID);
+      const inTransit = await service.pickupOrder(order.id, COURIER_1_ID, 'bob');
       assert.equal(inTransit.status, 'IN_TRANSIT');
       assert.ok(inTransit.pickedUpAt);
+      assert.equal(JSON.parse(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].payload).courierUsername, 'bob');
 
       // 2. Deliver
-      const delivered = await service.deliverOrder(order.id, COURIER_1_ID);
+      const delivered = await service.deliverOrder(order.id, COURIER_1_ID, 'bob');
       assert.equal(delivered.status, 'DELIVERED');
       assert.ok(delivered.deliveredAt);
+      assert.equal(JSON.parse(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].payload).courierUsername, 'bob');
 
       // 3. Complete (confirmed by requester)
       const completed = await service.completeOrder(order.id, REQUESTER_ID);
       assert.equal(completed.status, 'COMPLETED');
       assert.ok(completed.completedAt);
-      assert.equal(completed.version, 5);
+      assert.equal(completed.version, 6);
 
       // Check final completed event in outbox
       const lastEvent = fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1];
@@ -475,7 +483,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects pickup or deliver by someone other than the assigned courier', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Boba',
@@ -502,7 +510,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects confirmation of completion by someone other than the requester', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Salad',
@@ -522,7 +530,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects confirmation of completion if errand is IN_TRANSIT and not yet DELIVERED', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Snack',
@@ -543,7 +551,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
   describe('cancelOrder', () => {
     it('allows requester to cancel an OPEN errand, creating order.cancelled outbox event', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Notebook',
@@ -561,8 +569,8 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(payload.rewardCredits, 20);
     });
 
-    it('allows requester to cancel an ACCEPTED errand before pickup and unassigns courier', async () => {
-      const { service } = setupTest();
+    it('allows requester to cancel an ACCEPTED errand before pickup and preserves courierId for courier history', async () => {
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Notebook',
@@ -574,11 +582,49 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       const cancelled = await service.cancelOrder(order.id, REQUESTER_ID);
       assert.equal(cancelled.status, 'CANCELLED');
-      assert.equal(cancelled.courierId, null);
+      assert.equal(cancelled.courierId, COURIER_1_ID);
+
+      const courierActivity = await service.getUserActivity(COURIER_1_ID);
+      assert.equal(courierActivity.history.some((o) => o.id === order.id && o.status === 'CANCELLED'), true);
+    });
+
+    it('allows assigned courier to drop (unassign) an ACCEPTED errand before pickup and returns it to OPEN', async () => {
+      const { fundedService: service } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Tea',
+        dropoffLocation: 'UTown',
+        rewardCredits: 12,
+      });
+
+      await service.acceptOrder(order.id, COURIER_1_ID, { courierContactNote: 'On my way' });
+
+      await assert.rejects(
+        () => service.unassignOrder(order.id, COURIER_2_ID),
+        OrderAuthorizationError,
+      );
+
+      const dropped = await service.unassignOrder(order.id, COURIER_1_ID);
+      assert.equal(dropped.status, 'OPEN');
+      assert.equal(dropped.courierId, null);
+      assert.equal(dropped.acceptedAt, null);
+      assert.equal(dropped.courierContactNote, null);
+
+      // Another courier can now accept the reopened order
+      const reaccepted = await service.acceptOrder(order.id, COURIER_2_ID);
+      assert.equal(reaccepted.status, 'ACCEPTED');
+      assert.equal(reaccepted.courierId, COURIER_2_ID);
+
+      // Once picked up (IN_TRANSIT), courier can no longer drop the errand
+      await service.pickupOrder(order.id, COURIER_2_ID);
+      await assert.rejects(
+        () => service.unassignOrder(order.id, COURIER_2_ID),
+        OrderStateConflictError,
+      );
     });
 
     it('rejects cancellation once errand is IN_TRANSIT or DELIVERED', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Lunch',
@@ -598,7 +644,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
   describe('Expiry Sweeper', () => {
     it('automatically transitions expired open orders to EXPIRED status', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order1 = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Past Errand',
@@ -640,7 +686,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
   describe('getUserActivity', () => {
     it('correctly partitions user requested, delivering, and historical orders', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
 
       // Order 1: Alice is requester, open
       const o1 = await service.createOrder(REQUESTER_ID, {
@@ -686,7 +732,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
   describe('Admin Order Management & Concurrency Guards', () => {
     it('allows admin to cancel an OPEN order with valid reason and records order.cancelled outbox event', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Late Night Waffles',
@@ -700,7 +746,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       assert.equal(cancelled.status, 'CANCELLED');
       assert.ok(cancelled.specialNotes?.includes('Admin Cancel'));
-      assert.equal(cancelled.version, 2);
+      assert.equal(cancelled.version, 3);
 
       const cancelEvent = fakeRepo.outboxEvents.find(
         (e) => e.eventType === 'order.cancelled' && JSON.parse(e.payload).orderId === order.id
@@ -709,7 +755,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('allows admin to cancel an ACCEPTED or IN_TRANSIT order with reason', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Bubble Tea',
@@ -732,7 +778,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects admin cancel if order is already in a terminal state (COMPLETED or CANCELLED)', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Salad Bowl',
@@ -752,7 +798,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects admin cancel when expectedVersion does not match current version (F7.1.4.1)', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Coffee',
@@ -760,21 +806,21 @@ describe('Order Service Lifecycle and Concurrency', () => {
         rewardCredits: 8,
       });
 
-      // Another user accepts the order concurrently (version moves from 1 to 2)
+      // Another user accepts the order concurrently (version moves from 2 to 3)
       await service.acceptOrder(order.id, COURIER_1_ID);
 
-      // Admin attempts to cancel with stale expectedVersion 1
+      // Admin attempts to cancel with stale expectedVersion 2
       await assert.rejects(
         () => service.adminCancelOrder(order.id, ADMIN_ID, {
           reason: 'Stale admin action',
-          expectedVersion: 1,
+          expectedVersion: 2,
         }),
         OrderStateConflictError
       );
     });
 
     it('rejects admin operations without a valid non-empty reason', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Sandwich',
@@ -789,7 +835,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('allows admin to force-complete a DELIVERED order and releases escrow via order.completed event', async () => {
-      const { service, fakeRepo } = setupTest();
+      const { fundedService: service, fakeRepo } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Subway Sandwich',
@@ -803,7 +849,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       const completed = await service.adminCompleteOrder(order.id, ADMIN_ID, {
         reason: 'Requester uncontactable after photo confirmation',
-        expectedVersion: 4,
+        expectedVersion: 5,
       });
 
       assert.equal(completed.status, 'COMPLETED');
@@ -817,7 +863,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects admin force-complete if order is not in DELIVERED state', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Chicken Rice',
@@ -833,7 +879,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('allows admin to unassign courier from ACCEPTED order and reverts status to OPEN', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Fruit Juice',
@@ -854,7 +900,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('rejects admin unassign if order is not in ACCEPTED state', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const order = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Snack',
@@ -870,7 +916,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
 
     it('supports listing all orders with search text matching orderCode or description', async () => {
-      const { service } = setupTest();
+      const { fundedService: service } = setupTest();
       const o1 = await service.createOrder(REQUESTER_ID, {
         supplierId: SUPPLIER_ID,
         itemDescription: 'Special Thai Basil Chicken',
@@ -899,6 +945,160 @@ describe('Order Service Lifecycle and Concurrency', () => {
 
       assert.equal(resCode.total, 1);
       assert.equal(resCode.orders[0].id, o2.id);
+    });
+  });
+
+  // AI-generated (edited by Reallyeasy1)
+  describe('Version-2 outbox facts (Notification Redesign §6)', () => {
+    const last = (fakeRepo: ReturnType<typeof makeFakeOrderRepository>, eventType: string) => {
+      const row = [...fakeRepo.outboxEvents].reverse().find((e) => e.eventType === eventType);
+      assert.ok(row, `expected an outbox event ${eventType}`);
+      return JSON.parse(row.payload);
+    };
+    const envelope = (p: any) => [p.schemaVersion, p.producer, p.correlationId === p.orderId];
+
+    it('credit.reservation.failed commits REJECTED and an order.rejected fact with a safe reason code', async () => {
+      const { service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Lobster', dropoffLocation: 'Hall', rewardCredits: 500,
+      });
+      await fakeRepo.reject(order.id, 'Insufficient available credits for escrow hold');
+      const p = last(fakeRepo, 'order.rejected');
+      assert.deepEqual(envelope(p), [2, 'order-service', true]);
+      assert.deepEqual(
+        [p.actorRole, p.actorId, p.reasonCode, p.previousStatus, p.status, p.orderVersion],
+        ['SYSTEM', undefined, 'INSUFFICIENT_CREDITS', 'PENDING', 'REJECTED', 2],
+      );
+      assert.equal(p.orderCode, order.orderCode);
+
+      const other = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Pen', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await fakeRepo.reject(other.id, 'Reservation is already closed');
+      assert.equal(last(fakeRepo, 'order.rejected').reasonCode, 'RESERVATION_FAILED');
+    });
+
+    it('a successful reservation publishes order.created as a SYSTEM fact with the committed version', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      const p = last(fakeRepo, 'order.created');
+      assert.deepEqual([p.actorRole, p.previousStatus, p.status, p.orderVersion], ['SYSTEM', 'PENDING', 'OPEN', order.version]);
+    });
+
+    it('courier drop writes order.unassigned with priorCourierId and COURIER_DROPPED', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      const dropped = await service.unassignOrder(order.id, COURIER_1_ID);
+      const p = last(fakeRepo, 'order.unassigned');
+      assert.deepEqual(envelope(p), [2, 'order-service', true]);
+      assert.deepEqual(
+        [p.actorRole, p.actorId, p.reasonCode, p.priorCourierId, p.requesterId, p.previousStatus, p.status, p.orderVersion],
+        ['STUDENT', COURIER_1_ID, 'COURIER_DROPPED', COURIER_1_ID, REQUESTER_ID, 'ACCEPTED', 'OPEN', dropped.version],
+      );
+    });
+
+    it('admin unassign writes order.unassigned with ADMIN_UNASSIGNED and the administrator as actor', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.adminUnassignOrder(order.id, ADMIN_ID, { reason: 'Courier unreachable' });
+      const p = last(fakeRepo, 'order.unassigned');
+      assert.deepEqual([p.actorRole, p.actorId, p.reasonCode, p.priorCourierId], ['ADMIN', ADMIN_ID, 'ADMIN_UNASSIGNED', COURIER_1_ID]);
+      assert.equal(JSON.stringify(p).includes('unreachable'), false, 'admin reason text never leaves the order row');
+    });
+
+    it('requester cancellation of an ACCEPTED errand carries the assignee, actor and committed version', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      const cancelled = await service.cancelOrder(order.id, REQUESTER_ID);
+      const p = last(fakeRepo, 'order.cancelled');
+      assert.deepEqual(
+        [p.courierId, p.actorRole, p.actorId, p.reasonCode, p.previousStatus, p.status, p.orderVersion],
+        [COURIER_1_ID, 'STUDENT', REQUESTER_ID, 'REQUESTER_CANCELLED', 'ACCEPTED', 'CANCELLED', cancelled.version],
+      );
+
+      const open = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Pen', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.cancelOrder(open.id, REQUESTER_ID);
+      assert.equal(last(fakeRepo, 'order.cancelled').courierId, undefined, 'no assignee on an OPEN cancellation');
+    });
+
+    it('admin cancellation is ADMIN_CANCELLED with the administrator as actor', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      await service.acceptOrder(order.id, COURIER_1_ID);
+      await service.adminCancelOrder(order.id, ADMIN_ID, { reason: 'Policy' });
+      const p = last(fakeRepo, 'order.cancelled');
+      assert.deepEqual([p.actorRole, p.actorId, p.reasonCode, p.courierId], ['ADMIN', ADMIN_ID, 'ADMIN_CANCELLED', COURIER_1_ID]);
+    });
+
+    it('requester completion is REQUESTER_CONFIRMED and admin completion is ADMIN_CONFIRMED', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const deliver = async () => {
+        const order = await service.createOrder(REQUESTER_ID, {
+          supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+        });
+        await service.acceptOrder(order.id, COURIER_1_ID);
+        await service.pickupOrder(order.id, COURIER_1_ID);
+        await service.deliverOrder(order.id, COURIER_1_ID);
+        return order;
+      };
+      const first = await deliver();
+      const completed = await service.completeOrder(first.id, REQUESTER_ID);
+      let p = last(fakeRepo, 'order.completed');
+      assert.deepEqual(
+        [p.actorRole, p.actorId, p.reasonCode, p.courierId, p.previousStatus, p.status, p.orderVersion],
+        ['STUDENT', REQUESTER_ID, 'REQUESTER_CONFIRMED', COURIER_1_ID, 'DELIVERED', 'COMPLETED', completed.version],
+      );
+      const second = await deliver();
+      await service.adminCompleteOrder(second.id, ADMIN_ID, { reason: 'Verified by phone' });
+      p = last(fakeRepo, 'order.completed');
+      assert.deepEqual([p.actorRole, p.actorId, p.reasonCode], ['ADMIN', ADMIN_ID, 'ADMIN_CONFIRMED']);
+    });
+
+    it('the sweeper marks expiry OPEN_EXPIRED and a late reservation marks it PUBLICATION_EXPIRED', async () => {
+      const { service, fundedService, fakeRepo } = setupTest();
+      const open = await fundedService.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      fakeRepo.orders.find((o) => o.id === open.id)!.expiresAt = new Date(Date.now() - 1000).toISOString();
+      await createExpirySweeper({ repository: fakeRepo.repo }).sweep();
+      let p = last(fakeRepo, 'order.expired');
+      assert.deepEqual([p.actorRole, p.reasonCode, p.previousStatus, p.status], ['SYSTEM', 'OPEN_EXPIRED', 'OPEN', 'EXPIRED']);
+
+      const pending = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Late', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      fakeRepo.orders.find((o) => o.id === pending.id)!.expiresAt = new Date(Date.now() - 1000).toISOString();
+      await fakeRepo.approve(pending.id);
+      p = last(fakeRepo, 'order.expired');
+      assert.deepEqual([p.reasonCode, p.previousStatus, p.status], ['PUBLICATION_EXPIRED', 'PENDING', 'EXPIRED']);
+    });
+
+    it('progress events carry the acting courier and the committed version', async () => {
+      const { fundedService: service, fakeRepo } = setupTest();
+      const order = await service.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Tea', dropoffLocation: 'Hall', rewardCredits: 5,
+      });
+      const accepted = await service.acceptOrder(order.id, COURIER_1_ID, undefined, 'bob');
+      const p = last(fakeRepo, 'order.accepted');
+      assert.deepEqual(
+        [p.schemaVersion, p.actorRole, p.actorId, p.courierUsername, p.previousStatus, p.status, p.orderVersion, p.reasonCode],
+        [2, 'STUDENT', COURIER_1_ID, 'bob', 'OPEN', 'ACCEPTED', accepted.version, undefined],
+      );
     });
   });
 });

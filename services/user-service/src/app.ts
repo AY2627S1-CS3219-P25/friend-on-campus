@@ -16,8 +16,8 @@ import { createAuthRouter } from './auth/auth-routes';
 import { errorHandler } from './http/error-handler';
 import { requestLogger } from './http/request-logger';
 import { Database } from './persistence/database';
-import { createUserRouter } from './users/user-routes';
 import { UserModule } from './users/user-module';
+import { createUserRouter } from './users/user-routes';
 
 export interface AppDependencies {
   auth: AuthModule;

@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Fixture carries the inbox DTO fields; new test for inboxChanged() reaching only the user's sockets.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
+ * Scope: Added the liveness suite: a socket that stops answering pings is terminated within two intervals while an answering one survives, and a failing unread-count query closes the socket with 1011 before anything is filed.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
  * Scope: Tests for src/ws/hub.ts over real sockets and real Ed25519 tokens: the AUTH handshake and its 4401
  * rejections, addressing a push to one user's sockets, closing at token expiry, and eviction on close.
@@ -27,6 +35,14 @@ const notification: NotificationDTO = {
   body: 'A courier has been assigned to your errand.',
   readAt: null,
   createdAt: '2026-10-05T04:00:00.000Z',
+  producer: 'order-service',
+  category: 'PROGRESS',
+  priority: 'NORMAL',
+  actionType: 'VIEW_ERRAND',
+  targetId: '30000000-0000-4000-8000-000000000001',
+  sourceVersion: 2,
+  storedAt: '2026-10-05T04:00:01.000Z',
+  orderStatus: 'ACCEPTED',
 };
 
 describe('WebSocket hub', () => {
@@ -102,6 +118,24 @@ describe('WebSocket hub', () => {
     for (const client of [aliceTwo, bob, anonymous]) client.ws.close();
   });
 
+  // AI-generated (edited by Reallyeasy1)
+  it('inboxChanged reaches every socket of its user and nobody else', async () => {
+    const [aliceOne, aliceTwo, bob] = await Promise.all([1, 2, 3].map(() => openSocket(url)));
+    aliceOne.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    aliceTwo.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    bob.send({ type: 'AUTH', token: signToken(keys.privateKey, BOB) });
+    await Promise.all([aliceOne.frame('AUTH_OK'), aliceTwo.frame('AUTH_OK'), bob.frame('AUTH_OK')]);
+
+    assert.equal(hub.inboxChanged(ALICE), 2);
+    assert.deepEqual(await aliceOne.frame('INBOX_CHANGED'), { type: 'INBOX_CHANGED' });
+    await aliceTwo.frame('INBOX_CHANGED');
+    await delay(100);
+    assert.equal(bob.frames.some((f) => f.type === 'INBOX_CHANGED'), false);
+    assert.equal(hub.inboxChanged('20000000-0000-4000-8000-00000000ffff'), 0);
+    for (const client of [aliceOne, aliceTwo, bob]) client.ws.close();
+    await until(() => hub.connectionCount(ALICE) === 0 && hub.connectionCount(BOB) === 0, 'sockets evicted');
+  });
+
   it('ignores frames after the handshake instead of echoing them to other clients', async () => {
     const [alice, bob] = await Promise.all([openSocket(url), openSocket(url)]);
     alice.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
@@ -121,5 +155,58 @@ describe('WebSocket hub', () => {
     await client.frame('AUTH_OK');
     assert.equal(await client.closed(4000), 4401);
     await until(() => hub.connectionCount(ALICE) === 0, 'expired socket evicted');
+  });
+});
+
+// AI-generated (edited by Reallyeasy1)
+describe('WebSocket hub liveness', () => {
+  let wss: WebSocketServer;
+  let url: string;
+  const hub = createHub({
+    authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
+    unreadCount: async (userId) => {
+      if (userId === BOB) throw new Error('database down');
+      return 0;
+    },
+    authTimeoutMs: 150,
+    pingIntervalMs: 250,
+  });
+
+  before(async () => {
+    wss = new WebSocketServer({ port: 0 });
+    wss.on('connection', hub.handleConnection);
+    await new Promise<void>((resolve) => wss.once('listening', resolve));
+    url = `ws://127.0.0.1:${(wss.address() as AddressInfo).port}`;
+  });
+
+  after(async () => {
+    hub.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+  });
+
+  it('terminates a socket that stops answering pings and keeps one that answers', async () => {
+    const dead = await openSocket(url, { autoPong: false });
+    const live = await openSocket(url);
+    dead.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    live.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
+    await Promise.all([dead.frame('AUTH_OK'), live.frame('AUTH_OK')]);
+    assert.equal(hub.connectionCount(ALICE), 2);
+
+    // Tick one sends the ping, tick two finds it unanswered: gone within two intervals, no close frame (1006).
+    assert.equal(await dead.closed(2000), 1006);
+    await until(() => hub.connectionCount(ALICE) === 1, 'dead socket evicted');
+    await delay(800);
+    assert.equal(live.isOpen(), true, 'a socket that answers pings survives several intervals');
+    assert.equal(hub.push(ALICE, notification), 1);
+    live.ws.close();
+  });
+
+  it('closes with 1011 when the unread count cannot be read, and files nothing', async () => {
+    const bob = await openSocket(url);
+    bob.send({ type: 'AUTH', token: signToken(keys.privateKey, BOB) });
+    assert.equal(await bob.closed(), 1011);
+    assert.deepEqual(bob.frames, [], 'no AUTH_OK before the failure');
+    assert.equal(hub.connectionCount(BOB), 0);
+    assert.equal(hub.push(BOB, notification), 0);
   });
 });

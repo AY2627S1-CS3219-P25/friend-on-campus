@@ -1,4 +1,32 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+# Scope: browser-uat runs the multi-client real-time UAT (npm run test:e2e:ui:realtime) after the D2 browser UAT (issue #197).
+# Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Google Antigravity Agent, date: 2026-10-21
+# Scope: Removed obsolete --print flag from scripts/generate-jwt-keys.mjs invocations.
+# Author review: <to be completed by yanhwee>
+#
+# Tool: Codex (model: GPT-6), date: 2026-10-21
+# Scope: Enable logical WAL and run an isolated Credit Debezium connector for reservation saga messaging tests.
+# Author review: <to be completed by huangjiaxi1111>
+#
+# Tool: Google Antigravity Agent, date: 2026-10-21
+# Scope: Aligned acceptance-tests and browser-uat artifact upload paths with the default test-results/ output directory.
+# Author review: <to be completed by author after review>
+#
+# Tool: Codex (model: GPT-6), date: 2026-10-19
+# Scope: Repair malformed messaging database URLs and isolate Credit migrations from Order in the saga job.
+# Author review: <to be completed by huangjiaxi1111>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+# Scope: Added the student-app and credit-service test:unit entries to the unit matrix.
+# Author review: <to be completed by Reallyeasy1>
+#
+# Tool: Codex (model: GPT-5), date: 2026-10-19
+# Scope: Added order-service messaging suite coverage and order-saga credit migration setup in the CI messaging matrix.
+# Author review: <to be completed by huangjiaxi1111>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-11
 # Scope: Added static-matrix drift validation, isolated system-test stacks, Chromium UAT, console-only test output, and a dependency-only final gate.
 # Author review: <to be completed by ngkhengyang>
@@ -117,13 +145,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: credit-service
+            workspace: '@campus-errand/credit-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: notification-service
             workspace: '@campus-errand/notification-service'
             script: test:unit
             database: none
             rabbitmq: false
+          - name: chat-service
+            workspace: '@campus-errand/chat-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: order-service
             workspace: '@campus-errand/order-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
+          - name: student-app
+            workspace: '@campus-errand/student-app'
             script: test:unit
             database: none
             rabbitmq: false
@@ -165,6 +208,11 @@ jobs:
             rabbitmq: false
           - name: notification-service
             workspace: '@campus-errand/notification-service'
+            script: test:integration
+            database: deploy
+            rabbitmq: false
+          - name: chat-service
+            workspace: '@campus-errand/chat-service'
             script: test:integration
             database: deploy
             rabbitmq: false
@@ -213,6 +261,7 @@ jobs:
           ADMIN_GUARD_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CHAT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
       - name: Collect PostgreSQL logs
         if: failure()
         run: |
@@ -241,6 +290,16 @@ jobs:
             rabbitmq: true
           - name: notification-service
             workspace: '@campus-errand/notification-service'
+            script: test:messaging
+            database: deploy
+            rabbitmq: true
+          - name: chat-service
+            workspace: '@campus-errand/chat-service'
+            script: test:messaging
+            database: deploy
+            rabbitmq: true
+          - name: order-service
+            workspace: '@campus-errand/order-service'
             script: test:messaging
             database: deploy
             rabbitmq: true
@@ -289,23 +348,74 @@ jobs:
         run: npm run db:deploy --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+      # AI-generated (edited by huangjiaxi1111)
+      - name: Create credit database for order saga messaging tests
+        if: matrix.workspace == '@campus-errand/order-service'
+        run: node scripts/ci/create-test-database.mjs
+        env:
+          POSTGRES_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          TEST_DATABASE_NAME: saga_credit_test
+      - name: Deploy credit migrations for order saga messaging tests
+        if: matrix.workspace == '@campus-errand/order-service'
+        run: npm run db:deploy --workspace=@campus-errand/credit-service
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saga_credit_test
+      - name: Enable logical WAL for Credit CDC
+        if: matrix.workspace == '@campus-errand/order-service'
+        run: |
+          docker exec "${{ job.services.postgres.id }}" psql -U postgres -c "ALTER SYSTEM SET wal_level = logical"
+          docker restart "${{ job.services.postgres.id }}"
+          for attempt in $(seq 1 30); do
+            if docker exec "${{ job.services.postgres.id }}" pg_isready -U postgres; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Start Credit CDC for order saga messaging tests
+        if: matrix.workspace == '@campus-errand/order-service'
+        run: |
+          docker run -d --name credit-messaging-cdc --network host \
+            -v "$PWD/docker/debezium/credit.properties:/debezium/conf/application.properties:ro" \
+            -e DEBEZIUM_SOURCE_DATABASE_HOSTNAME=localhost \
+            -e DEBEZIUM_SOURCE_DATABASE_DBNAME=saga_credit_test \
+            -e DEBEZIUM_SOURCE_SLOT_NAME=debezium_credit_messaging \
+            -e DEBEZIUM_SOURCE_PUBLICATION_NAME=dbz_credit_messaging_publication \
+            -e DEBEZIUM_SOURCE_TOPIC_PREFIX=campus_credit_messaging \
+            -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_HOST=localhost \
+            -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_USERNAME=ci_test \
+            -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_PASSWORD=ci-test-password \
+            -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_VIRTUAL_HOST=ci \
+            -e DEBEZIUM_SINK_RABBITMQ_EXCHANGE=credit-test.saga-cdc.events \
+            quay.io/debezium/server:2.7
+          node scripts/ci/wait-for-cdc.mjs
+        env:
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saga_credit_test
       - name: Run configured messaging suite
         run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          ORDER_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          SAGA_TEST_EXCHANGE: credit-test.saga-cdc.events
           RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
           TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
-          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/${{ matrix.workspace == '@campus-errand/order-service' && 'saga_credit_test' || 'ci_test' }}
           CREDIT_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
           NOTIFICATION_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           NOTIFICATION_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
+          CHAT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
+          CHAT_TEST_RABBITMQ_URL: amqp://ci_test:ci-test-password@localhost:5672/ci
       - name: Collect PostgreSQL and RabbitMQ logs
         if: failure()
         run: |
           mkdir -p ci-logs
           docker logs "${{ job.services.postgres.id }}" > ci-logs/postgres.log 2>&1 || true
           docker logs "${{ job.services.rabbitmq.id }}" > ci-logs/rabbitmq.log 2>&1 || true
+      - name: Collect Credit CDC logs
+        if: failure() && matrix.workspace == '@campus-errand/order-service'
+        run: docker logs credit-messaging-cdc > ci-logs/credit-cdc.log 2>&1 || true
+      - name: Stop Credit CDC
+        if: always() && matrix.workspace == '@campus-errand/order-service'
+        run: docker rm -f credit-messaging-cdc || true
       - name: Upload messaging failure logs
         if: failure()
         uses: actions/upload-artifact@v6
@@ -454,15 +564,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
-      - name: Create acceptance artifact directory
-        run: mkdir -p ci-artifacts/acceptance
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run acceptance suite
         run: npm run test:acceptance
-        env:
-          UAT_OUT: ci-artifacts/acceptance/uat-d2-api-results.json
       - name: Credential exposure review
         run: |
           docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T postgres psql -U postgres -d user_db -Atc \
@@ -483,7 +589,7 @@ jobs:
         with:
           name: acceptance-results
           path: |
-            ci-artifacts/acceptance/**
+            test-results/**
             ci-logs/**
           if-no-files-found: ignore
       - name: Stop isolated Compose stack
@@ -507,7 +613,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Stop services spawned by the API E2E suite
@@ -550,16 +656,13 @@ jobs:
       - name: Install Chromium and operating-system dependencies
         run: npx playwright install --with-deps chromium
       - name: Generate throwaway JWT keys
-        run: node scripts/generate-jwt-keys.mjs --print >> "$GITHUB_ENV"
-      - name: Create browser artifact directories
-        run: mkdir -p ci-artifacts/browser/screenshots
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
       - name: Build and start isolated Compose stack
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run Chromium browser UAT
         run: npm run test:e2e:ui
-        env:
-          UAT_OUT: ci-artifacts/browser/uat-d2-ui-results.json
-          SHOTS: ci-artifacts/browser/screenshots
+      - name: Run multi-client real-time UAT (notifications and chat across four clients)
+        run: npm run test:e2e:ui:realtime
       - name: Collect Compose logs
         if: failure()
         run: |
@@ -572,7 +675,7 @@ jobs:
         with:
           name: browser-uat-results
           path: |
-            ci-artifacts/browser/**
+            test-results/**
             ci-logs/**
           if-no-files-found: ignore
       - name: Stop isolated Compose stack

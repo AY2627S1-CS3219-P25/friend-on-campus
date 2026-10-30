@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Complete registration after committing the account and outbox event; Debezium owns publication.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: Login and refresh pass the user's username into the access token (F5.1.1 courier name).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-03
  * Scope: Persisted user.registered event in transactional outbox during registration and integrated outbox relay.
  * Author review: <to be completed by huangjiaxi1111>
@@ -43,8 +51,6 @@ import type {
   UserRegisteredEvent,
 } from '@campus-errand/common-dtos';
 import { randomUUID } from 'node:crypto';
-import type { OutboxRelay } from '../messaging/outbox';
-import type { UserEventPublisher } from '../messaging/publisher';
 import {
   AuthRepository,
   SessionUserRecord,
@@ -107,8 +113,6 @@ export interface AuthModuleOptions {
   accessTokenLifetimeSeconds: number;
   refreshTokenIdleLifetimeSeconds: number;
   persistentRefreshTokenIdleLifetimeSeconds: number;
-  publisher?: UserEventPublisher;
-  outboxRelay?: OutboxRelay;
 }
 
 interface DuplicateUserError {
@@ -186,6 +190,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
       session.user.id,
       session.sessionId,
       session.user.role,
+      session.user.username,
     );
   }
 
@@ -220,12 +225,8 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
           },
         });
 
-        if (options.outboxRelay) {
-          void options.outboxRelay.trigger();
-        } else if (options.publisher) {
-          await options.publisher.publishUserRegistered(event);
-        }
-
+        // AI-generated (edited by huangjiaxi1111)
+        // Debezium publishes the committed outbox row; this response confirms account creation only.
         return toUserDTO(user);
       } catch (error) {
         mapDuplicateUserError(error);

@@ -8,11 +8,12 @@ dist/
 build/
 *.tsbuildinfo
 coverage/
+test-results/
 .turbo/
 
 # Prisma Generated Clients & Native Binaries (dylib / wasm)
 **/generated/
-**/src/database/generated/
+**/src/generated/
 
 # Environment variables
 .env
@@ -46,7 +47,22 @@ Thumbs.db
 # AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-09-21 - added the line below. Author review: <pending>
 .claude/settings.local.json
 
-# Local-only docs (files already tracked under these paths stay tracked; new files and folders are ignored)
-# AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-09-28 - added the two lines below. Author review: <pending>
+# Browser UAT output (scripts/uat/uat-d2-ui.mjs writes its screenshots here; the directory left the repo on 2026-10-21)
+# AI Assistance Disclosure: Claude Code (Claude Fable 5.1), 2026-10-25 - added the two lines above and below. Author review: <pending>
 docs/evidence/
-docs/requirements/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+

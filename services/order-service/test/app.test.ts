@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-22
+ * Scope: Added integration test for POST /api/orders/:id/unassign (courier drop before pickup, 403 for non-assigned courier, 409 after pickup).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Verify asynchronous creation receipts, polling authorization and existing lifecycle routes.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-11
  * Scope: Added integration tests for admin order endpoints, RBAC authorization (403), optimistic concurrency (409), and search.
  * Author review: (to be completed by author after review)
@@ -8,6 +16,7 @@
  * Scope: Integration test suite for Order Service HTTP application, authentication middleware, route handlers, and status codes.
  * Author review: (to be completed by author after review)
  */
+// AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,7 +24,6 @@ import type { Request, Response, NextFunction } from 'express';
 import { createApp } from '../src/app';
 import { createOrderService } from '../src/orders/order.service';
 import {
-  makeFakeCreditClient,
   makeFakeOrderRepository,
   makeFakeSupplierClient,
   startTestServer,
@@ -29,7 +37,6 @@ const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 describe('Order Service HTTP Application & Routes', () => {
   function setupApp() {
     const fakeRepo = makeFakeOrderRepository();
-    const fakeCredit = makeFakeCreditClient();
     const fakeSupplier = makeFakeSupplierClient({
       [SUPPLIER_ID]: {
         id: SUPPLIER_ID,
@@ -41,7 +48,6 @@ describe('Order Service HTTP Application & Routes', () => {
 
     const orderService = createOrderService({
       repository: fakeRepo.repo,
-      creditClient: fakeCredit.client,
       supplierClient: fakeSupplier.client,
     });
 
@@ -63,7 +69,7 @@ describe('Order Service HTTP Application & Routes', () => {
       isReady: async () => true,
     });
 
-    return { app, fakeRepo, fakeCredit, fakeSupplier };
+    return { app, fakeRepo, fakeSupplier, orderService };
   }
 
   it('responds with UP and READY on health and readiness endpoints', async () => {
@@ -128,10 +134,10 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('creates, claims, picks up, delivers, and completes an errand through HTTP endpoints', async () => {
-    const { app } = setupApp();
+    const { app, fakeRepo } = setupApp();
     const server = await startTestServer(app);
     try {
-      // 1. Create order as Alice
+      // 1. Create order as Alice -> 202 Accepted with PENDING OrderDTO
       const createRes = await fetch(`${server.url}/api/orders`, {
         method: 'POST',
         headers: {
@@ -146,11 +152,32 @@ describe('Order Service HTTP Application & Routes', () => {
           durationMinutes: 45,
         }),
       });
-      assert.equal(createRes.status, 201);
+      assert.equal(createRes.status, 202);
       const createdBody = await createRes.json() as any;
       assert.equal(createdBody.success, true);
       const orderId = createdBody.data.id;
-      assert.equal(createdBody.data.status, 'OPEN');
+      assert.equal(createRes.headers.get('location'), `/api/orders/${orderId}`);
+      assert.equal(createdBody.data.status, 'PENDING');
+
+      const orderUrl = `${server.url}/api/orders/${orderId}`;
+      const pending = await fetch(orderUrl, { headers: { 'x-user-id': ALICE_ID } });
+      assert.equal(pending.status, 200);
+      assert.equal((await pending.json() as any).data.status, 'PENDING');
+      assert.equal((await fetch(orderUrl)).status, 401);
+      assert.equal((await fetch(orderUrl, { headers: { 'x-user-id': BOB_ID } })).status, 403);
+
+      // PENDING orders are not visible in the open errand feed yet, nor to other non-admin users querying status=PENDING
+      const pendingFeedRes = await fetch(`${server.url}/api/orders`, {
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(((await pendingFeedRes.json() as any).data || []).length, 0);
+      const bobPendingListRes = await fetch(`${server.url}/api/orders?status=PENDING`, {
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(((await bobPendingListRes.json() as any).data || []).length, 0);
+
+      // Credit reservation succeeds -> order transitions PENDING -> OPEN
+      await fakeRepo.approve(orderId);
 
       // 2. Discover in feed (authenticated)
       const listRes = await fetch(`${server.url}/api/orders`, {
@@ -215,7 +242,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('returns 409 Conflict when a second user attempts to claim an already accepted errand', async () => {
-    const { app } = setupApp();
+    const { app, fakeRepo } = setupApp();
     const server = await startTestServer(app);
     try {
       // Create order
@@ -233,6 +260,7 @@ describe('Order Service HTTP Application & Routes', () => {
         }),
       });
       const orderId = (await createRes.json() as any).data.id;
+      await fakeRepo.approve(orderId);
 
       // Bob accepts
       const bobRes = await fetch(`${server.url}/api/orders/${orderId}/accept`, {
@@ -290,7 +318,7 @@ describe('Order Service HTTP Application & Routes', () => {
   });
 
   it('rejects over-length dropoffLocation or non-string specialNotes with 400 Bad Request without reserving escrow', async () => {
-    const { app, fakeCredit } = setupApp();
+    const { app, fakeRepo } = setupApp();
     const server = await startTestServer(app);
     try {
       // Over 255 chars dropoffLocation
@@ -332,8 +360,9 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.equal(nonStringBody.success, false);
       assert.match(nonStringBody.error, /specialNotes must be a string/);
 
-      // Verify that no escrow reservation was attempted
-      assert.equal(fakeCredit.reservations.length, 0);
+      // Verify that no order or outbox reservation event was persisted
+      assert.equal(fakeRepo.orders.length, 0);
+      assert.equal(fakeRepo.outboxEvents.length, 0);
     } finally {
       await server.close();
     }
@@ -358,7 +387,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST01',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 10,
       });
 
@@ -424,7 +454,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST02',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 8,
       });
 
@@ -472,7 +503,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST03',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 10,
       });
 
@@ -518,7 +550,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST04',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 15,
       });
 
@@ -531,7 +564,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 15,
       });
       await fakeRepo.repo.pickupOrder(order.id, BOB_ID, {
         eventType: 'order.in_transit',
@@ -541,7 +573,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 15,
       });
       await fakeRepo.repo.deliverOrder(order.id, BOB_ID, {
         eventType: 'order.delivered',
@@ -551,7 +582,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 15,
       });
 
       const res = await fetch(`${server.url}/api/orders/${order.id}/admin/complete`, {
@@ -598,7 +628,8 @@ describe('Order Service HTTP Application & Routes', () => {
         orderId: 'dummy',
         orderCode: 'ORD-TEST05',
         requesterId: ALICE_ID,
-        supplierId: SUPPLIER_ID,
+        campusZone: 'Campus',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
         rewardCredits: 6,
       });
 
@@ -610,7 +641,6 @@ describe('Order Service HTTP Application & Routes', () => {
         orderCode: order.orderCode,
         requesterId: ALICE_ID,
         courierId: BOB_ID,
-        rewardCredits: 6,
       });
 
       const res = await fetch(`${server.url}/api/orders/${order.id}/admin/unassign`, {
@@ -630,6 +660,155 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.equal(body.success, true);
       assert.equal(body.data.status, 'OPEN');
       assert.equal(body.data.courierId, null);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('supports filtering orders by requesterId and courierId for admin and user queries', async () => {
+    const { app, fakeRepo } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const aliceOrder = await fakeRepo.repo.createOrderWithOutbox({
+        orderCode: 'ORD-ALICE1',
+        requesterId: ALICE_ID,
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Iced Americano',
+        dropoffLocation: 'COM1',
+        rewardCredits: 8,
+        expiresAt: new Date(Date.now() + 60000),
+      }, {
+        eventType: 'order.created',
+        eventId: 'evt-alice-1',
+        timestamp: new Date().toISOString(),
+        orderId: 'dummy-1',
+        orderCode: 'ORD-ALICE1',
+        requesterId: ALICE_ID,
+        campusZone: 'Computing',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        rewardCredits: 8,
+      });
+
+      const bobOrder = await fakeRepo.repo.createOrderWithOutbox({
+        orderCode: 'ORD-BOB001',
+        requesterId: BOB_ID,
+        supplierId: SUPPLIER_ID,
+        itemDescription: 'Waffle',
+        dropoffLocation: 'UTown',
+        rewardCredits: 10,
+        expiresAt: new Date(Date.now() + 60000),
+      }, {
+        eventType: 'order.created',
+        eventId: 'evt-bob-1',
+        timestamp: new Date().toISOString(),
+        orderId: 'dummy-2',
+        orderCode: 'ORD-BOB001',
+        requesterId: BOB_ID,
+        campusZone: 'UTown',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+        rewardCredits: 10,
+      });
+
+      await fakeRepo.repo.acceptOrder(aliceOrder.id, BOB_ID, undefined, {
+        eventType: 'order.accepted',
+        eventId: 'evt-acc-bob',
+        timestamp: new Date().toISOString(),
+        orderId: aliceOrder.id,
+        orderCode: aliceOrder.orderCode,
+        requesterId: ALICE_ID,
+        courierId: BOB_ID,
+      });
+
+      // Admin filtering by requesterId
+      const requesterRes = await fetch(`${server.url}/api/orders?requesterId=${ALICE_ID}`, {
+        headers: {
+          'x-user-id': ADMIN_ID,
+          'x-user-role': 'ADMIN',
+        },
+      });
+      assert.equal(requesterRes.status, 200);
+      const requesterBody = await requesterRes.json() as any;
+      assert.equal(requesterBody.data.length, 1);
+      assert.equal(requesterBody.data[0].id, aliceOrder.id);
+
+      // Filtering by courierId (admin or matching courier)
+      const courierRes = await fetch(`${server.url}/api/orders?courierId=${BOB_ID}`, {
+        headers: {
+          'x-user-id': BOB_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(courierRes.status, 200);
+      const courierBody = await courierRes.json() as any;
+      assert.equal(courierBody.data.length, 1);
+      assert.equal(courierBody.data[0].id, aliceOrder.id);
+      assert.notEqual(courierBody.data[0].id, bobOrder.id);
+
+      // Non-admin filtering by another user's requesterId or courierId returns 403 Forbidden
+      const forbiddenRequesterRes = await fetch(`${server.url}/api/orders?requesterId=${ALICE_ID}`, {
+        headers: {
+          'x-user-id': BOB_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(forbiddenRequesterRes.status, 403);
+
+      const forbiddenCourierRes = await fetch(`${server.url}/api/orders?courierId=${BOB_ID}`, {
+        headers: {
+          'x-user-id': ALICE_ID,
+          'x-user-role': 'STUDENT',
+        },
+      });
+      assert.equal(forbiddenCourierRes.status, 403);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('allows assigned courier to unassign (drop) an ACCEPTED order via POST /api/orders/:id/unassign before pickup', async () => {
+    const { app, fakeRepo } = setupApp();
+    const server = await startTestServer(app);
+    try {
+      const createRes = await fetch(`${server.url}/api/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': ALICE_ID,
+        },
+        body: JSON.stringify({
+          supplierId: SUPPLIER_ID,
+          itemDescription: 'Matcha Latte',
+          dropoffLocation: 'COM2',
+          rewardCredits: 15,
+        }),
+      });
+      const orderId = (await createRes.json() as any).data.id;
+      await fakeRepo.approve(orderId);
+
+      // Bob accepts
+      const acceptRes = await fetch(`${server.url}/api/orders/${orderId}/accept`, {
+        method: 'POST',
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(acceptRes.status, 200);
+
+      // Alice (not the courier) cannot unassign -> 403
+      const forbiddenRes = await fetch(`${server.url}/api/orders/${orderId}/unassign`, {
+        method: 'POST',
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(forbiddenRes.status, 403);
+
+      // Bob drops the errand before pickup -> 200 OPEN
+      const unassignRes = await fetch(`${server.url}/api/orders/${orderId}/unassign`, {
+        method: 'POST',
+        headers: { 'x-user-id': BOB_ID },
+      });
+      assert.equal(unassignRes.status, 200);
+      const unassignBody = await unassignRes.json() as any;
+      assert.equal(unassignBody.success, true);
+      assert.equal(unassignBody.data.status, 'OPEN');
+      assert.equal(unassignBody.data.courierId, null);
     } finally {
       await server.close();
     }

@@ -23,10 +23,10 @@ body {
 
 @layer components {
   .student-header-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
     align-items: center;
-    gap: 1rem;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
 
   .student-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); }
@@ -48,13 +48,20 @@ body {
   }
 
   @media (min-width: 768px) {
-    .student-top-nav { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
     .student-main { padding-bottom: 1.5rem; }
   }
 
   @media (min-width: 1024px) {
     .student-main { padding-bottom: 2rem; }
-    .student-header-row { grid-template-columns: minmax(0, 1fr) auto auto; }
-    .student-top-nav { grid-column: 2; grid-row: 1; }
   }
+}
+
+.reward-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.reward-input::-webkit-inner-spin-button,
+.reward-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

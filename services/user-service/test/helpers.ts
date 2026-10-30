@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Keep registration outbox persistence in the fake and remove obsolete polling publisher operations.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
+ * Scope: The fake token manager records the username passed to issueAccessToken.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: The fakes mirror the repositories: rotateSession refuses a disabled account and toggleStatus refuses
  * to disable the last enabled admin.
@@ -56,13 +64,13 @@ export function makeKeyPair(): { privateKey: string; publicKey: string } {
 }
 
 /** Records every call and returns predictable tokens; no cryptography. */
-export function makeFakeTokens(): TokenManager & { issued: Array<{ userId: string; sessionId: string; role: string }> } {
+export function makeFakeTokens(): TokenManager & { issued: Array<{ userId: string; sessionId: string; role: string; username?: string }> } {
   let counter = 0;
-  const issued: Array<{ userId: string; sessionId: string; role: string }> = [];
+  const issued: Array<{ userId: string; sessionId: string; role: string; username?: string }> = [];
   return {
     issued,
-    issueAccessToken(userId, sessionId, role) {
-      issued.push({ userId, sessionId, role });
+    issueAccessToken(userId, sessionId, role, username) {
+      issued.push({ userId, sessionId, role, username });
       return `access-token-for-${userId}-${sessionId}-${role}`;
     },
     generateRefreshToken() {
@@ -172,38 +180,6 @@ export function makeFakeAuthRepository(seed: UserRecord[] = []) {
       calls.push('deleteExpiredSessions');
       for (const [hash, s] of sessions) {
         if (s.idleExpiresAt <= now) sessions.delete(hash);
-      }
-    },
-    async getPendingOutboxEvents(limit = 50) {
-      calls.push('getPendingOutboxEvents');
-      return outboxEvents
-        .filter((e) => e.status === 'PENDING')
-        .slice(0, limit)
-        .map((e) => ({ ...e }));
-    },
-    async markOutboxEventDelivered(id) {
-      calls.push('markOutboxEventDelivered');
-      const event = outboxEvents.find((e) => e.id === id);
-      if (event) {
-        event.status = 'DELIVERED';
-        event.updatedAt = new Date();
-      }
-    },
-    async markOutboxEventFailed(id) {
-      calls.push('markOutboxEventFailed');
-      const event = outboxEvents.find((e) => e.id === id);
-      if (event) {
-        event.status = 'FAILED';
-        event.retryCount += 1;
-        event.updatedAt = new Date();
-      }
-    },
-    async incrementOutboxEventRetry(id) {
-      calls.push('incrementOutboxEventRetry');
-      const event = outboxEvents.find((e) => e.id === id);
-      if (event) {
-        event.retryCount += 1;
-        event.updatedAt = new Date();
       }
     },
   };

@@ -1,31 +1,24 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
+ * Scope: Removed unauthenticated POST /api/credits/escrow/reserve HTTP endpoint (Issue #42); all escrow mutations now execute exclusively via authenticated RabbitMQ domain events.
+ * Author review: Validated by Yee Yan Hwee (yanhwee)
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Protected wallet and ledger reads with verified token ownership; retained escrow HTTP behavior.
  * Author review: <to be completed by huangjiaxi1111>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
 import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import { CreditError, type CreditService } from './service';
-import type { EscrowReserveRequest } from './types';
 
 function uuid(value: unknown, field: string): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
     throw new CreditError(`${field} must be a UUID`);
   }
   return value.toLowerCase();
-}
-
-function escrowRequest(body: unknown): EscrowReserveRequest {
-  if (!body || typeof body !== 'object') throw new CreditError('A JSON request body is required');
-  const input = body as Record<string, unknown>;
-  const requesterId = uuid(input.requesterId, 'requesterId');
-  const orderId = uuid(input.orderId, 'orderId');
-  if (typeof input.amount !== 'number' || !Number.isInteger(input.amount) || input.amount <= 0 || input.amount > 2147483647) {
-    throw new CreditError('amount must be a positive PostgreSQL integer (1–2147483647)');
-  }
-  return { requesterId, orderId, amount: input.amount };
 }
 
 // Express 4 does not forward rejected async handlers automatically.
@@ -42,11 +35,6 @@ export function createCreditRouter(credits: CreditService, authenticate: Request
   router.get('/ledger', authenticate, asyncRoute(async (_req, res) => {
     const userId = uuid((res.locals.auth as AuthenticatedPrincipal).userId, 'Token userId');
     res.json({ success: true, data: await credits.getLedger(userId) });
-  }));
-  // Service-to-service authentication is deferred; reservation still trusts the body identifiers.
-  router.post('/escrow/reserve', asyncRoute(async (req, res) => {
-    const data = await credits.reserve(escrowRequest(req.body));
-    res.json({ success: true, data, message: 'Escrow reserved successfully' });
   }));
   const handleCreditError: ErrorRequestHandler = (error, _req, res, next) => {
     if (error instanceof CreditError) {

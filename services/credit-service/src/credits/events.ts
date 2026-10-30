@@ -1,17 +1,35 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Review fix (PR #184): the processed-event fingerprint leaves orderCode out, so a pre-upgrade event replayed
+ * with its display code still matches the hash stored by the previous version instead of dead-lettering as a conflict.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
+ * Scope: Keeps the optional orderCode of completed/cancelled/expired events so the settlement or refund receipt can name
+ * the errand (Notification Redesign increment 6). Version-2 fields the service does not use are still ignored.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Google Antigravity, date: 2026-10-19
+ * Scope: Removed redundant order.reservation.release_requested handling for Saga Approach B2 (refunds unified on order.expired/order.cancelled).
+ * Author review: Reviewed and verified by yanhwee.
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Validate and dispatch asynchronous reservation and release commands.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Reused shared credit event contracts and translated validated messages into transactional credit commands.
  * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by huangjiaxi1111)
+// AI-generated (edited by yanhwee)
 import { createHash } from 'node:crypto';
-import type { OrderCancelledEvent, OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
+import type { CreditReservationRequestEvent, OrderCancelledEvent, OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
 import type { CreditCommand, CreditService } from './service';
 import { InvalidCreditEvent } from './errors';
 
-export type CreditEvent = UserRegisteredEvent | OrderCompletedEvent | OrderExpiredEvent | OrderCancelledEvent;
-export const creditRoutingKeys = ['user.registered', 'order.completed', 'order.cancelled', 'order.expired'] as const;
+export type CreditEvent = CreditReservationRequestEvent | UserRegisteredEvent | OrderCompletedEvent | OrderExpiredEvent | OrderCancelledEvent;
+export const creditRoutingKeys = ['user.registered', 'order.completed', 'order.cancelled', 'order.expired', 'order.reservation.requested'] as const;
 
 function uuid(value: unknown, field: string): string {
   if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
@@ -55,6 +73,14 @@ export function parseCreditEvent(content: Buffer, routingKey: string): CreditEve
     return { ...base, eventType: 'user.registered', userId: uuid(input.userId, 'userId'), email: input.email, initialGrant: amount(input.initialGrant, 'initialGrant') };
   }
   const order = { ...base, orderId: uuid(input.orderId, 'orderId'), requesterId: uuid(input.requesterId, 'requesterId'), rewardCredits: amount(input.rewardCredits, 'rewardCredits') };
+  // AI-generated (edited by Reallyeasy1): the display code is optional (version-1 events may omit it) and only decorates receipts.
+  if (input.orderCode !== undefined) {
+    if (typeof input.orderCode !== 'string' || input.orderCode.length === 0 || input.orderCode.length > 32) throw new InvalidCreditEvent('orderCode must be a non-empty string');
+    Object.assign(order, { orderCode: input.orderCode });
+  }
+  if (input.eventType === 'order.reservation.requested') {
+    return { ...order, eventType: 'order.reservation.requested', correlationId: uuid(input.correlationId, 'correlationId') };
+  }
   if (input.eventType === 'order.completed') return { ...order, eventType: 'order.completed', courierId: uuid(input.courierId, 'courierId') };
   return { ...order, eventType: input.eventType as 'order.expired' | 'order.cancelled' };
 }
@@ -63,16 +89,20 @@ export function createCreditEventHandler(credits: CreditService) {
   return async (content: Buffer, routingKey: string) => {
     const event = parseCreditEvent(content, routingKey);
     let command: CreditCommand;
-    if (event.eventType === 'user.registered') command = { kind: 'register', userId: event.userId, initialGrant: event.initialGrant };
+    if (event.eventType === 'order.reservation.requested') command = { kind: 'reserve-request', event };
+    else if (event.eventType === 'user.registered') command = { kind: 'register', userId: event.userId, initialGrant: event.initialGrant };
     else {
-      const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits };
+      const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits, ...('orderCode' in event && event.orderCode ? { orderCode: event.orderCode } : {}) };
       command = event.eventType === 'order.completed'
         ? { kind: 'settle', body: { ...body, courierId: event.courierId } }
         : { kind: 'refund', body };
     }
+    // AI-generated (edited by Reallyeasy1): orderCode only decorates receipts and was discarded before it was kept, so it
+    // stays out of the fingerprint; rows in processed_credit_events written by the previous version still match.
+    const fingerprinted = Object.fromEntries(Object.entries(event).filter(([key]) => key !== 'orderCode'));
     await credits.applyEvent({
       eventId: event.eventId, eventType: event.eventType,
-      fingerprint: createHash('sha256').update(JSON.stringify(event)).digest('hex'),
+      fingerprint: createHash('sha256').update(JSON.stringify(fingerprinted)).digest('hex'),
     }, command);
   };
 }

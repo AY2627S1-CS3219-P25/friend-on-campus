@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Retain atomic account/outbox writes and remove polling publisher repository operations.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Google Antigravity, date: 2026-10-20
+ * Scope: Imported Prisma, PrismaClient, and User from ../database/client instead of directly from generated folder.
+ * Author review: <to be completed by author after review>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: rotateSession returns null for a disabled account, so refresh is refused and the session is left as it
@@ -24,10 +31,9 @@
  * Author review: <to be completed by ngkhengyang>
  */
 
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by ngkhengyang)
-
-// AI-generated (edited by ngkhengyang)
-import { Prisma, PrismaClient, User as PrismaUser } from '../database/generated/client';
+import { Prisma, PrismaClient, type User as PrismaUser } from '../database/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
 
@@ -91,10 +97,6 @@ export interface AuthRepository {
   ): Promise<SessionUserRecord | null>;
   revokeSession(refreshTokenHash: string): Promise<void>;
   deleteExpiredSessions(now: Date): Promise<void>;
-  getPendingOutboxEvents(limit?: number): Promise<OutboxEventRecord[]>;
-  markOutboxEventDelivered(id: string): Promise<void>;
-  markOutboxEventFailed(id: string): Promise<void>;
-  incrementOutboxEventRetry(id: string): Promise<void>;
 }
 
 type SessionWithUser = Prisma.SessionGetPayload<{ include: { user: true } }>;
@@ -225,45 +227,5 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
       await prisma.session.deleteMany({ where: { idleExpiresAt: { lte: now } } });
     },
 
-    async getPendingOutboxEvents(limit = 50) {
-      const rows = await prisma.outboxEvent.findMany({
-        where: { status: 'PENDING' },
-        orderBy: { createdAt: 'asc' },
-        take: limit,
-      });
-      return rows.map((row) => ({
-        id: row.id,
-        eventType: row.eventType,
-        payload: row.payload,
-        status: row.status,
-        retryCount: row.retryCount,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-      }));
-    },
-
-    async markOutboxEventDelivered(id: string) {
-      await prisma.outboxEvent.update({
-        where: { id },
-        data: { status: 'DELIVERED' },
-      });
-    },
-
-    async markOutboxEventFailed(id: string) {
-      await prisma.outboxEvent.update({
-        where: { id },
-        data: {
-          status: 'FAILED',
-          retryCount: { increment: 1 },
-        },
-      });
-    },
-
-    async incrementOutboxEventRetry(id: string) {
-      await prisma.outboxEvent.update({
-        where: { id },
-        data: { retryCount: { increment: 1 } },
-      });
-    },
   };
 }

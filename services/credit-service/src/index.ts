@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-10-21
+ * Scope: Publish Credit result outbox events through Debezium instead of an application polling worker.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-10-18
+ * Scope: Start, verify and close the Credit result outbox worker.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Constructed shared JWT verification and exited cleanly for supervised RabbitMQ recovery.
  * Author review: <to be completed by huangjiaxi1111>
@@ -37,7 +45,7 @@ async function main() {
   await prisma.$connect();
   // Verify migrations before accepting HTTP requests or messages.
   await Promise.all([prisma.creditWallet.findFirst(), prisma.creditTransaction.findFirst(),
-    prisma.creditGrant.findFirst(), prisma.creditEscrow.findFirst(), prisma.processedCreditEvent.findFirst()]);
+    prisma.creditGrant.findFirst(), prisma.creditEscrow.findFirst(), prisma.processedCreditEvent.findFirst(), prisma.creditOutboxEvent.findFirst()]);
   const credits = createCreditService(createCreditStore(prisma));
   consumer = await startCreditConsumer(config.rabbitmq, credits, () => {
     console.error('[Credit Service] RabbitMQ consumer unavailable; exiting for process supervisor restart');

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
+ * Scope: Lint fix (PR #184): where and update objects typed as Prisma.SupplierWhereInput / SupplierUpdateInput instead of any.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-08
  * Scope: Relocated supplier repository to src/suppliers/supplierRepository.ts and updated prisma client import.
  * Author review: <to be completed by author after review>
@@ -30,7 +34,7 @@
 // AI-generated (edited by yanhwee)
 
 
-import { prisma } from '../database/client';
+import { prisma, type Prisma } from '../database/client';
 import {
   CreateSupplierRequest,
   UpdateSupplierRequest,
@@ -45,7 +49,7 @@ function compareValues(a: unknown, b: unknown): number {
 }
 
 export async function getSuppliers(filter?: SupplierQueryOptions) {
-  const whereClause: any = {};
+  const whereClause: Prisma.SupplierWhereInput = {};
 
   if (filter?.campusZone) {
     whereClause.campusZone = { equals: filter.campusZone, mode: 'insensitive' };
@@ -172,7 +176,7 @@ export async function createSupplier(data: CreateSupplierRequest) {
 }
 
 export async function updateSupplier(id: string, data: UpdateSupplierRequest) {
-  const updateData: any = {};
+  const updateData: Prisma.SupplierUpdateInput = {};
 
   if (data.name !== undefined) updateData.name = data.name.trim();
   if (data.campusZone !== undefined) updateData.campusZone = data.campusZone.trim();
