@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Normalize legacy missing coordinates when opening the supplier edit form.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
  * Author review: <to be completed by Reallyeasy1>
@@ -399,6 +403,7 @@ export default function App() {
     }
   };
 
+  // AI-generated (edited by Reallyeasy1)
   const openEditModal = (supplier: SupplierDTO) => {
     setEditingSupplier(supplier);
     setEditFormData({
@@ -409,8 +414,8 @@ export default function App() {
       description: supplier.description || '',
       building: supplier.building || '',
       floor: supplier.floor || '',
-      latitude: supplier.latitude,
-      longitude: supplier.longitude,
+      latitude: supplier.latitude ?? undefined,
+      longitude: supplier.longitude ?? undefined,
       startingTime: supplier.startingTime || '',
       closingTime: supplier.closingTime || '',
       isActive: supplier.isActive,

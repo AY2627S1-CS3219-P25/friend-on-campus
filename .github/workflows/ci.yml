@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-01
+# Scope: Added the Supplier Service migration regression suite to CI.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 # Scope: browser-uat runs the multi-client real-time UAT (npm run test:e2e:ui:realtime) after the D2 browser UAT (issue #197).
 # Author review: <to be completed by Reallyeasy1>
@@ -437,6 +441,11 @@ jobs:
             script: test:migration
             database: schema
             rabbitmq: false
+          - name: supplier-service
+            workspace: '@campus-errand/supplier-service'
+            script: test:migration
+            database: schema
+            rabbitmq: false
     services:
       postgres:
         image: postgres:16-alpine
@@ -467,6 +476,7 @@ jobs:
       - name: Run configured migration suite
         run: npm run "${{ matrix.script }}" --workspace="${{ matrix.workspace }}"
         env:
+          REQUIRE_TEST_DATABASE: 'true'
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
           CREDIT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test

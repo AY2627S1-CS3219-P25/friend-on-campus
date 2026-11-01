@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-01
+Scope: Recorded the review and authorized merge of PR #220, follow-up fixes on a separate branch, issue #221, and verification results.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Disambiguated stepper button aria-labels ('Decrease amount' and 'Increase amount') in student-app PostErrandPage to resolve Playwright getByLabel('Reward credits') strict mode collision across UO1, UO6, RT02, and RT12.
 Author review: <to be completed by yanhwee>
@@ -5739,3 +5743,43 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 **Verification:**
 - `npm run typecheck --workspace=@campus-errand/student-app` — clean.
 - Rebuilt and restarted the live `student-app` container; confirmed it serves (HTTP 200). Did not visually confirm in a browser — no tool available here that can reach the local dev stack — worth a quick look on a narrow viewport before considering this done.
+
+
+## 2026-11-01 00:40 SGT — Review PR #220
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** detached review of admin_dashboard at 01fd0f2976bc49edf131d702830372c8210e8e88
+
+**Prompt (summarised):** Review PR #220 against its actual base, inspect repository instructions, description, issue links, existing comments and complete diff; return concise actionable findings and verification limits without posting, fixing, committing, pushing or merging.
+
+**Usage scenario:** Code review and debugging assistance. Inspected all 21 changed files and relevant callers against base 8115a2cbf4f6e571678ffc8e62adacc07f560a5a. PR description has no issue references and review threads/comments were empty. Identified a nullable-to-required coordinate migration upgrade failure, unchanged API test fixtures now rejected by validation, overlapping seeded map markers, and timing-dependent PENDING-state Postman assertions. Final architecture and implementation decisions remain with the author.
+
+**Verification:** npm ci completed; Prisma clients generated; all-workspace typecheck passed; supplier unit tests 49/49 and student unit tests 22/22 passed. Postman JSON and 141 embedded-script syntax checks passed; a focused simulated-response check demonstrated the pending-state assertion failures. Inspected GitHub CI run 41039325203: acceptance failed 6 supplier checks (56/62 passed), API E2E failed 7 supplier checks; both create fixtures omit the new required coordinates. PostgreSQL/Docker and a working Playwright browser were unavailable, so migration execution, full-stack Postman timing, and map browser interaction were not reproduced locally. Head/base and empty review threads rechecked before reporting.
+
+**Files changed:**
+- ai/usage-log.md — required local review record only; uncommitted. No application/infrastructure edits or GitHub writes.
+
+
+## 2026-11-01 11:16 SGT — Merge PR #220 and address review findings separately
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** fix/pr220-review-and-ci
+
+**Prompt (summarised):** Merge PR #220, then create a separate branch to address its code review findings and failing CI test cases.
+
+**Usage scenario:** Authorized merge and follow-up bug fixes. Merged the reviewed head 01fd0f2976bc49edf131d702830372c8210e8e88 as 8ef8dcb279e03abe398ece39736687d298054215, created the separate fix branch and issue #221. Corrected the unsafe historical coordinate migration and added a forward migration for databases where it already succeeded; preserved legacy records without fabricated coordinates, retained required coordinates on creation, and exposed coordinate repair in the admin edit form. Grouped coincident supplier markers into a popup with individual choices. Updated API success fixtures and moved timing-sensitive PENDING cancellation coverage from Postman to a controlled HTTP test. The follow-up PR remains separate for review.
+
+**Files changed:**
+- Supplier Service canonical Prisma schema and coordinate migrations; coordinate migration and API regression tests; package test script; validation comment.
+- packages/common-dtos/src/index.ts — nullable legacy coordinates in read DTOs, required creation contract unchanged.
+- apps/admin-portal/src/App.tsx and src/components/SupplierModals.tsx — editable coordinates and nullable value normalization.
+- apps/student-app/src/map/SupplierPickupMap.tsx, src/map/supplierLocations.ts, test/supplier-map.test.ts, package.json — selectable coincident suppliers and grouping regression coverage.
+- scripts/uat/uat-d2-api.mjs and scripts/test-d2-e2e.ts — valid supplier fixtures, preserving negative test intent.
+- services/order-service/test/app.test.ts and tests/postman/postman_collection.json — deterministic PENDING access/cancellation checks, removal of transient-state requests 6.25–6.27.
+- .github/workflows/ci.yml and scripts/ci/run-all-tests.mjs — isolated Supplier Service migration suite.
+- docs/services/supplier-service/README.md and coordinate-upgrades.md — upgrade paths, verified coordinate repair and failed-migration recovery.
+- ai/usage-log.md — preserved prior local review entry and recorded this authorized work.
+
+**Verification:** All-workspace typecheck and production build, repository lint, diff whitespace checks, and CI matrix validation passed (18 workspace suites and 4 system commands). Supplier unit tests passed 53/53, Student App 25/25, Order Service 66/66. All three actual SQL migration regression tests passed using a temporary PGlite PostgreSQL engine outside the repository; no application dependency was added. Postman JSON parsed, all 138 embedded scripts compiled, and request routing targets validated. Direct admin component handler checks covered blank, repaired, cleared and zero-valued coordinates. Independent read-only review found no additional actionable regression. Docker, native PostgreSQL and a usable Playwright browser are unavailable locally; full-stack and native PostgreSQL 16 validation are delegated to GitHub CI, and map interaction needs browser verification. Historical migration checksum/development-reset implications are documented; no database reset, fake-coordinate backfill or data deletion was performed.

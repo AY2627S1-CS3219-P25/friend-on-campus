@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-01
+Scope: Link the supplier coordinate upgrade and recovery instructions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -27,6 +31,8 @@ Readiness runs SELECT 1 and does not verify the suppliers table/schema. There is
 Seed source is CLI path, then SEED_CSV_PATH, then `data/csv/supplier-seed-data.csv`. It validates expected headers/count/location/coordinates and upserts SUP-NNN records; existing IDs and active state are preserved while descriptive data updates. Sequential seed writes are not one atomic batch. Container startup applies migrations and seeds before listening.
 
 Use [contracts and data](contracts-and-data.md) and [runtime/tests](runtime-and-testing.md). Workspace scripts provide dev, db:generate, db:deploy, db:seed and unit testing. Source-specific limits and test results are recorded centrally.
+
+For the PR #220 coordinate change, follow [coordinate upgrades](coordinate-upgrades.md) before upgrading an existing database. New suppliers require coordinates; legacy records remain repairable without fabricated locations.
 
 ## Source evidence and related reading
 
