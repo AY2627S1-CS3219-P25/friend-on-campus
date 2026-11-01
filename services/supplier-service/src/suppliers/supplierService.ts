@@ -3,6 +3,13 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted supplier domain validation, duplicate location conflict checks, and CRUD business logic from supplierRoutes.ts into supplierService.ts.
  * Author review: (to be completed by yanhwee)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
+ * Scope: Merge of admin_dashboard into main's restructured supplier-service. latitude/longitude required-field
+ * and finite-number checks (originally inline in supplierRoutes.ts's createSupplier/updateSupplier, from the
+ * 2026-10-17 change making the DB columns NOT NULL) relocated here to match this file's now-authoritative
+ * validation layer, same style as the existing building/floor checks.
+ * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
 import {
@@ -73,6 +80,7 @@ export async function findSupplierByIdOrCode(id: string) {
   return supplier;
 }
 
+// AI-generated (edited by jagdeepsh)
 export async function createNewSupplier(body: CreateSupplierRequest) {
   const required = [
     'name',
@@ -81,11 +89,20 @@ export async function createNewSupplier(body: CreateSupplierRequest) {
     'category',
     'building',
     'floor',
+    'latitude',
+    'longitude',
   ] as const;
   if (required.some((key) => !String(body[key] ?? '').trim())) {
     throw new SupplierValidationError(
-      'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor',
+      'Missing required fields. Required: name, campusZone, exactLocation, category, building, floor, latitude, longitude',
     );
+  }
+
+  if (
+    typeof body.latitude !== 'number' || !Number.isFinite(body.latitude) ||
+    typeof body.longitude !== 'number' || !Number.isFinite(body.longitude)
+  ) {
+    throw new SupplierValidationError('latitude and longitude must be valid numbers');
   }
 
   const duplicate = await supplierRepository.findDuplicateLocation(
@@ -125,6 +142,15 @@ export async function updateExistingSupplier(
   for (const key of ['name', 'category', 'building', 'floor'] as const) {
     if (body[key] !== undefined && !String(body[key]).trim()) {
       throw new SupplierValidationError(`${key} cannot be empty`);
+    }
+  }
+
+  // AI-generated (edited by jagdeepsh)
+  // latitude/longitude may be left out of a PUT, but if sent must be a valid number — never null/NaN,
+  // since the column is NOT NULL.
+  for (const key of ['latitude', 'longitude'] as const) {
+    if (body[key] !== undefined && (typeof body[key] !== 'number' || !Number.isFinite(body[key]))) {
+      throw new SupplierValidationError(`${key} must be a valid number`);
     }
   }
 

@@ -35,6 +35,20 @@
  * when name, category, building or floor is sent empty. createSupplier treats whitespace-only required
  * fields as missing.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: latitude/longitude added to createSupplier's required-field check and validated as finite numbers;
+ * updateSupplier rejects latitude/longitude sent as null or a non-finite value, matching the DB columns
+ * being made NOT NULL in this same change.
+ * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
+ * Scope: Merge of admin_dashboard into main: this file's validation logic (including the 2026-10-17
+ * latitude/longitude checks above) was extracted into supplierService.ts's createNewSupplier/updateExistingSupplier
+ * by main's own independent refactor; createSupplier/updateSupplier here are now thin wrappers that call those
+ * functions and map the resulting errors, matching main's established pattern. The latitude/longitude checks
+ * still exist, just relocated to supplierService.ts.
+ * Author review: (to be completed by author after review)
  */
 
 

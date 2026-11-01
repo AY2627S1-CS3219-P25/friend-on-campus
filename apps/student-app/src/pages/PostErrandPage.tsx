@@ -31,6 +31,15 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted post errand form page from student-app App.tsx into pages/PostErrandPage.tsx.
  * Author review: Verified by yanhwee
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
+ * Scope: Merge of admin_dashboard into main. Added a Map icon button beside the Pickup Store dropdown, opening
+ * an interactive map modal (../map/SupplierPickupMap.tsx, React Leaflet + OpenStreetMap tiles) dropping a pin
+ * for every active supplier with coordinates; clicking a pin selects that supplier via the same setFormData
+ * fields the dropdown's own onChange already sets, and closes the map. The <select>'s existing id/aria-label/
+ * required attributes are unchanged (left intact for the UAT selectors noted above) — it is now wrapped in a
+ * flex row alongside the new button instead of being full-width on its own.
+ * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by yanhwee)
@@ -45,6 +54,7 @@ import {
   Clock,
   Coins,
   FileText,
+  Map as MapIcon,
   MapPin,
   RefreshCw,
   ShoppingBag,
@@ -56,6 +66,7 @@ import {
 import React, { useRef, useState } from 'react';
 import { AuthFetchFn } from '../api/auth';
 import { parseErrandDraft } from '../api/orders';
+import { SupplierPickupMap } from '../map/SupplierPickupMap';
 
 export interface PostErrandFormData {
   supplierId: string;
@@ -121,6 +132,8 @@ export function PostErrandPage({
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [extractedDraft, setExtractedDraft] = useState<ParsedErrandDraftDTO | null>(null);
+  // AI-generated (edited by jagdeepsh)
+  const [isPickupMapOpen, setIsPickupMapOpen] = useState(false);
   const [appliedNotice, setAppliedNotice] = useState(false);
   const [dismissError, setDismissError] = useState(false);
 
@@ -460,35 +473,47 @@ export function PostErrandPage({
                   {activeSuppliers.length} active spots
                 </span>
               </div>
-              <select
-                id="errand-supplier-select"
-                required
-                aria-label="Pickup spot"
-                value={formData.supplierId}
-                onChange={(e) => {
-                  const chosen = suppliers.find((s) => s.id === e.target.value);
-                  if (chosen) {
-                    setFormData({
-                      ...formData,
-                      supplierId: chosen.id,
-                      supplierName: chosen.name,
-                      campusZone: chosen.campusZone,
-                    });
-                  }
-                }}
-                className="w-full text-sm p-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-nus-blue focus:border-transparent outline-none transition"
-              >
-                {activeSuppliers.length === 0 && (
-                  <option value="">
-                    {isSuppliersLoading ? 'Loading pickup spots…' : 'No pickup spots available'}
-                  </option>
-                )}
-                {activeSuppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.campusZone} • {s.category})
-                  </option>
-                ))}
-              </select>
+              {/* AI-generated (edited by jagdeepsh) */}
+              <div className="flex items-stretch gap-2">
+                <select
+                  id="errand-supplier-select"
+                  required
+                  aria-label="Pickup spot"
+                  value={formData.supplierId}
+                  onChange={(e) => {
+                    const chosen = suppliers.find((s) => s.id === e.target.value);
+                    if (chosen) {
+                      setFormData({
+                        ...formData,
+                        supplierId: chosen.id,
+                        supplierName: chosen.name,
+                        campusZone: chosen.campusZone,
+                      });
+                    }
+                  }}
+                  className="flex-1 min-w-0 text-sm p-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-nus-blue focus:border-transparent outline-none transition"
+                >
+                  {activeSuppliers.length === 0 && (
+                    <option value="">
+                      {isSuppliersLoading ? 'Loading pickup spots…' : 'No pickup spots available'}
+                    </option>
+                  )}
+                  {activeSuppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.campusZone} • {s.category})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setIsPickupMapOpen(true)}
+                  title="Pick a spot on the map"
+                  aria-label="Pick a spot on the map"
+                  className="shrink-0 px-3 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-nus-blue flex items-center justify-center transition"
+                >
+                  <MapIcon className="w-4 h-4" />
+                </button>
+              </div>
               <div className="flex items-center justify-between text-xs text-slate-500 mt-1.5">
                 <span>
                   Campus Zone: <strong className="text-slate-800">{formData.campusZone || '—'}</strong>
@@ -799,6 +824,23 @@ export function PostErrandPage({
           </aside>
         </fieldset>
       </form>
+
+      {/* AI-generated (edited by jagdeepsh) */}
+      {isPickupMapOpen && (
+        <SupplierPickupMap
+          suppliers={activeSuppliers}
+          selectedSupplierId={formData.supplierId}
+          onSelect={(chosen) => {
+            setFormData({
+              ...formData,
+              supplierId: chosen.id,
+              supplierName: chosen.name,
+              campusZone: chosen.campusZone,
+            });
+          }}
+          onClose={() => setIsPickupMapOpen(false)}
+        />
+      )}
     </div>
   );
 }

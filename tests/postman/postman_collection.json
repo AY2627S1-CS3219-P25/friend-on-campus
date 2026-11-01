@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "campus-errand-user-supplier-api-tests",
     "name": "Campus Errand - User & Supplier Service API Tests",
-    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential \u2014 the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) \u2014 only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch \u2014 user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 2):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: 3.11-3.15 renamed from PATCH /:id/admin to PATCH /:id/toggle-status (backend route renamed, same behavior). Replaced 3.16-3.17 (the old POST /:id/promote 501-stub requests) with 3.16-3.21, covering the newly-implemented PATCH /:id/toggle-role: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round trip on the test user. The trailing DELETE requests renumbered from 3.18-3.22 to 3.22-3.26 accordingly. 1.1 Login as Admin now also captures adminUserId, needed for the self-targeting test.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 3):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-29\nScope: Rebuilt Folder 5 to add duplicate-location coverage for the new (name, category, building, floor) uniqueness rule, and fixed a regression: 5.1's create-supplier body never included building/floor after they became required, so it had been failing with 400 (and cascading failures through the rest of the folder via the never-captured testSupplierId) since that change shipped. Added 5.2 (create a case-varied duplicate of 5.1's supplier, expect 409 with the duplicate object echoing the original) and 5.8 (create a second throwaway supplier in 5.6, then attempt to update it into a duplicate of the first, expect 409) \u2014 the update path needed its own separate throwaway target since it's checking a different code path (merging the existing row with a partial update) than create's. The second supplier is cleaned up in 5.15, same statelessness philosophy as every other throwaway resource in this collection.\nAuthor review: (to be completed by author after review)",
+    "description": "AI Assistance Disclosure:\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Generated this full Postman collection (every route in user-service and supplier-service, true-positive and true-negative auth/authorization cases, request/response assertions) from a live read-only audit of both services' route handlers, shared auth middleware, and common-dtos types. Test design (folder order, what counts as a must-have case, the cookie-based logout/refresh sequencing, and the decision to leave the test user active with no delete step since no delete-user endpoint exists) is the author's, given in the approved plan; this file is the implementation of that plan.\nAuthor review: (to be completed by author after review)\n\nRun this collection top-to-bottom (Collection Runner, sequential — the default) against a freshly seeded local stack (`docker compose down -v && docker compose up --build`, or at least `npm run db:seed --workspace=@campus-errand/user-service`). Hits user-service and supplier-service directly on their published ports (8001/8002), bypassing the gateway entirely, since Postman isn't subject to browser CORS and both services already publish their ports directly in docker-compose.yml.\n\nAdmin/student access tokens captured in Folder 1 remain valid for the rest of the run even after their logout calls (stateless JWT, 15 min TTL by default) — only the refresh-token cookie is revoked by logout, not the access token already saved into the environment. If a run takes longer than the access-token TTL, just re-run Folder 1.\n\nKnown quirks intentionally asserted as-is (not bugs to silently work around): PATCH /api/users/:id/admin with a syntactically invalid UUID returns 500, not 400/404 (uncaught Postgres error, not a UserError); supplier-service's PUT/PATCH-toggle/DELETE resolve :id by UUID only, no supplierCode fallback (unlike GET).\n\nAI Assistance Disclosure (addendum):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: Added 3.18-3.22, exercising the new DELETE /api/users/:id endpoint (self-or-admin account deletion) at the end of the test user's lifecycle in Folder 3: a cross-user forbidden case (another student cannot delete someone else's account), a no-token case, an unknown-UUID case, the real self-delete cleanup (closing the one gap this collection had at launch — user-service previously had no delete endpoint at all), and an already-deleted idempotency check.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 2):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-28\nScope: 3.11-3.15 renamed from PATCH /:id/admin to PATCH /:id/toggle-status (backend route renamed, same behavior). Replaced 3.16-3.17 (the old POST /:id/promote 501-stub requests) with 3.16-3.21, covering the newly-implemented PATCH /:id/toggle-role: forbidden for a non-admin, no token, an unknown UUID, an admin targeting their own id (blocked), and the real promote/demote round trip on the test user. The trailing DELETE requests renumbered from 3.18-3.22 to 3.22-3.26 accordingly. 1.1 Login as Admin now also captures adminUserId, needed for the self-targeting test.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 3):\nTool: Claude Code (model: Sonnet 5), date: 2026-09-29\nScope: Rebuilt Folder 5 to add duplicate-location coverage for the new (name, category, building, floor) uniqueness rule, and fixed a regression: 5.1's create-supplier body never included building/floor after they became required, so it had been failing with 400 (and cascading failures through the rest of the folder via the never-captured testSupplierId) since that change shipped. Added 5.2 (create a case-varied duplicate of 5.1's supplier, expect 409 with the duplicate object echoing the original) and 5.8 (create a second throwaway supplier in 5.6, then attempt to update it into a duplicate of the first, expect 409) — the update path needed its own separate throwaway target since it's checking a different code path (merging the existing row with a partial update) than create's. The second supplier is cleaned up in 5.15, same statelessness philosophy as every other throwaway resource in this collection.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 4):\nTool: Claude Code (model: Sonnet 5), date: 2026-10-22\nScope: Added Folders 6 and 7, covering order-service (:8003) and credit-service (:8004), which previously had zero coverage in this collection. Test design (the author's, given as the approved plan): read order.routes.ts/order.service.ts/order.repository.ts/reservation.consumer.ts and credit-service/routes.ts fresh against the live code rather than trusting a stale summary, since both services had changed substantially and recently (order creation is now asynchronous -- POST /api/orders returns 202 PENDING and resolves to OPEN or REJECTED only after a RabbitMQ round trip through credit-service; credit-service's HTTP surface is now read-only, GET /wallet and /ledger, both scoped to the caller's own token with no target-user override). Folder 6 registers two throwaway courier identities (courierA, courierB) alongside the existing alice/admin accounts, and reuses seedSupplierId (captured in Folder 4) for order creation; it adds a reusable 'poll until resolved' request per the standard Postman pattern (a pm.execution.setNextRequest self-loop capped at 10 tries with a real ~400ms setTimeout delay between tries, verified live against docker logs / direct curl polling before being relied on -- the real round trip observed on this machine resolved in roughly 1-1.5s), used after every order creation to wait out the async credit-reservation step before exercising the lifecycle (accept/pickup/deliver/complete/cancel/unassign) and the new admin force-cancel/force-complete/force-unassign endpoints. The explicit 'two couriers can't accept the same order' case is covered (courier A accepts, courier B's subsequent accept attempt gets 409). Several lifecycle 'wrong state' 409 cases in the issued task description assumed a mismatched courier could reach the state-check branch before pickup/delivery; tracing order.repository.ts shows the courier-ownership check runs first and returns 403 in that situation instead, so those cases are instead exercised as same-courier, already-in-flight repeats (e.g. the assigned courier calling pickup twice) which is the branch that is actually reachable -- flagged back to the author rather than invented. The insufficient-credits order-creation failure path is exercised with courier B acting as a requester (a fresh wallet, enough credits requested to exceed it) since credit-service's wallet initialization happens lazily on first reservation attempt. Folder 7 covers GET /wallet and /ledger for the no-token and scoped-success cases, asserting the returned wallet/ledger belongs to the caller and not another user, since there is no target-user parameter to test as a 403 case against. Folder 1's Login as Student (alice) request now also captures studentUserId, needed by Folder 6/7 assertions that the server returned the caller's own data.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 5):\nTool: Claude Code (model: Sonnet 5), date: 2026-10-30\nScope: Fixed a real failure the author hit on a repeat run (19 failing assertions, all downstream of Orders D/F/G resolving to REJECTED instead of OPEN). Root cause: Folder 6's orders A-G all used the shared, long-lived 'alice' seed account as requester. That account's credit wallet is not reset between runs -- it accumulates escrow drift from every run of this suite (plus any other manual testing against it across this project's history) instead of starting fresh each time, so her available balance had dropped (73/100 available, 27 stuck in escrow, confirmed live via GET /wallet) to the point where, partway through a single run, the later orders in the sequence (D, F, G) failed credit reservation and resolved to REJECTED, which then correctly 409'd every downstream accept/pickup/deliver/admin-action test that assumed OPEN/ACCEPTED -- the backend behaved correctly throughout; the test suite's own account choice was the bug. Fix: added two new requests (now 6.1-6.2) that register and log in a brand-new throwaway requester for this run only, exactly mirroring the existing courierA/courierB pattern, which always starts with the standard fresh-registration credit grant; every order in Folder 6 (A-G) now uses this account as requester instead of alice, and alice is no longer touched anywhere in Folder 6. All subsequent Folder 6 requests renumbered 6.3-6.75 accordingly. Verified by running the full collection three consecutive times against the live stack with zero failures each time.\nAuthor review: (to be completed by author after review)\n\nAI Assistance Disclosure (addendum 6):\nTool: Claude Code (model: Sonnet 5), date: 2026-10-30\nScope: Fixed a real failure the author hit after merging main into admin_dashboard (8 failed test-scripts, 19 failed assertions, all in Folder 5 plus the Folder 6 throwaway-supplier requests). Root cause: latitude/longitude became required fields on supplier-service a while before this merge, but Folder 5's POST /api/suppliers bodies (5.1, 5.2, 5.3, 5.4, 5.6) and Folder 6's throwaway inactive-supplier body (6.69) were never updated to include them -- they predate that change. 5.1 and 5.6 therefore 400'd instead of 201'ing, which meant testSupplierId/testSupplierId2/testSupplierInactiveId were never captured, cascading into every later request in those folders that references them (404s, and a couple of raw HTML error pages where an empty :id produced a malformed URL) -- the backend behaved correctly throughout, same shape of bug as addendum 5's. Fix: added latitude/longitude to those 6 request bodies. 5.5 (intentionally testing the missing-required-fields 400 path) was deliberately left untouched. Verified by running the full collection three consecutive times against the live merged stack with zero failures each time.\nAuthor review: (to be completed by author after review)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -146,6 +146,7 @@
                   "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
                   "});",
                   "pm.environment.set('studentAccessToken', jsonData.data.accessToken);",
+                  "pm.environment.set('studentUserId', jsonData.data.user.userId);",
                   "pm.test('Role is STUDENT', function () {",
                   "    pm.expect(jsonData.data.user.userRole).to.eql('STUDENT');",
                   "});"
@@ -1984,7 +1985,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman test collection - safe to delete.\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\",\n  \"latitude\": 1.2966,\n  \"longitude\": 103.7764\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2040,7 +2041,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"POSTMAN TEST SUPPLIER\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"A completely different description text\",\n  \"category\": \"food\",\n  \"building\": \"com3\",\n  \"floor\": \"1\"\n}",
+              "raw": "{\n  \"name\": \"POSTMAN TEST SUPPLIER\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"A completely different description text\",\n  \"category\": \"food\",\n  \"building\": \"com3\",\n  \"floor\": \"1\",\n  \"latitude\": 1.2966,\n  \"longitude\": 103.7764\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2098,7 +2099,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\",\n  \"latitude\": 1.2966,\n  \"longitude\": 103.7764\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2143,7 +2144,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\"\n}",
+              "raw": "{\n  \"name\": \"Postman Test Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 1, near the test bench\",\n  \"category\": \"Food\",\n  \"building\": \"COM3\",\n  \"floor\": \"1\",\n  \"latitude\": 1.2966,\n  \"longitude\": 103.7764\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2241,7 +2242,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Postman Second Supplier\",\n  \"campusZone\": \"UTown\",\n  \"exactLocation\": \"UTown Plaza, near the test bench\",\n  \"category\": \"Beverages\",\n  \"description\": \"A second throwaway supplier, used only to test updating into a duplicate.\",\n  \"building\": \"Stephen Riady Centre\",\n  \"floor\": \"2\"\n}",
+              "raw": "{\n  \"name\": \"Postman Second Supplier\",\n  \"campusZone\": \"UTown\",\n  \"exactLocation\": \"UTown Plaza, near the test bench\",\n  \"category\": \"Beverages\",\n  \"description\": \"A second throwaway supplier, used only to test updating into a duplicate.\",\n  \"building\": \"Stephen Riady Centre\",\n  \"floor\": \"2\",\n  \"latitude\": 1.3047,\n  \"longitude\": 103.7723\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2679,6 +2680,4143 @@
                 "exec": [
                   "pm.test('Status code is 200', function () {",
                   "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 - Order Service: Errand Lifecycle & Authorization",
+      "item": [
+        {
+          "name": "6.1 Register Fresh Test Requester (new test user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testRequesterUsername}}\",\n  \"email\": \"{{testRequesterEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now() + '_req';",
+                  "pm.environment.set('testRequesterUsername', 'pmrequester_' + suffix);",
+                  "pm.environment.set('testRequesterEmail', 'pmrequester_' + suffix + '@u.nus.edu');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('User id present', function () {",
+                  "    pm.expect(jsonData.data.user.userId).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testRequesterUserId', jsonData.data.user.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Login as Fresh Test Requester",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testRequesterEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"keepLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Access token present', function () {",
+                  "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testRequesterAccessToken', jsonData.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.3 Register Courier A (new test user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{courierAUsername}}\",\n  \"email\": \"{{courierAEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now() + '_a';",
+                  "pm.environment.set('courierAUsername', 'pmcourierA_' + suffix);",
+                  "pm.environment.set('courierAEmail', 'pmcourierA_' + suffix + '@u.nus.edu');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('User id present', function () {",
+                  "    pm.expect(jsonData.data.user.userId).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('courierAUserId', jsonData.data.user.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.4 Login as Courier A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{courierAEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"keepLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Access token present', function () {",
+                  "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('courierAAccessToken', jsonData.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.5 Register Courier B (new test user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/register",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{courierBUsername}}\",\n  \"email\": \"{{courierBEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = Date.now() + '_b';",
+                  "pm.environment.set('courierBUsername', 'pmcourierB_' + suffix);",
+                  "pm.environment.set('courierBEmail', 'pmcourierB_' + suffix + '@u.nus.edu');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('User id present', function () {",
+                  "    pm.expect(jsonData.data.user.userId).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('courierBUserId', jsonData.data.user.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.6 Login as Courier B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{userServiceUrl}}/api/auth/login",
+              "host": [
+                "{{userServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{courierBEmail}}\",\n  \"password\": \"{{testPassword}}\",\n  \"keepLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Access token present', function () {",
+                  "    pm.expect(jsonData.data.accessToken).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('courierBAccessToken', jsonData.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.7 POST /api/orders - Success (Test Requester, Order A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test errand - Test Requester, Order A\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderAId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.8 Poll Order A Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.8 Poll Order A Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order A resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.9 GET /:id - Order A Resolved to OPEN (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.10 POST /:id/accept - Self-Accept Forbidden (Test Requester)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error mentions own errand', function () {",
+                  "    pm.expect(jsonData.error).to.match(/own errand/i);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.11 POST /:id/accept - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is ACCEPTED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('ACCEPTED');",
+                  "});",
+                  "pm.test('courierId is Courier A', function () {",
+                  "    pm.expect(jsonData.data.courierId).to.eql(pm.environment.get('courierAUserId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.12 POST /:id/accept - Already Claimed by Another Courier (Courier B, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.13 POST /:id/pickup - Forbidden (Courier B, not assigned)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/pickup",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "pickup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.14 POST /:id/pickup - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/pickup",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "pickup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is IN_TRANSIT', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('IN_TRANSIT');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.15 POST /:id/pickup - Wrong State - Already Picked Up (Courier A, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/pickup",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "pickup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.16 POST /:id/deliver - Forbidden (Courier B, not assigned)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/deliver",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "deliver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.17 POST /:id/deliver - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/deliver",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "deliver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is DELIVERED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('DELIVERED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.18 POST /:id/deliver - Wrong State - Already Delivered (Courier A, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/deliver",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "deliver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.19 POST /:id/complete - Forbidden (Courier A, not requester)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/complete",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.20 POST /:id/complete - Success (Test Requester)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/complete",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is COMPLETED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('COMPLETED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.21 POST /:id/complete - Already Completed (Test Requester, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/complete",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.22 POST /:id/accept - Unknown Order Id (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/00000000-0000-4000-8000-000000000000/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "00000000-0000-4000-8000-000000000000",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.23 POST /:id/accept - No Token (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderAId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderAId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.24 POST /api/orders - Success (Test Requester, Order B)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test errand - Test Requester, Order B\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderBId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.25 GET /:id - Stranger Cannot View PENDING Order (Courier B, 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.26 GET /:id - Requester Can View PENDING Order (Test Requester)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.27 POST /:id/cancel - Conflict While Reservation Pending (Test Requester, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.28 Poll Order B Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.28 Poll Order B Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order B resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.29 GET /:id - Order B Resolved to OPEN (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.30 POST /:id/cancel - Forbidden (Courier A, not requester)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.31 POST /:id/cancel - Success (Test Requester)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is CANCELLED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('CANCELLED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.32 POST /:id/cancel - Already Cancelled - Terminal State (Test Requester, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderBId}}/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderBId}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.33 POST /api/orders - Success (Test Requester, Order C)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test errand - Test Requester, Order C\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderCId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.34 Poll Order C Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.34 Poll Order C Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order C resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.35 GET /:id - Order C Resolved to OPEN (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.36 POST /:id/accept - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.37 POST /:id/unassign - Forbidden (Courier B, not assigned)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}/unassign",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}",
+                "unassign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.38 POST /:id/pickup - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}/pickup",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}",
+                "pickup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.39 POST /:id/unassign - Wrong State - Already Picked Up (Courier A, 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}/unassign",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}",
+                "unassign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.40 POST /:id/deliver - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}/deliver",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}",
+                "deliver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.41 POST /:id/complete - Success (Test Requester, cleanup)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderCId}}/complete",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderCId}}",
+                "complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.42 POST /api/orders - Success (Test Requester, Order D)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test errand - Test Requester, Order D\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderDId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.43 Poll Order D Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderDId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderDId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.43 Poll Order D Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order D resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.44 GET /:id - Order D Resolved to OPEN (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderDId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderDId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.45 POST /:id/accept - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderDId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderDId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.46 POST /:id/unassign - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderDId}}/unassign",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderDId}}",
+                "unassign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is back to OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});",
+                  "pm.test('courierId cleared', function () {",
+                  "    pm.expect(jsonData.data.courierId).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.47 POST /:id/admin/cancel - Forbidden (Test Requester, non-admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderDId}}/admin/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderDId}}",
+                "admin/cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test - non-admin should be rejected\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.48 POST /:id/admin/cancel - Success (Admin, cleanup)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderDId}}/admin/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderDId}}",
+                "admin/cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test - admin force-cancel cleanup\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is CANCELLED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('CANCELLED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.49 POST /api/orders - Success (Test Requester, Order F)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test errand - Test Requester, Order F\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderFId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.50 Poll Order F Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.50 Poll Order F Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order F resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.51 GET /:id - Order F Resolved to OPEN (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.52 POST /:id/accept - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.53 POST /:id/pickup - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}/pickup",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}",
+                "pickup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.54 POST /:id/deliver - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}/deliver",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}",
+                "deliver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.55 POST /:id/admin/complete - Forbidden (Courier A, non-admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}/admin/complete",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}",
+                "admin/complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test - non-admin should be rejected\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.56 POST /:id/admin/complete - Success (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderFId}}/admin/complete",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderFId}}",
+                "admin/complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test - admin force-complete\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is COMPLETED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('COMPLETED');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.57 POST /api/orders - Success (Test Requester, Order G)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test errand - Test Requester, Order G\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderGId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.58 Poll Order G Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderGId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderGId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.58 Poll Order G Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order G resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.59 GET /:id - Order G Resolved to OPEN (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderGId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderGId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.60 POST /:id/accept - Success (Courier A)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderGId}}/accept",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderGId}}",
+                "accept"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.61 POST /:id/admin/unassign - Forbidden (Test Requester, non-admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderGId}}/admin/unassign",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderGId}}",
+                "admin/unassign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test - non-admin should be rejected\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.62 POST /:id/admin/unassign - Success (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderGId}}/admin/unassign",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderGId}}",
+                "admin/unassign"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Postman test - admin force-unassign\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is back to OPEN', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('OPEN');",
+                  "});",
+                  "pm.test('courierId cleared', function () {",
+                  "    pm.expect(jsonData.data.courierId).to.eql(null);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.63 POST /:id/cancel - Success (Test Requester, cleanup)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderGId}}/cancel",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderGId}}",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.64 GET / - Forbidden Filter by Another User's requesterId (Courier A, 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders?requesterId={{testRequesterUserId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "requesterId",
+                  "value": "{{testRequesterUserId}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.65 GET / - Forbidden Filter by Another User's courierId (Test Requester, 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders?courierId={{courierAUserId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "courierId",
+                  "value": "{{courierAUserId}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.66 GET / - Success Filter by Own requesterId (Test Requester)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders?requesterId={{testRequesterUserId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "requesterId",
+                  "value": "{{testRequesterUserId}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('All returned orders belong to the caller', function () {",
+                  "    jsonData.data.forEach(function (order) {",
+                  "        pm.expect(order.requesterId).to.eql(pm.environment.get('testRequesterUserId'));",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.67 GET / - Success Filter by Own courierId (Courier A)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders?courierId={{courierAUserId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "courierId",
+                  "value": "{{courierAUserId}}"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('All returned orders belong to the caller', function () {",
+                  "    jsonData.data.forEach(function (order) {",
+                  "        pm.expect(order.courierId).to.eql(pm.environment.get('courierAUserId'));",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.68 POST /api/orders - Unknown Supplier Id (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"99999999-9999-4999-8999-999999999999\",\n  \"itemDescription\": \"Postman test - unknown supplier\",\n  \"dropoffLocation\": \"COM3\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.69 POST /api/suppliers - Create Throwaway Inactive-Target Supplier (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Order-Test Inactive Supplier\",\n  \"campusZone\": \"COM3\",\n  \"exactLocation\": \"COM3 Level 2, near the order test bench\",\n  \"category\": \"Food\",\n  \"description\": \"Created by the Postman order-service test folder - deactivated then deleted.\",\n  \"building\": \"COM3\",\n  \"floor\": \"2\",\n  \"latitude\": 1.296,\n  \"longitude\": 103.776\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Supplier id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.environment.set('testSupplierInactiveId', jsonData.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.70 PATCH /api/suppliers/:id/toggle - Deactivate Throwaway Supplier (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierInactiveId}}/toggle",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierInactiveId}}",
+                "toggle"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('isActive is now false', function () {",
+                  "    pm.expect(jsonData.data.isActive).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.71 POST /api/orders - Inactive Supplier (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{testRequesterAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{testSupplierInactiveId}}\",\n  \"itemDescription\": \"Postman test - inactive supplier\",\n  \"dropoffLocation\": \"COM3\",\n  \"rewardCredits\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.72 DELETE /api/suppliers/:id?permanent=true - Cleanup Throwaway Supplier (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{supplierServiceUrl}}/api/suppliers/{{testSupplierInactiveId}}?permanent=true",
+              "host": [
+                "{{supplierServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "suppliers",
+                "{{testSupplierInactiveId}}"
+              ],
+              "query": [
+                {
+                  "key": "permanent",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.73 POST /api/orders - Success (Courier B as requester, insufficient credits)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierBAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"{{seedSupplierId}}\",\n  \"itemDescription\": \"Postman test - deliberately exceeds Courier B's starting wallet\",\n  \"dropoffLocation\": \"COM3, near the test bench\",\n  \"rewardCredits\": 150\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 202', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order id present', function () {",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});",
+                  "pm.test('Status is PENDING', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('PENDING');",
+                  "});",
+                  "pm.environment.set('orderLowCreditId', jsonData.data.id);",
+                  "pm.environment.set('pollRetryCount', '0');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.74 Poll Order Low-Credit Until Resolved (internal retry)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderLowCreditId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderLowCreditId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "const status = jsonData.data.status;",
+                  "let tries = parseInt(pm.environment.get('pollRetryCount') || '0', 10);",
+                  "",
+                  "if (status === 'PENDING' && tries < 10) {",
+                  "    pm.environment.set('pollRetryCount', String(tries + 1));",
+                  "    setTimeout(function () {",
+                  "        pm.execution.setNextRequest('6.74 Poll Order Low-Credit Until Resolved (internal retry)');",
+                  "    }, 400);",
+                  "} else {",
+                  "    pm.environment.set('pollRetryCount', '0');",
+                  "    pm.test('Order Low-Credit resolved out of PENDING within the retry budget', function () {",
+                  "        pm.expect(status).to.not.eql('PENDING');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.75 GET /:id - Order Low-Credit Resolved to REJECTED (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{orderServiceUrl}}/api/orders/{{orderLowCreditId}}",
+              "host": [
+                "{{orderServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{orderLowCreditId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Status is REJECTED', function () {",
+                  "    pm.expect(jsonData.data.status).to.eql('REJECTED');",
+                  "});",
+                  "pm.test('rejectionReason is present', function () {",
+                  "    pm.expect(jsonData.data.rejectionReason).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7 - Credit Service: Wallet & Ledger",
+      "item": [
+        {
+          "name": "7.1 GET /api/credits/wallet - No Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{creditServiceUrl}}/api/credits/wallet",
+              "host": [
+                "{{creditServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "credits",
+                "wallet"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.2 GET /api/credits/wallet - Success, scoped to caller (Student alice)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{creditServiceUrl}}/api/credits/wallet",
+              "host": [
+                "{{creditServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "credits",
+                "wallet"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Wallet userId matches the caller (not any other user)', function () {",
+                  "    pm.expect(jsonData.data.userId).to.eql(pm.environment.get('studentUserId'));",
+                  "});",
+                  "pm.test('Wallet has the expected credit fields', function () {",
+                  "    pm.expect(jsonData.data.availableCredits).to.be.a('number');",
+                  "    pm.expect(jsonData.data.escrowCredits).to.be.a('number');",
+                  "    pm.expect(jsonData.data.totalEarnedCredits).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.3 GET /api/credits/wallet - Success, scoped to a different caller (Courier A)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{courierAAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{creditServiceUrl}}/api/credits/wallet",
+              "host": [
+                "{{creditServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "credits",
+                "wallet"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Wallet userId matches Courier A, not Student alice', function () {",
+                  "    pm.expect(jsonData.data.userId).to.eql(pm.environment.get('courierAUserId'));",
+                  "    pm.expect(jsonData.data.userId).to.not.eql(pm.environment.get('studentUserId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.4 GET /api/credits/ledger - No Token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{creditServiceUrl}}/api/credits/ledger",
+              "host": [
+                "{{creditServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "credits",
+                "ledger"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Error code is MISSING_TOKEN', function () {",
+                  "    pm.expect(jsonData.code).to.eql('MISSING_TOKEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7.5 GET /api/credits/ledger - Success, scoped to caller (Student alice)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{studentAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{creditServiceUrl}}/api/credits/ledger",
+              "host": [
+                "{{creditServiceUrl}}"
+              ],
+              "path": [
+                "api",
+                "credits",
+                "ledger"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Ledger is an array', function () {",
+                  "    pm.expect(jsonData.data).to.be.a('array');",
+                  "});",
+                  "pm.test('Every ledger entry involves the caller as sender or receiver', function () {",
+                  "    const studentUserId = pm.environment.get('studentUserId');",
+                  "    jsonData.data.forEach(function (entry) {",
+                  "        const involvesCaller = entry.fromUserId === studentUserId || entry.toUserId === studentUserId;",
+                  "        pm.expect(involvesCaller).to.eql(true);",
+                  "    });",
                   "});"
                 ]
               }
