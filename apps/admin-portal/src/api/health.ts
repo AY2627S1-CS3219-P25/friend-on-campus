@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
+ * Scope: Issue #206 (simulated UAT case F06): Chat Service added to the probed services; the gateway now proxies /api/health/chat/{health,ready}.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Created microservice health and readiness probe API client for the Admin Portal HealthPage.
  * Author review: <to be completed by yanhwee>
@@ -7,7 +11,7 @@
 
 // AI-generated (edited by yanhwee)
 
-export type ServiceHealthKey = 'user' | 'supplier' | 'order' | 'credit' | 'notification';
+export type ServiceHealthKey = 'user' | 'supplier' | 'order' | 'credit' | 'notification' | 'chat';
 
 export interface ServiceHealthSpec {
   key: ServiceHealthKey;
@@ -45,6 +49,13 @@ export const SERVICE_HEALTH_SPECS: ServiceHealthSpec[] = [
     name: 'Notification Service (M6)',
     port: 8005,
     db: 'notification_db (PostgreSQL) + RabbitMQ',
+  },
+  // AI-generated (edited by Reallyeasy1)
+  {
+    key: 'chat',
+    name: 'Chat Service (F8)',
+    port: 8006,
+    db: 'chat_db (PostgreSQL) + RabbitMQ',
   },
 ];
 

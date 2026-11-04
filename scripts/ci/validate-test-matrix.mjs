@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+ * Scope: test:e2e:ui:realtime (scripts/uat/uat-realtime.mjs) is a recognised root system script and the browser-uat job must run it (issue #197).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Removed legacy test:d2 alias from rootSystemScripts after inlining into test:e2e:api.
  * Author review: <to be completed by yanhwee>
@@ -39,6 +43,7 @@ const rootSystemScripts = new Set([
   'test:acceptance',
   'test:e2e:api',
   'test:e2e:ui',
+  'test:e2e:ui:realtime',
   'test:e2e',
 ]);
 const requiredRootScripts = [...rootSystemScripts];
@@ -269,6 +274,7 @@ const systemJobs = [
   ['acceptance-tests', 'npm run test:acceptance'],
   ['e2e-api-tests', 'npm run test:e2e:api'],
   ['browser-uat', 'npm run test:e2e:ui'],
+  ['browser-uat', 'npm run test:e2e:ui:realtime'],
 ];
 for (const [jobId, command] of systemJobs) {
   if (!jobBlock(workflow, jobId).includes(command)) fail(`System job "${jobId}" must run "${command}".`);

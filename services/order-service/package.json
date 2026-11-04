@@ -13,7 +13,7 @@
     "db:migrate": "node ../../scripts/prisma-migrate.mjs order dev",
     "db:deploy": "node ../../scripts/prisma-migrate.mjs order deploy",
     "db:seed": "tsx src/database/seed.ts",
-    "test:unit": "node --import tsx --test test/app.test.ts test/order.service.test.ts",
+    "test:unit": "node --import tsx --test test/app.test.ts test/order.service.test.ts test/assistant.service.test.ts",
     "test:messaging": "tsx test/reservation.messaging.test.ts"
   },
   "dependencies": {

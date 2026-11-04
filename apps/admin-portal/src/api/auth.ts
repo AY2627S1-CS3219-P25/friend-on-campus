@@ -27,7 +27,8 @@ export async function adminLogoutApi() {
 
 export async function adminRefreshTokenApi(): Promise<string | null> {
   try {
-    const res = await fetch('/api/auth/refresh', { method: 'POST' });
+    // AI-generated (edited by Reallyeasy1): issue #169; bounded so a dead backend does not hold the portal on a spinner.
+    const res = await fetch('/api/auth/refresh', { method: 'POST', signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     if (!res.ok || !data.success) return null;
     return data.data.accessToken as string;

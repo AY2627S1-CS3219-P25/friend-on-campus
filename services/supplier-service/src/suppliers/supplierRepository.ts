@@ -24,6 +24,11 @@
  * filter (already used elsewhere in this file for campusZone/category), matching the DB-level expression index
  * added in this same round's migration.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
+ * Scope: createSupplier no longer falls back latitude/longitude to null — both are required (validated by the
+ * route layer) and the DB columns are now NOT NULL.
+ * Author review: (to be completed by author after review)
  */
 
 // AI-generated (edited by yanhwee)
@@ -160,8 +165,8 @@ export async function createSupplier(data: CreateSupplierRequest) {
       description: data.description?.trim() || null,
       building: data.building.trim(),
       floor: data.floor.trim(),
-      latitude: data.latitude ?? null,
-      longitude: data.longitude ?? null,
+      latitude: data.latitude,
+      longitude: data.longitude,
       startingTime: data.startingTime?.trim() || null,
       closingTime: data.closingTime?.trim() || null,
       imageUrl: data.imageUrl?.trim() || null,

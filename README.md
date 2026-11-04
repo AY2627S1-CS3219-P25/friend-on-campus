@@ -1,5 +1,13 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
+Author review: <to be completed by yanhwee>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+Scope: Test-command table gained the `npm run test:e2e:ui:realtime` row and the artifacts note names `test-results/uat-realtime/` (issue #197).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Test-command table gained the `npm run coverage` row (moved here from the deleted docs/ci.md while merging main into PR #147).
 Author review: <to be completed by Reallyeasy1>
@@ -83,7 +91,7 @@ flowchart TB
     subgraph Services["Backend Microservices (Node.js + Express + TypeScript)"]
         UserSvc["User Service (M2)<br/>:8001 (Auth, Profiles, RBAC)"]
         SupplierSvc["Supplier Service (M3)<br/>:8002 (Campus Directory CRUD)"]
-        OrderSvc["Order Service (M1)<br/>:8003 (State Machine)"]
+        OrderSvc["Order Service (M1)<br/>:8003 (State Machine, AI Assistant)"]
         CreditSvc["Credit Service (M4)<br/>:8004 (Escrow & Ledger)"]
         NotifSvc["Notification Service (M5)<br/>:8005 (WebSockets)"]
     end
@@ -121,7 +129,7 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 | **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
 | **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
 | **D3** | **Order Service (M1), Credit Service (M4) & Notification Service (M5)**<br/>• All five services real (Prisma + PostgreSQL 16, one database each)<br/>• Errand lifecycle with transactional outbox, optimistic locking and single-winner accept<br/>• Credit wallets, ledger, escrow reserve/settle/refund and welcome grant over RabbitMQ<br/>• Notification consumer, store, REST and authenticated WebSocket; student-app bell, toasts and Alerts board<br/>• Admin order management (cancel, complete, unassign) and user management<br/>• CI with isolated test orchestration | 📋 **Prepared** (demo script and evidence: wiki [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3); Week 10) |
-| **D4** | Final deliverable | ⏳ Upcoming |
+| **D4** | **Cloud Deployment, Kubernetes & Distributed Concurrency Testing**<br/>• Production AWS Infrastructure as Code (VPC, Subnets, ALB, ECR, EBS, IAM) via Terraform<br/>• Lightweight Kubernetes (K3s) with stateful master (`t3.medium` + 25GB gp3) and elastic worker ASG (`t3.small`)<br/>• Two-Tier Autoscaling: Pod-level HPA (2 $\to$ 5 replicas) + VM-level EC2 ASG (1 $\to$ 3 nodes)<br/>• Keyless CI/CD via GitHub Actions using AWS IAM OIDC and SSH-free SSM Run Command<br/>• Distributed k6 concurrency verification (single-winner ACID claim race & traffic spike autoscaling)<br/>• Comprehensive student learning & architecture guide ([`docs/cloud-deployment-and-devops-guide.md`](docs/cloud-deployment-and-devops-guide.md)) | 🚀 **Ready & Configured** |
 
 ---
 
@@ -176,6 +184,15 @@ Copy `.env.example` to `.env` and generate an Ed25519 key pair for JWT access to
 cp .env.example .env
 npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste them into .env
 ```
+
+#### Optional: Natural-Language Errand Assistant (F6 / SoCLaaS)
+To enable zero-shot LLM parsing in the errand creation flow, obtain an API key from the [NUS School of Computing SoCLaaS Portal](https://soclaas-portal.comp.nus.edu.sg/) (only accessible on school network, use VPN if needed) and configure it in `.env`:
+```env
+SOCLAAS_BASE_URL=https://soclaas-api.comp.nus.edu.sg/v1
+SOCLAAS_API_KEY=your_soclaas_api_key_here
+SOCLAAS_MODEL=default
+```
+> **Note (Offline Fallback Resilience):** If `SOCLAAS_API_KEY` is omitted or left empty, `order-service` gracefully falls back to a deterministic offline regex/heuristic parser. An API key is **not** required for local development or automated tests.
 
 ### 3. Start PostgreSQL & RabbitMQ
 ```bash
@@ -251,6 +268,7 @@ npm test
 | `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, `scripts/uat/uat-notifications.mjs`, and `scripts/uat/uat-cdc.mjs` |
 | `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
+| `npm run test:e2e:ui:realtime` | Multi-client real-time UAT (`scripts/uat/uat-realtime.mjs`, Playwright): the requester on two clients, two couriers racing for one errand; checks notifications and chat stay consistent live. Registers one throwaway `uatcourier-<stamp>@u.nus.edu` account. `UAT_RESTART_CHAT=1` adds a Chat Service container restart under load (opt-in; runs `docker restart` on the host) |
 | `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
 | `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
@@ -259,7 +277,7 @@ npm test
 - **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
 - **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
 - **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`POSTGRES_ADMIN_URL=... TEST_DATABASE_NAME=... node scripts/ci/create-test-database.mjs`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
-- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`) and uploaded as CI workflow artifacts.
+- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`, `test-results/uat-realtime/`) and uploaded as CI workflow artifacts.
 
 ### Automated Milestone D2 End-to-End Suite
 Generates a test-only Ed25519 key pair and verifies account registration followed by
@@ -279,6 +297,75 @@ npm run lint
 npm run build
 npm run typecheck
 ```
+
+---
+
+## ☁️ Cloud Deployment & DevOps (Milestone D4)
+
+Friend on Campus implements a **Two-Tier Autoscaling Cloud-Native Architecture** on Amazon Web Services (AWS) using **Terraform (IaC)**, **Lightweight Kubernetes (K3s)**, **GitHub Actions Continuous Delivery (CD)**, and **k6 Distributed Concurrency Testing**:
+
+```
+[ Public Clients / k6 ] ──HTTPS──> [ AWS Application Load Balancer ]
+                                                 │ (Port 80)
+                ┌────────────────────────────────┴────────────────────────────────┐
+                ▼                                                                 ▼
+┌───────────────────────────────┐               ┌──────────────────────────────────────────────────┐
+│   Node 1: Master & Data Node  │               │   Stateless Worker Tier (Auto Scaling Group)     │
+│       (t3.medium / Fixed)     │               │   (t3.small / min=2, desired=2, max=3)          │
+│ • K3s Control Plane Server    │               │ • Traefik Ingress Controller                     │
+│ • PostgreSQL 16 (6 databases) │               │ • NGINX API Gateway                              │
+│ • RabbitMQ 3.13 Quorum Queues │               │ • 6 Microservices (Tier 1 HPA Replicas: 2 → 5)  │
+│ • Debezium Server 2.7 CDC     │               │ • Student App & Admin Portal SPAs                │
+│ • 25 GB gp3 Persistent EBS    │               └──────────────────────────────────────────────────┘
+└───────────────────────────────┘                                 │
+                ▲                                                 │ (Flannel VXLAN Overlay UDP 8472)
+                └─────────────────────────────────────────────────┘
+```
+
+### End-to-End Developer Workflow: Day 1 vs. Day 2
+
+| Phase | What Happens | Who Runs It | How It Works |
+| :--- | :--- | :--- | :--- |
+| **Day 1: Cloud Provisioning** (One-Time) | Cloud datacenter & K8s cluster genesis | 1 designated teammate | Run `terraform apply` locally from `infra/terraform/` to provision the VPC, ALB, ECR repositories, EBS volume, IAM OIDC trust, and EC2 nodes. Then bootstrap baseline K8s manifests (`infra/k8s/`) via AWS SSM. |
+| **Day 2: Everyday Coding** (Continuous) | Automated build, container push & rolling deployment | **Automated** on `git push origin main` | Developers work locally as usual (`npm run dev`). When code is pushed to `main`, GitHub Actions (`deploy.yml`) uses keyless AWS IAM OIDC, builds `linux/amd64` images via Docker Buildx, pushes to Amazon ECR, and executes AWS SSM Run Command on Node 1 (`kubectl set image` + `kubectl rollout status`) for **zero-downtime rolling updates**. |
+| **Day 3: Verification & Load Testing** | Concurrency verification & live scaling evidence | Any teammate | Open the public ALB DNS in your browser, or run k6 concurrency tests (`tests/k6/`) from your laptop against the cloud cluster. |
+
+### Quick Operations Cheat Sheet
+
+```bash
+# 1. Provision or update cloud infrastructure (Day 1 only)
+cd infra/terraform && terraform apply
+
+# 2. Open a secure terminal into the cluster (Zero SSH keys needed!)
+aws ssm start-session --target $(cd infra/terraform && terraform output -raw master_instance_id)
+
+# 3. Verify running pods and services
+kubectl get pods -n foc -o wide
+
+# 4. Run distributed concurrency verification (Milestone D4 Category N3)
+# Via local k6:
+TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/order-claim-race.js
+# Or via Docker (no local installation required):
+docker run --rm -i -e TARGET_HOST=http://<ALB_DNS_NAME> -v "$PWD/tests/k6:/scripts" grafana/k6 run /scripts/order-claim-race.js
+
+# 5. Run traffic spike test to trigger live HPA autoscaling (Milestone D4 Category N4)
+TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/discovery-load.js
+
+# 6. Nightly Budget Pause (Halts compute billing to preserve S$50 SGD budget)
+aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 0
+aws ec2 stop-instances --instance-ids $(cd infra/terraform && terraform output -raw master_instance_id)
+
+# 7. Morning Cluster Resume (Wakes up cluster in ~60-90 seconds)
+aws ec2 start-instances --instance-ids $(cd infra/terraform && terraform output -raw master_instance_id)
+aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 2
+```
+
+> 📖 **Comprehensive Guides**:
+> - [Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md): Architectural deep-dive, two-tier autoscaling, OIDC CD, and cost budgets.
+> - [Kubernetes Manifests & Topology Guide](infra/k8s/README.md): Step-by-step breakdown of manifests `00` through `07`, ServiceLB networking, and persistence.
+
+
+---
 
 ---
 
@@ -304,13 +391,16 @@ friend-on-campus/
 ├── services/
 │   ├── user-service/            # Port 8001: Auth, Profiles, RBAC (M2)
 │   ├── supplier-service/        # Port 8002: Campus Locations CRUD (M3)
-│   ├── order-service/           # Port 8003: Lifecycle State Machine (M1)
+│   ├── order-service/           # Port 8003: Lifecycle State Machine (M1) & NLP Assistant (F6)
 │   ├── credit-service/          # Port 8004: Closed Economy Ledger & Escrow (M4)
 │   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
 ├── packages/
 │   ├── auth/                    # @campus-errand/auth: offline Ed25519 access-token verification middleware
 │   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
 │   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
+├── infra/
+│   ├── terraform/               # Production AWS IaC (VPC, ASG, ALB, ECR, EBS, IAM)
+│   └── k8s/                     # K3s manifests (Stateful data node + stateless worker tier)
 ├── gateway/
 │   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
 ├── docker/
@@ -325,6 +415,7 @@ friend-on-campus/
 │   ├── prisma-migrate.mjs       # Shared Prisma migration runner with .env loading
 │   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
 ├── tests/
+│   ├── k6/                      # Distributed load & concurrency tests (race conditions & HPA)
 │   └── postman/                 # Postman collection and environment
 ├── data/
 │   ├── csv/                     # NUS campus supplier seed datasets
@@ -339,6 +430,7 @@ friend-on-campus/
 
 ## 📄 System Documentation & Project Wiki
 
+- **[Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md)**: Master student learning guide for AWS Terraform IaC, K3s manifests, two-tier autoscaling, GitHub Actions CD via OIDC/SSM, and k6 concurrency testing.
 - **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
 - **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
 - **[Documentation verification and pending questions](docs/audits/review-findings.md)**: Actual check results, source boundaries and human review items.

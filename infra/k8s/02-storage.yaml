@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: foc-ebs-pv
+  labels:
+    type: local-ebs
+    app.kubernetes.io/name: friend-on-campus
+spec:
+  capacity:
+    storage: 25Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  hostPath:
+    path: /var/foc-data
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: foc.role
+              operator: In
+              values:
+                - data-node
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: foc-data-pvc
+  namespace: foc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-storage
+  resources:
+    requests:
+      storage: 25Gi

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Added POST /assistant/draft endpoint for Natural-Language Errand Creation Assistant (F6).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Success messages no longer claim credits were transferred or refunded; Credit Service settles or returns
  * escrow asynchronously after the Order event (author's Notification Redesign §9).
@@ -27,8 +31,9 @@
  */
 // AI-generated (edited by yanhwee)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
-import type { ApiResponse, CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
+import type { ApiResponse, CreateOrderRequest, OrderDTO, ParseErrandDraftRequest } from '@campus-errand/common-dtos';
 import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
+import type { AssistantService } from '../assistant/assistant.service';
 import type { OrderService } from './order.service';
 import { OrderAuthorizationError, OrderError, OrderValidationError } from './order.types';
 
@@ -99,8 +104,39 @@ const domainErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 // Router Factory
 // ---------------------------------------------------------------------------
 
-export function createOrderRouter(orderService: OrderService, authenticate: RequestHandler): Router {
+export function createOrderRouter(
+  orderService: OrderService,
+  authenticate: RequestHandler,
+  assistantService?: AssistantService
+): Router {
   const router = Router();
+
+  // 0. AI Errand Creation Assistant Draft (F6)
+  // AI-generated (edited by yanhwee)
+  router.post('/assistant/draft', authenticate, asyncRoute(async (req: Request, res: Response) => {
+    if (!assistantService) {
+      res.status(503).json({
+        success: false,
+        error: 'Assistant service is not configured or unavailable.',
+      });
+      return;
+    }
+
+    const { prompt } = req.body as ParseErrandDraftRequest;
+    if (typeof prompt !== 'string' || prompt.trim() === '') {
+      res.status(400).json({
+        success: false,
+        error: 'Prompt is required and must be a non-empty string.',
+      });
+      return;
+    }
+
+    const draft = await assistantService.parseErrandDraft(prompt);
+    res.json({
+      success: true,
+      data: draft,
+    });
+  }));
 
   // 1. List / Discover Open Errands (authenticated)
   router.get('/', authenticate, asyncRoute(async (req: Request, res: Response) => {

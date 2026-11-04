@@ -1,5 +1,25 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Disambiguated stepper button aria-labels ('Decrease amount' and 'Increase amount') in student-app PostErrandPage to resolve Playwright getByLabel('Reward credits') strict mode collision across UO1, UO6, RT02, and RT12.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Restored exact UAT placeholder strings in student-app SpotsPage ('Search food, cafes, lockers, print hubs...') and PostErrandPage ('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)', 'e.g. Less ice, separate paper bag, PIN code for lockers') to fix CI Browser UAT job failures while maintaining light elegant theme.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Light elegant theme unification across all student-app buttons, cards, modals, and tabs (replacing dark navy and muddy tints with warm orange, crisp white pills, and luminous blue accents; full UAT locator preservation).
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Updated README.md developer setup documentation for F6 SoCLaaS environment variables, offline fallback resilience, and monorepo structure.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-10-28
+Scope: Natural-Language Errand Creation Assistant (F6 / Issues #53, #137, #138): shared DTOs, Order Service SoCLaaS LLM integration, offline fallback, D1 §3.3 timing constraint enforcement, and student-app UI assistant drawer with prefill.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Recorded the initial read-only plan and approved documentation/configuration execution, including direct PR #184 inspection.
 Author review: <to be completed by Reallyeasy1>
@@ -3321,6 +3341,53 @@ Implement the production-ready Order Service replacing the initial in-memory moc
 - Pre-poisoned volume (root-owned 0400 `.erlang.cookie` written before first start): `up --wait` healthy; the entrypoint chowned the existing cookie to rabbitmq without replacing its content. With the previous `user: rabbitmq` approach this volume would have failed on every start.
 - `docker compose config --quiet` passes; test containers and volumes removed afterwards.
 
+## 2026-10-17 18:33 SGT — Mandatory Latitude/Longitude on supplier creation
+
+**Tool:** Claude Code (model: Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** In the admin dashboard's Campus Suppliers tab, add Latitude and Longitude fields to the Add Supplier form, mandatory with the same client-side-only validation style as the other required fields (no backend round-trip for a missing value), and make the two columns NOT NULL in the supplier-service DB.
+
+**Usage scenario:** Implementation of an already-decided requirement (mandatory coordinates), following the existing precedent set by the earlier building/floor required-field change — same four-file shape (common-dtos, Prisma schema + migration, supplierRoutes.ts, supplierRepository.ts, admin-portal form). Left for the author: confirming whether the Edit Supplier modal should also expose visible Latitude/Longitude inputs (not added — out of the literal scope asked, and not required functionally since existing suppliers already carry real coordinates into the edit form state).
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — `CreateSupplierRequest.latitude`/`.longitude` changed from optional to required.
+- `services/supplier-service/src/database/prisma/schema.prisma` — `latitude`/`longitude` changed from `Float?` to `Float`.
+- `services/supplier-service/src/database/prisma/migrations/20261017102809_make_coordinates_required/` — new migration, `ALTER COLUMN ... SET NOT NULL` on both columns.
+- `services/supplier-service/src/database/seed.ts` — `parseCoordinate()` now throws on a blank CSV value instead of returning `null`, matching the `requireField()` precedent for building/floor.
+- `services/supplier-service/src/suppliers/supplierRoutes.ts` — `createSupplier` adds latitude/longitude to the required-field check plus a finite-number check; `updateSupplier` rejects latitude/longitude sent as null/non-finite (may still be omitted).
+- `services/supplier-service/src/suppliers/supplierRepository.ts` — `createSupplier` no longer falls back latitude/longitude to `null`.
+- `services/supplier-service/test/supplierRoutes.test.ts`, `services/supplier-service/test/supplierRepository.test.ts` — fixtures updated to include latitude/longitude now that they're required.
+- `apps/admin-portal/src/App.tsx` — Add Supplier modal: two new required Latitude/Longitude number inputs, `validateSupplierForm` extended to block submission on a missing/invalid value before any API call, `newSupplier`/reset-state updated, `openEditModal` now carries forward the existing supplier's coordinates so the shared validator doesn't block editing.
+
+**Verification:**
+- `npm run typecheck` (common-dtos, supplier-service, admin-portal workspaces) — clean.
+- `npm run test:unit --workspace=@campus-errand/supplier-service` (under Node 22.23.1, as required by `engines`) — 48/48 passing.
+- Confirmed via live Postgres query that the existing `supplier_db` had zero rows with a null latitude/longitude before migrating, so `docker compose down -v` was not needed — a normal `prisma migrate dev` applied the `NOT NULL` constraint cleanly against live data.
+- Rebuilt and restarted the `supplier-service` and `admin-portal` containers; live-tested `POST /api/suppliers` through the gateway as the seeded admin: missing coordinates → 400, non-numeric coordinates → 400, valid coordinates → 201 (then deleted the test row). Confirmed the rebuilt admin-portal bundle actually contains the new field labels/validation strings. Did not visually click through the form in a browser (no browser tool available in this environment that can reach the local stack).
+
+## 2026-10-17 19:29 SGT — Interactive pickup-spot map on Post Errand (student-app)
+
+**Tool:** Claude Code (model: Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** On the student app's Post Errand page, add a map icon button beside the existing pickup-spot dropdown. Clicking it opens an interactive map (author specified React Leaflet + OpenStreetMap tiles) dropping a pin for every supplier using their latitude/longitude; clicking a pin should auto-select that supplier in the existing dropdown.
+
+**Usage scenario:** Implementation of an already-decided design — the author named the exact library (React Leaflet) and tile provider (OpenStreetMap) and the exact interaction (pin click selects the dropdown value), so no architecture/library choice was made here, only the implementation of their decision. Scoped entirely to `apps/student-app` as the author expected.
+
+**Files changed:**
+- `apps/student-app/package.json` — added `leaflet`, `react-leaflet` (dependencies) and `@types/leaflet` (devDependency). No Dockerfile change needed (new dependency in an existing workspace's `package.json` only, per `CLAUDE.md`).
+- `package-lock.json` — updated by `npm install` for the new dependencies.
+- `apps/student-app/src/map/SupplierPickupMap.tsx` (new) — the map modal: `MapContainer`/`TileLayer` (OSM tiles with attribution), a `Marker` + `Popup` per active supplier with valid coordinates, a `FitBoundsToMarkers` helper (via `useMap()`) that fits the view to all pins instead of a fixed zoom, and the standard Leaflet-under-a-bundler marker-icon fix (`L.Icon.Default.mergeOptions` with bundled asset imports). Clicking a marker selects that supplier and closes the map.
+- `apps/student-app/src/App.tsx` — new `Map` icon button beside the Pickup Store dropdown (opens the modal), `isPickupMapOpen` state, and the modal's render wired to the same `setFormData` fields the dropdown's own `onChange` already sets (`supplierId`/`supplierName`/`campusZone`), so selecting via map or dropdown behaves identically.
+
+**Verification:**
+- `npm run typecheck --workspace=@campus-errand/student-app` — clean.
+- `npm run build --workspace=@campus-errand/student-app` (full `tsc && vite build`) — succeeds; confirmed the marker icon PNG imports resolved correctly and were inlined as base64 by Vite (not left as broken references, the classic Leaflet-plus-bundler pitfall).
+- Rebuilt and restarted the `student-app` container; confirmed the live served bundle actually contains the new map modal's strings ("Pick a Spot on the Map", the OpenStreetMap tile URL). Did not visually click through the map in a browser (no browser tool available in this environment that can reach the local stack) — a live check (opening the map, confirming pins land on the right buildings, clicking one updates the dropdown) is worth doing before merging.
+
 
 
 
@@ -5367,6 +5434,311 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — rebuilt merge resolution and this entry
+
+## 2026-10-27 15:24 SGT — Fixes for the infra, chat and notification issues found by the simulated UAT (#173, #169, #206, #202, #208)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/uat-infra-chat-notification (worktree from origin/main d2f750b)
+
+**Prompt (summarised):** "please work on bugs that is related to infra/chat/notification service" (from the issues filed after the UAT run).
+
+**Usage scenario:** Writing implementation code for defects whose observed behaviour and acceptance checks are recorded in issues #173, #169, #206, #202 and #208; no schema, DTO or event contract changed. Approach choices to confirm by the author: the gateway now resolves service names per request through Docker DNS with variables (the issue's suggested fix) and a 3 s connect timeout; the chat hook settles an unconfirmed send from the server's history (same sender, same text, stored at or after the send) instead of declaring it not sent, and otherwise reports UNCONFIRMED; the notification hook closes its socket on the browser's offline event, reconnects and refreshes with the backoff cleared on online, and bounds inbox requests to 15 s. Verified: typecheck of both apps, student-app unit tests 20/20 (one new test), ESLint on the changed files, `nginx -t`, and a runtime check with a throwaway nginx on the isolated UAT network: all routes and the WebSocket upgrade work, /api/health/chat/* answer, a service moved to a new address was reached 11.9 s later without a gateway restart (the static config needed a restart and crashed while the name was unresolvable), and a stopped backend answered 502 in 3.0 s. Browser verification against the fix build, after the author's go-ahead: E04 PASS (hub indicator honest while offline, catch-up 989 ms) and H03 PASS (lost echo reconciled from history, no duplicate); the first H03 attempt showed the reconciliation reading a render-lagged ref, fixed with a ref written inside the state updater (latestThreads). The earlier E04 "never catches up" readings were a driver error (saturated "9+" badge parsed as 0), recorded in the UAT package. Committed and pushed, PR opened at the author's request.
+
+**Files changed:**
+- `gateway/nginx.conf` — resolver 127.0.0.11 with 10 s TTL, variable proxy_pass targets, proxy_connect_timeout 3 s, Chat health routes; upstream blocks removed; disclosure record
+- `apps/admin-portal/src/api/health.ts` — Chat Service as the sixth probed service; disclosure record
+- `apps/admin-portal/src/pages/HealthPage.tsx` — probe caption counts the probed list; disclosure record
+- `apps/admin-portal/src/api/auth.ts`, `apps/student-app/src/api/auth.ts` — mount-time refresh bounded to 8 s (#169)
+- `apps/student-app/src/notifications/useNotifications.ts` — offline/online socket handling, online clears the backoff, 15 s request timeout (#208); disclosure record
+- `apps/student-app/src/chat/useChat.ts` — findDeliveredCopy, UNCONFIRMED outcome, reconciliation after timeout and after reconnect catch-up (#202); disclosure record
+- `apps/student-app/test/chat.test.ts` — unit test for findDeliveredCopy; disclosure record
+- `docs/infrastructure/api-gateway.md` — chat health route, resolver and timeout notes; disclosure record
+## 2026-10-26 21:40 SGT — Issues #197 and #198 raised from the multi-client UAT
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** main (working tree; this entry rides with the next branch, as `main` only accepts pull requests)
+
+**Prompt (summarised):** After the merges, check whether issues were raised for the multi-client real-time UAT and raise any that are missing.
+
+**Usage scenario:** GitHub operations at the author's explicit request; facts recorded, decisions left to the author. #195 already covered the fixed gaps (closed by #196). Raised #197: commit the git-ignored multi-client driver as `scripts/uat/uat-realtime.mjs` with an npm script, a throwaway courier, an opt-in Chat Service restart, and the CI matrix kept in step (related to #64). Raised #198: couriers get no live signal when an errand is posted; the 15 s Feed poll from #195 is a stopgap; the recipient and transport choice is the author's. Merged local copies of the two PR branches deleted; their remote copies were auto-deleted on merge.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-26 21:18 SGT — Multi-client real-time UAT driver committed as scripts/uat/uat-realtime.mjs (issue #197)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/realtime-uat-driver
+
+**Prompt (summarised):** Pick up issue #197: bring the git-ignored multi-client real-time driver into the repo with an npm script, CI step, matrix validator entry and documentation. (Entry written in the following prompt; the session ended before the log was appended.)
+
+**Usage scenario:** Writing implementation code for a test driver whose checks, acceptance criteria and placement the author fixed in issue #197; boilerplate (npm script, CI step, validator entry, README and testing-strategy rows). The driver follows the conventions of `scripts/uat/uat-d2-ui.mjs`. Left to the author: whether the realtime step belongs in the same `browser-uat` job or its own, and whether the restart check should ever run in CI (it stays opt-in).
+
+**Files changed:**
+- `scripts/uat/uat-realtime.mjs` — new: four Playwright contexts (requester desktop and phone, courier, API-registered second courier), checks RT01-RT14, opt-in Chat Service restart behind `UAT_RESTART_CHAT=1`, results and screenshots under `test-results/uat-realtime/`
+- `package.json` — `test:e2e:ui:realtime` script (JSON, no disclosure header)
+- `.github/workflows/ci.yml` — browser-uat job runs the realtime UAT after `test:e2e:ui`; disclosure record
+- `scripts/ci/validate-test-matrix.mjs` — `test:e2e:ui:realtime` added to `rootSystemScripts`; disclosure record
+- `README.md` — test-categories row and artifacts note; disclosure record
+- `docs/development/testing-strategy.md` — driver environment matrix rows; disclosure record
+
+## 2026-10-26 21:19 SGT — Verification and fixes for the real-time UAT driver branch
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/realtime-uat-driver
+
+**Prompt (summarised):** "continue on the previous session": finish and verify the uncommitted work on this branch.
+
+**Usage scenario:** Debugging assistance and boilerplate. Three findings from the checks, all fixed: ESLint rejected `document` inside the driver's `page.evaluate` callback (the file now shares the browser-globals block with `uat-d2-ui.mjs`); the validator recognised the script name but did not require the CI step, so removing the step passed silently (it is now a required `browser-uat` command, and the removal check fails as intended); the throwaway courier was `uatcourier<stamp>` where issue #197 says `uatcourier-<stamp>` (the username rule only caps length, so the hyphen is used). Verified: `node --check`, `npm run lint` (exit 0), `npm run typecheck` (exit 0), `npm run ci:validate-tests` (17 suites, 4 system commands). After the author started Docker Desktop, the stack was rebuilt (`docker compose up --build -d --wait`) and the driver run twice through the npm script: 14/14 with RT14 skipped (default), then 14/14 with `UAT_RESTART_CHAT=1` (RT14 ran: clients saw the drop 288 ms after the restart began, Send disabled during downtime, all reconnected 6177 ms later, history identical); chat container healthy afterwards. A PR body draft (Closes #197) was left in the session scratchpad for the author. No commit or push.
+
+**Files changed:**
+- `eslint.config.mjs` — `scripts/uat/uat-realtime.mjs` added to the browser-globals block; disclosure record
+- `scripts/ci/validate-test-matrix.mjs` — `['browser-uat', 'npm run test:e2e:ui:realtime']` in `systemJobs`; disclosure scope updated
+- `scripts/uat/uat-realtime.mjs` — courier name `uatcourier-<stamp>` in code and header comment
+- `README.md` — courier name in the test-categories row
+- `ai/usage-log.md` — the two entries above
+
+## 2026-10-26 23:16 SGT — Commit, push and PR for the real-time UAT driver (issue #197)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** test/realtime-uat-driver
+
+**Prompt (summarised):** "ok please do so": commit the verified branch, push it and open the pull request.
+
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception). One commit with the eight files, pushed to origin; PR opened against `main` with `Closes #197` and the acceptance criteria (1)-(5) mapped, related #64. Merge is left to the author once CI is green.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-28 11:30 SGT — Natural-Language Errand Creation Assistant (F6, Issues #53, #137, #138)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/f6-nlp-assistant
+
+**Prompt (summarised):**
+Implement the Natural-Language Errand Creation Assistant (N2H Feature F6 / Category N2, Issues #53, #137, #138) using Approach B (Zero-Shot LLM Structured Extraction backed by NUS School of Computing SoCLaaS Gateway). Implement end-to-end backend parsing, active supplier grounding, D1 §3.3 timing constraint enforcement (durationMinutes = 30 default for clock deadlines, preserving deadline notes in specialNotes with warnings), resilient offline fallback heuristic, and human-in-the-loop frontend drafting and form prefilling in student-app PostErrandPage.
+
+**Usage scenario:**
+Code implementation, architectural alignment, test suite development, and documentation for course project deliverable. Human-in-the-loop design strictly preserves user confirmation before credit escrow reservation or order submission.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — added `ParseErrandDraftRequest`, `ParsedErrandItemDTO`, `ParsedErrandDraftDTO` contracts
+- `services/order-service/src/config.ts` — added SoCLaaS assistant configuration bindings
+- `services/order-service/src/clients/supplier.client.ts` — added `listActiveSuppliers` method
+- `services/order-service/src/assistant/assistant.service.ts` — created Assistant service with active supplier grounding, OpenAI-compatible SoCLaaS completions, D1 §3.3 timing rule enforcement, and offline fallback heuristic
+- `services/order-service/src/orders/order.routes.ts` — mounted authenticated `POST /api/orders/assistant/draft`
+- `services/order-service/src/app.ts` — injected `assistantService` into Express app factory
+- `services/order-service/src/index.ts` — wired `createAssistantService` into service entrypoint
+- `services/order-service/test/helpers.ts` — updated mock supplier client to support `listActiveSuppliers`
+- `services/order-service/test/assistant.service.test.ts` — unit and integration test suite for assistant service, timing constraints, and HTTP endpoints
+- `services/order-service/package.json` — updated `test:unit` script to execute assistant tests
+- `apps/student-app/src/api/orders.ts` — added `parseErrandDraft` client API helper
+- `apps/student-app/src/pages/PostErrandPage.tsx` — added AI Errand Assistant UI box with prompt templates, extraction trigger, draft summary card, warning notices, and human-in-the-loop prefilling
+- `apps/student-app/src/App.tsx` — forwarded `authFetch` to `PostErrandPage`
+- `apps/student-app/test/assistant.test.ts` — added unit tests for `parseErrandDraft`
+- `apps/student-app/package.json` — updated `test:unit` script to execute assistant tests
+- `.env.example`, `docker-compose.yml` — documented and bound `SOCLAAS_*` environment variables
+- `ai/usage-log.md` — this entry
+
+## 2026-10-28 15:00 SGT — Document F6 SoCLaaS Setup & Offline Resilience in README.md
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** docs/f6-readme-setup
+
+**Prompt (summarised):**
+Update root README.md to document developer setup for the Natural-Language Errand Creation Assistant (F6), including the NUS SoCLaaS environment variables, offline fallback resilience guarantee, and service architecture mappings.
+
+**Usage scenario:**
+Documentation improvement per course policy.
+
+**Files changed:**
+- `README.md` — added SoCLaaS optional configuration to Local Development Workflow, updated service diagram label and monorepo structure
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 15:35 SGT — Student-App UI/UX Modernization & Multi-Click Submission Fix
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Improve and modernize the frontend UI/UX of `apps/student-app` for the CS3219 final submission deliverable. Address user pain points including multi-click errand creation on form/balance issues spawning duplicate failed/rejected orders, and elevate the overall aesthetic into a polished, responsive campus application.
+
+**Usage scenario:**
+Frontend UI/UX design elevation, bug fixing, form validation safety, and component refactoring for student application final deliverable. Preserved all existing API contracts, DTO interfaces, data-testid attributes, and test suite guarantees.
+
+**Files changed:**
+- `apps/student-app/tailwind.config.js` — added NUS blue/orange palette shades and subtle elevation shadow utilities
+- `apps/student-app/src/App.tsx` — handled `REJECTED` order receipts in submission callback with explicit rejection notices; added credit overdraw guard before dispatch
+- `apps/student-app/src/pages/PostErrandPage.tsx` — implemented synchronous submission lock (`isSubmittingRef`) debouncing rapid multi-clicks; added balance safety guards with preset reward chips (3 C, 5 C, 8 C, 15 C) and two-step progress feedback
+- `apps/student-app/src/pages/AuthGatePage.tsx` — redesigned with NUS navy gradient aesthetic, 1-Click Demo Evaluator Access buttons for Alice and Bob, password visibility toggle, and accessibility labels
+- `apps/student-app/src/components/HeaderNav.tsx` — elevated to frosted glass header with inline real-time WebSocket pulse status and dual-credit balance pill
+- `apps/student-app/src/components/BottomNav.tsx` — streamlined mobile navigation bar with tactile touch targets and active glow indicators
+- `apps/student-app/src/components/ErrandCard.tsx` — elevated card styling with visual pickup-to-dropoff route connector, dynamic relative expiry countdown, and glowing reward pill
+- `apps/student-app/src/pages/FeedPage.tsx` — added campus zone filter chips, skeleton loading shimmers, and friendly empty state with zone reset
+- `apps/student-app/src/components/SpotCard.tsx` — enhanced campus spot cards with category icons, live availability pills, and ergonomic CTA button
+- `apps/student-app/src/pages/SpotsPage.tsx` — redesigned spots directory with search quick-clear, category shortcut filter chips, and responsive grid
+- `apps/student-app/src/pages/TasksPage.tsx` — added segmented filter tabs (All / Posted / Delivering), visual milestone stepper bars, and route snippets
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — added Digital NUS Student Pass card, fintech-style escrow balance card, category-iconized ledger transactions, and isolated danger zone card for account deletion
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — modernized errand tracking page with pulsing active tracker rings and route card layout
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 16:20 SGT — Browser UAT Playwright Selector Compatibility Alignment
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Verify and fix Browser UAT test suite failures (`npm run test:e2e:ui` and `npm run test:e2e:ui:realtime`) identified in CI for PR #214.
+
+**Usage scenario:**
+Aligned Playwright locator strict-mode rules and text assertions across the redesigned student app:
+1. `AuthGatePage.tsx`: Renamed tab switcher button from "Student Log In" to "Sign In" so `getByRole('button', { name: 'Log In' })` resolves unambiguously without strict mode locator collision against the submit button. Aligned exact link label "Admin Log In" for `US1A`.
+2. `HeaderNav.tsx`: Restored `<span>WS Hub: {wsStatus}</span>` sub-status line across mobile and desktop viewports satisfying `UD2` and `RT01` WebSocket assertions; standardized role badge to exact "STUDENT".
+3. `PostErrandPage.tsx`: Added explicit `aria-label="Post Errand"` to submit CTA button ensuring exact match for `UO1`, `UO6`, and `RT02`.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx`
+- `apps/student-app/src/components/HeaderNav.tsx`
+- `apps/student-app/src/pages/PostErrandPage.tsx`
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 16:50 SGT — Visual Polish: Light Theme Auth, Card Label Wrapping, Brand Logo & Header Nav IA
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Refine UI aesthetics across the student app:
+1. Redesign `AuthGatePage.tsx` into a clean, fully light theme, remove cluttering security and milestone footers, replace the graduation cap icon with an elegant brand mark, and center the password visibility toggle icon.
+2. Fix wrapping of badges and labels inside `ErrandCard.tsx` (e.g. Arts & Social Sciences, reward credits).
+3. Remove artificial "CAMPUS-ID" label from the student pass card in `ProfileWalletPage.tsx`.
+4. Modernize top navigation (`HeaderNav.tsx`) into a frosted light-themed header, unifying Errand Marketplace tabs (Feed, Post, Spots, Tasks) in the center and Personal Account Hub (Alerts, Wallet, Profile) on the right.
+5. Update page header titles with vibrant NUS branding accents.
+
+**Usage scenario:**
+Frontend UI/UX design polish, layout bug fixing, information architecture clarification, and aesthetic refinement for student application final deliverable. All Playwright UAT locators (`Log In`, `Sign In`, `Admin Log In`, `Feed`, `Post`, `Spots`, `Tasks`, `Profile`, `Alerts`, `STUDENT`, `WS Hub: connected`) fully preserved.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — converted to light theme, centered eye toggle, replaced hat icon with package brand mark, cleaned footers
+- `apps/student-app/src/components/ErrandCard.tsx` — added `whitespace-nowrap` to zone badges, reward pills, and footer timestamps to prevent awkward line breaks
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — removed awkward `CAMPUS-ID` badge and overlapping watermark
+- `apps/student-app/src/components/HeaderNav.tsx` — converted to frosted light theme, restructured Errand Workspace vs Personal Account Hub, updated package brand mark and STUDENT badge
+- `apps/student-app/src/notifications/NotificationBell.tsx` — styled top-nav bell for high-contrast light theme
+- `apps/student-app/src/pages/FeedPage.tsx` — updated header title with NUS brand accents
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 17:10 SGT — Navigation Consistency, Light AI Assistant & Layout Spacing Polish
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Refine layout, spacing, and styling based on user feedback:
+1. Eliminate duplicate Alerts button on mobile (hidden in top navbar on mobile view).
+2. Unify top navigation into a single continuous row (brand, tabs, wallet, profile) without wrapping credits above tabs on medium screens.
+3. Remove duplicate escrow label in the header subline.
+4. Fix horizontal overflow clipping on the "ALL" zone chip in FeedPage.
+5. Convert AI Errand Assistant into a consistent light theme.
+6. Align mobile vs desktop navigation hierarchy.
+7. Reduce excessive dead whitespace between top navbar and page content.
+8. Remove redundant wallet balance badge from PostErrandPage header.
+
+**Usage scenario:**
+UI/UX polish and layout ergonomics fix for student application final deliverable. Preserved 100% Playwright UAT locator compatibility (`WS Hub: connected`, `Feed`, `Post`, `Spots`, `Tasks`, `Alerts`, `Profile`, `Log In`, `Sign In`).
+
+**Files changed:**
+- `apps/student-app/src/index.css` — changed `.student-header-row` to flexbox; removed grid row wrapping on medium screens
+- `apps/student-app/src/components/HeaderNav.tsx` — single horizontal row, inline WS Hub status, desktop-only top alert bell, removed redundant escrow subline
+- `apps/student-app/src/App.tsx` — reduced `<main>` vertical padding (`pt-3.5 pb-8 md:pt-4 md:pb-10 lg:px-8`)
+- `apps/student-app/src/pages/FeedPage.tsx` — added `p-1.5` to zone filter chip scroll container to prevent button clipping
+- `apps/student-app/src/pages/SpotsPage.tsx` — added `p-1` to category shortcuts scroll container
+- `apps/student-app/src/pages/PostErrandPage.tsx` — removed redundant header wallet badge; redesigned AI Errand Assistant container, textarea, chips, and draft card to light theme
+- `ai/usage-log.md` — this entry
+
+
+## 2026-10-28 17:25 SGT — Student App Light Elegant Theme: Button & Card Color Harmonization
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/student-app-redesign
+
+**Prompt (summarised):**
+Unify all buttons, cards, and modal components across student-app into an elegant, light-first theme:
+1. Prevent ellipsis truncation of errand campus zone badges in `ErrandCard.tsx`.
+2. Convert interactive CTA buttons (`View & accept`, `Pick for Errand`, `View details`) into light, tactile pill buttons with subtle borders and shadows.
+3. Redesign the top header wallet balance capsule from muddy amber to a crisp white glass pill with clear dark typography.
+4. Transform the Digital NUS Student Pass card and Digital Wallet card in `ProfileWalletPage.tsx` from dark navy backgrounds into bright, pristine light cards with subtle gradients, emerald/amber sub-wallets, and clean typographic hierarchy.
+5. Upgrade primary submit and action buttons across `AuthGatePage.tsx`, `ProfileWalletPage.tsx`, `NotificationBell.tsx`, `ErrandDetailsPage.tsx`, and `DeleteAccountModal.tsx` to warm vibrant NUS orange or bright royal blue, eliminating heavy dark navy buttons.
+6. Remove obsolete Milestone 3 text from `PostErrandPage.tsx`.
+
+**Usage scenario:**
+Frontend visual polish and light elegant aesthetic refinement for student application final deliverable. Preserved 100% Playwright UAT locator compatibility (`Log In`, `Sign In`, `Admin Log In`, `Feed`, `Post`, `Spots`, `Tasks`, `Profile`, `Alerts`, `STUDENT`, `WS Hub: connected`).
+
+**Files changed:**
+- `apps/student-app/src/components/ErrandCard.tsx` — removed zone truncation, upgraded View & Accept CTA to light pill button
+- `apps/student-app/src/components/HeaderNav.tsx` — light elegant active tabs, profile button, and white glass wallet capsule
+- `apps/student-app/src/pages/AuthGatePage.tsx` — luminous blue-indigo brand mark, warm orange Log In button
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — converted NUS Student Pass card and Digital Wallet card to light theme; updated username edit/save buttons
+- `apps/student-app/src/pages/SpotsPage.tsx` — light category shortcut filter chips; light reset filter button
+- `apps/student-app/src/components/SpotCard.tsx` — light interactive pill button for Pick for Errand CTA
+- `apps/student-app/src/notifications/NotificationBell.tsx` — light tab filter pills and high-contrast CTA button
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — upgraded primary action buttons to bright royal blue
+- `apps/student-app/src/pages/TasksPage.tsx` — upgraded View Details link to light interactive pill button
+- `apps/student-app/src/components/DeleteAccountModal.tsx` — updated Return to Login button to warm orange
+- `apps/student-app/src/chat/ChatPanel.tsx` — upgraded outgoing bubble to bright royal blue
+- `apps/student-app/src/pages/FeedPage.tsx` — updated reset zone filter button to light button
+- `apps/student-app/src/pages/PostErrandPage.tsx` — removed legacy milestone text from footer
+- `ai/usage-log.md` — this entry
+
+## 2026-10-30 17:08 SGT — Fixed Postman supplier-creation bodies missing latitude/longitude
+
+**Tool:** Claude Code (model: Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** After merging main into admin_dashboard, a Postman run showed 8 failed test-scripts / 19 failed assertions, all inside "5 - Supplier Service: Admin CRUD" and the Folder 6 throwaway-supplier requests. Author asked for the Postman script to be fixed.
+
+**Usage scenario:** Debugging assistance for an existing, already-approved test suite — no architecture or design decisions involved, just encoding an already-decided required-field rule (latitude/longitude on supplier creation) into test request bodies that predated that rule.
+
+**Files changed:**
+- `tests/postman/postman_collection.json` — added `latitude`/`longitude` to 6 `POST /api/suppliers` request bodies (5.1, 5.2, 5.3, 5.4, 5.6, 6.69) that were missing them; left 5.5 (deliberately tests the missing-required-fields 400 path) untouched. Added disclosure addendum 6 explaining the root cause and fix.
+
+**Verification:**
+- Root cause confirmed by reading the actual request bodies: `latitude`/`longitude` became required on supplier-service in an earlier round, but Folder 5 (built before that change) and Folder 6's one throwaway-supplier request were never updated. 5.1/5.6 therefore 400'd instead of 201'ing, so `testSupplierId`/`testSupplierId2`/`testSupplierInactiveId` were never captured — every other reported failure was a downstream cascade of that (404s, and a couple of raw HTML error pages from a malformed empty-`:id` URL), not an independent bug. Same shape as the addendum-5 fix.
+- Ran the full collection three consecutive times against the live merged stack (all services already up, including the new chat-service and Debezium containers) — 0 failures each time (156–157 requests, 263–264 assertions per run).
+
+## 2026-10-30 17:22 SGT — Fixed ErrandCard overflow on the student-app Feed page
+
+**Tool:** Claude Code (model: Sonnet 5)
+**Author:** jagdeepsh
+**Branch:** admin_dashboard
+
+**Prompt (summarised):** On the Feed page, each errand card's credits badge and the "View & accept" button render half outside the card instead of fully contained.
+
+**Usage scenario:** CSS/layout bug fix — no architecture or design decisions involved.
+
+**Files changed:**
+- `apps/student-app/src/components/ErrandCard.tsx` — the zone badge (header) and expiry badge (footer) sat in `justify-between` flex rows next to a `shrink-0` sibling (the credits badge / the accept button) with `whitespace-nowrap` on every element, so on narrow cards neither row could shrink to fit and the `shrink-0` sibling overflowed past the card's edge. Gave the zone/expiry badges `min-w-0` and made their label text `truncate` instead, matching the pattern already used for supplierName/dropoffLocation lower in the same card. The credits badge and the accept button are untouched and stay fully protected.
+
+**Verification:**
+- `npm run typecheck --workspace=@campus-errand/student-app` — clean.
+- Rebuilt and restarted the live `student-app` container; confirmed it serves (HTTP 200). Did not visually confirm in a browser — no tool available here that can reach the local dev stack — worth a quick look on a narrow viewport before considering this done.
 
 ## 2026-10-27 11:50 SGT — Simulated UAT assignment (wiki handoff), run uat-20261026-d2f750b: in progress
 

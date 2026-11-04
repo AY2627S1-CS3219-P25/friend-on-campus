@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-10-28
+ * Scope: Added SoCLaaS LLM gateway configuration for Natural-Language Errand Creation Assistant (F6).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Set the default delayed retry interval to five seconds.
  * Author review: <to be completed by huangjiaxi1111>
@@ -56,5 +60,11 @@ export const config = Object.freeze({
   },
   expirySweeper: {
     intervalMs: integer('EXPIRY_SWEEPER_INTERVAL_MS', 30000, 5000),
+  },
+  // AI-generated (edited by yanhwee)
+  assistant: {
+    soclaasBaseUrl: process.env.SOCLAAS_BASE_URL || 'https://soclaas-api.comp.nus.edu.sg/v1',
+    soclaasApiKey: process.env.SOCLAAS_API_KEY || '',
+    soclaasModel: process.env.SOCLAAS_MODEL || 'default',
   },
 });

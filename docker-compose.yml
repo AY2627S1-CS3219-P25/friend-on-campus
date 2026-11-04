@@ -266,6 +266,10 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
+      # AI-generated (edited by yanhwee): NUS SoCLaaS LLM gateway configuration for Assistant (F6)
+      - SOCLAAS_BASE_URL=${SOCLAAS_BASE_URL:-https://soclaas-api.comp.nus.edu.sg/v1}
+      - SOCLAAS_API_KEY=${SOCLAAS_API_KEY:-}
+      - SOCLAAS_MODEL=${SOCLAAS_MODEL:-default}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
+ * Scope: Issue #206: the service count in the probe caption follows the probed list instead of a fixed "5".
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Wired HealthPage to live /health and /ready probes across all 5 microservices, displaying liveness, readiness, latency, and storage status.
  * Author review: <to be completed by yanhwee>
@@ -40,7 +44,7 @@ export function HealthPage({
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
             Probing <code className="font-mono text-slate-700">/health</code> (process liveness) and{' '}
-            <code className="font-mono text-slate-700">/ready</code> (database &amp; broker readiness) across all 5 services
+            <code className="font-mono text-slate-700">/ready</code> (database &amp; broker readiness) across all {servicesHealth.length} services
             {lastChecked ? ` • Last checked at ${lastChecked}` : ''}
           </p>
         </div>

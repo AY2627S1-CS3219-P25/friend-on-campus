@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
+# Scope: browser-uat runs the multi-client real-time UAT (npm run test:e2e:ui:realtime) after the D2 browser UAT (issue #197).
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Google Antigravity Agent, date: 2026-10-21
 # Scope: Removed obsolete --print flag from scripts/generate-jwt-keys.mjs invocations.
 # Author review: <to be completed by yanhwee>
@@ -657,6 +661,8 @@ jobs:
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
       - name: Run Chromium browser UAT
         run: npm run test:e2e:ui
+      - name: Run multi-client real-time UAT (notifications and chat across four clients)
+        run: npm run test:e2e:ui:realtime
       - name: Collect Compose logs
         if: failure()
         run: |

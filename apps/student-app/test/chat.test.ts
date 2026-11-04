@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
+ * Scope: Issue #202: findDeliveredCopy settles an unconfirmed send from history only on this user's copy of the same
+ * text stored at or after the send started; an older identical message or the peer's text does not count.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: Review fix (PR #148, second round): the coverage cursor useChat reconciles from after every AUTH_OK. Replays
  * the reported schedule (REST returns [1], the peer sends 2 before the first AUTH_OK, live 3 arrives) against the
@@ -10,7 +15,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ChatMessageDTO } from '@campus-errand/common-dtos';
-import { coveredThrough, mergeMessage } from '../src/chat/useChat';
+import { coveredThrough, findDeliveredCopy, mergeMessage } from '../src/chat/useChat';
 
 const msg = (sequence: number): ChatMessageDTO => ({
   id: `m${sequence}`, sequence, senderId: 'u1', senderUsername: 'alice', senderRole: 'STUDENT', text: `t${sequence}`, sentAt: '2026-10-26T00:00:00.000Z',
@@ -43,4 +48,17 @@ test('REST [1], peer sends 2 before the first AUTH_OK, live 3: the catch-up fetc
   loadedThrough = coveredThrough(messages, Math.max(loadedThrough, page[page.length - 1].sequence));
   assert.deepEqual(messages.map((m) => m.sequence), [1, 2, 3]);
   assert.equal(loadedThrough, 3);
+});
+
+// AI-generated (edited by Reallyeasy1)
+test('an unconfirmed send is settled by a copy from this user stored at or after the send, not by older or foreign copies', () => {
+  const at = (iso: string, overrides: Partial<ChatMessageDTO> = {}): ChatMessageDTO => ({ ...msg(1), sentAt: iso, ...overrides });
+  const startedAt = Date.parse('2026-10-27T02:25:13.126Z');
+  const sent = { senderId: 'u1', text: 'H03-uncertain', startedAt };
+  const delivered = at('2026-10-27T02:25:13.300Z', { id: 'echo-lost', text: 'H03-uncertain' });
+  assert.equal(findDeliveredCopy([delivered], sent)?.id, 'echo-lost', 'the committed copy settles the send');
+  assert.equal(findDeliveredCopy([at('2026-10-27T02:25:12.000Z', { text: 'H03-uncertain' })], sent), undefined, 'an older identical message is not this send');
+  assert.equal(findDeliveredCopy([at('2026-10-27T02:25:13.300Z', { text: 'H03-uncertain', senderId: 'u2' })], sent), undefined, 'a copy from the peer is not this send');
+  assert.equal(findDeliveredCopy([at('2026-10-27T02:25:13.300Z', { text: 'other' })], sent), undefined, 'different text is not this send');
+  assert.equal(findDeliveredCopy([at('2026-10-27T02:25:12.500Z', { text: 'H03-uncertain' })], sent)?.text, 'H03-uncertain', 'a second of clock skew is tolerated');
 });
