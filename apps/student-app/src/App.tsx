@@ -88,6 +88,11 @@
  * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
  * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Passes the focused errand's pickup store from the loaded supplier list to ErrandDetailsPage so the page can
+ * show the store's operating hours (author's request of 2026-11-04).
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by yanhwee)
@@ -102,8 +107,8 @@ import {
   completeOrderById,
   deliverOrderById,
   fetchCombinedOrders,
-  FetchOrderResult,
   fetchOrderById,
+  FetchOrderResult,
   pickupOrderById,
   TaskOrderAction,
   unassignOrderById,
@@ -114,13 +119,14 @@ import {
   fetchCurrentUserProfile,
   updateCurrentUsername,
 } from './api/users';
+import { useChat } from './chat/useChat';
 import { BottomNav } from './components/BottomNav';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
+import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
 import { describeWriteFailure, useAuthSession } from './hooks/useAuthSession';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
-import { useChat } from './chat/useChat';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -129,7 +135,6 @@ import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
 import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
 import { TasksPage } from './pages/TasksPage';
-import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
 
 /** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
 const FEED_POLL_MS = 15_000;
@@ -813,6 +818,11 @@ export default function App() {
             actionError={actionError}
             onAccept={(orderId, note) => void handleAcceptOrder(orderId, note)}
             onAction={(orderId, action) => void handleTaskOrderAction(orderId, action)}
+            supplier={
+              focusOrder?.status === 'ok'
+                ? suppliers.find((s) => s.id === focusOrder.order.supplierId) ?? null
+                : null
+            }
           />
         )}
 

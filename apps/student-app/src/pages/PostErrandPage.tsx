@@ -40,6 +40,12 @@
  * required attributes are unchanged (left intact for the UAT selectors noted above) — it is now wrapped in a
  * flex row alongside the new button instead of being full-width on its own.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Author's request of 2026-11-04: the selected store's operating hours and open / closed state are shown
+ * under the Pickup Store picker, and posting while the store is outside its hours first asks for confirmation in a
+ * dialog ("Post anyway" / "Go back"). Stores with no readable hours post without the dialog.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by yanhwee)
@@ -63,10 +69,12 @@ import {
   Wand2,
   X,
 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AuthFetchFn } from '../api/auth';
 import { parseErrandDraft } from '../api/orders';
 import { SupplierPickupMap } from '../map/SupplierPickupMap';
+import { useMinuteClock } from '../suppliers/minuteClock';
+import { HOURS_NOT_LISTED, formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 
 export interface PostErrandFormData {
   supplierId: string;
@@ -139,6 +147,14 @@ export function PostErrandPage({
 
   // Synchronous submit lock to prevent multi-clicks before React re-render cycles
   const isSubmittingRef = useRef(false);
+
+  // Posting outside the store's operating hours waits here for the student's confirmation.
+  const [isClosedStoreConfirmOpen, setIsClosedStoreConfirmOpen] = useState(false);
+  const pendingSubmitRef = useRef<React.FormEvent | null>(null);
+  const selectedSupplier = suppliers.find((s) => s.id === formData.supplierId) ?? null;
+  const selectedHours = selectedSupplier ? formatOperatingHours(selectedSupplier) : null;
+  const now = useMinuteClock();
+  const selectedOpenNow = selectedSupplier ? isOpenAt(selectedSupplier, now) : null;
 
   // Credit balance safety checks
   const availableCredits = wallet ? wallet.availableCredits : null;
@@ -226,6 +242,29 @@ export function PostErrandPage({
     if (isSubmittingRef.current || submissionBusy) return;
     if (isOverdraw || isZeroBalance) return;
 
+    // Checked against the clock at submit time, not at render, so a page left open past closing still asks.
+    if (selectedSupplier && isOpenAt(selectedSupplier, new Date()) === false) {
+      pendingSubmitRef.current = e;
+      setIsClosedStoreConfirmOpen(true);
+      return;
+    }
+    submitNow(e);
+  };
+
+  // AI-generated (edited by huangjiaxi1111)
+  const handleConfirmClosedStore = () => {
+    const pending = pendingSubmitRef.current;
+    pendingSubmitRef.current = null;
+    setIsClosedStoreConfirmOpen(false);
+    if (pending && !isSubmittingRef.current && !submissionBusy) submitNow(pending);
+  };
+
+  const handleCancelClosedStore = () => {
+    pendingSubmitRef.current = null;
+    setIsClosedStoreConfirmOpen(false);
+  };
+
+  const submitNow = (e: React.FormEvent) => {
     isSubmittingRef.current = true;
     try {
       onSubmit(e);
@@ -520,6 +559,28 @@ export function PostErrandPage({
                 </span>
                 <span>Exact location pinned automatically</span>
               </div>
+              {selectedSupplier && (
+                <div
+                  data-testid="supplier-operating-hours"
+                  className={`mt-2 flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 border ${
+                    selectedOpenNow === false
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Operating hours:{' '}
+                    <strong className="text-slate-800">{selectedHours ?? HOURS_NOT_LISTED}</strong>
+                  </span>
+                  {selectedOpenNow === true && (
+                    <span className="ml-auto font-bold text-emerald-700">Open now</span>
+                  )}
+                  {selectedOpenNow === false && (
+                    <span className="ml-auto font-bold text-rose-700">Closed now</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Item Description */}
@@ -841,6 +902,91 @@ export function PostErrandPage({
           onClose={() => setIsPickupMapOpen(false)}
         />
       )}
+
+      {isClosedStoreConfirmOpen && selectedSupplier && (
+        <ClosedStoreDialog
+          supplierName={selectedSupplier.name}
+          hours={selectedHours}
+          onConfirm={handleConfirmClosedStore}
+          onCancel={handleCancelClosedStore}
+        />
+      )}
     </div>
+  );
+}
+
+function ClosedStoreDialog({
+  supplierName,
+  hours,
+  onConfirm,
+  onCancel,
+}: {
+  supplierName: string;
+  hours: string | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const goBackRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!dialog.open) dialog.showModal();
+    goBackRef.current?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      opener?.focus();
+    };
+  }, []);
+
+  return (
+    // Escape closes a native dialog by itself; onClose treats that the same as "Go back". The open check skips the
+    // close event queued by the effect cleanup when StrictMode re-runs the effect and re-opens the dialog.
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="closed-store-dialog-title"
+      onClose={() => { if (!dialogRef.current?.open) onCancel(); }}
+      className="bg-white rounded-2xl max-w-sm w-[calc(100%-2rem)] p-6 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+    >
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3 text-amber-600">
+          <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 id="closed-store-dialog-title" className="font-bold text-base text-slate-900">
+              Store may be closed
+            </h3>
+            <p className="text-sm text-slate-500">Outside operating hours</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-slate-600">
+          <strong className="text-slate-800">{supplierName}</strong> is outside its operating hours
+          {hours ? ` (${hours})` : ''}. A courier may not be able to buy your items until it opens. Post this errand
+          anyway?
+        </p>
+
+        <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button
+            ref={goBackRef}
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+          >
+            Go back
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
+          >
+            Post anyway
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
