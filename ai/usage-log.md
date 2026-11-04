@@ -6091,3 +6091,16 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 **Files changed:**
 - `apps/student-app/package.json` — merge resolution only (JSON, no disclosure header)
 - `ai/usage-log.md` — merge resolution plus this entry
+
+## 2026-11-04 21:05 SGT — Merge PR #225
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "i would like you to merge this as well" — merge PR #225 (N4.1.1 student-app request resilience, closes #224, refs #51).
+
+**Usage scenario:** Git/GitHub action the author explicitly requested. CI on the PR head `7017cdb` (review fixes plus the merge of `main` with #222 and #223) passed all 27 checks. This entry is committed on the feature branch first, as the logging rule requires, then the PR is merged into `main` with a merge commit; CI on this log-only commit will still be running at merge time, as it was for #222. Left to the author: the "Author review" lines, the compose-pause manual check from the PR body, and the uncommitted `docs/` changes in this working tree.
+
+**Files changed:**
+- none (this entry only)
