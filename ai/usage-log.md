@@ -5942,3 +5942,16 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/App.tsx` — accept and task-action catch blocks use `describeWriteFailure`; disclosure block updated
 - `apps/student-app/test/auth-fetch.test.ts` — six new cases (safe-read classification, jitter bounds, retry on throw/5xx, no retry on 4xx, last outcome returned/rethrown, lost-write copy)
 - `apps/student-app/package.json` — merge resolution only: `test:unit` lists both `assistant.test.ts` and `auth-fetch.test.ts` (JSON, no disclosure header)
+
+## 2026-11-04 19:25 SGT — Push, sub-issue #224 and PR #225 for the N4 §5.1 student-app controls
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok create a PR first" — push the branch and open the pull request for the deadline / safe-read retry / unconfirmed-write work.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. No issue closed by this PR alone existed (#51 is the whole N4 epic), so the author chose, when asked, to have a scoped sub-issue created: #224 "[Student App] [N4] Bound and retry authenticated requests; report lost write responses as unconfirmed (N4.1.1)", attached under #51. PR #225 (`Closes #224`, `Refs #51`) filled from `.github/pull_request_template.md`, quoting N4-C1 to N4-C4. GitHub returned repeated 502 / Internal Server Error responses during the push, issue and PR calls; each was checked for a partial result before retrying, and the issue and PR were created through the REST endpoint. CI on the PR head was queued/in progress at the time of writing; merge decision and the manual compose-pause check remain with the author.
+
+**Files changed:**
+- none (this entry only)
