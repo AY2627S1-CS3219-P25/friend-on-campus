@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #222 review: in Edit Supplier a coordinate the record never had is labelled optional ("Not recorded yet")
+ * instead of required, matching the relaxed validation for legacy suppliers.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted Supplier Filter, Add, Edit, Delete, and Details Inspection modals into src/components/SupplierModals.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -636,7 +641,12 @@ export function SupplierModals({
               {(['latitude', 'longitude'] as const).map((coordinate) => (
                 <div key={coordinate}>
                   <label htmlFor={`edit-supplier-${coordinate}`} className="block text-sm font-bold text-slate-700 mb-1">
-                    {coordinate === 'latitude' ? 'Latitude' : 'Longitude'} <span className="text-rose-600">*</span>
+                    {coordinate === 'latitude' ? 'Latitude' : 'Longitude'}{' '}
+                    {editingSupplier[coordinate] == null ? (
+                      <span className="text-xs font-normal text-slate-500">(not recorded yet, optional)</span>
+                    ) : (
+                      <span className="text-rose-600">*</span>
+                    )}
                   </label>
                   {editFormErrors[coordinate] && (
                     <p id={`edit-supplier-${coordinate}-error`} className="text-xs text-rose-600 mb-1">

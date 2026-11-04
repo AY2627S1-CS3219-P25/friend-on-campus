@@ -5785,3 +5785,39 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 **Verification:** All-workspace typecheck and production build, repository lint, diff whitespace checks, and CI matrix validation passed (18 workspace suites and 4 system commands). Supplier unit tests passed 53/53, Student App 25/25, Order Service 66/66. All three actual SQL migration regression tests passed using a temporary PGlite PostgreSQL engine outside the repository; no application dependency was added. Postman JSON parsed, all 138 embedded scripts compiled, and request routing targets validated. Direct admin component handler checks covered blank, repaired, cleared and zero-valued coordinates. Independent read-only review found no additional actionable regression. Docker, native PostgreSQL and a usable Playwright browser are unavailable locally; full-stack and native PostgreSQL 16 validation are delegated to GitHub CI, and map interaction needs browser verification. Historical migration checksum/development-reset implications are documented; no database reset, fake-coordinate backfill or data deletion was performed.
 
 **CI follow-up in the same prompt:** Run 41268660293 passed native PostgreSQL migration tests (3/3), API E2E (56/56), acceptance API (62/62), notification acceptance (22/22), CDC (7/7) and other service checks. Although GitHub marked all jobs successful, inspection of browser logs found only 35/41 UI checks passed: the floor placeholder matched both new coordinate inputs, and the runner swallowed recorded failures. Corrected the exact field selector, populated both required coordinates and set a failing exit status after cleanup/results on any failed UI check. Syntax, ESLint and focused selector checks passed; child-process execution of the actual reporting code confirmed 41/41 exits 0 and 35/41 exits 1 while preserving cleanup/output. Independent review found no additional issue. The follow-up commit triggers a fresh CI run; full browser verification remains pending at commit time.
+
+## 2026-11-04 19:58 SGT — Address the PR #222 review (seed keeps coordinate corrections, legacy edit, Prisma recovery test)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/pr220-review-and-ci
+
+**Prompt (summarised):** "look at the code review here and then attend to the code reviews" — a pasted external review of PR #225 (four findings, handled on `feat/n4-student-app-request-resilience`) and PR #222 (three findings, this entry). Work done in a separate worktree of this branch at head `10a5e21`.
+
+**Usage scenario:** Debugging assistance and implementation of review findings. Verified first: the container `CMD` reruns `seed.ts` on every start and its upsert `update` wrote CSV `latitude`/`longitude` unconditionally; `handleUpdateSupplier` called `validateSupplierForm`, which requires both coordinates, although `updateExistingSupplier` accepts omitted ones; the migration tests apply SQL through `pg` and never touch `_prisma_migrations`; the runbook's bare `npx prisma` commands read only `DATABASE_URL` while `scripts/prisma-migrate.mjs` maps `SUPPLIER_DATABASE_URL`. Fixes: the seed update keeps an existing coordinate (`existing?.latitude ?? data.latitude`) and only fills a missing one, `seedSuppliers` is exported and `main()` runs under `require.main === module` so the seed is testable with the repository's existing `mock.module('../src/database/client')` pattern; `validateSupplierForm(data, existing?)` lets a coordinate the edited record never had stay blank while creation and blanking a recorded value remain errors, and the edit modal labels such a field "not recorded yet, optional"; one migration test drives the real Prisma CLI (minimal `schema.prisma`, `?schema=` URL) through the original failing `SET NOT NULL` migration, `migrate resolve --rolled-back` and `migrate deploy`, asserting the failed record, the surviving legacy row and the applied history; the runbook shows setting `DATABASE_URL` and names the wrapper mapping. The admin-portal workspace had no unit suite, so `test:unit` was added to its `package.json` and to the CI unit matrix (`.github/workflows/ci.yml`), per the CI matrix sync rule. Verified: `npm run test:unit -w @campus-errand/admin-portal` (4 pass), `npm run test:unit -w @campus-errand/supplier-service` (55 pass, including the two new seed cases), `npm run ci:validate-tests` (19 workspace suites, 4 system commands), `npm run typecheck` for admin-portal and supplier-service (exit 0; all-workspace typecheck run too), ESLint on the seven changed source/test files (clean). Not verified locally: the new Prisma recovery test needs PostgreSQL (`test:migration`), and the Docker daemon was not running on this machine, so it will first run in the CI `Migration | supplier-service` job. No commit, push or review reply was made. Left to the author: review the seed policy (recorded coordinates are never overwritten by the CSV, so a deliberate CSV correction for an already-seeded row now needs an admin edit), the merge with #225 (`apps/student-app/package.json`: keep both `auth-fetch.test.ts` and `supplier-map.test.ts`; `ai/usage-log.md`), and the worktree removal once done.
+
+**Files changed:**
+- `services/supplier-service/src/database/seed.ts` — update keeps existing coordinates, fills missing ones; `seedSuppliers` exported; `main()` guarded by `require.main === module`; disclosure block updated
+- `services/supplier-service/test/seed.test.ts` — new: admin correction survives a second seed run; legacy null row is filled from the CSV (picked up by the existing `test/**/*.test.ts` glob)
+- `services/supplier-service/test/coordinates.migration.ts` — new test: failed original migration → `migrate resolve --rolled-back` → `migrate deploy` through the Prisma CLI; imports extended; disclosure block updated
+- `apps/admin-portal/src/constants.ts` — `validateSupplierForm(data, existing?)` per-coordinate rule; disclosure block updated
+- `apps/admin-portal/src/App.tsx` — edit path passes `editingSupplier` to the validator; disclosure block updated
+- `apps/admin-portal/src/components/SupplierModals.tsx` — edit modal marks a never-recorded coordinate as optional instead of required; disclosure block updated
+- `apps/admin-portal/test/supplier-form.test.ts` — new: creation requires both, legacy blanks allowed on edit, recorded value cannot be blanked, NaN rejected
+- `apps/admin-portal/package.json` — new `test:unit` script (JSON, no disclosure header)
+- `.github/workflows/ci.yml` — admin-portal entry in the unit matrix; disclosure block updated
+- `docs/services/supplier-service/coordinate-upgrades.md` — `DATABASE_URL` setting for the bare Prisma commands, wrapper mapping, seed behaviour, recovery-path test; disclosure block updated
+- `docs/services/supplier-service/README.md` — seed description mentions preserved coordinates; disclosure block updated
+
+## 2026-11-04 20:10 SGT — Commit, push and merge the PR #222 review fixes
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/pr220-review-and-ci
+
+**Prompt (summarised):** "ok please do thus" — execute the recommended plan: commit each branch separately, push, merge #222 once CI is green, then bring `origin/main` into the #225 branch, and remove the worktree.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. This commit carries the review fixes from the previous entry plus this log entry; it is pushed and PR #222 is merged into `main` with a merge commit once CI is green. The "Author review" lines in the disclosure blocks are left for the author (course rule). The external review posted no GitHub threads, so no review replies were made. Worktree removed after the push.
+
+**Files changed:**
+- none beyond the previous entry (this entry only)

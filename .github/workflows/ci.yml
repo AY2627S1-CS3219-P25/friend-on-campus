@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+# Scope: Added the admin-portal test:unit entry to the unit matrix (supplier form validation test, PR #222 review).
+# Author review: <to be completed by Reallyeasy1>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-01
 # Scope: Added the Supplier Service migration regression suite to CI.
 # Author review: <to be completed by Reallyeasy1>
@@ -149,6 +153,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: admin-portal
+            workspace: '@campus-errand/admin-portal'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: credit-service
             workspace: '@campus-errand/credit-service'
             script: test:unit

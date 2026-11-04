@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+Scope: PR #222 review: seed description notes that recorded coordinates survive a reseed.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-01
 Scope: Link the supplier coordinate upgrade and recovery instructions.
 Author review: <to be completed by Reallyeasy1>
@@ -28,7 +32,7 @@ Supplier Service owns the campus pickup directory in `supplier_db`. Reads are pu
 
 Readiness runs SELECT 1 and does not verify the suppliers table/schema. There is no RabbitMQ producer/consumer, application retry loop, or cross-service transaction in this service. `index.ts` registers SIGINT/SIGTERM handlers; shutdown disconnects Prisma, then closes the HTTP server.
 
-Seed source is CLI path, then SEED_CSV_PATH, then `data/csv/supplier-seed-data.csv`. It validates expected headers/count/location/coordinates and upserts SUP-NNN records; existing IDs and active state are preserved while descriptive data updates. Sequential seed writes are not one atomic batch. Container startup applies migrations and seeds before listening.
+Seed source is CLI path, then SEED_CSV_PATH, then `data/csv/supplier-seed-data.csv`. It validates expected headers/count/location/coordinates and upserts SUP-NNN records; existing IDs, active state and already-recorded coordinates are preserved while descriptive data updates (a missing coordinate is filled from the CSV). Sequential seed writes are not one atomic batch. Container startup applies migrations and seeds before listening.
 
 Use [contracts and data](contracts-and-data.md) and [runtime/tests](runtime-and-testing.md). Workspace scripts provide dev, db:generate, db:deploy, db:seed and unit testing. Source-specific limits and test results are recorded centrally.
 

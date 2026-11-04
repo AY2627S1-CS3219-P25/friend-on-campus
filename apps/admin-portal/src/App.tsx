@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #222 review: the edit form validates against the supplier being edited, so an unrelated edit to a legacy
+ * supplier without coordinates is no longer blocked by "Latitude/Longitude is required".
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Normalize legacy missing coordinates when opening the supplier edit form.
  * Author review: <to be completed by Reallyeasy1>
@@ -427,7 +432,7 @@ export default function App() {
   const handleUpdateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSupplier) return;
-    const errors = validateSupplierForm(editFormData);
+    const errors = validateSupplierForm(editFormData, editingSupplier);
     if (Object.keys(errors).length > 0) {
       setEditFormErrors(errors);
       return;

@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #222 review (P3): one test drives the real Prisma CLI through the documented recovery path. The original
+ *        NOT NULL migration is applied to a legacy row and fails, Prisma records the failed migration, then the
+ *        runbook's `migrate resolve --rolled-back` and `migrate deploy` run against the corrected history and the
+ *        legacy row survives with its nulls.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Exercise coordinate migrations on fresh, legacy and already-constrained PostgreSQL schemas.
  * Author review: <to be completed by Reallyeasy1>
@@ -7,7 +14,9 @@
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { Client } from 'pg';
@@ -85,3 +94,78 @@ test('forward migration reconciles the original successfully applied NOT NULL ch
     { column_name: 'longitude', is_nullable: 'YES' },
   ]);
 }));
+
+// AI-generated (edited by Reallyeasy1): PR #222 review (P3). The runbook's recovery path, driven through the real
+// Prisma CLI against a disposable schema (selected with the URL's `schema` parameter, so `_prisma_migrations` is
+// isolated too). A minimal schema.prisma is enough: `migrate deploy` and `migrate resolve` only read the datasource.
+const prismaCli = require.resolve('prisma/build/index.js');
+const originalNotNullSql =
+  'ALTER TABLE "suppliers" ALTER COLUMN "latitude" SET NOT NULL,\nALTER COLUMN "longitude" SET NOT NULL;\n';
+
+function runPrisma(dir: string, databaseUrl: string, ...args: string[]) {
+  return new Promise<{ ok: boolean; output: string }>((resolve) => {
+    execFile(
+      process.execPath,
+      [prismaCli, 'migrate', ...args, '--schema', join(dir, 'schema.prisma')],
+      { cwd: dir, env: { ...process.env, DATABASE_URL: databaseUrl, CHECKPOINT_DISABLE: '1' } },
+      (error, stdout, stderr) => resolve({ ok: !error, output: `${stdout}\n${stderr}` }),
+    );
+  });
+}
+
+test('a failed original coordinate migration is recovered with the documented resolve and deploy commands', async () => {
+  const schema = `supplier_test_${randomUUID().replaceAll('-', '')}`;
+  const schemaUrl = new URL(url);
+  schemaUrl.searchParams.set('schema', schema);
+  const dir = await mkdtemp(join(tmpdir(), 'supplier-migrations-'));
+  const source = join(__dirname, '../prisma/migrations');
+  const client = new Client({ connectionString: url });
+  await client.connect();
+  try {
+    await client.query(`CREATE SCHEMA "${schema}"`);
+    await client.query(`SET search_path TO "${schema}"`);
+    await writeFile(
+      join(dir, 'schema.prisma'),
+      'datasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n',
+    );
+    for (const name of initialMigrations) await cp(join(source, name), join(dir, 'migrations', name), { recursive: true });
+    let result = await runPrisma(dir, schemaUrl.href, 'deploy');
+    assert.ok(result.ok, result.output);
+    await insertSupplier(client, 'LEGACY', null, null);
+
+    // The original PR #220 migration, as it shipped, fails on the legacy row and Prisma records the failed attempt.
+    await mkdir(join(dir, 'migrations', coordinateMigrations[0]), { recursive: true });
+    await writeFile(join(dir, 'migrations', coordinateMigrations[0], 'migration.sql'), originalNotNullSql);
+    result = await runPrisma(dir, schemaUrl.href, 'deploy');
+    assert.equal(result.ok, false, result.output);
+    const failed = await client.query(
+      'SELECT finished_at, rolled_back_at FROM _prisma_migrations WHERE migration_name = $1',
+      [coordinateMigrations[0]],
+    );
+    assert.equal(failed.rows.length, 1);
+    assert.equal(failed.rows[0].finished_at, null);
+    assert.equal(failed.rows[0].rolled_back_at, null);
+
+    // Recovery: the corrected history from the repository, then the runbook's two commands.
+    for (const name of coordinateMigrations) await cp(join(source, name), join(dir, 'migrations', name), { recursive: true });
+    result = await runPrisma(dir, schemaUrl.href, 'resolve', '--rolled-back', coordinateMigrations[0]);
+    assert.ok(result.ok, result.output);
+    result = await runPrisma(dir, schemaUrl.href, 'deploy');
+    assert.ok(result.ok, result.output);
+
+    const { rows } = await client.query('SELECT supplier_code, latitude, longitude FROM suppliers');
+    assert.deepEqual(rows, [{ supplier_code: 'LEGACY', latitude: null, longitude: null }]);
+    const applied = await client.query(
+      'SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name',
+    );
+    assert.deepEqual(applied.rows.map((row) => row.migration_name), [...initialMigrations, ...coordinateMigrations]);
+  } finally {
+    try {
+      await client.query('SET search_path TO public');
+      await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+    } finally {
+      await client.end();
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+});
