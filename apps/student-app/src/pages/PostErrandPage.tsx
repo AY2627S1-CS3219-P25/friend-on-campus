@@ -46,6 +46,13 @@
  * under the Pickup Store picker, and posting while the store is outside its hours first asks for confirmation in a
  * dialog ("Post anyway" / "Go back"). Stores with no readable hours post without the dialog.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Drop-off estimator (author's decisions A16-A18, D5, D9): an optional drop-off point under the drop-off field
+ * (building search, or a map click when not listed), the suggested reward with its straight-line distance in the
+ * reward card, and the suggestion prefilling the reward until the requester sets their own (typing, stepper,
+ * presets or an applied assistant draft that carries a reward). A store without coordinates gives no suggestion.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by yanhwee)
@@ -62,6 +69,7 @@ import {
   FileText,
   Map as MapIcon,
   MapPin,
+  Navigation,
   RefreshCw,
   ShoppingBag,
   Sparkles,
@@ -72,7 +80,10 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { AuthFetchFn } from '../api/auth';
 import { parseErrandDraft } from '../api/orders';
+import { DropoffPicker, type DropoffPoint } from '../map/DropoffPicker';
 import { SupplierPickupMap } from '../map/SupplierPickupMap';
+import { estimateRewardCredits, haversineKm, supplierPoint } from '../map/creditEstimate';
+import { NUS_BUILDINGS, NUS_SPAN_KM, matchBuildingInText } from '../map/nusBuildings';
 import { useMinuteClock } from '../suppliers/minuteClock';
 import { HOURS_NOT_LISTED, formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 
@@ -85,6 +96,11 @@ export interface PostErrandFormData {
   dropoffLocation: string;
   rewardCredits: number;
   durationMinutes: number;
+  // AI-generated (edited by huangjiaxi1111)
+  /** Optional drop-off point behind the suggested reward. */
+  dropoffPoint: DropoffPoint | null;
+  /** True once the requester sets the reward themselves; the suggestion then stops prefilling it. */
+  rewardEdited: boolean;
 }
 
 interface PostErrandPageProps {
@@ -161,6 +177,24 @@ export function PostErrandPage({
   const isOverdraw = availableCredits !== null && formData.rewardCredits > availableCredits;
   const isZeroBalance = availableCredits !== null && availableCredits <= 0;
 
+  // Suggested reward from the pickup store to the drop-off point (linear 5-70 credits over the NUS span).
+  const pickupPoint = supplierPoint(selectedSupplier);
+  const suggestedReward = estimateRewardCredits(pickupPoint, formData.dropoffPoint, NUS_SPAN_KM);
+  const suggestedDistanceKm =
+    pickupPoint && formData.dropoffPoint ? haversineKm(pickupPoint, formData.dropoffPoint) : null;
+
+  useEffect(() => {
+    if (suggestedReward === null) return;
+    setFormData((prev) =>
+      prev.rewardEdited || prev.rewardCredits === suggestedReward ? prev : { ...prev, rewardCredits: suggestedReward }
+    );
+  }, [suggestedReward, setFormData]);
+
+  // The drop-off text is the requester's own exact address; picking a point never writes to it.
+  const handleDropoffPointChange = (point: DropoffPoint | null) => {
+    setFormData((prev) => ({ ...prev, dropoffPoint: point }));
+  };
+
   const handleExtractDraft = async () => {
     if (!assistantPrompt.trim()) return;
     if (!authFetch) {
@@ -207,6 +241,13 @@ export function PostErrandPage({
       }
     }
 
+    const draftHasReward =
+      typeof extractedDraft.rewardCredits === 'number' && Number.isFinite(extractedDraft.rewardCredits);
+    // Select the drop-off building the draft names, if it is in the NUS list; otherwise keep the current point.
+    const draftBuilding = extractedDraft.dropoffLocation
+      ? matchBuildingInText(NUS_BUILDINGS, extractedDraft.dropoffLocation)
+      : null;
+
     setFormData((prev) => ({
       ...prev,
       supplierId: targetSupplierId,
@@ -215,10 +256,11 @@ export function PostErrandPage({
       itemDescription: extractedDraft.itemDescription || prev.itemDescription,
       dropoffLocation: extractedDraft.dropoffLocation || prev.dropoffLocation,
       specialNotes: extractedDraft.specialNotes ?? prev.specialNotes,
-      rewardCredits:
-        typeof extractedDraft.rewardCredits === 'number' && Number.isFinite(extractedDraft.rewardCredits)
-          ? extractedDraft.rewardCredits
-          : prev.rewardCredits,
+      rewardCredits: draftHasReward ? (extractedDraft.rewardCredits as number) : prev.rewardCredits,
+      rewardEdited: prev.rewardEdited || draftHasReward,
+      dropoffPoint: draftBuilding
+        ? { latitude: draftBuilding.latitude, longitude: draftBuilding.longitude, buildingName: draftBuilding.name }
+        : prev.dropoffPoint,
       durationMinutes:
         typeof extractedDraft.durationMinutes === 'number' && Number.isFinite(extractedDraft.durationMinutes)
           ? extractedDraft.durationMinutes
@@ -277,11 +319,11 @@ export function PostErrandPage({
   };
 
   const handlePresetCredits = (credits: number) => {
-    setFormData((prev) => ({ ...prev, rewardCredits: credits }));
+    setFormData((prev) => ({ ...prev, rewardCredits: credits, rewardEdited: true }));
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
       {/* Header section */}
       <div className="border-b border-slate-200/80 pb-3">
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Post New Errand</h2>
@@ -616,6 +658,8 @@ export function PostErrandPage({
                 id="errand-dropoff-location"
                 type="text"
                 required
+                pattern=".*\S.*"
+                title="Enter the exact drop-off address, e.g. room or table number"
                 maxLength={255}
                 placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
                 value={formData.dropoffLocation}
@@ -626,6 +670,14 @@ export function PostErrandPage({
                 Include room or table number and any visual cues to help your courier find you quickly.
               </p>
             </div>
+
+            {/* Drop-off Map Pin (optional; drives the suggested reward) */}
+            <DropoffPicker
+              value={formData.dropoffPoint}
+              onChange={handleDropoffPointChange}
+              pickup={pickupPoint}
+              pickupName={selectedSupplier?.name}
+            />
 
             {/* Special Notes */}
             <div>
@@ -658,9 +710,6 @@ export function PostErrandPage({
                   <Coins className="w-4 h-4 text-amber-600" />
                   <span>Courier Reward</span>
                 </label>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900">
-                  Closed Economy
-                </span>
               </div>
 
               {/* Reward Stepper & Input */}
@@ -673,6 +722,7 @@ export function PostErrandPage({
                     setFormData((f) => ({
                       ...f,
                       rewardCredits: Math.max(1, (Number.isFinite(f.rewardCredits) ? f.rewardCredits : 1) - 1),
+                      rewardEdited: true,
                     }))
                   }
                   className="w-11 h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-black text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
@@ -693,6 +743,7 @@ export function PostErrandPage({
                       setFormData((current) => ({
                         ...current,
                         rewardCredits: event.target.valueAsNumber,
+                        rewardEdited: true,
                       }))
                     }
                     className={`reward-input w-full rounded-xl border bg-white py-2.5 px-3 text-center font-black text-lg shadow-inner outline-none transition ${
@@ -716,6 +767,7 @@ export function PostErrandPage({
                         availableCredits ?? 2147483647,
                         (Number.isFinite(f.rewardCredits) ? f.rewardCredits : 0) + 1
                       ),
+                      rewardEdited: true,
                     }))
                   }
                   className="w-11 h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-black text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
@@ -723,6 +775,25 @@ export function PostErrandPage({
                   +
                 </button>
               </div>
+
+              {suggestedReward !== null && suggestedDistanceKm !== null && (
+                <div
+                  data-testid="suggested-reward"
+                  className="mt-3 flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 border bg-white/70 border-amber-200 text-amber-900"
+                >
+                  <Navigation className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                  <span className="min-w-0">
+                    Suggested <strong>{suggestedReward} C</strong> &middot; {suggestedDistanceKm.toFixed(2)} km from{' '}
+                    {selectedSupplier?.name}
+                  </span>
+                </div>
+              )}
+              {formData.dropoffPoint && selectedSupplier && !pickupPoint && (
+                <div className="mt-3 flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 border bg-white/70 border-slate-200 text-slate-600">
+                  <Navigation className="w-3.5 h-3.5 shrink-0" />
+                  <span>This pickup spot has no map location, so there is no suggested reward.</span>
+                </div>
+              )}
 
               {/* Quick Presets */}
               <div className="mt-3 flex flex-wrap items-center gap-1.5">

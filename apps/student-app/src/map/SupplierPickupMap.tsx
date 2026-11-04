@@ -17,6 +17,10 @@
  * an undefined `s`), and its "Closed now" follows useMinuteClock rather than the render-time clock.
  * Author review: <to be completed by huangjiaxi1111>
  *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: The marker icon fix, fallback view and tile settings moved to ./leafletSetup so the drop-off maps share them.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Group coincident markers and let users select a named supplier in the popup.
  * Author review: <to be completed by Reallyeasy1>
@@ -24,28 +28,13 @@
 
 import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import 'leaflet/dist/leaflet.css';
 import { MapPin, X } from 'lucide-react';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { useMinuteClock } from '../suppliers/minuteClock';
 import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 import type { SupplierDTO } from '@campus-errand/common-dtos';
+import { NUS_FALLBACK_CENTER, NUS_FALLBACK_ZOOM, OSM_ATTRIBUTION, OSM_TILE_URL } from './leafletSetup';
 import { groupSuppliersByLocation, type SupplierLocation } from './supplierLocations';
-
-// Use bundled icons so Vite's fingerprinted asset paths resolve correctly.
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
-
-// NUS Kent Ridge campus centre — used only if no supplier has usable coordinates to fit to.
-const NUS_FALLBACK_CENTER: [number, number] = [1.2966, 103.7764];
-const NUS_FALLBACK_ZOOM = 16;
 
 interface SupplierPickupMapProps {
   suppliers: SupplierDTO[];
@@ -106,10 +95,7 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
             </div>
           ) : (
             <MapContainer center={NUS_FALLBACK_CENTER} zoom={NUS_FALLBACK_ZOOM} className="h-full w-full">
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
+              <TileLayer attribution={OSM_ATTRIBUTION} url={OSM_TILE_URL} />
               <FitBoundsToMarkers locations={locations} />
               {locations.map((location) => (
                 <Marker

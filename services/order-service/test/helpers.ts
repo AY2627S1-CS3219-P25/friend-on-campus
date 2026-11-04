@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Fake createOrderWithOutbox keeps the optional drop-off coordinates and estimated credit, like the real one.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Fake repository mirrors the version-2 outbox facts of the real one: payloads completed with completeEvent(),
  * order.rejected on a failed reservation, order.unassigned on both unassignment paths, SYSTEM actor on created/expired.
@@ -27,21 +31,21 @@
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
-import { generateKeyPairSync } from 'node:crypto';
-import type { Express } from 'express';
-import type { AddressInfo } from 'node:net';
 import type { CreditReservationResultEvent, OrderCreatedEvent, OrderDTO, OrderExpiredEvent } from '@campus-errand/common-dtos';
-import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
+import type { Express } from 'express';
+import { generateKeyPairSync } from 'node:crypto';
+import type { AddressInfo } from 'node:net';
 import type { SupplierClient, SupplierDetails } from '../src/clients/supplier.client';
 import {
   completeEvent,
-  OrderNotFoundError,
   OrderAuthorizationError,
   type OrderEventDraft,
   type OrderLifecycleEvent,
+  OrderNotFoundError,
   OrderStateConflictError,
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
+import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
 
 // AI-generated (edited by Reallyeasy1)
 const systemActor = (orderId: string) =>
@@ -79,6 +83,9 @@ export function makeFakeOrderRepository() {
         requesterContactNote: data.requesterContactNote,
         courierContactNote: null,
         rewardCredits: data.rewardCredits,
+        dropoffLatitude: data.dropoffLatitude,
+        dropoffLongitude: data.dropoffLongitude,
+        estimatedRewardCredits: data.estimatedRewardCredits,
         status: initialStatus,
         rejectionReason: null,
         expiresAt: data.expiresAt.toISOString(),

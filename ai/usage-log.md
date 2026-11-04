@@ -6138,3 +6138,65 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/pages/PostErrandPage.tsx` — closed-store confirmation is a native `<dialog>` opened with `showModal()` (background inert), focuses "Go back", restores focus to the opener, Escape cancels; status label uses `useMinuteClock`
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Pickup hours row rendered for any known supplier with "Not listed" fallback; label and Accept reminder use `useMinuteClock`
 - `apps/student-app/src/map/SupplierPickupMap.tsx` — tooltip lists every supplier at a grouped pin (fixes undefined `s`); "Closed now" uses `useMinuteClock`
+
+## 2026-11-04 23:19 SGT — Implement drop-off estimator from dev doc and rebuild
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** feat/credit-estimator
+
+**Prompt (summarised):** Implement the drop-off location / estimated credit feature described in `dropoff-pin-credit-estimate.md`, then rebuild.
+
+**Usage scenario:** Implementation code, tests and boilerplate for a design the author finalised. The doc's open decisions were put to the author before any code was written, and the author decided them: D10 is a static building snapshot in the student app; D9 is linear from 5 to 70 credits (not 95) over D_MAX; there is no campus outline check on map clicks, which reuse the pickup map's Leaflet/OSM setup; D11/D13 store coordinates only on the order, and duplicate building names are merged with one record's coordinates kept; D5 prefills the reward only until the requester edits it; and the §6.2 order contract stands as written, with D2 = no server outline check and D8 = no event fields. Calls made in implementation and left for the author to confirm: an applied F6 draft that carries a reward counts as a manual edit; picking a building fills an empty drop-off text field with its name; and D_MAX is computed from the de-duplicated snapshot (2.233 km, not the doc's 2.245 km). Verified with `npm run typecheck`, `npm run lint`, `npm run test:unit` (all pass) and `npm run ci:validate-tests`; rebuilt `order-service` and `student-app` with `docker compose up -d --build` (the migration applied, both containers healthy). No live API post was made. The docs listed in §8 and the dev doc's decision table were not updated.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — optional `dropoffLatitude`, `dropoffLongitude`, `estimatedRewardCredits` on `OrderDTO` and `CreateOrderRequest`
+- `services/order-service/prisma/schema.prisma` — three nullable columns on `Order`
+- `services/order-service/prisma/migrations/20261104120000_order_dropoff_estimate/migration.sql` — new: adds the columns
+- `services/order-service/src/orders/order.service.ts` — all-or-none and range validation; fields passed to the repository
+- `services/order-service/src/repositories/order.repository.ts` — `CreateOrderParams` and create write carry the fields
+- `services/order-service/src/orders/order.types.ts` — `toOrderDTO` maps the fields (NULL → undefined)
+- `services/order-service/test/helpers.ts` — fake repository keeps the fields
+- `services/order-service/test/order.service.test.ts` — tests: stored, absent, differing reward accepted, partial/out-of-range/non-integer → 400
+- `scripts/fetch-nus-buildings.mjs` — new: regenerates the building snapshot from the NUS Digital Twin API
+- `apps/student-app/src/map/nusBuildingsData.ts` — new, generated: 261-record snapshot taken 2026-11-04
+- `apps/student-app/src/map/nusBuildings.ts` — new: name de-duplication, building search, `NUS_SPAN_KM`
+- `apps/student-app/src/map/creditEstimate.ts` — new: haversine, longest span, linear 5–70 estimate, supplier point
+- `apps/student-app/src/map/leafletSetup.ts` — new: shared marker icon fix, tile settings, drop-off icon
+- `apps/student-app/src/map/DropoffPicker.tsx` — new: building search and "Not listed? Pick on map" click map
+- `apps/student-app/src/map/ErrandRouteMap.tsx` — new: read-only mini map for the errand page
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — uses `leafletSetup` (no behaviour change)
+- `apps/student-app/src/pages/PostErrandPage.tsx` — drop-off picker, suggestion text, prefill-until-edited
+- `apps/student-app/src/App.tsx` — form state (`dropoffPoint`, `rewardEdited`), reset, sends the three fields
+- `apps/student-app/src/components/ErrandCard.tsx` — "Est. M" / "No estimate" on the reward badge
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Drop-off & estimate card (map, coordinates, distance, estimated vs offered)
+- `apps/student-app/test/credit-estimate.test.ts` — new: estimator, span, de-duplication and search tests
+- `apps/student-app/package.json` — `test:unit` appends `test/credit-estimate.test.ts` (JSON, no disclosure header)
+
+## 2026-11-04 23:50 SGT — Show the pickup location clearly on the drop-off maps
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** feat/credit-estimator
+
+**Prompt (summarised):** On the map, show the pickup location as well.
+
+**Usage scenario:** UI implementation of the author's request. The pickup pin was already drawn, but the drop-off map centred on the current pin and the pickup label appeared only on hover. Now the drop-off map opens fitted to the pickup and the current drop-off. Both maps give their pins permanent labels, the drop-off map has a legend, and a note appears when no pickup store with coordinates is selected. Verified with the student-app typecheck and ESLint on `src/map`; rebuilt `student-app` (healthy). Not checked visually in a browser.
+
+**Files changed:**
+- `apps/student-app/src/map/DropoffPicker.tsx` — fit on open, permanent pin labels, legend, no-pickup note
+- `apps/student-app/src/map/ErrandRouteMap.tsx` — permanent pin labels, slightly larger fit padding
+
+## 2026-11-05 00:15 SGT — Post and errand pages aligned with Feed, Spots and Tasks
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** feat/credit-estimator
+
+**Prompt (summarised):** The Post and errand pages look centre-aligned, unlike Feed, Spots and Tasks.
+
+**Usage scenario:** UI fix. Both pages wrapped their content in `max-w-5xl mx-auto` (from earlier work, not the estimator), while Feed, Spots and Tasks fill the main area. Removed the wrapper from both. Checked with Playwright screenshots of Post, the errand page and Feed after rebuilding `student-app` (healthy); student-app typecheck and ESLint pass.
+
+**Files changed:**
+- `apps/student-app/src/pages/PostErrandPage.tsx` — removed the centred `max-w-5xl` wrapper
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — removed the centred `max-w-5xl` wrapper

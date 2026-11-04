@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: CreateOrderParams and the create write carry the optional drop-off coordinates and estimated credit.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): the list filter is built as Prisma.OrderWhereInput instead of Record<string, any>.
  * Author review: <to be completed by Reallyeasy1>
@@ -63,6 +67,9 @@ export interface CreateOrderParams {
   dropoffLocation: string;
   requesterContactNote?: string;
   rewardCredits: number;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  estimatedRewardCredits?: number;
   expiresAt: Date;
 }
 
@@ -123,6 +130,9 @@ async function handleCreateOrderWithOutbox(
         dropoffLocation: data.dropoffLocation,
         requesterContactNote: data.requesterContactNote,
         rewardCredits: data.rewardCredits,
+        dropoffLatitude: data.dropoffLatitude,
+        dropoffLongitude: data.dropoffLongitude,
+        estimatedRewardCredits: data.estimatedRewardCredits,
         status: initialStatus,
         expiresAt: data.expiresAt,
         version: 1,

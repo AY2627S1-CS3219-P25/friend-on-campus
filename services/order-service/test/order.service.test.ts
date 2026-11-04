@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Tests for the optional drop-off coordinates and estimated credit on createOrder: stored when all three are
+ * sent, absent when none are, 400 on a partial set, out-of-range coordinates or a non-integer estimate, and a reward
+ * that differs from the estimate is accepted.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Version-2 outbox facts of the author's Notification Redesign (§6): a failed reservation now writes
  * order.rejected; new suite asserts actor, reason code, committed version/status, cancellation assignee and
@@ -173,6 +179,56 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(order.status, 'PENDING');
       assert.equal(order.rewardCredits, 2147483647);
       assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
+    });
+
+    // AI-generated (edited by huangjiaxi1111)
+    describe('drop-off estimate fields', () => {
+      const baseRequest = { supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'COM1', rewardCredits: 20 };
+      const estimate = { dropoffLatitude: 1.29496, dropoffLongitude: 103.77373, estimatedRewardCredits: 25 };
+
+      it('stores and returns all three fields when they are sent together', async () => {
+        const { service, fakeRepo } = setupTest();
+        const order = await service.createOrder(REQUESTER_ID, { ...baseRequest, ...estimate });
+        assert.equal(order.dropoffLatitude, 1.29496);
+        assert.equal(order.dropoffLongitude, 103.77373);
+        assert.equal(order.estimatedRewardCredits, 25);
+        assert.equal(fakeRepo.orders[0].estimatedRewardCredits, 25);
+      });
+
+      it('leaves the fields absent when none are sent', async () => {
+        const { service } = setupTest();
+        const order = await service.createOrder(REQUESTER_ID, baseRequest);
+        assert.equal(order.dropoffLatitude, undefined);
+        assert.equal(order.dropoffLongitude, undefined);
+        assert.equal(order.estimatedRewardCredits, undefined);
+      });
+
+      it('accepts a reward that differs from the estimate', async () => {
+        const { service } = setupTest();
+        const order = await service.createOrder(REQUESTER_ID, { ...baseRequest, ...estimate, rewardCredits: 60 });
+        assert.equal(order.rewardCredits, 60);
+        assert.equal(order.estimatedRewardCredits, 25);
+      });
+
+      it('rejects a partial set, out-of-range coordinates and a non-integer estimate with 400', async () => {
+        const { service, fakeRepo } = setupTest();
+        const invalid = [
+          { dropoffLatitude: 1.29496, dropoffLongitude: 103.77373 },
+          { estimatedRewardCredits: 25 },
+          { ...estimate, dropoffLatitude: 91 },
+          { ...estimate, dropoffLongitude: -181 },
+          { ...estimate, dropoffLatitude: Number.NaN },
+          { ...estimate, estimatedRewardCredits: 12.5 },
+          { ...estimate, estimatedRewardCredits: 0 },
+        ];
+        for (const fields of invalid) {
+          await assert.rejects(
+            service.createOrder(REQUESTER_ID, { ...baseRequest, ...fields }),
+            (error: Error) => error instanceof OrderValidationError && error.status === 400,
+          );
+        }
+        assert.equal(fakeRepo.orders.length, 0);
+      });
     });
 
     it('rejects order creation if requesterId or supplierId is not a valid UUID', async () => {
