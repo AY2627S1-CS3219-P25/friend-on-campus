@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #222 review: in Edit Supplier a coordinate the record never had is labelled optional ("Not recorded yet")
+ * instead of required, matching the relaxed validation for legacy suppliers.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted Supplier Filter, Add, Edit, Delete, and Details Inspection modals into src/components/SupplierModals.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
@@ -10,6 +15,10 @@
  * matching the supplier-service DB columns made NOT NULL on 2026-10-17. newSupplier/setNewSupplier widened to
  * number | '' for latitude/longitude so an empty number input is representable before the first keystroke.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Expose editable coordinates so admins can repair legacy supplier locations.
+ * Author review: <to be completed by Reallyeasy1>
  */
 
 // AI-generated (edited by yanhwee)
@@ -625,6 +634,43 @@ export function SupplierModals({
                   className="w-full text-sm p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
+            </div>
+
+            {/* AI-generated (edited by Reallyeasy1) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(['latitude', 'longitude'] as const).map((coordinate) => (
+                <div key={coordinate}>
+                  <label htmlFor={`edit-supplier-${coordinate}`} className="block text-sm font-bold text-slate-700 mb-1">
+                    {coordinate === 'latitude' ? 'Latitude' : 'Longitude'}{' '}
+                    {editingSupplier[coordinate] == null ? (
+                      <span className="text-xs font-normal text-slate-500">(not recorded yet, optional)</span>
+                    ) : (
+                      <span className="text-rose-600">*</span>
+                    )}
+                  </label>
+                  {editFormErrors[coordinate] && (
+                    <p id={`edit-supplier-${coordinate}-error`} className="text-xs text-rose-600 mb-1">
+                      {editFormErrors[coordinate]}
+                    </p>
+                  )}
+                  <input
+                    id={`edit-supplier-${coordinate}`}
+                    type="number"
+                    step="any"
+                    value={editFormData[coordinate] ?? ''}
+                    aria-invalid={Boolean(editFormErrors[coordinate])}
+                    aria-describedby={editFormErrors[coordinate] ? `edit-supplier-${coordinate}-error` : undefined}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEditFormData({ ...editFormData, [coordinate]: value === '' ? undefined : Number(value) });
+                      if (editFormErrors[coordinate]) setEditFormErrors({ ...editFormErrors, [coordinate]: '' });
+                    }}
+                    className={`w-full text-sm p-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${
+                      editFormErrors[coordinate] ? 'border-rose-400' : 'border-slate-300'
+                    }`}
+                  />
+                </div>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

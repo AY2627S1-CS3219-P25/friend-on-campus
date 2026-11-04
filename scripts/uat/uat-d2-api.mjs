@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-01
+// Scope: Added required coordinates to the successful supplier CRUD fixture.
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Google Antigravity Agent, date: 2026-10-21
 // Scope: Standardized default JSON result path (UAT_OUT) under root git-ignored test-results/uat-d2-api-results.json instead of os.tmpdir().
 // Author review: <to be completed by author after review>
@@ -223,7 +227,8 @@ let firstSupplier;
 
 // ---------------------------------------------------------------- supplier writes (RBAC + CRUD)
 {
-  const body = { name: `UAT Cafe ${stamp}`, campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', building: 'COM3', floor: '1', description: 'created by D2 UAT' };
+  // AI-generated (edited by Reallyeasy1)
+  const body = { name: `UAT Cafe ${stamp}`, campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', building: 'COM3', floor: '1', latitude: 1.2948308, longitude: 103.7716305, description: 'created by D2 UAT' };
   const anon = await call(`${GW}/api/suppliers`, { method: 'POST', body });
   record('W1', 'rbac', 'POST /suppliers without token -> 401', anon.status === 401, `HTTP ${anon.status} ${code(anon)}`);
   const stu = await call(`${GW}/api/suppliers`, { method: 'POST', token: student, body });

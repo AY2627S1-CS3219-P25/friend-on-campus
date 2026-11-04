@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Clarified coordinate validation while legacy database values remain nullable.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted supplier domain validation, duplicate location conflict checks, and CRUD business logic from supplierRoutes.ts into supplierService.ts.
  * Author review: (to be completed by yanhwee)
@@ -146,8 +150,7 @@ export async function updateExistingSupplier(
   }
 
   // AI-generated (edited by jagdeepsh)
-  // latitude/longitude may be left out of a PUT, but if sent must be a valid number — never null/NaN,
-  // since the column is NOT NULL.
+  // Omitted coordinates preserve legacy values; explicit updates must be finite numbers.
   for (const key of ['latitude', 'longitude'] as const) {
     if (body[key] !== undefined && (typeof body[key] !== 'number' || !Number.isFinite(body[key]))) {
       throw new SupplierValidationError(`${key} must be a valid number`);
