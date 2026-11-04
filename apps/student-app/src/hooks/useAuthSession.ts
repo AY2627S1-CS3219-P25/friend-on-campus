@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: N4 §5.1 follow-ups: safe reads (GET/HEAD under the default deadline) are retried with bounded full-jitter
+ *        backoff (retrySafeRead); describeWriteFailure maps a lost write response (deadline abort or network failure)
+ *        to the design table's "We couldn't confirm the result" copy instead of the browser's TimeoutError text.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-03
  * Scope: authFetch applies a 10 s default request deadline (N4 design, wiki "Graceful Degradation and Data Durability
  *        Design" section 5.1) unless the caller passes its own signal; extracted as withRequestDeadline for a unit test.
@@ -43,6 +49,68 @@ export const REQUEST_DEADLINE_MS = 10_000;
  */
 export function withRequestDeadline(init: RequestInit, deadlineMs = REQUEST_DEADLINE_MS): RequestInit {
   return { ...init, signal: init.signal ?? AbortSignal.timeout(deadlineMs) };
+}
+
+// AI-generated (edited by Reallyeasy1)
+/** Safe-read retry budget: total attempts, and the full-jitter backoff base (pause n is drawn from [0, base · 2^n)). */
+export const READ_RETRY_ATTEMPTS = 3;
+export const READ_RETRY_BASE_MS = 300;
+
+/**
+ * Only idempotent reads running under the default deadline are retried. A POST/PATCH/DELETE is never replayed (the
+ * server may have applied it), and a caller-owned signal means the caller already has its own policy (create, poll).
+ */
+export function isSafeRead(init: RequestInit): boolean {
+  const method = (init.method ?? 'GET').toUpperCase();
+  return (method === 'GET' || method === 'HEAD') && !init.signal;
+}
+
+export function readRetryDelayMs(attempt: number, random: () => number = Math.random): number {
+  return Math.floor(random() * READ_RETRY_BASE_MS * 2 ** attempt);
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Runs a safe read up to `attempts` times. A thrown error (network failure, deadline abort) or a 5xx is retried after
+ * a jittered pause; 2xx/3xx/4xx return at once. The last attempt's outcome is returned or rethrown unchanged, so the
+ * callers' existing error handling still applies.
+ * ponytail: worst case is attempts × deadline (~30 s) against a hung service; lower READ_RETRY_ATTEMPTS if a screen
+ * needs a tighter bound.
+ */
+export async function retrySafeRead(
+  run: () => Promise<Response>,
+  attempts = READ_RETRY_ATTEMPTS,
+  wait: (ms: number) => Promise<void> = sleep,
+  delayMs: (attempt: number) => number = readRetryDelayMs,
+): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const last = attempt >= attempts - 1;
+    try {
+      const res = await run();
+      if (res.status < 500 || last) return res;
+    } catch (error) {
+      if (last) throw error;
+    }
+    await wait(delayMs(attempt));
+  }
+}
+
+/** Copy from the N4 design table, row "Write response lost". */
+export const UNCONFIRMED_WRITE_MESSAGE = "We couldn't confirm the result. Check this errand before trying again.";
+
+/** The deadline abort (AbortSignal.timeout) or fetch's network failure: the request may have reached the server. */
+export function isResponseLost(error: unknown): boolean {
+  return (error instanceof DOMException && error.name === 'TimeoutError') || error instanceof TypeError;
+}
+
+/**
+ * Message for a failed lifecycle write. A lost response is reported as unconfirmed rather than as a failure, because
+ * the server may have applied the action and "failed" would invite a replay.
+ */
+export function describeWriteFailure(error: unknown, fallback: string): string {
+  if (isResponseLost(error)) return UNCONFIRMED_WRITE_MESSAGE;
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function useAuthSession(onSessionCleared: () => void) {
@@ -105,17 +173,25 @@ export function useAuthSession(onSessionCleared: () => void) {
   };
 
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
-    const send = (token: string) =>
+    let token = authToken;
+    const send = () =>
       fetch(url, {
         ...withRequestDeadline(init),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
-    const res = await send(authToken);
-    if (res.status !== 401) return res;
-    const token = await refreshAccessToken();
-    if (token) return send(token);
-    clearLocalSession();
-    return res;
+    // AI-generated (edited by Reallyeasy1): one attempt, with the 401 refresh; safe reads repeat it with backoff.
+    const attempt = async (): Promise<Response> => {
+      const res = await send();
+      if (res.status !== 401) return res;
+      const fresh = await refreshAccessToken();
+      if (!fresh) {
+        clearLocalSession();
+        return res;
+      }
+      token = fresh;
+      return send();
+    };
+    return isSafeRead(init) ? retrySafeRead(attempt) : attempt();
   };
 
   const handleLogin = async (e: React.FormEvent) => {

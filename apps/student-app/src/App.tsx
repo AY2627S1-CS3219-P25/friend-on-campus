@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: N4 §5.1: the accept and task-action catch blocks report a lost write response (deadline abort or network
+ * failure) with the design table's "We couldn't confirm the result" copy via describeWriteFailure.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refined main viewport padding to eliminate excessive vertical whitespace under the sticky navbar.
  * Author review: <to be completed by yanhwee>
@@ -106,7 +111,7 @@ import {
 import { BottomNav } from './components/BottomNav';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
-import { useAuthSession } from './hooks/useAuthSession';
+import { describeWriteFailure, useAuthSession } from './hooks/useAuthSession';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
 import { useChat } from './chat/useChat';
@@ -587,7 +592,7 @@ export default function App() {
       setNotification('Errand accepted! Head to the pickup location.');
     } catch (error) {
       if (requestId === orderRequestId.current) {
-        setActionError(error instanceof Error ? error.message : 'Unable to accept this errand.');
+        setActionError(describeWriteFailure(error, 'Unable to accept this errand.'));
       }
     } finally {
       setAcceptingOrder(null);
@@ -638,7 +643,7 @@ export default function App() {
       }
     } catch (error) {
       if (requestId === orderRequestId.current) {
-        setActionError(error instanceof Error ? error.message : 'Unable to update this errand.');
+        setActionError(describeWriteFailure(error, 'Unable to update this errand.'));
       }
     } finally {
       setTaskActionInFlight(null);

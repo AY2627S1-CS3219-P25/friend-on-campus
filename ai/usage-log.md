@@ -5926,3 +5926,19 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none
+
+## 2026-11-04 19:00 SGT — Commit the authFetch deadline, add safe-read retry and lost-write copy (N4 §5.1)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok please do all 3" — (1) commit the 10 s request-deadline change, (2) retry safe reads with bounded backoff and jitter, (3) show the design table's "We couldn't confirm the result. Check this errand before trying again." for a timed-out lifecycle write.
+
+**Usage scenario:** Implementation of the author-approved wiki design ("Graceful Degradation and Data Durability Design" §5.1) plus the commit the author approved in this prompt. Branching: the work was moved off `docs/simulated-uat-run` (whose working tree holds an unfinished `docs/uat/` package) onto `feat/n4-student-app-request-resilience`, created from `d2f750b`, then `origin/main` (`8ef8dcb`) was merged in; conflicts in `apps/student-app/package.json` (both test files kept) and `ai/usage-log.md` (main's log plus this branch's entries appended). Retry placement is an implementation choice inside the existing single `authFetch` funnel, stated for the author to confirm: only GET/HEAD without a caller signal are retried (3 attempts, full-jitter backoff base 300 ms, 5xx or thrown error), so the create POST, pending poll and every write keep their current behaviour. "Response lost" covers the deadline abort and fetch's network TypeError. Verified: `npm run typecheck` (exit 0), `npm run test:unit -w apps/student-app` (32 pass, 0 fail), `npm run ci:validate-tests` (passed), ESLint on the three files (clean). Commits made with the author's approval; nothing pushed; no PR opened. Left to the author: push and PR against #51, review the ~30 s worst case for retried reads against a hung service, and the untouched `docs/uat/` work on the docs branch.
+
+**Files changed:**
+- `apps/student-app/src/hooks/useAuthSession.ts` — `isSafeRead`, `readRetryDelayMs`, `retrySafeRead`, `isResponseLost`, `describeWriteFailure`, `UNCONFIRMED_WRITE_MESSAGE`; `authFetch` wraps its attempt in `retrySafeRead` for safe reads; disclosure block updated
+- `apps/student-app/src/App.tsx` — accept and task-action catch blocks use `describeWriteFailure`; disclosure block updated
+- `apps/student-app/test/auth-fetch.test.ts` — six new cases (safe-read classification, jitter bounds, retry on throw/5xx, no retry on 4xx, last outcome returned/rethrown, lost-write copy)
+- `apps/student-app/package.json` — merge resolution only: `test:unit` lists both `assistant.test.ts` and `auth-fetch.test.ts` (JSON, no disclosure header)
