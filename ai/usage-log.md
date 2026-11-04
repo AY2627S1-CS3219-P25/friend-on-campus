@@ -5739,3 +5739,21 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 **Verification:**
 - `npm run typecheck --workspace=@campus-errand/student-app` — clean.
 - Rebuilt and restarted the live `student-app` container; confirmed it serves (HTTP 200). Did not visually confirm in a browser — no tool available here that can reach the local dev stack — worth a quick look on a narrow viewport before considering this done.
+
+## 2026-11-04 19:31 SGT — Operating hours on post/accept pages, closed-store confirmation, map hover names
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** fix/map-display-error
+
+**Prompt (summarised):** (1) Show supplier operating hours on the create-errand and accept-errand pages, and ask for confirmation in a pop-up when posting outside the store's hours; (2) show the store's name when hovering a pin on the order-creation map.
+
+**Usage scenario:** Writing implementation code for a feature the author specified. Implementation details chosen and reported to the author for review: hours are evaluated in Singapore time, the closing minute counts as open, a closing time earlier than the opening time runs past midnight, "0000hrs"–"2359hrs" is shown as "Open 24 hours", and stores with missing/unreadable hours show "Not listed" and post without the dialog. The map tooltip also shows the hours; the accept page adds a "closed now" reminder above Accept (no blocking dialog there). The browser UAT scripts were updated to confirm the new dialog so they pass at any hour. Verified with `npm run typecheck` (all workspaces), student-app `test:unit` (28/28), ESLint, `npm run ci:validate-tests`, a rebuilt student-app container and a headless Playwright run (hours line, dialog + Go back without posting, map tooltip, details page). The full browser UAT suites were not run.
+
+**Files changed:**
+- `apps/student-app/src/suppliers/operatingHours.ts` — new: parse/format hours, open-now check in Singapore time
+- `apps/student-app/src/pages/PostErrandPage.tsx` — hours/open-state line under the store picker; closed-store confirmation dialog before submit
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — hours in the Pickup cell; closed-now reminder above Accept
+- `apps/student-app/src/App.tsx` — passes the focused errand's supplier to ErrandDetailsPage
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — hover tooltip with store name and hours
+- `scripts/uat/uat-realtime.mjs` — confirm the closed-store dialog when it appears

@@ -4,6 +4,11 @@
 // consistent in real time across a requester's two clients, the winning courier and a losing courier, with an
 // opt-in restart of the Chat Service container under load. Grown from the throwaway driver that found #195.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+// Scope: postErrand confirms the Post Errand page's new "store may be closed" dialog when it appears, so the run
+// passes at any hour of the day.
+// Author review: <to be completed by huangjiaxi1111>
 
 // AI-generated (edited by Reallyeasy1)
 // Run: npx playwright install chromium && npm run test:e2e:ui:realtime
@@ -96,6 +101,10 @@ async function postErrand(page, item, reward) {
   await page.getByLabel('Reward credits').fill(String(reward));
   await page.getByRole('button', { name: 'Post Errand' }).click();
   const banner = page.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+  // outside the pre-selected store's hours the page asks to confirm first.
+  const postAnyway = page.getByRole('button', { name: 'Post anyway' });
+  await banner.or(postAnyway).first().waitFor({ timeout: 20000 });
+  if (await postAnyway.isVisible()) await postAnyway.click();
   await banner.waitFor({ timeout: 20000 });
   return (await banner.innerText()).match(/(ORD-\w+)/)[1];
 }

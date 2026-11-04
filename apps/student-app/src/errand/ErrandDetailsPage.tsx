@@ -25,17 +25,23 @@
  * PR #192 review: the chat panel is kept for retained history after a drop, and the completion row no longer claims
  * the payout before Credit Service settles it.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Author's request of 2026-11-04: the pickup store's operating hours and open / closed state are shown in the
+ * Pickup cell, and a would-be courier sees a "closed now" reminder above Accept when the store is outside its hours.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by Reallyeasy1)
 // AI-generated (edited by yanhwee)
 
+import type { OrderDTO, SupplierDTO } from '@campus-errand/common-dtos';
+import { AlertTriangle, Check, ChevronLeft, Clock, Coins, MapPin, RefreshCw, User, X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import type { OrderDTO } from '@campus-errand/common-dtos';
-import { Check, ChevronLeft, Clock, Coins, MapPin, RefreshCw, User, X } from 'lucide-react';
 import type { FetchOrderResult, TaskOrderAction } from '../api/orders';
 import { ChatPanel } from '../chat/ChatPanel';
 import type { ChatApi } from '../chat/useChat';
+import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 import {
   endState,
   escrowCopy,
@@ -62,9 +68,18 @@ export interface ErrandDetailsPageProps {
   actionError: string | null;
   onAccept: (orderId: string, courierContactNote?: string) => void;
   onAction: (orderId: string, action: TaskOrderAction) => void;
+  /** The order's pickup store from the loaded supplier list, for its operating hours; null if not loaded. */
+  supplier?: SupplierDTO | null;
 }
 
 type Role = ReturnType<typeof viewerRole>;
+
+// AI-generated (edited by huangjiaxi1111)
+/** The store's hours and whether it is open right now; nulls when the store or its hours are unknown. */
+function storeHours(supplier: SupplierDTO | null | undefined): { hours: string | null; openNow: boolean | null } {
+  if (!supplier) return { hours: null, openNow: null };
+  return { hours: formatOperatingHours(supplier), openNow: isOpenAt(supplier, new Date()) };
+}
 
 const timeOf = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -324,7 +339,8 @@ function Timeline({ order, role }: { order: OrderDTO; role: Role }) {
   );
 }
 
-function ItemCard({ order }: { order: OrderDTO }) {
+function ItemCard({ order, supplier }: { order: OrderDTO; supplier?: SupplierDTO | null }) {
+  const { hours, openNow } = storeHours(supplier);
   return (
     <Card className="p-4 sm:p-5 space-y-3.5" testId="item-card">
       <div>
@@ -352,6 +368,17 @@ function ItemCard({ order }: { order: OrderDTO }) {
           </dd>
           {order.campusZone && (
             <dd className="text-[11px] text-nus-blue font-semibold mt-0.5">{order.campusZone}</dd>
+          )}
+          {hours && (
+            <dd
+              data-testid="pickup-operating-hours"
+              className="flex flex-wrap items-center gap-x-1 text-[11px] text-slate-500 mt-0.5"
+            >
+              <Clock className="h-3 w-3 shrink-0" />
+              <span className="whitespace-nowrap">{hours}</span>
+              {openNow === true && <span className="whitespace-nowrap font-bold text-emerald-700">· Open now</span>}
+              {openNow === false && <span className="whitespace-nowrap font-bold text-rose-700">· Closed now</span>}
+            </dd>
           )}
         </div>
         <div className="rounded-xl bg-slate-50/90 border border-slate-100 p-3 min-w-0">
@@ -404,12 +431,14 @@ function Actions({
   actingAction,
   onAccept,
   onAction,
+  supplier,
 }: {
   order: OrderDTO;
   role: Role;
   actingAction: ErrandDetailsPageProps['actingAction'];
   onAccept: ErrandDetailsPageProps['onAccept'];
   onAction: ErrandDetailsPageProps['onAction'];
+  supplier?: SupplierDTO | null;
 }) {
   const [confirmingAccept, setConfirmingAccept] = useState(false);
   const [contactNote, setContactNote] = useState('');
@@ -425,8 +454,23 @@ function Actions({
   );
 
   if (order.status === 'OPEN' && role === 'other') {
+    const { hours, openNow } = storeHours(supplier);
+    const closedReminder = openNow === false && (
+      <p
+        role="note"
+        data-testid="accept-store-closed-note"
+        className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900"
+      >
+        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+        <span>
+          {order.supplierName ?? 'The pickup store'} is closed now{hours ? ` (open ${hours})` : ''}. Check you can
+          buy the items before accepting.
+        </span>
+      </p>
+    );
     return confirmingAccept ? (
       <div className="space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm">
+        {closedReminder}
         <label className="block text-xs font-bold text-slate-700">
           Contact details for the requester (optional)
           <input
@@ -467,6 +511,7 @@ function Actions({
       </div>
     ) : (
       <div className="space-y-2">
+        {closedReminder}
         <button
           type="button"
           data-testid="accept-order-btn"
@@ -592,6 +637,7 @@ export function ErrandDetailsPage({
   actionError,
   onAccept,
   onAction,
+  supplier,
 }: ErrandDetailsPageProps) {
   const order = result?.status === 'ok' ? result.order : null;
   const role: Role = order ? viewerRole(order, currentUserId) : 'other';
@@ -603,6 +649,7 @@ export function ErrandDetailsPage({
         actingAction={actingAction}
         onAccept={onAccept}
         onAction={onAction}
+        supplier={supplier}
       />
     ) : null;
   // A conversation exists from the first accept onwards and is retained after a courier drops the errand, while the
@@ -710,7 +757,7 @@ export function ErrandDetailsPage({
               hadCourier={Boolean(chat.threads[order.id]?.conversation)}
             />
             <Timeline order={order} role={role} />
-            <ItemCard order={order} />
+            <ItemCard order={order} supplier={supplier} />
           </div>
 
           {/* Right column on desktop: the live chat and the action. On phones they follow in the single column. */}

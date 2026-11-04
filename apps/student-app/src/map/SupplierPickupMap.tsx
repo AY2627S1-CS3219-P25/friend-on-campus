@@ -6,17 +6,23 @@
  * picking it from the existing dropdown. The view auto-fits to whichever suppliers are passed in instead of a
  * hardcoded zoom level.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Hovering a pin shows a tooltip above it with the store's name, its operating hours and "Closed now" when
+ * it is outside them (author's request of 2026-11-04).
+ * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by jagdeepsh)
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import type { SupplierDTO } from '@campus-errand/common-dtos';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-import { X, MapPin } from 'lucide-react';
-import type { SupplierDTO } from '@campus-errand/common-dtos';
+import 'leaflet/dist/leaflet.css';
+import { MapPin, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 
 // Leaflet's default marker icon paths are relative to a server document root and break under a bundler
 // (Vite fingerprints the image filenames) unless re-pointed at the bundled asset URLs explicitly.
@@ -108,6 +114,18 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
                   position={[s.latitude, s.longitude]}
                   eventHandlers={{ click: () => { onSelect(s); onClose(); } }}
                 >
+                  {/* The default icon's tooltipAnchor is [16, -28]; this offset centres the label just above the pin. */}
+                  <Tooltip direction="top" offset={[-16, -14]}>
+                    <span className="block font-semibold text-slate-900">{s.name}</span>
+                    {formatOperatingHours(s) && (
+                      <span className="block text-slate-500">
+                        {formatOperatingHours(s)}
+                        {isOpenAt(s, new Date()) === false && (
+                          <span className="text-rose-600 font-semibold"> &middot; Closed now</span>
+                        )}
+                      </span>
+                    )}
+                  </Tooltip>
                   <Popup>
                     <div className="text-sm space-y-0.5">
                       <p className="font-bold text-slate-900">{s.name}</p>

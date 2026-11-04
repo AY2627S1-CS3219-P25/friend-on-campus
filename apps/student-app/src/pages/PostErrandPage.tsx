@@ -40,6 +40,12 @@
  * required attributes are unchanged (left intact for the UAT selectors noted above) — it is now wrapped in a
  * flex row alongside the new button instead of being full-width on its own.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Author's request of 2026-11-04: the selected store's operating hours and open / closed state are shown
+ * under the Pickup Store picker, and posting while the store is outside its hours first asks for confirmation in a
+ * dialog ("Post anyway" / "Go back"). Stores with no readable hours post without the dialog.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by yanhwee)
@@ -67,6 +73,7 @@ import React, { useRef, useState } from 'react';
 import { AuthFetchFn } from '../api/auth';
 import { parseErrandDraft } from '../api/orders';
 import { SupplierPickupMap } from '../map/SupplierPickupMap';
+import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 
 export interface PostErrandFormData {
   supplierId: string;
@@ -139,6 +146,13 @@ export function PostErrandPage({
 
   // Synchronous submit lock to prevent multi-clicks before React re-render cycles
   const isSubmittingRef = useRef(false);
+
+  // Posting outside the store's operating hours waits here for the student's confirmation.
+  const [isClosedStoreConfirmOpen, setIsClosedStoreConfirmOpen] = useState(false);
+  const pendingSubmitRef = useRef<React.FormEvent | null>(null);
+  const selectedSupplier = suppliers.find((s) => s.id === formData.supplierId) ?? null;
+  const selectedHours = selectedSupplier ? formatOperatingHours(selectedSupplier) : null;
+  const selectedOpenNow = selectedSupplier ? isOpenAt(selectedSupplier, new Date()) : null;
 
   // Credit balance safety checks
   const availableCredits = wallet ? wallet.availableCredits : null;
@@ -226,6 +240,29 @@ export function PostErrandPage({
     if (isSubmittingRef.current || submissionBusy) return;
     if (isOverdraw || isZeroBalance) return;
 
+    // Checked against the clock at submit time, not at render, so a page left open past closing still asks.
+    if (selectedSupplier && isOpenAt(selectedSupplier, new Date()) === false) {
+      pendingSubmitRef.current = e;
+      setIsClosedStoreConfirmOpen(true);
+      return;
+    }
+    submitNow(e);
+  };
+
+  // AI-generated (edited by huangjiaxi1111)
+  const handleConfirmClosedStore = () => {
+    const pending = pendingSubmitRef.current;
+    pendingSubmitRef.current = null;
+    setIsClosedStoreConfirmOpen(false);
+    if (pending && !isSubmittingRef.current && !submissionBusy) submitNow(pending);
+  };
+
+  const handleCancelClosedStore = () => {
+    pendingSubmitRef.current = null;
+    setIsClosedStoreConfirmOpen(false);
+  };
+
+  const submitNow = (e: React.FormEvent) => {
     isSubmittingRef.current = true;
     try {
       onSubmit(e);
@@ -520,6 +557,28 @@ export function PostErrandPage({
                 </span>
                 <span>Exact location pinned automatically</span>
               </div>
+              {selectedSupplier && (
+                <div
+                  data-testid="supplier-operating-hours"
+                  className={`mt-2 flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 border ${
+                    selectedOpenNow === false
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Operating hours:{' '}
+                    <strong className="text-slate-800">{selectedHours ?? 'Not listed'}</strong>
+                  </span>
+                  {selectedOpenNow === true && (
+                    <span className="ml-auto font-bold text-emerald-700">Open now</span>
+                  )}
+                  {selectedOpenNow === false && (
+                    <span className="ml-auto font-bold text-rose-700">Closed now</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Item Description */}
@@ -840,6 +899,52 @@ export function PostErrandPage({
           }}
           onClose={() => setIsPickupMapOpen(false)}
         />
+      )}
+
+      {isClosedStoreConfirmOpen && selectedSupplier && (
+        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="closed-store-dialog-title"
+            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center space-x-3 text-amber-600">
+              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 id="closed-store-dialog-title" className="font-bold text-base text-slate-900">
+                  Store may be closed
+                </h3>
+                <p className="text-sm text-slate-500">Outside operating hours</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600">
+              <strong className="text-slate-800">{selectedSupplier.name}</strong> is outside its operating hours
+              {selectedHours ? ` (${selectedHours})` : ''}. A courier may not be able to buy your items until it
+              opens. Post this errand anyway?
+            </p>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleCancelClosedStore}
+                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Go back
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClosedStore}
+                className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
+              >
+                Post anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

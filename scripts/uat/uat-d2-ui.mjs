@@ -41,6 +41,11 @@
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-28, 2026-09-29
 // Scope: 2026-09-29: results file now goes to the temp folder (or UAT_OUT), like the API driver; header comment corrected. 2026-09-28: fixed the ADMIN_URL default (it referenced itself). Wrote this D2 UAT driver: 29 browser-level checks with Playwright (admin portal desktop + mobile: login gate, search, filter, sort, pagination, details, add/edit/delete, Users page; student app mobile + desktop: login, session restore, Spots directory, search, Post, Profile, logout) and the docs/evidence/d2/screenshots capture.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+// Scope: UO1/UO6 post through postErrandConfirmingHours, which clicks "Post anyway" when the pre-selected store is
+// outside its operating hours, so the lifecycle checks pass at any time of day.
+// Author review: <to be completed by huangjiaxi1111>
 
 // AI-generated (edited by Reallyeasy1)
 // Run: npx playwright install chromium && npm run test:e2e:ui
@@ -86,6 +91,14 @@ async function step(id, name, fn) {
   } catch (e) {
     record(id, name, false, (e.message || String(e)).split('\n')[0].slice(0, 160));
   }
+}
+async function postErrandConfirmingHours(page) {
+  await page.getByRole('button', { name: 'Post Errand' }).click();
+  const banner = page.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+  const postAnyway = page.getByRole('button', { name: 'Post anyway' });
+  await banner.or(postAnyway).first().waitFor({ timeout: 20000 });
+  if (await postAnyway.isVisible()) await postAnyway.click();
+  return banner;
 }
 const shot = (page, name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false });
 const stamp = Date.now().toString(36);
@@ -543,8 +556,7 @@ const browser = await chromium.launch();
     const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
     if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
 
-    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
-    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    const banner = await postErrandConfirmingHours(alicePage);
     await banner.waitFor({ timeout: 20000 });
     const bannerText = await banner.innerText();
     const match = bannerText.match(/(ORD-\w+)/);
@@ -633,9 +645,7 @@ const browser = await chromium.launch();
     await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
     await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
     await alicePage.getByLabel('Reward credits').fill(String(CANCEL_REWARD));
-    await alicePage.getByRole('button', { name: 'Post Errand' }).click();
-
-    const banner = alicePage.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
+    const banner = await postErrandConfirmingHours(alicePage);
     await banner.waitFor({ timeout: 20000 });
     const bannerText = await banner.innerText();
     const match = bannerText.match(/(ORD-\w+)/);
