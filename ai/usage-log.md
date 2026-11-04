@@ -5817,7 +5817,7 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Prompt (summarised):** "ok please do thus" — execute the recommended plan: commit each branch separately, push, merge #222 once CI is green, then bring `origin/main` into the #225 branch, and remove the worktree.
 
-**Usage scenario:** Git/GitHub actions the author explicitly requested. This commit carries the review fixes from the previous entry plus this log entry; it is pushed and PR #222 is merged into `main` with a merge commit once CI is green. The "Author review" lines in the disclosure blocks are left for the author (course rule). The external review posted no GitHub threads, so no review replies were made. Worktree removed after the push.
+**Usage scenario:** Git/GitHub actions the author explicitly requested. This commit carries the review fixes from the previous entry plus this log entry; it is pushed; CI passed (27 checks). Addendum (20:42 SGT): the requested `gh pr merge 222 --merge` was denied by the session's permission classifier ("Merge Without Review") and was not retried by other means, so the merge into `main` is left to the author. The "Author review" lines in the disclosure blocks are left for the author (course rule). The external review posted no GitHub threads, so no review replies were made. The worktree is kept until #222 is merged, in case the author wants changes.
 
 **Files changed:**
 - none beyond the previous entry (this entry only)
