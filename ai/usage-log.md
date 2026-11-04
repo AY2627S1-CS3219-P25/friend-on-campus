@@ -5955,3 +5955,45 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none (this entry only)
+
+## 2026-11-04 19:58 SGT — Address the PR #225 review (session-scoped retries, Feed poll, lost 2xx body, draft deadline)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "look at the code review here and then attend to the code reviews" — a pasted external review of PR #225 (four findings) and PR #222 (three findings). This entry covers #225; the #222 work was done on its own branch (`fix/pr220-review-and-ci`, separate worktree) and is logged there.
+
+**Usage scenario:** Debugging assistance and implementation of review findings. Each finding was first checked against the code: (1) `authFetch` captured the token at call time and `retrySafeRead` replayed it after `clearLocalSession`, while profile loads had no request counter, so a retried profile read could land on the next account's screen; (2) every `fetchOrders` bumps `orderRequestId`, so a quiet 15 s poll superseded a retrying load before it could settle; (3) `postOrderLifecycleAction` swallowed a 2xx body-read failure into "HTTP 200"; (4) the assistant's server chain (4 s supplier lookup + 10 s SoCLaaS) exceeds the 10 s client default. Fixes stay inside the existing patterns (request-id counters, the single `authFetch` funnel, caller-owned signals): a per-session `AbortController` combined with the deadline through `AbortSignal.any` and captured when `authFetch` is called; `retrySafeRead` stops on `AbortError`; `profileRequestId` like the credits/orders counters; an in-flight counter that makes quiet polls wait; the lifecycle helper rethrows a 2xx body error; `parseErrandDraft` sends a 20 s signal. Choices stated for the author: the 20 s draft deadline is the client-side option the reviewer offered (the alternative, shortening Order Service's SoCLaaS timeout, is a server trade-off left to the author); `AbortSignal.any` is used as the smallest stdlib combinator (Chrome 116 / Safari 17.4 / Firefox 124, Node 20+). Verified: `npm run typecheck` (all workspaces, exit 0), `npm run test:unit -w @campus-errand/student-app` (36 pass, 0 fail, four new cases), ESLint on the four files (clean). The Feed-poll and profile guards live in React state in `App.tsx` and have no unit harness in this repo; they are covered by reasoning and the reviewer's reproduction steps (sign in as A, 503 the profile read, sign in as B; Feed with a 503-flapping Order Service) remain the manual check. No commit, push or review reply was made. Also left to the author: the merge conflicts the reviewer flagged against #222 in `apps/student-app/package.json` (keep both `auth-fetch.test.ts` and `supplier-map.test.ts` in `test:unit`) and `ai/usage-log.md`; and the pre-existing uncommitted `docs/README.md`, `docs/audits/documentation-drift.md` and `docs/uat/` changes in this working tree, which were not touched.
+
+**Files changed:**
+- `apps/student-app/src/hooks/useAuthSession.ts` — `withRequestDeadline(init, deadlineMs, sessionSignal?)`, `isAborted`, `retrySafeRead` rethrows an `AbortError` at once, `sessionAbort` controller aborted and replaced in `clearLocalSession`, `authFetch` captures the session signal before its first attempt; disclosure block updated
+- `apps/student-app/src/App.tsx` — `profileRequestId` (bumped on session clear, checked after the profile fetch and in its `finally`), profile error/loading reset on session clear, `ordersLoadsInFlight` counter that skips quiet Feed polls while a load is in flight; disclosure block updated
+- `apps/student-app/src/api/orders.ts` — lifecycle helper rethrows a body-read error on a 2xx (error bodies still fall back to the status message); `DRAFT_DEADLINE_MS = 20_000` and `parseErrandDraft` passes its own `AbortSignal.timeout`; disclosure block updated
+- `apps/student-app/test/auth-fetch.test.ts` — four cases: session abort stops retries while a timeout is still retried; combined session+deadline signal; lost 2xx body reported as unconfirmed (plus 502 fallback and 409 pass-through); draft deadline exceeds 14 s and is sent as a caller-owned signal
+
+## 2026-11-04 20:05 SGT — Recommendations on the five open points from the review follow-up
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "what would be your recommendation for each of it" — the five open points listed after the PR #225 / #222 review fixes (seed coordinate policy, 20 s draft deadline, `AbortSignal.any` baseline, merge order and conflicts, commit/push/reply/worktree steps).
+
+**Usage scenario:** Learning support and facts from the code, answered in chat only. Recommendations given as defaults for the author to ratify: keep the seed policy (admin-recorded coordinates win; a CSV correction becomes an admin edit), keep the client-side 20 s draft deadline (a server timeout change is a separate Order Service decision), keep `AbortSignal.any` (the hook already relied on `AbortSignal.timeout`; a fallback is available if older browsers matter), merge #222 before bringing `origin/main` into #225 because #222 repairs the fixtures behind #225's CI failures, and commit the two branches separately with the pre-existing `docs/` changes kept out. The seed policy and the server timeout were flagged as the author's product decisions. No files other than this log were changed.
+
+**Files changed:**
+- none
+
+## 2026-11-04 20:12 SGT — Commit and push the PR #225 review fixes; merge main after #222 lands
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok please do thus" — execute the recommended plan: commit each branch separately, push, merge #222 once CI is green, then merge `origin/main` into this branch (keeping both student-app unit test files and both sets of log entries), re-verify and push.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. This commit carries the four student-app review fixes from the 19:58 entry plus this log entry. The pre-existing `docs/README.md`, `docs/audits/documentation-drift.md` and `docs/uat/` changes stay uncommitted in the working tree (they belong to the docs branch). "Author review" lines are left for the author. The external review posted no GitHub threads, so no replies were made. The follow-up merge of `origin/main` is recorded in the merge commit itself.
+
+**Files changed:**
+- none beyond the 19:58 entry (this entry only)
