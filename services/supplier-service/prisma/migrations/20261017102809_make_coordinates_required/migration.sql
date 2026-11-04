@@ -1,10 +1,7 @@
-/*
-  Warnings:
+-- AI Assistance Disclosure:
+-- Tool: Codex (model: GPT-6), date: 2026-11-01
+-- Scope: Defer the unsafe NOT NULL change; coordinate validation remains at the API boundary.
+-- Author review: <to be completed by Reallyeasy1>
 
-  - Made the column `latitude` on table `suppliers` required. This step will fail if there are existing NULL values in that column.
-  - Made the column `longitude` on table `suppliers` required. This step will fail if there are existing NULL values in that column.
-
-*/
--- AlterTable
-ALTER TABLE "suppliers" ALTER COLUMN "latitude" SET NOT NULL,
-ALTER COLUMN "longitude" SET NOT NULL;
+-- Preserve legacy suppliers until an administrator can supply verified coordinates.
+SELECT 1;

@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-01
+// Scope: Fixed supplier form selectors/coordinates and made failed browser checks fail CI.
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: UO0 preflight: the requester seed account must still afford the credits UO1 and UO6 reserve; earlier runs
 // drain it, which previously surfaced only as a timeout on Post Errand. PR #194 review: UO1-UO6 are skipped when it
@@ -225,7 +229,9 @@ const browser = await chromium.launch();
     await page.getByPlaceholder('e.g. LiHO Tea @ UTown').fill(newName);
     await page.getByPlaceholder('e.g. Stephen Riady Centre Level 1 next to FairPrice').fill('COM3 Level 1, UAT corner');
     await page.getByPlaceholder('e.g. COM3').fill('COM3');
-    await page.getByPlaceholder('e.g. 1').fill('1');
+    await page.getByPlaceholder('e.g. 1', { exact: true }).fill('1');
+    await page.getByPlaceholder('e.g. 1.2966', { exact: true }).fill('1.2948308');
+    await page.getByPlaceholder('e.g. 103.7764', { exact: true }).fill('103.7716305');
     await page.getByPlaceholder('e.g. Specialty coffee, pastries, and sandwiches').fill('Created by the D2 UI UAT run');
     await shot(page, 'admin-add-modal-desktop');
     await page.locator('form:visible button[type=submit]').last().click();
@@ -676,3 +682,4 @@ const out = process.env.UAT_OUT ?? path.join(TEST_RESULTS_DIR, 'uat-d2-ui-result
 mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));
 console.log(`results written to ${out}`);
+if (passed < results.length) process.exitCode = 1;

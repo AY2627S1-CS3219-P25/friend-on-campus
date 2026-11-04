@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-01
+Scope: Recorded the review and authorized merge of PR #220, follow-up fixes on a separate branch, issue #221, and verification results.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Disambiguated stepper button aria-labels ('Decrease amount' and 'Increase amount') in student-app PostErrandPage to resolve Playwright getByLabel('Reward credits') strict mode collision across UO1, UO6, RT02, and RT12.
 Author review: <to be completed by yanhwee>
@@ -5757,3 +5761,363 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/App.tsx` — passes the focused errand's supplier to ErrandDetailsPage
 - `apps/student-app/src/map/SupplierPickupMap.tsx` — hover tooltip with store name and hours
 - `scripts/uat/uat-realtime.mjs` — confirm the closed-store dialog when it appears
+## 2026-10-27 11:50 SGT — Simulated UAT assignment (wiki handoff), run uat-20261026-d2f750b: in progress
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run (from origin/main d2f750b)
+
+**Prompt (summarised):** Carry out the simulated UAT assignment from the wiki page "Simulated-UAT-Plan-and-Claude-Code-Handoff" and its three companions: inspect and reconcile, create the docs/uat/ package, establish an isolated runtime, run existing checks and the 56-case catalogue, record results, assess findings, keep feedback honest; no commits, PRs, issues or wiki edits.
+
+**Usage scenario:** Requirements interpretation and formatting (the wiki's cases and personas rendered into docs/uat/ and scenarios.json), boilerplate/orchestration code (an ephemeral Playwright driver under the run's evidence folder, not wired into npm or CI), test execution and debugging assistance (static layers, four existing acceptance drivers, 56 persona cases on an isolated Compose project built from a clean worktree of d2f750b), documentation. No application code, schema, API, dependency, CI file or persistent test script changed. Findings are recorded with evidence classes; severity/priority and any GitHub follow-up are left to the author. Status at this entry: the background case chain was stopped by the harness for low host memory after G05 (56 cases recorded: 42 PASS, 14 FAIL, several FAILs are driver timeouts or a gateway stale-upstream cascade to be triaged); the late checks and the result-dependent documents (06 generator, 08, 09, 10, README) are pending the author's go-ahead to resume.
+
+**Files changed:**
+- `docs/uat/01-uat-strategy.md`, `02-feature-inventory.md`, `03-user-personas.md`, `05-test-environment.md`, `07-simulated-user-feedback.md` — new package documents (disclosure headers inside)
+- `docs/uat/scenarios.json` — 56 case specifications generated from the wiki (JSON, no header; generator noted inside)
+- `docs/uat/evidence/uat-20261026-d2f750b/` — commit/working-tree/tool versions, stack.json, commands/*.log + attempts.jsonl, drivers/ (orchestrator, api/cdc/ui JSON, ui-validation.json, screenshots), driver/ (run-cases, lib, journeys a–h and l, build-scenarios, build-report), scenario-results.json, fixtures.json, screenshots/
+- `docs/README.md` — start-by-task row and inventory rows for docs/uat/; disclosure record
+- `docs/audits/documentation-drift.md` — rows D31–D33; disclosure record
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 11:50 SGT — Question: how to check on the background UAT chain
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok how do i check on the background chain itself"
+
+**Usage scenario:** Explanation only (log/result/docker commands to watch the run). While answering, the harness stopped the background chain for low host memory; reported, not restarted.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 12:08 SGT — Triage of the 14 failed UAT cases: environment versus application
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Check whether the failed cases are due to CPU/host issues or application issues; if host-based, remove (rerun) them.
+
+**Usage scenario:** Debugging assistance. Each FAIL record, its screenshots and the isolated stack's logs (gateway, chat, Debezium connectors, broker queues, order/credit databases read-only) were inspected. Ten failures are driver defects or cascades (a chat helper that blocked 15 s on a missing element, two admin selectors, a health-card count, the mobile nav label, and the fixtures they feed); three (G05–G07) are a cascade of nginx keeping stale upstream addresses after this run's containers restarted (open issue #173; recorded as an observation); one (G04) is a candidate application recovery gap: after the broker interruption the reservation hold and the Credit result were committed but the order never left PENDING and expired 75 min later; it will be rerun once before being classified. Earlier failed attempts stay in the records as history (handoff rule). This run's gateway container was restarted so the stack is usable again; no rerun was started because the host had 0.2 GB free memory. Left to the author: freeing memory and saying when to resume; severity of the G04 observation.
+
+**Files changed:**
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/lib.mjs` — chatSend no longer blocks on a missing alert element
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/f.mjs` — supplier toggle by accessible name, health cards counted by "(Mn)" headings, mobile tab "Orders"
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/h.mjs` — same alert-locator fix in H03/H06
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 12:45 SGT — Rerun of the triaged UAT cases, progress checks, and stop on request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok try again" (rerun the triaged cases), "would like to check on the progress", then "ok nvm can stop them for now".
+
+**Usage scenario:** Test execution and debugging assistance. Reran F02/F03/F06/F07, Journey H, E04 and started G04–G07 on the isolated stack; F03, F06, F07, H01–H04 and E07 now pass (FIND-02, FIND-03, FIND-09 observed). F02's remaining failure was my expectation (the supplier uniqueness key is name+category+building+floor), corrected in the driver; E04 failed a second time with a 120 s bound (notification inbox not catching up after offline/online while the chat reconnects: candidate intermittent finding, request capture added for a final attempt); H05/H06 need one more attempt after a conversation-state check. The chain was stopped at the author's request during Journey G; this run's containers were verified running and healthy afterwards and no browser processes were left. Findings register docs/uat/08 drafted from the evidence so far. Left to the author: whether to resume the remaining reruns (F02, H05–H07, E04, G04–G07, late checks) or report from the results as they stand.
+
+**Files changed:**
+- `docs/uat/08-usability-findings.md` — new: findings register (FIND-01..10, HYP-01, OBS-11..20) with evidence classes from the recorded cases
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/f.mjs` — F02 duplicate expectation follows the implemented uniqueness key
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/e.mjs` — E04 captures inbox requests and notification-socket events
+- `docs/uat/evidence/uat-20261026-d2f750b/` — scenario-results.json, fixtures.json, commands/cases-*.log and screenshots updated by the reruns
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 12:53 SGT — To-do list from the UAT run, with duplicate search, before any issue is filed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "based on the things that are run recently, compile a list of things to do and maybe add them as issues".
+
+**Usage scenario:** Requirements formatting (facts from the recorded UAT cases turned into candidate issue texts) and GitHub discovery (searched open and closed issues for duplicates: #182, #195, #198 and the matched open issues #134, #168, #169, #170, #171, #173). No issue was created: the list is presented for the author to choose from; priority labels and ordering are left to the author.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 13:47 SGT — Issues #200-#210 filed from the simulated UAT run
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok please create the issues" (the eleven candidates listed in the previous reply).
+
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception): eleven issues created with case IDs, source paths, observed facts and proposed acceptance checks; no priority labels, severity or ordering set. The "observed again" comments on the already-open issues (#134, #168-#171, #173, #109) were not posted, as they were not part of the approval. The findings register now carries the issue numbers.
+
+**Files changed:**
+- `docs/uat/08-usability-findings.md` — issue numbers on the filed rows; OBS-21 row for the inbox catch-up finding (#208)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 15:40 SGT — Verification of the infra/chat/notification fixes and their pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run (this checkout); the fixes live on fix/uat-infra-chat-notification
+
+**Prompt (summarised):** "ok please do so" (run E04 and H03 against the fix build, then commit and open the PR).
+
+**Usage scenario:** Test execution and GitHub operations at the author's explicit request. The UAT driver's badge parser treated the saturated "9+" badge as 0, which had produced the false "inbox never catches up" readings behind #208; fixed in the driver and recorded in the findings register. E04 and H03 then passed against the fix build. The fix branch was committed, pushed and opened as a PR closing #173, #169, #206, #202 and #208 (its own usage-log entry rides in that commit).
+
+**Files changed:**
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/lib.mjs` — saturated badge "9+" read as 10; GW_OVERRIDE / RESULTS_FILE overrides for verification runs
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/e.mjs` — E04 judges the catch-up on the rendered inbox rows
+- `docs/uat/08-usability-findings.md` — OBS-21 corrected (driver measurement error; indicator gap fixed on the branch)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-31 16:22 SGT — Mergeability check of PR #220 (admin_dashboard: pickup map + mandatory supplier coordinates)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "See if PR #220 can be merged."
+
+**Usage scenario:** Debugging assistance / code review (read-only). Read the PR metadata, CI run 41039325203 failed-job logs, the branch diff against `origin/main`, and the acceptance/E2E scripts; reported the root cause of the two failing required jobs (`scripts/uat/uat-d2-api.mjs` W4 and `scripts/test-d2-e2e.ts` still POST suppliers without latitude/longitude, which the branch makes mandatory), the missing linked issue, the stray duplicate migration under `services/supplier-service/src/database/prisma/migrations/`, and policy gaps. No fix applied and no PR action taken; the merge/approve decision and the fix are left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 14:40 SGT — Summarise chat/notification changes from the N4 design wiki page
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Read the wiki page "Graceful Degradation and Data Durability Design" and tell me what changes it suggests for the chat service and the notification service.
+
+**Usage scenario:** Learning support / requirements interpretation — read the proposed design and listed the facts it states about the two optional services, cross-checked against the current `docker-compose.yml` gateway dependencies and service health routes. No design decisions made; whether to adopt any of the proposals is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 14:52 SGT — Explain the intent of the N4 infrastructure proposals
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Follow-up: for the infrastructure changes in the "Graceful Degradation and Data Durability Design" wiki page, what are they trying to achieve?
+
+**Usage scenario:** Learning support — explained the failure modes behind the proposed gateway-gating and probe-semantics changes, grounded in the current `docker-compose.yml` (api-gateway `depends_on`, `/ready`-based healthchecks) and the `resolver` directive on `origin/main`. No design decision made or recommended; adoption is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 15:05 SGT — Explain the intent of the N4 student-app proposals
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Follow-up: pasted the five student-app bullets from the earlier summary of the "Graceful Degradation and Data Durability Design" wiki page and asked what they are trying to do.
+
+**Usage scenario:** Learning support — explained each proposal's failure mode and checked it against the current student-app code (`App.tsx` hook composition, `useNotifications.ts`, `useChat.ts`, `useAuthSession.ts` authFetch, `api/*.ts`). Listed which items already hold and which are still open. No design decision made; adoption is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 15:25 SGT — Default 10 s request deadline in student-app authFetch (N4 §5.1)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok can you implement that" — the one-place change from the previous reply: the bounded request deadline proposed in the wiki page "Graceful Degradation and Data Durability Design" section 5.1, applied in the shared authenticated fetch helper.
+
+**Usage scenario:** Implementation of a design the author chose (the wiki proposal, 10 s default, explicit create/auth policies preserved). Extracted `withRequestDeadline` so the behaviour is unit-testable; a caller-supplied signal wins, so the 15 s create POST and 10 s pending poll are unchanged. Left to the author: retry-with-jitter for safe reads (the page does not say where it lives) and the "couldn't confirm the result" copy for a timed-out lifecycle write, which today surfaces the browser's TimeoutError message through the existing catch blocks. Verified: `npm run typecheck` (exit 0), `npm run test:unit -w apps/student-app` (23 pass), `npm run ci:validate-tests` (passed), ESLint on the two files (clean). No commit made.
+
+**Files changed:**
+- `apps/student-app/src/hooks/useAuthSession.ts` — `REQUEST_DEADLINE_MS`, `withRequestDeadline()`, applied inside `authFetch`'s per-attempt `send`; disclosure block updated
+- `apps/student-app/test/auth-fetch.test.ts` — new: default signal attached, caller signal preserved, fresh signal per call, deadline aborts with TimeoutError
+- `apps/student-app/package.json` — `test:unit` now includes `test/auth-fetch.test.ts` (JSON, no disclosure header)
+
+## 2026-11-04 18:45 SGT — Progress check on the authFetch request-deadline change
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok can you implement that <- what is the progress on this" — status of the N4 §5.1 default request deadline implemented in the previous prompt.
+
+**Usage scenario:** Status report only. Inspected the working tree and re-ran `npm run test:unit -w apps/student-app` (23 pass, 0 fail). No code changed; commit and the two open follow-ups (retry-with-jitter location, timed-out-write copy) remain with the author.
+
+**Files changed:**
+- none
+
+## 2026-11-04 19:00 SGT — Commit the authFetch deadline, add safe-read retry and lost-write copy (N4 §5.1)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok please do all 3" — (1) commit the 10 s request-deadline change, (2) retry safe reads with bounded backoff and jitter, (3) show the design table's "We couldn't confirm the result. Check this errand before trying again." for a timed-out lifecycle write.
+
+**Usage scenario:** Implementation of the author-approved wiki design ("Graceful Degradation and Data Durability Design" §5.1) plus the commit the author approved in this prompt. Branching: the work was moved off `docs/simulated-uat-run` (whose working tree holds an unfinished `docs/uat/` package) onto `feat/n4-student-app-request-resilience`, created from `d2f750b`, then `origin/main` (`8ef8dcb`) was merged in; conflicts in `apps/student-app/package.json` (both test files kept) and `ai/usage-log.md` (main's log plus this branch's entries appended). Retry placement is an implementation choice inside the existing single `authFetch` funnel, stated for the author to confirm: only GET/HEAD without a caller signal are retried (3 attempts, full-jitter backoff base 300 ms, 5xx or thrown error), so the create POST, pending poll and every write keep their current behaviour. "Response lost" covers the deadline abort and fetch's network TypeError. Verified: `npm run typecheck` (exit 0), `npm run test:unit -w apps/student-app` (32 pass, 0 fail), `npm run ci:validate-tests` (passed), ESLint on the three files (clean). Commits made with the author's approval; nothing pushed; no PR opened. Left to the author: push and PR against #51, review the ~30 s worst case for retried reads against a hung service, and the untouched `docs/uat/` work on the docs branch.
+
+**Files changed:**
+- `apps/student-app/src/hooks/useAuthSession.ts` — `isSafeRead`, `readRetryDelayMs`, `retrySafeRead`, `isResponseLost`, `describeWriteFailure`, `UNCONFIRMED_WRITE_MESSAGE`; `authFetch` wraps its attempt in `retrySafeRead` for safe reads; disclosure block updated
+- `apps/student-app/src/App.tsx` — accept and task-action catch blocks use `describeWriteFailure`; disclosure block updated
+- `apps/student-app/test/auth-fetch.test.ts` — six new cases (safe-read classification, jitter bounds, retry on throw/5xx, no retry on 4xx, last outcome returned/rethrown, lost-write copy)
+- `apps/student-app/package.json` — merge resolution only: `test:unit` lists both `assistant.test.ts` and `auth-fetch.test.ts` (JSON, no disclosure header)
+
+## 2026-11-04 19:25 SGT — Push, sub-issue #224 and PR #225 for the N4 §5.1 student-app controls
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok create a PR first" — push the branch and open the pull request for the deadline / safe-read retry / unconfirmed-write work.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. No issue closed by this PR alone existed (#51 is the whole N4 epic), so the author chose, when asked, to have a scoped sub-issue created: #224 "[Student App] [N4] Bound and retry authenticated requests; report lost write responses as unconfirmed (N4.1.1)", attached under #51. PR #225 (`Closes #224`, `Refs #51`) filled from `.github/pull_request_template.md`, quoting N4-C1 to N4-C4. GitHub returned repeated 502 / Internal Server Error responses during the push, issue and PR calls; each was checked for a partial result before retrying, and the issue and PR were created through the REST endpoint. CI on the PR head was queued/in progress at the time of writing; merge decision and the manual compose-pause check remain with the author.
+
+**Files changed:**
+- none (this entry only)
+
+## 2026-11-04 19:58 SGT — Address the PR #225 review (session-scoped retries, Feed poll, lost 2xx body, draft deadline)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "look at the code review here and then attend to the code reviews" — a pasted external review of PR #225 (four findings) and PR #222 (three findings). This entry covers #225; the #222 work was done on its own branch (`fix/pr220-review-and-ci`, separate worktree) and is logged there.
+
+**Usage scenario:** Debugging assistance and implementation of review findings. Each finding was first checked against the code: (1) `authFetch` captured the token at call time and `retrySafeRead` replayed it after `clearLocalSession`, while profile loads had no request counter, so a retried profile read could land on the next account's screen; (2) every `fetchOrders` bumps `orderRequestId`, so a quiet 15 s poll superseded a retrying load before it could settle; (3) `postOrderLifecycleAction` swallowed a 2xx body-read failure into "HTTP 200"; (4) the assistant's server chain (4 s supplier lookup + 10 s SoCLaaS) exceeds the 10 s client default. Fixes stay inside the existing patterns (request-id counters, the single `authFetch` funnel, caller-owned signals): a per-session `AbortController` combined with the deadline through `AbortSignal.any` and captured when `authFetch` is called; `retrySafeRead` stops on `AbortError`; `profileRequestId` like the credits/orders counters; an in-flight counter that makes quiet polls wait; the lifecycle helper rethrows a 2xx body error; `parseErrandDraft` sends a 20 s signal. Choices stated for the author: the 20 s draft deadline is the client-side option the reviewer offered (the alternative, shortening Order Service's SoCLaaS timeout, is a server trade-off left to the author); `AbortSignal.any` is used as the smallest stdlib combinator (Chrome 116 / Safari 17.4 / Firefox 124, Node 20+). Verified: `npm run typecheck` (all workspaces, exit 0), `npm run test:unit -w @campus-errand/student-app` (36 pass, 0 fail, four new cases), ESLint on the four files (clean). The Feed-poll and profile guards live in React state in `App.tsx` and have no unit harness in this repo; they are covered by reasoning and the reviewer's reproduction steps (sign in as A, 503 the profile read, sign in as B; Feed with a 503-flapping Order Service) remain the manual check. No commit, push or review reply was made. Also left to the author: the merge conflicts the reviewer flagged against #222 in `apps/student-app/package.json` (keep both `auth-fetch.test.ts` and `supplier-map.test.ts` in `test:unit`) and `ai/usage-log.md`; and the pre-existing uncommitted `docs/README.md`, `docs/audits/documentation-drift.md` and `docs/uat/` changes in this working tree, which were not touched.
+
+**Files changed:**
+- `apps/student-app/src/hooks/useAuthSession.ts` — `withRequestDeadline(init, deadlineMs, sessionSignal?)`, `isAborted`, `retrySafeRead` rethrows an `AbortError` at once, `sessionAbort` controller aborted and replaced in `clearLocalSession`, `authFetch` captures the session signal before its first attempt; disclosure block updated
+- `apps/student-app/src/App.tsx` — `profileRequestId` (bumped on session clear, checked after the profile fetch and in its `finally`), profile error/loading reset on session clear, `ordersLoadsInFlight` counter that skips quiet Feed polls while a load is in flight; disclosure block updated
+- `apps/student-app/src/api/orders.ts` — lifecycle helper rethrows a body-read error on a 2xx (error bodies still fall back to the status message); `DRAFT_DEADLINE_MS = 20_000` and `parseErrandDraft` passes its own `AbortSignal.timeout`; disclosure block updated
+- `apps/student-app/test/auth-fetch.test.ts` — four cases: session abort stops retries while a timeout is still retried; combined session+deadline signal; lost 2xx body reported as unconfirmed (plus 502 fallback and 409 pass-through); draft deadline exceeds 14 s and is sent as a caller-owned signal
+
+## 2026-11-04 20:05 SGT — Recommendations on the five open points from the review follow-up
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "what would be your recommendation for each of it" — the five open points listed after the PR #225 / #222 review fixes (seed coordinate policy, 20 s draft deadline, `AbortSignal.any` baseline, merge order and conflicts, commit/push/reply/worktree steps).
+
+**Usage scenario:** Learning support and facts from the code, answered in chat only. Recommendations given as defaults for the author to ratify: keep the seed policy (admin-recorded coordinates win; a CSV correction becomes an admin edit), keep the client-side 20 s draft deadline (a server timeout change is a separate Order Service decision), keep `AbortSignal.any` (the hook already relied on `AbortSignal.timeout`; a fallback is available if older browsers matter), merge #222 before bringing `origin/main` into #225 because #222 repairs the fixtures behind #225's CI failures, and commit the two branches separately with the pre-existing `docs/` changes kept out. The seed policy and the server timeout were flagged as the author's product decisions. No files other than this log were changed.
+
+**Files changed:**
+- none
+
+## 2026-11-04 20:12 SGT — Commit and push the PR #225 review fixes; merge main after #222 lands
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok please do thus" — execute the recommended plan: commit each branch separately, push, merge #222 once CI is green, then merge `origin/main` into this branch (keeping both student-app unit test files and both sets of log entries), re-verify and push.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. This commit carries the four student-app review fixes from the 19:58 entry plus this log entry. The pre-existing `docs/README.md`, `docs/audits/documentation-drift.md` and `docs/uat/` changes stay uncommitted in the working tree (they belong to the docs branch). "Author review" lines are left for the author. The external review posted no GitHub threads, so no replies were made. The follow-up merge of `origin/main` is recorded in the merge commit itself. Addendum (20:40 SGT): `gh pr merge 222 --merge` was denied by the session's permission classifier ("Merge Without Review") and was not retried by other means, so #222 is still open with all 27 checks green; only `origin/main` as of PR #223 (`6f2dab9`) was merged into this branch. The conflicts with #222 in `apps/student-app/package.json` and `ai/usage-log.md` therefore remain for the merge that follows #222 landing.
+
+**Files changed:**
+- none beyond the 19:58 entry (this entry only)
+## 2026-11-01 00:40 SGT — Review PR #220
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** detached review of admin_dashboard at 01fd0f2976bc49edf131d702830372c8210e8e88
+
+**Prompt (summarised):** Review PR #220 against its actual base, inspect repository instructions, description, issue links, existing comments and complete diff; return concise actionable findings and verification limits without posting, fixing, committing, pushing or merging.
+
+**Usage scenario:** Code review and debugging assistance. Inspected all 21 changed files and relevant callers against base 8115a2cbf4f6e571678ffc8e62adacc07f560a5a. PR description has no issue references and review threads/comments were empty. Identified a nullable-to-required coordinate migration upgrade failure, unchanged API test fixtures now rejected by validation, overlapping seeded map markers, and timing-dependent PENDING-state Postman assertions. Final architecture and implementation decisions remain with the author.
+
+**Verification:** npm ci completed; Prisma clients generated; all-workspace typecheck passed; supplier unit tests 49/49 and student unit tests 22/22 passed. Postman JSON and 141 embedded-script syntax checks passed; a focused simulated-response check demonstrated the pending-state assertion failures. Inspected GitHub CI run 41039325203: acceptance failed 6 supplier checks (56/62 passed), API E2E failed 7 supplier checks; both create fixtures omit the new required coordinates. PostgreSQL/Docker and a working Playwright browser were unavailable, so migration execution, full-stack Postman timing, and map browser interaction were not reproduced locally. Head/base and empty review threads rechecked before reporting.
+
+**Files changed:**
+- ai/usage-log.md — required local review record only; uncommitted. No application/infrastructure edits or GitHub writes.
+
+
+## 2026-11-01 11:16 SGT — Merge PR #220 and address review findings separately
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** fix/pr220-review-and-ci
+
+**Prompt (summarised):** Merge PR #220, then create a separate branch to address its code review findings and failing CI test cases.
+
+**Usage scenario:** Authorized merge and follow-up bug fixes. Merged the reviewed head 01fd0f2976bc49edf131d702830372c8210e8e88 as 8ef8dcb279e03abe398ece39736687d298054215, created the separate fix branch and issue #221. Corrected the unsafe historical coordinate migration and added a forward migration for databases where it already succeeded; preserved legacy records without fabricated coordinates, retained required coordinates on creation, and exposed coordinate repair in the admin edit form. Grouped coincident supplier markers into a popup with individual choices. Updated API success fixtures and moved timing-sensitive PENDING cancellation coverage from Postman to a controlled HTTP test. The follow-up PR remains separate for review.
+
+**Files changed:**
+- Supplier Service canonical Prisma schema and coordinate migrations; coordinate migration and API regression tests; package test script; validation comment.
+- packages/common-dtos/src/index.ts — nullable legacy coordinates in read DTOs, required creation contract unchanged.
+- apps/admin-portal/src/App.tsx and src/components/SupplierModals.tsx — editable coordinates and nullable value normalization.
+- apps/student-app/src/map/SupplierPickupMap.tsx, src/map/supplierLocations.ts, test/supplier-map.test.ts, package.json — selectable coincident suppliers and grouping regression coverage.
+- scripts/uat/uat-d2-api.mjs, scripts/test-d2-e2e.ts and scripts/uat/uat-d2-ui.mjs — valid supplier fixtures, exact browser form selectors and nonzero exit status for recorded UI failures, preserving negative test intent.
+- services/order-service/test/app.test.ts and tests/postman/postman_collection.json — deterministic PENDING access/cancellation checks, removal of transient-state requests 6.25–6.27.
+- .github/workflows/ci.yml and scripts/ci/run-all-tests.mjs — isolated Supplier Service migration suite.
+- docs/services/supplier-service/README.md and coordinate-upgrades.md — upgrade paths, verified coordinate repair and failed-migration recovery.
+- ai/usage-log.md — preserved prior local review entry and recorded this authorized work.
+
+**Verification:** All-workspace typecheck and production build, repository lint, diff whitespace checks, and CI matrix validation passed (18 workspace suites and 4 system commands). Supplier unit tests passed 53/53, Student App 25/25, Order Service 66/66. All three actual SQL migration regression tests passed using a temporary PGlite PostgreSQL engine outside the repository; no application dependency was added. Postman JSON parsed, all 138 embedded scripts compiled, and request routing targets validated. Direct admin component handler checks covered blank, repaired, cleared and zero-valued coordinates. Independent read-only review found no additional actionable regression. Docker, native PostgreSQL and a usable Playwright browser are unavailable locally; full-stack and native PostgreSQL 16 validation are delegated to GitHub CI, and map interaction needs browser verification. Historical migration checksum/development-reset implications are documented; no database reset, fake-coordinate backfill or data deletion was performed.
+
+**CI follow-up in the same prompt:** Run 41268660293 passed native PostgreSQL migration tests (3/3), API E2E (56/56), acceptance API (62/62), notification acceptance (22/22), CDC (7/7) and other service checks. Although GitHub marked all jobs successful, inspection of browser logs found only 35/41 UI checks passed: the floor placeholder matched both new coordinate inputs, and the runner swallowed recorded failures. Corrected the exact field selector, populated both required coordinates and set a failing exit status after cleanup/results on any failed UI check. Syntax, ESLint and focused selector checks passed; child-process execution of the actual reporting code confirmed 41/41 exits 0 and 35/41 exits 1 while preserving cleanup/output. Independent review found no additional issue. The follow-up commit triggers a fresh CI run; full browser verification remains pending at commit time.
+
+## 2026-11-04 19:58 SGT — Address the PR #222 review (seed keeps coordinate corrections, legacy edit, Prisma recovery test)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/pr220-review-and-ci
+
+**Prompt (summarised):** "look at the code review here and then attend to the code reviews" — a pasted external review of PR #225 (four findings, handled on `feat/n4-student-app-request-resilience`) and PR #222 (three findings, this entry). Work done in a separate worktree of this branch at head `10a5e21`.
+
+**Usage scenario:** Debugging assistance and implementation of review findings. Verified first: the container `CMD` reruns `seed.ts` on every start and its upsert `update` wrote CSV `latitude`/`longitude` unconditionally; `handleUpdateSupplier` called `validateSupplierForm`, which requires both coordinates, although `updateExistingSupplier` accepts omitted ones; the migration tests apply SQL through `pg` and never touch `_prisma_migrations`; the runbook's bare `npx prisma` commands read only `DATABASE_URL` while `scripts/prisma-migrate.mjs` maps `SUPPLIER_DATABASE_URL`. Fixes: the seed update keeps an existing coordinate (`existing?.latitude ?? data.latitude`) and only fills a missing one, `seedSuppliers` is exported and `main()` runs under `require.main === module` so the seed is testable with the repository's existing `mock.module('../src/database/client')` pattern; `validateSupplierForm(data, existing?)` lets a coordinate the edited record never had stay blank while creation and blanking a recorded value remain errors, and the edit modal labels such a field "not recorded yet, optional"; one migration test drives the real Prisma CLI (minimal `schema.prisma`, `?schema=` URL) through the original failing `SET NOT NULL` migration, `migrate resolve --rolled-back` and `migrate deploy`, asserting the failed record, the surviving legacy row and the applied history; the runbook shows setting `DATABASE_URL` and names the wrapper mapping. The admin-portal workspace had no unit suite, so `test:unit` was added to its `package.json` and to the CI unit matrix (`.github/workflows/ci.yml`), per the CI matrix sync rule. Verified: `npm run test:unit -w @campus-errand/admin-portal` (4 pass), `npm run test:unit -w @campus-errand/supplier-service` (55 pass, including the two new seed cases), `npm run ci:validate-tests` (19 workspace suites, 4 system commands), `npm run typecheck` for admin-portal and supplier-service (exit 0; all-workspace typecheck run too), ESLint on the seven changed source/test files (clean). Not verified locally: the new Prisma recovery test needs PostgreSQL (`test:migration`), and the Docker daemon was not running on this machine, so it will first run in the CI `Migration | supplier-service` job. No commit, push or review reply was made. Left to the author: review the seed policy (recorded coordinates are never overwritten by the CSV, so a deliberate CSV correction for an already-seeded row now needs an admin edit), the merge with #225 (`apps/student-app/package.json`: keep both `auth-fetch.test.ts` and `supplier-map.test.ts`; `ai/usage-log.md`), and the worktree removal once done.
+
+**Files changed:**
+- `services/supplier-service/src/database/seed.ts` — update keeps existing coordinates, fills missing ones; `seedSuppliers` exported; `main()` guarded by `require.main === module`; disclosure block updated
+- `services/supplier-service/test/seed.test.ts` — new: admin correction survives a second seed run; legacy null row is filled from the CSV (picked up by the existing `test/**/*.test.ts` glob)
+- `services/supplier-service/test/coordinates.migration.ts` — new test: failed original migration → `migrate resolve --rolled-back` → `migrate deploy` through the Prisma CLI; imports extended; disclosure block updated
+- `apps/admin-portal/src/constants.ts` — `validateSupplierForm(data, existing?)` per-coordinate rule; disclosure block updated
+- `apps/admin-portal/src/App.tsx` — edit path passes `editingSupplier` to the validator; disclosure block updated
+- `apps/admin-portal/src/components/SupplierModals.tsx` — edit modal marks a never-recorded coordinate as optional instead of required; disclosure block updated
+- `apps/admin-portal/test/supplier-form.test.ts` — new: creation requires both, legacy blanks allowed on edit, recorded value cannot be blanked, NaN rejected
+- `apps/admin-portal/package.json` — new `test:unit` script (JSON, no disclosure header)
+- `.github/workflows/ci.yml` — admin-portal entry in the unit matrix; disclosure block updated
+- `docs/services/supplier-service/coordinate-upgrades.md` — `DATABASE_URL` setting for the bare Prisma commands, wrapper mapping, seed behaviour, recovery-path test; disclosure block updated
+- `docs/services/supplier-service/README.md` — seed description mentions preserved coordinates; disclosure block updated
+
+## 2026-11-04 20:10 SGT — Commit, push and merge the PR #222 review fixes
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/pr220-review-and-ci
+
+**Prompt (summarised):** "ok please do thus" — execute the recommended plan: commit each branch separately, push, merge #222 once CI is green, then bring `origin/main` into the #225 branch, and remove the worktree.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. This commit carries the review fixes from the previous entry plus this log entry; it is pushed; CI passed (27 checks). Addendum (20:42 SGT): the requested `gh pr merge 222 --merge` was denied by the session's permission classifier ("Merge Without Review") and was not retried by other means, so the merge into `main` is left to the author. The "Author review" lines in the disclosure blocks are left for the author (course rule). The external review posted no GitHub threads, so no review replies were made. The worktree is kept until #222 is merged, in case the author wants changes.
+
+**Files changed:**
+- none beyond the previous entry (this entry only)
+
+## 2026-11-04 20:50 SGT — Merge PR #222, then merge main into the #225 branch
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok try merging i allow for merger" — explicit approval to merge PR #222 after the session's permission gate had blocked it.
+
+**Usage scenario:** Git/GitHub actions the author explicitly approved. `gh pr merge 222 --merge` merged `fix/pr220-review-and-ci` into `main` as `83db3e4`; the code commit `6cd619d` had all 27 checks green, while CI on the trailing one-line log correction `3d5f9cf` was still pending at merge time. `origin/main` was then merged into this branch: `apps/student-app/package.json` resolved by listing both `auth-fetch.test.ts` and `supplier-map.test.ts` in `test:unit`; `ai/usage-log.md` resolved by keeping both branches' entries (this branch's first, then main's). Verified before committing the merge: `npm run ci:validate-tests`, `npm run test:unit -w @campus-errand/student-app` (both new test files run), `npm run typecheck` (all workspaces). Pushed. Worktree for #222 removed. Left to the author: the "Author review" lines, PR #225's merge decision once its CI is green, and the uncommitted `docs/` changes in this working tree.
+
+**Files changed:**
+- `apps/student-app/package.json` — merge resolution only (JSON, no disclosure header)
+- `ai/usage-log.md` — merge resolution plus this entry
+
+## 2026-11-04 21:05 SGT — Merge PR #225
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "i would like you to merge this as well" — merge PR #225 (N4.1.1 student-app request resilience, closes #224, refs #51).
+
+**Usage scenario:** Git/GitHub action the author explicitly requested. CI on the PR head `7017cdb` (review fixes plus the merge of `main` with #222 and #223) passed all 27 checks. This entry is committed on the feature branch first, as the logging rule requires, then the PR is merged into `main` with a merge commit; CI on this log-only commit will still be running at merge time, as it was for #222. Left to the author: the "Author review" lines, the compose-pause manual check from the PR body, and the uncommitted `docs/` changes in this working tree.
+
+**Files changed:**
+- none (this entry only)

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Verify required coordinates for new suppliers and repair of nullable legacy coordinates.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added unit test coverage for Supplier Service createApp() /health and /ready probes (200 READY and 503 NOT_READY).
  * Author review: <to be completed by yanhwee>
@@ -285,6 +289,24 @@ describe('writes are ADMIN-only', () => {
 describe('POST /api/suppliers', () => {
   const admin = token('ADMIN');
 
+  // AI-generated (edited by Reallyeasy1)
+  it('rejects missing or non-numeric coordinates without creating a supplier', async () => {
+    for (const key of ['latitude', 'longitude'] as const) {
+      for (const value of [undefined, null, '', '1.29', true, {}, []]) {
+        const res = await call('POST', '/api/suppliers', { body: { ...VALID, [key]: value }, token: admin });
+        assert.equal(res.status, 400, `${key}=${JSON.stringify(value)}`);
+      }
+    }
+    assert.equal(rows.size, 0);
+  });
+
+  it('accepts zero coordinates as numbers', async () => {
+    const res = await call('POST', '/api/suppliers', { body: { ...VALID, latitude: 0, longitude: 0 }, token: admin });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.data.latitude, 0);
+    assert.equal(res.body.data.longitude, 0);
+  });
+
   it('creates with 201 and trims the duplicate-check values', async () => {
     const res = await call('POST', '/api/suppliers', { body: { ...VALID, name: '  Demo Cafe ' }, token: admin });
     assert.equal(res.status, 201);
@@ -347,6 +369,32 @@ describe('POST /api/suppliers', () => {
 
 describe('PUT /api/suppliers/:id', () => {
   const admin = token('ADMIN');
+
+  // AI-generated (edited by Reallyeasy1)
+  it('preserves legacy null coordinates on unrelated updates and allows explicit repair', async () => {
+    const row = seed({ latitude: null, longitude: null });
+    const update = await call('PUT', `/api/suppliers/${row.id}`, { body: { description: 'Updated' }, token: admin });
+    assert.equal(update.status, 200);
+    assert.equal(update.body.data.latitude, null);
+    assert.equal(update.body.data.longitude, null);
+    const repair = await call('PUT', `/api/suppliers/${row.id}`, {
+      body: { latitude: VALID.latitude, longitude: VALID.longitude }, token: admin,
+    });
+    assert.equal(repair.status, 200);
+    assert.equal(repair.body.data.id, row.id);
+    assert.equal(repair.body.data.latitude, VALID.latitude);
+    assert.equal(repair.body.data.longitude, VALID.longitude);
+  });
+
+  it('rejects clearing an existing coordinate', async () => {
+    const row = seed({ latitude: VALID.latitude, longitude: VALID.longitude });
+    for (const key of ['latitude', 'longitude'] as const) {
+      const res = await call('PUT', `/api/suppliers/${row.id}`, { body: { [key]: null }, token: admin });
+      assert.equal(res.status, 400);
+    }
+    assert.equal(rows.get(row.id)!.latitude, VALID.latitude);
+    assert.equal(rows.get(row.id)!.longitude, VALID.longitude);
+  });
 
   it('404 for an unknown id', async () => {
     const res = await call('PUT', '/api/suppliers/nope', { body: { name: 'x' }, token: admin });

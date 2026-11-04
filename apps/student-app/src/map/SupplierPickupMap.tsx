@@ -11,21 +11,25 @@
  * Scope: Hovering a pin shows a tooltip above it with the store's name, its operating hours and "Closed now" when
  * it is outside them (author's request of 2026-11-04).
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Group coincident markers and let users select a named supplier in the popup.
+ * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by jagdeepsh)
-import type { SupplierDTO } from '@campus-errand/common-dtos';
+
+import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, X } from 'lucide-react';
-import { useEffect } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
+import type { SupplierDTO } from '@campus-errand/common-dtos';
+import { groupSuppliersByLocation, type SupplierLocation } from './supplierLocations';
 
-// Leaflet's default marker icon paths are relative to a server document root and break under a bundler
-// (Vite fingerprints the image filenames) unless re-pointed at the bundled asset URLs explicitly.
+// Use bundled icons so Vite's fingerprinted asset paths resolve correctly.
 delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -44,36 +48,28 @@ interface SupplierPickupMapProps {
   onClose: () => void;
 }
 
-type GeoSupplier = SupplierDTO & { latitude: number; longitude: number };
-
-function hasCoordinates(s: SupplierDTO): s is GeoSupplier {
-  return typeof s.latitude === 'number' && typeof s.longitude === 'number'
-    && Number.isFinite(s.latitude) && Number.isFinite(s.longitude);
-}
-
-// Fits the map's view to every pin so all suppliers are visible on open, instead of a fixed zoom that might
-// crop some out or leave the map mostly empty.
-function FitBoundsToMarkers({ suppliers }: { suppliers: GeoSupplier[] }) {
+// AI-generated (edited by Reallyeasy1)
+function FitBoundsToMarkers({ locations }: { locations: SupplierLocation[] }) {
   const map = useMap();
 
   useEffect(() => {
-    if (suppliers.length === 0) {
+    if (locations.length === 0) {
       map.setView(NUS_FALLBACK_CENTER, NUS_FALLBACK_ZOOM);
       return;
     }
-    if (suppliers.length === 1) {
-      map.setView([suppliers[0].latitude, suppliers[0].longitude], NUS_FALLBACK_ZOOM);
+    if (locations.length === 1) {
+      map.setView(locations[0].position, NUS_FALLBACK_ZOOM);
       return;
     }
-    const bounds = L.latLngBounds(suppliers.map((s) => [s.latitude, s.longitude] as [number, number]));
+    const bounds = L.latLngBounds(locations.map((location) => location.position));
     map.fitBounds(bounds, { padding: [40, 40] });
-  }, [map, suppliers]);
+  }, [map, locations]);
 
   return null;
 }
 
 export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onClose }: SupplierPickupMapProps) {
-  const geoSuppliers = suppliers.filter(hasCoordinates);
+  const locations = useMemo(() => groupSuppliersByLocation(suppliers), [suppliers]);
 
   return (
     <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -83,7 +79,7 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
             <MapPin className="w-5 h-5 text-nus-blue" />
             <div>
               <h3 className="font-bold text-base text-slate-900">Pick a Spot on the Map</h3>
-              <p className="text-xs text-slate-500">Tap a pin to select that pickup spot</p>
+              <p className="text-xs text-slate-500">Tap a pin, then choose your pickup spot</p>
             </div>
           </div>
           <button
@@ -97,7 +93,7 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
         </div>
 
         <div className="h-[60vh] min-h-[320px]">
-          {geoSuppliers.length === 0 ? (
+          {locations.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-slate-500 p-6 text-center">
               None of the available pickup spots have map coordinates yet.
             </div>
@@ -107,12 +103,12 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <FitBoundsToMarkers suppliers={geoSuppliers} />
-              {geoSuppliers.map((s) => (
+              <FitBoundsToMarkers locations={locations} />
+              {locations.map((location) => (
                 <Marker
-                  key={s.id}
-                  position={[s.latitude, s.longitude]}
-                  eventHandlers={{ click: () => { onSelect(s); onClose(); } }}
+                  key={location.key}
+                  position={location.position}
+                  alt={location.suppliers.map((supplier) => supplier.name).join(', ')}
                 >
                   {/* The default icon's tooltipAnchor is [16, -28]; this offset centres the label just above the pin. */}
                   <Tooltip direction="top" offset={[-16, -14]}>
@@ -127,12 +123,22 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
                     )}
                   </Tooltip>
                   <Popup>
-                    <div className="text-sm space-y-0.5">
-                      <p className="font-bold text-slate-900">{s.name}</p>
-                      <p className="text-slate-500">{s.campusZone} &middot; {s.category}</p>
-                      {s.id === selectedSupplierId && (
-                        <p className="text-nus-blue font-semibold text-xs mt-1">Currently selected</p>
-                      )}
+                    <div className="min-w-[200px] max-h-60 overflow-y-auto space-y-2">
+                      {location.suppliers.map((supplier) => (
+                        <button
+                          key={supplier.id}
+                          type="button"
+                          className="block w-full rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-nus-blue"
+                          aria-pressed={supplier.id === selectedSupplierId}
+                          onClick={() => { onSelect(supplier); onClose(); }}
+                        >
+                          <span className="block font-bold text-slate-900">{supplier.name}</span>
+                          <span className="block text-slate-500">{supplier.campusZone} &middot; {supplier.category}</span>
+                          {supplier.id === selectedSupplierId && (
+                            <span className="block text-nus-blue font-semibold text-xs mt-1">Currently selected</span>
+                          )}
+                        </button>
+                      ))}
                     </div>
                   </Popup>
                 </Marker>

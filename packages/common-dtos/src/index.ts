@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Represent missing legacy supplier coordinates in read responses; create inputs remain required.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Added ParseErrandDraftRequest, ParsedErrandItemDTO, and ParsedErrandDraftDTO for Natural-Language Errand Creation Assistant (F6).
  * Author review: <to be completed by yanhwee>
@@ -175,8 +179,8 @@ export interface SupplierDTO {
   description?: string;
   building?: string;
   floor?: string;
-  latitude?: number;
-  longitude?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   startingTime?: string;
   closingTime?: string;
   imageUrl?: string;

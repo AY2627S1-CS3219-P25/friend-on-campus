@@ -1,5 +1,16 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #225 review: a profile result from an earlier session is discarded (profileRequestId, bumped on session
+ * clear like the orders and credits counters), and a quiet Feed poll is skipped while an orders load is still in
+ * flight so a retrying load is not superseded before it can settle.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: N4 §5.1: the accept and task-action catch blocks report a lost write response (deadline abort or network
+ * failure) with the design table's "We couldn't confirm the result" copy via describeWriteFailure.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refined main viewport padding to eliminate excessive vertical whitespace under the sticky navbar.
  * Author review: <to be completed by yanhwee>
@@ -113,7 +124,7 @@ import { BottomNav } from './components/BottomNav';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
 import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
-import { useAuthSession } from './hooks/useAuthSession';
+import { describeWriteFailure, useAuthSession } from './hooks/useAuthSession';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
 import { useOrderSubmission } from './orders/useOrderSubmission';
@@ -161,6 +172,7 @@ export default function App() {
   const [editUsernameDraft, setEditUsernameDraft] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [updateProfileError, setUpdateProfileError] = useState<{ code: string; message: string } | null>(null);
+  const profileRequestId = useRef(0);
 
   // Delete Account state
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
@@ -224,6 +236,7 @@ export default function App() {
   const auth = useAuthSession(() => {
     creditRequestId.current++;
     orderRequestId.current++;
+    profileRequestId.current++;
     setOrders([]);
     setOrdersError(null);
     setOrdersLoading(false);
@@ -238,6 +251,8 @@ export default function App() {
     setCreditError(null);
     setIsLoadingCredits(false);
     setProfile(null);
+    setProfileError(null);
+    setIsLoadingProfile(false);
     setActiveTab('feed');
   });
 
@@ -374,9 +389,15 @@ export default function App() {
   // banner) for polls, and a list that started before a local change (accept, pickup, …) is dropped as stale so it
   // cannot overwrite that change (PR #196 review).
   const ordersMutatedAt = useRef(0);
+  // AI-generated (edited by Reallyeasy1): a retrying load can outlast the 15 s poll interval, and each new load
+  // supersedes the previous request id; a quiet poll therefore waits while any load is in flight, otherwise a Feed
+  // facing a flapping Order Service never settles on an error or a result (PR #225 review, P2).
+  const ordersLoadsInFlight = useRef(0);
   const fetchOrders = async (quiet = false) => {
+    if (quiet && ordersLoadsInFlight.current > 0) return;
     const requestId = ++orderRequestId.current;
     const startedAt = Date.now();
+    ordersLoadsInFlight.current++;
     if (!quiet) {
       setOrdersLoading(true);
       setOrdersError(null);
@@ -390,6 +411,7 @@ export default function App() {
         setOrdersError('Unable to load errands. Please try again.');
       }
     } finally {
+      ordersLoadsInFlight.current--;
       if (requestId === orderRequestId.current) setOrdersLoading(false);
     }
   };
@@ -452,18 +474,22 @@ export default function App() {
     },
   });
 
+  // AI-generated (edited by Reallyeasy1): the counter is bumped on session clear, so a profile that belongs to the
+  // account that signed out (including one returned by a retry) never lands on the next account's screen.
   const fetchProfile = async () => {
+    const requestId = ++profileRequestId.current;
     setIsLoadingProfile(true);
     setProfileError(null);
     try {
       const res = await fetchCurrentUserProfile(authFetch);
+      if (requestId !== profileRequestId.current) return;
       if (res.ok) {
         setProfile(res.data);
       } else {
         setProfileError({ code: res.code, message: res.message });
       }
     } finally {
-      setIsLoadingProfile(false);
+      if (requestId === profileRequestId.current) setIsLoadingProfile(false);
     }
   };
 
@@ -592,7 +618,7 @@ export default function App() {
       setNotification('Errand accepted! Head to the pickup location.');
     } catch (error) {
       if (requestId === orderRequestId.current) {
-        setActionError(error instanceof Error ? error.message : 'Unable to accept this errand.');
+        setActionError(describeWriteFailure(error, 'Unable to accept this errand.'));
       }
     } finally {
       setAcceptingOrder(null);
@@ -643,7 +669,7 @@ export default function App() {
       }
     } catch (error) {
       if (requestId === orderRequestId.current) {
-        setActionError(error instanceof Error ? error.message : 'Unable to update this errand.');
+        setActionError(describeWriteFailure(error, 'Unable to update this errand.'));
       }
     } finally {
       setTaskActionInFlight(null);

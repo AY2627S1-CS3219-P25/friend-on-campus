@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
     "test:unit": "node --import tsx --experimental-test-module-mocks --test \"test/**/*.test.ts\"",
+    "test:migration": "node --import tsx --test test/coordinates.migration.ts",
     "build": "tsc",
     "db:generate": "prisma generate --schema prisma/schema.prisma",
     "db:migrate": "node ../../scripts/prisma-migrate.mjs supplier dev",
