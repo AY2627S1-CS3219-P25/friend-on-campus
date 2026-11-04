@@ -5367,3 +5367,190 @@ Correction: the first resolution script aborted on a sanity check, the chained c
 
 **Files changed:**
 - `ai/usage-log.md` — rebuilt merge resolution and this entry
+
+## 2026-10-27 11:50 SGT — Simulated UAT assignment (wiki handoff), run uat-20261026-d2f750b: in progress
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run (from origin/main d2f750b)
+
+**Prompt (summarised):** Carry out the simulated UAT assignment from the wiki page "Simulated-UAT-Plan-and-Claude-Code-Handoff" and its three companions: inspect and reconcile, create the docs/uat/ package, establish an isolated runtime, run existing checks and the 56-case catalogue, record results, assess findings, keep feedback honest; no commits, PRs, issues or wiki edits.
+
+**Usage scenario:** Requirements interpretation and formatting (the wiki's cases and personas rendered into docs/uat/ and scenarios.json), boilerplate/orchestration code (an ephemeral Playwright driver under the run's evidence folder, not wired into npm or CI), test execution and debugging assistance (static layers, four existing acceptance drivers, 56 persona cases on an isolated Compose project built from a clean worktree of d2f750b), documentation. No application code, schema, API, dependency, CI file or persistent test script changed. Findings are recorded with evidence classes; severity/priority and any GitHub follow-up are left to the author. Status at this entry: the background case chain was stopped by the harness for low host memory after G05 (56 cases recorded: 42 PASS, 14 FAIL, several FAILs are driver timeouts or a gateway stale-upstream cascade to be triaged); the late checks and the result-dependent documents (06 generator, 08, 09, 10, README) are pending the author's go-ahead to resume.
+
+**Files changed:**
+- `docs/uat/01-uat-strategy.md`, `02-feature-inventory.md`, `03-user-personas.md`, `05-test-environment.md`, `07-simulated-user-feedback.md` — new package documents (disclosure headers inside)
+- `docs/uat/scenarios.json` — 56 case specifications generated from the wiki (JSON, no header; generator noted inside)
+- `docs/uat/evidence/uat-20261026-d2f750b/` — commit/working-tree/tool versions, stack.json, commands/*.log + attempts.jsonl, drivers/ (orchestrator, api/cdc/ui JSON, ui-validation.json, screenshots), driver/ (run-cases, lib, journeys a–h and l, build-scenarios, build-report), scenario-results.json, fixtures.json, screenshots/
+- `docs/README.md` — start-by-task row and inventory rows for docs/uat/; disclosure record
+- `docs/audits/documentation-drift.md` — rows D31–D33; disclosure record
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 11:50 SGT — Question: how to check on the background UAT chain
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok how do i check on the background chain itself"
+
+**Usage scenario:** Explanation only (log/result/docker commands to watch the run). While answering, the harness stopped the background chain for low host memory; reported, not restarted.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 12:08 SGT — Triage of the 14 failed UAT cases: environment versus application
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Check whether the failed cases are due to CPU/host issues or application issues; if host-based, remove (rerun) them.
+
+**Usage scenario:** Debugging assistance. Each FAIL record, its screenshots and the isolated stack's logs (gateway, chat, Debezium connectors, broker queues, order/credit databases read-only) were inspected. Ten failures are driver defects or cascades (a chat helper that blocked 15 s on a missing element, two admin selectors, a health-card count, the mobile nav label, and the fixtures they feed); three (G05–G07) are a cascade of nginx keeping stale upstream addresses after this run's containers restarted (open issue #173; recorded as an observation); one (G04) is a candidate application recovery gap: after the broker interruption the reservation hold and the Credit result were committed but the order never left PENDING and expired 75 min later; it will be rerun once before being classified. Earlier failed attempts stay in the records as history (handoff rule). This run's gateway container was restarted so the stack is usable again; no rerun was started because the host had 0.2 GB free memory. Left to the author: freeing memory and saying when to resume; severity of the G04 observation.
+
+**Files changed:**
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/lib.mjs` — chatSend no longer blocks on a missing alert element
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/f.mjs` — supplier toggle by accessible name, health cards counted by "(Mn)" headings, mobile tab "Orders"
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/h.mjs` — same alert-locator fix in H03/H06
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 12:45 SGT — Rerun of the triaged UAT cases, progress checks, and stop on request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok try again" (rerun the triaged cases), "would like to check on the progress", then "ok nvm can stop them for now".
+
+**Usage scenario:** Test execution and debugging assistance. Reran F02/F03/F06/F07, Journey H, E04 and started G04–G07 on the isolated stack; F03, F06, F07, H01–H04 and E07 now pass (FIND-02, FIND-03, FIND-09 observed). F02's remaining failure was my expectation (the supplier uniqueness key is name+category+building+floor), corrected in the driver; E04 failed a second time with a 120 s bound (notification inbox not catching up after offline/online while the chat reconnects: candidate intermittent finding, request capture added for a final attempt); H05/H06 need one more attempt after a conversation-state check. The chain was stopped at the author's request during Journey G; this run's containers were verified running and healthy afterwards and no browser processes were left. Findings register docs/uat/08 drafted from the evidence so far. Left to the author: whether to resume the remaining reruns (F02, H05–H07, E04, G04–G07, late checks) or report from the results as they stand.
+
+**Files changed:**
+- `docs/uat/08-usability-findings.md` — new: findings register (FIND-01..10, HYP-01, OBS-11..20) with evidence classes from the recorded cases
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/f.mjs` — F02 duplicate expectation follows the implemented uniqueness key
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/e.mjs` — E04 captures inbox requests and notification-socket events
+- `docs/uat/evidence/uat-20261026-d2f750b/` — scenario-results.json, fixtures.json, commands/cases-*.log and screenshots updated by the reruns
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 12:53 SGT — To-do list from the UAT run, with duplicate search, before any issue is filed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "based on the things that are run recently, compile a list of things to do and maybe add them as issues".
+
+**Usage scenario:** Requirements formatting (facts from the recorded UAT cases turned into candidate issue texts) and GitHub discovery (searched open and closed issues for duplicates: #182, #195, #198 and the matched open issues #134, #168, #169, #170, #171, #173). No issue was created: the list is presented for the author to choose from; priority labels and ordering are left to the author.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 13:47 SGT — Issues #200-#210 filed from the simulated UAT run
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok please create the issues" (the eleven candidates listed in the previous reply).
+
+**Usage scenario:** GitHub operations at the author's explicit request (CLAUDE.md section 1 exception): eleven issues created with case IDs, source paths, observed facts and proposed acceptance checks; no priority labels, severity or ordering set. The "observed again" comments on the already-open issues (#134, #168-#171, #173, #109) were not posted, as they were not part of the approval. The findings register now carries the issue numbers.
+
+**Files changed:**
+- `docs/uat/08-usability-findings.md` — issue numbers on the filed rows; OBS-21 row for the inbox catch-up finding (#208)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-27 15:40 SGT — Verification of the infra/chat/notification fixes and their pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run (this checkout); the fixes live on fix/uat-infra-chat-notification
+
+**Prompt (summarised):** "ok please do so" (run E04 and H03 against the fix build, then commit and open the PR).
+
+**Usage scenario:** Test execution and GitHub operations at the author's explicit request. The UAT driver's badge parser treated the saturated "9+" badge as 0, which had produced the false "inbox never catches up" readings behind #208; fixed in the driver and recorded in the findings register. E04 and H03 then passed against the fix build. The fix branch was committed, pushed and opened as a PR closing #173, #169, #206, #202 and #208 (its own usage-log entry rides in that commit).
+
+**Files changed:**
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/lib.mjs` — saturated badge "9+" read as 10; GW_OVERRIDE / RESULTS_FILE overrides for verification runs
+- `docs/uat/evidence/uat-20261026-d2f750b/driver/journeys/e.mjs` — E04 judges the catch-up on the rendered inbox rows
+- `docs/uat/08-usability-findings.md` — OBS-21 corrected (driver measurement error; indicator gap fixed on the branch)
+- `ai/usage-log.md` — this entry
+
+## 2026-10-31 16:22 SGT — Mergeability check of PR #220 (admin_dashboard: pickup map + mandatory supplier coordinates)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "See if PR #220 can be merged."
+
+**Usage scenario:** Debugging assistance / code review (read-only). Read the PR metadata, CI run 41039325203 failed-job logs, the branch diff against `origin/main`, and the acceptance/E2E scripts; reported the root cause of the two failing required jobs (`scripts/uat/uat-d2-api.mjs` W4 and `scripts/test-d2-e2e.ts` still POST suppliers without latitude/longitude, which the branch makes mandatory), the missing linked issue, the stray duplicate migration under `services/supplier-service/src/database/prisma/migrations/`, and policy gaps. No fix applied and no PR action taken; the merge/approve decision and the fix are left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 14:40 SGT — Summarise chat/notification changes from the N4 design wiki page
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Read the wiki page "Graceful Degradation and Data Durability Design" and tell me what changes it suggests for the chat service and the notification service.
+
+**Usage scenario:** Learning support / requirements interpretation — read the proposed design and listed the facts it states about the two optional services, cross-checked against the current `docker-compose.yml` gateway dependencies and service health routes. No design decisions made; whether to adopt any of the proposals is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 14:52 SGT — Explain the intent of the N4 infrastructure proposals
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Follow-up: for the infrastructure changes in the "Graceful Degradation and Data Durability Design" wiki page, what are they trying to achieve?
+
+**Usage scenario:** Learning support — explained the failure modes behind the proposed gateway-gating and probe-semantics changes, grounded in the current `docker-compose.yml` (api-gateway `depends_on`, `/ready`-based healthchecks) and the `resolver` directive on `origin/main`. No design decision made or recommended; adoption is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 15:05 SGT — Explain the intent of the N4 student-app proposals
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** Follow-up: pasted the five student-app bullets from the earlier summary of the "Graceful Degradation and Data Durability Design" wiki page and asked what they are trying to do.
+
+**Usage scenario:** Learning support — explained each proposal's failure mode and checked it against the current student-app code (`App.tsx` hook composition, `useNotifications.ts`, `useChat.ts`, `useAuthSession.ts` authFetch, `api/*.ts`). Listed which items already hold and which are still open. No design decision made; adoption is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-03 15:25 SGT — Default 10 s request deadline in student-app authFetch (N4 §5.1)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok can you implement that" — the one-place change from the previous reply: the bounded request deadline proposed in the wiki page "Graceful Degradation and Data Durability Design" section 5.1, applied in the shared authenticated fetch helper.
+
+**Usage scenario:** Implementation of a design the author chose (the wiki proposal, 10 s default, explicit create/auth policies preserved). Extracted `withRequestDeadline` so the behaviour is unit-testable; a caller-supplied signal wins, so the 15 s create POST and 10 s pending poll are unchanged. Left to the author: retry-with-jitter for safe reads (the page does not say where it lives) and the "couldn't confirm the result" copy for a timed-out lifecycle write, which today surfaces the browser's TimeoutError message through the existing catch blocks. Verified: `npm run typecheck` (exit 0), `npm run test:unit -w apps/student-app` (23 pass), `npm run ci:validate-tests` (passed), ESLint on the two files (clean). No commit made.
+
+**Files changed:**
+- `apps/student-app/src/hooks/useAuthSession.ts` — `REQUEST_DEADLINE_MS`, `withRequestDeadline()`, applied inside `authFetch`'s per-attempt `send`; disclosure block updated
+- `apps/student-app/test/auth-fetch.test.ts` — new: default signal attached, caller signal preserved, fresh signal per call, deadline aborts with TimeoutError
+- `apps/student-app/package.json` — `test:unit` now includes `test/auth-fetch.test.ts` (JSON, no disclosure header)
+
+## 2026-11-04 18:45 SGT — Progress check on the authFetch request-deadline change
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/simulated-uat-run
+
+**Prompt (summarised):** "ok can you implement that <- what is the progress on this" — status of the N4 §5.1 default request deadline implemented in the previous prompt.
+
+**Usage scenario:** Status report only. Inspected the working tree and re-ran `npm run test:unit -w apps/student-app` (23 pass, 0 fail). No code changed; commit and the two open follow-ups (retry-with-jitter location, timed-out-write copy) remain with the author.
+
+**Files changed:**
+- none

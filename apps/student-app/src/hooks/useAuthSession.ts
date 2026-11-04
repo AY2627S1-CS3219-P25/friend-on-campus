@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-03
+ * Scope: authFetch applies a 10 s default request deadline (N4 design, wiki "Graceful Degradation and Data Durability
+ *        Design" section 5.1) unless the caller passes its own signal; extracted as withRequestDeadline for a unit test.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
  * Author review: <to be completed by Reallyeasy1>
@@ -25,6 +30,19 @@ export interface SignupFormData {
   email: string;
   password: string;
   retypePassword: string;
+}
+
+// AI-generated (edited by Reallyeasy1)
+/** Default deadline for reads and actions sent through authFetch; create (15 s) and the pending poll (10 s) pass their own signal. */
+export const REQUEST_DEADLINE_MS = 10_000;
+
+/**
+ * A hung service (N4-O4: delayed, not refused) must produce a bounded error, not hold a screen open until the browser
+ * gives up. A caller-supplied signal wins, so existing explicit policies are unchanged. The timeout starts when the
+ * request is built, so a retry after token refresh gets a fresh deadline.
+ */
+export function withRequestDeadline(init: RequestInit, deadlineMs = REQUEST_DEADLINE_MS): RequestInit {
+  return { ...init, signal: init.signal ?? AbortSignal.timeout(deadlineMs) };
 }
 
 export function useAuthSession(onSessionCleared: () => void) {
@@ -89,7 +107,7 @@ export function useAuthSession(onSessionCleared: () => void) {
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
     const send = (token: string) =>
       fetch(url, {
-        ...init,
+        ...withRequestDeadline(init),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
     const res = await send(authToken);
