@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Drop-off estimator (author's decision A9): "Est. M" when the poster used the estimator and "No estimate"
+ * when they did not, on a small line under the reward badge (author's follow-up: inside the badge it widened the
+ * badge and truncated the zone).
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Removed zone badge ellipsis truncation and elevated View & Accept CTA to light interactive pill button.
  * Author review: <to be completed by yanhwee>
@@ -68,15 +74,21 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
     <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle border border-slate-200/90 hover:border-nus-blue/40 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           {/* AI-generated (edited by jagdeepsh) */}
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 min-w-0">
             <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0" />
             <span className="truncate">{order.campusZone}</span>
           </span>
-          <div className="inline-flex items-center gap-1.5 text-amber-800 font-black text-xs bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1 rounded-full border border-amber-200/90 shadow-2xs whitespace-nowrap shrink-0">
-            <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
-            <span>+{order.rewardCredits} Credits</span>
+          {/* The estimate sits on its own line under the pill so it never widens the pill and squeezes the zone. */}
+          <div className="flex flex-col items-end gap-0.5 shrink-0">
+            <div className="inline-flex items-center gap-1.5 text-amber-800 font-black text-xs bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1 rounded-full border border-amber-200/90 shadow-2xs whitespace-nowrap">
+              <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
+              <span>+{order.rewardCredits} Credits</span>
+            </div>
+            <span data-testid="errand-estimate" className="text-[10px] font-semibold text-amber-700/80 whitespace-nowrap pr-1">
+              {typeof order.estimatedRewardCredits === 'number' ? `Est. ${order.estimatedRewardCredits}` : 'No estimate'}
+            </span>
           </div>
         </div>
 

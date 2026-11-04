@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Optional drop-off coordinates and estimated credit (dropoffLatitude, dropoffLongitude,
+ * estimatedRewardCredits) on OrderDTO and CreateOrderRequest, per the author's drop-off estimator decisions.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Represent missing legacy supplier coordinates in read responses; create inputs remain required.
  * Author review: <to be completed by Reallyeasy1>
@@ -262,6 +267,10 @@ export interface OrderDTO {
   requesterContactNote?: string;
   courierContactNote?: string | null;
   rewardCredits: number;
+  // Drop-off point and the browser's suggested reward; all three are present or all absent.
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  estimatedRewardCredits?: number;
   status: OrderStatus;
   rejectionReason?: string | null;
   expiresAt: string;
@@ -281,6 +290,10 @@ export interface CreateOrderRequest {
   requesterContactNote?: string;
   rewardCredits: number;
   durationMinutes?: number;
+  // Send all three or none; the Order Service stores them as given (the browser calculates the estimate).
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  estimatedRewardCredits?: number;
 }
 
 // AI-generated (edited by yanhwee)

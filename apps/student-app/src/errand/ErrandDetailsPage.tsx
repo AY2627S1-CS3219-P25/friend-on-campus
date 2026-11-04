@@ -35,6 +35,13 @@
  * Scope: PR review: the open / closed label and the Accept reminder follow useMinuteClock rather than the render-time
  * clock, and a known store with missing or unreadable hours shows "Not listed" with no open / closed badge.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Drop-off estimator (author's decisions A6, A9): a Drop-off & estimate card under the errand details with a
+ * read-only mini map (drop-off pin, plus the pickup pin when the store has coordinates), the coordinates to 5 decimal
+ * places, the straight-line distance, and "Estimated M · Offered N credits", or "The poster did not use the
+ * estimator" when the order has no estimate. Visible before accepting.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by Reallyeasy1)
@@ -46,6 +53,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { FetchOrderResult, TaskOrderAction } from '../api/orders';
 import { ChatPanel } from '../chat/ChatPanel';
 import type { ChatApi } from '../chat/useChat';
+import { formatCoordinates } from '../map/DropoffPicker';
+import { ErrandRouteMap } from '../map/ErrandRouteMap';
+import { haversineKm, supplierPoint } from '../map/creditEstimate';
 import { useMinuteClock } from '../suppliers/minuteClock';
 import { HOURS_NOT_LISTED, formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 import {
@@ -350,6 +360,13 @@ function Timeline({ order, role }: { order: OrderDTO; role: Role }) {
 
 function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: SupplierDTO | null; now: Date }) {
   const { hours, openNow } = storeHours(supplier, now);
+  // Drop-off estimator: all three fields are stored together or not at all.
+  const { dropoffLatitude, dropoffLongitude, estimatedRewardCredits } = order;
+  const dropoff = typeof dropoffLatitude === 'number' && typeof dropoffLongitude === 'number'
+    ? { latitude: dropoffLatitude, longitude: dropoffLongitude }
+    : null;
+  // The pickup pin uses the store's current coordinates; the stored estimate is not recalculated.
+  const pickup = supplierPoint(supplier);
   return (
     <Card className="p-4 sm:p-5 space-y-3.5" testId="item-card">
       <div>
@@ -366,7 +383,7 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
           {order.specialNotes || 'No special notes.'}
         </p>
       </div>
-      <dl className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+      <dl className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 text-xs">
         <div className="rounded-xl bg-slate-50/90 border border-slate-100 p-3 min-w-0">
           <dt className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
             <MapPin className="h-3.5 w-3.5 text-nus-blue" />
@@ -398,9 +415,16 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
           <dd className="text-slate-900 font-bold truncate" title={order.dropoffLocation}>
             {order.dropoffLocation}
           </dd>
-          <dd className="text-[11px] text-slate-500 mt-0.5">Final destination</dd>
+          {dropoff ? (
+            <dd data-testid="dropoff-point" className="text-[11px] text-slate-500 mt-0.5">
+              <span className="font-mono">{formatCoordinates(dropoff)}</span>
+              {pickup && <span className="block">{haversineKm(pickup, dropoff).toFixed(2)} km from pickup</span>}
+            </dd>
+          ) : (
+            <dd className="text-[11px] text-slate-500 mt-0.5">Final destination</dd>
+          )}
         </div>
-        <div className="rounded-xl bg-amber-50/80 border border-amber-200/80 p-3 min-w-0">
+        <div className="rounded-xl bg-amber-50/80 border border-amber-200/80 p-3 min-w-0 lg:col-span-2">
           <dt className="flex items-center gap-1.5 text-amber-700/80 font-semibold mb-1">
             <Coins className="h-3.5 w-3.5 text-amber-600 fill-amber-400" />
             <span>Escrow Reward</span>
@@ -409,8 +433,14 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
           <dd className="text-[10px] text-amber-700/90 leading-tight mt-0.5">
             {escrowCopy(escrowState(order.status), order.rewardCredits)}
           </dd>
+          <dd data-testid="reward-estimate" className="text-[10px] text-amber-700/90 leading-tight mt-1 font-semibold">
+            {typeof estimatedRewardCredits === 'number'
+              ? `Estimated ${estimatedRewardCredits} · Offered ${order.rewardCredits} credits`
+              : 'The poster did not use the estimator'}
+          </dd>
         </div>
       </dl>
+      {dropoff && <ErrandRouteMap dropoff={dropoff} pickup={pickup} pickupName={order.supplierName} />}
     </Card>
   );
 }
@@ -693,7 +723,7 @@ export function ErrandDetailsPage({
   );
 
   return (
-    <div className="max-w-5xl mx-auto" data-testid="errand-details" data-order-id={orderId}>
+    <div data-testid="errand-details" data-order-id={orderId}>
       {/* Header: back, title, status pill, as the wireframe's top row. */}
       <header className="flex items-center gap-2 mb-4">
         <button
@@ -760,8 +790,8 @@ export function ErrandDetailsPage({
       )}
 
       {order && (
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-6 lg:items-stretch">
-          {/* Left column: who, what, where it stands. */}
+        <div className="lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start">
+          {/* Left column: who, where it stands, and the live chat. */}
           <div className="space-y-3.5">
             {order.status === 'OPEN' && <Countdown expiresAt={order.expiresAt} />}
             <Participant
@@ -770,28 +800,27 @@ export function ErrandDetailsPage({
               hadCourier={Boolean(chat.threads[order.id]?.conversation)}
             />
             <Timeline order={order} role={role} />
-            <ItemCard order={order} supplier={supplier} now={now} />
+            {showChat && (
+              // A fixed desktop height bounds the message list (ChatPanel scrolls inside it).
+              <Card className="p-4 sm:p-5 lg:h-[30rem] lg:flex lg:flex-col">
+                <ChatPanel
+                  orderId={order.id}
+                  status={order.status}
+                  currentUserId={currentUserId}
+                  chat={chat}
+                />
+              </Card>
+            )}
           </div>
 
-          {/* Right column on desktop: the live chat and the action. On phones they follow in the single column. */}
-          <div className="mt-3.5 lg:mt-0 lg:relative lg:min-h-[34rem]">
-            <div className="flex flex-col gap-3 lg:absolute lg:inset-0">
-              {showChat && (
-                <Card className="p-4 sm:p-5 lg:flex-1 lg:flex lg:flex-col lg:min-h-0">
-                  <ChatPanel
-                    orderId={order.id}
-                    status={order.status}
-                    currentUserId={currentUserId}
-                    chat={chat}
-                  />
-                </Card>
-              )}
-              {actionBlock}
-              <footer className="text-[11px] text-slate-400 space-y-0.5 px-1 pt-1">
-                <p className="break-all font-mono">Order ID {order.id}</p>
-                <p>Posted {dateTimeOf(order.createdAt)}</p>
-              </footer>
-            </div>
+          {/* Right column on desktop: what is being asked, then the action at the bottom. On phones they follow. */}
+          <div className="mt-3.5 lg:mt-0 flex flex-col gap-3">
+            <ItemCard order={order} supplier={supplier} now={now} />
+            {actionBlock}
+            <footer className="text-[11px] text-slate-400 space-y-0.5 px-1 pt-1">
+              <p className="break-all font-mono">Order ID {order.id}</p>
+              <p>Posted {dateTimeOf(order.createdAt)}</p>
+            </footer>
           </div>
         </div>
       )}

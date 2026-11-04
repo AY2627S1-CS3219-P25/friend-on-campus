@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: createOrder validates the optional drop-off point and estimated credit (all three or none, coordinate and
+ * integer range checks only) and passes them to the repository, per the author's drop-off estimator decisions.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§6): every outbox draft carries the version-2 fields (schemaVersion,
  * producer, correlationId, actor, reason code) via v2(); courier drop and admin unassign now emit order.unassigned.
@@ -135,6 +140,37 @@ interface ValidatedCreateOrderInput {
   requesterContactNote?: string;
   rewardCredits: number;
   durationMinutes: number;
+  dropoffEstimate?: DropoffEstimate;
+}
+
+interface DropoffEstimate {
+  dropoffLatitude: number;
+  dropoffLongitude: number;
+  estimatedRewardCredits: number;
+}
+
+// The browser calculates the estimate, so the server checks only that the three fields arrive together and are in
+// range. The reward actually offered (rewardCredits) may differ from the estimate.
+function validateDropoffEstimate(req: CreateOrderRequest): DropoffEstimate | undefined {
+  const { dropoffLatitude, dropoffLongitude, estimatedRewardCredits } = req;
+  const presentCount = [dropoffLatitude, dropoffLongitude, estimatedRewardCredits]
+    .filter((value) => value !== undefined && value !== null).length;
+  if (presentCount === 0) {
+    return undefined;
+  }
+  if (presentCount !== 3) {
+    throw new OrderValidationError('dropoffLatitude, dropoffLongitude and estimatedRewardCredits must be sent together');
+  }
+  if (typeof dropoffLatitude !== 'number' || !Number.isFinite(dropoffLatitude) || dropoffLatitude < -90 || dropoffLatitude > 90) {
+    throw new OrderValidationError('dropoffLatitude must be a number between -90 and 90');
+  }
+  if (typeof dropoffLongitude !== 'number' || !Number.isFinite(dropoffLongitude) || dropoffLongitude < -180 || dropoffLongitude > 180) {
+    throw new OrderValidationError('dropoffLongitude must be a number between -180 and 180');
+  }
+  if (typeof estimatedRewardCredits !== 'number' || !Number.isInteger(estimatedRewardCredits) || estimatedRewardCredits <= 0 || estimatedRewardCredits > 2147483647) {
+    throw new OrderValidationError('estimatedRewardCredits must be an integer between 1 and 2147483647');
+  }
+  return { dropoffLatitude, dropoffLongitude, estimatedRewardCredits };
 }
 
 function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrderInput {
@@ -167,6 +203,8 @@ function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrd
     durationMinutes = req.durationMinutes;
   }
 
+  const dropoffEstimate = validateDropoffEstimate(req);
+
   return {
     supplierId: req.supplierId.trim(),
     itemDescription,
@@ -175,6 +213,7 @@ function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrd
     requesterContactNote,
     rewardCredits: req.rewardCredits,
     durationMinutes,
+    dropoffEstimate,
   };
 }
 
@@ -237,6 +276,7 @@ async function handleCreateOrder(
       dropoffLocation: validatedInput.dropoffLocation,
       requesterContactNote: validatedInput.requesterContactNote,
       rewardCredits: validatedInput.rewardCredits,
+      ...validatedInput.dropoffEstimate,
       expiresAt,
     },
     reservationEvent

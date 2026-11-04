@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Drop-off estimator: the post form keeps the drop-off point and whether the reward was set by hand, clears
+ * both after a post, and sends dropoffLatitude / dropoffLongitude / estimatedRewardCredits only when the pickup store
+ * has coordinates and a drop-off point is chosen.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #225 review: a profile result from an earlier session is discarded (profileRequestId, bumped on session
  * clear like the orders and credits counters), and a quiet Feed poll is skipped while an orders load is still in
@@ -125,6 +131,8 @@ import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
 import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
 import { describeWriteFailure, useAuthSession } from './hooks/useAuthSession';
+import { estimateRewardCredits, supplierPoint } from './map/creditEstimate';
+import { NUS_SPAN_KM } from './map/nusBuildings';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
 import { useOrderSubmission } from './orders/useOrderSubmission';
@@ -214,6 +222,8 @@ export default function App() {
     dropoffLocation: '',
     rewardCredits: 15,
     durationMinutes: 30,
+    dropoffPoint: null,
+    rewardEdited: false,
   });
 
   const [notification, setNotification] = useState<string | null>(null);
@@ -458,6 +468,8 @@ export default function App() {
           dropoffLocation: '',
           rewardCredits: 15,
           durationMinutes: 30,
+          dropoffPoint: null,
+          rewardEdited: false,
         }));
         if (activeTab === 'post') setActiveTab('feed');
       } else if (receipt.status === 'REJECTED') {
@@ -594,6 +606,12 @@ export default function App() {
       return;
     }
     setNotification(null);
+    const dropoffPoint = formData.dropoffPoint;
+    const estimatedRewardCredits = estimateRewardCredits(
+      supplierPoint(suppliers.find((s) => s.id === formData.supplierId)),
+      dropoffPoint,
+      NUS_SPAN_KM
+    );
     void submission.submit({
       supplierId: formData.supplierId,
       itemDescription: formData.itemDescription,
@@ -601,6 +619,13 @@ export default function App() {
       dropoffLocation: formData.dropoffLocation,
       rewardCredits: formData.rewardCredits,
       durationMinutes: Number.isFinite(formData.durationMinutes) ? formData.durationMinutes : 30,
+      ...(dropoffPoint && estimatedRewardCredits !== null
+        ? {
+          dropoffLatitude: dropoffPoint.latitude,
+          dropoffLongitude: dropoffPoint.longitude,
+          estimatedRewardCredits,
+        }
+        : {}),
     });
   };
 

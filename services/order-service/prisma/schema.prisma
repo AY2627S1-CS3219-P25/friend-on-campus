@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+// Scope: Nullable dropoff_latitude, dropoff_longitude and estimated_reward_credits on Order (drop-off estimator).
+// Author review: <to be completed by huangjiaxi1111>
+//
 // Tool: Google Antigravity, date: 2026-10-20
 // Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
 // Author review: <to be completed by author after review>
@@ -36,6 +40,10 @@ model Order {
   requesterContactNote String?   @map("requester_contact_note") @db.VarChar(255)
   courierContactNote   String?   @map("courier_contact_note") @db.VarChar(255)
   rewardCredits        Int       @map("reward_credits")
+  // AI-generated (edited by huangjiaxi1111)
+  dropoffLatitude        Float?  @map("dropoff_latitude")
+  dropoffLongitude       Float?  @map("dropoff_longitude")
+  estimatedRewardCredits Int?    @map("estimated_reward_credits")
   status               String    @default("PENDING") @db.VarChar(30)
   rejectionReason      String?   @map("rejection_reason") @db.Text
   expiresAt            DateTime  @map("expires_at") @db.Timestamptz(6)
