@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #222 review: a reseed (every container start) keeps coordinates an administrator has already recorded
+ * and only fills coordinates that are still missing; seedSuppliers is exported and main() runs only when the file is
+ * the entry point, so the seed can be unit-tested against a fake Prisma client.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Assigned deterministic UUIDs on supplier row creation so SUP-001 and SUP-002 align with Order Service sample order fixtures.
  * Author review: <to be completed by yanhwee>
@@ -148,7 +154,7 @@ function mapBuildingToCampusZone(building: string | null): string {
   return building;
 }
 
-async function seedSuppliers(csvPath: string) {
+export async function seedSuppliers(csvPath: string) {
   console.log(`[seed] Reading suppliers from ${csvPath}`);
   const records = toRecords(parseCsv(readCsvText(csvPath)));
   console.log(`[seed] Parsed ${records.length} supplier rows`);
@@ -195,8 +201,10 @@ async function seedSuppliers(csvPath: string) {
         description: data.description,
         building: data.building,
         floor: data.floor,
-        latitude: data.latitude,
-        longitude: data.longitude,
+        // AI-generated (edited by Reallyeasy1): an administrator's verified coordinates outrank the CSV on a reseed;
+        // only a coordinate that is still missing is filled in. The CSV remains the source for new rows.
+        latitude: existing?.latitude ?? data.latitude,
+        longitude: existing?.longitude ?? data.longitude,
         startingTime: data.startingTime,
         closingTime: data.closingTime,
         imageUrl: data.imageUrl,
@@ -221,11 +229,14 @@ async function main() {
   await seedSuppliers(csvPath);
 }
 
-main()
-  .catch((err) => {
-    console.error('[seed] Failed:', err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Run only as the entry point (container CMD, npm run db:seed), not when a test imports seedSuppliers.
+if (require.main === module) {
+  main()
+    .catch((err) => {
+      console.error('[seed] Failed:', err);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

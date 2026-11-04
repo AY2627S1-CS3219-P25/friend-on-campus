@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #222 review: validateSupplierForm takes the record being edited, so a coordinate a legacy supplier never
+ * had may stay blank on edit (the PUT omits it and the API preserves the null); creation and clearing an existing
+ * value remain errors.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Removed dead 'audit' navigation section from AdminNavSection union.
  * Author review: <to be completed by yanhwee>
@@ -72,7 +78,7 @@ export function validateSupplierForm(data: {
   floor?: string;
   latitude?: number | '';
   longitude?: number | '';
-}): Record<string, string> {
+}, existing?: { latitude?: number | null; longitude?: number | null }): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!data.name?.trim()) errors.name = 'Store / Spot Name is required.';
   if (!data.campusZone?.trim()) errors.campusZone = 'Campus Zone is required.';
@@ -80,11 +86,16 @@ export function validateSupplierForm(data: {
   if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
   if (!data.building?.trim()) errors.building = 'Building is required.';
   if (!data.floor?.trim()) errors.floor = 'Floor is required.';
-  if (data.latitude === undefined || data.latitude === null || data.latitude === '' || Number.isNaN(Number(data.latitude))) {
-    errors.latitude = 'Latitude is required.';
-  }
-  if (data.longitude === undefined || data.longitude === null || data.longitude === '' || Number.isNaN(Number(data.longitude))) {
-    errors.longitude = 'Longitude is required.';
+  // AI-generated (edited by Reallyeasy1): on create (no `existing`) both coordinates are mandatory. On edit, a
+  // coordinate the record never had may stay blank (the request omits it and the API keeps the legacy null), but a
+  // recorded value cannot be blanked silently, since the API would keep the old value behind the admin's back.
+  for (const key of ['latitude', 'longitude'] as const) {
+    const value = data[key];
+    const blank = value === undefined || value === null || value === '';
+    const mayStayBlank = existing !== undefined && existing[key] == null;
+    if ((blank && !mayStayBlank) || (!blank && Number.isNaN(Number(value)))) {
+      errors[key] = `${key === 'latitude' ? 'Latitude' : 'Longitude'} is required.`;
+    }
   }
   return errors;
 }

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  *
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Added supplier coordinates to valid fixtures while isolating the missing-building/floor check.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): the final catch no longer types err as any; it only logs the value.
  * Author review: <to be completed by Reallyeasy1>
@@ -484,11 +488,14 @@ async function runTests() {
         campusZone: 'COM3',
         exactLocation: 'COM3 Level 1 Terrace',
         category: 'Beverages',
+        latitude: 1.2948308,
+        longitude: 103.7716305,
       }),
     });
     assert(adminCreateNoBuilding.status === 400, 'Admin POST /api/suppliers without building/floor is rejected (400 Bad Request)');
 
     // 3. Admin token write attempt -> 201 Created
+    // AI-generated (edited by Reallyeasy1)
     const testSupplierCode = `TEST-${Math.floor(100 + Math.random() * 900)}`;
     const adminCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
@@ -504,6 +511,8 @@ async function runTests() {
         category: 'Beverages',
         building: 'COM3',
         floor: '1',
+        latitude: 1.2948308,
+        longitude: 103.7716305,
         description: 'End-to-end integration test spot',
         startingTime: '0900hrs',
         closingTime: '2100hrs',

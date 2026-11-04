@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Assert pending cancellation returns 409 without mutations before controlled reservation approval.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added integration test for POST /api/orders/:id/unassign (courier drop before pickup, 403 for non-assigned courier, 409 after pickup).
  * Author review: <to be completed by yanhwee>
@@ -165,6 +169,17 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.equal((await pending.json() as any).data.status, 'PENDING');
       assert.equal((await fetch(orderUrl)).status, 401);
       assert.equal((await fetch(orderUrl, { headers: { 'x-user-id': BOB_ID } })).status, 403);
+
+      // AI-generated (edited by Reallyeasy1)
+      const pendingOutboxCount = fakeRepo.outboxEvents.length;
+      const cancelPending = await fetch(`${orderUrl}/cancel`, {
+        method: 'POST',
+        headers: { 'x-user-id': ALICE_ID },
+      });
+      assert.equal(cancelPending.status, 409);
+      assert.match((await cancelPending.json() as any).error, /reservation is still pending/);
+      assert.equal(fakeRepo.orders.find((order) => order.id === orderId)?.status, 'PENDING');
+      assert.equal(fakeRepo.outboxEvents.length, pendingOutboxCount);
 
       // PENDING orders are not visible in the open errand feed yet, nor to other non-admin users querying status=PENDING
       const pendingFeedRes = await fetch(`${server.url}/api/orders`, {

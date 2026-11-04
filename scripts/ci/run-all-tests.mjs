@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-01
+ * Scope: Isolated the Supplier Service migration suite in its own test database.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Start and await isolated Credit CDC for reservation messaging tests, then stop it before system suites.
  * Author review: <to be completed by huangjiaxi1111>
@@ -222,6 +226,7 @@ async function runDatabaseSuites() {
     chatIntegration: 'chat_integration_test',
     chatMessaging: 'chat_messaging_test',
     creditMigration: 'credit_migration_test',
+    supplierMigration: 'supplier_migration_test',
     creditSeed: 'credit_seed_test',
   };
   for (const databaseName of Object.values(databases)) await createDatabase(databaseName);
@@ -261,6 +266,8 @@ async function runDatabaseSuites() {
 
   await runNpm('test:migration', {
     ...testEnvironment,
+    REQUIRE_TEST_DATABASE: 'true',
+    DATABASE_URL: databaseUrl(databases.supplierMigration),
     CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMigration),
   });
 
