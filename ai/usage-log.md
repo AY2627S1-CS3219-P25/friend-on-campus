@@ -6121,3 +6121,20 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none (this entry only)
+
+## 2026-11-04 22:35 SGT — Closed-store dialog focus trap, minute clock for open/closed labels, "Not listed" on Errand Details
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-display-for-posting
+
+**Prompt (summarised):** Address three review problems: (1) keep keyboard focus inside the closed-store confirmation dialog (native modal or inert background, focus "Go back" on open, restore focus on close); (2) refresh the open/closed status when the store closes, driving the Post Errand, Errand Details and map labels from a clock that updates at minute boundaries and on tab resume; (3) on Errand Details, show "Not listed" for a known store with missing or unreadable hours, without an open/closed badge.
+
+**Usage scenario:** Implementation code for fixes whose approach the reviewer/author specified (native modal dialog, minute-boundary + tab-resume clock, shared "Not listed" fallback). Also fixed a merge leftover found while wiring the clock: the map tooltip read an undefined `s`, which failed the student-app typecheck; it now lists every store sharing a pin. The dialog's focus behaviour was not exercised in a real browser; left to the author: a manual check (Shift+Tab stays in the dialog, Escape = Go back, focus returns to the Post button or field), the "Author review" lines, and the pre-existing move of `docs/features/dropoff-pin-credit-estimate.md` to the repo root, which is not from this prompt.
+
+**Files changed:**
+- `apps/student-app/src/suppliers/minuteClock.ts` — new: `subscribeMinuteClock` (ticks at each minute boundary and on visibilitychange/focus) and `useMinuteClock` hook
+- `apps/student-app/src/suppliers/operatingHours.ts` — exported `HOURS_NOT_LISTED` shared fallback
+- `apps/student-app/src/pages/PostErrandPage.tsx` — closed-store confirmation is a native `<dialog>` opened with `showModal()` (background inert), focuses "Go back", restores focus to the opener, Escape cancels; status label uses `useMinuteClock`
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Pickup hours row rendered for any known supplier with "Not listed" fallback; label and Accept reminder use `useMinuteClock`
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — tooltip lists every supplier at a grouped pin (fixes undefined `s`); "Closed now" uses `useMinuteClock`

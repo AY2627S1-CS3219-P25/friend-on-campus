@@ -12,6 +12,11 @@
  * it is outside them (author's request of 2026-11-04).
  * Author review: <to be completed by huangjiaxi1111>
  *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: PR review: the tooltip lists every store sharing the pin (the merge with the grouped markers left it reading
+ * an undefined `s`), and its "Closed now" follows useMinuteClock rather than the render-time clock.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Group coincident markers and let users select a named supplier in the popup.
  * Author review: <to be completed by Reallyeasy1>
@@ -25,6 +30,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, X } from 'lucide-react';
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
+import { useMinuteClock } from '../suppliers/minuteClock';
 import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 import type { SupplierDTO } from '@campus-errand/common-dtos';
 import { groupSuppliersByLocation, type SupplierLocation } from './supplierLocations';
@@ -70,6 +76,7 @@ function FitBoundsToMarkers({ locations }: { locations: SupplierLocation[] }) {
 
 export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onClose }: SupplierPickupMapProps) {
   const locations = useMemo(() => groupSuppliersByLocation(suppliers), [suppliers]);
+  const now = useMinuteClock();
 
   return (
     <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -112,15 +119,22 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
                 >
                   {/* The default icon's tooltipAnchor is [16, -28]; this offset centres the label just above the pin. */}
                   <Tooltip direction="top" offset={[-16, -14]}>
-                    <span className="block font-semibold text-slate-900">{s.name}</span>
-                    {formatOperatingHours(s) && (
-                      <span className="block text-slate-500">
-                        {formatOperatingHours(s)}
-                        {isOpenAt(s, new Date()) === false && (
-                          <span className="text-rose-600 font-semibold"> &middot; Closed now</span>
-                        )}
-                      </span>
-                    )}
+                    {location.suppliers.map((supplier) => {
+                      const hours = formatOperatingHours(supplier);
+                      return (
+                        <span key={supplier.id} className="block">
+                          <span className="block font-semibold text-slate-900">{supplier.name}</span>
+                          {hours && (
+                            <span className="block text-slate-500">
+                              {hours}
+                              {isOpenAt(supplier, now) === false && (
+                                <span className="text-rose-600 font-semibold"> &middot; Closed now</span>
+                              )}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </Tooltip>
                   <Popup>
                     <div className="min-w-[200px] max-h-60 overflow-y-auto space-y-2">

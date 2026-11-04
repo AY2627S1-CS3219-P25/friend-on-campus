@@ -36,6 +36,9 @@ function readHours(supplier: Hours): { start: number; close: number } | null {
 /** "0000hrs" to "2359hrs" is how the seed data writes a spot that never closes. */
 const isAllDay = ({ start, close }: { start: number; close: number }) => start === 0 && close === 23 * 60 + 59;
 
+/** What a known store with missing or unreadable hours shows in place of them. */
+export const HOURS_NOT_LISTED = 'Not listed';
+
 /** "09:00 – 18:00", "Open 24 hours", or null when the hours are missing or unreadable. */
 export function formatOperatingHours(supplier: Hours): string | null {
   const hours = readHours(supplier);

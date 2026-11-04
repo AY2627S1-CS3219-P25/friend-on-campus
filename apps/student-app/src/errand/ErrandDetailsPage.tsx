@@ -30,6 +30,11 @@
  * Scope: Author's request of 2026-11-04: the pickup store's operating hours and open / closed state are shown in the
  * Pickup cell, and a would-be courier sees a "closed now" reminder above Accept when the store is outside its hours.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: PR review: the open / closed label and the Accept reminder follow useMinuteClock rather than the render-time
+ * clock, and a known store with missing or unreadable hours shows "Not listed" with no open / closed badge.
+ * Author review: <to be completed by huangjiaxi1111>
  */
 
 // AI-generated (edited by Reallyeasy1)
@@ -41,7 +46,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { FetchOrderResult, TaskOrderAction } from '../api/orders';
 import { ChatPanel } from '../chat/ChatPanel';
 import type { ChatApi } from '../chat/useChat';
-import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
+import { useMinuteClock } from '../suppliers/minuteClock';
+import { HOURS_NOT_LISTED, formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 import {
   endState,
   escrowCopy,
@@ -75,10 +81,13 @@ export interface ErrandDetailsPageProps {
 type Role = ReturnType<typeof viewerRole>;
 
 // AI-generated (edited by huangjiaxi1111)
-/** The store's hours and whether it is open right now; nulls when the store or its hours are unknown. */
-function storeHours(supplier: SupplierDTO | null | undefined): { hours: string | null; openNow: boolean | null } {
+/** The store's hours and whether it is open at `now`; nulls when the store or its hours are unknown. */
+function storeHours(
+  supplier: SupplierDTO | null | undefined,
+  now: Date
+): { hours: string | null; openNow: boolean | null } {
   if (!supplier) return { hours: null, openNow: null };
-  return { hours: formatOperatingHours(supplier), openNow: isOpenAt(supplier, new Date()) };
+  return { hours: formatOperatingHours(supplier), openNow: isOpenAt(supplier, now) };
 }
 
 const timeOf = (iso: string) =>
@@ -339,8 +348,8 @@ function Timeline({ order, role }: { order: OrderDTO; role: Role }) {
   );
 }
 
-function ItemCard({ order, supplier }: { order: OrderDTO; supplier?: SupplierDTO | null }) {
-  const { hours, openNow } = storeHours(supplier);
+function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: SupplierDTO | null; now: Date }) {
+  const { hours, openNow } = storeHours(supplier, now);
   return (
     <Card className="p-4 sm:p-5 space-y-3.5" testId="item-card">
       <div>
@@ -369,13 +378,13 @@ function ItemCard({ order, supplier }: { order: OrderDTO; supplier?: SupplierDTO
           {order.campusZone && (
             <dd className="text-[11px] text-nus-blue font-semibold mt-0.5">{order.campusZone}</dd>
           )}
-          {hours && (
+          {supplier && (
             <dd
               data-testid="pickup-operating-hours"
               className="flex flex-wrap items-center gap-x-1 text-[11px] text-slate-500 mt-0.5"
             >
               <Clock className="h-3 w-3 shrink-0" />
-              <span className="whitespace-nowrap">{hours}</span>
+              <span className="whitespace-nowrap">{hours ?? HOURS_NOT_LISTED}</span>
               {openNow === true && <span className="whitespace-nowrap font-bold text-emerald-700">· Open now</span>}
               {openNow === false && <span className="whitespace-nowrap font-bold text-rose-700">· Closed now</span>}
             </dd>
@@ -432,6 +441,7 @@ function Actions({
   onAccept,
   onAction,
   supplier,
+  now,
 }: {
   order: OrderDTO;
   role: Role;
@@ -439,6 +449,7 @@ function Actions({
   onAccept: ErrandDetailsPageProps['onAccept'];
   onAction: ErrandDetailsPageProps['onAction'];
   supplier?: SupplierDTO | null;
+  now: Date;
 }) {
   const [confirmingAccept, setConfirmingAccept] = useState(false);
   const [contactNote, setContactNote] = useState('');
@@ -454,7 +465,7 @@ function Actions({
   );
 
   if (order.status === 'OPEN' && role === 'other') {
-    const { hours, openNow } = storeHours(supplier);
+    const { hours, openNow } = storeHours(supplier, now);
     const closedReminder = openNow === false && (
       <p
         role="note"
@@ -641,6 +652,7 @@ export function ErrandDetailsPage({
 }: ErrandDetailsPageProps) {
   const order = result?.status === 'ok' ? result.order : null;
   const role: Role = order ? viewerRole(order, currentUserId) : 'other';
+  const now = useMinuteClock();
   const actions =
     order && showsActions(order.status, role) ? (
       <Actions
@@ -650,6 +662,7 @@ export function ErrandDetailsPage({
         onAccept={onAccept}
         onAction={onAction}
         supplier={supplier}
+        now={now}
       />
     ) : null;
   // A conversation exists from the first accept onwards and is retained after a courier drops the errand, while the
@@ -757,7 +770,7 @@ export function ErrandDetailsPage({
               hadCourier={Boolean(chat.threads[order.id]?.conversation)}
             />
             <Timeline order={order} role={role} />
-            <ItemCard order={order} supplier={supplier} />
+            <ItemCard order={order} supplier={supplier} now={now} />
           </div>
 
           {/* Right column on desktop: the live chat and the action. On phones they follow in the single column. */}

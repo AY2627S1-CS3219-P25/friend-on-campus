@@ -69,11 +69,12 @@ import {
   Wand2,
   X,
 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AuthFetchFn } from '../api/auth';
 import { parseErrandDraft } from '../api/orders';
 import { SupplierPickupMap } from '../map/SupplierPickupMap';
-import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
+import { useMinuteClock } from '../suppliers/minuteClock';
+import { HOURS_NOT_LISTED, formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 
 export interface PostErrandFormData {
   supplierId: string;
@@ -152,7 +153,8 @@ export function PostErrandPage({
   const pendingSubmitRef = useRef<React.FormEvent | null>(null);
   const selectedSupplier = suppliers.find((s) => s.id === formData.supplierId) ?? null;
   const selectedHours = selectedSupplier ? formatOperatingHours(selectedSupplier) : null;
-  const selectedOpenNow = selectedSupplier ? isOpenAt(selectedSupplier, new Date()) : null;
+  const now = useMinuteClock();
+  const selectedOpenNow = selectedSupplier ? isOpenAt(selectedSupplier, now) : null;
 
   // Credit balance safety checks
   const availableCredits = wallet ? wallet.availableCredits : null;
@@ -569,7 +571,7 @@ export function PostErrandPage({
                   <Clock className="w-3.5 h-3.5 shrink-0" />
                   <span>
                     Operating hours:{' '}
-                    <strong className="text-slate-800">{selectedHours ?? 'Not listed'}</strong>
+                    <strong className="text-slate-800">{selectedHours ?? HOURS_NOT_LISTED}</strong>
                   </span>
                   {selectedOpenNow === true && (
                     <span className="ml-auto font-bold text-emerald-700">Open now</span>
@@ -902,50 +904,89 @@ export function PostErrandPage({
       )}
 
       {isClosedStoreConfirmOpen && selectedSupplier && (
-        <div className="dialog-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="closed-store-dialog-title"
-            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4"
-          >
-            <div className="flex items-center space-x-3 text-amber-600">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 id="closed-store-dialog-title" className="font-bold text-base text-slate-900">
-                  Store may be closed
-                </h3>
-                <p className="text-sm text-slate-500">Outside operating hours</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-600">
-              <strong className="text-slate-800">{selectedSupplier.name}</strong> is outside its operating hours
-              {selectedHours ? ` (${selectedHours})` : ''}. A courier may not be able to buy your items until it
-              opens. Post this errand anyway?
-            </p>
-
-            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={handleCancelClosedStore}
-                className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Go back
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmClosedStore}
-                className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
-              >
-                Post anyway
-              </button>
-            </div>
-          </div>
-        </div>
+        <ClosedStoreDialog
+          supplierName={selectedSupplier.name}
+          hours={selectedHours}
+          onConfirm={handleConfirmClosedStore}
+          onCancel={handleCancelClosedStore}
+        />
       )}
     </div>
+  );
+}
+
+function ClosedStoreDialog({
+  supplierName,
+  hours,
+  onConfirm,
+  onCancel,
+}: {
+  supplierName: string;
+  hours: string | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const goBackRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!dialog.open) dialog.showModal();
+    goBackRef.current?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      opener?.focus();
+    };
+  }, []);
+
+  return (
+    // Escape closes a native dialog by itself; onClose treats that the same as "Go back". The open check skips the
+    // close event queued by the effect cleanup when StrictMode re-runs the effect and re-opens the dialog.
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="closed-store-dialog-title"
+      onClose={() => { if (!dialogRef.current?.open) onCancel(); }}
+      className="bg-white rounded-2xl max-w-sm w-[calc(100%-2rem)] p-6 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+    >
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3 text-amber-600">
+          <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 id="closed-store-dialog-title" className="font-bold text-base text-slate-900">
+              Store may be closed
+            </h3>
+            <p className="text-sm text-slate-500">Outside operating hours</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-slate-600">
+          <strong className="text-slate-800">{supplierName}</strong> is outside its operating hours
+          {hours ? ` (${hours})` : ''}. A courier may not be able to buy your items until it opens. Post this errand
+          anyway?
+        </p>
+
+        <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button
+            ref={goBackRef}
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+          >
+            Go back
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
+          >
+            Post anyway
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
