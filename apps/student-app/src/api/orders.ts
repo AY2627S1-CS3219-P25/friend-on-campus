@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
+ * Scope: PR #225 review: a lifecycle write whose 2xx body cannot be read rethrows the transport error (so the caller
+ * reports it as unconfirmed) instead of "HTTP 200"; parseErrandDraft carries its own deadline covering Order Service's
+ * supplier lookup plus its 10 s AI call, so the offline draft can still reach the student.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Added parseErrandDraft for F6 Natural-Language Errand Assistant.
  * Author review: <to be completed by yanhwee>
@@ -77,7 +83,13 @@ async function postOrderLifecycleAction(
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  const body = await res.json().catch(() => ({}));
+  // AI-generated (edited by Reallyeasy1): on a 2xx the server may have committed the action, so a body that cannot
+  // be read (connection dropped, deadline hit mid-body) is a lost response and its error propagates to
+  // describeWriteFailure; an unreadable error body still falls back to the HTTP status message.
+  const body = await res.json().catch((error: unknown) => {
+    if (res.ok) throw error;
+    return {};
+  });
   if (!res.ok || !body.success) {
     throw new Error(body.error || `${fallbackMessage} (HTTP ${res.status})`);
   }
@@ -159,6 +171,13 @@ export async function unassignOrderById(
   );
 }
 
+// AI-generated (edited by Reallyeasy1)
+/**
+ * Order Service looks suppliers up (4 s timeout) and then gives SoCLaaS 10 s before answering with an offline draft,
+ * so this caller's deadline must outlast both; the 10 s authFetch default would drop the fallback on the floor.
+ */
+export const DRAFT_DEADLINE_MS = 20_000;
+
 // AI-generated (edited by yanhwee)
 export async function parseErrandDraft(
   authFetch: AuthFetchFn,
@@ -167,6 +186,7 @@ export async function parseErrandDraft(
   const res = await authFetch('/api/orders/assistant/draft', {
     method: 'POST',
     body: JSON.stringify({ prompt }),
+    signal: AbortSignal.timeout(DRAFT_DEADLINE_MS),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.success) {

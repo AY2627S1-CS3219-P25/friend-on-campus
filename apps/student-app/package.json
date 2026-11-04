@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --import tsx --test test/inbox.test.ts test/chat.test.ts test/errand-details.test.ts test/assistant.test.ts test/supplier-map.test.ts",
+    "test:unit": "node --import tsx --test test/inbox.test.ts test/chat.test.ts test/errand-details.test.ts test/assistant.test.ts test/auth-fetch.test.ts test/supplier-map.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
