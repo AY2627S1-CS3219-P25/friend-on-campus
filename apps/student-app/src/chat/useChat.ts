@@ -33,6 +33,10 @@
  * cursor that is the contiguous coverage of fetched history (loadedThrough), not the highest displayed sequence, so a
  * message that landed between the REST read and the socket authentication is fetched and a gap is never skipped over.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Added translate(): asks the Chat Service for display-only translations of stored messages.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -229,6 +233,25 @@ export function useChat(options: {
     });
   }, [reconcilePending]);
 
+  /**
+   * Display-only translations of stored messages into `language` (POST /api/chat/:orderId/translate).
+   * Resolves to a map of message id to translated text, or null when translation is unavailable.
+   */
+  const translate = useCallback(async (orderId: string, language: string, messageIds: string[]): Promise<Record<string, string> | null> => {
+    try {
+      const res = await latest.current.authFetch(`/api/chat/${orderId}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language, messageIds }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) return null;
+      return (body.data as { translations: Record<string, string> }).translations;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     if (!options.enabled) {
       setStatus('disconnected');
@@ -343,7 +366,7 @@ export function useChat(options: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.enabled]);
 
-  return { status, threads, load, send, watch };
+  return { status, threads, load, send, watch, translate };
 }
 
 export type ChatApi = ReturnType<typeof useChat>;

@@ -5,6 +5,10 @@
  * Service fallback, the REST app (/health, /ready, /api/chat), the chat socket hub on the same HTTP server (the
  * gateway forwards /ws/chat/ to its root path), and the consumer projecting order events onto conversations.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Passed a translator built from the SOCLAAS settings into the conversation service.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import http from 'http';
@@ -17,10 +21,11 @@ import { createConversationService } from './conversations/service';
 import { startChatConsumer } from './conversations/events';
 import { createConversationStore } from './conversations/store';
 import { prisma } from './database/client';
+import { createTranslator } from './translation/translate';
 import { createChatHub, createSocketAuthenticator } from './ws/hub';
 
 const store = createConversationStore(prisma);
-const conversations = createConversationService({ store, orders: createOrderClient(config.orderServiceUrl) });
+const conversations = createConversationService({ store, orders: createOrderClient(config.orderServiceUrl), translate: createTranslator(config.soclaas) });
 const hub = createChatHub({ authenticate: createSocketAuthenticator(config.auth), send: conversations.send });
 let consumerReady = () => false;
 

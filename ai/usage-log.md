@@ -6200,3 +6200,90 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 **Files changed:**
 - `apps/student-app/src/pages/PostErrandPage.tsx` — removed the centred `max-w-5xl` wrapper
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx` — removed the centred `max-w-5xl` wrapper
+
+## 2026-11-05 19:47 SGT — Plan moving the SoCLaaS call into packages/
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** The author asked whether the LLM code in Order Service is a single API-call file that can move into `packages/` for reuse by other services, and which other files a move would touch.
+
+**Usage scenario:** Learning support and fact-finding about existing code. Result: `assistant.service.ts` is not only an API file; only `callSoclaas` is generic. The package name and public interface were left for the author to decide (architecture, CLAUDE.md section 1). No repo code was changed.
+
+**Files changed:**
+- none
+
+## 2026-11-05 19:58 SGT — Move SoCLaaS call into shared packages/llm
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** The author wants Chat Service to reuse the SoCLaaS LLM call (e.g. translate a message), so the call moves from Order Service into `packages/`. Its interface should take an instruction plus input text, and the errand assistant must keep working on top of it.
+
+**Usage scenario:** Refactoring and boilerplate generation, implementing the interface the author specified (instruction + text in, reply out). Package name `@campus-errand/llm`, the plain-text reply and the JSON-parse helper were my choices for the author to review. Chat Service itself was not changed. `npm install --ignore-scripts` was used to register the workspace.
+
+**Files changed:**
+- `packages/llm/src/index.ts` — new: `callSoclaas(config, {instruction, text})` returns the reply text or null, plus `parseJsonReply`
+- `packages/llm/tsconfig.json` — new, copied from `packages/messaging`
+- `packages/llm/package.json` — new workspace package (JSON, no disclosure header possible)
+- `services/order-service/src/assistant/assistant.service.ts` — inline fetch replaced by the package call; errand logic unchanged
+- `services/order-service/Dockerfile` — build, dependency and runtime stages now include `packages/llm`
+- `services/order-service/package.json` — added `@campus-errand/llm` dependency (JSON, no disclosure header possible)
+- `package-lock.json` — workspace registered (lock file, no header)
+
+## 2026-11-05 19:57 SGT — Translate toggle button in the chat composer
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** The author asked for a translate on/off toggle button beside the Send button in the student-app chat UI, highlighted when on. Button only for now.
+
+**Usage scenario:** Writing implementation code for a UI the author specified. The button holds local UI state only. Wiring it to Chat Service and the LLM package was left for later prompts and the author's decisions.
+
+**Files changed:**
+- `apps/student-app/src/chat/ChatPanel.tsx` — added `translateOn` state and a round `Languages`-icon toggle button (`aria-pressed`, blue when on, white when off) before the Send button
+
+## 2026-11-05 20:14 SGT — Make the chat translate toggle functional
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** With the toggle on, Chat Service should call the shared LLM package to translate the message to English before storing, save "original + English", leave the rest of the flow unchanged, skip the API call when the text is plainly English, and not modify the package source.
+
+**Usage scenario:** Writing implementation code for a flow the author specified. Choices left for the author to review: the plain-English heuristic, saving only the original when the LLM fails, and the `\n\n` separator.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — SEND frame gained optional `translate`
+- `services/chat-service/src/translation/translate.ts` — new: English check and translator using `@campus-errand/llm`
+- `services/chat-service/src/conversations/service.ts` — send takes the flag and stores the translator's result
+- `services/chat-service/src/ws/hub.ts` — passes the frame's flag to send
+- `services/chat-service/src/config.ts`, `src/index.ts` — SOCLAAS settings and translator wiring
+- `services/chat-service/Dockerfile` — builds and copies `packages/llm`
+- `docker-compose.yml` — SOCLAAS_* env for chat-service
+- `services/chat-service/test/translate.test.ts` (new), `test/service.test.ts` — tests
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx` — toggle state sent with the message
+- No disclosure header possible: `services/chat-service/package.json` (added dependency and test file), `package-lock.json`
+
+## 2026-11-05 20:31 SGT — Translate toggle becomes display-only with a language menu
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** Change of plan: messages are stored in the DB exactly as typed (revert the "original + English" storage). The translate button opens a language menu (English first); once chosen, all messages in the chat are translated through the shared LLM package and shown in that language, including later sent and received ones; clicking the button again shows the stored text.
+
+**Usage scenario:** Writing implementation code for a flow the author specified, reverting my own earlier change. Left for the author to review: the language list, one batched LLM call per 30 messages, and a new REST endpoint `POST /api/chat/:orderId/translate` (an interface addition the flow needs, because the browser cannot hold the API key).
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — reverted the `translate` field on the SEND frame
+- `services/chat-service/src/ws/hub.ts` — reverted to the original send call
+- `services/chat-service/src/conversations/service.ts` — send reverted; added display-only `translate()`
+- `services/chat-service/src/chat/routes.ts` — new translate endpoint (participants and admins only, language name validated)
+- `services/chat-service/src/translation/translate.ts` — rewritten as a batch translator over `@campus-errand/llm`
+- `services/chat-service/test/translate.test.ts`, `test/service.test.ts`, `test/routes.test.ts` — tests updated or added
+- `apps/student-app/src/chat/useChat.ts` — send reverted; added `translate()`
+- `apps/student-app/src/chat/ChatPanel.tsx` — language menu, toggle off, translated bubbles

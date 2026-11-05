@@ -27,12 +27,22 @@
  * Scope: Review fix (PR #148): the panel takes the errand's status and reloads the conversation when it changes, so
  * the read-only switch happens while the panel is open.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Translate toggle beside Send: a language menu (English first); once chosen, every message is shown translated into it, via the Chat Service, until the toggle is clicked off. Stored text is untouched.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageCircle, RefreshCw, Send } from 'lucide-react';
+import { Languages, MessageCircle, RefreshCw, Send } from 'lucide-react';
 import type { ChatMessageDTO, OrderStatus } from '@campus-errand/common-dtos';
 import type { ChatApi, ChatSocketStatus } from './useChat';
+
+/** Languages offered by the translate toggle; English first. The Chat Service accepts any plain language name. */
+export const TRANSLATE_LANGUAGES = [
+  'English', 'Chinese (Simplified)', 'Chinese (Traditional)', 'Malay', 'Tamil', 'Hindi', 'Arabic', 'Japanese', 'Korean',
+  'Indonesian', 'Vietnamese', 'Thai', 'Spanish', 'French', 'German',
+] as const;
 
 function MessageText({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -70,7 +80,7 @@ function MessageText({ text }: { text: string }) {
   );
 }
 
-function Bubble({ message, mine }: { message: ChatMessageDTO; mine: boolean }) {
+function Bubble({ message, mine, translated }: { message: ChatMessageDTO; mine: boolean; translated?: string }) {
   const time = new Date(message.sentAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
   return (
     <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
@@ -79,8 +89,9 @@ function Bubble({ message, mine }: { message: ChatMessageDTO; mine: boolean }) {
           <span className={`font-semibold ${mine ? 'text-white' : 'text-slate-700'}`}>{mine ? 'You' : message.senderUsername}</span>
           {' · '}
           <time dateTime={message.sentAt}>{time}</time>
+          {translated !== undefined && ' · translated'}
         </p>
-        <MessageText text={message.text} />
+        <MessageText text={translated ?? message.text} />
       </div>
     </li>
   );
@@ -97,6 +108,16 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  // Translate toggle: null is off. When a language is chosen every message is shown translated into it; the stored
+  // text is never changed, and turning the toggle off shows the stored text again.
+  const [language, setLanguage] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [inFlight, setInFlight] = useState(0);
+  const activeLanguage = useRef<string | null>(null);
+  const [translateError, setTranslateError] = useState<string | null>(null);
+  const requested = useRef(new Set<string>());
+  const translateMenu = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const load = chat.load;
 
@@ -105,6 +126,56 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   // AI-generated (edited by Reallyeasy1): while this panel is on screen its thread is reconciled on the hook's timer.
   const watch = chat.watch;
   useEffect(() => watch(orderId), [watch, orderId]);
+
+  // Close the language menu on an outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointer = (event: MouseEvent) => { if (!translateMenu.current?.contains(event.target as Node)) setMenuOpen(false); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onPointer); document.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
+
+  // While a language is chosen, ask for a translation of every message that does not have one yet (the whole thread
+  // when it is switched on, then each message that is sent or received afterwards). A message is requested once per
+  // language; a failed request is not retried until the toggle is turned off and on again.
+  const messages = thread?.messages;
+  const translate = chat.translate;
+  useEffect(() => {
+    if (!language || !messages) return;
+    const ids = messages.map((m) => m.id).filter((id) => !requested.current.has(`${language}|${id}`));
+    if (ids.length === 0) return;
+    ids.forEach((id) => requested.current.add(`${language}|${id}`));
+    setInFlight((n) => n + 1);
+    setTranslateError(null);
+    void translate(orderId, language, ids).then((result) => {
+      setInFlight((n) => n - 1);
+      // The toggle was turned off or switched to another language meanwhile: drop this answer.
+      if (activeLanguage.current !== language) return;
+      if (!result) { setTranslateError('Translation is unavailable right now; showing the original messages.'); return; }
+      setTranslations((current) => ({ ...current, ...Object.fromEntries(Object.entries(result).map(([id, text]) => [`${language}|${id}`, text])) }));
+    });
+  }, [language, messages, orderId, translate]);
+
+  const toggleTranslate = () => {
+    if (language) {
+      activeLanguage.current = null;
+      requested.current.clear();
+      setLanguage(null);
+      setTranslateError(null);
+      setMenuOpen(false);
+    } else {
+      setMenuOpen((open) => !open);
+    }
+  };
+  const chooseLanguage = (choice: string) => {
+    requested.current.clear();
+    setTranslations({});
+    activeLanguage.current = choice;
+    setLanguage(choice);
+    setMenuOpen(false);
+  };
   // Chat-app scrolling: open at the newest message, follow new ones only while the reader is already at the bottom
   // (a reader who scrolled up to re-read is not yanked down); the reader's own send always lands at the bottom.
   const stickToBottom = useRef(true);
@@ -141,6 +212,12 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900"><MessageCircle className="h-4 w-4 text-nus-blue" /> Live errand chat</h3>
         <SocketDot status={chat.status} />
       </div>
+      {language && (
+        <p className="text-xs text-slate-500" role="status">
+          {inFlight > 0 ? `Translating to ${language}…` : `Showing messages in ${language}.`} Tap the translate button to see the originals.
+        </p>
+      )}
+      {translateError && <p role="alert" className="text-xs text-rose-700">{translateError}</p>}
 
       {thread?.loadError && !noConversation && (
         <p className="rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs px-2 py-1.5">
@@ -160,7 +237,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
           <li className="text-xs text-slate-400">No messages yet. Say where you are or when you’ll arrive.</li>
         )}
         {thread?.messages.map((message) => (
-          <Bubble key={message.id} message={message} mine={message.senderId === currentUserId} />
+          <Bubble key={message.id} message={message} mine={message.senderId === currentUserId} translated={language ? translations[`${language}|${message.id}`] : undefined} />
         ))}
       </ul>
 
@@ -179,6 +256,36 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
               disabled={isSending || !thread?.conversation}
               className="flex-1 resize-none rounded-full border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:opacity-50"
             />
+            <div ref={translateMenu} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={toggleTranslate}
+                aria-pressed={language !== null}
+                aria-haspopup={language ? undefined : 'menu'}
+                aria-expanded={language ? undefined : menuOpen}
+                aria-label="Translate"
+                title={language ? `Translating to ${language} (click to turn off)` : 'Translate messages'}
+                className={`h-10 w-10 rounded-full flex items-center justify-center border shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-300 ${language ? 'bg-nus-blue border-nus-blue text-white hover:bg-blue-800' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Languages className="h-4 w-4" />
+              </button>
+              {menuOpen && (
+                <div role="menu" aria-label="Translate messages to" className="absolute bottom-12 right-0 z-10 w-48 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                  <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Translate to</p>
+                  {TRANSLATE_LANGUAGES.map((choice) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => chooseLanguage(choice)}
+                      className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               disabled={isSending || !thread?.conversation || chat.status !== 'connected'}

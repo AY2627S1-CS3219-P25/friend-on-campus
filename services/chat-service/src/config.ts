@@ -11,6 +11,10 @@
  * CHAT_DATABASE_URL and CHAT_SERVICE_PORT, the same way notification-service/src/config.ts does, so `npm run dev`
  * from the root starts Chat with the documented keys.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Added the SOCLAAS_* settings for message translation.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import path from 'node:path';
@@ -41,6 +45,12 @@ export const config = Object.freeze({
   databaseUrl: process.env.DATABASE_URL || 'postgresql://chat_svc:chat-service-dev@localhost:5432/chat_db',
   // The Order Service fallback (F8 brief, D2 and S4).
   orderServiceUrl: process.env.ORDER_SERVICE_URL || 'http://localhost:8003',
+  // Translation of chat messages through the shared @campus-errand/llm package (same variables as the Order Service).
+  soclaas: {
+    baseUrl: process.env.SOCLAAS_BASE_URL || 'https://soclaas-api.comp.nus.edu.sg/v1',
+    apiKey: process.env.SOCLAAS_API_KEY || '',
+    model: process.env.SOCLAAS_MODEL || 'default',
+  },
   auth: {
     // Validated by authMiddleware during startup, before opening connections.
     publicKey: process.env.JWT_PUBLIC_KEY ?? '',

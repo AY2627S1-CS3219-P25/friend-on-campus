@@ -10,6 +10,10 @@
  * Scope: Review fix (PR #148): afterSequence is clamped to the INTEGER maximum so an oversized value pages to an
  * empty list instead of a 500.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Added POST /api/chat/:orderId/translate (display-only translation of stored messages).
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import { Router, type Request, type RequestHandler, type Response } from 'express';
@@ -23,6 +27,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): RequestHandler {
   return (req, res, next) => { handler(req, res).catch(next); };
 }
+
+/** A language name such as "English" or "Chinese (Simplified)"; it goes into a model prompt, so keep it plain. */
+const LANGUAGE = /^[A-Za-z][A-Za-z ()-]{1,39}$/;
 
 function clamp(value: unknown, fallback: number, minimum: number, maximum: number): number {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -60,6 +67,31 @@ export function createChatRouter(service: ConversationService, authenticate: Req
       limit: clamp(req.query.limit, 50, 1, 100),
     });
     res.json({ success: true, data: { conversation: opened.conversation, messages: messages.map(toMessageDTO) } });
+  }));
+
+  // Display-only translation of a conversation's stored messages into a chosen language. Nothing is saved.
+  router.post('/:orderId/translate', asyncRoute(async (req, res) => {
+    if (!UUID.test(req.params.orderId)) {
+      res.status(400).json({ success: false, error: 'Order id must be a UUID', code: 'INVALID_INPUT' });
+      return;
+    }
+    const { language, messageIds } = (req.body ?? {}) as { language?: unknown; messageIds?: unknown };
+    if (typeof language !== 'string' || !LANGUAGE.test(language.trim())
+      || !Array.isArray(messageIds) || messageIds.length > 200 || !messageIds.every((id) => typeof id === 'string' && UUID.test(id))) {
+      res.status(400).json({ success: false, error: 'Send a language name and up to 200 message ids', code: 'INVALID_INPUT' });
+      return;
+    }
+    const principal = res.locals.auth as AuthenticatedPrincipal;
+    const result = await service.translate(req.params.orderId.toLowerCase(), principal, language.trim(), messageIds as string[]);
+    if (result.kind === 'not_found') {
+      res.status(404).json({ success: false, error: 'No conversation exists for this errand', code: 'CONVERSATION_NOT_FOUND' });
+    } else if (result.kind === 'forbidden') {
+      res.status(403).json({ success: false, error: 'You are not a participant of this conversation', code: 'FORBIDDEN' });
+    } else if (result.kind === 'unavailable') {
+      res.status(503).json({ success: false, error: 'Translation is temporarily unavailable', code: 'TRANSLATION_UNAVAILABLE' });
+    } else {
+      res.json({ success: true, data: { translations: result.translations } });
+    }
   }));
 
   return router;

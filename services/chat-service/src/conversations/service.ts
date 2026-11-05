@@ -10,11 +10,16 @@
  * Scope: Review fix (PR #148 P2): send keeps its fast pre-checks but takes the final participant/closure verdict and
  * the recipients from store.append, which decides under the conversation row lock.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Added translate(): display-only translations of a conversation's messages through the injected translator; send is unchanged.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { OrderStatus } from '@campus-errand/common-dtos';
 import type { OrderClient } from '../clients/order.client';
+import type { Translator } from '../translation/translate';
 import type { ConversationRow, ConversationStore, MessageRow } from './store';
 
 /** Statuses in which messages may be sent (F8.2; D7). Every other status closes the conversation to writes. */
@@ -34,6 +39,12 @@ export type SendResult =
   | { kind: 'empty' }
   | { kind: 'no_username' };
 
+export type TranslateResult =
+  | { kind: 'translated'; translations: Record<string, string> }
+  | { kind: 'not_found' }
+  | { kind: 'forbidden' }
+  | { kind: 'unavailable' };
+
 export function isParticipant(conversation: ConversationRow, userId: string): boolean {
   return conversation.requesterId === userId || conversation.courierId === userId;
 }
@@ -51,6 +62,8 @@ export function canSend(conversation: ConversationRow, principal: AuthenticatedP
 export function createConversationService(deps: {
   store: ConversationStore;
   orders: OrderClient;
+  /** Translates messages for display only (nothing is stored); absent when no translator is configured. */
+  translate?: Translator;
   now?: () => Date;
 }) {
   const now = deps.now ?? (() => new Date());
@@ -112,7 +125,30 @@ export function createConversationService(deps: {
     return deps.store.listMessages(conversationId, options);
   }
 
-  return { open, send, history, messages };
+  /**
+   * Display-only translations of messages in a conversation the caller may read (participants and admins).
+   * Nothing is written: the stored text is untouched.
+   */
+  async function translate(orderId: string, principal: AuthenticatedPrincipal, language: string, messageIds: string[]): Promise<TranslateResult> {
+    const conversation = await deps.store.findByOrderId(orderId);
+    if (!conversation) return { kind: 'not_found' };
+    if (!canRead(conversation, principal)) return { kind: 'forbidden' };
+    if (!deps.translate) return { kind: 'unavailable' };
+    const wanted = new Set(messageIds);
+    const found: MessageRow[] = [];
+    for (let after = 0; wanted.size > found.length; ) {
+      const page = await deps.store.listMessages(conversation.id, { afterSequence: after, limit: 100 });
+      for (const message of page) if (wanted.has(message.id)) found.push(message);
+      if (page.length < 100) break;
+      after = page[page.length - 1].sequence;
+    }
+    if (found.length === 0) return { kind: 'translated', translations: {} };
+    const texts = await deps.translate(found.map((m) => m.text), language);
+    if (!texts) return { kind: 'unavailable' };
+    return { kind: 'translated', translations: Object.fromEntries(found.map((m, i) => [m.id, texts[i]])) };
+  }
+
+  return { open, send, history, messages, translate };
 }
 
 export type ConversationService = ReturnType<typeof createConversationService>;
