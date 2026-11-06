@@ -107,6 +107,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: Wired the 'courier-dispute' task action.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: handleOrderAgain: posts a completed errand's details again through the existing order submission.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -145,6 +149,7 @@ import { estimateRewardCredits, supplierPoint } from './map/creditEstimate';
 import { NUS_SPAN_KM } from './map/nusBuildings';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
+import { buildReorderRequest } from './orders/reorder';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -603,6 +608,20 @@ export default function App() {
     void fetchLiveSuppliers();
   }, []);
 
+  // AI-generated (edited by jagdeepsh): "Order again" posts a new errand with the details of a completed one.
+  const handleOrderAgain = (order: OrderDTO) => {
+    if (submission.busy) return;
+    if (wallet && order.rewardCredits > wallet.availableCredits) {
+      setNoticeTone('alert');
+      setNotification(
+        `Insufficient credits: this errand offers ${order.rewardCredits} C, but you only have ${wallet.availableCredits} C available.`
+      );
+      return;
+    }
+    setNotification(null);
+    void submission.submit(buildReorderRequest(order));
+  };
+
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (submission.busy || !suppliers.some((s) => s.id === formData.supplierId && s.isActive)) {
@@ -923,6 +942,8 @@ export default function App() {
             ordersLoading={ordersLoading}
             onRefreshOrders={() => void fetchOrders()}
             onOpenErrand={(orderId) => openErrand(orderId, 'tasks')}
+            onOrderAgain={handleOrderAgain}
+            orderAgainBusy={submission.busy}
           />
         )}
 

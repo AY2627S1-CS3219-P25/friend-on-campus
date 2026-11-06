@@ -6355,3 +6355,19 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `packages/common-dtos/src/index.ts` — `courierDisputeDetails`, CourierDisputeRequest
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts` — courier response UI and action
 - `apps/admin-portal/src/components/OrderStatusBadge.tsx`, `pages/OrdersPage.tsx`, `components/DisputeModal.tsx` — red badge and courier text box
+
+## 2026-11-06 19:43 SGT — Posted by Me split view and Order again
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** In the Tasks page "Posted by Me" tab, split the errands into Open, Cancelled and Completed, and give completed errand cards an "Order again" button (bottom right) that posts a new errand with the same details.
+
+**Usage scenario:** Writing implementation code for a UI the author specified. Choices left for review: three columns on large screens (stacked on small), Expired and Rejected shown under Cancelled, the in-progress statuses grouped under Open, and admin audit tags stripped from the copied special notes. No backend change; Order again reuses the existing post flow.
+
+**Files changed:**
+- `apps/student-app/src/orders/reorder.ts` (new) — builds the repeat request
+- `apps/student-app/test/reorder.test.ts` (new) — tests, added to the test:unit script in `apps/student-app/package.json` (JSON, no header possible)
+- `apps/student-app/src/pages/TasksPage.tsx` — split columns and the Order again button
+- `apps/student-app/src/App.tsx` — handleOrderAgain wired to the existing order submission

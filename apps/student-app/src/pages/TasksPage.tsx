@@ -44,6 +44,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: DELIVERED status line says when the errand is under dispute.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Posted by Me splits into Open / Cancelled / Completed columns; completed cards get an Order again button.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -51,7 +55,7 @@
 
 import { useState } from 'react';
 import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
-import { ArrowRight, Coins, MapPin, RefreshCw, Send, Truck } from 'lucide-react';
+import { ArrowRight, Coins, MapPin, RefreshCw, RotateCw, Send, Truck } from 'lucide-react';
 import { ExpandableNotes } from '../components/ExpandableNotes';
 import { statusBadgeClasses } from '../errand/details';
 
@@ -62,6 +66,10 @@ interface TasksPageProps {
   onRefreshOrders?: () => void;
   /** Opens the errand's details page (#188), which carries the chat and the actions. */
   onOpenErrand: (orderId: string) => void;
+  /** Posts a new errand with the same details as a completed one. */
+  onOrderAgain?: (order: OrderDTO) => void;
+  /** True while a submission is being posted or reserved; Order again waits for it. */
+  orderAgainBusy?: boolean;
 }
 
 /** One line under the card so the list still tells the state at a glance; the page has the detail and the actions. */
@@ -141,6 +149,8 @@ export function TasksPage({
   ordersLoading = false,
   onRefreshOrders,
   onOpenErrand,
+  onOrderAgain,
+  orderAgainBusy = false,
 }: TasksPageProps) {
   const [filterView, setFilterView] = useState<'all' | 'posted' | 'accepted'>('all');
 
@@ -166,105 +176,16 @@ export function TasksPage({
     },
   ];
 
-  const visibleGroups = groups.filter((g) => filterView === 'all' || filterView === g.key);
+  // Posted by Me is split into three columns by where each errand ended up.
+  const POSTED_COLUMNS = [
+    { key: 'open', title: 'Open', statuses: ['PENDING', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'DISPUTED'] },
+    { key: 'cancelled', title: 'Cancelled', statuses: ['CANCELLED', 'EXPIRED', 'REJECTED'] },
+    { key: 'completed', title: 'Completed', statuses: ['COMPLETED'] },
+  ] as const;
 
-  return (
-    <div className="space-y-6">
-      {/* Top Header & Refresh Control */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            My Tasks &amp; Deliveries
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Track active requests and your delivery courier commitments
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {onRefreshOrders && (
-            <button
-              type="button"
-              onClick={onRefreshOrders}
-              disabled={ordersLoading}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-subtle transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
-              <span>Refresh</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Segmented Filter Pills */}
-      <div className="flex p-1 bg-slate-100 rounded-xl max-w-md">
-        <button
-          type="button"
-          onClick={() => setFilterView('all')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-            filterView === 'all'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          All ({postedTasks.length + acceptedTasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterView('posted')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-            filterView === 'posted'
-              ? 'bg-white text-nus-blue shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Posted by Me ({postedTasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterView('accepted')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-            filterView === 'accepted'
-              ? 'bg-white text-nus-orange shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Delivering ({acceptedTasks.length})
-        </button>
-      </div>
-
-      {/* Task Groups */}
-      {visibleGroups.map((group) => (
-        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 id={`tasks-${group.key}`} className="text-lg font-bold text-slate-900">
-                {group.title}{' '}
-                <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
-                  {group.tasks.length}
-                </span>
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{group.description}</p>
-            </div>
-          </div>
-
-          <div className="responsive-card-grid items-start">
-            {group.tasks.length === 0 && (
-              <div className="col-span-full rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-8 text-center shadow-subtle flex flex-col items-center justify-center">
-                <div className="h-11 w-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-2.5">
-                  {group.key === 'posted' ? (
-                    <Send className="h-5 w-5 text-nus-blue" />
-                  ) : (
-                    <Truck className="h-5 w-5 text-nus-orange" />
-                  )}
-                </div>
-                <p className="font-bold text-slate-700 text-sm">No {group.key} tasks yet.</p>
-                <p className="text-xs text-slate-500 mt-1">{group.emptyCta}</p>
-              </div>
-            )}
-
-            {group.tasks.map((task) => {
-              const line = statusLine(task, group.key);
+  // AI-generated (edited by jagdeepsh)
+  const renderTask = (task: OrderDTO, groupKey: 'posted' | 'accepted') => {
+              const line = statusLine(task, groupKey);
               const stepIndex = getProgressStep(task.status);
               const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED', 'DISPUTED'].includes(
                 task.status
@@ -272,8 +193,8 @@ export function TasksPage({
 
               return (
                 <article
-                  key={`${group.key}-${task.id}`}
-                  data-testid={`task-card-${group.key}-${task.orderCode}`}
+                  key={`${groupKey}-${task.id}`}
+                  data-testid={`task-card-${groupKey}-${task.orderCode}`}
                   data-order-id={task.id}
                   className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle border border-slate-200 hover:border-nus-blue/40 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
                 >
@@ -377,10 +298,149 @@ export function TasksPage({
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </a>
                   </div>
+
+                  {groupKey === 'posted' && task.status === 'COMPLETED' && onOrderAgain && (
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        type="button"
+                        data-testid="order-again-btn"
+                        disabled={orderAgainBusy}
+                        onClick={() => onOrderAgain(task)}
+                        className="relative z-10 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-nus-orange hover:bg-orange-600 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <RotateCw className={`h-3.5 w-3.5 ${orderAgainBusy ? 'animate-spin' : ''}`} />
+                        <span>{orderAgainBusy ? 'Posting…' : 'Order again'}</span>
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
-            })}
+  };
+
+  const visibleGroups = groups.filter((g) => filterView === 'all' || filterView === g.key);
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header & Refresh Control */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            My Tasks &amp; Deliveries
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Track active requests and your delivery courier commitments
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {onRefreshOrders && (
+            <button
+              type="button"
+              onClick={onRefreshOrders}
+              disabled={ordersLoading}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-subtle transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Segmented Filter Pills */}
+      <div className="flex p-1 bg-slate-100 rounded-xl max-w-md">
+        <button
+          type="button"
+          onClick={() => setFilterView('all')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+            filterView === 'all'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          All ({postedTasks.length + acceptedTasks.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterView('posted')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+            filterView === 'posted'
+              ? 'bg-white text-nus-blue shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Posted by Me ({postedTasks.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterView('accepted')}
+          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+            filterView === 'accepted'
+              ? 'bg-white text-nus-orange shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Delivering ({acceptedTasks.length})
+        </button>
+      </div>
+
+      {/* Task Groups */}
+      {visibleGroups.map((group) => (
+        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 id={`tasks-${group.key}`} className="text-lg font-bold text-slate-900">
+                {group.title}{' '}
+                <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
+                  {group.tasks.length}
+                </span>
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{group.description}</p>
+            </div>
           </div>
+
+          {group.key === 'posted' && filterView === 'posted' ? (
+            <div className="grid gap-6 lg:grid-cols-3 lg:gap-0 lg:divide-x lg:divide-slate-200" data-testid="posted-split">
+              {POSTED_COLUMNS.map((column) => {
+                const columnTasks = group.tasks.filter((task) => (column.statuses as readonly string[]).includes(task.status));
+                return (
+                  <div key={column.key} data-testid={`posted-column-${column.key}`} className="space-y-3 lg:px-4 lg:first:pl-0 lg:last:pr-0">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      {column.title}{' '}
+                      <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
+                        {columnTasks.length}
+                      </span>
+                    </h4>
+                    {columnTasks.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-slate-200 bg-white/60 p-4 text-center text-xs text-slate-400">
+                        No {column.title.toLowerCase()} errands.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">{columnTasks.map((task) => renderTask(task, 'posted'))}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+          <div className="responsive-card-grid items-start">
+            {group.tasks.length === 0 && (
+              <div className="col-span-full rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-8 text-center shadow-subtle flex flex-col items-center justify-center">
+                <div className="h-11 w-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-2.5">
+                  {group.key === 'posted' ? (
+                    <Send className="h-5 w-5 text-nus-blue" />
+                  ) : (
+                    <Truck className="h-5 w-5 text-nus-orange" />
+                  )}
+                </div>
+                <p className="font-bold text-slate-700 text-sm">No {group.key} tasks yet.</p>
+                <p className="text-xs text-slate-500 mt-1">{group.emptyCta}</p>
+              </div>
+            )}
+
+            {group.tasks.map((task) => renderTask(task, group.key))}
+          </div>
+          )}
         </section>
       ))}
     </div>
