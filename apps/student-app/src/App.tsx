@@ -99,6 +99,14 @@
  * Scope: Passes the focused errand's pickup store from the loaded supplier list to ErrandDetailsPage so the page can
  * show the store's operating hours (author's request of 2026-11-04).
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Wired the 'dispute' task action (raise a delivery dispute) and its optional details.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Wired the 'courier-dispute' task action.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -111,6 +119,8 @@ import {
   acceptOrderById,
   cancelOrderById,
   completeOrderById,
+  disputeOrderById,
+  courierDisputeOrderById,
   deliverOrderById,
   fetchCombinedOrders,
   fetchOrderById,
@@ -650,7 +660,7 @@ export default function App() {
     }
   };
 
-  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction) => {
+  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction, details?: string) => {
     if (taskActionInFlight || acceptingOrder) return;
     const requestId = orderRequestId.current;
     setTaskActionInFlight({ orderId, action });
@@ -671,6 +681,14 @@ export default function App() {
           updated = await completeOrderById(authFetch, orderId);
           // AI-generated (edited by Reallyeasy1): the payment is Credit Service's commit, not this one.
           successMessage = 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.';
+          break;
+        case 'dispute':
+          updated = await disputeOrderById(authFetch, orderId, details ?? '');
+          successMessage = 'Dispute raised. An administrator will review it; the credits stay held until then.';
+          break;
+        case 'courier-dispute':
+          updated = await courierDisputeOrderById(authFetch, orderId, details ?? '');
+          successMessage = 'Your dispute report was submitted. An administrator will review both sides.';
           break;
         case 'cancel':
           updated = await cancelOrderById(authFetch, orderId);
@@ -842,7 +860,7 @@ export default function App() {
             }
             actionError={actionError}
             onAccept={(orderId, note) => void handleAcceptOrder(orderId, note)}
-            onAction={(orderId, action) => void handleTaskOrderAction(orderId, action)}
+            onAction={(orderId, action, details) => void handleTaskOrderAction(orderId, action, details)}
             supplier={
               focusOrder?.status === 'ok'
                 ? suppliers.find((s) => s.id === focusOrder.order.supplierId) ?? null

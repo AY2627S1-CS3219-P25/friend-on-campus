@@ -6305,3 +6305,53 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/chat/ChatPanel.tsx` — keep `translateControl` accessible when `closed`, reset `inFlight` on language switch/off, badge `· translated` only when text changed
 - `services/chat-service/Dockerfile` — consolidated disclosure entry into the top header block
 - `ai/usage-log.md` — recorded this session
+
+## 2026-11-06 18:45 SGT — Delivery dispute flow and confirmation countdown
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Student app: a 5-minute countdown (deliveredAt + 5 min) on the confirm-delivery box that completes the order at zero, and a red Raise Dispute button with a required reason. Order Service: new `dispute` boolean and requester dispute details columns. Admin portal: a Dispute filter and a details dialog with Refund (order.cancelled) and Complete (order.completed); the flag is cleared when the admin settles.
+
+**Usage scenario:** Writing implementation code for a design the author specified.
+
+**Files changed:**
+- `services/order-service/prisma/schema.prisma` — `dispute` (default false) and `requester_dispute_details` columns
+- `services/order-service/prisma/migrations/20261106120000_order_dispute/migration.sql` — new migration
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `order.routes.ts`, `order.types.ts` — disputeOrder, completion guard, admin actions clear the flag, DTO mapping
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repository and new dispute tests
+- `packages/common-dtos/src/index.ts` — OrderDTO `dispute` / `requesterDisputeDetails`, DisputeOrderRequest
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts`, `pages/TasksPage.tsx` — countdown, Raise Dispute, dispute notes
+- `apps/admin-portal/src/components/DisputeModal.tsx` (new), `pages/OrdersPage.tsx`, `App.tsx` — Dispute filter, View details, Refund / Complete
+
+## 2026-11-06 18:53 SGT — Countdown completes immediately when the window has passed
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** The author settled the open decisions: keep the settlement reason wording, note that the 5-minute timer stays frontend-only for now, and when the requester opens the page after the 5 minutes show "Time is up" and run the normal complete workflow.
+
+**Usage scenario:** Writing implementation code for a behaviour the author decided. A server-side timer was left for a later session.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — an expired window now completes the order once on open, with a "Time is up" message
+
+## 2026-11-06 19:11 SGT — Courier dispute response and Disputed badge
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** (1) red "Disputed" badge under the Delivered badge in the admin Orders page; (2) new nullable `courier_dispute_details` column, and in the student app the courier sees the requester's dispute message above a text box and a "Submit dispute report" button, saved on the order; (3) admin dispute dialog also shows the courier's message (compact and empty if none).
+
+**Usage scenario:** Writing implementation code for a design the author specified.
+
+**Files changed:**
+- `services/order-service/prisma/schema.prisma`, `prisma/migrations/20261106130000_order_courier_dispute_details/migration.sql` — new column and migration
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `order.routes.ts`, `order.types.ts` — courierDisputeOrder and route
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repository and test
+- `packages/common-dtos/src/index.ts` — `courierDisputeDetails`, CourierDisputeRequest
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts` — courier response UI and action
+- `apps/admin-portal/src/components/OrderStatusBadge.tsx`, `pages/OrdersPage.tsx`, `components/DisputeModal.tsx` — red badge and courier text box

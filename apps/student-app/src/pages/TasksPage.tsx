@@ -40,6 +40,10 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx.
  * Author review: Verified by yanhwee
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: DELIVERED status line says when the errand is under dispute.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -78,6 +82,7 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         tone: 'text-amber-700',
       };
     case 'DELIVERED':
+      if (task.dispute) return { text: 'Delivered · Under dispute, an administrator will settle it', tone: 'text-rose-700' };
       return {
         text: side === 'posted' ? 'Delivered · Review and confirm' : 'Delivered · Waiting for requester confirmation',
         tone: 'text-blue-700',
