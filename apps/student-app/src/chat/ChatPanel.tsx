@@ -31,6 +31,12 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
  * Scope: Translate toggle beside Send: a language menu (English first); once chosen, every message is shown translated into it, via the Chat Service, until the toggle is clicked off. Stored text is untouched.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: PR #228 review fixes: show the "· translated" badge only when the translated text differs from the original,
+ * reset inFlight when switching languages or turning translation off, and keep the translate toggle accessible when
+ * the conversation is closed/read-only.
+ * Author review: <to be completed by yanhwee>
  */
 // AI-generated (edited by Reallyeasy1)
 import React, { useEffect, useRef, useState } from 'react';
@@ -82,6 +88,7 @@ function MessageText({ text }: { text: string }) {
 
 function Bubble({ message, mine, translated }: { message: ChatMessageDTO; mine: boolean; translated?: string }) {
   const time = new Date(message.sentAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
+  const isTranslated = translated !== undefined && translated !== message.text;
   return (
     <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] px-3.5 py-2 shadow-2xs ${mine ? 'bg-blue-600 text-white rounded-2xl rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'}`}>
@@ -89,7 +96,7 @@ function Bubble({ message, mine, translated }: { message: ChatMessageDTO; mine: 
           <span className={`font-semibold ${mine ? 'text-white' : 'text-slate-700'}`}>{mine ? 'You' : message.senderUsername}</span>
           {' · '}
           <time dateTime={message.sentAt}>{time}</time>
-          {translated !== undefined && ' · translated'}
+          {isTranslated && ' · translated'}
         </p>
         <MessageText text={translated ?? message.text} />
       </div>
@@ -150,9 +157,9 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
     setInFlight((n) => n + 1);
     setTranslateError(null);
     void translate(orderId, language, ids).then((result) => {
-      setInFlight((n) => n - 1);
       // The toggle was turned off or switched to another language meanwhile: drop this answer.
       if (activeLanguage.current !== language) return;
+      setInFlight((n) => Math.max(0, n - 1));
       if (!result) { setTranslateError('Translation is unavailable right now; showing the original messages.'); return; }
       setTranslations((current) => ({ ...current, ...Object.fromEntries(Object.entries(result).map(([id, text]) => [`${language}|${id}`, text])) }));
     });
@@ -162,6 +169,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
     if (language) {
       activeLanguage.current = null;
       requested.current.clear();
+      setInFlight(0);
       setLanguage(null);
       setTranslateError(null);
       setMenuOpen(false);
@@ -172,6 +180,8 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   const chooseLanguage = (choice: string) => {
     requested.current.clear();
     setTranslations({});
+    setInFlight(0);
+    setTranslateError(null);
     activeLanguage.current = choice;
     setLanguage(choice);
     setMenuOpen(false);
@@ -205,6 +215,39 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
     if (outcome.ok) setDraft('');
     else setSendError(outcome.message);
   };
+
+  const translateControl = (
+    <div ref={translateMenu} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={toggleTranslate}
+        aria-pressed={language !== null}
+        aria-haspopup={language ? undefined : 'menu'}
+        aria-expanded={language ? undefined : menuOpen}
+        aria-label="Translate"
+        title={language ? `Translating to ${language} (click to turn off)` : 'Translate messages'}
+        className={`h-10 w-10 rounded-full flex items-center justify-center border shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-300 ${language ? 'bg-nus-blue border-nus-blue text-white hover:bg-blue-800' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+      >
+        <Languages className="h-4 w-4" />
+      </button>
+      {menuOpen && (
+        <div role="menu" aria-label="Translate messages to" className="absolute bottom-12 right-0 z-10 w-48 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Translate to</p>
+          {TRANSLATE_LANGUAGES.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              role="menuitem"
+              onClick={() => chooseLanguage(choice)}
+              className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <section aria-label="Live errand chat" className="flex flex-col gap-3 lg:flex-1 lg:min-h-0" data-testid="chat-panel">
@@ -242,7 +285,10 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
       </ul>
 
       {noConversation ? null : closed ? (
-        <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">This errand is finished; the conversation is read-only.</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">This errand is finished; the conversation is read-only.</p>
+          {translateControl}
+        </div>
       ) : (
         <form onSubmit={handleSend} className="space-y-1">
           <div className="flex items-end gap-2">
@@ -256,36 +302,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
               disabled={isSending || !thread?.conversation}
               className="flex-1 resize-none rounded-full border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:opacity-50"
             />
-            <div ref={translateMenu} className="relative shrink-0">
-              <button
-                type="button"
-                onClick={toggleTranslate}
-                aria-pressed={language !== null}
-                aria-haspopup={language ? undefined : 'menu'}
-                aria-expanded={language ? undefined : menuOpen}
-                aria-label="Translate"
-                title={language ? `Translating to ${language} (click to turn off)` : 'Translate messages'}
-                className={`h-10 w-10 rounded-full flex items-center justify-center border shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-300 ${language ? 'bg-nus-blue border-nus-blue text-white hover:bg-blue-800' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
-              >
-                <Languages className="h-4 w-4" />
-              </button>
-              {menuOpen && (
-                <div role="menu" aria-label="Translate messages to" className="absolute bottom-12 right-0 z-10 w-48 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-                  <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Translate to</p>
-                  {TRANSLATE_LANGUAGES.map((choice) => (
-                    <button
-                      key={choice}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => chooseLanguage(choice)}
-                      className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      {choice}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {translateControl}
             <button
               type="submit"
               disabled={isSending || !thread?.conversation || chat.status !== 'connected'}

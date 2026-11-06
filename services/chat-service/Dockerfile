@@ -4,11 +4,16 @@
 # substituted. The build stages, Prisma engine copy, non-root runtime and migrate-then-exec command are the
 # Notification Service's (records: Codex GPT-5 2026-10-12 to 2026-10-16, ngkhengyang; Claude Code 2026-10-05, Reallyeasy1).
 # Author review: <to be completed by Reallyeasy1>
-
-# AI-generated (edited by ngkhengyang)
+#
 # Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
 # Scope: Added the @campus-errand/llm package to the build, dependency and runtime stages.
 # Author review: <to be completed by the author>
+#
+# Tool: Google Antigravity Agent, date: 2026-11-06
+# Scope: Consolidated the @campus-errand/llm disclosure record into the top disclosure block.
+# Author review: <to be completed by yanhwee>
+
+# AI-generated (edited by ngkhengyang)
 FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 RUN apk add --no-cache openssl

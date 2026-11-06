@@ -37,6 +37,11 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
  * Scope: Added translate(): asks the Chat Service for display-only translations of stored messages.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: PR #228 review fixes: chunk messageIds to at most 200 per POST /api/chat/:orderId/translate request and pass
+ * a 25 s request deadline signal so authFetch's default 10 s deadline does not abort the backend's 20 s LLM timeout.
+ * Author review: <to be completed by yanhwee>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -83,6 +88,10 @@ const SEND_TIMEOUT_MS = 10_000;
 const RECONCILE_MS = 30_000;
 /** The server's maximum page; a page shorter than this is the last one. */
 const PAGE_SIZE = 100;
+
+/** Maximum message IDs accepted by POST /api/chat/:orderId/translate per request, and client deadline matching the 20 s backend LLM timeout. */
+const TRANSLATE_MAX_IDS = 200;
+const TRANSLATE_DEADLINE_MS = 25_000;
 
 const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null };
 
@@ -237,16 +246,23 @@ export function useChat(options: {
    * Display-only translations of stored messages into `language` (POST /api/chat/:orderId/translate).
    * Resolves to a map of message id to translated text, or null when translation is unavailable.
    */
+  // AI-generated (edited by yanhwee)
   const translate = useCallback(async (orderId: string, language: string, messageIds: string[]): Promise<Record<string, string> | null> => {
     try {
-      const res = await latest.current.authFetch(`/api/chat/${orderId}/translate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language, messageIds }),
-      });
-      const body = await res.json();
-      if (!res.ok || !body.success) return null;
-      return (body.data as { translations: Record<string, string> }).translations;
+      const merged: Record<string, string> = {};
+      for (let start = 0; start < messageIds.length; start += TRANSLATE_MAX_IDS) {
+        const chunk = messageIds.slice(start, start + TRANSLATE_MAX_IDS);
+        const res = await latest.current.authFetch(`/api/chat/${orderId}/translate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language, messageIds: chunk }),
+          signal: AbortSignal.timeout(TRANSLATE_DEADLINE_MS),
+        });
+        const body = await res.json();
+        if (!res.ok || !body.success) return null;
+        Object.assign(merged, (body.data as { translations: Record<string, string> }).translations);
+      }
+      return merged;
     } catch {
       return null;
     }

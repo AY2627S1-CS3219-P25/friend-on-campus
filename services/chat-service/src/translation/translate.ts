@@ -4,18 +4,25 @@
  * Scope: Display-only translation of chat messages through @campus-errand/llm. Messages go to the model in batches as
  * a JSON array and come back in the same order; when the target is English, text that is plainly English is not sent.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: PR #228 review fixes: require a majority of distinctly English words before skipping English translation so
+ * Latin-script non-English sentences (Spanish, French, German, Malay) are not skipped, and return null upfront when
+ * the SoCLaaS API key is unconfigured even if all texts would be skipped.
+ * Author review: <to be completed by yanhwee>
  */
-// AI-generated (edited by jagdeepsh)
+// AI-generated (edited by yanhwee)
 import { callSoclaas, parseJsonReply, type SoclaasConfig } from '@campus-errand/llm';
 
 const BATCH_SIZE = 30;
 const TRANSLATE_TIMEOUT_MS = 20_000;
 
-// Common English words. Latin-script languages such as Malay or Spanish share the ASCII letters, so ASCII alone does not prove English.
+// Distinctly English words (omitting short particles shared with Spanish/French/German/Malay like 'a', 'in', 'on', 'no', 'me').
 const ENGLISH_WORDS = new Set([
-  'the', 'a', 'an', 'i', 'you', 'we', 'he', 'she', 'it', 'they', 'is', 'are', 'am', 'was', 'were', 'be', 'to', 'of',
-  'and', 'or', 'in', 'on', 'at', 'for', 'with', 'my', 'your', 'me', 'this', 'that', 'here', 'there', 'can', 'will',
-  'please', 'thanks', 'thank', 'ok', 'okay', 'yes', 'no', 'where', 'when', 'what', 'how', 'now', 'omw', 'hi', 'hello',
+  'the', 'i', 'you', 'we', 'she', 'it', 'they', 'is', 'are', 'am', 'was', 'were', 'of',
+  'and', 'at', 'for', 'with', 'my', 'your', 'this', 'that', 'here', 'there', 'can', 'will',
+  'please', 'thanks', 'thank', 'ok', 'okay', 'yes', 'where', 'when', 'what', 'how', 'now', 'omw', 'hi', 'hello',
+  'see', 'lobby', 'arriving', 'coming', 'waiting', 'outside',
 ]);
 
 /** False when the text is plainly English (or has no letters at all), so no API call is needed for an English target. */
@@ -23,7 +30,9 @@ export function needsTranslation(text: string): boolean {
   if (!/\p{L}/u.test(text)) return false;
   if (/[^\t\n\r -~]/.test(text.replace(/\p{Extended_Pictographic}|‍|️|[‘’“”…]/gu, ''))) return true;
   const words = text.toLowerCase().match(/[a-z']+/g) ?? [];
-  return !words.some((word) => ENGLISH_WORDS.has(word));
+  if (words.length === 0) return false;
+  const englishMatches = words.filter((word) => ENGLISH_WORDS.has(word)).length;
+  return englishMatches * 2 < words.length;
 }
 
 /** Translations in the same order as `texts`, or null when the model could not be reached or answered badly. */
@@ -46,6 +55,7 @@ export function createTranslator(config: SoclaasConfig, call: typeof callSoclaas
   }
 
   return async (texts, language) => {
+    if (!config.apiKey || config.apiKey.trim() === '') return null;
     const english = language.trim().toLowerCase() === 'english';
     const result = [...texts];
     const todo = texts.map((text, index) => index).filter((index) => !english || needsTranslation(texts[index]));

@@ -6287,3 +6287,21 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `services/chat-service/test/translate.test.ts`, `test/service.test.ts`, `test/routes.test.ts` — tests updated or added
 - `apps/student-app/src/chat/useChat.ts` — send reverted; added `translate()`
 - `apps/student-app/src/chat/ChatPanel.tsx` — language menu, toggle off, translated bubbles
+
+## 2026-11-06 15:37 SGT — Review PR #228 and fix translation edge cases
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** translator
+
+**Prompt (summarised):** Review open PR #228, post the review comments on GitHub, create a worktree on the PR branch to fix the identified issues, and push the corrected commit to the PR branch.
+
+**Usage scenario:** Code review, debugging assistance, and bug-fix implementation on `translator`: aligned client translation request deadline (25 s) and 200-ID chunking with the Chat Service route and 20 s SoCLaaS timeout, refined `needsTranslation` so Latin-script non-English sentences sharing short particles (`no`, `a`, `on`, `in`, `ok`) are not skipped, returned `null` when `SOCLAAS_API_KEY` is empty even if all texts would be skipped, kept the translate control mounted when a conversation is read-only (`closed`), guarded `inFlight` across language switches, and showed `· translated` only when translated text differs from original text.
+
+**Files changed:**
+- `services/chat-service/src/translation/translate.ts` — require majority distinctly-English words in `needsTranslation`; check `config.apiKey` upfront in `createTranslator`
+- `services/chat-service/test/translate.test.ts` — added unit tests for Latin-script sentences with shared particles and empty API key handling
+- `apps/student-app/src/chat/useChat.ts` — chunk `messageIds` by 200 and pass a 25 s `AbortSignal.timeout` to `authFetch`
+- `apps/student-app/src/chat/ChatPanel.tsx` — keep `translateControl` accessible when `closed`, reset `inFlight` on language switch/off, badge `· translated` only when text changed
+- `services/chat-service/Dockerfile` — consolidated disclosure entry into the top header block
+- `ai/usage-log.md` — recorded this session
