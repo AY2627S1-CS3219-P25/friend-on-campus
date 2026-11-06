@@ -7,9 +7,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Natural-Language Errand Creation Assistant service (F6) calling NUS SoCLaaS OpenAI-compatible gateway with supplier grounding and D1 §3.3 timing constraints.
  * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Replaced the inline SoCLaaS fetch with callSoclaas/parseJsonReply from @campus-errand/llm.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
 
+import { callSoclaas, parseJsonReply } from '@campus-errand/llm';
 import type { ParsedErrandDraftDTO, ParsedErrandItemDTO } from '@campus-errand/common-dtos';
 import type { SupplierClient, SupplierDetails } from '../clients/supplier.client';
 
@@ -170,51 +175,21 @@ IMPORTANT RULES:
 }
 
 // AI-generated (edited by yanhwee)
-async function callSoclaas(
+async function extractWithLlm(
   prompt: string,
   activeSuppliers: SupplierDetails[],
   config: AssistantServiceConfig
 ): Promise<RawLlmExtraction | null> {
-  if (!config.soclaasApiKey || config.soclaasApiKey.trim() === '') {
-    return null;
-  }
+  const reply = await callSoclaas(
+    { baseUrl: config.soclaasBaseUrl, apiKey: config.soclaasApiKey, model: config.soclaasModel },
+    { instruction: buildSystemPrompt(activeSuppliers), text: prompt }
+  );
+  if (!reply) return null;
 
   try {
-    const requestPayload = {
-      model: config.soclaasModel || 'default',
-      messages: [
-        { role: 'system', content: buildSystemPrompt(activeSuppliers) },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.1,
-    };
-
-    const response = await fetch(`${config.soclaasBaseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.soclaasApiKey}`,
-      },
-      body: JSON.stringify(requestPayload),
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    if (!response.ok) {
-      console.warn(`[assistant-service] SoCLaaS returned HTTP ${response.status}: ${await response.text()}`);
-      return null;
-    }
-
-    const json = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    const rawContent = json.choices?.[0]?.message?.content;
-    if (!rawContent) return null;
-
-    const cleaned = rawContent.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
-    return JSON.parse(cleaned) as RawLlmExtraction;
+    return parseJsonReply<RawLlmExtraction>(reply);
   } catch (err) {
-    console.warn('[assistant-service] Failed to call SoCLaaS API:', err);
+    console.warn('[assistant-service] SoCLaaS reply was not valid JSON:', err);
     return null;
   }
 }
@@ -338,7 +313,7 @@ export function createAssistantService(
       }
 
       const activeSuppliers = await getActiveSuppliers();
-      const rawExtraction = await callSoclaas(trimmedPrompt, activeSuppliers, config);
+      const rawExtraction = await extractWithLlm(trimmedPrompt, activeSuppliers, config);
 
       if (!rawExtraction) {
         return fallbackOfflineExtract(trimmedPrompt, activeSuppliers);

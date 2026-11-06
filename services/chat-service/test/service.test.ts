@@ -201,3 +201,28 @@ test('P2: a terminal fallback racing an accept event that creates the row still 
   assert.equal((await service.send(ORDER, principal(ALICE), 'too late')).kind, 'closed');
   assert.equal((await service.send(ORDER, principal(BOB), 'too late')).kind, 'closed');
 });
+
+// AI-generated (edited by jagdeepsh)
+test('translate: readable by participants and admins, stores nothing, and sends were never altered', async () => {
+  const { store } = memoryStore();
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const calls: Array<[string[], string]> = [];
+  const translate = async (texts: string[], language: string) => { calls.push([texts, language]); return texts.map((t) => `[${language}] ${t}`); };
+  const service = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }), translate });
+  const sent = await service.send(ORDER, principal(ALICE, { username: 'alice' }), '我在这里');
+  if (sent.kind !== 'sent') throw new Error('send failed');
+  assert.equal(sent.message.text, '我在这里');
+
+  const result = await service.translate(ORDER, principal(BOB), 'English', [sent.message.id]);
+  assert.deepEqual(result, { kind: 'translated', translations: { [sent.message.id]: '[English] 我在这里' } });
+  assert.equal((await service.translate(ORDER, principal(ADMIN, { role: 'ADMIN' }), 'English', [sent.message.id])).kind, 'translated');
+  assert.equal((await service.translate(ORDER, principal(CAROL), 'English', [sent.message.id])).kind, 'forbidden');
+  assert.equal((await service.translate('30000000-0000-4000-8000-000000000002', principal(ALICE), 'English', [])).kind, 'not_found');
+  assert.equal((await service.history(ORDER, principal(ALICE), { afterSequence: 0, limit: 10 })).kind, 'found');
+  assert.equal((await service.messages(sent.message.conversationId, { afterSequence: 0, limit: 10 }))[0].text, '我在这里');
+  // Unknown ids translate nothing; forbidden callers never reach the translator.
+  assert.deepEqual(await service.translate(ORDER, principal(ALICE), 'English', ['30000000-0000-4000-8000-000000000009']), { kind: 'translated', translations: {} });
+  assert.equal(calls.length, 2);
+  const none = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }) });
+  assert.equal((await none.translate(ORDER, principal(ALICE), 'English', [sent.message.id])).kind, 'unavailable');
+});
