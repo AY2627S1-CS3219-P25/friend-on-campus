@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-11-07
+// Scope: Updated UD2 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Codex (model: GPT-6), date: 2026-11-01
 // Scope: Fixed supplier form selectors/coordinates and made failed browser checks fail CI.
 // Author review: <to be completed by Reallyeasy1>
@@ -433,7 +437,7 @@ const browser = await chromium.launch();
   // Notifications (issue #52, F5): Order Service does not publish yet, so the event is published here as order_service.
   let bobId;
   await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
-    await page.getByText('WS Hub: connected').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
+    await page.locator('[data-status="connected"]').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
     await page.getByRole('button', { name: /^Alerts/ }).first().waitFor();
     const token = await apiLogin('bob@u.nus.edu');
     bobId = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub;

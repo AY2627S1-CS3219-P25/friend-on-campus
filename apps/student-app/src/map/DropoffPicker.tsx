@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Typed useMapEvents click handler parameter with L.LeafletMouseEvent for strict TypeScript compliance.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Two-tier drop-off picker for Post Errand (author's decision A16): search the NUS building snapshot and pick
  * one, or, when the building is not listed, open the same Leaflet / OpenStreetMap map as the pickup picker and click
@@ -180,7 +184,7 @@ export function DropoffPicker({ value, onChange, pickup, pickupName }: DropoffPi
 
 function ClickToPlace({ onPlace }: { onPlace: (point: LatLng) => void }) {
   useMapEvents({
-    click(event) {
+    click(event: L.LeafletMouseEvent) {
       onPlace({ latitude: event.latlng.lat, longitude: event.latlng.lng });
     },
   });

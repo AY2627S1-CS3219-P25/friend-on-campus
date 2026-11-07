@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-11-07
+// Scope: Updated RT01 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: Multi-client real-time UAT (issue #197): four Playwright contexts check that notifications and chat stay
 // consistent in real time across a requester's two clients, the winning courier and a losing courier, with an
@@ -197,7 +201,7 @@ let winnerName = '';
 await step('RT01', 'four clients log in; notification socket connected on each', async () => {
   await Promise.all([login(R1, 'bob@u.nus.edu'), login(R2, 'bob@u.nus.edu'), login(C1, 'alice@u.nus.edu'), c2Ready ? login(C2, c2Email) : Promise.resolve()]);
   const all = [R1, R2, C1, ...(c2Ready ? [C2] : [])];
-  await Promise.all(all.map((p) => p.getByText('WS Hub: connected').waitFor()));
+  await Promise.all(all.map((p) => p.locator('[data-status="connected"]').waitFor()));
   return `${all.length} clients connected${c2Ready ? ` (C2 = ${c2Name}, registered via the API)` : ' (C2 registration failed; race skipped)'}; bob unread before: R1=${await badge(R1)} R2=${await badge(R2)}`;
 });
 

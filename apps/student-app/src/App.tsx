@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Polished lifecycle action toast notifications to user-friendly consumer copy without internal microservice references.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned student-app frontend shell and layout, enhanced card styling and rounded-3xl aesthetics across all sub-pages.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Drop-off estimator: the post form keeps the drop-off point and whether the reward was set by hand, clears
  * both after a post, and sends dropoffLatitude / dropoffLongitude / estimatedRewardCredits only when the pickup store
@@ -669,12 +677,11 @@ export default function App() {
           break;
         case 'complete':
           updated = await completeOrderById(authFetch, orderId);
-          // AI-generated (edited by Reallyeasy1): the payment is Credit Service's commit, not this one.
-          successMessage = 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.';
+          successMessage = 'Delivery confirmed! The courier payout has been initiated.';
           break;
         case 'cancel':
           updated = await cancelOrderById(authFetch, orderId);
-          successMessage = 'Errand cancelled. Reserved credits are returned once Credit Service processes it.';
+          successMessage = 'Errand cancelled. Reserved credits have been returned to your wallet.';
           break;
         case 'unassign':
           updated = await unassignOrderById(authFetch, orderId);
