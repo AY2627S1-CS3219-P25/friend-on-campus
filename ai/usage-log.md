@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Rebranded student-app to tompang. with custom Friend Pin vector logo component (FriendPinLogo.tsx), featuring official CS3219 course name subtitle 'by Friend on Campus (FoC)'. Updated top navbar HeaderNav.tsx and AuthGatePage.tsx promotional showcase, updated apps/student-app/index.html document title and added public/favicon.svg, corrected historical 'Friend of Campus' typo in README.md, and eliminated confusing 'No estimate' label in ErrandCard.tsx when no walking distance calculation is present while strictly preserving data-testid='errand-estimate' contract when present.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Standardized header actions and layout width across account trio (AlertsPage.tsx, ProfileWalletPage.tsx, NotificationBell.tsx): anchored Campus Alerts with matching 1-line header row and uniform action buttons (Mark all as read and Refresh), removed redundant duplicate buttons from NotificationPanel filter row, and harmonized page container width to max-w-4xl across Alerts, Credit Wallet, and Student Profile. Redesigned AuthGatePage.tsx into a high-converting promotional showcase featuring split desktop layout, Direction A brand identity, 100 Credits Welcome Grant banner, and verified NUS campus value props while preserving all form IDs and accessibility semantics.
 Author review: <to be completed by yanhwee>
 
@@ -6793,6 +6797,42 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/pages/ProfileWalletPage.tsx` — Removed escrow protected badges, secured chip, explainer card, and technical ledger terms.
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Centered single-column layout, 3-column route/reward grid, cleaned header, and preserved testids.
 - `ai/usage-log.md` — Logged Credit Wallet cleanup and Errand Details page single-column refactoring.
+
+## 2026-11-07 16:25 SGT — Brand Rebrand to "tompang." with Friend Pin Logo & Errand Card Estimate Cleanup
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Adopt "tompang" brand name and Friend Pin logo design, clean up confusing "No estimate" label on errand cards, and align branding across the navbar, auth page, document title, and documentation.
+
+**Usage scenario:** Brand identity modernization, UI refinement, and documentation alignment across `@campus-errand/student-app`:
+1. **Friend Pin Vector Logo Component (`FriendPinLogo.tsx`)**:
+   - Created a reusable, responsive React SVG brand component incorporating the Kent Ridge location pin combined with a smiling student courier face (`^ _ ^`), delivery star, and speed motion trails rendered in NUS Blue (`#003D7C`/`#1D4ED8`) and NUS Orange (`#FF9800`/`#EF7C00`) gradients.
+   - Utilized React `useId()` for unique gradient and filter element IDs to eliminate DOM ID collisions across instances.
+   - Generated `apps/student-app/public/favicon.svg` matching the brand mark so browser tabs display the custom logo.
+2. **Top Navigation Rebranding (`HeaderNav.tsx`)**:
+   - Replaced generic Lucide package icon with `<FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-card" />`.
+   - Updated typography to `tompang.` (bold slate-900 with signature orange accent dot) paired with `by Friend on Campus` subtitle on desktop and responsive `FoC` badge on mobile, seamlessly marrying colloquial campus culture with the official CS3219 course project name.
+3. **Authentication Showcase Rebranding (`AuthGatePage.tsx`)**:
+   - Replaced package placeholder with `<FriendPinLogo className="w-12 h-12 rounded-2xl shadow-lg" />` and updated header to `tompang.` by Friend on Campus (FoC) · NUS Peer Errand Network.
+   - Tailored value proposition headline ("Your campus errands, tompang with friends") for an authentic, relatable Singapore university student tone.
+4. **Errand Card Estimate Cleanup (`ErrandCard.tsx`)**:
+   - Eliminated the confusing "No estimate" fallback text when `order.estimatedRewardCredits` is null or undefined (e.g. unmapped dropoff location), displaying solely the clean credit reward pill (`+18 Credits`).
+   - Strictly preserved `data-testid="errand-estimate"` when `typeof order.estimatedRewardCredits === 'number'` (`Est. X`) to maintain automated test suite contracts.
+5. **Document Title & Documentation Alignment**:
+   - Updated `apps/student-app/index.html` title to `tompang. — Friend on Campus (FoC)`.
+   - Corrected historical "Friend of Campus" typo in `README.md` to align with the official CS3219 lecture project designation (`Friend on Campus (FoC)`).
+
+**Files changed:**
+- `apps/student-app/src/components/FriendPinLogo.tsx` — Custom Friend Pin SVG component.
+- `apps/student-app/public/favicon.svg` — Brand favicon asset.
+- `apps/student-app/src/components/HeaderNav.tsx` — Rebranded navbar with Friend Pin logo and tompang. typography.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Rebranded auth showcase with Friend Pin logo and tompang headline.
+- `apps/student-app/src/components/ErrandCard.tsx` — Removed confusing 'No estimate' label while preserving testid contract when estimate exists.
+- `apps/student-app/index.html` — Updated document title and favicon path.
+- `README.md` — Corrected project heading and overview to tompang. — Friend on Campus (FoC).
+- `ai/usage-log.md` — Logged brand rebrand and estimate cleanup.
 
 
 

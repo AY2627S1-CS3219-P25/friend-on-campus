@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Rebranded auth showcase to tompang. with Friend Pin logo and authentic Singapore campus errand value proposition.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned AuthGatePage into a high-converting promotional showcase with a split desktop layout, Direction A brand identity, luminous 100 Credits Welcome Grant banner, and verified NUS campus value props while preserving all form inputs and test IDs.
  * Author review: <to be completed by yanhwee>
  *
@@ -36,13 +40,13 @@ import {
   Lock,
   Mail,
   MapPin,
-  Package,
   RefreshCw,
   ShieldCheck,
   Sparkles,
   User,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { FriendPinLogo } from '../components/FriendPinLogo';
 import { SignupFormData } from '../hooks/useAuthSession';
 
 interface AuthGatePageProps {
@@ -106,19 +110,15 @@ export function AuthGatePage({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Brand & Promotional Showcase */}
           <div className="lg:col-span-7 space-y-6 sm:space-y-7">
-            {/* Brand Logo (Direction A) */}
-            <div className="flex items-center gap-3">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-nus-blue to-blue-600 text-white shadow-lg shadow-blue-500/20 border border-blue-200/50 shrink-0">
-                <Package className="w-6 h-6 text-white stroke-[2.2]" />
-              </div>
+            {/* Brand Logo (Friend Pin + tompang.) */}
+            <div className="flex items-center gap-3.5">
+              <FriendPinLogo className="w-12 h-12 rounded-2xl shadow-lg shadow-blue-500/20 shrink-0" />
               <div>
-                <h1 className="text-2xl font-black tracking-tight leading-none">
-                  <span className="text-nus-blue">NUS</span>{' '}
-                  <span className="text-slate-900">CampusErrand</span>
-                  <span className="text-nus-orange">.</span>
+                <h1 className="text-3xl font-black tracking-tight leading-none text-slate-900">
+                  tompang<span className="text-nus-orange">.</span>
                 </h1>
-                <p className="text-xs font-semibold text-slate-500 mt-1">
-                  Peer-to-Peer Campus Delivery
+                <p className="text-xs font-bold text-slate-500 mt-1">
+                  by Friend on Campus (FoC) · NUS Peer Errand Network
                 </p>
               </div>
             </div>
@@ -126,9 +126,9 @@ export function AuthGatePage({
             {/* Pitch & Value Headline */}
             <div className="space-y-2">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
-                Your campus deliveries, <br className="hidden sm:inline" />
+                Your campus errands, <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-nus-blue via-indigo-600 to-nus-orange bg-clip-text text-transparent">
-                  handled door-to-door.
+                  tompang with friends.
                 </span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg">

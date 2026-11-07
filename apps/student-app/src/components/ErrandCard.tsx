@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Cleaned up confusing 'No estimate' label when estimatedRewardCredits is not present, showing clean reward pill while preserving test contract when an estimate is present.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
  * Author review: <to be completed by yanhwee>
  *
@@ -92,15 +96,17 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
             <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0 animate-pulse" />
             <span className="truncate">{order.campusZone}</span>
           </span>
-          {/* The estimate sits on its own line under the pill so it never widens the pill and squeezes the zone. */}
+          {/* The estimate sits on its own line under the pill when available so it never widens the pill. */}
           <div className="flex flex-col items-end gap-0.5 shrink-0">
             <div className="inline-flex items-center gap-1.5 text-amber-900 font-black text-xs bg-gradient-to-r from-amber-100 via-orange-100/90 to-amber-50 px-2.5 py-1 rounded-full border border-amber-300/80 shadow-2xs whitespace-nowrap">
               <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-300 shrink-0" />
               <span>+{order.rewardCredits} Credits</span>
             </div>
-            <span data-testid="errand-estimate" className="text-[10px] font-semibold text-amber-700/90 whitespace-nowrap pr-1">
-              {typeof order.estimatedRewardCredits === 'number' ? `Est. ${order.estimatedRewardCredits}` : 'No estimate'}
-            </span>
+            {typeof order.estimatedRewardCredits === 'number' && (
+              <span data-testid="errand-estimate" className="text-[10px] font-semibold text-amber-700/90 whitespace-nowrap pr-1">
+                Est. {order.estimatedRewardCredits}
+              </span>
+            )}
           </div>
         </div>
 

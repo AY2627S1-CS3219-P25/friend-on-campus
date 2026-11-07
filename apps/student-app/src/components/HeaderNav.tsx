@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Rebranded navbar identity to tompang. with Friend Pin logo, featuring 'by Friend on Campus' (FoC) brand signature and responsive badge.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Direction A clean modern tech brand identity: removed confusing blinking pulse badge from package icon, unified brand typography to NUS Blue and Slate-900 with signature orange accent dot, and removed subtitle for compact 48px header height.
  * Author review: <to be completed by yanhwee>
  *
@@ -76,11 +80,11 @@ import {
   Clock,
   Coins,
   Compass,
-  Package,
   PlusCircle,
   Store,
   UserCircle,
 } from 'lucide-react';
+import { FriendPinLogo } from './FriendPinLogo';
 import { NotificationBell } from '../notifications/NotificationBell';
 
 export type StudentTab = 'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile' | 'wallet';
@@ -115,15 +119,19 @@ export function HeaderNav({
             type="button"
             onClick={() => onSelectTab('feed')}
             className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
-            aria-label="CampusErrand Home"
+            aria-label="tompang Home"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-br from-nus-blue via-blue-700 to-indigo-900 flex items-center justify-center text-white shadow-card group-hover:scale-105 group-hover:shadow-glow-blue transition-all duration-200 shrink-0">
-              <Package className="w-4 h-4 sm:w-5 sm:h-5 text-white stroke-[2.2]" />
-            </div>
+            <FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-card group-hover:scale-105 group-hover:shadow-glow-blue transition-all duration-200 shrink-0" />
             <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-black text-sm sm:text-base tracking-tight text-slate-900 group-hover:text-nus-blue transition-colors">
-                  <span className="text-nus-blue">NUS</span> CampusErrand<span className="text-nus-orange">.</span>
+              <div className="flex items-baseline gap-1 sm:gap-1.5">
+                <span className="font-black text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-nus-blue transition-colors">
+                  tompang<span className="text-nus-orange">.</span>
+                </span>
+                <span className="hidden sm:inline-block text-[11px] font-bold text-slate-400 tracking-tight">
+                  by Friend on Campus
+                </span>
+                <span className="sm:hidden text-[9px] font-bold text-nus-blue bg-blue-50 px-1 py-0.5 rounded border border-blue-100">
+                  FoC
                 </span>
                 {showWsStatus && (
                   <span
