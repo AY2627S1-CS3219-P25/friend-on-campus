@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined AI Errand Assistant into 1-click inline smart autofill, removing redundant intermediate draft preview card and extra apply step.
  * Author review: <to be completed by yanhwee>
  *
@@ -74,6 +78,7 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Coins,
   FileText,
@@ -162,6 +167,8 @@ export function PostErrandPage({
   authFetch,
 }: PostErrandPageProps) {
   const [assistantPrompt, setAssistantPrompt] = useState('');
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [extractedDraft, setExtractedDraft] = useState<ParsedErrandDraftDTO | null>(null);
@@ -268,6 +275,9 @@ export function PostErrandPage({
       }));
 
       setAppliedNotice(true);
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (err) {
       setExtractError(err instanceof Error ? err.message : 'Failed to parse errand draft. Please try again.');
     } finally {
@@ -376,129 +386,150 @@ export function PostErrandPage({
         </div>
       )}
 
-      {/* AI Errand Assistant Panel (F6) */}
+      {/* AI Errand Assistant Panel (F6) - Collapsible Smart Auto-fill Drawer */}
       <section
         aria-label="AI Errand Assistant"
-        className="bg-gradient-to-br from-blue-50/80 via-indigo-50/50 to-orange-50/50 backdrop-blur-md text-slate-800 rounded-3xl p-5 md:p-6 shadow-card hover:shadow-card-hover border border-blue-200/80 relative overflow-hidden transition-all duration-300"
+        className="bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-orange-50/30 backdrop-blur-md text-slate-800 rounded-2xl border border-blue-200/80 shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden"
       >
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2.5">
-              <span className="p-2 rounded-xl bg-gradient-to-br from-nus-orange/20 to-orange-400/10 text-nus-orange border border-nus-orange/20 shadow-2xs">
+        <div className="p-3.5 sm:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAiOpen((prev) => !prev)}
+              aria-expanded={isAiOpen}
+              className="flex items-center gap-2.5 text-left group cursor-pointer focus:outline-none"
+            >
+              <span className="p-1.5 rounded-lg bg-nus-orange/15 text-nus-orange border border-nus-orange/20 shadow-2xs group-hover:scale-105 transition-transform">
                 <Sparkles className="w-4 h-4 animate-pulse" />
               </span>
-              <h3 className="text-base font-extrabold text-slate-900 tracking-tight">AI Errand Assistant</h3>
-              <span className="text-[11px] bg-nus-blue/10 text-nus-blue font-bold px-2.5 py-0.5 rounded-full border border-nus-blue/20">
-                Smart AI Draft
-              </span>
-            </div>
-            {(assistantPrompt || extractedDraft) && (
-              <button
-                type="button"
-                onClick={handleClearAssistant}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer transition"
-              >
-                <X className="w-3.5 h-3.5" /> Clear prompt
-              </button>
-            )}
-          </div>
-
-          <p className="text-xs text-slate-600 mb-3 max-w-2xl">
-            Type your request in plain natural English. The assistant parses pickup spot, items, drop-off location, and
-            reward credits, then automatically fills the form for you to review and customize.
-          </p>
-
-          <div className="space-y-3">
-            <textarea
-              id="ai-assistant-prompt"
-              rows={2}
-              value={assistantPrompt}
-              onChange={(e) => setAssistantPrompt(e.target.value)}
-              disabled={isExtracting || submissionBusy}
-              placeholder="e.g. Can someone buy 2 iced lattes from TOMORO COFFEE to COM2 #02-04 by 3pm? Offering 6 credits"
-              className="w-full text-sm p-3.5 rounded-2xl border border-blue-200/90 bg-white/95 text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none resize-none shadow-2xs transition-all"
-            />
-
-            <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs font-bold text-slate-600">Quick prompts:</span>
-                {TEMPLATE_PROMPTS.map((tmpl, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setAssistantPrompt(tmpl.prompt)}
-                    className="text-xs font-semibold bg-white/90 hover:bg-white text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all cursor-pointer"
-                  >
-                    {tmpl.label}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={handleExtractDraft}
-                disabled={isExtracting || !assistantPrompt.trim() || submissionBusy}
-                className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-xs hover:shadow-glow-orange transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {isExtracting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Auto-filling Form…
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Auto-fill Form
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {extractError && (
-            <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-              <span>{extractError}</span>
-            </div>
-          )}
-
-          {appliedNotice && (
-            <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>
-                  <strong>Form auto-filled!</strong> Review the details in the form below and customize as needed.
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-black text-slate-900 tracking-tight group-hover:text-nus-blue transition-colors">
+                  Auto-fill with AI
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-nus-blue/10 text-nus-blue border border-nus-blue/20">
+                  Optional
+                </span>
+                <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                  • Type naturally to fill in the form
                 </span>
               </div>
+            </button>
+
+            <div className="flex items-center gap-2">
+              {isAiOpen && (assistantPrompt || extractedDraft) && (
+                <button
+                  type="button"
+                  onClick={handleClearAssistant}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer transition px-2 py-1 rounded-lg hover:bg-slate-200/50"
+                >
+                  <X className="w-3.5 h-3.5" /> Clear
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setAppliedNotice(false)}
-                className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
-                aria-label="Dismiss notice"
+                onClick={() => setIsAiOpen((prev) => !prev)}
+                className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white/80 hover:bg-white px-2.5 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs transition-all cursor-pointer"
+                aria-label={isAiOpen ? 'Collapse AI auto-fill' : 'Expand AI auto-fill'}
               >
-                <X className="w-3.5 h-3.5" />
+                <span>{isAiOpen ? 'Close' : 'Try AI fill'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAiOpen ? 'rotate-180' : ''}`} />
               </button>
             </div>
-          )}
+          </div>
 
-          {extractedDraft?.warnings && extractedDraft.warnings.length > 0 && (
-            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 shadow-2xs">
-              <div className="font-bold flex items-center gap-1.5 text-amber-800">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Parser notice:</span>
-              </div>
-              {extractedDraft.warnings.map((w, idx) => (
-                <div key={idx} className="pl-5 text-amber-800/90 text-[11px]">
-                  • {w}
+          {isAiOpen && (
+            <div className="mt-3.5 pt-3 border-t border-blue-200/50 space-y-3 animate-in fade-in duration-200">
+              <textarea
+                id="ai-assistant-prompt"
+                rows={2}
+                value={assistantPrompt}
+                onChange={(e) => setAssistantPrompt(e.target.value)}
+                disabled={isExtracting || submissionBusy}
+                placeholder="e.g. Can someone buy 2 iced lattes from TOMORO COFFEE to COM2 #02-04 by 3pm? Offering 6 credits"
+                className="w-full text-sm p-3.5 rounded-2xl border border-blue-200/90 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none resize-none shadow-2xs transition-all"
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-600">Quick prompts:</span>
+                  {TEMPLATE_PROMPTS.map((tmpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAssistantPrompt(tmpl.prompt)}
+                      className="text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+                    >
+                      {tmpl.label}
+                    </button>
+                  ))}
                 </div>
-              ))}
+
+                <button
+                  type="button"
+                  onClick={handleExtractDraft}
+                  disabled={isExtracting || !assistantPrompt.trim() || submissionBusy}
+                  className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-xs hover:shadow-glow-orange transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isExtracting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Auto-filling Form…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Auto-fill Form
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {extractError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                  <span>{extractError}</span>
+                </div>
+              )}
+
+              {appliedNotice && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      <strong>Form auto-filled!</strong> Review the details below and customize as needed.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAppliedNotice(false)}
+                    className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
+                    aria-label="Dismiss notice"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {extractedDraft?.warnings && extractedDraft.warnings.length > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 shadow-2xs">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Parser notice:</span>
+                  </div>
+                  {extractedDraft.warnings.map((w, idx) => (
+                    <div key={idx} className="pl-5 text-amber-800/90 text-[11px]">
+                      • {w}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
       </section>
 
       {/* Manual Errand Form (Human-in-the-loop review & final submission) */}
-      <form onSubmit={handleFormSubmit} noValidate={false}>
+      <form ref={formRef} onSubmit={handleFormSubmit} noValidate={false}>
         <fieldset
           disabled={submissionBusy}
           className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-6 items-start"

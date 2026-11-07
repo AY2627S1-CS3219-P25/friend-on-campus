@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) in PostErrandPage with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Resolved text truncation and missing dropoff icon on My Errands cards (TasksPage): gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
 Author review: <to be completed by yanhwee>
 
