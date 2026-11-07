@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Restored clean 1-line Credit Wallet page header with inline refresh action, paired with a compact, authoritative balance card (~85px) featuring bold available credits typography and contextual active order reservations.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Transformed Credit Wallet into an ultra space-efficient toolbar (~40px) matching AlertsPage layout, eliminating the bulky card container, guaranteeing single-line earned metrics, and bringing Recent Activity directly above the fold.
  * Author review: <to be completed by yanhwee>
  *
@@ -351,9 +355,25 @@ export function ProfileWalletPage({
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <section aria-labelledby="credit-heading" className="space-y-4 sm:space-y-5">
-        <h2 id="credit-heading" className="sr-only">
-          Credit Wallet
-        </h2>
+        {/* Header & Refresh */}
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="credit-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Credit Wallet
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onRefreshCredits}
+            disabled={isLoadingCredits}
+            aria-label="Refresh wallet"
+            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99] shrink-0"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
+            <span>{creditError ? 'Retry' : 'Refresh'}</span>
+          </button>
+        </div>
 
         {isLoadingCredits && (
           <p role="status" className="text-xs sm:text-sm text-slate-500 flex items-center gap-2 font-medium">
@@ -373,39 +393,42 @@ export function ProfileWalletPage({
 
         {wallet && (
           <div className="space-y-4 sm:space-y-5">
-            {/* Credit Status Toolbar (~40px height) matching Alerts toolbar layout */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
-              {/* Left: Spendable Balance + Active Orders */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50/90 text-amber-950 border border-amber-200/90 text-xs sm:text-sm font-black shadow-2xs">
-                  <Coins className="w-4 h-4 text-amber-600 fill-amber-200 shrink-0" />
-                  <span>{wallet.availableCredits} Credits available</span>
-                </span>
-
-                {wallet.escrowCredits > 0 && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-700 border border-slate-200/90 text-xs font-bold shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                    <span>{wallet.escrowCredits} C in active orders</span>
+            {/* Compact Balance Card (~80px height) */}
+            <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-card border border-slate-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+              {/* Left: Spendable Balance & Active Orders */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Coins className="w-5 h-5 text-amber-600 fill-amber-200" />
+                </div>
+                <div>
+                  <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                    Available to spend
                   </span>
-                )}
+                  <div className="flex flex-wrap items-baseline gap-2.5 mt-0.5">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        {wallet.availableCredits}
+                      </span>
+                      <span className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-wide">
+                        Credits
+                      </span>
+                    </div>
+
+                    {wallet.escrowCredits > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold shadow-2xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                        <span>{wallet.escrowCredits} C in active orders</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Right controls: Total Earned + Refresh button */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 ml-auto">
-                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
+              {/* Right: Lifetime earned */}
+              <div className="flex items-center justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 text-xs text-slate-500 font-medium">
+                <span className="whitespace-nowrap">
                   Total earned: <strong className="font-bold text-slate-800">+{wallet.totalEarnedCredits} C</strong>
                 </span>
-
-                <button
-                  type="button"
-                  onClick={onRefreshCredits}
-                  disabled={isLoadingCredits}
-                  aria-label="Refresh wallet"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99] shrink-0"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
-                  <span>{creditError ? 'Retry' : 'Refresh'}</span>
-                </button>
               </div>
             </div>
 

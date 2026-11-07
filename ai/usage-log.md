@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Restored clean 1-line Credit Wallet page header with inline refresh action in ProfileWalletPage.tsx, paired with a compact, authoritative balance card (~80px) featuring bold available credits typography and contextual active order reservations.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Aligned Credit Wallet layout with Campus Alerts toolbar: converted balance stats into a sleek, ultra space-efficient toolbar (~40px) eliminating the bulky card container, guaranteed single-line earned metrics, and illuminated the top nav wallet capsule with vibrant amber active styling when activeTab === 'wallet' for clear, immediate page orientation.
 Author review: <to be completed by yanhwee>
 
