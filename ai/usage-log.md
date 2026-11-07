@@ -7126,3 +7126,21 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - `ai/usage-log.md` — Recorded this commit request for inclusion with the frontend improvements.
+
+
+## 2026-11-07 21:39 SGT — Push the frontend branch and update existing PR 230
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Push the completed frontend work and update its existing PR using gh; the user clarified that the destination is PR #230, not a new PR.
+
+**Usage scenario:** Explicitly authorized publication of the completed branch and update of existing draft PR #230. Verified the remote branch was an ancestor of the local branch, fetched current references, and pushed normally without force. Rewrote the existing PR title and description around the final Friend on Campus branding, responsive navigation, consistent student screens, and simplified posting UX. Preserved draft status and documented actual verification and its limits. No new PR or issue was created. The existing PR had no closing issue; no dedicated redesign issue matched the search. Related #71 and #47 require broader regression work, so the description identifies them as related, leaves them open, and records the outstanding dedicated-issue requirement in the checklist. GitHub identity was verified with gh api user. A bookkeeping commit containing this entry is being pushed on the same branch.
+
+**Validation:** Code pushed successfully through 3bea1b8 and PR head was verified through gh. Existing PR title/body update succeeded. Prior type checks, 51 student-app unit tests, targeted lint, production build, and desktop/mobile checks remain recorded in the PR; no application code changed in this request, so those checks were not rerun. No force push, merge, ready-for-review transition, new issue, or new PR.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the authorized push and existing PR update for inclusion in the published branch.
+
+**External update:** https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/230
