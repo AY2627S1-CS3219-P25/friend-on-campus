@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-07
+Scope: Restore Friend on Campus as the product name in the heading and overview.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Updated project heading and overview to tompang. — Friend on Campus (FoC), fixing historical 'Friend of Campus' typo to align with official CS3219 lecture project designation (FoC – Friend on Campus).
 Author review: <to be completed by yanhwee>
@@ -68,12 +72,12 @@ Author review: <to be completed by huangjiaxi1111>
 
 
 
-# tompang. — Friend on Campus (FoC) 🏃‍♂️💨
+# Friend on Campus (FoC) 🏃‍♂️💨
 
 > **CS3219 Software Design and Architecture (AY26/27 S1) — Project Group 25**  
 > Peer-to-Peer Campus Errand Platform with Closed Credit Economy & Verified Campus Suppliers
 
-**tompang.** (Friend on Campus) connects NUS students who need quick favors (coffee from COM3, printing at Central Library, parcel pickup from PGPR) with peers already walking nearby. The platform operates on a **closed credit economy** with escrow guarantees, discrete milestone updates, role-based access control, and asynchronous event notifications.
+**Friend on Campus (FoC)** connects NUS students who need quick favors (coffee from COM3, printing at Central Library, parcel pickup from PGPR) with peers already walking nearby. The platform operates on a **closed credit economy** with escrow guarantees, discrete milestone updates, role-based access control, and asynchronous event notifications.
 
 ---
 

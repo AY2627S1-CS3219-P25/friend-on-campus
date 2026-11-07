@@ -6870,3 +6870,36 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 
 
+## 2026-11-07 20:21 SGT — Restore Friend on Campus branding with supplied origami logo
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Take over the existing redesign, replace the logo with the supplied origami_c1_white_canvas.svg, and rename tompang to Friend on Campus in accordance with the project briefing.
+
+**Usage scenario:** Implemented the author's selected name and artwork within the existing frontend theme. Read the relevant project briefing text to confirm the FoC name. No architecture or requirements decisions were made. Changes remain uncommitted for author review.
+
+**Validation:** All workspace type checks passed; all 51 student-app unit tests passed; targeted ESLint and git diff whitespace checks passed; student-app production build passed with a bundle-size warning. Visually checked the sign-in page in the local browser preview. Local preview runs on port 5175.
+
+**Files changed:**
+- `apps/student-app/src/components/FriendPinLogo.tsx` → `apps/student-app/src/components/FriendOnCampusLogo.tsx` — Renamed the shared logo component and replaced its artwork with the user-supplied SVG geometry and colors, preserving historical disclosure records.
+- `apps/student-app/public/favicon.svg` — Applied the supplied origami artwork to the browser icon.
+- `apps/student-app/src/components/HeaderNav.tsx` — Updated logo, accessible home label, and responsive product wordmark.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Updated logo, product name, subtitle, and old-brand tagline.
+- `apps/student-app/index.html` — Updated the browser title.
+- `README.md` — Updated the product heading and overview while preserving historical attribution.
+- `ai/usage-log.md` — Recorded this request and validation.
+
+## 2026-11-07 20:22 SGT — Commit Friend on Campus branding update
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Create a commit for the completed branding changes.
+
+**Usage scenario:** Explicitly authorized Git commit of the reviewed branding changes and their disclosure log. Previous type checks, 51 student-app tests, targeted lint checks, and production build passed; checked the current diff for whitespace errors. No push requested.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the commit request; this entry is included with the branding changes in the authorized commit.

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Direction B (Crisp Modern Canvas) theme in HeaderNav: updated brand logo styling to crisp floating canvas with subtle border and sleek hover states.
  * Author review: <to be completed by yanhwee>
@@ -92,7 +96,7 @@ import {
   Store,
   UserCircle,
 } from 'lucide-react';
-import { FriendPinLogo } from './FriendPinLogo';
+import { FriendOnCampusLogo } from './FriendOnCampusLogo';
 import { NotificationBell } from '../notifications/NotificationBell';
 
 export type StudentTab = 'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile' | 'wallet';
@@ -127,19 +131,15 @@ export function HeaderNav({
             type="button"
             onClick={() => onSelectTab('feed')}
             className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
-            aria-label="tompang Home"
+            aria-label="Friend on Campus Home"
           >
-            <FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-subtle group-hover:scale-105 group-hover:shadow-card transition-all duration-200 shrink-0" />
+            <FriendOnCampusLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-subtle group-hover:scale-105 group-hover:shadow-card transition-all duration-200 shrink-0" />
             <div>
               <div className="flex items-baseline gap-1 sm:gap-1.5">
-                <span className="font-black text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-nus-orange transition-colors">
-                  tompang<span className="text-nus-orange">.</span>
-                </span>
-                <span className="hidden sm:inline-block text-[11px] font-bold text-slate-400 tracking-tight">
-                  by Friend on Campus
-                </span>
-                <span className="sm:hidden text-[9px] font-bold text-orange-600 bg-orange-50 px-1 py-0.5 rounded border border-orange-200/60">
-                  FoC
+                {/* AI-generated (edited by yanhwee) */}
+                <span className="font-black text-sm sm:text-base lg:text-lg leading-tight tracking-tight text-slate-900 group-hover:text-nus-orange transition-colors">
+                  <span className="block sm:inline">Friend on</span>{' '}
+                  <span className="block sm:inline">Campus</span>
                 </span>
                 {showWsStatus && (
                   <span

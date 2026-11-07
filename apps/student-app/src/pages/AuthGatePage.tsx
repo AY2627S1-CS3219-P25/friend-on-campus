@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Direction B (Crisp Modern Canvas) styling in AuthGatePage: floating white brand canvas with refined shadow.
  * Author review: <to be completed by yanhwee>
@@ -54,7 +58,7 @@ import {
   User,
 } from 'lucide-react';
 import React, { useState } from 'react';
-import { FriendPinLogo } from '../components/FriendPinLogo';
+import { FriendOnCampusLogo } from '../components/FriendOnCampusLogo';
 import { SignupFormData } from '../hooks/useAuthSession';
 
 interface AuthGatePageProps {
@@ -118,15 +122,15 @@ export function AuthGatePage({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Brand & Promotional Showcase */}
           <div className="lg:col-span-7 space-y-6 sm:space-y-7">
-            {/* Brand Logo (Friend Pin + tompang.) */}
+            {/* Brand Logo (Origami Courier + Friend on Campus) */}
             <div className="flex items-center gap-3.5">
-              <FriendPinLogo className="w-12 h-12 rounded-2xl shadow-card border border-slate-200/80 shrink-0" />
+              <FriendOnCampusLogo className="w-12 h-12 rounded-2xl shadow-card border border-slate-200/80 shrink-0" />
               <div>
-                <h1 className="text-3xl font-black tracking-tight leading-none text-slate-900">
-                  tompang<span className="text-nus-orange">.</span>
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-slate-900">
+                  Friend on Campus
                 </h1>
                 <p className="text-xs font-bold text-slate-500 mt-1">
-                  by Friend on Campus (FoC) · NUS Peer Errand Network
+                  FoC · NUS Peer Errand Network
                 </p>
               </div>
             </div>
@@ -136,7 +140,7 @@ export function AuthGatePage({
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                 Your campus errands, <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-nus-orange bg-clip-text text-transparent">
-                  tompang with friends.
+                  made easier with friends.
                 </span>
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg">
