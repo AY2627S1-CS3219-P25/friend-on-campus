@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized HeaderNav with Direction A Warm Campus Mango theme: updated brand hover to warm glow, unified desktop active nav indicators with mobile bottom bar's vibrant orange accent, and refreshed mobile FoC badge.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Rebranded navbar identity to tompang. with Friend Pin logo, featuring 'by Friend on Campus' (FoC) brand signature and responsive badge.
  * Author review: <to be completed by yanhwee>
  *
@@ -121,16 +125,16 @@ export function HeaderNav({
             className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="tompang Home"
           >
-            <FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-card group-hover:scale-105 group-hover:shadow-glow-blue transition-all duration-200 shrink-0" />
+            <FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-card group-hover:scale-105 group-hover:shadow-orange-500/25 transition-all duration-200 shrink-0" />
             <div>
               <div className="flex items-baseline gap-1 sm:gap-1.5">
-                <span className="font-black text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-nus-blue transition-colors">
+                <span className="font-black text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-nus-orange transition-colors">
                   tompang<span className="text-nus-orange">.</span>
                 </span>
                 <span className="hidden sm:inline-block text-[11px] font-bold text-slate-400 tracking-tight">
                   by Friend on Campus
                 </span>
-                <span className="sm:hidden text-[9px] font-bold text-nus-blue bg-blue-50 px-1 py-0.5 rounded border border-blue-100">
+                <span className="sm:hidden text-[9px] font-bold text-orange-600 bg-orange-50 px-1 py-0.5 rounded border border-orange-200/60">
                   FoC
                 </span>
                 {showWsStatus && (
@@ -159,7 +163,7 @@ export function HeaderNav({
               onClick={() => onSelectTab('feed')}
               className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
                 activeTab === 'feed'
-                  ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
+                  ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60 scale-[1.02]'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
@@ -172,7 +176,7 @@ export function HeaderNav({
               onClick={() => onSelectTab('spots')}
               className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
                 activeTab === 'spots'
-                  ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
+                  ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60 scale-[1.02]'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
@@ -185,7 +189,7 @@ export function HeaderNav({
               onClick={() => onSelectTab('tasks')}
               className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
                 activeTab === 'tasks'
-                  ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
+                  ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60 scale-[1.02]'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
@@ -271,11 +275,11 @@ export function HeaderNav({
             onClick={onOpenProfile}
             className={`group hidden md:flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
               activeTab === 'profile'
-                ? 'bg-blue-50 text-nus-blue border-nus-blue/40 ring-2 ring-blue-500/20 shadow-2xs'
+                ? 'bg-orange-50 text-orange-600 border-orange-200 ring-2 ring-orange-500/20 shadow-2xs'
                 : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-subtle hover:shadow-card'
             }`}
           >
-            <UserCircle className={`w-5 h-5 transition-colors ${activeTab === 'profile' ? 'text-nus-blue' : 'text-slate-600 group-hover:text-slate-800'}`} />
+            <UserCircle className={`w-5 h-5 transition-colors ${activeTab === 'profile' ? 'text-orange-600' : 'text-slate-600 group-hover:text-slate-800'}`} />
             <span className="sr-only">Profile</span>
           </button>
         </div>

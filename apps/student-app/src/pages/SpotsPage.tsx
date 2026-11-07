@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized SpotsPage with Direction A Warm Campus Mango theme: updated view switcher, category shortcut pills, and spot hover accents to warm orange.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized height across search input, verified badge, and list/grid view switcher to strict h-11 (44px) using min-h-0, resolving tall button container protrusion.
  * Author review: <to be completed by yanhwee>
  *
@@ -121,7 +125,7 @@ export function SpotsPage({
               title="Directory list view"
               className={`h-full w-8 sm:w-8.5 min-h-0 rounded-xl flex items-center justify-center transition cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-white text-nus-blue shadow-xs'
+                  ? 'bg-white text-orange-600 shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -134,7 +138,7 @@ export function SpotsPage({
               title="Card grid view"
               className={`h-full w-8 sm:w-8.5 min-h-0 rounded-xl flex items-center justify-center transition cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-white text-nus-blue shadow-xs'
+                  ? 'bg-white text-orange-600 shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -158,7 +162,7 @@ export function SpotsPage({
               onClick={() => onChangeSearch(cat === 'All' ? '' : cat)}
               className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                 isSelected
-                  ? 'bg-blue-50 text-nus-blue border border-blue-300 shadow-2xs'
+                  ? 'bg-orange-50 text-orange-600 border border-orange-300 shadow-2xs'
                   : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
               }`}
             >
@@ -253,18 +257,18 @@ export function SpotsPage({
                     key={s.id}
                     className={`group flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:py-3 sm:px-4 rounded-2xl border transition-all duration-150 gap-2.5 sm:gap-4 ${
                       s.isActive
-                        ? 'bg-white border-slate-200/90 hover:border-nus-blue/50 hover:shadow-subtle'
+                        ? 'bg-white border-slate-200/90 hover:border-orange-300 hover:shadow-subtle'
                         : 'bg-slate-50/80 border-slate-200/60 opacity-60'
                     }`}
                   >
                     {/* Left Column: Icon + Name + Code + Location */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 group-hover:bg-blue-50 group-hover:text-nus-blue transition-colors">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
                         <CategoryIcon className="w-4 h-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-nus-blue transition-colors truncate">
+                          <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-orange-600 transition-colors truncate">
                             {s.name}
                           </h4>
                           <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 font-semibold">

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized AuthGatePage with Direction A Warm Campus Mango theme: updated ambient background accents, warm gradient tagline, and warm logo drop shadow.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Rebranded auth showcase to tompang. with Friend Pin logo and authentic Singapore campus errand value proposition.
  * Author review: <to be completed by yanhwee>
  *
@@ -95,15 +99,15 @@ export function AuthGatePage({
   const [showSignupRetype, setShowSignupRetype] = useState(false);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50/70 via-slate-50 to-orange-50/50 px-4 py-8 sm:py-12 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/60 via-slate-50 to-amber-50/50 px-4 py-8 sm:py-12 relative overflow-hidden">
       {/* Decorative ambient background lighting */}
       <div
         aria-hidden="true"
-        className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-300/15 rounded-full blur-3xl pointer-events-none"
+        className="absolute top-1/4 -left-20 w-96 h-96 bg-orange-300/15 rounded-full blur-3xl pointer-events-none"
       />
       <div
         aria-hidden="true"
-        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-orange-300/15 rounded-full blur-3xl pointer-events-none"
+        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-amber-300/15 rounded-full blur-3xl pointer-events-none"
       />
 
       <div className="w-full max-w-5xl relative z-10">
@@ -112,7 +116,7 @@ export function AuthGatePage({
           <div className="lg:col-span-7 space-y-6 sm:space-y-7">
             {/* Brand Logo (Friend Pin + tompang.) */}
             <div className="flex items-center gap-3.5">
-              <FriendPinLogo className="w-12 h-12 rounded-2xl shadow-lg shadow-blue-500/20 shrink-0" />
+              <FriendPinLogo className="w-12 h-12 rounded-2xl shadow-lg shadow-orange-500/25 shrink-0" />
               <div>
                 <h1 className="text-3xl font-black tracking-tight leading-none text-slate-900">
                   tompang<span className="text-nus-orange">.</span>
@@ -127,7 +131,7 @@ export function AuthGatePage({
             <div className="space-y-2">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                 Your campus errands, <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-nus-blue via-indigo-600 to-nus-orange bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-nus-orange bg-clip-text text-transparent">
                   tompang with friends.
                 </span>
               </h2>

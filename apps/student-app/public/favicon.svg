@@ -1,31 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#003D7C" />
-      <stop offset="100%" stop-color="#1D4ED8" />
+    <!-- Vibrant Warm Sunset / Tangerine Gradient -->
+    <linearGradient id="warmBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF5E3A" />
+      <stop offset="100%" stop-color="#FF9500" />
     </linearGradient>
-    <linearGradient id="orangePin" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF9800" />
-      <stop offset="100%" stop-color="#EF7C00" />
-    </linearGradient>
-    <filter id="pinShadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="2.5" stdDeviation="2" flood-opacity="0.25" flood-color="#001840" />
+    <filter id="whitePinShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="2" flood-opacity="0.25" flood-color="#8B2500" />
     </filter>
   </defs>
 
-  <!-- Background Squircle -->
-  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#bgGrad)" />
+  <!-- Bright, Playful Warm Squircle -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#warmBg)" />
 
-  <!-- The Friend on Campus / tompang Smiling Courier Pin -->
-  <g filter="url(#pinShadow)">
-    <path d="M32 12C23.16 12 16 19.16 16 28C16 38.5 29.5 50.2 30.6 51.1C31.4 51.8 32.6 51.8 33.4 51.1C34.5 50.2 48 38.5 48 28C48 19.16 40.84 12 32 12Z" fill="url(#orangePin)" />
-    <circle cx="32" cy="27" r="10" fill="#FFFFFF" />
-    <path d="M26.5 26C27.5 24 29.5 24 30.5 26" stroke="#003D7C" stroke-width="2" stroke-linecap="round" fill="none" />
-    <path d="M33.5 26C34.5 24 36.5 24 37.5 26" stroke="#003D7C" stroke-width="2" stroke-linecap="round" fill="none" />
-    <path d="M29 29.5C30.2 31.5 33.8 31.5 35 29.5" stroke="#003D7C" stroke-width="2" stroke-linecap="round" fill="none" />
-    <path d="M32 17.5L34 20.5H30L32 17.5Z" fill="#FFFFFF" />
+  <!-- Pure White Pin Courier -->
+  <g filter="url(#whitePinShadow)">
+    <path d="M32 12C23.16 12 16 19.16 16 28C16 38.5 29.5 50.2 30.6 51.1C31.4 51.8 32.6 51.8 33.4 51.1C34.5 50.2 48 38.5 48 28C48 19.16 40.84 12 32 12Z" fill="#FFFFFF" />
+    
+    <!-- Inner Face in Warm Sunlight -->
+    <circle cx="32" cy="27" r="9.5" fill="#FFF7ED" />
+
+    <!-- Cute Smiling Eyes: ^ _ ^ in Friendly Slate -->
+    <path d="M26.8 26C27.6 24.2 29.4 24.2 30.2 26" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" fill="none" />
+    <path d="M33.8 26C34.6 24.2 36.4 24.2 37.2 26" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" fill="none" />
+
+    <!-- Rosy Cheek Dots -->
+    <circle cx="25.5" cy="28.5" r="1.5" fill="#FF8A65" opacity="0.9" />
+    <circle cx="38.5" cy="28.5" r="1.5" fill="#FF8A65" opacity="0.9" />
+
+    <!-- Big Happy Smile -->
+    <path d="M29 29.5C30.2 31.8 33.8 31.8 35 29.5" stroke="#1E293B" stroke-width="2.2" stroke-linecap="round" fill="none" />
+
+    <!-- Small Coral Delivery Cap / Accent -->
+    <path d="M32 17L34 20H30L32 17Z" fill="#FF5E3A" />
   </g>
 
-  <path d="M9 25H13M7 31H12M10 37H14" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.85" />
-  <circle cx="53" cy="14" r="2.2" fill="#FDE047" />
+  <!-- Speed Motion Trails -->
+  <path d="M9 25H13M7 31H12M10 37H14" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity="0.9" />
+  <circle cx="53" cy="14" r="2.2" fill="#FFFFFF" />
 </svg>

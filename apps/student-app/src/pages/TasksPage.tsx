@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized TasksPage with Direction A Warm Campus Mango theme: updated card hover border and title to warm orange, and empty state icon to warm amber tint.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Eliminated orphan whitespace row on mobile errand cards by locking order code, reward credits, and 'View details' CTA into unified top row and rendering mobile status on dedicated left-aligned line.
  * Author review: <to be completed by yanhwee>
  *
@@ -277,8 +281,8 @@ export function TasksPage({
       {/* Global Empty State (All view with 0 total errands) */}
       {totalCount === 0 && filterView === 'all' && (
         <div className="rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
-          <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-nus-blue mb-3 shadow-2xs">
-            <Send className="h-5 w-5 text-nus-blue" />
+          <div className="h-12 w-12 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 mb-3 shadow-2xs">
+            <Send className="h-5 w-5 text-orange-600" />
           </div>
           <p className="font-extrabold text-slate-900 text-base">
             No active errands yet
@@ -329,7 +333,7 @@ export function TasksPage({
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
+                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
                 >
                   {/* Top Line: Identifiers, Desktop Status & Action CTA */}
                   <div className="flex items-center justify-between gap-2 min-w-0">
@@ -378,7 +382,7 @@ export function TasksPage({
                   <div className="min-w-0">
                     <h4
                       title={task.itemDescription}
-                      className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-nus-blue transition-colors line-clamp-2 leading-snug"
+                      className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug"
                     >
                       {task.itemDescription}
                     </h4>

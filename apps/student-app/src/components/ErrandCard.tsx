@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized ErrandCard hover interactions with Direction A Warm Campus Mango theme (warm orange border and title color on hover).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed visual recommended credit estimate from feed card to eliminate clutter and number redundancy, focusing solely on the locked escrow reward (+Credits) while preserving sr-only testid contract.
  * Author review: <to be completed by yanhwee>
  *
@@ -91,7 +95,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
   const expiry = getRelativeExpiry(order.expiresAt);
 
   return (
-    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
+    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
         <div className="flex items-center justify-between gap-2">
@@ -115,7 +119,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
         {/* Item Title */}
         <h3
           title={order.itemDescription}
-          className="font-bold text-slate-900 text-sm sm:text-base mt-2.5 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
+          className="font-bold text-slate-900 text-sm sm:text-base mt-2.5 leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors"
         >
           {order.itemDescription}
         </h3>

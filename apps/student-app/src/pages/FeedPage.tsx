@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized FeedPage with Direction A Warm Campus Mango theme: updated selected zone pills to warm orange tint, empty state illustration box to warm amber tint, and spinner to nus-orange.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized empty-state CTA button with brand warm orange action styling, eliminating harsh dark navy button.
  * Author review: <to be completed by yanhwee>
  *
@@ -154,14 +158,14 @@ export function FeedPage({
                 onClick={() => onSelectZone(zone)}
                 className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-blue-50 text-nus-blue border border-blue-300 shadow-2xs'
+                    ? 'bg-orange-50 text-orange-600 border border-orange-300 shadow-2xs'
                     : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
                 }`}
               >
                 <span>{zone}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isSelected ? 'bg-blue-100/90 text-nus-blue' : 'bg-slate-100 text-slate-500'
+                    isSelected ? 'bg-orange-100/90 text-orange-700' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   {countInZone}
@@ -191,7 +195,7 @@ export function FeedPage({
         <div role="status" className="space-y-4">
           <p className="sr-only">Loading errands…</p>
           <div className="flex items-center gap-2 text-sm text-slate-500 py-1">
-            <RefreshCw className="w-4 h-4 animate-spin text-nus-blue" />
+            <RefreshCw className="w-4 h-4 animate-spin text-nus-orange" />
             <span>Loading errands…</span>
           </div>
           <div className="responsive-card-grid">
@@ -216,7 +220,7 @@ export function FeedPage({
       {/* Empty State */}
       {!ordersLoading && !ordersError && displayOrders.length === 0 && (
         <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-white/70 p-8 sm:p-12 text-center shadow-subtle flex flex-col items-center justify-center">
-          <div className="h-14 w-14 rounded-2xl bg-nus-blue-50 border border-nus-blue-100 flex items-center justify-center text-nus-blue mb-3 shadow-2xs">
+          <div className="h-14 w-14 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 mb-3 shadow-2xs">
             <PackageSearch className="h-7 w-7 stroke-[1.8]" />
           </div>
           <p className="font-bold text-slate-800 text-base">
