@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined Credit Wallet summary card (ProfileWalletPage.tsx) into a compact 3-column stat bar (Available, In Active Orders, Total Value) and aligned header toolbar, reducing card height by ~60% and bringing transaction history above the fold.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Eliminated credit balance flicker on tab navigation in student-app (App.tsx): removed redundant wallet and ledger state resets on background refetches, preserving cached balances across tab switches (stale-while-revalidate), and added quiet background revalidations.
 Author review: <to be completed by yanhwee>
 
