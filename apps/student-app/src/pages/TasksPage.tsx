@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Redesigned My Errands into responsive full-width horizontal tracking rows (desktop) with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Compact mobile toolbar pairing segmented filter tabs and refresh action in a single row without orphan whitespace.
  * Author review: <to be completed by yanhwee>
  *
@@ -115,14 +119,14 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         text:
           side === 'posted'
             ? 'Completed · Delivery confirmed'
-            : `Completed · ${task.rewardCredits} credits released to wallet`,
+            : `Completed · ${task.rewardCredits} credits are paid once Credit Service settles the escrow`,
         tone: 'text-emerald-700',
       };
     case 'CANCELLED':
       return {
         text:
           side === 'posted'
-            ? 'Cancelled · Reserved credits refunded to wallet'
+            ? 'Cancelled · Reserved credits are returned by Credit Service'
             : 'Cancelled · Order was cancelled before completion',
         tone: 'text-slate-500',
       };
@@ -149,6 +153,7 @@ export function TasksPage({
 
   const postedTasks = orders.filter((task) => currentUserId && task.requesterId === currentUserId);
   const acceptedTasks = orders.filter((task) => currentUserId && task.courierId === currentUserId);
+  const totalCount = postedTasks.length + acceptedTasks.length;
 
   const groups = [
     {
@@ -169,7 +174,14 @@ export function TasksPage({
     },
   ];
 
-  const visibleGroups = groups.filter((g) => filterView === 'all' || filterView === g.key);
+  // In 'all' view, only show groups that actually have tasks to avoid giant empty placeholder boxes.
+  // In specific tab views ('posted' or 'accepted'), show the group even if empty so the user gets clear feedback.
+  const visibleGroups = groups.filter((g) => {
+    if (filterView === 'all') {
+      return g.tasks.length > 0;
+    }
+    return filterView === g.key;
+  });
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -186,7 +198,7 @@ export function TasksPage({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            All ({postedTasks.length + acceptedTasks.length})
+            All ({totalCount})
           </button>
           <button
             type="button"
@@ -227,12 +239,27 @@ export function TasksPage({
         )}
       </div>
 
+      {/* Global Empty State (All view with 0 total errands) */}
+      {totalCount === 0 && filterView === 'all' && (
+        <div className="rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
+          <div className="h-12 w-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-nus-blue mb-3 shadow-2xs">
+            <Send className="h-5 w-5 text-nus-blue" />
+          </div>
+          <p className="font-extrabold text-slate-900 text-base">
+            No active errands yet
+          </p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+            When you request an errand or accept a delivery on campus, your active orders will appear here.
+          </p>
+        </div>
+      )}
+
       {/* Task Groups */}
       {visibleGroups.map((group) => (
-        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-4">
+        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 id={`tasks-${group.key}`} className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <h3 id={`tasks-${group.key}`} className="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
                 <span>{group.title}</span>
                 <span className="text-xs font-extrabold bg-blue-50 text-nus-blue border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                   {group.tasks.length}
@@ -242,9 +269,9 @@ export function TasksPage({
             </div>
           </div>
 
-          <div className="responsive-card-grid items-start">
+          <div className="space-y-3">
             {group.tasks.length === 0 && (
-              <div className="col-span-full rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
+              <div className="rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
                 <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3 shadow-2xs">
                   {group.key === 'posted' ? (
                     <Send className="h-5 w-5 text-nus-blue" />
@@ -267,20 +294,64 @@ export function TasksPage({
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
+                  className="group relative flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4 bg-white rounded-2xl p-4 sm:p-4.5 lg:p-5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
                 >
-                  <div>
-                    {/* Top Order Code, Reward & Status Badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-xs font-mono font-extrabold text-nus-blue bg-nus-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
-                          {task.orderCode}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
-                          <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
-                          <span>{task.rewardCredits} C</span>
-                        </span>
+                  {/* Left Column: Metadata Tags, Item Title & Notes */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-mono font-extrabold text-nus-blue bg-nus-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
+                        {task.orderCode}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
+                        <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                        <span>{task.rewardCredits} C</span>
+                      </span>
+                      {/* Mobile-only status badge */}
+                      <span
+                        className={`lg:hidden text-xs font-extrabold px-2.5 py-0.5 rounded-full shadow-2xs shrink-0 ${statusBadgeClasses(
+                          task.status
+                        )}`}
+                      >
+                        {task.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    <h4
+                      title={task.itemDescription}
+                      className="text-sm font-extrabold text-slate-900 mt-2 leading-snug group-hover:text-nus-blue transition-colors line-clamp-2"
+                    >
+                      {task.itemDescription}
+                    </h4>
+
+                    {task.specialNotes && (
+                      <div className="mt-1">
+                        <ExpandableNotes notes={task.specialNotes} />
                       </div>
+                    )}
+                  </div>
+
+                  {/* Middle Column: Pickup & Dropoff Route (Plenty of room so addresses never truncate) */}
+                  <div className="w-full lg:w-72 xl:w-96 shrink-0 bg-slate-50/90 rounded-xl px-3.5 py-2.5 border border-slate-100/90 text-xs space-y-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MapPin className="h-3.5 w-3.5 text-nus-blue shrink-0" />
+                      <span className="text-slate-400 font-bold text-[11px] shrink-0">Pickup:</span>
+                      <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
+                        {task.supplierName}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ArrowRight className="h-3.5 w-3.5 text-nus-orange shrink-0" />
+                      <span className="text-slate-400 font-bold text-[11px] shrink-0">Dropoff:</span>
+                      <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
+                        {task.dropoffLocation}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Status Summary & Action CTA */}
+                  <div className="flex lg:flex-col items-center lg:items-end justify-between gap-2.5 pt-2.5 lg:pt-0 border-t lg:border-t-0 border-slate-100 lg:w-56 shrink-0 text-xs">
+                    {/* Desktop status badge */}
+                    <div className="hidden lg:flex items-center gap-2">
                       <span
                         className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full shadow-2xs shrink-0 ${statusBadgeClasses(
                           task.status
@@ -290,44 +361,10 @@ export function TasksPage({
                       </span>
                     </div>
 
-                    {/* Item Description */}
-                    <h4
-                      title={task.itemDescription}
-                      className="text-sm font-extrabold text-slate-900 mt-2.5 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
-                    >
-                      {task.itemDescription}
-                    </h4>
-
-                    {/* Special Notes */}
-                    <div className="mt-1">
-                      <ExpandableNotes notes={task.specialNotes} />
-                    </div>
-
-                    {/* Clear 2-Line Connected Route */}
-                    <div className="mt-2.5 bg-slate-50/90 rounded-xl px-3 py-2 border border-slate-100/90 text-xs space-y-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <MapPin className="h-3.5 w-3.5 text-nus-blue shrink-0" />
-                        <span className="text-slate-400 font-bold text-[11px] shrink-0">Pickup:</span>
-                        <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
-                          {task.supplierName}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <ArrowRight className="h-3.5 w-3.5 text-nus-orange shrink-0" />
-                        <span className="text-slate-400 font-bold text-[11px] shrink-0">Dropoff:</span>
-                        <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
-                          {task.dropoffLocation}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Footer: Status Copy & View Details Link */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
-                    {line ? (
-                      <p className={`font-bold ${line.tone} truncate`} title={line.text}>{line.text}</p>
-                    ) : (
-                      <span />
+                    {line && (
+                      <p className={`font-bold ${line.tone} truncate max-w-full text-left lg:text-right`} title={line.text}>
+                        {line.text}
+                      </p>
                     )}
 
                     {/* Stretched link covers whole card */}
@@ -339,7 +376,7 @@ export function TasksPage({
                         event.preventDefault();
                         onOpenErrand(task.id);
                       }}
-                      className="inline-flex items-center gap-1 font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0"
+                      className="inline-flex items-center gap-1 font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
                     >
                       <span>View details</span>
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

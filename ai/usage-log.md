@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned My Errands (TasksPage) into responsive full-width horizontal tracking rows on desktop with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view when active errands exist.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Softened desktop profile button active styling with subtle blue tint (bg-blue-50, text-nus-blue, border-nus-blue/40, ring-2 ring-blue-500/20) resolving harsh dark-navy fill and poor icon contrast.
 Author review: <to be completed by yanhwee>
 
