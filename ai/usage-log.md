@@ -6305,3 +6305,29 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/chat/ChatPanel.tsx` — keep `translateControl` accessible when `closed`, reset `inFlight` on language switch/off, badge `· translated` only when text changed
 - `services/chat-service/Dockerfile` — consolidated disclosure entry into the top header block
 - `ai/usage-log.md` — recorded this session
+
+## 2026-11-07 14:55 SGT — Explain EC2 families and ECS sizing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unverified (GitHub CLI unavailable)
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain AWS EC2 instance families and sizes for ECS on EC2 and recommend instance types for each project service.
+
+**Usage scenario:** Learning support. Checked AWS documentation and repository resource declarations. Left deployment and instance selection to the author under the course architecture policy.
+
+**Files changed:**
+- none
+
+## 2026-11-07 15:02 SGT — Explain EC2 family fit by workload
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unverified (GitHub CLI unavailable)
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Include the reason for each service's EC2 instance recommendation.
+
+**Usage scenario:** Learning support. Explained AWS family characteristics and the workload conditions that make each relevant. Left project-specific selections and decision rationales to the author under the course policy.
+
+**Files changed:**
+- none
