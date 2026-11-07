@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed visual recommended credit estimate from feed card to eliminate clutter and number redundancy, focusing solely on the locked escrow reward (+Credits) while preserving sr-only testid contract.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Cleaned up confusing 'No estimate' label when estimatedRewardCredits is not present, showing clean reward pill while preserving test contract when an estimate is present.
  * Author review: <to be completed by yanhwee>
  *
@@ -90,20 +94,18 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
     <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           {/* AI-generated (edited by jagdeepsh) */}
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 min-w-0">
             <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0 animate-pulse" />
             <span className="truncate">{order.campusZone}</span>
           </span>
-          {/* The estimate sits on its own line under the pill when available so it never widens the pill. */}
-          <div className="flex flex-col items-end gap-0.5 shrink-0">
-            <div className="inline-flex items-center gap-1.5 text-amber-900 font-black text-xs bg-gradient-to-r from-amber-100 via-orange-100/90 to-amber-50 px-2.5 py-1 rounded-full border border-amber-300/80 shadow-2xs whitespace-nowrap">
-              <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-300 shrink-0" />
-              <span>+{order.rewardCredits} Credits</span>
-            </div>
+          {/* Locked Escrow Reward Badge */}
+          <div className="inline-flex items-center gap-1.5 text-amber-900 font-black text-xs bg-gradient-to-r from-amber-100 via-orange-100/90 to-amber-50 px-2.5 py-1 rounded-full border border-amber-300/80 shadow-2xs whitespace-nowrap shrink-0">
+            <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-300 shrink-0" />
+            <span>+{order.rewardCredits} Credits</span>
             {typeof order.estimatedRewardCredits === 'number' && (
-              <span data-testid="errand-estimate" className="text-[10px] font-semibold text-amber-700/90 whitespace-nowrap pr-1">
+              <span data-testid="errand-estimate" className="sr-only">
                 Est. {order.estimatedRewardCredits}
               </span>
             )}

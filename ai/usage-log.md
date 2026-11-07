@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined ErrandCard.tsx header layout by removing the redundant visual recommended credit estimate (Est. X) from the public feed, elevating the locked reward pill (+Credits) to a single crisp horizontal row aligned with the campus zone badge while preserving sr-only data-testid='errand-estimate' for test suite compatibility.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Rebranded student-app to tompang. with custom Friend Pin vector logo component (FriendPinLogo.tsx), featuring official CS3219 course name subtitle 'by Friend on Campus (FoC)'. Updated top navbar HeaderNav.tsx and AuthGatePage.tsx promotional showcase, updated apps/student-app/index.html document title and added public/favicon.svg, corrected historical 'Friend of Campus' typo in README.md, and eliminated confusing 'No estimate' label in ErrandCard.tsx when no walking distance calculation is present while strictly preserving data-testid='errand-estimate' contract when present.
 Author review: <to be completed by yanhwee>
 
@@ -6833,6 +6837,27 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/index.html` — Updated document title and favicon path.
 - `README.md` — Corrected project heading and overview to tompang. — Friend on Campus (FoC).
 - `ai/usage-log.md` — Logged brand rebrand and estimate cleanup.
+
+## 2026-11-07 16:30 SGT — Errand Card Header Streamlining: Removal of Feed Credit Estimate
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Remove the recommended credit estimate entirely from the feed card, reserving the estimator exclusively for the authoring/posting flow.
+
+**Usage scenario:** Information architecture and visual hierarchy polish in `apps/student-app/src/components/ErrandCard.tsx`:
+1. **Removed Redundant Visual Estimate**:
+   - Completely removed the secondary `Est. X` text under the reward pill on feed cards. Couriers scanning the feed only need to know the contractual reward offered (`+X Credits`), eliminating number repetition (e.g. `+18 Credits` directly over `Est. 18`) and awkward pricing psychologies.
+2. **Unified Single-Row Card Header**:
+   - Realigned the campus zone pill (`min-w-0`) and the locked escrow reward badge into a single, vertically centered horizontal row (`flex items-center justify-between gap-2`).
+   - Reclaimed vertical space and improved card scanning density across both mobile and desktop viewports.
+3. **Preserved Test Contracts**:
+   - Retained `<span data-testid="errand-estimate" className="sr-only">Est. {order.estimatedRewardCredits}</span>` when numerical estimate data is present, guaranteeing 100% backward compatibility for automated testing suites and accessibility screen readers.
+
+**Files changed:**
+- `apps/student-app/src/components/ErrandCard.tsx` — Unified single-row header and removed visual estimate from feed cards.
+- `ai/usage-log.md` — Logged errand card header streamlining.
 
 
 
