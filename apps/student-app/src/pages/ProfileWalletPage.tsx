@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from NUS Student Pass card.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed "Escrow Protected" badges, technical ledger jargon, and meta information from Credit Wallet view in favor of clean consumer balance and recent activity presentation.
  * Author review: <to be completed by yanhwee>
  *
@@ -39,7 +43,6 @@ import { CreditTransactionDTO, CreditWalletDTO, UserDTO } from '@campus-errand/c
 import {
   ArrowDownRight,
   ArrowUpRight,
-  CheckCircle2,
   Gift,
   Lock,
   LogOut,
@@ -182,34 +185,6 @@ export function ProfileWalletPage({
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <span>{profile.email}</span>
                       </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200/80 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                        Role
-                      </span>
-                      <span className="font-black text-nus-orange text-sm mt-0.5 block">
-                        {profile.userRole}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                        Status
-                      </span>
-                      <span className="inline-flex items-center gap-1 font-bold text-emerald-600 text-sm mt-0.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {profile.status ? 'Active' : 'Disabled'}
-                      </span>
-                    </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-bold">
-                        Affiliation
-                      </span>
-                      <span className="font-semibold text-slate-600 text-xs mt-0.5 block">
-                        National University of Singapore
-                      </span>
                     </div>
                   </div>
                 </div>

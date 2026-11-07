@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Polished My Errands (TasksPage) segmented role filter into a high-end h-11 segmented control with consistent blue active styling and embedded count badges. Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from ProfileWalletPage student pass card.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Standardized filter chip aesthetics across FeedPage and SpotsPage using soft tinted blue active chips with matching count indicators. Streamlined My Errands (TasksPage) cards into sleek compact 2-line cards (~72px), removing duplicate status badges and box-in-a-box styling while giving route addresses full card width to prevent text clipping.
 Author review: <to be completed by yanhwee>
 
