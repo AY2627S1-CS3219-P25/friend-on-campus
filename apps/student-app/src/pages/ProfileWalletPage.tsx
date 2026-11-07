@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed "Escrow Protected" badges, technical ledger jargon, and meta information from Credit Wallet view in favor of clean consumer balance and recent activity presentation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed redundant visible Student Profile heading in favor of sr-only accessible heading, bringing the NUS Student Pass card immediately above the fold.
  * Author review: <to be completed by yanhwee>
  *
@@ -43,7 +47,6 @@ import {
   RefreshCw,
   RotateCcw,
   ShieldAlert,
-  ShieldCheck,
   Trash2,
 } from 'lucide-react';
 
@@ -96,8 +99,8 @@ export function ProfileWalletPage({
 }: ProfileWalletPageProps) {
   if (mode === 'profile') {
     return (
-      <div className="w-full max-w-3xl mx-auto space-y-6">
-        <section aria-labelledby="profile-heading" className="space-y-6">
+      <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
+        <section aria-labelledby="profile-heading" className="space-y-4 sm:space-y-6">
           <h2 id="profile-heading" className="sr-only">
             Student Profile
           </h2>
@@ -363,16 +366,11 @@ export function ProfileWalletPage({
         {/* Header & Refresh */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2.5">
-              <h2 id="credit-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Credit Wallet &amp; Ledger
-              </h2>
-              <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
-                Escrow Protected
-              </span>
-            </div>
+            <h2 id="credit-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Credit Wallet
+            </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-              Secure campus credit balance and transaction history with delivery protection
+              Campus credit balance and recent activity
             </p>
           </div>
 
@@ -417,10 +415,6 @@ export function ProfileWalletPage({
                     <span className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
                       Campus Student Wallet
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Secured</span>
-                    </span>
                   </div>
 
                   <div>
@@ -433,7 +427,7 @@ export function ProfileWalletPage({
                     </div>
                   </div>
 
-                  {/* Dual Sub-Wallets: Available vs Escrow */}
+                  {/* Dual Sub-Wallets: Available vs Active Orders */}
                   <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200/80">
                     <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-2xl border border-emerald-200/80 shadow-2xs">
                       <span className="text-[10px] text-emerald-700 uppercase tracking-wider block font-bold">
@@ -445,7 +439,7 @@ export function ProfileWalletPage({
                     </div>
                     <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-2xl border border-amber-200/80 shadow-2xs">
                       <span className="text-[10px] text-amber-800 uppercase tracking-wider block font-bold">
-                        Held in Escrow
+                        In Active Orders
                       </span>
                       <span className="text-xl font-black text-amber-700 mt-0.5 block">
                         {wallet.escrowCredits} C
@@ -459,23 +453,12 @@ export function ProfileWalletPage({
                   </div>
                 </div>
               </div>
-
-              {/* Escrow Protection Explainer Tip */}
-              <div className="rounded-3xl p-4 sm:p-5 bg-blue-50/70 border border-blue-100 text-xs text-nus-blue space-y-1 shadow-card">
-                <p className="font-bold flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-nus-blue" />
-                  <span>How Escrow Protection Works</span>
-                </p>
-                <p className="text-slate-600 leading-relaxed font-medium">
-                  When you post an errand, reward credits are held securely in escrow. They are released to the student courier only after you confirm delivery.
-                </p>
-              </div>
             </div>
 
-            {/* Transaction Ledger (Right / 7 columns) */}
+            {/* Transaction History (Right / 7 columns) */}
             <div className="lg:col-span-7 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-slate-800">Recent Ledger Activity</h3>
+                <h3 className="font-bold text-sm text-slate-800">Recent Activity</h3>
                 <span className="text-xs text-slate-500 font-medium">
                   {ledger.length} {ledger.length === 1 ? 'transaction' : 'transactions'}
                 </span>
@@ -486,7 +469,7 @@ export function ProfileWalletPage({
                   <div className="rounded-3xl border-2 border-dashed border-slate-200 p-8 text-center bg-white/70 shadow-card">
                     <p className="text-sm font-bold text-slate-700">No credit transactions yet.</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Post an errand or complete deliveries to generate ledger entries.
+                      Post an errand or complete deliveries to view transactions.
                     </p>
                   </div>
                 )}
@@ -518,9 +501,9 @@ export function ProfileWalletPage({
 
                   const labels: Record<string, string> = {
                     WELCOME_GRANT: 'Welcome Grant',
-                    ESCROW_HOLD: 'Escrow Hold',
-                    ESCROW_RELEASE: 'Escrow Settlement',
-                    ESCROW_REFUND: 'Escrow Refund',
+                    ESCROW_HOLD: 'Reserved for Errand',
+                    ESCROW_RELEASE: 'Delivery Reward',
+                    ESCROW_REFUND: 'Refunded Credits',
                   };
 
                   return (

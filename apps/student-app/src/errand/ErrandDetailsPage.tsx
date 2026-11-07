@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Redesigned ErrandDetailsPage into a balanced, centered single-column layout (max-w-3xl), eliminating empty space, 2-column height asymmetry, and redundant header item titles, while strictly preserving all data-testids, locators, and UAT contracts.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed internal microservice references (Credit Service) from user-facing errand action button captions and timeline details.
  * Author review: <to be completed by yanhwee>
  *
@@ -381,7 +385,7 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
         <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
           Errand Request
         </p>
-        <p className="text-sm sm:text-base font-bold text-slate-900 break-words mt-0.5">
+        <p className="text-base sm:text-lg font-black text-slate-900 break-words mt-0.5">
           {order.itemDescription}
         </p>
         <p
@@ -391,7 +395,7 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
           {order.specialNotes || 'No special notes.'}
         </p>
       </div>
-      <dl className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 text-xs">
+      <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
         <div className="rounded-2xl bg-slate-50/90 border border-slate-100 p-3.5 min-w-0 shadow-2xs">
           <dt className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
             <MapPin className="h-3.5 w-3.5 text-nus-blue" />
@@ -432,10 +436,10 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
             <dd className="text-[11px] text-slate-500 mt-0.5">Final destination</dd>
           )}
         </div>
-        <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-3.5 min-w-0 lg:col-span-2 shadow-2xs">
+        <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-3.5 min-w-0 shadow-2xs">
           <dt className="flex items-center gap-1.5 text-amber-700/80 font-semibold mb-1">
             <Coins className="h-3.5 w-3.5 text-amber-600 fill-amber-400" />
-            <span>Escrow Reward</span>
+            <span>Reward</span>
           </dt>
           <dd className="text-amber-900 font-black text-sm">{order.rewardCredits} credits</dd>
           <dd className="text-[10px] text-amber-700/90 leading-tight mt-0.5">
@@ -731,43 +735,46 @@ export function ErrandDetailsPage({
   );
 
   return (
-    <div data-testid="errand-details" data-order-id={orderId}>
-      {/* Header: back, title, status pill, as the wireframe's top row. */}
-      <header className="flex items-center gap-2 mb-4">
-        <button
-          type="button"
-          data-testid="errand-back-btn"
-          onClick={onBack}
-          aria-label="Back"
-          className="-ml-2 h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-200/80 transition"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg lg:text-xl font-black text-slate-900 leading-tight truncate">
-              Errand
-            </h2>
-            {order && (
-              <span className="font-mono text-xs font-bold text-nus-blue bg-nus-blue-50 border border-nus-blue-100 px-2 py-0.5 rounded-md">
-                {order.orderCode}
-              </span>
-            )}
-          </div>
-          {order && (
-            <p className="text-xs text-slate-500 truncate mt-0.5" title={order.itemDescription}>
-              {order.itemDescription}
-            </p>
-          )}
-        </div>
-        {order && (
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tracking-wide shadow-sm ${statusBadgeClasses(
-              order.status
-            )}`}
+    <div data-testid="errand-details" data-order-id={orderId} className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
+      {/* Header: back, title, order code, status pill, countdown */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            data-testid="errand-back-btn"
+            onClick={onBack}
+            aria-label="Back"
+            className="-ml-2 h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-200/80 transition cursor-pointer"
           >
-            {order.status.replace(/_/g, ' ')}
-          </span>
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
+                Errand
+              </h2>
+              {order && (
+                <span className="font-mono text-xs font-bold text-nus-blue bg-nus-blue-50 border border-nus-blue-100 px-2 py-0.5 rounded-md">
+                  {order.orderCode}
+                </span>
+              )}
+              {order && (
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-bold tracking-wide shadow-2xs ${statusBadgeClasses(
+                    order.status
+                  )}`}
+                >
+                  {order.status.replace(/_/g, ' ')}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {order?.status === 'OPEN' && (
+          <div className="self-start sm:self-auto">
+            <Countdown expiresAt={order.expiresAt} />
+          </div>
         )}
       </header>
 
@@ -798,38 +805,37 @@ export function ErrandDetailsPage({
       )}
 
       {order && (
-        <div className="lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start">
-          {/* Left column: who, where it stands, and the live chat. */}
-          <div className="space-y-3.5">
-            {order.status === 'OPEN' && <Countdown expiresAt={order.expiresAt} />}
-            <Participant
-              order={order}
-              role={role}
-              hadCourier={Boolean(chat.threads[order.id]?.conversation)}
-            />
-            <Timeline order={order} role={role} />
-            {showChat && (
-              // A fixed desktop height bounds the message list (ChatPanel scrolls inside it).
-              <Card className="p-4 sm:p-5 lg:h-[30rem] lg:flex lg:flex-col">
-                <ChatPanel
-                  orderId={order.id}
-                  status={order.status}
-                  currentUserId={currentUserId}
-                  chat={chat}
-                />
-              </Card>
-            )}
-          </div>
+        <div className="space-y-4 sm:space-y-5">
+          {/* Main request card */}
+          <ItemCard order={order} supplier={supplier} now={now} />
 
-          {/* Right column on desktop: what is being asked, then the action at the bottom. On phones they follow. */}
-          <div className="mt-3.5 lg:mt-0 flex flex-col gap-3">
-            <ItemCard order={order} supplier={supplier} now={now} />
-            {actionBlock}
-            <footer className="text-[11px] text-slate-400 space-y-0.5 px-1 pt-1">
-              <p className="break-all font-mono">Order ID {order.id}</p>
-              <p>Posted {dateTimeOf(order.createdAt)}</p>
-            </footer>
-          </div>
+          {/* Primary action block (Accept, Pickup, Deliver, Complete, or Cancel) */}
+          {actionBlock}
+
+          {/* Participant and lifecycle progress */}
+          <Participant
+            order={order}
+            role={role}
+            hadCourier={Boolean(chat.threads[order.id]?.conversation)}
+          />
+          <Timeline order={order} role={role} />
+
+          {/* Live chat conversation when active */}
+          {showChat && (
+            <Card className="p-4 sm:p-5 h-[28rem] flex flex-col">
+              <ChatPanel
+                orderId={order.id}
+                status={order.status}
+                currentUserId={currentUserId}
+                chat={chat}
+              />
+            </Card>
+          )}
+
+          {/* Clean footer */}
+          <footer className="text-center text-xs text-slate-400 py-2">
+            <p>Posted {dateTimeOf(order.createdAt)}</p>
+          </footer>
         </div>
       )}
     </div>

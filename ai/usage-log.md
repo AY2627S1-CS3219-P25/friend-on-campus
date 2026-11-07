@@ -6676,6 +6676,36 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/pages/TasksPage.tsx` — Unified segmented filter tabs and refresh button on single mobile row.
 - `ai/usage-log.md` — Logged Spots directory redesign and mobile whitespace streamlining.
 
+## 2026-11-07 14:25 SGT — Credit Wallet Meta Information Removal & Errand Details Page Centered Layout Redesign
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Remove "escrow protected" and technical meta information from the Credit Wallet page, and redesign the Errand Details page from an unbalanced 2-column layout into a clean, balanced single-column layout without empty space or redundant text.
+
+**Usage scenario:** UI/UX refinement, information architecture streamlining, and layout redesign across `@campus-errand/student-app`:
+1. **Credit Wallet Meta Cleanup (`ProfileWalletPage.tsx`)**:
+   - Removed the "Escrow Protected" badge from the page header and simplified the title to "Credit Wallet" with a clean consumer subtitle ("Campus credit balance and recent activity").
+   - Removed the "Secured" shield badge from the Digital Wallet card and simplified the sub-wallet label from "Held in Escrow" to "In Active Orders".
+   - Completely eliminated the technical "How Escrow Protection Works" explainer card.
+   - Renamed "Recent Ledger Activity" to "Recent Activity" and translated internal transaction type identifiers into consumer-friendly labels ("Reserved for Errand", "Delivery Reward", "Refunded Credits").
+2. **Errand Details Page Centered Layout Redesign (`ErrandDetailsPage.tsx`)**:
+   - Refactored the desktop layout from an asymmetrical 2-column grid (`3fr / 2fr`) into a centered single-column container (`max-w-3xl mx-auto`), eliminating the awkward height imbalance and large empty void below the left column.
+   - Reorganized content into an intuitive vertical narrative:
+     1. Header: Back button, "Errand", human-readable order code (`ORD-xxxxx`), status pill, and expiry countdown (when open). Removed the duplicate item description from the header.
+     2. Errand Request Card: Prominent item description, special notes, and a balanced 3-column row on tablet/desktop for Pickup, Dropoff, and Reward (plus route map when coordinates exist).
+     3. Primary Action Block: Prominent call-to-action button (Accept, Picked Up, Delivered, Confirm Received, or Cancel).
+     4. Participant & Timeline: Courier/Requester participant card and 5-step milestone status tracker.
+     5. Live Chat: Full-height message card when courier conversation is active.
+     6. Quiet Footer: Simplified to human-readable "Posted <date>" without raw internal UUIDs.
+   - Strictly preserved all existing `data-testid` attributes, action buttons, and UAT verification contracts.
+
+**Files changed:**
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Removed escrow protected badges, secured chip, explainer card, and technical ledger terms.
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Centered single-column layout, 3-column route/reward grid, cleaned header, and preserved testids.
+- `ai/usage-log.md` — Logged Credit Wallet cleanup and Errand Details page single-column refactoring.
+
 
 
 
