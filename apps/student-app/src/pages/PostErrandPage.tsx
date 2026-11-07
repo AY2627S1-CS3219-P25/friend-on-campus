@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed visual "Post New Errand" title banner and subtitle, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
  * Author review: <to be completed by yanhwee>
  *
@@ -82,7 +86,6 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
-  ChevronDown,
   Clock,
   Coins,
   FileText,
@@ -171,7 +174,6 @@ export function PostErrandPage({
   authFetch,
 }: PostErrandPageProps) {
   const [assistantPrompt, setAssistantPrompt] = useState('');
-  const [isAiOpen, setIsAiOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -384,172 +386,145 @@ export function PostErrandPage({
         </div>
       )}
 
-      {/* AI Errand Assistant Panel (F6) - Collapsible Smart Auto-fill Drawer */}
+      {/* 1. Hero: Natural Errand Request & Smart Auto-fill */}
       <section
-        aria-label="AI Errand Assistant"
-        className="bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-orange-50/30 backdrop-blur-md text-slate-800 rounded-2xl border border-blue-200/80 shadow-card hover:shadow-card-hover transition-all duration-300 overflow-hidden"
+        aria-label="Smart Errand Request"
+        className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-orange-50/30 rounded-2xl border border-blue-200/80 p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover transition-all duration-300"
       >
-        <div className="p-3.5 sm:p-4">
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setIsAiOpen((prev) => !prev)}
-              aria-expanded={isAiOpen}
-              className="flex items-center gap-2.5 text-left group cursor-pointer focus:outline-none"
-            >
-              <span className="p-1.5 rounded-lg bg-nus-orange/15 text-nus-orange border border-nus-orange/20 shadow-2xs group-hover:scale-105 transition-transform">
-                <Sparkles className="w-4 h-4 animate-pulse" />
-              </span>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-black text-slate-900 tracking-tight group-hover:text-nus-blue transition-colors">
-                  Auto-fill with AI
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-nus-blue/10 text-nus-blue border border-nus-blue/20">
-                  Optional
-                </span>
-                <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-                  • Type naturally to fill in the form
-                </span>
-              </div>
-            </button>
-
-            <div className="flex items-center gap-2">
-              {isAiOpen && (assistantPrompt || extractedDraft) && (
-                <button
-                  type="button"
-                  onClick={handleClearAssistant}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer transition px-2 py-1 rounded-lg hover:bg-slate-200/50"
-                >
-                  <X className="w-3.5 h-3.5" /> Clear
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setIsAiOpen((prev) => !prev)}
-                className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white/80 hover:bg-white px-2.5 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs transition-all cursor-pointer"
-                aria-label={isAiOpen ? 'Collapse AI auto-fill' : 'Expand AI auto-fill'}
-              >
-                <span>{isAiOpen ? 'Close' : 'Try AI fill'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAiOpen ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded-md bg-nus-orange/15 text-nus-orange border border-nus-orange/20 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            </span>
+            <span className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
+              Describe what you need
+            </span>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-nus-blue/10 text-nus-blue border border-nus-blue/20">
+              Smart Auto-fill
+            </span>
           </div>
 
-          {isAiOpen && (
-            <div className="mt-3.5 pt-3 border-t border-blue-200/50 space-y-3 animate-in fade-in duration-200">
-              <textarea
-                id="ai-assistant-prompt"
-                rows={2}
-                value={assistantPrompt}
-                onChange={(e) => setAssistantPrompt(e.target.value)}
-                disabled={isExtracting || submissionBusy}
-                placeholder="e.g. Can someone buy 2 iced lattes from TOMORO COFFEE to COM2 #02-04 by 3pm? Offering 6 credits"
-                className="w-full text-sm p-3.5 rounded-2xl border border-blue-200/90 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none resize-none shadow-2xs transition-all"
-              />
+          {(assistantPrompt || extractedDraft) && (
+            <button
+              type="button"
+              onClick={handleClearAssistant}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer transition px-2 py-0.5 rounded-lg hover:bg-slate-200/50"
+            >
+              <X className="w-3.5 h-3.5" /> Clear
+            </button>
+          )}
+        </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-bold text-slate-600">Quick prompts:</span>
-                  {TEMPLATE_PROMPTS.map((tmpl, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setAssistantPrompt(tmpl.prompt)}
-                      className="text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all cursor-pointer"
-                    >
-                      {tmpl.label}
-                    </button>
-                  ))}
-                </div>
+        <div className="space-y-2.5">
+          <textarea
+            id="ai-assistant-prompt"
+            rows={2}
+            value={assistantPrompt}
+            onChange={(e) => setAssistantPrompt(e.target.value)}
+            disabled={isExtracting || submissionBusy}
+            placeholder="e.g. Can someone buy 2 iced lattes from TOMORO COFFEE to COM2 #02-04 by 3pm? Offering 6 credits"
+            className="w-full text-xs sm:text-sm p-3 rounded-xl border border-blue-200/90 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none resize-none shadow-2xs transition-all"
+          />
 
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500">Quick ideas:</span>
+              {TEMPLATE_PROMPTS.map((tmpl, idx) => (
                 <button
+                  key={idx}
                   type="button"
-                  onClick={handleExtractDraft}
-                  disabled={isExtracting || !assistantPrompt.trim() || submissionBusy}
-                  className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl shadow-xs hover:shadow-glow-orange transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  onClick={() => setAssistantPrompt(tmpl.prompt)}
+                  className="text-[11px] sm:text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all cursor-pointer"
                 >
-                  {isExtracting ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Auto-filling Form…
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Auto-fill Form
-                    </>
-                  )}
+                  {tmpl.label}
                 </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExtractDraft}
+              disabled={isExtracting || !assistantPrompt.trim() || submissionBusy}
+              className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold px-3.5 py-1.5 sm:py-2 rounded-xl shadow-xs hover:shadow-glow-orange transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isExtracting ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  Auto-filling Form…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Auto-fill Form
+                </>
+              )}
+            </button>
+          </div>
+
+          {extractError && (
+            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+              <span>{extractError}</span>
+            </div>
+          )}
+
+          {appliedNotice && (
+            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Form auto-filled!</strong> Review the details below and customize as needed.
+                </span>
               </div>
+              <button
+                type="button"
+                onClick={() => setAppliedNotice(false)}
+                className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
+                aria-label="Dismiss notice"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
-              {extractError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-                  <span>{extractError}</span>
+          {extractedDraft?.warnings && extractedDraft.warnings.length > 0 && (
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 shadow-2xs">
+              <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Parser notice:</span>
+              </div>
+              {extractedDraft.warnings.map((w, idx) => (
+                <div key={idx} className="pl-5 text-amber-800/90 text-[11px]">
+                  • {w}
                 </div>
-              )}
-
-              {appliedNotice && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>
-                      <strong>Form auto-filled!</strong> Review the details below and customize as needed.
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setAppliedNotice(false)}
-                    className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
-                    aria-label="Dismiss notice"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {extractedDraft?.warnings && extractedDraft.warnings.length > 0 && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 shadow-2xs">
-                  <div className="font-bold flex items-center gap-1.5 text-amber-800">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>Parser notice:</span>
-                  </div>
-                  {extractedDraft.warnings.map((w, idx) => (
-                    <div key={idx} className="pl-5 text-amber-800/90 text-[11px]">
-                      • {w}
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* Manual Errand Form (Human-in-the-loop review & final submission) */}
+      {/* 2. Structured Errand Form */}
       <form ref={formRef} onSubmit={handleFormSubmit} noValidate={false}>
         <fieldset
           disabled={submissionBusy}
-          className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-6 items-start"
+          className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-4 sm:gap-5 items-start"
         >
           {/* Main Details Card */}
-          <div className="min-w-0 bg-white/85 backdrop-blur-md rounded-3xl p-6 md:p-7 shadow-card hover:shadow-card-hover border border-slate-200/90 space-y-6 transition-all duration-300">
+          <div className="min-w-0 bg-white/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 space-y-4 transition-all duration-300">
             {/* Pickup Spot Selector */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="errand-supplier-select" className="block text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-nus-blue/10 flex items-center justify-center text-nus-blue">
-                    <Store className="w-4 h-4" />
-                  </div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label htmlFor="errand-supplier-select" className="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-nus-blue" />
                   <span>Pickup Store / Campus Spot</span>
                   <span className="text-rose-500 font-bold">*</span>
                 </label>
-                <span className="text-xs text-nus-blue font-bold bg-blue-50/80 px-2.5 py-1 rounded-full border border-blue-200/70">
+                <span className="text-[11px] text-nus-blue font-bold bg-blue-50/80 px-2 py-0.5 rounded-full border border-blue-200/70">
                   {activeSuppliers.length} active spots
                 </span>
               </div>
               {/* AI-generated (edited by jagdeepsh) */}
-              <div className="flex items-stretch gap-2.5">
+              <div className="flex items-stretch gap-2">
                 <select
                   id="errand-supplier-select"
                   required
@@ -566,7 +541,7 @@ export function PostErrandPage({
                       });
                     }
                   }}
-                  className="flex-1 min-w-0 text-sm p-3.5 rounded-2xl border border-slate-300/80 bg-white font-medium focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
+                  className="flex-1 min-w-0 text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white font-medium focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
                 >
                   {activeSuppliers.length === 0 && (
                     <option value="">
@@ -584,12 +559,12 @@ export function PostErrandPage({
                   onClick={() => setIsPickupMapOpen(true)}
                   title="Pick a spot on the map"
                   aria-label="Pick a spot on the map"
-                  className="shrink-0 px-4 rounded-2xl border border-slate-300/80 bg-white text-slate-700 hover:bg-blue-50 hover:text-nus-blue hover:border-nus-blue/40 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-2xs"
+                  className="shrink-0 px-3 sm:px-3.5 rounded-xl border border-slate-300/80 bg-white text-slate-700 hover:bg-blue-50 hover:text-nus-blue hover:border-nus-blue/40 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-2xs"
                 >
                   <MapIcon className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex items-center justify-between text-xs text-slate-500 mt-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
                 <span>
                   Campus Zone: <strong className="text-slate-800">{formData.campusZone || '—'}</strong>
                 </span>
@@ -598,7 +573,7 @@ export function PostErrandPage({
               {selectedSupplier && (
                 <div
                   data-testid="supplier-operating-hours"
-                  className={`mt-2.5 flex items-center gap-2 text-xs rounded-xl px-3 py-2 border transition-all ${
+                  className={`mt-2 flex items-center gap-2 text-xs rounded-xl px-2.5 py-1.5 border transition-all ${
                     selectedOpenNow === false
                       ? 'bg-rose-50/80 border-rose-200 text-rose-800'
                       : 'bg-slate-50/80 border-slate-200 text-slate-600'
@@ -621,10 +596,8 @@ export function PostErrandPage({
 
             {/* Item Description */}
             <div>
-              <label htmlFor="errand-item-description" className="block text-sm font-extrabold text-slate-800 mb-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-nus-blue/10 flex items-center justify-center text-nus-blue">
-                  <ShoppingBag className="w-4 h-4" />
-                </div>
+              <label htmlFor="errand-item-description" className="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                <ShoppingBag className="w-4 h-4 text-nus-blue" />
                 <span>Item Description &amp; Order Details</span>
                 <span className="text-rose-500 font-bold">*</span>
               </label>
@@ -636,19 +609,14 @@ export function PostErrandPage({
                 placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
                 value={formData.itemDescription}
                 onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
-                className="w-full text-sm p-3.5 rounded-2xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
+                className="w-full text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
               />
-              <p className="text-xs text-slate-400 mt-1.5">
-                Be specific about sizes, quantities, and flavor options so the courier gets the right items.
-              </p>
             </div>
 
             {/* Drop-off Location */}
             <div>
-              <label htmlFor="errand-dropoff-location" className="block text-sm font-extrabold text-slate-800 mb-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-nus-orange/10 flex items-center justify-center text-nus-orange">
-                  <MapPin className="w-4 h-4" />
-                </div>
+              <label htmlFor="errand-dropoff-location" className="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-nus-orange" />
                 <span>Drop-off Study Spot &amp; Visual Cue</span>
                 <span className="text-rose-500 font-bold">*</span>
               </label>
@@ -662,11 +630,8 @@ export function PostErrandPage({
                 placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
                 value={formData.dropoffLocation}
                 onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
-                className="w-full text-sm p-3.5 rounded-2xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
+                className="w-full text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
               />
-              <p className="text-xs text-slate-400 mt-1.5">
-                Include room or table number and any visual cues to help your courier find you quickly.
-              </p>
             </div>
 
             {/* Drop-off Map Pin (optional; drives the suggested reward) */}
@@ -679,10 +644,8 @@ export function PostErrandPage({
 
             {/* Special Notes */}
             <div>
-              <label htmlFor="errand-special-notes" className="block text-sm font-extrabold text-slate-800 mb-2 flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500">
-                  <FileText className="w-4 h-4" />
-                </div>
+              <label htmlFor="errand-special-notes" className="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-slate-500" />
                 <span>Special Delivery Notes (Optional)</span>
               </label>
               <textarea
@@ -692,7 +655,7 @@ export function PostErrandPage({
                 placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
                 value={formData.specialNotes}
                 onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
-                className="w-full text-sm p-3.5 rounded-2xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all resize-none shadow-2xs"
+                className="w-full text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all resize-none shadow-2xs"
               />
             </div>
           </div>
@@ -700,22 +663,20 @@ export function PostErrandPage({
           {/* Aside Section: Reward Credits, Duration Window, & Submit CTA */}
           <aside aria-label="Reward and posting" className="min-w-0 space-y-4">
             {/* Courier Reward Credits Card */}
-            <div className={`rounded-3xl p-6 border shadow-card hover:shadow-card-hover transition-all duration-300 ${
+            <div className={`rounded-2xl p-4 sm:p-5 border shadow-subtle hover:shadow-card-hover transition-all duration-300 ${
               isOverdraw
                 ? 'bg-rose-50/80 border-rose-300'
                 : 'bg-gradient-to-br from-amber-50/90 via-orange-50/70 to-amber-100/40 border-amber-200/90'
             }`}>
-              <div className="flex items-center justify-between mb-3.5">
-                <label htmlFor="errand-reward-credits-input" className="text-sm font-black text-amber-950 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-800 flex items-center justify-center">
-                    <Coins className="w-4 h-4 fill-amber-500/30 text-amber-700" />
-                  </div>
+              <div className="flex items-center justify-between mb-3">
+                <label htmlFor="errand-reward-credits-input" className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-1.5">
+                  <Coins className="w-4 h-4 fill-amber-500/30 text-amber-700" />
                   <span>Courier Reward</span>
                 </label>
               </div>
 
               {/* Reward Stepper & Input */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   aria-label="Decrease amount"
@@ -727,7 +688,7 @@ export function PostErrandPage({
                       rewardEdited: true,
                     }))
                   }
-                  className="w-12 h-12 rounded-2xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-black text-lg flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-black text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                 >
                   -
                 </button>
@@ -748,13 +709,13 @@ export function PostErrandPage({
                         rewardEdited: true,
                       }))
                     }
-                    className={`reward-input w-full rounded-2xl border bg-white py-3 px-3 text-center font-black text-xl shadow-inner outline-none transition-all ${
+                    className={`reward-input w-full rounded-xl border bg-white py-2 sm:py-2.5 px-3 text-center font-black text-lg sm:text-xl shadow-inner outline-none transition-all ${
                       isOverdraw
                         ? 'border-rose-400 text-rose-700 focus:ring-4 focus:ring-rose-200'
                         : 'border-amber-300 text-amber-950 focus:ring-4 focus:ring-amber-500/20'
                     }`}
                   />
-                  <span className="absolute right-3.5 top-3.5 text-xs font-bold text-amber-700/60 pointer-events-none">
+                  <span className="absolute right-3 top-2.5 text-xs font-bold text-amber-700/60 pointer-events-none">
                     Credits
                   </span>
                 </div>
@@ -772,7 +733,7 @@ export function PostErrandPage({
                       rewardEdited: true,
                     }))
                   }
-                  className="w-12 h-12 rounded-2xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-black text-lg flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-black text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                 >
                   +
                 </button>
@@ -781,7 +742,7 @@ export function PostErrandPage({
               {suggestedReward !== null && suggestedDistanceKm !== null && (
                 <div
                   data-testid="suggested-reward"
-                  className="mt-3.5 flex items-center gap-2 text-xs rounded-xl px-3 py-2 border bg-white/80 backdrop-blur-xs border-amber-200 text-amber-900 shadow-2xs"
+                  className="mt-2.5 flex items-center gap-1.5 text-xs rounded-xl px-2.5 py-1.5 border bg-white/80 backdrop-blur-xs border-amber-200 text-amber-900 shadow-2xs"
                 >
                   <Navigation className="w-3.5 h-3.5 shrink-0 text-amber-600" />
                   <span className="min-w-0 font-medium">
@@ -791,14 +752,14 @@ export function PostErrandPage({
                 </div>
               )}
               {formData.dropoffPoint && selectedSupplier && !pickupPoint && (
-                <div className="mt-3.5 flex items-center gap-2 text-xs rounded-xl px-3 py-2 border bg-white/80 border-slate-200 text-slate-600">
+                <div className="mt-2.5 flex items-center gap-1.5 text-xs rounded-xl px-2.5 py-1.5 border bg-white/80 border-slate-200 text-slate-600">
                   <Navigation className="w-3.5 h-3.5 shrink-0" />
                   <span>This pickup spot has no map location, so there is no suggested reward.</span>
                 </div>
               )}
 
               {/* Quick Presets */}
-              <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 <span className="text-[11px] font-bold text-amber-900">Quick set:</span>
                 {[3, 5, 8, 15].map((amt) => (
                   <button
@@ -806,7 +767,7 @@ export function PostErrandPage({
                     type="button"
                     onClick={() => handlePresetCredits(amt)}
                     disabled={availableCredits !== null && amt > availableCredits}
-                    className={`text-xs px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    className={`text-xs px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
                       formData.rewardCredits === amt
                         ? 'bg-amber-600 text-white shadow-xs'
                         : 'bg-white/90 hover:bg-white text-amber-900 border border-amber-200/80 disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs'
@@ -819,7 +780,7 @@ export function PostErrandPage({
                   <button
                     type="button"
                     onClick={() => handlePresetCredits(availableCredits)}
-                    className="text-xs px-2.5 py-1 rounded-lg font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 transition-all cursor-pointer"
+                    className="text-xs px-2 py-0.5 rounded-lg font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 transition-all cursor-pointer"
                   >
                     Max ({availableCredits} C)
                   </button>
@@ -828,7 +789,7 @@ export function PostErrandPage({
 
               {/* Balance Warning / Helper */}
               {isOverdraw ? (
-                <div className="mt-3.5 p-3 rounded-2xl bg-rose-100/90 border border-rose-300 text-xs text-rose-800 flex items-start gap-2.5 animate-in fade-in">
+                <div className="mt-3 p-2.5 rounded-xl bg-rose-100/90 border border-rose-300 text-xs text-rose-800 flex items-start gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">Insufficient available credits!</span>
@@ -839,7 +800,7 @@ export function PostErrandPage({
                       <button
                         type="button"
                         onClick={() => handlePresetCredits(availableCredits)}
-                        className="mt-1.5 text-xs font-bold text-rose-900 underline hover:no-underline cursor-pointer"
+                        className="mt-1 text-xs font-bold text-rose-900 underline hover:no-underline cursor-pointer"
                       >
                         Adjust to available balance ({availableCredits} C)
                       </button>
@@ -847,7 +808,7 @@ export function PostErrandPage({
                   </div>
                 </div>
               ) : isZeroBalance ? (
-                <div className="mt-3.5 p-3 rounded-2xl bg-amber-100/90 border border-amber-300 text-xs text-amber-900 flex items-start gap-2.5">
+                <div className="mt-3 p-2.5 rounded-xl bg-amber-100/90 border border-amber-300 text-xs text-amber-900 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold">Zero Credit Balance</span>
@@ -857,25 +818,22 @@ export function PostErrandPage({
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-amber-800/80 mt-3 font-medium">
-                  Available: <strong className="text-amber-950 font-bold">{availableCredits !== null ? `${availableCredits} C` : '—'}</strong>.
-                  Credits are safely held in escrow and released only upon delivery confirmation.
+                <p className="text-[11px] text-amber-800/80 mt-2.5 font-medium">
+                  Available: <strong className="text-amber-950 font-bold">{availableCredits !== null ? `${availableCredits} C` : '—'}</strong> (held safely in escrow)
                 </p>
               )}
             </div>
 
             {/* Acceptance Duration Window Card */}
-            <div className="bg-white/80 backdrop-blur-md border border-slate-200/90 rounded-3xl p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
-              <div className="flex items-center justify-between mb-2.5">
-                <label htmlFor="duration-minutes-input" className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-                    <Clock className="w-4 h-4" />
-                  </div>
+            <div className="bg-white/80 backdrop-blur-md border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-subtle hover:shadow-card-hover transition-all duration-300">
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="duration-minutes-input" className="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-slate-500" />
                   <span>Acceptance Window</span>
                 </label>
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Auto-expiry</span>
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Auto-expiry</span>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <input
                   id="duration-minutes-input"
                   type="number"
@@ -891,26 +849,23 @@ export function PostErrandPage({
                       durationMinutes: event.target.valueAsNumber,
                     }))
                   }
-                  className="w-28 rounded-2xl border border-slate-300/80 bg-white px-3.5 py-2.5 text-center font-extrabold text-slate-800 shadow-inner outline-none focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue"
+                  className="w-24 rounded-xl border border-slate-300/80 bg-white px-3 py-2 text-center font-extrabold text-slate-800 shadow-inner outline-none focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue text-sm"
                 />
                 <span className="text-xs font-semibold text-slate-600">minutes (30m – 24h)</span>
               </div>
-              <p className="text-xs text-slate-400 mt-2">
-                If no student courier accepts before this window expires, your held credits are refunded automatically to your balance.
-              </p>
             </div>
 
             {/* Dynamic Submit Button with Multi-State Feedback */}
-            <div className="space-y-2 pt-1">
+            <div className="space-y-1.5 pt-1">
               {submissionPosting && (
-                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center gap-2 font-medium">
-                  <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center gap-2 font-medium">
+                  <RefreshCw className="w-3.5 h-3.5 text-blue-600 animate-spin" />
                   <span>Step 1/2: Submitting errand to campus network…</span>
                 </div>
               )}
               {submissionBusy && !submissionPosting && (
-                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2 font-medium">
-                  <RefreshCw className="w-4 h-4 text-amber-600 animate-spin" />
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2 font-medium">
+                  <RefreshCw className="w-3.5 h-3.5 text-amber-600 animate-spin" />
                   <span>Step 2/2: Reserving {formData.rewardCredits} credits in escrow saga…</span>
                 </div>
               )}
@@ -927,7 +882,7 @@ export function PostErrandPage({
                   !formData.itemDescription.trim() ||
                   !formData.dropoffLocation.trim()
                 }
-                className="w-full bg-nus-orange hover:bg-orange-600 active:scale-98 disabled:bg-slate-300 text-white font-extrabold text-sm py-4 px-4 rounded-2xl shadow-md hover:shadow-glow-orange transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-nus-orange hover:bg-orange-600 active:scale-98 disabled:bg-slate-300 text-white font-extrabold text-sm py-3.5 px-4 rounded-2xl shadow-md hover:shadow-glow-orange transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 {submissionPosting ? (
                   <>
@@ -946,16 +901,12 @@ export function PostErrandPage({
                 ) : (
                   <>
                     <span>Post Errand</span>
-                    <span className="text-xs bg-white/25 px-2.5 py-0.5 rounded-full font-bold">
+                    <span className="text-xs bg-white/25 px-2 py-0.5 rounded-full font-bold">
                       {formData.rewardCredits} Credits
                     </span>
                   </>
                 )}
               </button>
-
-              <p className="text-[11px] text-center text-slate-400">
-                Peer-to-peer campus delivery with automatic escrow protection
-              </p>
             </div>
           </aside>
         </fieldset>
