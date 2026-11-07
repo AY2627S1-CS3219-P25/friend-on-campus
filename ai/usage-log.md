@@ -6399,3 +6399,23 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-11-07 17:45 SGT — Chat content moderation via SoCLaaS
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Before a chat message is stored or pushed, call the SoCLaaS LLM (package `@campus-errand/llm`, left unedited) to check for abusive or harmful content; write the prompt. If flagged, do not store it; the sender gets an error shown as a red translucent notice ("Harmful and abusive messages will not be tolerated") and the other participant a notice that the message was removed.
+
+**Usage scenario:** Implementation of a design the author decided (check before the DB save, no migration, fail open when the LLM is unavailable, error + red notices on both sides). Plan approved by the author.
+
+**Files changed:**
+- `services/chat-service/src/moderation/moderate.ts` (new) — prompt and `createModerator` (fail open)
+- `services/chat-service/src/conversations/service.ts` — `send` runs the moderator before `store.append`; new `flagged` result
+- `services/chat-service/src/ws/hub.ts` — ERROR `MODERATED` to the sender, `MODERATED_PEER` to the other participant
+- `services/chat-service/src/index.ts` — wires the moderator
+- `services/chat-service/test/moderate.test.ts` (new), `service.test.ts`, `hub.test.ts` — tests
+- `services/chat-service/package.json` — moderate test added to `test:unit` (JSON, no header possible)
+- `packages/common-dtos/src/index.ts` — `ChatErrorCode` gains two values
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx` — removed-message notice state and the red translucent notices

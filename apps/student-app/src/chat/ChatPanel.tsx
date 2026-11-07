@@ -37,6 +37,10 @@
  * reset inFlight when switching languages or turning translation off, and keep the translate toggle accessible when
  * the conversation is closed/read-only.
  * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: Red translucent notices: the sender's MODERATED error and the other participant's removed-message notice.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import React, { useEffect, useRef, useState } from 'react';
@@ -114,6 +118,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   const thread = chat.threads[orderId];
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
+  const [moderated, setModerated] = useState(false);
   const [isSending, setIsSending] = useState(false);
   // Translate toggle: null is off. When a language is chosen every message is shown translated into it; the stored
   // text is never changed, and turning the toggle off shows the stored text again.
@@ -210,9 +215,11 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
     if (draft.trim().length === 0) { setSendError('A message cannot be empty'); return; }
     setIsSending(true);
     setSendError(null);
+    setModerated(false);
     const outcome = await chat.send(orderId, draft);
     setIsSending(false);
     if (outcome.ok) setDraft('');
+    else if (!outcome.ok && outcome.code === 'MODERATED') setModerated(true);
     else setSendError(outcome.message);
   };
 
@@ -282,6 +289,11 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         {thread?.messages.map((message) => (
           <Bubble key={message.id} message={message} mine={message.senderId === currentUserId} translated={language ? translations[`${language}|${message.id}`] : undefined} />
         ))}
+        {Array.from({ length: thread?.removedNotices ?? 0 }, (_, index) => (
+          <li key={`removed-${index}`} data-testid="removed-notice" className="rounded-xl border border-rose-300 bg-rose-500/10 px-3 py-2 text-xs text-rose-800">
+            This message was removed as it was harmful and abusive.
+          </li>
+        ))}
       </ul>
 
       {noConversation ? null : closed ? (
@@ -294,7 +306,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
           <div className="flex items-end gap-2">
             <textarea
               value={draft}
-              onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); }}
+              onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); if (moderated) setModerated(false); }}
               onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void handleSend(event); } }}
               rows={1}
               placeholder="Write a message"
@@ -312,6 +324,11 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
               {isSending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
+          {moderated && (
+            <p role="alert" data-testid="moderated-notice" className="rounded-xl border border-rose-300 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-800">
+              Harmful and abusive messages will not be tolerated.
+            </p>
+          )}
           {sendError && <p role="alert" className="text-xs text-rose-700">{sendError}</p>}
           {chat.status !== 'connected' && !sendError && (
             <p className="text-xs text-slate-400">Reconnecting… messages can be sent once connected.</p>
