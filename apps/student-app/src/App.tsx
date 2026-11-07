@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Fixed mobile layout issue where fixed BottomNav was covering bottom content (e.g. Danger Zone / Delete Account on ProfilePage): replaced conflicting pb-8 on <main> with safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Eliminated credit balance flicker on tab navigation by removing redundant wallet/ledger state wipes and introducing quiet background revalidation.
  * Author review: <to be completed by yanhwee>
  *
@@ -805,7 +809,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="student-main flex-1 min-w-0 px-3.5 pt-3.5 pb-8 sm:px-6 md:pt-4 md:pb-10 lg:px-8">
+      <main className="student-main flex-1 min-w-0 px-3.5 pt-3.5 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 md:pt-4 md:pb-10 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">
         {(submission.unconfirmed ||
           (submission.receipt && submission.receipt.status !== 'OPEN')) && (

@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Fixed mobile layout issue where fixed BottomNav obstructed bottom content (e.g. Danger Zone / Delete Account on ProfilePage): eliminated conflicting pb-8 on <main> in App.tsx and index.css in favor of safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10, guaranteeing ~56px breathing room above the mobile dock.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restored clean 1-line Credit Wallet page header with inline refresh action in ProfileWalletPage.tsx, paired with a compact, authoritative balance card (~80px) featuring bold available credits typography and contextual active order reservations.
 Author review: <to be completed by yanhwee>
 

@@ -38,7 +38,7 @@ body {
     gap: 0.75rem;
   }
 
-  .student-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); }
+  .student-main { padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px)); }
   .student-bottom-nav { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)); }
   .student-bottom-nav button { flex: 1; min-width: 0; }
 
