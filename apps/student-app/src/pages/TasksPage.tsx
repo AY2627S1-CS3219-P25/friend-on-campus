@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned TasksPage with elevated card ergonomics, glassmorphic card containers, animated milestone progress bar, and refined filter tabs.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light interactive pill button styling for View Details CTA.
  * Author review: <to be completed by yanhwee>
@@ -168,10 +172,10 @@ export function TasksPage({
       {/* Top Header & Refresh Control */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             My Tasks &amp; Deliveries
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
             Track active requests and your delivery courier commitments
           </p>
         </div>
@@ -182,7 +186,7 @@ export function TasksPage({
               type="button"
               onClick={onRefreshOrders}
               disabled={ordersLoading}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-subtle transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white/90 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
               <span>Refresh</span>
@@ -192,13 +196,13 @@ export function TasksPage({
       </div>
 
       {/* Segmented Filter Pills */}
-      <div className="flex p-1 bg-slate-100 rounded-xl max-w-md">
+      <div className="flex p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/60 max-w-md shadow-2xs">
         <button
           type="button"
           onClick={() => setFilterView('all')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
             filterView === 'all'
-              ? 'bg-white text-slate-900 shadow-sm'
+              ? 'bg-white text-slate-900 shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -207,9 +211,9 @@ export function TasksPage({
         <button
           type="button"
           onClick={() => setFilterView('posted')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
             filterView === 'posted'
-              ? 'bg-white text-nus-blue shadow-sm'
+              ? 'bg-white text-nus-blue shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -218,9 +222,9 @@ export function TasksPage({
         <button
           type="button"
           onClick={() => setFilterView('accepted')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
             filterView === 'accepted'
-              ? 'bg-white text-nus-orange shadow-sm'
+              ? 'bg-white text-nus-orange shadow-xs'
               : 'text-slate-600 hover:text-slate-900'
           }`}
         >
@@ -230,12 +234,12 @@ export function TasksPage({
 
       {/* Task Groups */}
       {visibleGroups.map((group) => (
-        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3.5">
+        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 id={`tasks-${group.key}`} className="text-lg font-bold text-slate-900">
-                {group.title}{' '}
-                <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
+              <h3 id={`tasks-${group.key}`} className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <span>{group.title}</span>
+                <span className="text-xs font-extrabold bg-blue-50 text-nus-blue border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                   {group.tasks.length}
                 </span>
               </h3>
@@ -245,15 +249,15 @@ export function TasksPage({
 
           <div className="responsive-card-grid items-start">
             {group.tasks.length === 0 && (
-              <div className="col-span-full rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-8 text-center shadow-subtle flex flex-col items-center justify-center">
-                <div className="h-11 w-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-2.5">
+              <div className="col-span-full rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
+                <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3 shadow-2xs">
                   {group.key === 'posted' ? (
                     <Send className="h-5 w-5 text-nus-blue" />
                   ) : (
                     <Truck className="h-5 w-5 text-nus-orange" />
                   )}
                 </div>
-                <p className="font-bold text-slate-700 text-sm">No {group.key} tasks yet.</p>
+                <p className="font-extrabold text-slate-800 text-sm">No {group.key} tasks yet.</p>
                 <p className="text-xs text-slate-500 mt-1">{group.emptyCta}</p>
               </div>
             )}
@@ -270,17 +274,17 @@ export function TasksPage({
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle border border-slate-200 hover:border-nus-blue/40 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
+                  className="group relative flex flex-col justify-between bg-white/85 backdrop-blur-md rounded-3xl p-5 sm:p-6 shadow-card hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/40 hover:-translate-y-1 transition-all duration-300 focus-within:ring-2 focus-within:ring-nus-orange"
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {/* Top Order Code & Status Badge */}
                     <div className="flex flex-wrap justify-between items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-nus-blue bg-nus-blue-50 border border-nus-blue-100 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-mono font-extrabold text-nus-blue bg-nus-blue-50/90 border border-nus-blue-100 px-2.5 py-1 rounded-lg shadow-2xs">
                         {task.orderCode}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`text-xs font-bold px-2.5 py-0.5 rounded-md ${statusBadgeClasses(
+                          className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-2xs ${statusBadgeClasses(
                             task.status
                           )}`}
                         >
@@ -292,14 +296,14 @@ export function TasksPage({
                     {/* Item Description */}
                     <h4
                       title={task.itemDescription}
-                      className="text-sm sm:text-base font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
+                      className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
                     >
                       {task.itemDescription}
                     </h4>
 
                     {/* Reward Badge */}
-                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-700 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/80 w-fit">
-                      <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-800 bg-amber-50/90 px-3 py-1.5 rounded-xl border border-amber-200/90 w-fit shadow-2xs">
+                      <Coins className="h-4 w-4 text-amber-500 fill-amber-400" />
                       <span>{task.rewardCredits} credits reward</span>
                     </div>
 
@@ -309,22 +313,22 @@ export function TasksPage({
                     </div>
 
                     {/* Route Details */}
-                    <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 space-y-1.5 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-100 text-nus-blue">
-                          <MapPin className="h-2.5 w-2.5" />
+                    <div className="bg-slate-50/90 rounded-2xl p-3 border border-slate-100 space-y-2 text-xs shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-blue-100/80 text-nus-blue">
+                          <MapPin className="h-3 w-3" />
                         </span>
-                        <span className="font-bold text-slate-500 shrink-0">Pickup:</span>
-                        <span className="font-medium text-slate-800 truncate" title={task.supplierName}>
+                        <span className="font-bold text-slate-400 shrink-0">Pickup:</span>
+                        <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
                           {task.supplierName}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-orange-100 text-nus-orange">
-                          <ArrowRight className="h-2.5 w-2.5" />
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-orange-100/80 text-nus-orange">
+                          <ArrowRight className="h-3 w-3" />
                         </span>
-                        <span className="font-bold text-slate-500 shrink-0">Dropoff:</span>
-                        <span className="font-medium text-slate-800 truncate" title={task.dropoffLocation}>
+                        <span className="font-bold text-slate-400 shrink-0">Dropoff:</span>
+                        <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
                           {task.dropoffLocation}
                         </span>
                       </div>
@@ -332,16 +336,16 @@ export function TasksPage({
 
                     {/* Visual Milestone Stepper for Active Tasks */}
                     {stepIndex >= 0 && !isTerminal && (
-                      <div className="pt-1">
-                        <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 mb-1">
-                          <span className={stepIndex >= 1 ? 'text-nus-blue font-bold' : ''}>Open</span>
-                          <span className={stepIndex >= 2 ? 'text-nus-blue font-bold' : ''}>Accepted</span>
-                          <span className={stepIndex >= 3 ? 'text-nus-blue font-bold' : ''}>En Route</span>
-                          <span className={stepIndex >= 4 ? 'text-nus-blue font-bold' : ''}>Delivered</span>
+                      <div className="pt-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1.5 px-0.5">
+                          <span className={stepIndex >= 1 ? 'text-nus-blue font-extrabold' : ''}>Open</span>
+                          <span className={stepIndex >= 2 ? 'text-nus-blue font-extrabold' : ''}>Accepted</span>
+                          <span className={stepIndex >= 3 ? 'text-nus-blue font-extrabold' : ''}>En Route</span>
+                          <span className={stepIndex >= 4 ? 'text-nus-blue font-extrabold' : ''}>Delivered</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
                           <div
-                            className="bg-nus-blue transition-all duration-300 rounded-full"
+                            className="bg-gradient-to-r from-nus-blue to-indigo-600 transition-all duration-300 rounded-full shadow-2xs"
                             style={{ width: `${Math.min(100, Math.max(15, (stepIndex / 4) * 100))}%` }}
                           />
                         </div>
@@ -350,9 +354,9 @@ export function TasksPage({
                   </div>
 
                   {/* Card Footer: Status Copy & View Details Link */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
                     {line ? (
-                      <p className={`text-xs font-semibold ${line.tone} line-clamp-1`}>{line.text}</p>
+                      <p className={`text-xs font-bold ${line.tone} line-clamp-1`}>{line.text}</p>
                     ) : (
                       <span />
                     )}
@@ -366,10 +370,10 @@ export function TasksPage({
                         event.preventDefault();
                         onOpenErrand(task.id);
                       }}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all"
+                      className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-3.5 py-2 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-3xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all"
                     >
                       <span>View details</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                     </a>
                   </div>
                 </article>

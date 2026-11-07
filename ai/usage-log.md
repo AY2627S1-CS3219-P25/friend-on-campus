@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-06
+Scope: Complete redesign of student-app frontend from scratch in worktree friend-on-campus-redesign: modern glassmorphic theme with elevated cards, glowing indicators, responsive layouts, role-based visual polish, while preserving all 51/51 unit tests and UAT locators.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-11-01
 Scope: Recorded the review and authorized merge of PR #220, follow-up fixes on a separate branch, issue #221, and verification results.
 Author review: <to be completed by Reallyeasy1>
@@ -6305,3 +6309,35 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/chat/ChatPanel.tsx` — keep `translateControl` accessible when `closed`, reset `inFlight` on language switch/off, badge `· translated` only when text changed
 - `services/chat-service/Dockerfile` — consolidated disclosure entry into the top header block
 - `ai/usage-log.md` — recorded this session
+
+## 2026-11-06 22:15 SGT — Student App Frontend Complete Redesign
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Redesign the frontend from scratch for friend-on-campus to the best possible quality. Create a worktree first and ensure code quality.
+
+**Usage scenario:** Complete frontend redesign and UX elevation across `@campus-errand/student-app`. Created isolated git worktree at `friend-on-campus-redesign` on branch `frontend-redesign`. Preserved all existing test contract invariants, `data-testid` attributes, accessibility labels, and API contracts.
+
+**Files changed:**
+- `apps/student-app/tailwind.config.js` — Expanded NUS vibrant palette (`nus-blue`, `nus-orange`), luminous glow rings, custom card elevation shadows, keyframe animations
+- `apps/student-app/src/index.css` — High-DPI font smoothing, custom scrollbar styling, card grid responsive mixins
+- `apps/student-app/src/components/HeaderNav.tsx` — Translucent frosted glass top bar, live WebSocket status pill, interactive credit wallet badge with escrow breakdown, role indicators
+- `apps/student-app/src/components/BottomNav.tsx` — Ergonomic floating mobile dock with frosted glass blur and active glow pills
+- `apps/student-app/src/components/ErrandCard.tsx` — Connected route visualizer (Pickup -> Dropoff), luminous status badges, preserved test locators
+- `apps/student-app/src/components/SpotCard.tsx` — Elevated merchant cards with live open/closed indicators, category tags, and streamlined errand order triggers
+- `apps/student-app/src/pages/FeedPage.tsx` — Campus pulse hero header, quick search filtering, campus zone selector with live errand counts
+- `apps/student-app/src/pages/PostErrandPage.tsx` — AI Natural-Language Errand Assistant drawer (F6) with prompt suggestions, tactile 4-step card flow, courier reward stepper with quick presets and balance validation, operating hours warning dialog
+- `apps/student-app/src/pages/TasksPage.tsx` — Segmented filter tabs (`All`, `Posted by Me`, `Delivering`), elevated errand progress tracker, preserved card test IDs
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Glassmorphic container cards, luminous milestone status tracker with animated step rings, participant identity cards, full preservation of all 22 test IDs
+- `apps/student-app/src/pages/SpotsPage.tsx` — Campus spot directory with quick category filtering, search input with verified supplier badge
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Digital NUS Student ID card badge, fintech-style dual wallet balance card (Available vs Escrow), category-badged transaction ledger, isolated danger zone
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Frosted glass login/signup portal with luminous crest, 1-click evaluator demo quick-logins (Alice/Bob)
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Split inbox views (`Action needed`, `Important`, `All`, `Unread`), glowing unread indicators, preserved test locators
+- `apps/student-app/src/pages/AlertsPage.tsx` — Header typography polish and disclosure block
+- `apps/student-app/src/components/DeleteAccountModal.tsx` — Elevated modal dialog styling with tactile confirmation buttons
+- `apps/student-app/src/chat/ChatPanel.tsx` — Polished messaging bubbles with gradient styling, glowing presence badge, tactile send button
+- `apps/student-app/src/map/DropoffPicker.tsx` — Strict Leaflet mouse event typing and disclosure block
+- `apps/student-app/src/App.tsx` — Updated disclosure header
+- `ai/usage-log.md` — Logged frontend redesign implementation record

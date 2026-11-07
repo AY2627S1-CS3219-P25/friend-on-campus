@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Polished ChatPanel message bubbles with gradients, glowing indicators, and tactile send button.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for outgoing chat bubble styling.
  * Author review: <to be completed by yanhwee>
@@ -91,7 +95,7 @@ function Bubble({ message, mine, translated }: { message: ChatMessageDTO; mine: 
   const isTranslated = translated !== undefined && translated !== message.text;
   return (
     <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[85%] px-3.5 py-2 shadow-2xs ${mine ? 'bg-blue-600 text-white rounded-2xl rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'}`}>
+      <div className={`max-w-[85%] px-4 py-2.5 shadow-2xs ${mine ? 'bg-gradient-to-r from-nus-blue to-blue-700 text-white rounded-2xl rounded-br-sm shadow-sm' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-sm border border-slate-200/50'}`}>
         <p className={`text-[11px] mb-0.5 ${mine ? 'text-blue-100' : 'text-slate-500'}`}>
           <span className={`font-semibold ${mine ? 'text-white' : 'text-slate-700'}`}>{mine ? 'You' : message.senderUsername}</span>
           {' · '}
@@ -307,7 +311,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
               type="submit"
               disabled={isSending || !thread?.conversation || chat.status !== 'connected'}
               aria-label="Send"
-              className="h-10 w-10 shrink-0 rounded-full bg-nus-orange hover:bg-orange-600 text-white flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>

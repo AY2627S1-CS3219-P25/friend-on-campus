@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned ErrandDetailsPage with polished glassmorphic cards, luminous status tracker with pulsing milestone markers, route cards, tactile action buttons with NUS gradients, and full test-id preservation.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for primary action buttons.
  * Author review: <to be completed by yanhwee>
@@ -110,15 +114,15 @@ const dateTimeOf = (iso: string) =>
     minute: '2-digit',
   });
 
-const CARD = 'bg-white rounded-2xl border border-slate-200/90 shadow-subtle';
+const CARD = 'bg-white rounded-3xl border border-slate-200/80 shadow-card hover:shadow-card-hover transition-all';
 const BIG =
-  'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm sm:text-base font-extrabold transition disabled:opacity-50 disabled:cursor-not-allowed';
-const PRIMARY = `${BIG} bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer`;
-const ACCENT = `${BIG} bg-nus-orange hover:bg-orange-600 text-white shadow-md shadow-nus-orange/20`;
+  'w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm sm:text-base font-extrabold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99]';
+const PRIMARY = `${BIG} bg-gradient-to-r from-nus-blue to-blue-700 hover:from-nus-blue-dark hover:to-blue-800 text-white shadow-md hover:shadow-lg hover:shadow-blue-500/20`;
+const ACCENT = `${BIG} bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white shadow-md hover:shadow-lg hover:shadow-orange-500/25`;
 const GHOST =
-  'w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border';
-const GHOST_DANGER = `${GHOST} border-rose-200 text-rose-700 bg-white hover:bg-rose-50`;
-const GHOST_QUIET = `${GHOST} border-slate-200 text-slate-700 bg-white hover:bg-slate-50`;
+  'w-full inline-flex items-center justify-center gap-1.5 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border cursor-pointer active:scale-[0.99]';
+const GHOST_DANGER = `${GHOST} border-rose-200 text-rose-700 bg-rose-50/60 hover:bg-rose-100 hover:border-rose-300`;
+const GHOST_QUIET = `${GHOST} border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:border-slate-300`;
 
 function Card({
   children,
@@ -178,7 +182,7 @@ function Participant({
     <Card className="p-4 sm:p-5 flex items-center gap-3.5" testId="participant-card">
       <span
         aria-hidden="true"
-        className="h-11 w-11 shrink-0 rounded-2xl bg-nus-blue-50 border border-nus-blue-100 flex items-center justify-center text-nus-blue shadow-sm"
+        className="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-br from-nus-blue/10 to-indigo-100/50 border border-nus-blue/20 flex items-center justify-center text-nus-blue shadow-sm"
       >
         <User className="h-5 w-5" />
       </span>
@@ -192,7 +196,7 @@ function Participant({
           title={note || undefined}
           className={`max-w-[45%] truncate rounded-full border px-3 py-1 text-xs font-bold ${
             note
-              ? 'border-nus-blue/40 text-nus-blue bg-nus-blue-50/50'
+              ? 'border-nus-blue/40 text-nus-blue bg-nus-blue-50/70 shadow-2xs'
               : 'border-slate-200 text-slate-400 bg-slate-50'
           }`}
         >
@@ -377,14 +381,14 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
           {order.itemDescription}
         </p>
         <p
-          className="text-xs sm:text-sm text-slate-600 whitespace-pre-wrap break-words mt-1.5 bg-slate-50/80 p-3 rounded-xl border border-slate-100"
+          className="text-xs sm:text-sm text-slate-600 whitespace-pre-wrap break-words mt-1.5 bg-slate-50/90 p-3 rounded-2xl border border-slate-100"
           data-testid="special-notes-full"
         >
           {order.specialNotes || 'No special notes.'}
         </p>
       </div>
       <dl className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 text-xs">
-        <div className="rounded-xl bg-slate-50/90 border border-slate-100 p-3 min-w-0">
+        <div className="rounded-2xl bg-slate-50/90 border border-slate-100 p-3.5 min-w-0 shadow-2xs">
           <dt className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
             <MapPin className="h-3.5 w-3.5 text-nus-blue" />
             <span>Pickup</span>
@@ -407,7 +411,7 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
             </dd>
           )}
         </div>
-        <div className="rounded-xl bg-slate-50/90 border border-slate-100 p-3 min-w-0">
+        <div className="rounded-2xl bg-slate-50/90 border border-slate-100 p-3.5 min-w-0 shadow-2xs">
           <dt className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
             <MapPin className="h-3.5 w-3.5 text-nus-orange" />
             <span>Dropoff</span>
@@ -424,7 +428,7 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
             <dd className="text-[11px] text-slate-500 mt-0.5">Final destination</dd>
           )}
         </div>
-        <div className="rounded-xl bg-amber-50/80 border border-amber-200/80 p-3 min-w-0 lg:col-span-2">
+        <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-3.5 min-w-0 lg:col-span-2 shadow-2xs">
           <dt className="flex items-center gap-1.5 text-amber-700/80 font-semibold mb-1">
             <Coins className="h-3.5 w-3.5 text-amber-600 fill-amber-400" />
             <span>Escrow Reward</span>
@@ -500,7 +504,7 @@ function Actions({
       <p
         role="note"
         data-testid="accept-store-closed-note"
-        className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900"
+        className="flex items-start gap-2 rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900"
       >
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
         <span>
@@ -510,7 +514,7 @@ function Actions({
       </p>
     );
     return confirmingAccept ? (
-      <div className="space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="space-y-2.5 bg-slate-50/90 p-4 rounded-3xl border border-slate-200 shadow-card">
         {closedReminder}
         <label className="block text-xs font-bold text-slate-700">
           Contact details for the requester (optional)
@@ -521,7 +525,7 @@ function Actions({
             onChange={(e) => setContactNote(e.target.value)}
             maxLength={255}
             placeholder="e.g. @telegram_handle or 9123 4567"
-            className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-800 placeholder:text-slate-400 focus:border-nus-blue focus:outline-none bg-white shadow-inner"
+            className="mt-1.5 w-full rounded-2xl border border-slate-200 px-3.5 py-2.5 text-sm font-normal text-slate-800 placeholder:text-slate-400 focus:border-nus-blue focus:outline-none bg-white shadow-inner"
           />
         </label>
         {/* The note stays typed if the accept fails. */}
@@ -705,7 +709,7 @@ export function ErrandDetailsPage({
       {actionError && (
         <p
           role="alert"
-          className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700"
+          className="rounded-2xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-sm text-rose-700"
         >
           {actionError}{' '}
           <button

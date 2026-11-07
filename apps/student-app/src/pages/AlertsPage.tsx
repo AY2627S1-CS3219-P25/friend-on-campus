@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned AlertsPage header with refined typography and disclosure metadata.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Review fix (PR #184): passes the server-fetched view, its total and the view setter through to the panel.
  * Author review: <to be completed by Reallyeasy1>
@@ -44,10 +48,10 @@ interface AlertsPageProps {
 
 export function AlertsPage(props: AlertsPageProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Alerts</h2>
-        <p className="text-sm text-slate-500 mt-1">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Campus Alerts</h2>
+        <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
           Changes to your errands, newest first. Open one to go to the errand; actions themselves happen in Tasks.
         </p>
       </div>

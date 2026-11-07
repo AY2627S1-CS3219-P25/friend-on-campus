@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned student-app frontend shell and layout, enhanced card styling and rounded-3xl aesthetics across all sub-pages.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Drop-off estimator: the post form keeps the drop-off point and whether the reward was set by hand, clears
  * both after a post, and sends dropoffLatitude / dropoffLongitude / estimatedRewardCredits only when the pickup store
