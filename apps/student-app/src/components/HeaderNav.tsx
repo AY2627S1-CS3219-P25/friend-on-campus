@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities): anchored primary browsing nav tabs next to brand logo, streamlined right cluster with prominent Post CTA, spendable wallet capsule, and compact icon-only alerts and profile buttons.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Option B (Silent when connected, warning banner when disconnected) for WebSocket status, removing persistent Live badge from header while preserving test locators and providing discreet top alert on disconnection.
  * Author review: <to be completed by yanhwee>
  *
@@ -89,8 +93,8 @@ export function HeaderNav({
   return (
     <header className="bg-white/90 backdrop-blur-xl text-slate-800 px-3.5 py-2 sm:px-6 md:py-3 lg:px-8 sticky top-0 z-30 shadow-subtle border-b border-slate-200/80 transition-all">
       <div className="student-header-row max-w-7xl mx-auto flex items-center justify-between">
-        {/* Brand, Student Badge & Inline Live Hub */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Left Cluster: Brand + Divider + Primary Browsing Tabs (Option A) */}
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
           <button
             type="button"
             onClick={() => onSelectTab('feed')}
@@ -121,54 +125,57 @@ export function HeaderNav({
               </p>
             </div>
           </button>
+
+          {/* Subtle vertical divider between Brand and Primary Nav (desktop only) */}
+          <div className="hidden md:block h-6 w-px bg-slate-200/90" aria-hidden="true" />
+
+          {/* Desktop Top Navigation Bar (Errand Workspace, Left-Aligned) */}
+          <nav
+            aria-label="Main navigation"
+            className="student-top-nav hidden md:flex items-center gap-1 bg-slate-100/90 rounded-2xl p-1 border border-slate-200/80 shadow-2xs"
+          >
+            <button
+              aria-current={activeTab === 'feed' ? 'page' : undefined}
+              onClick={() => onSelectTab('feed')}
+              className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+                activeTab === 'feed'
+                  ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Feed</span>
+            </button>
+
+            <button
+              aria-current={activeTab === 'spots' ? 'page' : undefined}
+              onClick={() => onSelectTab('spots')}
+              className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+                activeTab === 'spots'
+                  ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Store className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Spots</span>
+            </button>
+
+            <button
+              aria-current={activeTab === 'tasks' ? 'page' : undefined}
+              onClick={() => onSelectTab('tasks')}
+              className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+                activeTab === 'tasks'
+                  ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span>Tasks</span>
+            </button>
+          </nav>
         </div>
 
-        {/* Desktop Top Navigation Bar (Errand Workspace) */}
-        <nav
-          aria-label="Main navigation"
-          className="student-top-nav hidden md:flex items-center gap-1 bg-slate-100/90 rounded-2xl p-1 border border-slate-200/80 shadow-2xs"
-        >
-          <button
-            aria-current={activeTab === 'feed' ? 'page' : undefined}
-            onClick={() => onSelectTab('feed')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
-              activeTab === 'feed'
-                ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5 stroke-[2.2]" />
-            <span>Feed</span>
-          </button>
-
-          <button
-            aria-current={activeTab === 'spots' ? 'page' : undefined}
-            onClick={() => onSelectTab('spots')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
-              activeTab === 'spots'
-                ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <Store className="w-3.5 h-3.5 stroke-[2.2]" />
-            <span>Spots</span>
-          </button>
-
-          <button
-            aria-current={activeTab === 'tasks' ? 'page' : undefined}
-            onClick={() => onSelectTab('tasks')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
-              activeTab === 'tasks'
-                ? 'bg-white text-nus-blue shadow-sm border border-slate-200/60 scale-[1.02]'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
-            <span>Tasks</span>
-          </button>
-        </nav>
-
-        {/* Right Section: Primary Actions & Personal Hub */}
+        {/* Right Section: Primary Actions & Compact Personal Hub (Option A) */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Desktop Primary Action CTA: Post Errand */}
           <button
@@ -176,27 +183,17 @@ export function HeaderNav({
             aria-label="Post"
             aria-current={activeTab === 'post' ? 'page' : undefined}
             onClick={() => onSelectTab('post')}
-            className={`hidden md:inline-flex items-center space-x-1.5 h-9 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs active:scale-95 ${
+            className={`hidden md:inline-flex items-center space-x-1.5 h-9 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs active:scale-95 ${
               activeTab === 'post'
                 ? 'bg-gradient-to-r from-nus-orange to-orange-500 text-white shadow-orange-500/25 ring-2 ring-orange-200 scale-[1.02]'
-                : 'bg-nus-blue hover:bg-nus-blue-dark text-white shadow-blue-900/15 hover:shadow-sm'
+                : 'bg-nus-orange hover:bg-orange-600 text-white shadow-orange-500/15 hover:shadow-sm'
             }`}
           >
             <PlusCircle className="w-3.5 h-3.5 stroke-[2.4]" />
             <span>Post</span>
           </button>
 
-          <div className="hidden md:block h-5 w-px bg-slate-200 mx-0.5" />
-
-          {/* Alerts Bell (Visible on both mobile and desktop) */}
-          <div className="flex">
-            <NotificationBell
-              variant="top"
-              unreadCount={unreadNotificationsCount}
-              active={activeTab === 'alerts'}
-              onClick={() => onSelectTab('alerts')}
-            />
-          </div>
+          <div className="hidden md:block h-5 w-px bg-slate-200 mx-0.5" aria-hidden="true" />
 
           {/* Interactive Wallet Balance Capsule (Available Spendable Balance) */}
           <button
@@ -204,7 +201,7 @@ export function HeaderNav({
             aria-label="Open wallet"
             aria-current={activeTab === 'wallet' ? 'page' : undefined}
             onClick={() => onSelectTab('wallet')}
-            className={`group flex items-center gap-1.5 sm:gap-2 h-9 px-2.5 sm:px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
+            className={`group flex items-center gap-1.5 sm:gap-2 h-9 min-h-0 px-2.5 sm:px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
               activeTab === 'wallet'
                 ? 'bg-amber-50/90 border-amber-300 text-slate-900 shadow-sm ring-2 ring-amber-300/40'
                 : 'bg-white hover:bg-amber-50/40 border-slate-200/90 hover:border-amber-200 text-slate-800 shadow-subtle hover:shadow-card'
@@ -222,19 +219,31 @@ export function HeaderNav({
             </span>
           </button>
 
-          {/* Profile Button (Desktop only; on mobile it lives in the bottom dock) */}
+          {/* Alerts Bell (Visible on both mobile and desktop) */}
+          <div className="flex">
+            <NotificationBell
+              variant="top"
+              unreadCount={unreadNotificationsCount}
+              active={activeTab === 'alerts'}
+              onClick={() => onSelectTab('alerts')}
+            />
+          </div>
+
+          {/* Profile Button (Desktop compact icon button with accessible name) */}
           <button
             type="button"
+            aria-label="Profile"
+            title="Profile"
             aria-current={activeTab === 'profile' ? 'page' : undefined}
             onClick={onOpenProfile}
-            className={`hidden md:flex items-center space-x-1.5 h-9 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer border ${
+            className={`hidden md:flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
               activeTab === 'profile'
                 ? 'bg-nus-blue text-white border-nus-blue shadow-sm'
-                : 'bg-white text-slate-700 border-slate-200/80 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-subtle hover:shadow-card'
+                : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-subtle hover:shadow-card'
             }`}
           >
-            <UserCircle className="w-4 h-4 text-slate-500 group-hover:text-slate-700" />
-            <span>Profile</span>
+            <UserCircle className="w-5 h-5 text-slate-600 group-hover:text-slate-800" />
+            <span className="sr-only">Profile</span>
           </button>
         </div>
       </div>

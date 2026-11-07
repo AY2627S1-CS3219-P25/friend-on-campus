@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Option A compact icon button pattern for desktop header notification bell (w-9 h-9 min-h-0 icon-only with sr-only label and pinned badge).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Refined top variant to match wallet capsule height (h-9) and rounded-xl corners with pinned badge on mobile.
  * Author review: <to be completed by yanhwee>
  *
@@ -108,22 +112,23 @@ export function NotificationBell({ unreadCount, active, onClick, variant }: {
   return (
     <button
       aria-label={label}
+      title="Alerts"
       aria-pressed={active}
       onClick={onClick}
-      className={`relative flex items-center justify-center h-9 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all border ${FOCUS} ${
+      className={`relative flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all border cursor-pointer ${FOCUS} ${
         active
           ? 'bg-gradient-to-r from-nus-orange to-orange-500 text-white border-nus-orange shadow-xs'
-          : 'bg-white text-slate-700 border-slate-200/90 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
+          : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-2xs hover:shadow-card'
       }`}
     >
-      <Bell className="w-4 h-4 text-slate-600 group-hover:text-slate-800" />
-      <span className="hidden sm:inline sm:ml-1.5">Alerts</span>
+      <Bell className="w-4 h-4" />
+      <span className="sr-only">Alerts</span>
       {unreadCount > 0 && (
         <span
           data-testid="notification-badge"
-          className={`min-w-[1.125rem] h-4.5 px-1.5 rounded-full text-[10px] font-black leading-4 text-center shadow-2xs ${
+          className={`min-w-[1.125rem] h-4.5 px-1 rounded-full text-[10px] font-black leading-4 text-center shadow-2xs ${
             active ? 'bg-white text-nus-orange' : 'bg-rose-500 text-white'
-          } absolute -top-1 -right-1 sm:static sm:ml-1.5`}
+          } absolute -top-1 -right-1`}
         >
           {count}
         </span>

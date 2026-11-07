@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities) on desktop header: anchored browsing tabs next to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only alerts bell and profile buttons.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Option B for real-time WebSocket connection state: silent header during connected operation with discreet top reconnection notice on drop, preserving data-status locators for test harnesses.
 Author review: <to be completed by yanhwee>
 
@@ -6519,3 +6523,23 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 **Files changed:**
 - `apps/student-app/src/components/HeaderNav.tsx` — Removed persistent visible Live pill; rendered semantic `sr-only` ws-status locator for tests, and added discreet top reconnecting/offline notice banner.
 - `ai/usage-log.md` — Logged Option B real-time connection architecture session
+
+## 2026-11-07 13:30 SGT — Desktop Header Navigation: Option A (Left-Aligned Unified Nav + Compact Right Utilities)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implemented Option A from "PC Navigation Bar Design Patterns" conversation: left-aligned browsing navigation tabs (`Feed`, `Spots`, `Tasks`) adjacent to brand logo, and compact right utility cluster (hero `+ Post` CTA, spendable `Wallet` capsule, compact `Alerts` bell icon button, and compact `Profile` avatar icon button).
+
+**Usage scenario:** Desktop navigation overhaul following industry standard patterns (Linear, DoorDash, Carousell, GitHub). Addressed the visual issues of "fake center alignment" and "boxy button soup":
+1. **Left-aligned Unified Nav**: Attached the primary browsing tabs (`Feed`, `Spots`, `Tasks`) directly to the left cluster beside the brand logo, separated by a subtle vertical divider. Eliminates awkward middle gaps and aligns naturally with left-aligned page content (search bars, filter pills, errand cards).
+2. **Compact Right Utilities**: Replaced wide rectangular text buttons for `Alerts` and `Profile` with compact, tactile 36px icon buttons (`h-9 w-9 min-h-0 rounded-xl`). Overrode the global mobile touch target rule (`min-height: 2.75rem`) with `min-h-0` so desktop buttons render cleanly at intended 36px heights.
+3. **Hero Primary Action**: Highlighted `+ Post` as an accent CTA button on desktop while retaining spendable available balance in the wallet capsule.
+4. **Test & Accessibility Integrity**: Preserved all Playwright and unit test contracts: `getByRole('button', { name: 'Post' })`, `getByRole('button', { name: /^Alerts/ })`, `getByRole('button', { name: 'Profile' })`, `[data-testid="notification-badge"]`, and `[data-testid="ws-status"]`.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Left-aligned browsing tabs adjacent to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only Profile button.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Standardized top header bell button to compact `h-9 w-9 min-h-0` icon button with pinned unread counter badge and accessible `sr-only` text.
+- `ai/usage-log.md` — Logged Option A desktop navigation implementation session
+
