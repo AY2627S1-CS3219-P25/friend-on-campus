@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Eliminated credit balance flicker on tab navigation by removing redundant wallet/ledger state wipes and introducing quiet background revalidation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Unified body and navigation max-width: wrapped main content in max-w-7xl mx-auto container and aligned horizontal padding with HeaderNav across all responsive breakpoints.
  * Author review: <to be completed by yanhwee>
  *
@@ -374,23 +378,29 @@ export default function App() {
   const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
-  const fetchCredits = async () => {
+  const walletRef = useRef(wallet);
+  walletRef.current = wallet;
+
+  // AI-generated (edited by yanhwee): quiet background revalidation prevents credit flickering on tab navigation
+  // by keeping existing wallet/ledger state in memory instead of clearing it before the fetch settles.
+  const fetchCredits = async (quiet = Boolean(walletRef.current)) => {
     const requestId = ++creditRequestId.current;
-    setIsLoadingCredits(true);
-    setCreditError(null);
-    setWallet(null);
-    setLedger([]);
+    if (!quiet) {
+      setIsLoadingCredits(true);
+      setCreditError(null);
+    }
     try {
       const result = await fetchWalletAndLedger(authFetch);
       if (requestId !== creditRequestId.current) return;
       if (result.status === 'ok') {
         setWallet(result.wallet);
         setLedger(result.ledger);
+        if (quiet) setCreditError(null);
       } else {
         setCreditError(result.message);
       }
     } finally {
-      if (requestId === creditRequestId.current) setIsLoadingCredits(false);
+      if (requestId === creditRequestId.current && !quiet) setIsLoadingCredits(false);
     }
   };
 
@@ -966,7 +976,7 @@ export default function App() {
             ledger={ledger}
             isLoadingCredits={isLoadingCredits}
             creditError={creditError}
-            onRefreshCredits={() => void fetchCredits()}
+            onRefreshCredits={() => void fetchCredits(false)}
           />
         )}
         </div>

@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Eliminated credit balance flicker on tab navigation in student-app (App.tsx): removed redundant wallet and ledger state resets on background refetches, preserving cached balances across tab switches (stale-while-revalidate), and added quiet background revalidations.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
 Author review: <to be completed by yanhwee>
 
