@@ -104,6 +104,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: OrderDTO gained courierDisputeDetails; added CourierDisputeRequest.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: ChatErrorCode gains MODERATED and MODERATED_PEER (chat content moderation).
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
@@ -701,7 +705,9 @@ export interface ChatMessageDTO {
   sentAt: string;
 }
 
-export type ChatErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CLOSED' | 'EMPTY' | 'NO_USERNAME' | 'BAD_FRAME';
+export type ChatErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CLOSED' | 'EMPTY' | 'NO_USERNAME' | 'BAD_FRAME'
+  /** MODERATED: the sender's message was flagged and not stored. MODERATED_PEER: tells the other participant one was removed. */
+  | 'MODERATED' | 'MODERATED_PEER';
 
 export type ChatClientFrame =
   | { type: 'AUTH'; token: string }
