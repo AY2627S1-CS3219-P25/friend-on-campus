@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact mobile toolbar placing search and open count on a single row, eliminating redundant header whitespace.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Adjusted skeleton route placeholder height to match 2-line route box.
  * Author review: <to be completed by yanhwee>
  *
@@ -85,19 +89,19 @@ export function FeedPage({
   }, [filteredOrders, keyword]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {/* Action-First Search & Zone Filter Bar */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
+      <div className="space-y-2.5 sm:space-y-3">
+        <div className="flex items-center gap-2 sm:gap-2.5 justify-between">
           {/* Quick Keyword Search */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Filter errands by food, drink, location..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-nus-orange focus:border-nus-orange shadow-subtle hover:border-slate-300 transition text-slate-900 placeholder:text-slate-400"
+              className="w-full pl-10 pr-9 py-2 sm:py-2.5 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-nus-orange focus:border-nus-orange shadow-subtle hover:border-slate-300 transition text-slate-900 placeholder:text-slate-400"
             />
             {keyword && (
               <button
@@ -111,10 +115,10 @@ export function FeedPage({
             )}
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shadow-2xs">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-2xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shadow-2xs whitespace-nowrap">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {filteredOrders.length} {filteredOrders.length === 1 ? 'errand' : 'errands'} open
+              <span>{filteredOrders.length} {filteredOrders.length === 1 ? 'errand' : 'errands'} open</span>
             </span>
             <div className="text-xs font-semibold text-slate-500 hidden md:block">
               Showing <span className="font-bold text-slate-800">{displayOrders.length}</span>

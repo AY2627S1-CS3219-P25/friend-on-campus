@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned SpotsPage into high-density campus directory list view with list/grid toggle, dense mobile directory rows, and eliminated orphan whitespace rows across mobile toolbars (Spots, Feed, Tasks) by pairing search inputs, count badges, filter chips, and refresh buttons on unified rows.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Renamed Tasks navigation and page copy to My Errands for consistent mental model, and removed redundant visible Student Profile heading in ProfileWalletPage for clean above-the-fold pass visibility.
 Author review: <to be completed by yanhwee>
 
@@ -6644,6 +6648,34 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/pages/TasksPage.tsx` — Renamed headings to "Errands posted" and "Errands delivering".
 - `apps/student-app/src/pages/ProfileWalletPage.tsx` — Replaced visible Student Profile heading with sr-only heading.
 - `ai/usage-log.md` — Logged "My Errands" renaming and Profile header streamlining.
+
+## 2026-11-07 14:15 SGT — Campus Spots Directory List View & Mobile Whitespace Streamlining
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Redesigned the Spots directory into a scannable directory list view with list/grid toggle to solve card fatigue across 21 stores, and eliminated redundant mobile header whitespace across Spots, Feed, and Tasks pages.
+
+**Usage scenario:** UI/UX redesign and mobile density refinement across `@campus-errand/student-app`:
+1. **Spots Directory List View & List/Grid Toggle (`SpotsPage.tsx`)**:
+   - Replaced default card grid with a high-density directory row layout. Each spot presents category icon, name, supplier code, exact building location, campus zone badge, formatted operating hours with clock icon, live open/closed availability badge, and ergonomic "Pick for Errand" CTA button.
+   - Boosted information density from 6 spots per desktop screen to 12-15 spots, and on mobile from 1.5 cards to 5-6 directory rows.
+   - Introduced a sleek List / Grid view switcher next to the Verified badge, allowing users to switch back to traditional card grid if preferred while defaulting to high-density list.
+   - Updated loading skeleton states to reflect the active view mode (list row skeleton vs card skeleton).
+   - Exported `getCategoryIcon` from `SpotCard.tsx` for shared category icon mapping.
+2. **Eliminated Mobile Header Whitespace & Orphan Rows**:
+   - In `SpotsPage.tsx`: Integrated the search bar, verified count badge, and view switcher onto a unified row on mobile, eliminating the orphan counter row.
+   - In `FeedPage.tsx`: Paired the keyword search input with the open errands count pill on a single flex row, removing the orphan second line and tightening top spacing.
+   - In `TasksPage.tsx`: Paired the segmented role filter tabs and Refresh button on a single responsive row, removing the awkward orphan refresh button line on mobile screens.
+
+**Files changed:**
+- `apps/student-app/src/pages/SpotsPage.tsx` — Directory list view, list/grid toggle, unified mobile search toolbar, and adaptive loading skeleton.
+- `apps/student-app/src/components/SpotCard.tsx` — Exported `getCategoryIcon` helper.
+- `apps/student-app/src/pages/FeedPage.tsx` — Unified search bar and open errands count on single mobile row.
+- `apps/student-app/src/pages/TasksPage.tsx` — Unified segmented filter tabs and refresh button on single mobile row.
+- `ai/usage-log.md` — Logged Spots directory redesign and mobile whitespace streamlining.
+
 
 
 

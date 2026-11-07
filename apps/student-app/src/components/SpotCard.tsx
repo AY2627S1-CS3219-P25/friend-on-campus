@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Exported getCategoryIcon helper for reuse in directory list view.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned SpotCard with live operating hours indicator, category-specific icons, and refined micro-hover states.
  * Author review: <to be completed by yanhwee>
@@ -28,7 +32,7 @@ interface SpotCardProps {
   onPickForErrand: (supplier: SupplierDTO) => void;
 }
 
-function getCategoryIcon(category: string) {
+export function getCategoryIcon(category: string) {
   const cat = category.toUpperCase();
   if (cat.includes('FOOD') || cat.includes('DIN') || cat.includes('CANTEEN')) return Utensils;
   if (cat.includes('CAFE') || cat.includes('COFFEE') || cat.includes('BEV')) return Coffee;
