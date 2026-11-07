@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-07
+Scope: Added one sentence pointing to the deployment workflow documented in continuous-deployment.md; the 52d791e-era statement is kept and flagged as D37.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -9,7 +13,7 @@ Author review: <to be completed by Reallyeasy1>
 
 Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
 
-The repository has a static test matrix and automated PR review. These workflows are verification, not evidence of an implemented cloud deployment pipeline.
+The repository has a static test matrix and automated PR review. These workflows are verification, not evidence of an implemented cloud deployment pipeline. (Written at `52d791e`; since `06ae5e8` a separate `deploy.yml` deploys to AWS and is documented in [continuous deployment](continuous-deployment.md). It does not depend on `ci.yml`. See drift D37.)
 
 `ci.yml` runs lint/build/typecheck, checks workspace test scripts against the static matrix, runs unit/integration/messaging/migration/seed suites and system acceptance/API/browser checks. Its final test gate depends on required jobs. Adding/removing a test script requires synchronizing the matrix and running `npm run ci:validate-tests`.
 

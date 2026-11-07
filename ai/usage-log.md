@@ -6419,3 +6419,194 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `services/chat-service/package.json` — moderate test added to `test:unit` (JSON, no header possible)
 - `packages/common-dtos/src/index.ts` — `ChatErrorCode` gains two values
 - `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx` — removed-message notice state and the red translucent notices
+
+## 2026-11-07 13:30 SGT — AWS CLI identity check and cloud-access plugin question
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** Run `aws sts get-caller-identity --profile 891498120071_nusisb_IsbUsersPS` and ask whether a plugin exists that lets the agent access the cloud directly.
+
+**Usage scenario:** Learning support / tooling question. Ran the read-only AWS CLI call from the shell (it succeeded with the SSO-assumed role) and explained that the shell-invoked AWS CLI is already the direct cloud access path; the AWS plugins (`deploy-on-aws`, `aws-serverless`) are listed as not-for-this-stack in `.claude/PLUGINS.md` and their local MCP servers (uvx-based) failed to connect this session. No deployment or architecture decision was made; whether to deploy to AWS at all is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:46 SGT — Explain why `aws sso login` fails for the working profile
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** Author ran `aws sso login --profile 891498120071_nusisb_IsbUsersPS` and got "Missing the following required SSO configuration values: sso_start_url, sso_region" even though `get-caller-identity` succeeds.
+
+**Usage scenario:** Debugging assistance / learning support. Inspected `~/.aws/config` and `~/.aws/credentials` with secret values redacted: the profile exists only in the credentials file as pasted temporary keys (access key, secret, session token) from the IAM Identity Center access portal, with no `sso_*` entries in config, so the SSO login command has nothing to log in to. Explained the two options (keep pasting portal credentials, or run `aws configure sso` once to create a proper SSO profile). No credentials were printed or changed; the choice is left to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:48 SGT — `aws configure sso` refuses to run in Git Bash
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** Author ran `aws configure sso` via the `!` prefix and got "Found xterm-256color, while expecting a Windows console. Maybe try to run this program using winpty".
+
+**Usage scenario:** Debugging assistance. Explained that the error comes from the Git Bash (mintty) terminal rather than AWS, confirmed `winpty` 0.4.3 is installed, and gave two ways forward: prefix the command with `winpty`, or run the same command in a PowerShell window. Also offered the non-interactive `aws configure set` route once the author supplies the portal start URL and region. No configuration was changed.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:49 SGT — Launch `aws configure sso` in an external PowerShell window
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** `winpty aws configure sso` via the `!` prefix failed with "stdin is not a tty".
+
+**Usage scenario:** Debugging assistance / tooling. Explained that the `!` prefix runs without an attached terminal so no interactive wizard can work through it, and opened the SSO configuration wizard in a separate PowerShell window with `Start-Process` so the author can complete the prompts there. No AWS configuration was changed by the agent.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:51 SGT — No visible wizard window; switch to non-interactive SSO setup
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "how can i get you to connect to the aws itself, i dont see a new powershell window for this".
+
+**Usage scenario:** Debugging assistance / tooling. Found the launched PowerShell process running without a window (the agent's shell session has no interactive desktop); the attempt to stop it was denied by the session permission gate, so it was left for the author. Clarified that the agent already reaches AWS through the CLI with the author's profile, and proposed writing the SSO profile non-interactively with `aws configure set` plus `aws sso login --no-browser` once the author provides the portal start URL and region. No configuration changed.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:52 SGT — Fix `taskkill` argument mangling in Git Bash
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** `taskkill /PID 16912 /F` via the `!` prefix failed with "Invalid argument/option - 'C:/Program Files/Git/PID'".
+
+**Usage scenario:** Debugging assistance. Explained that MSYS path conversion in Git Bash rewrites leading-slash options into Windows paths and gave the double-slash form. No files or configuration changed.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:54 SGT — Hidden wizard process already gone
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** `taskkill //PID 16912 //F` reported the process was not found.
+
+**Usage scenario:** Debugging assistance. Confirmed the hidden PowerShell wizard process had already exited, so no cleanup remains. Still waiting on the author for the SSO start URL and region. No files or configuration changed.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:54 SGT — Summarise the remaining SSO setup steps
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "ok wait what is next".
+
+**Usage scenario:** Learning support. Listed the remaining steps for the refreshable AWS login (author supplies start URL and region, agent writes the profile non-interactively, author approves the no-browser login link, agent removes the pasted key block and re-checks identity) and the alternative of keeping the pasted credentials. No files or configuration changed.
+
+**Files changed:**
+- none
+
+## 2026-11-07 13:56 SGT — Write AWS SSO profile and start no-browser login
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** Author supplied the access portal start URL (nus-aws-cloud) and region ap-southeast-1 for the SSO setup.
+
+**Usage scenario:** Tooling / boilerplate configuration outside the repo. Backed up `~/.aws/config` and `~/.aws/credentials`, appended an `[sso-session nusisb]` block and the `[profile 891498120071_nusisb_IsbUsersPS]` block (account 891498120071, role nusisb_IsbUsersPS, region ap-southeast-1) to `~/.aws/config`, and started `aws sso login --no-browser` in the background, handing the authorisation link to the author to approve in their browser. Still to do once approved: remove the pasted static key block from the credentials file and re-run the identity check. No repo files changed and no secrets were printed.
+
+**Files changed:**
+- none in the repo (`~/.aws/config` edited, backups kept as `config.bak-2026-11-07` and `credentials.bak-2026-11-07`)
+
+## 2026-11-07 14:07 SGT — Restart SSO login with the device-code flow
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** Background notification: the first `aws sso login --no-browser` attempt expired before approval.
+
+**Usage scenario:** Tooling. Restarted the login with `--use-device-code` (no local callback port) in the background and handed the authorisation URL and one-time code to the author. Tried to open the page in the author's Chrome via the browser extension, but the extension is not connected, so the author opens it manually. No repo files changed.
+
+**Files changed:**
+- none
+
+## 2026-11-07 14:08 SGT — SSO login succeeded; remove static keys and verify
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** Background notification: the device-code `aws sso login` completed successfully after the author approved it in the browser.
+
+**Usage scenario:** Tooling. Removed the pasted static key block for `891498120071_nusisb_IsbUsersPS` from `~/.aws/credentials` (backup `credentials.bak-2026-11-07` kept) so the SSO profile in `~/.aws/config` is used, then confirmed `aws sts get-caller-identity` resolves through SSO to the same assumed role. No repo files changed and no secrets printed.
+
+**Files changed:**
+- none in the repo (`~/.aws/credentials` edited outside the repo)
+
+## 2026-11-07 14:18 SGT — Create the cloud-access skill
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "can you create a skill for accessing the cloud instance?"
+
+**Usage scenario:** Boilerplate / documentation (a project skill that records an access procedure already worked out with the author). Read-only AWS discovery first: three EC2 nodes tagged foc-production (one k3s master, two ASG workers), all SSM-online, ALB foc-production-alb, no ECS/EB/RDS; the Session Manager plugin is not installed locally. The skill records the SSO device-code refresh, the SSM Run Command route (the only one usable from an agent shell with no TTY), the read-only queries, which actions need the author's explicit go-ahead, and pointers to the existing runbook, Terraform outputs and k8s README. Tested with a fresh subagent given only the skill: it used Run Command and device-code login instead of ssh/start-session, and its four wording gaps were folded back in. The end-to-end `ssm send-command` check was denied by the session permission gate, so the helper is syntax-checked and unit-checked locally but not yet run against the cluster; command left for the author. No architecture or deployment decision was made.
+
+**Files changed:**
+- `.claude/skills/cloud-access/SKILL.md` — new skill
+- `.claude/skills/cloud-access/ssm-run.sh` — new helper: run one command on a node via SSM Run Command
+- `.claude/README.md` — listed the skill in sections 5 and 6; disclosure record added
+
+## 2026-11-07 21:05 SGT — As-built design documents for the AWS/k3s deployment
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "look at the current set up and write the design docs out of it" (the cloud deployment).
+
+**Usage scenario:** Documentation of existing, already-decided infrastructure (requirements/formatting work and documentation improvements). Read all of infra/terraform/*.tf, infra/k8s/*.yaml (secret values masked, never reproduced), infra/k8s/README.md, .github/workflows/deploy.yml, gateway/entrypoint.sh and the cloud guide; cross-checked against read-only AWS CLI state observed today. Wrote three source-linked, behavior-only documents pinned to main 83db3e4 with rationale explicitly left human-owned, and recorded six factual conflicts (D34-D39) plus three open questions in the drift register instead of resolving them. Local links verified with a script; one anchor fixed. Not done: no node command or kubectl run (ssm send-command denied by the session permission gate), no terraform plan, no deploy.yml run inspected. Pre-existing, not from this prompt: docs/README.md links five docs/uat files (README, 04, 06, 09, 10) that are absent from the untracked docs/uat/ folder. No architecture, schema, interface or trade-off was proposed.
+
+**Files changed:**
+- `docs/infrastructure/cloud-infrastructure.md` — new: Terraform as built (network, security groups, IAM, nodes, ASG, EBS, ALB, ECR), dated live state, verification limits
+- `docs/infrastructure/kubernetes-workloads.md` — new: all eight manifests (config/secrets by key name, storage, stateful and stateless tiers, gateway in-cluster DNS rewrite, ingress, HPAs, request arithmetic)
+- `docs/infrastructure/continuous-deployment.md` — new: deploy.yml triggers, build matrix, OIDC, SSM remote script step by step, failure semantics, manual paths
+- `docs/README.md` — start-by-task row, three inventory rows, disclosure record
+- `docs/audits/documentation-drift.md` — rows D34-D39, cloud open questions, disclosure record
+- `docs/audits/documentation-coverage.md` — Infrastructure row split; new cloud deployment row; disclosure record
+- `docs/infrastructure/ci-cd.md` — one pointer sentence to the deployment document (D37); disclosure record
+- `docs/audits/review-findings.md` — 2026-11-07 executed/not-executed checks entry; disclosure record
+
+## 2026-11-07 21:14 SGT — Commit, push and open the PR for the cloud docs and skill
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** docs/cloud-as-built-and-cloud-access-skill
+
+**Prompt (summarised):** "ok please create PR" — explicit approval to commit, push and open a pull request for the cloud-access skill and the as-built cloud documents.
+
+**Usage scenario:** Git/GitHub actions the author explicitly requested. Created branch `docs/cloud-as-built-and-cloud-access-skill` from `origin/main` (7f10ecc) in a separate worktree so nothing in the author's working tree was discarded; verified that `infra/`, `deploy.yml`, `gateway/`, `.claude/` and the cloud docs are unchanged between the documented baseline 83db3e4 and current main. Staged only this session's hunks: the earlier session's uncommitted UAT edits to `docs/README.md`, `docs/audits/documentation-drift.md` and the untracked `docs/uat/` (issue #210) were left out. Corrected the timestamps of today's thirteen entries, which the shell had produced in UTC while labelled SGT. No open issue matches this work, so the PR's closing line is a decision for the author (new issue or an existing one) and is asked before `gh pr create`.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry; timestamps of today's entries corrected

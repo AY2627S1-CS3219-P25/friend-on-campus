@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-07
+Scope: Start-by-task row and three inventory rows for the as-built cloud documents under docs/infrastructure/ (cloud-infrastructure, kubernetes-workloads, continuous-deployment).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 Scope: Inventory row for the errand details page implementation plan (docs/superpowers/plans/, issues #188 and #189).
 Author review: <to be completed by Reallyeasy1>
@@ -35,6 +39,7 @@ Code/configuration establish implemented behavior; verified human specifications
 | Maintain docs or Claude instructions | [Conventions](development/repository-conventions.md), [Claude workflow](development/claude-code-workflow.md) |
 | Review evidence or unresolved discrepancies | [Coverage](audits/documentation-coverage.md), [verification](audits/review-findings.md), [drift](audits/documentation-drift.md), [source inventory](audits/source-inventory.md) |
 | Inspect the unmerged inbox change | [PR184 review](audits/pr-184-review.md), pinned separately to its inspected head |
+| Understand the AWS deployment as built (k3s on EC2, manifests, deploy workflow) | [Cloud infrastructure](infrastructure/cloud-infrastructure.md), [Kubernetes workloads](infrastructure/kubernetes-workloads.md), [continuous deployment](infrastructure/continuous-deployment.md); team narrative in the [cloud guide](cloud-deployment-and-devops-guide.md) |
 
 ## Service coverage
 
@@ -75,7 +80,10 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 | [infrastructure/api-gateway.md](infrastructure/api-gateway.md) | Gateway and proxy routing |
 | [infrastructure/cdc-and-broker.md](infrastructure/cdc-and-broker.md) | CDC and broker implementation |
 | [infrastructure/ci-cd.md](infrastructure/ci-cd.md) | CI and pull-request checks |
+| [infrastructure/cloud-infrastructure.md](infrastructure/cloud-infrastructure.md) | AWS infrastructure as built from Terraform: network, IAM, nodes, storage, ALB, ECR; dated live state |
+| [infrastructure/continuous-deployment.md](infrastructure/continuous-deployment.md) | deploy.yml as built: triggers, image build, SSM rollout script, manual paths, failure semantics |
 | [infrastructure/docker-and-deployment.md](infrastructure/docker-and-deployment.md) | Containers and local deployment |
+| [infrastructure/kubernetes-workloads.md](infrastructure/kubernetes-workloads.md) | k3s manifests as built: config and secrets, storage, stateful and stateless tiers, ingress, HPAs |
 | [packages/auth.md](packages/auth.md) | Shared authentication package |
 | [packages/common-dtos.md](packages/common-dtos.md) | Shared contracts |
 | [packages/messaging.md](packages/messaging.md) | Shared RabbitMQ messaging |

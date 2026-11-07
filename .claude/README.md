@@ -8,6 +8,10 @@ Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Consolidated disclosure header and updated test:d2 / dev:user references to test:e2e:api and npm workspace commands.
 Author review: <to be completed by yanhwee>
 
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-07
+Scope: Listed the new cloud-access skill in sections 5 and 6.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Removed reference to retired new-adr skill.
 Author review: <to be completed by author after review>
@@ -96,7 +100,7 @@ Restart Claude Code from the repo root, then:
 | `/agents` | `backend`, `frontend`, `infrastructure`, `reviewer` |
 | `/hooks` | a `PostToolUse` hook on `Edit\|Write` and a `Stop` hook. Approve them if asked |
 | `/plugin` | the five core plugins enabled |
-| type `/` | skills `usage-log`, `issue-start` |
+| type `/` | skills `usage-log`, `issue-start`, `cloud-access` |
 | ask: "use LSP to find all references to `AuthResponse`" | hits in the shared DTO package and User Service session handling |
 | `node .claude/hooks/hooks.test.js` (in a terminal) | `hooks ok` |
 
@@ -111,6 +115,7 @@ Restart Claude Code from the repo root, then:
 | `hooks/hooks.test.js` | Self-check for both |
 | `skills/usage-log` | `/usage-log` — appends the log entry in the team's format |
 | `skills/issue-start` | `/issue-start <n>` — fetches the issue from the right repo and lists its acceptance criteria and the code it touches |
+| `skills/cloud-access` | `/cloud-access` — how the agent reaches the AWS k3s deployment: SSO refresh, SSM Run Command helper, what needs the author's go-ahead |
 | `rules/documentation.md` | Source evidence and drift checks, scoped to `docs/**/*.md` |
 | `agents/` | Four subagents; when and when not to use them is in `CLAUDE.md` §8 |
 | `PLUGINS.md` | The team's plugin list |

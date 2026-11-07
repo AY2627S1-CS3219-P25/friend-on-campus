@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-07
+Scope: Added the 2026-11-07 cloud documentation check entry under Executed checks; earlier entries unchanged.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Added the dated "Chat documentation checks" block (executed chat-service unit run, link/anchor/Mermaid validation, inventory check); earlier checks not rerun.
 Author review: <to be completed by Reallyeasy1>
@@ -47,6 +51,12 @@ Scope: the [Chat README](../services/chat-service/README.md) and [D4 specificati
 | Source-inspected, not executed | `store.integration.test.ts`, `messaging.integration.test.ts`, `hub.test.ts`, `routes.test.ts` beyond the unit run; no browser scenario exists for Chat |
 
 Human decisions D1-D7 and D-F in the specification's register remain pending; nothing in these documents is approved behavior.
+
+### Cloud deployment documentation checks, 2026-11-07 (`main` `83db3e4`)
+
+Executed with the team's IAM Identity Center profile, read-only: `sts get-caller-identity`, `ec2 describe-instances` (three `foc-production-*` instances running), `ssm describe-instance-information` (all three `Online`), `elbv2 describe-load-balancers` (`foc-production-alb` active), and negative checks for ECS, Elastic Beanstalk, Lightsail and RDS. `git diff origin/main -- infra .github/workflows/deploy.yml` was empty, so the documents cite `main`.
+
+Not executed: `ssm send-command` (denied by the session permission gate, so no `kubectl` output, node readiness, ServiceLB binding or ECR helper was observed), `terraform plan`, any `deploy.yml` run inspection. Secrets in `01-configmaps-secrets.yaml` were read with values masked and are not reproduced. Human decisions raised: D34-D39 and the three open questions in the drift register.
 
 ## Review findings and resolution
 
