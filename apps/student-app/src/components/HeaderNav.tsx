@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Renamed Tasks navigation item to My Errands for natural user mental model and consistent errand vocabulary.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities): anchored primary browsing nav tabs next to brand logo, streamlined right cluster with prominent Post CTA, spendable wallet capsule, and compact icon-only alerts and profile buttons.
  * Author review: <to be completed by yanhwee>
  *
@@ -170,7 +174,7 @@ export function HeaderNav({
               }`}
             >
               <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
-              <span>Tasks</span>
+              <span>My Errands</span>
             </button>
           </nav>
         </div>

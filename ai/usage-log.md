@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Renamed Tasks navigation and page copy to My Errands for consistent mental model, and removed redundant visible Student Profile heading in ProfileWalletPage for clean above-the-fold pass visibility.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Resolved card text truncation across Feed and Tasks pages: widened responsive grid minmax track to 21.5rem (establishing uniform 3-column desktop layout matching SpotsPage), converted compact route to 2-line layout with full card width per pickup/dropoff stop, and added title tooltips for accessibility.
 Author review: <to be completed by yanhwee>
 
@@ -6616,6 +6620,30 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/pages/TasksPage.tsx` — Converted route to 2-line layout and added status tooltip.
 - `apps/student-app/src/pages/FeedPage.tsx` — Adjusted route skeleton placeholder height to `h-14`.
 - `ai/usage-log.md` — Logged card text truncation and track sizing session.
+
+## 2026-11-07 14:10 SGT — Renamed "Tasks" to "My Errands" & Streamlined Profile Header
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Renamed the user-facing "Tasks" navigation tab and page headings to "My Errands", resolving ambiguity between posted errands vs errands to be completed, and eliminated the redundant visible "Student Profile" header on the Profile tab.
+
+**Usage scenario:** Information architecture and cognitive load refinement across `@campus-errand/student-app`:
+1. **Navigation Renaming ("My Errands")**:
+   - In `HeaderNav.tsx` (desktop) and `BottomNav.tsx` (mobile), updated the tab label and aria-label from "Tasks" to "My Errands". This aligns user mental cognition directly with the campus errand domain (answering "where are my errands?" without confusion over what "task" means).
+   - In `TasksPage.tsx`, updated group headings from "Tasks posted" / "Tasks accepted" to "Errands posted" / "Errands delivering", and updated empty state copy accordingly.
+   - Preserved internal tab key (`'tasks'`), deep-linking parameters (`?tab=tasks`), and test contract selectors (`data-testid="task-card-..."`).
+2. **Eliminated Redundant Profile Header**:
+   - Removed the visible `Student Profile` title and `NUS student identity...` subtitle in `ProfileWalletPage.tsx`, retaining `<h2 id="profile-heading" className="sr-only">Student Profile</h2>` for screen reader accessibility.
+   - The digital **NUS Student Pass** card now rests directly at the top of the viewport, pulling the Account Credentials form and Edit Username button above the fold on mobile screens without requiring scrolling.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Renamed desktop tab to "My Errands".
+- `apps/student-app/src/components/BottomNav.tsx` — Renamed mobile dock button to "My Errands".
+- `apps/student-app/src/pages/TasksPage.tsx` — Renamed headings to "Errands posted" and "Errands delivering".
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Replaced visible Student Profile heading with sr-only heading.
+- `ai/usage-log.md` — Logged "My Errands" renaming and Profile header streamlining.
 
 
 

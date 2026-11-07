@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized Tasks page copy to Errand terminology ('Errands posted', 'Errands delivering') matching My Errands navigation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
  * Author review: <to be completed by yanhwee>
  *
@@ -145,7 +149,7 @@ export function TasksPage({
   const groups = [
     {
       key: 'posted' as const,
-      title: 'Tasks posted',
+      title: 'Errands posted',
       description: 'Errands you requested from other students.',
       tasks: postedTasks,
       emptyCta: 'Need food, drinks, or printouts?',
@@ -153,7 +157,7 @@ export function TasksPage({
     },
     {
       key: 'accepted' as const,
-      title: 'Tasks accepted',
+      title: 'Errands delivering',
       description: 'Errands you are delivering for other students.',
       tasks: acceptedTasks,
       emptyCta: 'Earn extra credits on campus between lectures.',
@@ -243,7 +247,9 @@ export function TasksPage({
                     <Truck className="h-5 w-5 text-nus-orange" />
                   )}
                 </div>
-                <p className="font-extrabold text-slate-800 text-sm">No {group.key} tasks yet.</p>
+                <p className="font-extrabold text-slate-800 text-sm">
+                  No {group.key === 'posted' ? 'posted' : 'delivering'} errands yet.
+                </p>
                 <p className="text-xs text-slate-500 mt-1">{group.emptyCta}</p>
               </div>
             )}

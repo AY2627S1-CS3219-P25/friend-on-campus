@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Renamed Tasks navigation item to My Errands for natural user mental model and consistent errand vocabulary.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned mobile center Post action to flush TikTok/Instagram style with aligned baseline and no protrusion.
  * Author review: <to be completed by yanhwee>
  *
@@ -101,9 +105,10 @@ export function BottomNav({
         <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Post</span>
       </button>
 
-      {/* 4. Tasks */}
+      {/* 4. My Errands (Delivering / Posted Orders) */}
       <button
         type="button"
+        aria-label="My Errands"
         aria-current={activeTab === 'tasks' ? 'page' : undefined}
         onClick={() => onSelectTab('tasks')}
         className={`flex-1 flex flex-col items-center justify-center min-h-[44px] py-1 transition-all duration-150 cursor-pointer ${
@@ -115,7 +120,7 @@ export function BottomNav({
         <div className={`p-1.5 rounded-xl transition-colors ${activeTab === 'tasks' ? 'bg-orange-50 text-nus-orange shadow-2xs' : ''}`}>
           <Clock className="w-5 h-5 stroke-[2.2]" />
         </div>
-        <span className="text-[10px] mt-0.5 tracking-tight font-semibold">Tasks</span>
+        <span className="text-[10px] mt-0.5 tracking-tight font-semibold">My Errands</span>
       </button>
 
       {/* 5. Profile */}

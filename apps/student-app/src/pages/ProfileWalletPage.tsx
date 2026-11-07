@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed redundant visible Student Profile heading in favor of sr-only accessible heading, bringing the NUS Student Pass card immediately above the fold.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed meta indicators (Verified Student, CAMPUS-ID, microservices ecosystem reference) from profile view for clean, professional consumer presentation.
  * Author review: <to be completed by yanhwee>
  *
@@ -94,16 +98,9 @@ export function ProfileWalletPage({
     return (
       <div className="w-full max-w-3xl mx-auto space-y-6">
         <section aria-labelledby="profile-heading" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 id="profile-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Student Profile
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-                NUS student identity and account credentials
-              </p>
-            </div>
-          </div>
+          <h2 id="profile-heading" className="sr-only">
+            Student Profile
+          </h2>
 
           {isLoadingProfile && (
             <div className="p-4 bg-nus-blue-50/80 border border-nus-blue-100 rounded-3xl text-nus-blue text-sm flex items-center gap-2.5 shadow-card">
