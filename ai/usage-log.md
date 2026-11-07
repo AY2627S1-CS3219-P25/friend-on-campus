@@ -6903,3 +6903,226 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - `ai/usage-log.md` — Recorded the commit request; this entry is included with the branding changes in the authorized commit.
+
+## 2026-11-07 20:26 SGT — Review frontend visual design
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Give a candid opinion on frontend improvements and whether a redesign is warranted.
+
+**Usage scenario:** Read-only visual and usability critique of the author's existing frontend. Reviewed the live desktop sign-in page, the prior narrow-screen sign-in observation, and implementation of feed cards, navigation, posting, and errand status copy. Suggested visual refinement and clearer presentation without changing architecture, interfaces, requirements, or application code. Authenticated screens were reviewed from source rather than a signed-in browser session. No tests rerun because no application code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the review request and scope.
+
+## 2026-11-07 20:34 SGT — Refine the existing campus frontend
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implement the suggested frontend improvements using the already-running server at http://localhost:5173/ rather than starting another server.
+
+**Usage scenario:** Implemented the author's approved visual refinement of the existing frontend. Simplified decorative styling, improved text hierarchy and mobile sign-in presentation, and preserved application interfaces and workflows. Used the documented Alice demo account for read-only screen checks; did not submit or alter errands. No additional server, dependencies, architecture changes, commit, or push.
+
+**Validation:** All workspace type checks passed; all 51 student-app unit tests passed; targeted ESLint and git diff whitespace checks passed; final student-app production build passed with the bundle-size warning. Reviewed the live feed, posting form, directory, and My Errands. Checked 375px and 430px layouts using a temporary same-origin iframe review page, then removed it. Verified search empty results and clearing search. Saved a screenshot outside the repository for review.
+
+**Files changed:**
+- `apps/student-app/src/components/BottomNav.tsx` — Increased navigation label size and contrast; made the mobile Post action distinct and removed scaling decoration.
+- `apps/student-app/src/components/HeaderNav.tsx` — Simplified navigation and action styling, adjusted the tablet wordmark, and softened wallet selection.
+- `apps/student-app/src/components/ErrandCard.tsx` — Reduced badges and decorative containers, increased route readability, wrapped destinations, and simplified the details action.
+- `apps/student-app/src/components/ExpandableNotes.tsx` — Removed reserved blank space when notes do not need expansion; retained expansion controls and accessibility.
+- `apps/student-app/src/components/SpotCard.tsx` — Calmer hover styling, more readable supporting text, and static opening-status indicators.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Placed the mobile form before promotional content, simplified surfaces and welcome-credit copy, strengthened button contrast, and removed the noninteractive SSO label.
+- `apps/student-app/src/pages/FeedPage.tsx` — Simplified zone filters, labeled search, exposed filter selection state, and removed the decorative pulsing count indicator.
+- `apps/student-app/src/pages/SpotsPage.tsx` — Matched directory filters to feed styling and labeled search and selection controls.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Simplified the assistant and form surfaces and strengthened action contrast.
+- `apps/student-app/src/pages/TasksPage.tsx` — Improved filter typography and removed service implementation terminology from credit-state copy without claiming that a transfer has completed.
+- `apps/student-app/src/index.css` — Added support for reduced-motion preferences.
+- `apps/student-app/tailwind.config.js` — Softened shared hover and glow shadows.
+- `ai/usage-log.md` — Recorded this implementation and validation, preserving the earlier review entry.
+
+## 2026-11-07 20:36 SGT — Review desktop and mobile navigation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Give an opinion on the current navigation bar in mobile and PC views.
+
+**Usage scenario:** Read-only visual and usability feedback based on the recently verified desktop and phone layouts and current HeaderNav/BottomNav source. Suggested clearer labels, larger desktop controls, consistent action/selection styling, and a later switch to the desktop layout. No application code or architecture changed; no tests needed for the commentary-only review.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the navigation review.
+
+## 2026-11-07 20:40 SGT — Improve desktop and mobile navigation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implement the proposed navigation improvements for mobile and PC.
+
+**Usage scenario:** Implemented the author's approved presentation changes within the existing navigation components and routes. Retained the running server at localhost:5173. Existing uncommitted frontend changes were preserved. No new server, dependencies, architecture changes, commit, or push.
+
+**Validation:** All workspace type checks and 51 student-app unit tests passed. Targeted ESLint, browser-driver syntax checks, and git diff whitespace checks passed. Production build passed with the existing bundle-size warning. Visually checked 375px, 1023px, and 1024px layouts using a temporary same-origin iframe page, and the full desktop navbar in the live app. Checked the mobile Post navigation. Removed the temporary review page before building. Updated browser-driver selectors for the new names; did not run their full data-mutating scenarios against the user's running environment. Saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Added Browse, Places, and Post errand labels; increased desktop text and target sizes; spelled out credits on desktop; moved the desktop navigation breakpoint to 1024px and kept the wordmark compact until wide desktop widths.
+- `apps/student-app/src/components/BottomNav.tsx` — Matched Browse and Places labels, retained Post as a distinct action, added a current-page marker, increased target height, and kept the bottom bar below 1024px.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Aligned the alert control with 44px header targets and quieter selection styling.
+- `apps/student-app/src/App.tsx` — Retained bottom clearance until the desktop navbar appears.
+- `apps/student-app/src/index.css` — Removed the earlier tablet padding override to match the navigation breakpoint.
+- `scripts/uat/uat-d2-ui.mjs` — Updated navigation selectors to Browse, Places, and Post errand with exact matching.
+- `scripts/uat/uat-realtime.mjs` — Updated the Post errand navigation selector.
+- `ai/usage-log.md` — Recorded the navigation implementation and validation.
+
+## 2026-11-07 20:42 SGT — Review brand typography and colour relationship
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Assess whether the current colour theme and supplied product logo look plain, especially the font, using the attached brand-lockup screenshot.
+
+**Usage scenario:** Visual feedback on the author's existing logo, wordmark, and frontend colour treatment. Discussed typography weight and personality, icon scale, logo-container styling, and consistency between the bright blue/orange artwork and darker orange UI actions. No application code, artwork, or architecture changed; no tests needed for this commentary-only review.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the brand review.
+
+## 2026-11-07 20:50 SGT — Refresh the wordmark and blue-coral brand palette
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implement a more distinctive brand treatment following the discussion of the plain wordmark, logo framing, and colour consistency.
+
+**Usage scenario:** Implemented the author's approved visual direction using the supplied SVG geometry, a softer Manrope wordmark, blue navigation and links, coral Post actions, and a light blue-white canvas. Added the unmodified open-source font and original licence from https://github.com/google/fonts/tree/main/ofl/manrope as local static assets; no package dependency or runtime external font request was introduced. Preserved existing workflows, architecture, favicon artwork, and prior uncommitted changes. Used localhost:5173 without starting another server. Demo-account sign-out/sign-in checks only; no errands or profile data changed. No commit or push.
+
+**Validation:** All workspace type checks, all 51 student-app unit tests, targeted ESLint, and whitespace checks passed. Final production build passed with PostCSS source-metadata and bundle-size warnings. Confirmed that font and stylesheet assets are included in the build and that the copied font matches the original. Verified local font loading and coral button colour in the live browser. Reviewed sign-in at 375px and 1280px, and the header at 375px and 1024px, using a temporary review page that was removed. Checked brand colour contrast: coral/ink 5.29:1, blue/white 5.17:1, blue/soft-blue 4.75:1. Saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/public/fonts/Manrope-Variable.ttf` — Bundled the unmodified Manrope variable font from Google Fonts.
+- `apps/student-app/public/fonts/Manrope-OFL.txt` — Included its original licence unchanged.
+- `apps/student-app/public/fonts/manrope.css` — Declared the locally served font with swap behaviour.
+- `apps/student-app/index.html` — Preloaded the font and loaded its local stylesheet.
+- `apps/student-app/src/index.css` — Defined shared blue/coral/ink/canvas tokens, Tailwind-compatible brand utilities, and the wordmark treatment.
+- `apps/student-app/src/components/FriendOnCampusLogo.tsx` — Removed the tile in app lockups and tightened the framing around the supplied origami geometry; favicon remains unchanged.
+- `apps/student-app/src/components/HeaderNav.tsx` — Applied the larger unboxed mark, softer wordmark, blue selection states, and coral Post action.
+- `apps/student-app/src/components/BottomNav.tsx` — Applied the matching blue navigation and coral Post treatment.
+- `apps/student-app/src/components/ErrandCard.tsx` — Used blue for links and amber for credit rewards.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Applied the brand lockup, friendly supporting line, blue headline and sign-in action, and coral welcome-credit surface.
+- `apps/student-app/src/pages/FeedPage.tsx` — Applied blue selected-filter styling.
+- `apps/student-app/src/pages/SpotsPage.tsx` — Matched the directory filters to the blue identity.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Applied blue helper actions and the coral final Post action.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Applied the matching blue selected state.
+- `apps/student-app/src/App.tsx` — Applied the light blue-white page canvas.
+- `ai/usage-log.md` — Recorded the brand implementation, font source, and verification.
+
+## 2026-11-07 20:53 SGT — Keep the header product name on one line
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Correct the top-left product name breaking across two lines, as shown in the user's screenshot.
+
+**Usage scenario:** Removed the deliberately stacked responsive wordmark and kept the full name on one line. Compacted the mark and typography on phones and hid the decorative wallet coin below 400px while preserving the numerical balance and wallet action. No routes, architecture, data, or prior changes were altered. Used the existing localhost:5173 server; no commit or push.
+
+**Validation:** All workspace type checks, 51 student-app tests, targeted ESLint, and whitespace checks passed. Visually verified the single-line wordmark at 320px and 1024px without overlapping the wallet, alerts, or desktop navigation. Removed the temporary responsive review page. Saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Removed the forced line break, applied no-wrap typography, and adjusted phone mark/utility sizes.
+- `ai/usage-log.md` — Recorded the fix and verification.
+
+
+## 2026-11-07 20:54 SGT — Review student-app theme consistency and colour roles
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Assess the rest of the student app for consistency with the cooler, quieter direction and give an opinion on the colour choices.
+
+**Usage scenario:** Read-only visual consistency critique grounded in the recently verified UI and current details, chat, alerts, wallet, profile, posting, and task styling. Identified remaining older navy/orange gradients, inconsistent text weights, decorative pulsing indicators, and differences in selected-state presentation. Described consistent roles for the already-approved palette and screen-level presentation refinements. No application code, requirements, architecture, or data changed; no tests needed for commentary-only feedback.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the consistency review.
+
+## 2026-11-07 21:09 SGT — Complete the student-app visual consistency pass
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Proceed with the proposed consistency pass across the remaining student-app screens and agreed colour roles.
+
+**Usage scenario:** Implemented the author's approved visual direction across errand details, chat, alerts, wallet, profile, related controls, and map controls. Standardized blue actions and selection, preserved coral for Post, retained semantic credit/status/danger colours, reduced decorative gradients and pulsing indicators, and extended the bundled display typography to headings. Improved small-screen spacing and one icon-only control's accessible name. Preserved existing routes, state handling, interfaces, application architecture, earlier uncommitted changes, and user data. Used the already-running localhost:5173 server; no new server, dependencies, commit, or push.
+
+**Validation:** Final all-workspace type checks passed; all 51 student-app unit tests passed; targeted ESLint and whitespace checks passed. Final production build passed with the previously observed PostCSS source-metadata and bundle-size warnings. Visually reviewed live desktop profile, wallet, empty alerts, task navigation, accepted-errand details/timeline, and existing populated chat. Checked 375px layouts for profile, wallet, empty alerts, details, and chat, including composer clearance above the bottom bar. Fixed cramped mobile profile heading and excess mobile chat-card space during review. The demo account had no alerts, so populated alert styling was reviewed in source rather than exercised live. Did not send messages, submit delivery actions, edit profiles, delete accounts, or mark notifications read. Removed the temporary responsive review page and saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Quieter cards and blue primary actions, consistent timeline selection, readable metadata, and content-sized chat cards on mobile.
+- `apps/student-app/src/chat/ChatPanel.tsx` — Solid blue outgoing messages and Send button, neutral incoming messages, blue focus states, larger controls, and a shrinkable mobile composer.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Blue selected rows and actions, readable wrapping badges, amber attention labels, and consistent alert filter styling.
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Simplified account card and avatar, removed decorative glow/pulsing, standardized account controls, strengthened metadata, retained amber credit and green incoming-transaction cues, and improved the mobile account heading.
+- `apps/student-app/src/pages/AlertsPage.tsx` — Consistent typography and actions; added an accessible name to the icon-only Mark all as read control.
+- `apps/student-app/src/pages/TasksPage.tsx` — Matched blue filters, heading weight, supporting text, and calmer empty-state surfaces.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Matched assistant accents, type weights, metadata, and the amber reward panel to the shared theme.
+- `apps/student-app/src/pages/SpotsPage.tsx` — Matched directory type weights, supporting text, and card radii.
+- `apps/student-app/src/components/SpotCard.tsx` — Matched directory card typography and blue action styling.
+- `apps/student-app/src/components/DeleteAccountModal.tsx` — Matched modal typography, radii, and return action while preserving destructive red controls and confirmation behaviour.
+- `apps/student-app/src/map/DropoffPicker.tsx` — Matched map controls and selection styling; retained separate pickup/drop-off meaning.
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — Matched pickup selection and map-control styling.
+- `apps/student-app/src/map/leafletSetup.ts` — Matched the drop-off marker to the coral legend.
+- `apps/student-app/src/index.css` — Applied Manrope consistently to student-screen headings.
+- `ai/usage-log.md` — Recorded implementation scope and validation.
+
+
+## 2026-11-07 21:19 SGT — Review the Post Errand page
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Give an opinion on the current Post Errand page.
+
+**Usage scenario:** Read-only presentation and usability critique grounded in the live desktop page and current posting component. Identified unclear distinction between optional assistant and manual entry, hidden page title, lengthy labels, duplicate-looking drop-off inputs, credit reservation copy, acceptance-window wording, and implementation terminology in feedback. Recommended clearer hierarchy and presentation using the existing fields and workflow. No application code, requirements, architecture, interfaces, or data changed; no submission or assistant request made. No tests needed for commentary-only feedback.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the posting-page review.
+
+
+## 2026-11-07 21:30 SGT — Simplify the Post Errand form
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Improve the Post Errand page and reduce the sense of too many forms and fields.
+
+**Usage scenario:** Implemented the author's approved presentation improvements with one page and three clear groups: errand details, delivery, and reward/posting. Kept existing essential fields and defaults visible; placed the assistant, optional map point, optional instructions, and editable acceptance window in native accessible disclosures. Preserved existing field IDs, required constraints, maximum lengths, minute bounds, state handlers, suggested-reward behaviour, closed-store confirmation, and submission contract. Clarified credit reservation and acceptance timing, removed implementation terminology from progress text, and increased phone input text size. No architecture, interfaces, backend logic, dependencies, server process, commit, or push changed. Existing uncommitted work was preserved.
+
+**Validation:** All-workspace type checks, all 51 student-app unit tests, targeted ESLint, and whitespace checks passed. Final student-app production build passed with the previously observed PostCSS source-metadata and bundle-size warnings. Reviewed desktop and 375px phone layouts on the existing localhost:5173 server. Manually verified assistant text survives closing/reopening, instructions remain intact when collapsed, essential input enables posting, a manually selected 8-credit reward remains 8 after choosing COM3 despite a 30-credit suggestion, delivery text is not replaced by the map point, and editing the acceptance window to 60 minutes updates the collapsed label to 1 hour. Did not call the assistant API or submit an errand. Reloaded the review tab to clear local test inputs, removed the temporary mobile-review page, and saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Added a visible page heading, grouped the existing fields, introduced native optional disclosures, moved auto-fill review feedback beside the form, shortened labels and examples, removed fixed clock deadlines from template prompts, corrected available/reserved credit copy, clarified acceptance timing, improved reward preset layout, and retained all existing submission safeguards.
+- `apps/student-app/src/map/DropoffPicker.tsx` — Simplified the building/pin label within the optional section and made the building input text larger on phones.
+- `ai/usage-log.md` — Recorded the posting UX implementation and validation.
+
+
+## 2026-11-07 21:33 SGT — Commit the student-app frontend improvements
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Commit the completed frontend work.
+
+**Usage scenario:** Explicitly authorized Git commit of the accumulated student-app branding, responsive navigation, visual consistency, posting UX, local font assets/licence, matching browser-check selectors, and usage log. Reviewed the pending file list and whitespace checks; included the prior successful all-workspace type checks, 51 student-app tests, targeted lint, production build, and manual desktop/mobile verification. No push requested.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded this commit request for inclusion with the frontend improvements.

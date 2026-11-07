@@ -1,5 +1,17 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align selected alerts with the royal-blue navigation state.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align the top alert control with the larger navigation targets and quiet selected-state styling.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed duplicate Refresh and Mark all as read action buttons from NotificationPanel filter bar now that they are hoisted to the standard Campus Alerts page header row, decluttering the alert filter pills across mobile and desktop.
  * Author review: <to be completed by yanhwee>
@@ -99,12 +111,12 @@ export function NotificationBell({ unreadCount, active, onClick, variant }: {
         aria-label={label}
         aria-pressed={active}
         onClick={onClick}
-        className={`relative flex flex-col items-center py-1 transition ${FOCUS} ${active ? 'text-nus-orange font-bold' : 'text-slate-400 hover:text-slate-600'}`}
+        className={`relative flex flex-col items-center py-1 transition ${FOCUS} ${active ? 'text-nus-orange font-bold' : 'text-slate-500 hover:text-slate-600'}`}
       >
         <span className="relative">
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-2.5 min-w-[1rem] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-black leading-4 text-center shadow-xs">
+            <span className="absolute -top-1.5 -right-2.5 min-w-[1rem] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-semibold leading-4 text-center shadow-xs">
               {count}
             </span>
           )}
@@ -119,9 +131,9 @@ export function NotificationBell({ unreadCount, active, onClick, variant }: {
       title="Alerts"
       aria-pressed={active}
       onClick={onClick}
-      className={`relative flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all border cursor-pointer ${FOCUS} ${
+      className={`relative flex items-center justify-center h-11 w-11 min-h-0 rounded-xl transition-all border cursor-pointer ${FOCUS} ${
         active
-          ? 'bg-gradient-to-r from-nus-orange to-orange-500 text-white border-nus-orange shadow-xs'
+          ? 'bg-campus-blue-soft text-campus-blue border-blue-200'
           : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-2xs hover:shadow-card'
       }`}
     >
@@ -130,8 +142,8 @@ export function NotificationBell({ unreadCount, active, onClick, variant }: {
       {unreadCount > 0 && (
         <span
           data-testid="notification-badge"
-          className={`min-w-[1.125rem] h-4.5 px-1 rounded-full text-[10px] font-black leading-4 text-center shadow-2xs ${
-            active ? 'bg-white text-nus-orange' : 'bg-rose-500 text-white'
+          className={`min-w-[1.125rem] h-4.5 px-1 rounded-full text-[10px] font-semibold leading-4 text-center shadow-2xs ${
+            active ? 'bg-white text-campus-blue' : 'bg-rose-500 text-white'
           } absolute -top-1 -right-1`}
         >
           {count}
@@ -227,7 +239,7 @@ export function NotificationPanel({
         if (rows.length === 0) return null;
         return (
           <li key={section}>
-            <h3 className="px-4 pt-3.5 pb-1 text-[11px] font-black uppercase tracking-wider text-slate-400">{section}</h3>
+            <h3 className="px-4 pt-3.5 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">{section}</h3>
             <ol>
               {rows.map((n) => {
                 const { Icon, ring, pill } = look(n.kind);
@@ -240,24 +252,24 @@ export function NotificationPanel({
                       aria-current={active ? 'true' : undefined}
                       aria-label={`${n.orderCode ?? 'Errand'}, ${kindLabel(n.kind)}${unread ? ', unread' : ''}`}
                       className={`w-full text-left px-4 py-3.5 flex items-start gap-3 border-l-4 transition cursor-pointer ${FOCUS} ${
-                        active ? 'border-nus-orange bg-orange-50/70' : 'border-transparent hover:bg-slate-50/90'
+                        active ? 'border-blue-600 bg-campus-blue-soft' : 'border-transparent hover:bg-slate-50/90'
                       }`}
                     >
                       <span className={`mt-0.5 w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${ring}`}>
                         <Icon className="w-4 h-4" aria-hidden />
                       </span>
                       <span className="flex-1 min-w-0">
-                        <span className="flex items-center gap-2">
-                          <span className={`font-mono text-xs ${unread ? 'font-black text-slate-900' : 'font-semibold text-slate-700'}`}>{n.orderCode ?? 'Errand'}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${pill}`}>{kindLabel(n.kind)}</span>
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className={`font-mono text-xs ${unread ? 'font-semibold text-slate-900' : 'font-semibold text-slate-700'}`}>{n.orderCode ?? 'Errand'}</span>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-md border ${pill}`}>{kindLabel(n.kind)}</span>
                           {isActionOpen(n, liveStatus(n.orderId)) && (
-                            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-nus-orange text-white shadow-2xs">Action needed</span>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">Action needed</span>
                           )}
                         </span>
                         <span className={`block text-sm mt-1 truncate ${unread ? 'font-bold text-slate-900' : 'text-slate-600'}`}>{n.title}</span>
                         <span className="block text-xs text-slate-500 truncate mt-0.5">{n.body}</span>
                       </span>
-                      <span className="flex flex-col items-end shrink-0 text-[11px] text-slate-400 pt-0.5">
+                      <span className="flex flex-col items-end shrink-0 text-xs text-slate-500 pt-0.5">
                         <span>{timeAgo(n.createdAt)}</span>
                         {unread && <span aria-hidden className="mt-2 w-2 h-2 rounded-full bg-rose-500 shadow-2xs" />}
                       </span>
@@ -271,7 +283,7 @@ export function NotificationPanel({
       })}
       {hasMore && (
         <li className="px-4 py-3.5 text-center">
-          <button onClick={onLoadMore} disabled={isLoading} className={`text-xs font-bold text-nus-blue hover:underline disabled:text-slate-400 ${FOCUS} cursor-pointer`}>
+          <button onClick={onLoadMore} disabled={isLoading} className={`text-xs font-bold text-campus-blue hover:underline disabled:text-slate-500 ${FOCUS} cursor-pointer`}>
             Load more
           </button>
         </li>
@@ -291,9 +303,9 @@ export function NotificationPanel({
           <button onClick={() => setMobileDetail(false)} aria-label="Back to all alerts" className={`lg:hidden p-1.5 -ml-1.5 rounded-xl text-slate-500 hover:bg-slate-100 ${FOCUS} cursor-pointer`}>
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h3 className="font-mono text-lg font-black text-slate-900">{selected.orderCode ?? 'Errand'}</h3>
-          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${pill}`}>{kindLabel(selected.kind)}</span>
-          {status && <span className="ml-auto text-xs text-slate-400 font-medium">Errand status: {status.replace(/_/g, ' ')}</span>}
+          <h3 className="font-mono text-lg font-semibold text-slate-900">{selected.orderCode ?? 'Errand'}</h3>
+          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-2xs ${pill}`}>{kindLabel(selected.kind)}</span>
+          {status && <span className="ml-auto text-xs text-slate-500 font-medium">Errand status: {status.replace(/_/g, ' ')}</span>}
         </header>
         <div className="px-5 py-5 flex-1 flex gap-4">
           <span className={`mt-0.5 w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${ring}`}>
@@ -301,8 +313,8 @@ export function NotificationPanel({
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-3">
-              <p className="text-base font-black text-slate-900">{selected.title}</p>
-              <time dateTime={selected.createdAt} className="text-[11px] text-slate-400 shrink-0 font-medium">{timeOfDay(selected.createdAt)} · {timeAgo(selected.createdAt)}</time>
+              <p className="text-base font-semibold text-slate-900">{selected.title}</p>
+              <time dateTime={selected.createdAt} className="text-xs text-slate-500 shrink-0 font-medium">{timeOfDay(selected.createdAt)} · {timeAgo(selected.createdAt)}</time>
             </div>
             <p className="text-sm text-slate-600 mt-1 font-medium">{selected.body}</p>
             {resolved && (
@@ -311,9 +323,7 @@ export function NotificationPanel({
             {cta && (
               <button
                 onClick={() => onOpen(selected)}
-                className={`mt-4 inline-flex items-center space-x-2 text-sm font-black text-white px-5 py-2.5 rounded-2xl shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer ${FOCUS} ${
-                  cta.label === 'Review delivery' ? 'bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500' : 'bg-gradient-to-r from-nus-blue to-blue-700 hover:from-nus-blue-dark hover:to-blue-800'
-                }`}
+                className={`mt-4 inline-flex items-center space-x-2 text-sm font-semibold text-white px-5 py-2.5 rounded-xl shadow-subtle transition-all active:scale-[0.99] cursor-pointer ${FOCUS} bg-campus-blue hover:bg-campus-blue-hover`}
               >
                 <span>{cta.label}</span>
                 <cta.Icon className="w-4 h-4" aria-hidden />
@@ -328,16 +338,16 @@ export function NotificationPanel({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div role="tablist" aria-label="Filter alerts" className="flex flex-wrap items-center bg-white border border-slate-200/90 rounded-full p-1 text-xs font-bold shadow-2xs">
+        <div role="tablist" aria-label="Filter alerts" className="flex flex-wrap items-center bg-white border border-slate-200/90 rounded-xl p-1 text-sm font-medium">
           {VIEWS.map(({ key, label }) => (
             <button
               key={key}
               role="tab"
               aria-selected={view === key}
               onClick={() => onViewChange(key)}
-              className={`px-3.5 py-1.5 rounded-full transition-all cursor-pointer ${FOCUS} ${
+              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${FOCUS} ${
                 view === key
-                  ? 'bg-blue-50 text-nus-blue border border-blue-200/90 font-black shadow-2xs'
+                  ? 'bg-campus-blue-soft text-campus-blue border border-blue-200 font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -355,7 +365,7 @@ export function NotificationPanel({
       {!stale && error && <p className="rounded-2xl px-4 py-3 text-sm text-rose-700 bg-rose-50 border border-rose-200 shadow-2xs">{error} Refresh to try again.</p>}
 
       {visible.length === 0 && !selected && !isLoading && (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center shadow-card">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center shadow-card">
           <Bell className="w-8 h-8 mx-auto text-slate-300" />
           <p className="mt-3 text-sm font-bold text-slate-700">{emptyText}</p>
           <p className="mt-1 text-sm text-slate-500 max-w-sm mx-auto">
@@ -367,7 +377,7 @@ export function NotificationPanel({
       )}
 
       {(visible.length > 0 || selected) && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card overflow-hidden lg:grid lg:grid-cols-[minmax(20rem,2fr)_3fr] lg:min-h-[28rem]">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden lg:grid lg:grid-cols-[minmax(20rem,2fr)_3fr] lg:min-h-[28rem]">
           <section aria-label="Alerts" className={`${mobileDetail ? 'hidden lg:block' : ''} lg:border-r lg:border-slate-100 lg:max-h-[70vh] lg:overflow-y-auto`}>
             {visible.length > 0 ? list : (
               <p className="px-4 py-10 text-center text-sm text-slate-500">{emptyText}.</p>

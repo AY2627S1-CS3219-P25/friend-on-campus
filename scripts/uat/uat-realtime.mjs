@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-07
+// Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Google Antigravity Agent, date: 2026-11-07
 // Scope: Updated RT01 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
 // Author review: <to be completed by yanhwee>
@@ -73,7 +77,7 @@ async function login(page, email) {
   await page.locator('input[type=email]').fill(email);
   await page.locator('input[type=password]').fill(PW);
   await page.getByRole('button', { name: 'Log In' }).click();
-  await page.getByRole('button', { name: 'Post' }).first().waitFor();
+  await page.getByRole('button', { name: 'Post errand', exact: true }).first().waitFor();
 }
 const nav = async (page, tab) => page.getByRole('button', { name: new RegExp(`^${tab}`) }).first().click();
 // The unread badge is read from a client on a list tab; the errand page is checked for its own live status instead.

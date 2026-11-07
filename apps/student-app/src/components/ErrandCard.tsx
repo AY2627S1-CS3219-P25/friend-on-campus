@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Use blue for errand links and amber for credit rewards, matching the refreshed brand roles.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized ErrandCard hover interactions with Direction A Warm Campus Mango theme (warm orange border and title color on hover).
  * Author review: <to be completed by yanhwee>
@@ -95,18 +103,17 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
   const expiry = getRelativeExpiry(order.expiresAt);
 
   return (
-    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
+    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-5 shadow-subtle hover:shadow-card border border-slate-200 hover:border-slate-300 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
         <div className="flex items-center justify-between gap-2">
           {/* AI-generated (edited by jagdeepsh) */}
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 min-w-0">
-            <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 min-w-0">
             <span className="truncate">{order.campusZone}</span>
           </span>
           {/* Locked Escrow Reward Badge */}
-          <div className="inline-flex items-center gap-1.5 text-amber-900 font-black text-xs bg-gradient-to-r from-amber-100 via-orange-100/90 to-amber-50 px-2.5 py-1 rounded-full border border-amber-300/80 shadow-2xs whitespace-nowrap shrink-0">
-            <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-300 shrink-0" />
+          <div className="inline-flex items-center gap-1.5 text-amber-800 font-semibold text-sm bg-amber-50 px-2.5 py-1 rounded-lg whitespace-nowrap shrink-0">
+            <Coins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
             <span>+{order.rewardCredits} Credits</span>
             {typeof order.estimatedRewardCredits === 'number' && (
               <span data-testid="errand-estimate" className="sr-only">
@@ -119,7 +126,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
         {/* Item Title */}
         <h3
           title={order.itemDescription}
-          className="font-bold text-slate-900 text-sm sm:text-base mt-2.5 leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors"
+          className="font-semibold text-slate-900 text-base mt-3 leading-snug line-clamp-2 group-hover:text-campus-blue transition-colors"
         >
           {order.itemDescription}
         </h3>
@@ -130,18 +137,18 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
         </div>
 
         {/* Clear 2-Line Connected Route (Pickup & Dropoff) */}
-        <div className="mt-2.5 bg-slate-50/90 rounded-xl px-3 py-2 border border-slate-100/90 text-xs space-y-1.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
-            <span className="text-slate-400 font-bold text-[11px] shrink-0">Pickup:</span>
-            <span className="font-semibold text-slate-800 truncate" title={order.supplierName}>
+        <div className="mt-4 text-sm space-y-2.5">
+          <div className="flex items-start gap-2 min-w-0">
+            <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+            <span className="text-slate-500 font-medium text-xs w-14 pt-0.5 whitespace-nowrap shrink-0">Pickup:</span>
+            <span className="font-medium text-slate-700 min-w-0 break-words" title={order.supplierName}>
               {order.supplierName}
             </span>
           </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <ArrowRight className="w-3.5 h-3.5 text-nus-orange shrink-0" />
-            <span className="text-slate-400 font-bold text-[11px] shrink-0">Dropoff:</span>
-            <span className="font-semibold text-slate-800 truncate" title={order.dropoffLocation}>
+          <div className="flex items-start gap-2 min-w-0">
+            <ArrowRight className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+            <span className="text-slate-500 font-medium text-xs w-14 pt-0.5 whitespace-nowrap shrink-0">Dropoff:</span>
+            <span className="font-medium text-slate-700 min-w-0 break-words" title={order.dropoffLocation}>
               {order.dropoffLocation}
             </span>
           </div>
@@ -149,15 +156,15 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
       </div>
 
       {/* Footer: Expiration & Action CTA */}
-      <div className="mt-3 flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs">
+      <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs">
         {/* AI-generated (edited by jagdeepsh) */}
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition min-w-0 ${
+          className={`inline-flex items-center gap-1.5 py-1 rounded-lg font-medium transition min-w-0 ${
             expiry.critical
               ? 'bg-rose-50 text-rose-700 border border-rose-200 font-bold'
               : expiry.urgent
               ? 'bg-amber-50 text-amber-700 border border-amber-200 font-semibold'
-              : 'text-slate-500 bg-slate-50 border border-slate-100'
+              : 'text-slate-500'
           }`}
         >
           <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -176,7 +183,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           className={`inline-flex items-center gap-1.5 font-bold rounded-xl whitespace-nowrap shrink-0 transition-all focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] ${
             mine
               ? 'text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 border border-slate-200 shadow-2xs'
-              : 'text-xs sm:text-sm text-white bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-nus-orange px-3.5 py-1.5 shadow-sm group-hover:shadow-glow-orange group-hover:scale-[1.02]'
+              : 'text-sm text-campus-blue hover:text-campus-blue-hover px-2 py-2'
           }`}
         >
           {mine ? (

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
  * Scope: Interactive React Leaflet map (OpenStreetMap tiles) for the Post Errand pickup-spot picker. Drops a
  * pin for every supplier with coordinates; clicking a pin selects that supplier and closes the map, same as
@@ -72,7 +76,7 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center space-x-2">
-            <MapPin className="w-5 h-5 text-nus-blue" />
+            <MapPin className="w-5 h-5 text-campus-blue" />
             <div>
               <h3 className="font-bold text-base text-slate-900">Pick a Spot on the Map</h3>
               <p className="text-xs text-slate-500">Tap a pin, then choose your pickup spot</p>
@@ -128,14 +132,14 @@ export function SupplierPickupMap({ suppliers, selectedSupplierId, onSelect, onC
                         <button
                           key={supplier.id}
                           type="button"
-                          className="block w-full rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-nus-blue"
+                          className="block w-full rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
                           aria-pressed={supplier.id === selectedSupplierId}
                           onClick={() => { onSelect(supplier); onClose(); }}
                         >
                           <span className="block font-bold text-slate-900">{supplier.name}</span>
                           <span className="block text-slate-500">{supplier.campusZone} &middot; {supplier.category}</span>
                           {supplier.id === selectedSupplierId && (
-                            <span className="block text-nus-blue font-semibold text-xs mt-1">Currently selected</span>
+                            <span className="block text-campus-blue font-semibold text-xs mt-1">Currently selected</span>
                           )}
                         </button>
                       ))}

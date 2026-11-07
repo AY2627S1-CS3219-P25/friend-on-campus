@@ -1,6 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Bring the brand lockup, friendly supporting line, blue headline, and coral welcome offer into the sign-in page.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
  * Author review: <to be completed by yanhwee>
  *
@@ -107,77 +115,77 @@ export function AuthGatePage({
   const [showSignupRetype, setShowSignupRetype] = useState(false);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/60 via-slate-50 to-amber-50/50 px-4 py-8 sm:py-12 relative overflow-hidden">
-      {/* Decorative ambient background lighting */}
+    <div className="min-h-screen flex items-center justify-center bg-campus-canvas px-4 py-8 sm:py-12 relative overflow-hidden">
+      {/* AI-generated (edited by yanhwee): mobile content order puts authentication before promotions. */}
       <div
         aria-hidden="true"
-        className="absolute top-1/4 -left-20 w-96 h-96 bg-orange-300/15 rounded-full blur-3xl pointer-events-none"
+        className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-200/15 rounded-full blur-3xl pointer-events-none"
       />
       <div
         aria-hidden="true"
-        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-amber-300/15 rounded-full blur-3xl pointer-events-none"
+        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-orange-200/15 rounded-full blur-3xl pointer-events-none"
       />
 
       <div className="w-full max-w-5xl relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center">
           {/* Left Column: Brand & Promotional Showcase */}
-          <div className="lg:col-span-7 space-y-6 sm:space-y-7">
+          <div className="contents lg:block lg:col-span-7 lg:space-y-7">
             {/* Brand Logo (Origami Courier + Friend on Campus) */}
-            <div className="flex items-center gap-3.5">
-              <FriendOnCampusLogo className="w-12 h-12 rounded-2xl shadow-card border border-slate-200/80 shrink-0" />
+            <div className="order-1 flex items-center gap-3.5">
+              <FriendOnCampusLogo className="w-14 h-14 shrink-0" />
               <div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-slate-900">
-                  Friend on Campus
+                <h1 className="brand-wordmark text-[26px] sm:text-[32px] leading-tight">
+                  Friend <span className="brand-connector">on</span> Campus
                 </h1>
-                <p className="text-xs font-bold text-slate-500 mt-1">
-                  FoC · NUS Peer Errand Network
+                <p className="text-xs font-medium text-slate-500 mt-1.5">
+                  A little help, a little closer.
                 </p>
               </div>
             </div>
 
             {/* Pitch & Value Headline */}
-            <div className="space-y-2">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+            <div className="order-2 space-y-2">
+              <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-semibold text-campus-ink tracking-tight leading-tight">
                 Your campus errands, <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-orange-600 via-amber-600 to-nus-orange bg-clip-text text-transparent">
+                <span className="text-campus-blue">
                   made easier with friends.
                 </span>
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-lg">
+              <p className="text-sm text-slate-600 leading-relaxed max-w-lg">
                 Need a meal from The Deck or printed notes brought to your study bench?
                 Connect with coursemates already heading your way across Kent Ridge campus.
               </p>
             </div>
 
             {/* Promotional 100 Credits Welcome Grant Card */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-white border border-amber-200/80 p-5 sm:p-6 shadow-sm">
+            <div className="order-4 rounded-2xl bg-campus-coral-soft border border-orange-100 p-5 sm:p-6">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-nus-orange to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-orange-500/20">
-                  <Gift className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-white text-orange-700 flex items-center justify-center shrink-0">
+                  <Gift className="w-5 h-5" />
                 </div>
                 <div className="space-y-1.5">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-nus-orange bg-orange-100/90 border border-orange-200/60">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-campus-ink bg-white/70 border border-orange-200/60">
                     <Sparkles className="w-3 h-3 text-nus-orange" />
                     <span>Welcome Promotion</span>
                   </div>
                   <h3 className="text-sm sm:text-base font-black text-slate-900">
-                    Claim 100 Free Credits on Sign Up!
+                    Start with 100 welcome credits
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    Every new student gets 100 credits automatically credited upon registration. Use them to request your first campus errand or start earning by fulfilling errands on the way to class.
+                    You’ll receive 100 credits when you register. Use them for your first errand, and earn more by helping someone on your way to class.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Community Pillars */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="order-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/80 shadow-2xs space-y-1">
                 <div className="flex items-center gap-2 text-nus-blue font-bold text-xs">
                   <MapPin className="w-4 h-4 shrink-0 text-nus-blue" />
                   <span>Kent Ridge Hubs</span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   UTown, COM3, Science, The Deck, PGPR & more.
                 </p>
               </div>
@@ -186,7 +194,7 @@ export function AuthGatePage({
                   <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>Escrow Protected</span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   Credits released only after delivery is confirmed.
                 </p>
               </div>
@@ -195,7 +203,7 @@ export function AuthGatePage({
                   <Coins className="w-4 h-4 shrink-0 text-amber-600" />
                   <span>Zero Cash Hassle</span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-snug">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   Seamless student credit exchange and rewards.
                 </p>
               </div>
@@ -203,8 +211,8 @@ export function AuthGatePage({
           </div>
 
           {/* Right Column: Main Auth Card */}
-          <div className="lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-xl shadow-slate-200/80 border border-slate-200/90 p-6 sm:p-8 space-y-5">
+          <div className="order-3 lg:order-none lg:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
+            <div className="bg-white rounded-2xl shadow-card border border-slate-200 p-6 sm:p-8 space-y-5">
               {/* Segmented Mode Selector */}
               <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200/60">
                 <button
@@ -268,7 +276,7 @@ export function AuthGatePage({
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         disabled={isLoggingIn}
-                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition text-slate-900 placeholder:text-slate-400 shadow-inner"
+                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -289,7 +297,7 @@ export function AuthGatePage({
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         disabled={isLoggingIn}
-                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition text-slate-900 placeholder:text-slate-400 shadow-inner"
+                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-transparent transition text-slate-900 placeholder:text-slate-400"
                       />
                       <button
                         type="button"
@@ -315,14 +323,13 @@ export function AuthGatePage({
                       />
                       <span className="font-medium">Keep me logged in</span>
                     </label>
-                    <span className="text-slate-400 font-medium">Single Sign-On (SSO)</span>
                   </div>
 
                   {/* Submit CTA */}
                   <button
                     type="submit"
                     disabled={isLoggingIn}
-                    className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-2xl shadow-md hover:shadow-lg hover:shadow-orange-500/20 transition-all cursor-pointer active:scale-[0.99]"
+                    className="w-full flex items-center justify-center space-x-2 bg-campus-blue hover:bg-campus-blue-hover disabled:opacity-50 text-white font-semibold text-sm py-3 rounded-xl transition-all cursor-pointer active:scale-[0.99]"
                   >
                     {isLoggingIn && <RefreshCw className="w-4 h-4 animate-spin text-white" aria-hidden="true" />}
                     <span>{isLoggingIn ? 'Logging in...' : 'Log In'}</span>
@@ -372,7 +379,7 @@ export function AuthGatePage({
                         value={signupData.username}
                         onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
                         disabled={isSigningUp}
-                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400 shadow-inner"
+                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">1–50 alphanumeric characters or underscores.</p>
@@ -394,7 +401,7 @@ export function AuthGatePage({
                         value={signupData.email}
                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                         disabled={isSigningUp}
-                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400 shadow-inner"
+                        className="w-full pl-10 pr-3 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -417,7 +424,7 @@ export function AuthGatePage({
                         value={signupData.password}
                         onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                         disabled={isSigningUp}
-                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400 shadow-inner"
+                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                       />
                       <button
                         type="button"
@@ -448,7 +455,7 @@ export function AuthGatePage({
                         value={signupData.retypePassword}
                         onChange={(e) => setSignupData({ ...signupData, retypePassword: e.target.value })}
                         disabled={isSigningUp}
-                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400 shadow-inner"
+                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-nus-blue transition text-slate-900 placeholder:text-slate-400"
                       />
                       <button
                         type="button"
@@ -464,7 +471,7 @@ export function AuthGatePage({
                   <button
                     type="submit"
                     disabled={isSigningUp}
-                    className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-2xl shadow-md hover:shadow-lg hover:shadow-orange-500/20 transition-all cursor-pointer active:scale-[0.99]"
+                    className="w-full flex items-center justify-center space-x-2 bg-campus-blue hover:bg-campus-blue-hover disabled:opacity-50 text-white font-semibold text-sm py-3 rounded-xl transition-all cursor-pointer active:scale-[0.99]"
                   >
                     {isSigningUp && <RefreshCw className="w-4 h-4 animate-spin text-white" />}
                     <span>{isSigningUp ? 'Creating student profile…' : 'Complete Registration'}</span>

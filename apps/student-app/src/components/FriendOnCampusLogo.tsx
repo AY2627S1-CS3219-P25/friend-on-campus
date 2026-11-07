@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Present the supplied origami artwork as an unboxed mark with tighter framing; preserve the original favicon artwork.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
  * Author review: <to be completed by yanhwee>
  *
@@ -28,7 +32,7 @@ export function FriendOnCampusLogo({ className = 'w-9 h-9', size, ...props }: Fr
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
+      viewBox="8 8 48 48"
       width={size}
       height={size}
       fill="none"
@@ -36,7 +40,6 @@ export function FriendOnCampusLogo({ className = 'w-9 h-9', size, ...props }: Fr
       aria-hidden="true"
       {...props}
     >
-      <rect x="2" y="2" width="60" height="60" rx="16" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1.5" />
       <g>
         <path d="M14 35C14 24 22 17 34 16C26 21 24 26 25 33C21 33 17 34 14 35Z" fill="#93C5FD" opacity="0.6" />
         <path d="M18 41C18 29 27 21 42 19C33 26 31 32 32 40C27 40 22 41 18 41Z" fill="#2563EB" />

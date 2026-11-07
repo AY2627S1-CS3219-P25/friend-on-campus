@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized TasksPage with Direction A Warm Campus Mango theme: updated card hover border and title to warm orange, and empty state icon to warm amber tint.
  * Author review: <to be completed by yanhwee>
@@ -120,7 +128,7 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
     case 'ACCEPTED':
       return {
         text: side === 'accepted' ? 'Accepted · Head to the pickup spot' : 'Accepted · A courier is on it',
-        tone: 'text-nus-blue',
+        tone: 'text-campus-blue',
       };
     case 'IN_TRANSIT':
       return {
@@ -137,14 +145,14 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         text:
           side === 'posted'
             ? 'Completed · Delivery confirmed'
-            : `Completed · ${task.rewardCredits} credits are paid once Credit Service settles the escrow`,
+            : `Completed · ${task.rewardCredits}-credit reward`,
         tone: 'text-emerald-700',
       };
     case 'CANCELLED':
       return {
         text:
           side === 'posted'
-            ? 'Cancelled · Reserved credits are returned by Credit Service'
+            ? 'Cancelled · Reserved credits will be returned'
             : 'Cancelled · Order was cancelled before completion',
         tone: 'text-slate-500',
       };
@@ -210,16 +218,16 @@ export function TasksPage({
           <button
             type="button"
             onClick={() => setFilterView('all')}
-            className={`h-full px-3 sm:px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
+            className={`h-full px-3 sm:px-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
               filterView === 'all'
-                ? 'bg-white text-nus-blue shadow-xs'
+                ? 'bg-campus-blue-soft text-campus-blue'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>All</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                filterView === 'all' ? 'bg-blue-100/90 text-nus-blue' : 'bg-slate-200/70 text-slate-600'
+              className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                filterView === 'all' ? 'bg-blue-100/80 text-blue-700' : 'bg-slate-200/70 text-slate-600'
               }`}
             >
               {totalCount}
@@ -228,17 +236,17 @@ export function TasksPage({
           <button
             type="button"
             onClick={() => setFilterView('posted')}
-            className={`h-full px-3 sm:px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
+            className={`h-full px-3 sm:px-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
               filterView === 'posted'
-                ? 'bg-white text-nus-blue shadow-xs'
+                ? 'bg-campus-blue-soft text-campus-blue'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span className="hidden sm:inline">Posted by Me</span>
             <span className="sm:hidden">Posted</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                filterView === 'posted' ? 'bg-blue-100/90 text-nus-blue' : 'bg-slate-200/70 text-slate-600'
+              className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                filterView === 'posted' ? 'bg-blue-100/80 text-blue-700' : 'bg-slate-200/70 text-slate-600'
               }`}
             >
               {postedTasks.length}
@@ -247,16 +255,16 @@ export function TasksPage({
           <button
             type="button"
             onClick={() => setFilterView('accepted')}
-            className={`h-full px-3 sm:px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
+            className={`h-full px-3 sm:px-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
               filterView === 'accepted'
-                ? 'bg-white text-nus-blue shadow-xs'
+                ? 'bg-campus-blue-soft text-campus-blue'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Delivering</span>
             <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                filterView === 'accepted' ? 'bg-blue-100/90 text-nus-blue' : 'bg-slate-200/70 text-slate-600'
+              className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                filterView === 'accepted' ? 'bg-blue-100/80 text-blue-700' : 'bg-slate-200/70 text-slate-600'
               }`}
             >
               {acceptedTasks.length}
@@ -270,9 +278,9 @@ export function TasksPage({
             type="button"
             onClick={onRefreshOrders}
             disabled={ordersLoading}
-            className="h-11 min-h-0 inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+            className="h-11 min-h-0 inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 text-sm font-medium text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-campus-blue' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         )}
@@ -280,11 +288,11 @@ export function TasksPage({
 
       {/* Global Empty State (All view with 0 total errands) */}
       {totalCount === 0 && filterView === 'all' && (
-        <div className="rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
+        <div className="rounded-2xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
           <div className="h-12 w-12 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 mb-3 shadow-2xs">
             <Send className="h-5 w-5 text-orange-600" />
           </div>
-          <p className="font-extrabold text-slate-900 text-base">
+          <p className="font-semibold text-slate-900 text-base">
             No active errands yet
           </p>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-sm mx-auto">
@@ -298,9 +306,9 @@ export function TasksPage({
         <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 id={`tasks-${group.key}`} className="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <h3 id={`tasks-${group.key}`} className="text-base sm:text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <span>{group.title}</span>
-                <span className="text-xs font-extrabold bg-blue-50 text-nus-blue border border-blue-200/70 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-semibold bg-blue-50 text-campus-blue border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                   {group.tasks.length}
                 </span>
               </h3>
@@ -310,15 +318,15 @@ export function TasksPage({
 
           <div className="space-y-3">
             {group.tasks.length === 0 && (
-              <div className="rounded-3xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
+              <div className="rounded-2xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
                 <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3 shadow-2xs">
                   {group.key === 'posted' ? (
-                    <Send className="h-5 w-5 text-nus-blue" />
+                    <Send className="h-5 w-5 text-campus-blue" />
                   ) : (
                     <Truck className="h-5 w-5 text-nus-orange" />
                   )}
                 </div>
-                <p className="font-extrabold text-slate-800 text-sm">
+                <p className="font-semibold text-slate-800 text-sm">
                   No {group.key === 'posted' ? 'posted' : 'delivering'} errands yet.
                 </p>
                 <p className="text-xs text-slate-500 mt-1">{group.emptyCta}</p>
@@ -333,20 +341,20 @@ export function TasksPage({
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
+                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
                 >
                   {/* Top Line: Identifiers, Desktop Status & Action CTA */}
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-mono font-extrabold text-nus-blue bg-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
+                      <span className="text-xs font-mono font-semibold text-campus-blue bg-blue-50/90 border border-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
                         {task.orderCode}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
                         <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
                         <span>{task.rewardCredits} C</span>
                       </span>
                       {line && (
-                        <span className={`hidden sm:inline-flex text-xs font-bold ${line.tone} items-center gap-1.5 shrink-0`} title={line.text}>
+                        <span className={`hidden sm:inline-flex text-sm font-medium ${line.tone} items-center gap-1.5 shrink-0`} title={line.text}>
                           <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                           <span>{line.text}</span>
                         </span>
@@ -361,7 +369,7 @@ export function TasksPage({
                         event.preventDefault();
                         onOpenErrand(task.id);
                       }}
-                      className="inline-flex items-center gap-1 font-extrabold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
+                      className="inline-flex items-center gap-1 font-semibold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
                     >
                       <span>View details</span>
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -371,7 +379,7 @@ export function TasksPage({
                   {/* Mobile-only status line (dedicated row without orphan whitespace) */}
                   {line && (
                     <div className="sm:hidden flex items-center min-w-0 -mt-0.5">
-                      <span className={`text-xs font-bold ${line.tone} inline-flex items-center gap-1.5 truncate`} title={line.text}>
+                      <span className={`text-sm font-medium ${line.tone} inline-flex items-center gap-1.5 truncate`} title={line.text}>
                         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0" />
                         <span className="truncate">{line.text}</span>
                       </span>
@@ -382,7 +390,7 @@ export function TasksPage({
                   <div className="min-w-0">
                     <h4
                       title={task.itemDescription}
-                      className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug"
+                      className="text-sm sm:text-base font-semibold text-slate-900 group-hover:text-campus-blue transition-colors line-clamp-2 leading-snug"
                     >
                       {task.itemDescription}
                     </h4>
@@ -391,8 +399,8 @@ export function TasksPage({
                   {/* Bottom Line: Connected Route (with blue Pickup pin & orange Dropoff pin) & Notes */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
                     <div className="inline-flex items-center gap-1.5 min-w-0">
-                      <MapPin className="h-3.5 w-3.5 text-nus-blue shrink-0" />
-                      <span className="text-slate-400 font-semibold text-[11px] shrink-0">Pickup:</span>
+                      <MapPin className="h-3.5 w-3.5 text-campus-blue shrink-0" />
+                      <span className="text-slate-500 font-semibold text-xs shrink-0">Pickup:</span>
                       <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
                         {task.supplierName}
                       </span>
@@ -402,7 +410,7 @@ export function TasksPage({
 
                     <div className="inline-flex items-center gap-1.5 min-w-0">
                       <MapPin className="h-3.5 w-3.5 text-nus-orange shrink-0" />
-                      <span className="text-slate-400 font-semibold text-[11px] shrink-0">Dropoff:</span>
+                      <span className="text-slate-500 font-semibold text-xs shrink-0">Dropoff:</span>
                       <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
                         {task.dropoffLocation}
                       </span>
@@ -411,7 +419,7 @@ export function TasksPage({
                     {task.specialNotes && (
                       <>
                         <span className="text-slate-300 hidden sm:inline select-none">•</span>
-                        <span className="text-slate-500 italic text-[11px] break-words" title={task.specialNotes}>
+                        <span className="text-slate-500 italic text-xs break-words" title={task.specialNotes}>
                           Note: {task.specialNotes}
                         </span>
                       </>

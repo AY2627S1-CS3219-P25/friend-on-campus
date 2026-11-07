@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the soft blue-white campus canvas behind the existing app layout.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Preserve bottom-navigation clearance on tablet widths until the desktop header appears at 1024px.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Fixed mobile layout issue where fixed BottomNav was covering bottom content (e.g. Danger Zone / Delete Account on ProfilePage): replaced conflicting pb-8 on <main> with safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10.
  * Author review: <to be completed by yanhwee>
@@ -787,7 +795,7 @@ export default function App() {
   const page: StudentTab | null = focusOrderId ? null : activeTab;
 
   return (
-    <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
+    <div className="student-shell flex flex-col min-h-dvh w-full bg-campus-canvas text-slate-900 relative font-sans">
       <HeaderNav
         activeTab={activeTab}
         onSelectTab={selectTab}
@@ -809,7 +817,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="student-main flex-1 min-w-0 px-3.5 pt-3.5 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 md:pt-4 md:pb-10 lg:px-8">
+      <main className="student-main flex-1 min-w-0 px-3.5 pt-3.5 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 md:pt-4 lg:pb-10 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">
         {(submission.unconfirmed ||
           (submission.receipt && submission.receipt.status !== 'OPEN')) && (

@@ -1,6 +1,22 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Keep the full product name on one line at every viewport width and compact phone utilities to fit.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the unboxed origami mark and Manrope wordmark, blue page selection, and a coral Post action.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Improve desktop navigation labels and target sizes, clarify the credit balance, and retain mobile navigation below 1024px.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
  * Author review: <to be completed by yanhwee>
  *
@@ -123,23 +139,23 @@ export function HeaderNav({
   wsStatus,
 }: HeaderNavProps) {
   return (
-    <header className="bg-white/90 backdrop-blur-xl text-slate-800 px-3.5 py-2 sm:px-6 md:py-2.5 lg:px-8 sticky top-0 z-30 shadow-subtle border-b border-slate-200/80 transition-all">
+    <header className="bg-white/95 backdrop-blur-md text-slate-800 px-3.5 py-2 sm:px-6 md:py-2.5 lg:px-8 sticky top-0 z-30 shadow-subtle border-b border-slate-200/80 transition-all">
       <div className="student-header-row max-w-7xl mx-auto flex items-center justify-between">
         {/* Left Cluster: Brand + Divider + Primary Browsing Tabs (Option A) */}
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-3 xl:gap-6">
           <button
             type="button"
             onClick={() => onSelectTab('feed')}
-            className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
+            className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="Friend on Campus Home"
           >
-            <FriendOnCampusLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-subtle group-hover:scale-105 group-hover:shadow-card transition-all duration-200 shrink-0" />
+            <FriendOnCampusLogo className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 transition-transform duration-200 group-hover:-rotate-6" />
             <div>
               <div className="flex items-baseline gap-1 sm:gap-1.5">
                 {/* AI-generated (edited by yanhwee) */}
-                <span className="font-black text-sm sm:text-base lg:text-lg leading-tight tracking-tight text-slate-900 group-hover:text-nus-orange transition-colors">
-                  <span className="block sm:inline">Friend on</span>{' '}
-                  <span className="block sm:inline">Campus</span>
+                <span className="brand-wordmark whitespace-nowrap text-sm sm:text-lg xl:text-xl leading-tight">
+                  <span>Friend <span className="brand-connector">on</span></span>{' '}
+                  <span>Campus</span>
                 </span>
                 {showWsStatus && (
                   <span
@@ -155,49 +171,49 @@ export function HeaderNav({
           </button>
 
           {/* Subtle vertical divider between Brand and Primary Nav (desktop only) */}
-          <div className="hidden md:block h-6 w-px bg-slate-200/90" aria-hidden="true" />
+          <div className="hidden lg:block h-6 w-px bg-slate-200/90" aria-hidden="true" />
 
           {/* Desktop Top Navigation Bar (Errand Workspace, Left-Aligned) */}
           <nav
             aria-label="Main navigation"
-            className="student-top-nav hidden md:flex items-center gap-1 bg-slate-100/90 rounded-2xl p-1 border border-slate-200/80 shadow-2xs"
+            className="student-top-nav hidden lg:flex items-center gap-1 rounded-xl p-1"
           >
             <button
               aria-current={activeTab === 'feed' ? 'page' : undefined}
               onClick={() => onSelectTab('feed')}
-              className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+              className={`flex items-center space-x-1.5 h-11 min-h-0 px-3 xl:px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
                 activeTab === 'feed'
-                  ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60 scale-[1.02]'
+                  ? 'bg-campus-blue-soft text-campus-blue'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Compass className="w-3.5 h-3.5 stroke-[2.2]" />
-              <span>Feed</span>
+              <Compass className="w-4 h-4 stroke-[2.2]" />
+              <span>Browse</span>
             </button>
 
             <button
               aria-current={activeTab === 'spots' ? 'page' : undefined}
               onClick={() => onSelectTab('spots')}
-              className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+              className={`flex items-center space-x-1.5 h-11 min-h-0 px-3 xl:px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
                 activeTab === 'spots'
-                  ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60 scale-[1.02]'
+                  ? 'bg-campus-blue-soft text-campus-blue'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Store className="w-3.5 h-3.5 stroke-[2.2]" />
-              <span>Spots</span>
+              <Store className="w-4 h-4 stroke-[2.2]" />
+              <span>Places</span>
             </button>
 
             <button
               aria-current={activeTab === 'tasks' ? 'page' : undefined}
               onClick={() => onSelectTab('tasks')}
-              className={`flex items-center space-x-1.5 h-8 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+              className={`flex items-center space-x-1.5 h-11 min-h-0 px-3 xl:px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
                 activeTab === 'tasks'
-                  ? 'bg-white text-orange-600 shadow-sm border border-slate-200/60 scale-[1.02]'
+                  ? 'bg-campus-blue-soft text-campus-blue'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
+              <Clock className="w-4 h-4 stroke-[2.2]" />
               <span>My Errands</span>
             </button>
           </nav>
@@ -208,20 +224,20 @@ export function HeaderNav({
           {/* Desktop Primary Action CTA: Post Errand */}
           <button
             type="button"
-            aria-label="Post"
+            aria-label="Post errand"
             aria-current={activeTab === 'post' ? 'page' : undefined}
             onClick={() => onSelectTab('post')}
-            className={`hidden md:inline-flex items-center space-x-1.5 h-9 min-h-0 px-3.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs active:scale-95 ${
+            className={`hidden lg:inline-flex items-center space-x-1.5 h-11 min-h-0 px-4 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer shadow-xs active:scale-95 ${
               activeTab === 'post'
-                ? 'bg-gradient-to-r from-nus-orange to-orange-500 text-white shadow-orange-500/25 ring-2 ring-orange-200 scale-[1.02]'
-                : 'bg-nus-orange hover:bg-orange-600 text-white shadow-orange-500/15 hover:shadow-sm'
+                ? 'bg-campus-coral-hover text-campus-ink ring-2 ring-orange-200'
+                : 'bg-campus-coral hover:bg-campus-coral-hover text-campus-ink'
             }`}
           >
             <PlusCircle className="w-3.5 h-3.5 stroke-[2.4]" />
-            <span>Post</span>
+            <span>Post errand</span>
           </button>
 
-          <div className="hidden md:block h-5 w-px bg-slate-200 mx-0.5" aria-hidden="true" />
+          <div className="hidden lg:block h-5 w-px bg-slate-200 mx-0.5" aria-hidden="true" />
 
           {/* Interactive Wallet Balance Capsule (Available Spendable Balance) */}
           <button
@@ -229,34 +245,37 @@ export function HeaderNav({
             aria-label="Open wallet"
             aria-current={activeTab === 'wallet' ? 'page' : undefined}
             onClick={() => onSelectTab('wallet')}
-            className={`group flex items-center gap-1.5 sm:gap-2 h-9 min-h-0 px-2.5 sm:px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
+            className={`group flex items-center gap-1.5 sm:gap-2 h-11 min-h-0 px-2.5 sm:px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
               activeTab === 'wallet'
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-xs'
+                ? 'bg-amber-50 border-amber-300 text-amber-900'
                 : 'bg-white hover:bg-amber-50/40 border-slate-200/90 hover:border-amber-200 text-slate-800 shadow-subtle hover:shadow-card'
             }`}
           >
             <div
-              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
-                activeTab === 'wallet' ? 'bg-white/20' : 'bg-amber-100'
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg hidden min-[400px]:flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+                activeTab === 'wallet' ? 'bg-amber-100' : 'bg-amber-50'
               }`}
             >
               <Coins
                 className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
-                  activeTab === 'wallet' ? 'text-white fill-white/80' : 'text-amber-600 fill-amber-200'
+                  activeTab === 'wallet' ? 'text-amber-700' : 'text-amber-600'
                 }`}
               />
             </div>
             <span
-              className={`text-xs font-black tracking-tight ${
-                activeTab === 'wallet' ? 'text-white' : 'text-slate-900'
+              className={`text-xs sm:text-sm font-semibold tracking-tight ${
+                activeTab === 'wallet' ? 'text-amber-900' : 'text-slate-900'
               }`}
               aria-live="polite"
             >
-              {wallet
-                ? `${wallet.availableCredits} C`
-                : isLoadingCredits
-                ? 'Loading…'
-                : '0 C'}
+              {/* AI-generated (edited by yanhwee): keep the balance compact on phones and explicit on desktop. */}
+              {wallet || !isLoadingCredits ? (
+                <>
+                  {wallet?.availableCredits ?? 0}
+                  <span className="lg:hidden"> C</span>
+                  <span className="hidden lg:inline"> credits</span>
+                </>
+              ) : 'Loading…'}
             </span>
           </button>
 
@@ -277,13 +296,13 @@ export function HeaderNav({
             title="Profile"
             aria-current={activeTab === 'profile' ? 'page' : undefined}
             onClick={onOpenProfile}
-            className={`group hidden md:flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
+            className={`group hidden lg:flex items-center justify-center h-11 w-11 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
               activeTab === 'profile'
-                ? 'bg-orange-50 text-orange-600 border-orange-200 ring-2 ring-orange-500/20 shadow-2xs'
+                ? 'bg-campus-blue-soft text-campus-blue border-blue-200 ring-2 ring-blue-500/10 shadow-2xs'
                 : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-subtle hover:shadow-card'
             }`}
           >
-            <UserCircle className={`w-5 h-5 transition-colors ${activeTab === 'profile' ? 'text-orange-600' : 'text-slate-600 group-hover:text-slate-800'}`} />
+            <UserCircle className={`w-5 h-5 transition-colors ${activeTab === 'profile' ? 'text-campus-blue' : 'text-slate-600 group-hover:text-slate-800'}`} />
             <span className="sr-only">Profile</span>
           </button>
         </div>

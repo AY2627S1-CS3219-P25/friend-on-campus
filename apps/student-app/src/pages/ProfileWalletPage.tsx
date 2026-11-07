@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized container width (max-w-4xl) and action button dimensions (rounded-xl px-3 py-1.5 text-xs font-bold) across Student Profile and Credit Wallet to eliminate visual jump when switching tabs on PC view.
  * Author review: <to be completed by yanhwee>
@@ -9,7 +13,7 @@
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Eliminated phantom top margin on Student Profile view by isolating sr-only heading from space-y container, aligning NUS Student Pass flush with standard viewport padding.
+ * Scope: Eliminated phantom top margin on Student Profile view by isolating sr-only heading from space-y container, aligning NUS student account flush with standard viewport padding.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
@@ -29,7 +33,7 @@
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from NUS Student Pass card.
+ * Scope: Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from NUS student account card.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
@@ -37,7 +41,7 @@
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed redundant visible Student Profile heading in favor of sr-only accessible heading, bringing the NUS Student Pass card immediately above the fold.
+ * Scope: Removed redundant visible Student Profile heading in favor of sr-only accessible heading, bringing the NUS student account card immediately above the fold.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
@@ -53,7 +57,7 @@
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned NUS Student Pass card and Digital Wallet card in light elegant theme, updated action buttons to warm orange/light styles without dark button colors.
+ * Scope: Redesigned NUS student account card and Digital Wallet card in light elegant theme, updated action buttons to warm orange/light styles without dark button colors.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
@@ -135,7 +139,7 @@ export function ProfileWalletPage({
         <section aria-labelledby="profile-heading" className="space-y-4">
           {/* 1-Line Page Header matching Credit Wallet & Alerts */}
           <div className="flex items-center justify-between">
-            <h2 id="profile-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h2 id="profile-heading" className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
               Student Profile
             </h2>
             <button
@@ -155,8 +159,8 @@ export function ProfileWalletPage({
 
           <div className="space-y-4 sm:space-y-6">
             {isLoadingProfile && (
-            <div className="p-4 bg-nus-blue-50/80 border border-nus-blue-100 rounded-3xl text-nus-blue text-sm flex items-center gap-2.5 shadow-card">
-              <RefreshCw className="w-4 h-4 animate-spin text-nus-blue" />
+            <div className="p-4 bg-campus-blue-soft border border-blue-100 rounded-2xl text-campus-blue text-sm flex items-center gap-2.5 shadow-card">
+              <RefreshCw className="w-4 h-4 animate-spin text-campus-blue" />
               <span className="font-semibold">Loading profile details…</span>
             </div>
           )}
@@ -164,7 +168,7 @@ export function ProfileWalletPage({
           {profileError && (
             <div
               role="alert"
-              className="p-5 bg-rose-50 border border-rose-200 rounded-3xl text-rose-800 text-sm space-y-2 shadow-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              className="p-5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-sm space-y-2 shadow-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
             >
               <div>
                 <p className="font-bold">{profileError.code}</p>
@@ -184,7 +188,7 @@ export function ProfileWalletPage({
           )}
 
           {!profile && !isLoadingProfile && !profileError && (
-            <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-card text-center space-y-3">
+            <div className="bg-white rounded-2xl p-8 border border-slate-200/90 shadow-card text-center space-y-3">
               <p className="text-sm text-slate-600 font-medium">Profile data is not loaded yet.</p>
               {onRefreshProfile && (
                 <button
@@ -201,34 +205,29 @@ export function ProfileWalletPage({
 
           {profile && (
             <div className="space-y-6">
-              {/* Digital NUS Student Pass Card */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-slate-50/80 to-blue-50/60 p-6 sm:p-7 text-slate-900 shadow-card border border-slate-200/90">
-                {/* Background ambient lighting */}
-                <div className="absolute -right-8 -bottom-8 w-48 h-48 rounded-full bg-orange-300/15 blur-2xl pointer-events-none" />
-                <div className="absolute -left-8 -top-8 w-48 h-48 rounded-full bg-blue-400/15 blur-2xl pointer-events-none" />
-
+              {/* Digital NUS student account Card */}
+              <div className="relative overflow-hidden rounded-2xl bg-white p-6 sm:p-7 text-slate-900 shadow-card border border-slate-200/90">
                 <div className="relative z-10 space-y-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full bg-nus-orange animate-pulse" />
-                      <span className="text-xs font-black tracking-widest uppercase text-nus-blue flex items-center gap-1">
-                        NUS Student Pass
+                      <span className="text-xs font-semibold tracking-widest uppercase text-campus-blue flex items-center gap-1">
+                        NUS student account
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-nus-blue via-indigo-600 to-blue-500 p-0.5 shadow-md shrink-0">
-                      <div className="h-full w-full rounded-[14px] bg-white flex items-center justify-center text-nus-blue font-black text-2xl">
+                    <div className="h-16 w-16 rounded-2xl bg-campus-blue-soft p-0.5 shrink-0">
+                      <div className="h-full w-full rounded-[14px] bg-campus-blue-soft flex items-center justify-center text-campus-blue font-semibold text-2xl">
                         {profile.username.charAt(0).toUpperCase()}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-xl sm:text-2xl font-black text-slate-900 truncate">
+                      <h3 className="text-xl sm:text-2xl font-semibold text-slate-900 truncate">
                         {profile.username}
                       </h3>
                       <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5 truncate font-medium">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <Mail className="w-3.5 h-3.5 text-slate-500" />
                         <span>{profile.email}</span>
                       </p>
                     </div>
@@ -237,11 +236,11 @@ export function ProfileWalletPage({
               </div>
 
               {/* Account Details & Username Edit Form */}
-              <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-card space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <h3 className="font-black text-slate-900 text-base">Account Credentials</h3>
-                  <span className="text-xs text-slate-400 font-medium">
-                    Fields with <span className="text-rose-600 font-bold">*</span> are compulsory
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-card space-y-5">
+                <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900 text-base">Account Credentials</h3>
+                  <span className="text-xs text-slate-500 font-medium">
+                    Fields marked <span className="text-rose-600 font-bold">*</span> are required
                   </span>
                 </div>
 
@@ -254,7 +253,7 @@ export function ProfileWalletPage({
                     >
                       Username: <span className="text-rose-600">*</span>
                     </label>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-xs text-slate-500">
                       Must be 1-50 characters and unique (case-insensitive).
                     </p>
                     {updateProfileError && (
@@ -266,9 +265,9 @@ export function ProfileWalletPage({
                       value={isEditingProfile ? editUsernameDraft : profile.username}
                       disabled={!isEditingProfile || isUpdatingProfile}
                       onChange={(e) => onChangeUsernameDraft(e.target.value)}
-                      className={`w-full text-sm p-3 rounded-2xl border transition-all ${
+                      className={`w-full text-sm p-3 rounded-xl border transition-all ${
                         isEditingProfile
-                          ? 'border-nus-blue bg-white focus:ring-2 focus:ring-nus-blue/20 shadow-xs'
+                          ? 'border-blue-600 bg-white focus:ring-2 focus:ring-blue-500/20 shadow-xs'
                           : 'border-slate-200 bg-slate-50 text-slate-600'
                       }`}
                     />
@@ -282,7 +281,7 @@ export function ProfileWalletPage({
                     >
                       Email: <span className="text-rose-600">*</span>
                     </label>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-xs text-slate-500">
                       Read-only campus email address.
                     </p>
                     <input
@@ -290,7 +289,7 @@ export function ProfileWalletPage({
                       id="profile-email"
                       value={profile.email}
                       disabled
-                      className="w-full text-sm p-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
+                      className="w-full text-sm p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -301,7 +300,7 @@ export function ProfileWalletPage({
                     <button
                       type="button"
                       onClick={onStartEditingProfile}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs sm:text-sm rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-campus-blue hover:bg-campus-blue-hover text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow-subtle transition-all cursor-pointer active:scale-[0.99]"
                     >
                       Edit Username
                     </button>
@@ -319,7 +318,7 @@ export function ProfileWalletPage({
                         type="button"
                         onClick={onUpdateProfile}
                         disabled={isUpdatingProfile}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs sm:text-sm rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-60 cursor-pointer active:scale-[0.99]"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-campus-blue hover:bg-campus-blue-hover text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow-subtle transition-all disabled:opacity-60 cursor-pointer active:scale-[0.99]"
                       >
                         {isUpdatingProfile && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                         <span>{isUpdatingProfile ? 'Updating…' : 'Save Changes'}</span>
@@ -332,7 +331,7 @@ export function ProfileWalletPage({
           )}
 
           {/* Danger Zone: Collapsible/Isolated Account Deletion Card */}
-          <div className="rounded-3xl border border-rose-200 bg-rose-50/50 p-5 sm:p-6 space-y-3 shadow-card">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-5 sm:p-6 space-y-3 shadow-card">
             <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
               <ShieldAlert className="w-4 h-4 text-rose-600" />
               <span>Danger Zone: Account Deletion</span>
@@ -365,7 +364,7 @@ export function ProfileWalletPage({
         {/* Header & Refresh */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 id="credit-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h2 id="credit-heading" className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
               Credit Wallet
             </h2>
           </div>
@@ -377,14 +376,14 @@ export function ProfileWalletPage({
             aria-label="Refresh wallet"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer shrink-0"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoadingCredits ? 'animate-spin text-campus-blue' : ''}`} />
             <span>{creditError ? 'Retry' : 'Refresh'}</span>
           </button>
         </div>
 
         {isLoadingCredits && (
           <p role="status" className="text-xs sm:text-sm text-slate-500 flex items-center gap-2 font-medium">
-            <RefreshCw className="h-3.5 w-3.5 animate-spin text-nus-blue" />
+            <RefreshCw className="h-3.5 w-3.5 animate-spin text-campus-blue" />
             <span>Loading wallet and transactions…</span>
           </p>
         )}
@@ -392,7 +391,7 @@ export function ProfileWalletPage({
         {creditError && (
           <p
             role="alert"
-            className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-xs sm:text-sm text-rose-700 shadow-card"
+            className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs sm:text-sm text-rose-700 shadow-card"
           >
             {creditError}
           </p>
@@ -401,29 +400,29 @@ export function ProfileWalletPage({
         {wallet && (
           <div className="space-y-4 sm:space-y-5">
             {/* Compact Balance Card (~80px height) */}
-            <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-card border border-slate-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+            <div className="rounded-2xl bg-white p-4 sm:p-5 shadow-card border border-slate-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
               {/* Left: Spendable Balance & Active Orders */}
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0 shadow-2xs">
                   <Coins className="w-5 h-5 text-amber-600 fill-amber-200" />
                 </div>
                 <div>
-                  <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                  <span className="text-xs sm:text-xs font-semibold uppercase tracking-wider text-slate-500 block">
                     Available to spend
                   </span>
                   <div className="flex flex-wrap items-baseline gap-2.5 mt-0.5">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      <span className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">
                         {wallet.availableCredits}
                       </span>
-                      <span className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-wide">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-500 normal-case tracking-normal">
                         Credits
                       </span>
                     </div>
 
                     {wallet.escrowCredits > 0 && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold shadow-2xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                         <span>{wallet.escrowCredits} C in active orders</span>
                       </span>
                     )}
@@ -450,9 +449,9 @@ export function ProfileWalletPage({
 
               <div className="space-y-2.5">
                 {ledger.length === 0 && (
-                  <div className="rounded-3xl border-2 border-dashed border-slate-200 p-8 text-center bg-white/70 shadow-card">
+                  <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center bg-white/70 shadow-card">
                     <p className="text-sm font-bold text-slate-700">No credit transactions yet.</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       Post an errand or complete deliveries to view transactions.
                     </p>
                   </div>
@@ -493,7 +492,7 @@ export function ProfileWalletPage({
                   return (
                     <div
                       key={transaction.id}
-                      className="bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/90 shadow-card flex items-start justify-between gap-3 hover:shadow-card-hover transition-all"
+                      className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-card flex items-start justify-between gap-3 hover:shadow-card transition-all"
                     >
                       <div className="flex items-start gap-3 min-w-0">
                         <div
@@ -511,11 +510,11 @@ export function ProfileWalletPage({
                             {transaction.description}
                           </p>
                           <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                            <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
+                            <span className="text-xs font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
                               {transaction.transactionCode}
                             </span>
                             <time
-                              className="text-[10px] text-slate-400"
+                              className="text-xs text-slate-500"
                               dateTime={transaction.createdAt}
                             >
                               {new Date(transaction.createdAt).toLocaleString([], {
@@ -531,7 +530,7 @@ export function ProfileWalletPage({
 
                       <div className="shrink-0 text-right">
                         <span
-                          className={`text-sm sm:text-base font-black ${
+                          className={`text-sm sm:text-base font-semibold ${
                             incoming ? 'text-emerald-600' : 'text-amber-600'
                           }`}
                         >

@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-07
+// Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Google Antigravity Agent, date: 2026-11-07
 // Scope: Updated UD2 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
 // Author review: <to be completed by yanhwee>
@@ -367,15 +371,15 @@ const browser = await chromium.launch();
     await page.locator('input[type=password]').fill(PW);
     await page.locator('input[type=checkbox]').check();
     await page.getByRole('button', { name: 'Log In' }).click();
-    await page.getByRole('button', { name: 'Spots' }).waitFor();
+    await page.getByRole('button', { name: 'Places', exact: true }).waitFor();
     await shot(page, 'student-feed-mobile');
   });
   await step('US4', 'student (mobile): reload keeps the session', async () => {
     await page.reload();
-    await page.getByRole('button', { name: 'Spots' }).waitFor();
+    await page.getByRole('button', { name: 'Places', exact: true }).waitFor();
   });
   await step('US5', 'student (mobile): Spots tab shows the live supplier directory', async () => {
-    await page.getByRole('button', { name: 'Spots' }).click();
+    await page.getByRole('button', { name: 'Places', exact: true }).click();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     const txt = await page.locator('body').innerText();
     const m = txt.match(/(\d+)\s+Verified/);
@@ -394,7 +398,7 @@ const browser = await chromium.launch();
     return `${m[1]} spots match "print"`;
   });
   await step('US7', 'student (mobile): Post tab pre-selects a live supplier', async () => {
-    await page.getByRole('button', { name: 'Post' }).click();
+    await page.getByRole('button', { name: 'Post errand', exact: true }).click();
     await page.locator('select:visible').first().waitFor();
     const options = await page.locator('select:visible').first().locator('option').count();
     await shot(page, 'student-post-mobile');
@@ -426,9 +430,9 @@ const browser = await chromium.launch();
     await page.locator('input[type=email]').fill('bob@u.nus.edu');
     await page.locator('input[type=password]').fill(PW);
     await page.getByRole('button', { name: 'Log In' }).click();
-    await page.getByRole('button', { name: 'Spots' }).waitFor();
+    await page.getByRole('button', { name: 'Places', exact: true }).waitFor();
     await shot(page, 'student-feed-desktop');
-    await page.getByRole('button', { name: 'Spots' }).click();
+    await page.getByRole('button', { name: 'Places', exact: true }).click();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     await shot(page, 'student-spots-desktop');
   });
@@ -447,7 +451,7 @@ const browser = await chromium.launch();
     const markAll = page.getByRole('button', { name: 'Mark all as read' });
     if (await markAll.isEnabled()) await markAll.click();
     await page.waitForFunction(() => document.querySelectorAll('[data-testid=notification-badge]').length === 0);
-    await page.getByRole('button', { name: 'Feed' }).first().click();
+    await page.getByRole('button', { name: 'Browse', exact: true }).first().click();
     if (await page.getByTestId('notification-badge').count() > 0) throw new Error('badge shown with nothing unread');
     return 'connected, badge hidden';
   });
@@ -556,8 +560,8 @@ const browser = await chromium.launch();
     await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
     await alicePage.locator('input[type=password]').fill(PW);
     await alicePage.getByRole('button', { name: 'Log In' }).click();
-    await alicePage.getByRole('button', { name: 'Post' }).first().waitFor();
-    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().waitFor();
+    await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().click();
 
     await alicePage.locator('select:visible').first().waitFor();
     await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
@@ -650,7 +654,7 @@ const browser = await chromium.launch();
   });
 
   await lifecycleStep('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
-    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().click();
     await alicePage.locator('select:visible').first().waitFor();
     await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
     await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');

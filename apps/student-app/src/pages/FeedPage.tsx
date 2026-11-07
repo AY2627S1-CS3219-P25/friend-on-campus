@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align browsing filters with the royal-blue navigation identity.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized FeedPage with Direction A Warm Campus Mango theme: updated selected zone pills to warm orange tint, empty state illustration box to warm amber tint, and spinner to nus-orange.
  * Author review: <to be completed by yanhwee>
@@ -114,7 +122,8 @@ export function FeedPage({
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Filter errands by food, drink, location..."
+              aria-label="Search errands"
+              placeholder="Search errands"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               className="w-full h-11 pl-10 pr-9 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-nus-orange focus:border-nus-orange shadow-subtle hover:border-slate-300 transition text-slate-900 placeholder:text-slate-400"
@@ -133,7 +142,7 @@ export function FeedPage({
 
           <div className="flex items-center gap-2 shrink-0">
             <span className="h-11 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-2xl text-xs font-bold bg-white border border-slate-200/90 text-slate-700 shadow-2xs whitespace-nowrap">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
               <span>{filteredOrders.length} {filteredOrders.length === 1 ? 'errand' : 'errands'} open</span>
             </span>
             <div className="text-xs font-semibold text-slate-500 hidden md:block">
@@ -156,16 +165,17 @@ export function FeedPage({
                 key={zone}
                 type="button"
                 onClick={() => onSelectZone(zone)}
-                className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+                aria-pressed={isSelected}
+                className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-orange-50 text-orange-600 border border-orange-300 shadow-2xs'
-                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                    ? 'bg-campus-blue-soft text-campus-blue border border-blue-200'
+                    : 'bg-transparent text-slate-600 border border-transparent hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 <span>{zone}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isSelected ? 'bg-orange-100/90 text-orange-700' : 'bg-slate-100 text-slate-500'
+                  className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${
+                    isSelected ? 'bg-blue-100/80 text-campus-blue' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   {countInZone}
@@ -247,7 +257,7 @@ export function FeedPage({
               <button
                 type="button"
                 onClick={() => onSelectZone('ALL')}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-orange-700 hover:bg-orange-800 text-white shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 <Compass className="w-3.5 h-3.5" />
                 <span>Show All Campus Zones</span>

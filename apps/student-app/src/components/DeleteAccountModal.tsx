@@ -1,7 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned DeleteAccountModal with elevated dialog styling, rounded-3xl cards, tactile action buttons, and disclosure header.
+ * Scope: Redesigned DeleteAccountModal with elevated dialog styling, rounded-2xl cards, tactile action buttons, and disclosure header.
  * Author review: <to be completed by yanhwee>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
@@ -44,13 +48,13 @@ export function DeleteAccountModal({
     <>
       {showConfirmModal && (
         <div className="dialog-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4">
             <div className="flex items-center space-x-3 text-rose-600">
               <div className="w-11 h-11 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0 shadow-2xs">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-base text-slate-900">Delete Account</h3>
+                <h3 className="font-display font-semibold text-base text-campus-ink">Delete Account</h3>
                 <p className="text-xs text-slate-500 font-medium">This action is permanent</p>
               </div>
             </div>
@@ -93,7 +97,7 @@ export function DeleteAccountModal({
                 type="button"
                 disabled={!confirmed || isDeleting}
                 onClick={onConfirmDelete}
-                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-black text-xs px-4 py-2 rounded-xl shadow-sm transition cursor-pointer active:scale-[0.99]"
+                className="flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition cursor-pointer active:scale-[0.99]"
               >
                 {isDeleting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{isDeleting ? 'Deleting…' : 'Delete Account'}</span>
@@ -105,19 +109,19 @@ export function DeleteAccountModal({
 
       {showSuccessModal && (
         <div className="dialog-overlay fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4 text-center">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-100 space-y-4 text-center">
             <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shadow-2xs">
               <CheckCircle className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-black text-base text-slate-900">Account Deleted</h3>
+              <h3 className="font-display font-semibold text-base text-campus-ink">Account Deleted</h3>
               <p className="text-xs text-slate-500 mt-1 font-medium">
                 Your account has been permanently deleted.
               </p>
             </div>
             <button
               onClick={onReturnToLogin}
-              className="w-full bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white font-black text-xs sm:text-sm py-3 rounded-2xl shadow-md transition-all cursor-pointer active:scale-[0.99]"
+              className="w-full bg-campus-blue hover:bg-campus-blue-hover text-white font-semibold text-xs sm:text-sm py-3 rounded-2xl shadow-subtle transition-all cursor-pointer active:scale-[0.99]"
             >
               Return to Login
             </button>

@@ -1,5 +1,17 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align browsing filters with the royal-blue navigation identity.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align directory filters with the calmer feed controls and label search and selection states.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized SpotsPage with Direction A Warm Campus Mango theme: updated view switcher, category shortcut pills, and spot hover accents to warm orange.
  * Author review: <to be completed by yanhwee>
@@ -92,10 +104,11 @@ export function SpotsPage({
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search food, cafes, lockers, print hubs..."
+            aria-label="Search campus spots"
+              placeholder="Search food, cafes, lockers, print hubs..."
             value={supplierSearch}
             onChange={(e) => onChangeSearch(e.target.value)}
-            className="w-full h-11 pl-10 pr-9 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-nus-blue shadow-subtle hover:border-slate-300 transition-all text-slate-900 placeholder:text-slate-400"
+            className="w-full h-11 pl-10 pr-9 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-600 shadow-subtle hover:border-slate-300 transition-all text-slate-900 placeholder:text-slate-400"
           />
           {supplierSearch && (
             <button
@@ -111,8 +124,8 @@ export function SpotsPage({
 
         {/* Counter & View Mode Toggle Cluster */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <span className="h-11 inline-flex items-center text-xs bg-nus-blue-50 text-nus-blue border border-nus-blue-100 font-bold px-2.5 sm:px-3 rounded-2xl shadow-2xs gap-1.5 whitespace-nowrap">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="h-11 inline-flex items-center text-xs bg-campus-blue-soft text-campus-blue border border-blue-100 font-bold px-2.5 sm:px-3 rounded-2xl shadow-2xs gap-1.5 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-600" />
             <span>{filteredSuppliers.length} Verified</span>
           </span>
 
@@ -122,6 +135,7 @@ export function SpotsPage({
               type="button"
               onClick={() => setViewMode('list')}
               aria-label="List view"
+              aria-pressed={viewMode === 'list'}
               title="Directory list view"
               className={`h-full w-8 sm:w-8.5 min-h-0 rounded-xl flex items-center justify-center transition cursor-pointer ${
                 viewMode === 'list'
@@ -135,6 +149,7 @@ export function SpotsPage({
               type="button"
               onClick={() => setViewMode('grid')}
               aria-label="Grid view"
+              aria-pressed={viewMode === 'grid'}
               title="Card grid view"
               className={`h-full w-8 sm:w-8.5 min-h-0 rounded-xl flex items-center justify-center transition cursor-pointer ${
                 viewMode === 'grid'
@@ -160,10 +175,11 @@ export function SpotsPage({
               key={cat}
               type="button"
               onClick={() => onChangeSearch(cat === 'All' ? '' : cat)}
-              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+              aria-pressed={isSelected}
+              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
                 isSelected
-                  ? 'bg-orange-50 text-orange-600 border border-orange-300 shadow-2xs'
-                  : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
+                  ? 'bg-campus-blue-soft text-campus-blue border border-blue-200'
+                  : 'bg-transparent text-slate-600 border border-transparent hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               {cat}
@@ -176,7 +192,7 @@ export function SpotsPage({
       {isSuppliersLoading && (
         <div role="status" className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-slate-500 py-1 font-medium">
-            <RefreshCw className="w-4 h-4 animate-spin text-nus-blue" />
+            <RefreshCw className="w-4 h-4 animate-spin text-campus-blue" />
             <span>Loading campus spots...</span>
           </div>
           {viewMode === 'list' ? (
@@ -205,7 +221,7 @@ export function SpotsPage({
               {[1, 2, 3, 4, 5, 6].map((n) => (
                 <div
                   key={n}
-                  className="rounded-3xl p-5 bg-white border border-slate-200/90 shadow-card animate-pulse space-y-4"
+                  className="rounded-2xl p-5 bg-white border border-slate-200/90 shadow-card animate-pulse space-y-4"
                 >
                   <div className="flex justify-between items-center">
                     <div className="h-5 w-16 bg-slate-200 rounded-full" />
@@ -225,8 +241,8 @@ export function SpotsPage({
       {!isSuppliersLoading && (
         <>
           {filteredSuppliers.length === 0 ? (
-            <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-white/70 p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-2xl bg-nus-blue-50 border border-nus-blue-100 flex items-center justify-center text-nus-blue mb-3 shadow-2xs">
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/70 p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-2xl bg-campus-blue-soft border border-blue-100 flex items-center justify-center text-campus-blue mb-3 shadow-2xs">
                 <Store className="h-6 w-6" />
               </div>
               <p className="font-bold text-slate-800 text-base">No campus spots match your search.</p>
@@ -263,15 +279,15 @@ export function SpotsPage({
                   >
                     {/* Left Column: Icon + Name + Code + Location */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 group-hover:bg-orange-50 group-hover:text-campus-blue transition-colors">
                         <CategoryIcon className="w-4 h-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-orange-600 transition-colors truncate">
+                          <h4 className="font-bold text-sm sm:text-base text-slate-900 group-hover:text-campus-blue transition-colors truncate">
                             {s.name}
                           </h4>
-                          <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 font-semibold">
+                          <span className="text-xs font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 font-semibold">
                             {s.supplierCode}
                           </span>
                         </div>
@@ -285,7 +301,7 @@ export function SpotsPage({
                     {/* Right Column: Zone + Hours + Open Badge + CTA Button */}
                     <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                       <div className="flex items-center gap-1.5 sm:gap-2">
-                        <span className="text-xs font-bold text-nus-blue bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100 whitespace-nowrap">
+                        <span className="text-xs font-bold text-campus-blue bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100 whitespace-nowrap">
                           {s.campusZone}
                         </span>
 
@@ -297,16 +313,16 @@ export function SpotsPage({
                         )}
 
                         {!s.isActive ? (
-                          <span className="text-[11px] bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded-lg whitespace-nowrap">
+                          <span className="text-xs bg-rose-50 text-rose-700 border border-rose-200 font-bold px-2 py-0.5 rounded-lg whitespace-nowrap">
                             Unavailable
                           </span>
                         ) : openStatus === true ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-lg whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-lg whitespace-nowrap">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                             Open
                           </span>
                         ) : openStatus === false ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap">
                             Closed
                           </span>
                         ) : null}

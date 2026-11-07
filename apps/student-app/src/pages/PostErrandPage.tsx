@@ -1,5 +1,21 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Simplify the approved posting UX with essential fields first, optional disclosures, clearer labels and reservation/timing feedback, preserving the existing form contract and submission rules.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align the posting assistant controls with the refreshed blue action palette.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
  * Author review: <to be completed by yanhwee>
@@ -86,6 +102,7 @@ import {
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Coins,
   FileText,
@@ -147,17 +164,20 @@ interface QuickTemplate {
 const TEMPLATE_PROMPTS: QuickTemplate[] = [
   {
     label: '☕ TOMORO COFFEE',
-    prompt: 'Can someone buy 2 iced lattes from TOMORO COFFEE to COM3 Level 2 by 2pm? Offering 6 credits',
+    prompt: 'Can someone buy 2 iced lattes from TOMORO COFFEE to COM3 Level 2? Offering 6 credits',
   },
   {
     label: '🍱 A Hot Hideout',
-    prompt: 'Can someone get a mala bowl from A Hot Hideout to UTown Residence by 1pm? Offering 8 credits',
+    prompt: 'Can someone get a mala bowl from A Hot Hideout to UTown Residence? Offering 8 credits',
   },
   {
     label: '🍦 Smooy COM3',
     prompt: 'Can someone grab 1 frozen yogurt from Smooy to COM2 #02-04? Offering 5 credits',
   },
 ];
+
+// AI-generated (edited by yanhwee)
+const DISCLOSURE_SUMMARY = 'flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg text-sm text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden';
 
 export function PostErrandPage({
   formData,
@@ -198,6 +218,13 @@ export function PostErrandPage({
   const availableCredits = wallet ? wallet.availableCredits : null;
   const isOverdraw = availableCredits !== null && formData.rewardCredits > availableCredits;
   const isZeroBalance = availableCredits !== null && availableCredits <= 0;
+
+  // AI-generated (edited by yanhwee)
+  const durationLabel = !Number.isFinite(formData.durationMinutes)
+    ? 'Choose an acceptance window'
+    : formData.durationMinutes >= 60 && formData.durationMinutes % 60 === 0
+    ? `${formData.durationMinutes / 60} ${formData.durationMinutes === 60 ? 'hour' : 'hours'}`
+    : `${formData.durationMinutes} minutes`;
 
   // Suggested reward from the pickup store to the drop-off point (linear 5-70 credits over the NUS span).
   const pickupPoint = supplierPoint(selectedSupplier);
@@ -344,7 +371,11 @@ export function PostErrandPage({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <h2 className="sr-only">Post New Errand</h2>
+      {/* AI-generated (edited by yanhwee) */}
+      <header className="space-y-1">
+        <h2 className="text-xl sm:text-2xl font-semibold text-campus-ink">Post an errand</h2>
+        <p className="text-sm text-slate-600">What do you need, and where should we bring it?</p>
+      </header>
 
       {/* Backend / Network Submission Alerts */}
       {submissionError && !dismissError && (
@@ -380,30 +411,22 @@ export function PostErrandPage({
             <p className="font-bold text-sm text-amber-900">Submission confirmation pending</p>
             <p className="mt-0.5">
               Your errand request was sent, but the network connection was interrupted before receiving a receipt. Please
-              check your <strong>Tasks</strong> tab before attempting to post again to avoid duplicate orders.
+              check your <strong>My Errands</strong> tab before attempting to post again to avoid duplicate orders.
             </p>
           </div>
         </div>
       )}
 
-      {/* 1. Hero: Natural Errand Request & Smart Auto-fill */}
-      <section
-        aria-label="Smart Errand Request"
-        className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-orange-50/30 rounded-2xl border border-blue-200/80 p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover transition-all duration-300"
-      >
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            <span className="p-1 rounded-md bg-nus-orange/15 text-nus-orange border border-nus-orange/20 shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-            </span>
-            <span className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
-              Describe what you need
-            </span>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-nus-blue/10 text-nus-blue border border-nus-blue/20">
-              Smart Auto-fill
-            </span>
-          </div>
-
+      {/* AI-generated (edited by yanhwee): optional shortcut; the form below works independently. */}
+      <details className="group rounded-2xl border border-slate-200 bg-white px-4 sm:px-5">
+        <summary className={DISCLOSURE_SUMMARY}>
+          <Sparkles className="h-4 w-4 shrink-0 text-campus-blue" aria-hidden="true" />
+          <span className="flex-1 font-medium">Fill from a description</span>
+          <span className="text-xs text-slate-500">Optional</span>
+          <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="flex items-start justify-between gap-3 pb-3 pt-1">
+          <p className="text-sm text-slate-600">Describe your errand in a sentence. We’ll fill in the details for you to review.</p>
           {(assistantPrompt || extractedDraft) && (
             <button
               type="button"
@@ -414,27 +437,27 @@ export function PostErrandPage({
             </button>
           )}
         </div>
-
-        <div className="space-y-2.5">
+        <div className="space-y-2.5 pb-4 sm:pb-5">
           <textarea
             id="ai-assistant-prompt"
+            aria-label="Describe your errand for auto-fill"
             rows={2}
             value={assistantPrompt}
             onChange={(e) => setAssistantPrompt(e.target.value)}
             disabled={isExtracting || submissionBusy}
-            placeholder="e.g. Can someone buy 2 iced lattes from TOMORO COFFEE to COM2 #02-04 by 3pm? Offering 6 credits"
-            className="w-full text-xs sm:text-sm p-3 rounded-xl border border-blue-200/90 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none resize-none shadow-2xs transition-all"
+            placeholder="e.g. Two iced lattes from TOMORO COFFEE to COM2 #02-04, offering 6 credits"
+            className="w-full text-base sm:text-sm p-3 rounded-xl border border-blue-200/90 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none resize-none shadow-2xs transition-all"
           />
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-500">Quick ideas:</span>
+              <span className="text-xs font-bold text-slate-500">Quick ideas:</span>
               {TEMPLATE_PROMPTS.map((tmpl, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setAssistantPrompt(tmpl.prompt)}
-                  className="text-[11px] sm:text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+                  className="text-xs sm:text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all cursor-pointer"
                 >
                   {tmpl.label}
                 </button>
@@ -445,7 +468,7 @@ export function PostErrandPage({
               type="button"
               onClick={handleExtractDraft}
               disabled={isExtracting || !assistantPrompt.trim() || submissionBusy}
-              className="inline-flex items-center gap-1.5 bg-nus-orange hover:bg-orange-600 active:scale-95 text-white text-xs font-extrabold px-3.5 py-1.5 sm:py-2 rounded-xl shadow-xs hover:shadow-glow-orange transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-campus-blue hover:bg-campus-blue-hover active:scale-95 text-white text-xs font-semibold px-3.5 py-1.5 sm:py-2 rounded-xl shadow-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isExtracting ? (
                 <>
@@ -468,6 +491,11 @@ export function PostErrandPage({
             </div>
           )}
 
+        </div>
+      </details>
+
+      {/* 2. Structured Errand Form */}
+      <form ref={formRef} onSubmit={handleFormSubmit} noValidate={false} className="space-y-4">
           {appliedNotice && (
             <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
               <div className="flex items-center gap-2">
@@ -491,35 +519,55 @@ export function PostErrandPage({
             <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 shadow-2xs">
               <div className="font-bold flex items-center gap-1.5 text-amber-800">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Parser notice:</span>
+                <span>Please check these details:</span>
               </div>
               {extractedDraft.warnings.map((w, idx) => (
-                <div key={idx} className="pl-5 text-amber-800/90 text-[11px]">
+                <div key={idx} className="pl-5 text-amber-800/90 text-xs">
                   • {w}
                 </div>
               ))}
             </div>
           )}
-        </div>
-      </section>
 
-      {/* 2. Structured Errand Form */}
-      <form ref={formRef} onSubmit={handleFormSubmit} noValidate={false}>
         <fieldset
           disabled={submissionBusy}
           className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-4 sm:gap-5 items-start"
         >
-          {/* Main Details Card */}
-          <div className="min-w-0 bg-white/90 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 space-y-4 transition-all duration-300">
+          {/* AI-generated (edited by yanhwee): two concise groups keep the essential fields visible. */}
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-subtle space-y-6">
+            <section aria-labelledby="post-details-heading" className="space-y-4">
+              <h3 id="post-details-heading" className="flex items-center gap-2 text-base font-semibold text-campus-ink">
+                <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-campus-blue-soft text-xs text-campus-blue">1</span>
+                Errand details
+              </h3>
+            {/* Item Description */}
+            <div>
+              <label htmlFor="errand-item-description" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                <ShoppingBag className="w-4 h-4 text-campus-blue" />
+                <span>What do you need?</span>
+                <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                id="errand-item-description"
+                type="text"
+                required
+                maxLength={1000}
+                placeholder="e.g. Two iced lattes and a croissant"
+                value={formData.itemDescription}
+                onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
+                className="w-full text-base sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all shadow-2xs"
+              />
+            </div>
+
             {/* Pickup Spot Selector */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label htmlFor="errand-supplier-select" className="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                  <Store className="w-4 h-4 text-nus-blue" />
-                  <span>Pickup Store / Campus Spot</span>
+                <label htmlFor="errand-supplier-select" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-campus-blue" />
+                  <span>Pickup location</span>
                   <span className="text-rose-500 font-bold">*</span>
                 </label>
-                <span className="text-[11px] text-nus-blue font-bold bg-blue-50/80 px-2 py-0.5 rounded-full border border-blue-200/70">
+                <span className="text-xs text-campus-blue font-bold bg-blue-50/80 px-2 py-0.5 rounded-full border border-blue-200/70">
                   {activeSuppliers.length} active spots
                 </span>
               </div>
@@ -541,7 +589,7 @@ export function PostErrandPage({
                       });
                     }
                   }}
-                  className="flex-1 min-w-0 text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white font-medium focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
+                  className="flex-1 min-w-0 text-base sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white font-medium focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all shadow-2xs"
                 >
                   {activeSuppliers.length === 0 && (
                     <option value="">
@@ -559,16 +607,16 @@ export function PostErrandPage({
                   onClick={() => setIsPickupMapOpen(true)}
                   title="Pick a spot on the map"
                   aria-label="Pick a spot on the map"
-                  className="shrink-0 px-3 sm:px-3.5 rounded-xl border border-slate-300/80 bg-white text-slate-700 hover:bg-blue-50 hover:text-nus-blue hover:border-nus-blue/40 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-2xs"
+                  className="shrink-0 px-3 sm:px-3.5 rounded-xl border border-slate-300/80 bg-white text-slate-700 hover:bg-blue-50 hover:text-campus-blue hover:border-blue-300 flex items-center justify-center transition-all duration-200 cursor-pointer shadow-2xs"
                 >
                   <MapIcon className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
+              <div className="flex items-center justify-between text-xs text-slate-500 mt-1.5">
                 <span>
                   Campus Zone: <strong className="text-slate-800">{formData.campusZone || '—'}</strong>
                 </span>
-                <span>Exact location pinned automatically</span>
+
               </div>
               {selectedSupplier && (
                 <div
@@ -594,30 +642,17 @@ export function PostErrandPage({
               )}
             </div>
 
-            {/* Item Description */}
-            <div>
-              <label htmlFor="errand-item-description" className="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                <ShoppingBag className="w-4 h-4 text-nus-blue" />
-                <span>Item Description &amp; Order Details</span>
-                <span className="text-rose-500 font-bold">*</span>
-              </label>
-              <input
-                id="errand-item-description"
-                type="text"
-                required
-                maxLength={1000}
-                placeholder="e.g. 1x Cold Brew Coffee + 1x Croissant"
-                value={formData.itemDescription}
-                onChange={(e) => setFormData({ ...formData, itemDescription: e.target.value })}
-                className="w-full text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
-              />
-            </div>
-
+            </section>
+            <section aria-labelledby="post-delivery-heading" className="space-y-4 border-t border-slate-100 pt-5">
+              <h3 id="post-delivery-heading" className="flex items-center gap-2 text-base font-semibold text-campus-ink">
+                <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-campus-blue-soft text-xs text-campus-blue">2</span>
+                Delivery
+              </h3>
             {/* Drop-off Location */}
             <div>
-              <label htmlFor="errand-dropoff-location" className="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="errand-dropoff-location" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-nus-orange" />
-                <span>Drop-off Study Spot &amp; Visual Cue</span>
+                <span>Delivery location</span>
                 <span className="text-rose-500 font-bold">*</span>
               </label>
               <input
@@ -627,14 +662,21 @@ export function PostErrandPage({
                 pattern=".*\S.*"
                 title="Enter the exact drop-off address, e.g. room or table number"
                 maxLength={255}
-                placeholder="e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)"
+                placeholder="e.g. COM2, #02-04, near the lift"
                 value={formData.dropoffLocation}
                 onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
-                className="w-full text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all shadow-2xs"
+                className="w-full text-base sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all shadow-2xs"
               />
             </div>
 
-            {/* Drop-off Map Pin (optional; drives the suggested reward) */}
+              <details className="group border-t border-slate-100 pt-1">
+                <summary className={DISCLOSURE_SUMMARY}>
+                  <MapIcon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                  <span className="flex-1">{formData.dropoffPoint ? `Map pin: ${formData.dropoffPoint.buildingName ?? 'Selected on map'}` : 'Add a map pin for a reward suggestion'}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <div className="pb-2 pt-2">
+                  <p className="mb-3 text-xs text-slate-500">Optional. The pin helps suggest a reward; your delivery address above is still required.</p>
             <DropoffPicker
               value={formData.dropoffPoint}
               onChange={handleDropoffPointChange}
@@ -642,36 +684,53 @@ export function PostErrandPage({
               pickupName={selectedSupplier?.name}
             />
 
+                </div>
+              </details>
+              <details className="group border-t border-slate-100 pt-1">
+                <summary className={DISCLOSURE_SUMMARY}>
+                  <FileText className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                  <span className="flex-1">Additional instructions</span>
+                  <span className="text-xs text-slate-500">{formData.specialNotes.trim() ? 'Added' : 'Optional'}</span>
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <div className="pb-2 pt-2">
             {/* Special Notes */}
             <div>
-              <label htmlFor="errand-special-notes" className="block text-xs sm:text-sm font-extrabold text-slate-800 mb-1.5 flex items-center gap-1.5">
+              <label htmlFor="errand-special-notes" className="block text-xs sm:text-sm font-semibold text-slate-800 mb-1.5 flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-slate-500" />
-                <span>Special Delivery Notes (Optional)</span>
+                <span>Instructions for your courier</span>
               </label>
               <textarea
                 id="errand-special-notes"
                 rows={2}
                 maxLength={1000}
-                placeholder="e.g. Less ice, separate paper bag, PIN code for lockers"
+                placeholder="e.g. Less ice, or call when you arrive"
                 value={formData.specialNotes}
                 onChange={(e) => setFormData({ ...formData, specialNotes: e.target.value })}
-                className="w-full text-xs sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue outline-none transition-all resize-none shadow-2xs"
+                className="w-full text-base sm:text-sm p-2.5 sm:p-3 rounded-xl border border-slate-300/80 bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all resize-none shadow-2xs"
               />
             </div>
+                </div>
+              </details>
+            </section>
           </div>
 
           {/* Aside Section: Reward Credits, Duration Window, & Submit CTA */}
-          <aside aria-label="Reward and posting" className="min-w-0 space-y-4">
+          <aside aria-label="Reward and posting" className="min-w-0 space-y-4 lg:sticky lg:top-24">
             {/* Courier Reward Credits Card */}
-            <div className={`rounded-2xl p-4 sm:p-5 border shadow-subtle hover:shadow-card-hover transition-all duration-300 ${
+            <div className={`rounded-2xl p-4 sm:p-5 border shadow-subtle hover:shadow-card transition-all duration-300 ${
               isOverdraw
                 ? 'bg-rose-50/80 border-rose-300'
-                : 'bg-gradient-to-br from-amber-50/90 via-orange-50/70 to-amber-100/40 border-amber-200/90'
+                : 'bg-amber-50/60 border-amber-200'
             }`}>
+            <h3 className="flex items-center gap-2 mb-4 text-base font-semibold text-campus-ink">
+              <span aria-hidden="true" className="flex h-6 w-6 items-center justify-center rounded-full bg-campus-blue-soft text-xs text-campus-blue">3</span>
+              Reward &amp; posting
+            </h3>
               <div className="flex items-center justify-between mb-3">
-                <label htmlFor="errand-reward-credits-input" className="text-xs sm:text-sm font-black text-amber-950 flex items-center gap-1.5">
+                <label htmlFor="errand-reward-credits-input" className="text-xs sm:text-sm font-semibold text-amber-950 flex items-center gap-1.5">
                   <Coins className="w-4 h-4 fill-amber-500/30 text-amber-700" />
-                  <span>Courier Reward</span>
+                  <span>Reward for your courier</span>
                 </label>
               </div>
 
@@ -688,7 +747,7 @@ export function PostErrandPage({
                       rewardEdited: true,
                     }))
                   }
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-black text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-semibold text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                 >
                   -
                 </button>
@@ -709,7 +768,7 @@ export function PostErrandPage({
                         rewardEdited: true,
                       }))
                     }
-                    className={`reward-input w-full rounded-xl border bg-white py-2 sm:py-2.5 px-3 text-center font-black text-lg sm:text-xl shadow-inner outline-none transition-all ${
+                    className={`reward-input w-full rounded-xl border bg-white py-2 sm:py-2.5 px-3 text-center font-semibold text-lg sm:text-xl shadow-inner outline-none transition-all ${
                       isOverdraw
                         ? 'border-rose-400 text-rose-700 focus:ring-4 focus:ring-rose-200'
                         : 'border-amber-300 text-amber-950 focus:ring-4 focus:ring-amber-500/20'
@@ -733,7 +792,7 @@ export function PostErrandPage({
                       rewardEdited: true,
                     }))
                   }
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-black text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-200/80 hover:bg-amber-300 active:scale-95 text-amber-950 font-semibold text-base flex items-center justify-center transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                 >
                   +
                 </button>
@@ -746,7 +805,7 @@ export function PostErrandPage({
                 >
                   <Navigation className="w-3.5 h-3.5 shrink-0 text-amber-600" />
                   <span className="min-w-0 font-medium">
-                    Suggested <strong className="font-extrabold">{suggestedReward} C</strong> &middot; {suggestedDistanceKm.toFixed(2)} km from{' '}
+                    Suggested <strong className="font-semibold">{suggestedReward} C</strong> &middot; {suggestedDistanceKm.toFixed(2)} km from{' '}
                     {selectedSupplier?.name}
                   </span>
                 </div>
@@ -759,8 +818,7 @@ export function PostErrandPage({
               )}
 
               {/* Quick Presets */}
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-bold text-amber-900">Quick set:</span>
+              <div role="group" aria-label="Quick reward amounts" className="mt-3 flex flex-wrap items-center gap-1.5">
                 {[3, 5, 8, 15].map((amt) => (
                   <button
                     key={amt}
@@ -769,7 +827,7 @@ export function PostErrandPage({
                     disabled={availableCredits !== null && amt > availableCredits}
                     className={`text-xs px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
                       formData.rewardCredits === amt
-                        ? 'bg-amber-600 text-white shadow-xs'
+                        ? 'bg-amber-100 text-amber-950 border border-amber-300'
                         : 'bg-white/90 hover:bg-white text-amber-900 border border-amber-200/80 disabled:opacity-30 disabled:cursor-not-allowed shadow-2xs'
                     }`}
                   >
@@ -818,21 +876,21 @@ export function PostErrandPage({
                   </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-amber-800/80 mt-2.5 font-medium">
-                  Available: <strong className="text-amber-950 font-bold">{availableCredits !== null ? `${availableCredits} C` : '—'}</strong> (held safely in escrow)
+                <p className="text-xs text-amber-800/80 mt-2.5 font-medium">
+                  Available: <strong className="text-amber-950 font-semibold">{availableCredits !== null ? `${availableCredits} credits` : 'Loading…'}</strong>
                 </p>
               )}
             </div>
 
-            {/* Acceptance Duration Window Card */}
-            <div className="bg-white/80 backdrop-blur-md border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-subtle hover:shadow-card-hover transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="duration-minutes-input" className="text-xs sm:text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  <span>Acceptance Window</span>
-                </label>
-                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">Auto-expiry</span>
-              </div>
+            <details className="group rounded-2xl border border-slate-200 bg-white px-4 sm:px-5">
+              <summary className={DISCLOSURE_SUMMARY}>
+                <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+                <span className="flex-1">{Number.isFinite(formData.durationMinutes) ? `Accept within ${durationLabel}` : 'Set an acceptance window'}</span>
+                <span className="text-xs text-campus-blue">Change</span>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <div className="space-y-2 pb-4 pt-2">
+                <label htmlFor="duration-minutes-input" className="block text-sm font-medium text-slate-700">Time to find a courier</label>
               <div className="flex items-center gap-2">
                 <input
                   id="duration-minutes-input"
@@ -849,24 +907,32 @@ export function PostErrandPage({
                       durationMinutes: event.target.valueAsNumber,
                     }))
                   }
-                  className="w-24 rounded-xl border border-slate-300/80 bg-white px-3 py-2 text-center font-extrabold text-slate-800 shadow-inner outline-none focus:ring-4 focus:ring-nus-blue/10 focus:border-nus-blue text-sm"
+                  className="w-24 rounded-xl border border-slate-300/80 bg-white px-3 py-2 text-center font-semibold text-slate-800 shadow-inner outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 text-base sm:text-sm"
                 />
                 <span className="text-xs font-semibold text-slate-600">minutes (30m – 24h)</span>
               </div>
-            </div>
+                <p className="text-xs leading-relaxed text-slate-500">Your errand expires if nobody accepts in this time. This is not a delivery deadline.</p>
+              </div>
+            </details>
 
             {/* Dynamic Submit Button with Multi-State Feedback */}
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-3 pt-1">
+              {Number.isFinite(formData.rewardCredits) && formData.rewardCredits > 0 && !isOverdraw && (
+                <p className="text-sm leading-relaxed text-slate-600">Posting will reserve <strong className="font-semibold text-campus-ink">{formData.rewardCredits} credits</strong> for this errand.</p>
+              )}
+              {(!formData.itemDescription.trim() || !formData.dropoffLocation.trim()) && (
+                <p className="text-xs text-slate-500">Add what you need and a delivery location to post.</p>
+              )}
               {submissionPosting && (
                 <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex items-center gap-2 font-medium">
                   <RefreshCw className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                  <span>Step 1/2: Submitting errand to campus network…</span>
+                  <span>Posting your errand…</span>
                 </div>
               )}
               {submissionBusy && !submissionPosting && (
                 <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2 font-medium">
                   <RefreshCw className="w-3.5 h-3.5 text-amber-600 animate-spin" />
-                  <span>Step 2/2: Reserving {formData.rewardCredits} credits in escrow saga…</span>
+                  <span>Reserving {formData.rewardCredits} credits for this errand…</span>
                 </div>
               )}
 
@@ -882,7 +948,7 @@ export function PostErrandPage({
                   !formData.itemDescription.trim() ||
                   !formData.dropoffLocation.trim()
                 }
-                className="w-full bg-nus-orange hover:bg-orange-600 active:scale-98 disabled:bg-slate-300 text-white font-extrabold text-sm py-3.5 px-4 rounded-2xl shadow-md hover:shadow-glow-orange transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                className="w-full bg-campus-coral hover:bg-campus-coral-hover active:scale-98 disabled:bg-slate-300 text-campus-ink font-semibold text-sm py-3.5 px-4 rounded-xl shadow-subtle transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 {submissionPosting ? (
                   <>
@@ -1007,7 +1073,7 @@ function ClosedStoreDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className="bg-nus-orange hover:bg-orange-600 text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
+            className="bg-campus-blue hover:bg-campus-blue-hover text-white font-bold text-sm px-4 py-2 rounded-lg shadow"
           >
             Post anyway
           </button>
