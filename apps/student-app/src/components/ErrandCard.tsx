@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact high-density feed cards: streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned ErrandCard with visual connected route timeline, glowing credit reward pills, and tactile hover feedback.
  * Author review: <to be completed by yanhwee>
@@ -75,7 +79,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
   const expiry = getRelativeExpiry(order.expiresAt);
 
   return (
-    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-1 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
+    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
         <div className="flex items-start justify-between gap-2">
@@ -86,7 +90,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           </span>
           {/* The estimate sits on its own line under the pill so it never widens the pill and squeezes the zone. */}
           <div className="flex flex-col items-end gap-0.5 shrink-0">
-            <div className="inline-flex items-center gap-1.5 text-amber-900 font-black text-xs bg-gradient-to-r from-amber-100 via-orange-100/90 to-amber-50 px-3 py-1 rounded-full border border-amber-300/80 shadow-2xs whitespace-nowrap">
+            <div className="inline-flex items-center gap-1.5 text-amber-900 font-black text-xs bg-gradient-to-r from-amber-100 via-orange-100/90 to-amber-50 px-2.5 py-1 rounded-full border border-amber-300/80 shadow-2xs whitespace-nowrap">
               <Coins className="w-3.5 h-3.5 text-amber-600 fill-amber-300 shrink-0" />
               <span>+{order.rewardCredits} Credits</span>
             </div>
@@ -99,7 +103,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
         {/* Item Title */}
         <h3
           title={order.itemDescription}
-          className="font-bold text-slate-900 text-base mt-3 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
+          className="font-bold text-slate-900 text-sm sm:text-base mt-2.5 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
         >
           {order.itemDescription}
         </h3>
@@ -109,31 +113,21 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           <ExpandableNotes notes={order.specialNotes} />
         </div>
 
-        {/* Route Card (Pickup -> Dropoff) */}
-        <div className="mt-3.5 bg-slate-50/90 rounded-xl p-3 border border-slate-100 space-y-2 text-xs relative overflow-hidden">
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-100 text-nus-blue border border-blue-200">
-              <MapPin className="w-3 h-3" />
-            </span>
-            <span className="font-bold text-slate-500 shrink-0">Pickup:</span>
-            <span className="font-semibold text-slate-800 truncate" title={order.supplierName}>
-              {order.supplierName}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-orange-100 text-nus-orange border border-orange-200">
-              <ArrowRight className="w-3 h-3" />
-            </span>
-            <span className="font-bold text-slate-500 shrink-0">Dropoff:</span>
-            <span className="font-semibold text-slate-800 truncate" title={order.dropoffLocation}>
-              {order.dropoffLocation}
-            </span>
-          </div>
+        {/* Compact Connected Route (Pickup -> Dropoff) */}
+        <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50/90 px-2.5 py-1.5 rounded-xl border border-slate-100/90">
+          <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
+          <span className="font-semibold text-slate-800 truncate" title={order.supplierName}>
+            {order.supplierName}
+          </span>
+          <ArrowRight className="h-3 w-3 text-slate-400 shrink-0 mx-0.5" />
+          <span className="font-semibold text-slate-800 truncate" title={order.dropoffLocation}>
+            {order.dropoffLocation}
+          </span>
         </div>
       </div>
 
       {/* Footer: Expiration & Action CTA */}
-      <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+      <div className="mt-3 flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs">
         {/* AI-generated (edited by jagdeepsh) */}
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition min-w-0 ${

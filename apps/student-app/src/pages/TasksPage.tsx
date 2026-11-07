@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact high-density task cards: inlined order code and reward badges, single-line connected route snippet, removed redundant list-view progress stepper, tightened card padding.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed internal backend microservice references (Credit Service) in favor of clear consumer wallet language.
  * Author review: <to be completed by yanhwee>
  *
@@ -58,7 +62,7 @@
 // AI-generated (edited by Reallyeasy1)
 
 import { useState } from 'react';
-import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
+import { OrderDTO } from '@campus-errand/common-dtos';
 import { ArrowRight, Coins, MapPin, RefreshCw, Send, Truck } from 'lucide-react';
 import { ExpandableNotes } from '../components/ExpandableNotes';
 import { statusBadgeClasses } from '../errand/details';
@@ -119,26 +123,6 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
       };
     case 'DISPUTED':
       return { text: 'Disputed · An admin is reviewing this errand', tone: 'text-rose-700' };
-  }
-}
-
-/** Returns the active milestone index (0 to 4) for normal lifecycle */
-function getProgressStep(status: OrderStatus): number {
-  switch (status) {
-    case 'PENDING':
-      return 0;
-    case 'OPEN':
-      return 1;
-    case 'ACCEPTED':
-      return 2;
-    case 'IN_TRANSIT':
-      return 3;
-    case 'DELIVERED':
-      return 4;
-    case 'COMPLETED':
-      return 5;
-    default:
-      return -1;
   }
 }
 
@@ -262,99 +246,65 @@ export function TasksPage({
 
             {group.tasks.map((task) => {
               const line = statusLine(task, group.key);
-              const stepIndex = getProgressStep(task.status);
-              const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED', 'DISPUTED'].includes(
-                task.status
-              );
 
               return (
                 <article
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative flex flex-col justify-between bg-white/85 backdrop-blur-md rounded-3xl p-5 sm:p-6 shadow-card hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/40 hover:-translate-y-1 transition-all duration-300 focus-within:ring-2 focus-within:ring-nus-orange"
+                  className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-4.5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
                 >
-                  <div className="space-y-3.5">
-                    {/* Top Order Code & Status Badge */}
-                    <div className="flex flex-wrap justify-between items-center gap-2">
-                      <span className="text-xs font-mono font-extrabold text-nus-blue bg-nus-blue-50/90 border border-nus-blue-100 px-2.5 py-1 rounded-lg shadow-2xs">
-                        {task.orderCode}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-xs font-extrabold px-3 py-1 rounded-full shadow-2xs ${statusBadgeClasses(
-                            task.status
-                          )}`}
-                        >
-                          {task.status.replace(/_/g, ' ')}
+                  <div>
+                    {/* Top Order Code, Reward & Status Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-mono font-extrabold text-nus-blue bg-nus-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
+                          {task.orderCode}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
+                          <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                          <span>{task.rewardCredits} C</span>
                         </span>
                       </div>
+                      <span
+                        className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full shadow-2xs shrink-0 ${statusBadgeClasses(
+                          task.status
+                        )}`}
+                      >
+                        {task.status.replace(/_/g, ' ')}
+                      </span>
                     </div>
 
                     {/* Item Description */}
                     <h4
                       title={task.itemDescription}
-                      className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
+                      className="text-sm font-extrabold text-slate-900 mt-2.5 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
                     >
                       {task.itemDescription}
                     </h4>
 
-                    {/* Reward Badge */}
-                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-800 bg-amber-50/90 px-3 py-1.5 rounded-xl border border-amber-200/90 w-fit shadow-2xs">
-                      <Coins className="h-4 w-4 text-amber-500 fill-amber-400" />
-                      <span>{task.rewardCredits} credits reward</span>
-                    </div>
-
                     {/* Special Notes */}
-                    <div className="pt-0.5">
+                    <div className="mt-1">
                       <ExpandableNotes notes={task.specialNotes} />
                     </div>
 
-                    {/* Route Details */}
-                    <div className="bg-slate-50/90 rounded-2xl p-3 border border-slate-100 space-y-2 text-xs shadow-2xs">
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-blue-100/80 text-nus-blue">
-                          <MapPin className="h-3 w-3" />
-                        </span>
-                        <span className="font-bold text-slate-400 shrink-0">Pickup:</span>
-                        <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
-                          {task.supplierName}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-orange-100/80 text-nus-orange">
-                          <ArrowRight className="h-3 w-3" />
-                        </span>
-                        <span className="font-bold text-slate-400 shrink-0">Dropoff:</span>
-                        <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
-                          {task.dropoffLocation}
-                        </span>
-                      </div>
+                    {/* Compact Connected Route */}
+                    <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50/90 px-2.5 py-1.5 rounded-xl border border-slate-100/90">
+                      <MapPin className="h-3.5 w-3.5 text-nus-blue shrink-0" />
+                      <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
+                        {task.supplierName}
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-slate-400 shrink-0 mx-0.5" />
+                      <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
+                        {task.dropoffLocation}
+                      </span>
                     </div>
-
-                    {/* Visual Milestone Stepper for Active Tasks */}
-                    {stepIndex >= 0 && !isTerminal && (
-                      <div className="pt-1.5">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1.5 px-0.5">
-                          <span className={stepIndex >= 1 ? 'text-nus-blue font-extrabold' : ''}>Open</span>
-                          <span className={stepIndex >= 2 ? 'text-nus-blue font-extrabold' : ''}>Accepted</span>
-                          <span className={stepIndex >= 3 ? 'text-nus-blue font-extrabold' : ''}>En Route</span>
-                          <span className={stepIndex >= 4 ? 'text-nus-blue font-extrabold' : ''}>Delivered</span>
-                        </div>
-                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                          <div
-                            className="bg-gradient-to-r from-nus-blue to-indigo-600 transition-all duration-300 rounded-full shadow-2xs"
-                            style={{ width: `${Math.min(100, Math.max(15, (stepIndex / 4) * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Card Footer: Status Copy & View Details Link */}
-                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
                     {line ? (
-                      <p className={`text-xs font-bold ${line.tone} line-clamp-1`}>{line.text}</p>
+                      <p className={`font-bold ${line.tone} truncate`}>{line.text}</p>
                     ) : (
                       <span />
                     )}
@@ -368,10 +318,10 @@ export function TasksPage({
                         event.preventDefault();
                         onOpenErrand(task.id);
                       }}
-                      className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-3.5 py-2 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-3xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all"
+                      className="inline-flex items-center gap-1 font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0"
                     >
                       <span>View details</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </a>
                   </div>
                 </article>

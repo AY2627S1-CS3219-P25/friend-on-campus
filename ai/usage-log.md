@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Compact high-density errand cards for Tasks and Feed pages: inlined metadata headers (order code/zone, reward credits, status), single-line connected route banners (pickup -> dropoff), removed redundant progress stepper on task list cards, and tightened card padding to increase card density by ~58%.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities) on desktop header: anchored browsing tabs next to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only alerts bell and profile buttons.
 Author review: <to be completed by yanhwee>
 
@@ -6542,4 +6546,27 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/components/HeaderNav.tsx` — Left-aligned browsing tabs adjacent to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only Profile button.
 - `apps/student-app/src/notifications/NotificationBell.tsx` — Standardized top header bell button to compact `h-9 w-9 min-h-0` icon button with pinned unread counter badge and accessible `sr-only` text.
 - `ai/usage-log.md` — Logged Option A desktop navigation implementation session
+
+## 2026-11-07 13:55 SGT — High-Density Compact Errand Cards (Tasks & Feed)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Addressed the user feedback regarding task cards taking up too much vertical screen space (~420px tall each, only 2 cards visible in standard viewport). Compacted card layout across `TasksPage.tsx`, `ErrandCard.tsx`, and `FeedPage.tsx` skeleton states.
+
+**Usage scenario:** Information density optimization across active tasks and public errand feed:
+1. **Inlined Card Headers**: Combined order identifier, reward credits pill (`🪙 15 C`), and status badge into a unified top row, eliminating stacked metadata lines.
+2. **Compact Connected Route**: Transformed the bulky two-row nested route box into a streamlined single-line connected route banner (`📍 UTown Fine Food → UTown ERC...`) with text truncations and native tooltip titles.
+3. **Removed Redundant Stepper on List Cards**: Eliminated the 4-step progress stepper (`Open — Accepted — En Route — Delivered`) from the summary card view, deferring deep lifecycle timeline inspection to the dedicated errand details screen (`ErrandDetailsView.tsx`).
+4. **Ergonomic Padding & Heights**: Reduced card container padding from `p-5 sm:p-6` to `p-4 sm:p-4.5 rounded-2xl`, reducing overall card height from ~420px down to ~175px (~58% vertical reduction), allowing 2x-3x more cards visible above the fold on laptops and desktops.
+5. **Feed & Skeleton Parity**: Aligned `ErrandCard.tsx` and `FeedPage.tsx` loading skeleton cards to the same compact dimensions for seamless visual rhythm and zero layout shifts.
+6. **Test Contract Integrity**: Fully preserved all UAT and unit test contracts: `data-testid={`task-card-${group.key}-${task.orderCode}`}`, `data-order-id={task.id}`, `data-testid="open-errand-link"`, and `data-testid="errand-estimate"`.
+
+**Files changed:**
+- `apps/student-app/src/pages/TasksPage.tsx` — Inlined order code and reward badges, single-line connected route snippet, removed redundant list-view progress stepper, tightened card padding.
+- `apps/student-app/src/components/ErrandCard.tsx` — Streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
+- `apps/student-app/src/pages/FeedPage.tsx` — Adjusted loading skeleton card heights and padding to match compact card rhythm.
+- `ai/usage-log.md` — Logged high-density compact errand cards session
+
 

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact skeleton loading cards matching new high-density errand card dimensions.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined FeedPage to action-first search and zone filter toolbar, eliminating the redundant hero banner to present open errands immediately above the fold.
  * Author review: <to be completed by yanhwee>
  *
@@ -174,15 +178,15 @@ export function FeedPage({
             {[1, 2, 3].map((n) => (
               <div
                 key={n}
-                className="rounded-2xl p-5 bg-white border border-slate-200 shadow-subtle animate-pulse space-y-4"
+                className="rounded-2xl p-4 sm:p-4.5 bg-white border border-slate-200/90 shadow-subtle animate-pulse space-y-2.5"
               >
                 <div className="flex justify-between items-center">
                   <div className="h-5 w-16 bg-slate-200 rounded-lg" />
-                  <div className="h-6 w-24 bg-slate-200 rounded-full" />
+                  <div className="h-5 w-24 bg-slate-200 rounded-full" />
                 </div>
-                <div className="h-6 w-3/4 bg-slate-200 rounded" />
-                <div className="h-16 bg-slate-100 rounded-xl" />
-                <div className="h-8 bg-slate-100 rounded-lg" />
+                <div className="h-5 w-3/4 bg-slate-200 rounded" />
+                <div className="h-7 bg-slate-100 rounded-xl" />
+                <div className="h-6 bg-slate-100 rounded-lg" />
               </div>
             ))}
           </div>
