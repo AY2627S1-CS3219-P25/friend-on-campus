@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Restored clean 1-line Campus Alerts page title header without redundant multi-line subtitle copy, eliminating phantom space-y margin and anchoring the notifications view with consistent typography.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed visual Campus Alerts title banner and subtitle in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold.
  * Author review: <to be completed by yanhwee>
  *
@@ -52,8 +56,12 @@ interface AlertsPageProps {
 
 export function AlertsPage(props: AlertsPageProps) {
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="sr-only">Campus Alerts</h2>
+    <div className="space-y-3 sm:space-y-4">
+      <div>
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+          Campus Alerts
+        </h2>
+      </div>
       <NotificationPanel {...props} />
     </div>
   );
