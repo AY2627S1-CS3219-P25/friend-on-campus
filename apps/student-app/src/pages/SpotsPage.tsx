@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined page layout to action-first search and category filtering, eliminating redundant static page header while preserving Verified badge for UAT compatibility.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed internal backend service attribution from directory header for a formal consumer app appearance.
  * Author review: <to be completed by yanhwee>
  *
@@ -54,24 +58,10 @@ export function SpotsPage({
 }: SpotsPageProps) {
   return (
     <div className="space-y-6">
-      {/* Page Header & Search Bar */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Campus Spots Directory
-            </h2>
-            <span className="text-xs bg-nus-blue-50 text-nus-blue border border-nus-blue-100 font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
-              {filteredSuppliers.length} Verified
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-            Real-time verified pickup spots and merchants across campus
-          </p>
-        </div>
-
+      {/* Action-First Search Bar & Verified Counter */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         {/* Spot Search Bar with Quick Clear */}
-        <div className="relative w-full lg:max-w-md">
+        <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
@@ -90,6 +80,13 @@ export function SpotsPage({
               <X className="w-4 h-4" />
             </button>
           )}
+        </div>
+
+        <div className="self-end sm:self-center flex items-center gap-2">
+          <span className="text-xs bg-nus-blue-50 text-nus-blue border border-nus-blue-100 font-bold px-3 py-2 rounded-2xl shadow-2xs shrink-0 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {filteredSuppliers.length} Verified
+          </span>
         </div>
       </div>
 

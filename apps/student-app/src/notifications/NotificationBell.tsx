@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Refined top variant to match wallet capsule height (h-9) and rounded-xl corners with pinned badge on mobile.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Made top variant responsive with compact icon-and-badge presentation on mobile screens while preserving test-id and aria-label.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned NotificationBell and NotificationPanel with elevated split inbox layout, tactile view pills, luminous unread badges, and full test-id preservation.
  * Author review: <to be completed by yanhwee>
@@ -102,20 +110,20 @@ export function NotificationBell({ unreadCount, active, onClick, variant }: {
       aria-label={label}
       aria-pressed={active}
       onClick={onClick}
-      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-2xl text-xs font-bold transition-all border ${FOCUS} ${
+      className={`relative flex items-center justify-center h-9 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all border ${FOCUS} ${
         active
           ? 'bg-gradient-to-r from-nus-orange to-orange-500 text-white border-nus-orange shadow-xs'
           : 'bg-white text-slate-700 border-slate-200/90 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
       }`}
     >
-      <Bell className="w-3.5 h-3.5" />
-      <span>Alerts</span>
+      <Bell className="w-4 h-4 text-slate-600 group-hover:text-slate-800" />
+      <span className="hidden sm:inline sm:ml-1.5">Alerts</span>
       {unreadCount > 0 && (
         <span
           data-testid="notification-badge"
-          className={`min-w-[1.25rem] h-4.5 px-1.5 rounded-full text-[10px] font-black leading-4 text-center shadow-2xs ${
+          className={`min-w-[1.125rem] h-4.5 px-1.5 rounded-full text-[10px] font-black leading-4 text-center shadow-2xs ${
             active ? 'bg-white text-nus-orange' : 'bg-rose-500 text-white'
-          }`}
+          } absolute -top-1 -right-1 sm:static sm:ml-1.5`}
         >
           {count}
         </span>

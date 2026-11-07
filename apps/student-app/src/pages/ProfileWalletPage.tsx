@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed meta indicators (Verified Student, CAMPUS-ID, microservices ecosystem reference) from profile view for clean, professional consumer presentation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed backend architecture meta terms (Saga Escrow, Credit Service) in favor of consumer-facing Escrow Protected wallet language.
  * Author review: <to be completed by yanhwee>
  *
@@ -99,12 +103,6 @@ export function ProfileWalletPage({
                 NUS student identity and account credentials
               </p>
             </div>
-            {profile && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Verified Student
-              </span>
-            )}
           </div>
 
           {isLoadingProfile && (
@@ -168,9 +166,6 @@ export function ProfileWalletPage({
                         NUS Student Pass
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono font-bold bg-white/80 border border-slate-200 px-2 py-0.5 rounded-md text-slate-500 shadow-2xs">
-                      CAMPUS-ID
-                    </span>
                   </div>
 
                   <div className="flex items-center gap-4">
@@ -345,7 +340,7 @@ export function ProfileWalletPage({
               <span>Danger Zone: Account Deletion</span>
             </div>
             <p className="text-xs text-rose-700 leading-relaxed">
-              Permanently deletes your account and invalidates all associated records across the microservices ecosystem. This action is irreversible.
+              Permanently deletes your account, profile credentials, and associated errand history. This action is irreversible.
             </p>
             <div className="pt-1">
               <button

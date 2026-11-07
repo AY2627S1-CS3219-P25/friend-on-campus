@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed internal backend microservice references (Credit Service) in favor of clear consumer wallet language.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined TasksPage header into an action-first segmented toolbar, eliminating redundant static title while preserving Refresh button accessibility and role filter counts.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned TasksPage with elevated card ergonomics, glassmorphic card containers, animated milestone progress bar, and refined filter tabs.
  * Author review: <to be completed by yanhwee>
@@ -91,19 +99,19 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         text:
           side === 'posted'
             ? 'Completed · Delivery confirmed'
-            : `Completed · ${task.rewardCredits} credits are paid once Credit Service settles the escrow`,
+            : `Completed · ${task.rewardCredits} credits released to wallet`,
         tone: 'text-emerald-700',
       };
     case 'CANCELLED':
       return {
         text:
           side === 'posted'
-            ? 'Cancelled · Reserved credits are returned by Credit Service'
+            ? 'Cancelled · Reserved credits refunded to wallet'
             : 'Cancelled · Order was cancelled before completion',
         tone: 'text-slate-500',
       };
     case 'EXPIRED':
-      return { text: 'Expired · Reserved credits are returned by Credit Service', tone: 'text-slate-500' };
+      return { text: 'Expired · Reserved credits refunded to wallet', tone: 'text-slate-500' };
     case 'REJECTED':
       return {
         text: task.rejectionReason ? `Declined: ${task.rejectionReason}` : 'Declined · Credit reservation failed',
@@ -169,67 +177,57 @@ export function TasksPage({
 
   return (
     <div className="space-y-6">
-      {/* Top Header & Refresh Control */}
+      {/* Action-First Tasks Toolbar: Role Filter Pills & Refresh Action */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            My Tasks &amp; Deliveries
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-            Track active requests and your delivery courier commitments
-          </p>
+        {/* Segmented Filter Pills */}
+        <div className="flex p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/60 max-w-md shadow-2xs w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setFilterView('all')}
+            className={`flex-1 sm:flex-initial py-2 px-3.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
+              filterView === 'all'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            All ({postedTasks.length + acceptedTasks.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterView('posted')}
+            className={`flex-1 sm:flex-initial py-2 px-3.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
+              filterView === 'posted'
+                ? 'bg-white text-nus-blue shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Posted by Me ({postedTasks.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterView('accepted')}
+            className={`flex-1 sm:flex-initial py-2 px-3.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
+              filterView === 'accepted'
+                ? 'bg-white text-nus-orange shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Delivering ({acceptedTasks.length})
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {onRefreshOrders && (
-            <button
-              type="button"
-              onClick={onRefreshOrders}
-              disabled={ordersLoading}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white/90 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
-              <span>Refresh</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Segmented Filter Pills */}
-      <div className="flex p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/60 max-w-md shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setFilterView('all')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-            filterView === 'all'
-              ? 'bg-white text-slate-900 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          All ({postedTasks.length + acceptedTasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterView('posted')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-            filterView === 'posted'
-              ? 'bg-white text-nus-blue shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Posted by Me ({postedTasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterView('accepted')}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-            filterView === 'accepted'
-              ? 'bg-white text-nus-orange shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Delivering ({acceptedTasks.length})
-        </button>
+        {/* Refresh Action */}
+        {onRefreshOrders && (
+          <button
+            type="button"
+            onClick={onRefreshOrders}
+            disabled={ordersLoading}
+            className="self-end sm:self-auto inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        )}
       </div>
 
       {/* Task Groups */}
