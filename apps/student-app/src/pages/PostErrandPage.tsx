@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined AI Errand Assistant into 1-click inline smart autofill, removing redundant intermediate draft preview card and extra apply step.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed meta milestone labels (NUS SoCLaaS M3) and internal service references from user-facing post-errand builder.
  * Author review: <to be completed by yanhwee>
  *
@@ -69,8 +73,6 @@ import { CreditWalletDTO, ParsedErrandDraftDTO, SupplierDTO } from '@campus-erra
 import {
   AlertCircle,
   AlertTriangle,
-  ArrowDown,
-  Check,
   CheckCircle2,
   Clock,
   Coins,
@@ -82,7 +84,6 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
-  Wand2,
   X,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -217,66 +218,61 @@ export function PostErrandPage({
     try {
       const draft = await parseErrandDraft(authFetch, assistantPrompt.trim());
       setExtractedDraft(draft);
+
+      let targetSupplierId = formData.supplierId;
+      let targetSupplierName = formData.supplierName;
+      let targetCampusZone = formData.campusZone;
+
+      if (draft.supplierId) {
+        const found = suppliers.find((s) => s.id === draft.supplierId);
+        if (found) {
+          targetSupplierId = found.id;
+          targetSupplierName = found.name;
+          targetCampusZone = found.campusZone;
+        }
+      } else if (draft.matchedSupplierName) {
+        const found = suppliers.find(
+          (s) => s.name.toLowerCase() === draft.matchedSupplierName?.toLowerCase()
+        );
+        if (found) {
+          targetSupplierId = found.id;
+          targetSupplierName = found.name;
+          targetCampusZone = found.campusZone;
+        }
+      }
+
+      const draftHasReward =
+        typeof draft.rewardCredits === 'number' && Number.isFinite(draft.rewardCredits);
+      // Select the drop-off building the draft names, if it is in the NUS list; otherwise keep the current point.
+      const draftBuilding = draft.dropoffLocation
+        ? matchBuildingInText(NUS_BUILDINGS, draft.dropoffLocation)
+        : null;
+
+      setFormData((prev) => ({
+        ...prev,
+        supplierId: targetSupplierId,
+        supplierName: targetSupplierName,
+        campusZone: targetCampusZone,
+        itemDescription: draft.itemDescription || prev.itemDescription,
+        dropoffLocation: draft.dropoffLocation || prev.dropoffLocation,
+        specialNotes: draft.specialNotes ?? prev.specialNotes,
+        rewardCredits: draftHasReward ? (draft.rewardCredits as number) : prev.rewardCredits,
+        rewardEdited: prev.rewardEdited || draftHasReward,
+        dropoffPoint: draftBuilding
+          ? { latitude: draftBuilding.latitude, longitude: draftBuilding.longitude, buildingName: draftBuilding.name }
+          : prev.dropoffPoint,
+        durationMinutes:
+          typeof draft.durationMinutes === 'number' && Number.isFinite(draft.durationMinutes)
+            ? draft.durationMinutes
+            : prev.durationMinutes,
+      }));
+
+      setAppliedNotice(true);
     } catch (err) {
-      setExtractError(err instanceof Error ? err.message : 'Failed to extract draft. Please try again.');
+      setExtractError(err instanceof Error ? err.message : 'Failed to parse errand draft. Please try again.');
     } finally {
       setIsExtracting(false);
     }
-  };
-
-  const handleApplyDraft = () => {
-    if (!extractedDraft) return;
-
-    let targetSupplierId = formData.supplierId;
-    let targetSupplierName = formData.supplierName;
-    let targetCampusZone = formData.campusZone;
-
-    if (extractedDraft.supplierId) {
-      const found = suppliers.find((s) => s.id === extractedDraft.supplierId);
-      if (found) {
-        targetSupplierId = found.id;
-        targetSupplierName = found.name;
-        targetCampusZone = found.campusZone;
-      }
-    } else if (extractedDraft.matchedSupplierName) {
-      const found = suppliers.find(
-        (s) => s.name.toLowerCase() === extractedDraft.matchedSupplierName?.toLowerCase()
-      );
-      if (found) {
-        targetSupplierId = found.id;
-        targetSupplierName = found.name;
-        targetCampusZone = found.campusZone;
-      }
-    }
-
-    const draftHasReward =
-      typeof extractedDraft.rewardCredits === 'number' && Number.isFinite(extractedDraft.rewardCredits);
-    // Select the drop-off building the draft names, if it is in the NUS list; otherwise keep the current point.
-    const draftBuilding = extractedDraft.dropoffLocation
-      ? matchBuildingInText(NUS_BUILDINGS, extractedDraft.dropoffLocation)
-      : null;
-
-    setFormData((prev) => ({
-      ...prev,
-      supplierId: targetSupplierId,
-      supplierName: targetSupplierName,
-      campusZone: targetCampusZone,
-      itemDescription: extractedDraft.itemDescription || prev.itemDescription,
-      dropoffLocation: extractedDraft.dropoffLocation || prev.dropoffLocation,
-      specialNotes: extractedDraft.specialNotes ?? prev.specialNotes,
-      rewardCredits: draftHasReward ? (extractedDraft.rewardCredits as number) : prev.rewardCredits,
-      rewardEdited: prev.rewardEdited || draftHasReward,
-      dropoffPoint: draftBuilding
-        ? { latitude: draftBuilding.latitude, longitude: draftBuilding.longitude, buildingName: draftBuilding.name }
-        : prev.dropoffPoint,
-      durationMinutes:
-        typeof extractedDraft.durationMinutes === 'number' && Number.isFinite(extractedDraft.durationMinutes)
-          ? extractedDraft.durationMinutes
-          : prev.durationMinutes,
-    }));
-
-    setAppliedNotice(true);
-    setTimeout(() => setAppliedNotice(false), 5000);
   };
 
   const handleClearAssistant = () => {
@@ -408,8 +404,8 @@ export function PostErrandPage({
           </div>
 
           <p className="text-xs text-slate-600 mb-3 max-w-2xl">
-            Type your request in plain natural English. The assistant parses pickup spot, items, dropoff destination, and
-            reward credits into a draft for you to review and customize.
+            Type your request in plain natural English. The assistant parses pickup spot, items, drop-off location, and
+            reward credits, then automatically fills the form for you to review and customize.
           </p>
 
           <div className="space-y-3">
@@ -447,12 +443,12 @@ export function PostErrandPage({
                 {isExtracting ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Extracting Draft…
+                    Auto-filling Form…
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-3.5 h-3.5" />
-                    Extract Draft
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Auto-fill Form
                   </>
                 )}
               </button>
@@ -466,77 +462,36 @@ export function PostErrandPage({
             </div>
           )}
 
-          {extractedDraft && (
-            <div className="mt-4 bg-white text-slate-900 rounded-xl border border-slate-200 p-4 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Parsed Errand Draft
+          {appliedNotice && (
+            <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>Form auto-filled!</strong> Review the details in the form below and customize as needed.
                 </span>
-                <button
-                  type="button"
-                  onClick={handleApplyDraft}
-                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition cursor-pointer"
-                >
-                  <ArrowDown className="w-3.5 h-3.5" />
-                  Apply to Form Below
-                </button>
               </div>
-
-              {extractedDraft.warnings && extractedDraft.warnings.length > 0 && (
-                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
-                  {extractedDraft.warnings.map((w, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-                      <span>{w}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
-                  <span className="text-slate-500 font-medium block">Pickup Spot:</span>
-                  <span className="font-bold text-slate-900">
-                    {extractedDraft.matchedSupplierName || extractedDraft.supplierName || '⚠️ Not matched (select below)'}
-                  </span>
-                </div>
-                <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
-                  <span className="text-slate-500 font-medium block">Delivery Drop-off:</span>
-                  <span className="font-bold text-slate-900">
-                    {extractedDraft.dropoffLocation || '⚠️ Missing (enter below)'}
-                  </span>
-                </div>
-                <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-100 md:col-span-2">
-                  <span className="text-slate-500 font-medium block">Item Summary:</span>
-                  <span className="font-semibold text-slate-800">{extractedDraft.itemDescription}</span>
-                </div>
-                <div className="flex gap-4 p-2.5 bg-slate-50/80 rounded-lg border border-slate-100 md:col-span-2">
-                  <div>
-                    <span className="text-slate-500 font-medium block">Reward Offer:</span>
-                    <span className="font-bold text-amber-700">{extractedDraft.rewardCredits} Credits</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 font-medium block">Duration Window:</span>
-                    <span className="font-bold text-slate-800">{extractedDraft.durationMinutes} mins</span>
-                  </div>
-                </div>
-                {extractedDraft.specialNotes && (
-                  <div className="md:col-span-2 p-2.5 bg-slate-50/80 rounded-lg border border-slate-100">
-                    <span className="text-slate-500 font-medium block">Special Notes:</span>
-                    <span className="text-slate-700 italic">{extractedDraft.specialNotes}</span>
-                  </div>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => setAppliedNotice(false)}
+                className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
+                aria-label="Dismiss notice"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
-          {appliedNotice && (
-            <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>
-                Draft applied to the form below! Review details and click <strong>Post Errand</strong> to submit.
-              </span>
+          {extractedDraft?.warnings && extractedDraft.warnings.length > 0 && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 shadow-2xs">
+              <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Parser notice:</span>
+              </div>
+              {extractedDraft.warnings.map((w, idx) => (
+                <div key={idx} className="pl-5 text-amber-800/90 text-[11px]">
+                  • {w}
+                </div>
+              ))}
             </div>
           )}
         </div>

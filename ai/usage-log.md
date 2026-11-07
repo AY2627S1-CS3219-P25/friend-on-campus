@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined AI Errand Assistant in PostErrandPage into 1-click inline smart autofill: eliminated redundant intermediate draft preview card and extra "Apply to Form Below" button, directly populating form fields in place with inline success feedback and prominent parser warnings.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Polished My Errands (TasksPage) segmented role filter into a high-end h-11 segmented control with consistent blue active styling and embedded count badges. Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from ProfileWalletPage student pass card.
 Author review: <to be completed by yanhwee>
 
