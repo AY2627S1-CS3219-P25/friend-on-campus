@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Unified body content and navigation container grid: wrapped main application viewport in max-w-7xl mx-auto and aligned horizontal padding across all breakpoints (px-3.5 sm:px-6 lg:px-8) so logo, search bars, and card grids share identical grid margins.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Compact high-density errand cards for Tasks and Feed pages: inlined metadata headers (order code/zone, reward credits, status), single-line connected route banners (pickup -> dropoff), removed redundant progress stepper on task list cards, and tightened card padding to increase card density by ~58%.
 Author review: <to be completed by yanhwee>
 
@@ -6568,5 +6572,25 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/components/ErrandCard.tsx` — Streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
 - `apps/student-app/src/pages/FeedPage.tsx` — Adjusted loading skeleton card heights and padding to match compact card rhythm.
 - `ai/usage-log.md` — Logged high-density compact errand cards session
+
+## 2026-11-07 14:00 SGT — Responsive Viewport Alignment: Unified Container Grid (max-w-7xl)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Addressed the user feedback regarding the body content stretching wider than the top navigation bar on large desktop screens (e.g. SpotsPage search bar and 3-column card grid extending past the header logo and profile button).
+
+**Usage scenario:** Responsive grid harmonization across `@campus-errand/student-app`:
+1. **Root Cause Analysis**: `HeaderNav.tsx` had an inner container constrained to `max-w-7xl mx-auto` (1280px), while `<main>` in `App.tsx` and sub-pages like `SpotsPage.tsx` had no max-width boundary, causing the body content to stretch to 100% of the display on wide monitors while the header remained centered at 1280px.
+2. **Standardized Main Viewport**: Wrapped all sub-pages and system notices in `<main>` within `<div className="w-full max-w-7xl mx-auto">`.
+3. **Harmonized Breakpoint Padding**: Aligned `<main>` horizontal padding to match `<header>` identically (`px-3.5 sm:px-6 lg:px-8`), ensuring pixel-perfect vertical alignment between header elements (Brand logo on the left, Profile button on the right) and body elements (Search bars, category pills, verified count badge, card grids).
+4. **Clean De-duplication**: Removed redundant nested `max-w-7xl mx-auto` from `FeedPage.tsx`.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — Wrapped main content in `w-full max-w-7xl mx-auto` and matched padding to `HeaderNav` (`px-3.5 sm:px-6 lg:px-8`).
+- `apps/student-app/src/pages/FeedPage.tsx` — Removed redundant nested `max-w-7xl mx-auto`.
+- `ai/usage-log.md` — Logged responsive viewport alignment session
+
 
 
