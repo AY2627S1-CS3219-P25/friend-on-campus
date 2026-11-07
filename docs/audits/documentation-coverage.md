@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-07
+Scope: Replaced the Infrastructure row's cloud wording with the three as-built cloud documents; other rows unchanged and not reverified.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Added the Chat (pending PR #148) coverage row; other rows unchanged and not reverified.
 Author review: <to be completed by Reallyeasy1>
@@ -24,7 +28,8 @@ Coverage means implemented behavior is described with source links; it is not an
 | Notification | Five files | Modules, all REST/socket/event paths, persistence, retries, structure review and tests | Process-local sockets, missing recovery coverage, bounded DB retry |
 | Frontends | Student/admin guides | Page/module maps, auth, orders, notifications, admin probes and proxy modes | No main app unit suites; PR184 state races recorded separately |
 | Shared packages | auth, common-dtos, messaging | Exports, runtime limits, event inventory and broker semantics | No package-local runtime suites |
-| Infrastructure | Gateway, Docker/deployment, CDC/broker, CI | Routing, startup, persistence, connectors, matrix and review workflow | Local Compose documented; cloud proposals not deployed claims |
+| Infrastructure | Gateway, Docker/deployment, CDC/broker, CI | Routing, startup, persistence, connectors, matrix and review workflow | Local Compose documented at `52d791e` |
+| Cloud deployment (`83db3e4`, inspected 2026-11-07) | Cloud infrastructure, Kubernetes workloads, continuous deployment | Terraform network/IAM/compute/storage/ALB/ECR, all eight manifests, deploy workflow and remote script, dated live instance and ALB state | No node command or `kubectl` run (permission gate); `terraform plan` not run; out-of-repository ECR helper (D34); rationale human-owned in the cloud guide |
 | Development | Local, testing, conventions, Claude workflow | Actual commands, #174 variables, evidence/disclosure workflow | Live Claude plugin/rule loading unverified |
 | Audits | Source inventory, drift, review findings, PR184 review | Baselines, discrepancies, actual verification and pending-change separation | Human approval fields remain pending |
 | Chat (pending PR #148 head `f39ab1f`; not on `main`) | README, D4 specification (proposal) | Module map, configuration/wiring, two migrations, test inventory, reconciliation of the seven review findings, remaining limitations, decision register, conditional D4 contracts and verification map | Policy decisions D1-D7 unapproved; no frontend unit harness or browser scenario; Order-authority, idempotency and bounds remain proposals |
