@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Harmonized toolbar element heights across SpotsPage and FeedPage: aligned search inputs, counter badges, and list/grid segmented switchers to strict h-11 (44px) using min-h-0 on buttons to prevent vertical protrusion caused by base CSS min-height rules.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned My Errands (TasksPage) into responsive full-width horizontal tracking rows on desktop with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view when active errands exist.
 Author review: <to be completed by yanhwee>
 

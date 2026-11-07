@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized height across search input, verified badge, and list/grid view switcher to strict h-11 (44px) using min-h-0, resolving tall button container protrusion.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned SpotsPage into a high-density campus directory list view with list/grid toggle, dense mobile rows, and unified search toolbar.
  * Author review: <to be completed by yanhwee>
  *
@@ -87,14 +91,14 @@ export function SpotsPage({
             placeholder="Search food, cafes, lockers, print hubs..."
             value={supplierSearch}
             onChange={(e) => onChangeSearch(e.target.value)}
-            className="w-full pl-10 pr-9 py-2 sm:py-2.5 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-nus-blue shadow-subtle hover:border-slate-300 transition-all text-slate-900 placeholder:text-slate-400"
+            className="w-full h-11 pl-10 pr-9 text-sm bg-white rounded-2xl border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-nus-blue focus:border-nus-blue shadow-subtle hover:border-slate-300 transition-all text-slate-900 placeholder:text-slate-400"
           />
           {supplierSearch && (
             <button
               type="button"
               aria-label="Clear search"
               onClick={() => onChangeSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 rounded-full hover:bg-slate-100 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 rounded-full hover:bg-slate-100 cursor-pointer min-h-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -103,19 +107,19 @@ export function SpotsPage({
 
         {/* Counter & View Mode Toggle Cluster */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <span className="text-xs bg-nus-blue-50 text-nus-blue border border-nus-blue-100 font-bold px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-2xl shadow-2xs flex items-center gap-1.5 whitespace-nowrap">
+          <span className="h-11 inline-flex items-center text-xs bg-nus-blue-50 text-nus-blue border border-nus-blue-100 font-bold px-2.5 sm:px-3 rounded-2xl shadow-2xs gap-1.5 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>{filteredSuppliers.length} Verified</span>
           </span>
 
           {/* List / Grid View Switcher */}
-          <div className="flex items-center p-0.5 sm:p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60 shadow-2xs">
+          <div className="h-11 flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/60 shadow-2xs shrink-0">
             <button
               type="button"
               onClick={() => setViewMode('list')}
               aria-label="List view"
               title="Directory list view"
-              className={`p-1.5 rounded-xl transition cursor-pointer ${
+              className={`h-full w-8 sm:w-8.5 min-h-0 rounded-xl flex items-center justify-center transition cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-white text-nus-blue shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
@@ -128,7 +132,7 @@ export function SpotsPage({
               onClick={() => setViewMode('grid')}
               aria-label="Grid view"
               title="Card grid view"
-              className={`p-1.5 rounded-xl transition cursor-pointer ${
+              className={`h-full w-8 sm:w-8.5 min-h-0 rounded-xl flex items-center justify-center transition cursor-pointer ${
                 viewMode === 'grid'
                   ? 'bg-white text-nus-blue shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
