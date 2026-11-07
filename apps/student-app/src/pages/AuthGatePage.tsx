@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Direction B (Crisp Modern Canvas) styling in AuthGatePage: floating white brand canvas with refined shadow.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized AuthGatePage with Direction A Warm Campus Mango theme: updated ambient background accents, warm gradient tagline, and warm logo drop shadow.
  * Author review: <to be completed by yanhwee>
  *
@@ -116,7 +120,7 @@ export function AuthGatePage({
           <div className="lg:col-span-7 space-y-6 sm:space-y-7">
             {/* Brand Logo (Friend Pin + tompang.) */}
             <div className="flex items-center gap-3.5">
-              <FriendPinLogo className="w-12 h-12 rounded-2xl shadow-lg shadow-orange-500/25 shrink-0" />
+              <FriendPinLogo className="w-12 h-12 rounded-2xl shadow-card border border-slate-200/80 shrink-0" />
               <div>
                 <h1 className="text-3xl font-black tracking-tight leading-none text-slate-900">
                   tompang<span className="text-nus-orange">.</span>

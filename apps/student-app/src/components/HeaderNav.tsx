@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Direction B (Crisp Modern Canvas) theme in HeaderNav: updated brand logo styling to crisp floating canvas with subtle border and sleek hover states.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized HeaderNav with Direction A Warm Campus Mango theme: updated brand hover to warm glow, unified desktop active nav indicators with mobile bottom bar's vibrant orange accent, and refreshed mobile FoC badge.
  * Author review: <to be completed by yanhwee>
  *
@@ -125,7 +129,7 @@ export function HeaderNav({
             className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="tompang Home"
           >
-            <FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-card group-hover:scale-105 group-hover:shadow-orange-500/25 transition-all duration-200 shrink-0" />
+            <FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-subtle group-hover:scale-105 group-hover:shadow-card transition-all duration-200 shrink-0" />
             <div>
               <div className="flex items-baseline gap-1 sm:gap-1.5">
                 <span className="font-black text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-nus-orange transition-colors">
