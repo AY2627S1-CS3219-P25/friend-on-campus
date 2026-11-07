@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed duplicate Refresh and Mark all as read action buttons from NotificationPanel filter bar now that they are hoisted to the standard Campus Alerts page header row, decluttering the alert filter pills across mobile and desktop.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Option A compact icon button pattern for desktop header notification bell (w-9 h-9 min-h-0 icon-only with sr-only label and pinned badge).
  * Author review: <to be completed by yanhwee>
  *
@@ -55,7 +59,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, Bell, CheckCheck, CheckCircle2, Clock, Coins, Megaphone, PackageCheck, RefreshCw,
+  AlertTriangle, ArrowLeft, ArrowRight, Bell, CheckCircle2, Clock, Coins, Megaphone, PackageCheck,
   Truck, UserCheck, UserMinus, Wallet, XCircle,
 } from 'lucide-react';
 import type { NotificationDTO, OrderStatus } from '@campus-errand/common-dtos';
@@ -169,7 +173,7 @@ function ctaFor(n: NotificationDTO, liveStatus?: OrderStatus): { label: string; 
 }
 
 export function NotificationPanel({
-  items, unreadCount, total, view, isLoading, stale, error, hasMore, liveStatus, onViewChange, onMarkRead, onMarkAllRead, onRefresh, onLoadMore, onOpen,
+  items, unreadCount, total, view, isLoading, stale, error, hasMore, liveStatus, onViewChange, onMarkRead, onMarkAllRead: _onMarkAllRead, onRefresh: _onRefresh, onLoadMore, onOpen,
 }: {
   items: NotificationDTO[];
   unreadCount: number;
@@ -340,19 +344,6 @@ export function NotificationPanel({
               {label}{countOf(key) === null ? '' : ` · ${countOf(key)}`}
             </button>
           ))}
-        </div>
-        <div className="ml-auto flex items-center space-x-1">
-          <button onClick={onRefresh} aria-label="Refresh alerts" className={`p-2 rounded-xl text-slate-500 hover:bg-white hover:shadow-2xs transition-all cursor-pointer ${FOCUS}`}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'motion-safe:animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={onMarkAllRead}
-            disabled={unreadCount === 0}
-            className={`flex items-center space-x-1.5 text-xs font-bold text-nus-blue disabled:text-slate-400 px-3 py-2 rounded-xl hover:bg-white hover:shadow-2xs disabled:hover:bg-transparent disabled:hover:shadow-none transition-all cursor-pointer ${FOCUS}`}
-          >
-            <CheckCheck className="w-4 h-4" />
-            <span>Mark all as read</span>
-          </button>
         </div>
       </div>
 

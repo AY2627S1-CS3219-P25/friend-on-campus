@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized container width (max-w-4xl) and action button dimensions (rounded-xl px-3 py-1.5 text-xs font-bold) across Student Profile and Credit Wallet to eliminate visual jump when switching tabs on PC view.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Unified Student Profile with clean 1-line header row and promoted Log Out action matching Credit Wallet and Alerts, eliminating redundant Session Management card to streamline account management above the fold.
  * Author review: <to be completed by yanhwee>
  *
@@ -127,7 +131,7 @@ export function ProfileWalletPage({
 }: ProfileWalletPageProps) {
   if (mode === 'profile') {
     return (
-      <div className="w-full max-w-3xl mx-auto space-y-4">
+      <div className="w-full max-w-4xl mx-auto space-y-4">
         <section aria-labelledby="profile-heading" className="space-y-4">
           {/* 1-Line Page Header matching Credit Wallet & Alerts */}
           <div className="flex items-center justify-between">
@@ -138,7 +142,7 @@ export function ProfileWalletPage({
               type="button"
               onClick={onLogout}
               disabled={isLoggingOut}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200/80 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer disabled:opacity-50"
             >
               {isLoggingOut ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-500" />
@@ -371,9 +375,9 @@ export function ProfileWalletPage({
             onClick={onRefreshCredits}
             disabled={isLoadingCredits}
             aria-label="Refresh wallet"
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99] shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer shrink-0"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
             <span>{creditError ? 'Retry' : 'Refresh'}</span>
           </button>
         </div>
