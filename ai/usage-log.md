@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Resolved card text truncation across Feed and Tasks pages: widened responsive grid minmax track to 21.5rem (establishing uniform 3-column desktop layout matching SpotsPage), converted compact route to 2-line layout with full card width per pickup/dropoff stop, and added title tooltips for accessibility.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Unified body content and navigation container grid: wrapped main application viewport in max-w-7xl mx-auto and aligned horizontal padding across all breakpoints (px-3.5 sm:px-6 lg:px-8) so logo, search bars, and card grids share identical grid margins.
 Author review: <to be completed by yanhwee>
 
@@ -6591,6 +6595,27 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/App.tsx` — Wrapped main content in `w-full max-w-7xl mx-auto` and matched padding to `HeaderNav` (`px-3.5 sm:px-6 lg:px-8`).
 - `apps/student-app/src/pages/FeedPage.tsx` — Removed redundant nested `max-w-7xl mx-auto`.
 - `ai/usage-log.md` — Logged responsive viewport alignment session
+
+## 2026-11-07 14:05 SGT — Fix Card Text Truncation and Grid Track Sizing
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Addressed user feedback regarding card text truncation where route locations ("Fine Foo...", "The Deck (Arts C... -> AS8 Level 2..."), zone badges ("Arts & Social Sci..."), and status text ("Open · Waiting for a cou...") were truncated prematurely due to overly narrow card tracks on desktop.
+
+**Usage scenario:** Card layout and grid optimization across `@campus-errand/student-app`:
+1. **Grid Track Widening (`index.css`)**: Updated `.responsive-card-grid` min column width from `19rem` (304px) to `21.5rem` (344px). On a 1280px container, this converts the 4-column layout into a spacious, uniform 3-column layout (~390px per card), perfectly matching `SpotsPage.tsx`.
+2. **Clear 2-Line Connected Route (`ErrandCard.tsx`, `TasksPage.tsx`)**: Replaced the cramped single-line route with a dedicated 2-line mini-container where Pickup and Dropoff each receive their own full-width line with clear icon indicators (`MapPin` and `ArrowRight`), bold prefixes (`Pickup:`, `Dropoff:`), and native HTML `title` tooltips. Campus locations (e.g., "The Deck (Arts Canteen)", "UTown Stephen Riady Centre Level 3 Bench") fit fully without clipping.
+3. **Breathing Room for Badges & Status**: With 390px card width, zone badges ("Arts & Social Sciences") and status lines ("Open · Waiting for a courier") have ample room alongside reward pills and "View details" buttons.
+4. **Skeleton Loading Parity (`FeedPage.tsx`)**: Adjusted route placeholder height to `h-14` to match the 2-line container height and eliminate layout shift.
+
+**Files changed:**
+- `apps/student-app/src/index.css` — Widened `.responsive-card-grid` track min width to 21.5rem for 3-column desktop layout.
+- `apps/student-app/src/components/ErrandCard.tsx` — Converted route to 2-line layout with full width per location.
+- `apps/student-app/src/pages/TasksPage.tsx` — Converted route to 2-line layout and added status tooltip.
+- `apps/student-app/src/pages/FeedPage.tsx` — Adjusted route skeleton placeholder height to `h-14`.
+- `ai/usage-log.md` — Logged card text truncation and track sizing session.
 
 
 

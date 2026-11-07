@@ -1,4 +1,8 @@
 /* AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Widened responsive card grid tracks to 21.5rem to establish uniform 3-column desktop layout and prevent card text truncation.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned student-app base styling, smooth scrollbars, frosted glass surfaces, and responsive card micro-animations.
  * Author review: <to be completed by yanhwee>
@@ -49,7 +53,7 @@ body {
   }
 
   @media (min-width: 640px) {
-    .responsive-card-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); }
+    .responsive-card-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 21.5rem), 1fr)); }
   }
 
   @media (min-width: 768px) {

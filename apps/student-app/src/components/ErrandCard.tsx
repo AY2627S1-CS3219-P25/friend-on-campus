@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Compact high-density feed cards: streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
  * Author review: <to be completed by yanhwee>
  *
@@ -113,16 +117,22 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           <ExpandableNotes notes={order.specialNotes} />
         </div>
 
-        {/* Compact Connected Route (Pickup -> Dropoff) */}
-        <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50/90 px-2.5 py-1.5 rounded-xl border border-slate-100/90">
-          <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
-          <span className="font-semibold text-slate-800 truncate" title={order.supplierName}>
-            {order.supplierName}
-          </span>
-          <ArrowRight className="h-3 w-3 text-slate-400 shrink-0 mx-0.5" />
-          <span className="font-semibold text-slate-800 truncate" title={order.dropoffLocation}>
-            {order.dropoffLocation}
-          </span>
+        {/* Clear 2-Line Connected Route (Pickup & Dropoff) */}
+        <div className="mt-2.5 bg-slate-50/90 rounded-xl px-3 py-2 border border-slate-100/90 text-xs space-y-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <MapPin className="w-3.5 h-3.5 text-nus-blue shrink-0" />
+            <span className="text-slate-400 font-bold text-[11px] shrink-0">Pickup:</span>
+            <span className="font-semibold text-slate-800 truncate" title={order.supplierName}>
+              {order.supplierName}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <ArrowRight className="w-3.5 h-3.5 text-nus-orange shrink-0" />
+            <span className="text-slate-400 font-bold text-[11px] shrink-0">Dropoff:</span>
+            <span className="font-semibold text-slate-800 truncate" title={order.dropoffLocation}>
+              {order.dropoffLocation}
+            </span>
+          </div>
         </div>
       </div>
 

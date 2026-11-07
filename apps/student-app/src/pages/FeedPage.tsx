@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Adjusted skeleton route placeholder height to match 2-line route box.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Compact skeleton loading cards matching new high-density errand card dimensions.
  * Author review: <to be completed by yanhwee>
  *
@@ -185,7 +189,7 @@ export function FeedPage({
                   <div className="h-5 w-24 bg-slate-200 rounded-full" />
                 </div>
                 <div className="h-5 w-3/4 bg-slate-200 rounded" />
-                <div className="h-7 bg-slate-100 rounded-xl" />
+                <div className="h-14 bg-slate-100 rounded-xl" />
                 <div className="h-6 bg-slate-100 rounded-lg" />
               </div>
             ))}
