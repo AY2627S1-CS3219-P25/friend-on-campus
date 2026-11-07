@@ -42,6 +42,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: disputeOrder tests (freeze, authorisation, validation, admin settlement clears the flag).
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: courier-first dispute test.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
@@ -643,19 +647,22 @@ describe('Order Service Lifecycle and Concurrency', () => {
       await assert.rejects(() => service.disputeOrder(order.id, REQUESTER_ID, 'late'), OrderStateConflictError);
     });
 
-    it('lets only the assigned courier answer an open dispute, once, without any event', async () => {
+    it('lets the assigned courier dispute a delivered order by default, once, without any event', async () => {
       const { service, fakeRepo, order } = await delivered();
-      await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, 'No dispute yet'), OrderStateConflictError);
-      await service.disputeOrder(order.id, REQUESTER_ID, 'Never arrived');
       const events = fakeRepo.outboxEvents.length;
       await assert.rejects(() => service.courierDisputeOrder(order.id, REQUESTER_ID, 'x'), OrderAuthorizationError);
       await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, '  '), OrderValidationError);
       const answered = await service.courierDisputeOrder(order.id, COURIER_1_ID, '  Left it at the door  ');
       assert.equal(answered.courierDisputeDetails, 'Left it at the door');
-      assert.equal(answered.requesterDisputeDetails, 'Never arrived');
+      assert.equal(answered.requesterDisputeDetails ?? null, null);
       assert.equal(answered.dispute, true);
       assert.equal(fakeRepo.outboxEvents.length, events);
       await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, 'again'), OrderStateConflictError);
+      // The requester can still add their own side afterwards, once.
+      const both = await service.disputeOrder(order.id, REQUESTER_ID, 'Never arrived');
+      assert.equal(both.requesterDisputeDetails, 'Never arrived');
+      assert.equal(both.courierDisputeDetails, 'Left it at the door');
+      await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, 'x'), OrderStateConflictError);
     });
 
     it('is settled by the existing admin actions, which publish the usual events and clear the flag', async () => {

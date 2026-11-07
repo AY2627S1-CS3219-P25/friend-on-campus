@@ -6371,3 +6371,18 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/test/reorder.test.ts` (new) — tests, added to the test:unit script in `apps/student-app/package.json` (JSON, no header possible)
 - `apps/student-app/src/pages/TasksPage.tsx` — split columns and the Order again button
 - `apps/student-app/src/App.tsx` — handleOrderAgain wired to the existing order submission
+
+## 2026-11-07 11:35 SGT — Remove confirm countdown; courier dispute by default
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Drop the 5-minute auto-confirm countdown; show the courier's dispute form (with the requester's read-only message, empty if none) on every DELIVERED errand, not only after the requester disputes.
+
+**Usage scenario:** Implementation of a design the author decided (debugging/refactoring of own feature). Left to the author: whether a courier dispute should set the dispute flag (I made it do so, so admins see it and confirmation is frozen) and whether the requester may still dispute afterwards (I allowed it, once).
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — countdown/auto-complete removed; courier form always shown when DELIVERED; requester can still write a dispute after a courier one
+- `services/order-service/src/repositories/order.repository.ts` — courier dispute no longer needs an existing dispute and sets `dispute`; requester dispute allowed once even if courier disputed
+- `services/order-service/test/helpers.ts`, `services/order-service/test/order.service.test.ts` — fake repo and test updated

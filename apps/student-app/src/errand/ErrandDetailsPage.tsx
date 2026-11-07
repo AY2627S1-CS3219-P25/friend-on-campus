@@ -50,6 +50,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: Courier dispute response: the requester's message above a text box and a Submit dispute report button.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: removed the 5-minute confirm countdown; courier dispute form shown by default on DELIVERED.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by Reallyeasy1)
@@ -57,7 +61,7 @@
 
 import type { OrderDTO, SupplierDTO } from '@campus-errand/common-dtos';
 import { AlertTriangle, Check, ChevronLeft, Clock, Coins, MapPin, RefreshCw, User, X } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { FetchOrderResult, TaskOrderAction } from '../api/orders';
 import { ChatPanel } from '../chat/ChatPanel';
 import type { ChatApi } from '../chat/useChat';
@@ -471,15 +475,11 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
-/** The requester has this long after the delivery to confirm before the order completes by itself. */
-const CONFIRM_WINDOW_MS = 5 * 60 * 1000;
-
 // AI-generated (edited by jagdeepsh)
 /**
- * The requester's DELIVERED block: confirm (with a countdown to deliveredAt + 5 minutes) and Raise Dispute.
- * When the countdown reaches zero, or the page is opened after the window has already passed, the same complete action
- * as the button runs once. Frontend only for now: if the requester never opens the page, nothing completes the order.
- * A raised dispute disables confirmation and stops the countdown until an administrator settles the errand.
+ * The requester's DELIVERED block: confirm whenever they like, or Raise Dispute. Once a dispute exists (theirs or the
+ * courier's) confirmation is disabled until an administrator settles the errand; the requester can still add their own
+ * side if they have not yet.
  */
 function DeliveredRequesterActions({
   order,
@@ -490,31 +490,13 @@ function DeliveredRequesterActions({
   actingAction: ErrandDetailsPageProps['actingAction'];
   onAction: ErrandDetailsPageProps['onAction'];
 }) {
-  const [now, setNow] = useState(() => Date.now());
   const [reason, setReason] = useState('');
-  const deadline = order.deliveredAt ? new Date(order.deliveredAt).getTime() + CONFIRM_WINDOW_MS : null;
   const disputed = Boolean(order.dispute);
+  const raised = Boolean(order.requesterDisputeDetails);
   const busy = actingAction !== null;
   const credits = order.rewardCredits;
-  const expired = deadline !== null && now >= deadline;
-  const autoCompleted = useRef(false);
 
-  useEffect(() => {
-    if (disputed || deadline === null) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [disputed, deadline]);
-
-  useEffect(() => {
-    if (disputed || deadline === null) return;
-    // Fires once; if the request is already in flight it waits for it to settle.
-    if (expired && !autoCompleted.current && !busy) {
-      autoCompleted.current = true;
-      onAction(order.id, 'complete');
-    }
-  }, [expired, disputed, deadline, busy, onAction, order.id]);
-
-  const canDispute = !disputed && !busy && reason.trim().length > 0;
+  const canDispute = !raised && !busy && reason.trim().length > 0;
   const label = (action: 'complete' | 'dispute', idle: string, active: string) => (actingAction === action ? active : idle);
 
   return (
@@ -529,27 +511,17 @@ function DeliveredRequesterActions({
         >
           {label('complete', `Confirm received & release ${credits} credits`, 'Confirming…')}
         </button>
-        {!disputed && deadline !== null && (
-          <p
-            data-testid="confirm-countdown"
-            className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-800 tabular-nums"
-          >
-            <Clock className="h-3.5 w-3.5 text-amber-600" />
-            {expired
-              ? 'Time is up. Delivery was confirmed and credits are being transferred.'
-              : `Auto-confirms in ${formatCountdown(new Date(deadline).toISOString(), now)}`}
-          </p>
-        )}
         <p className="text-center text-xs text-slate-500 leading-relaxed">
           Releases {credits} credits from escrow to the courier; Credit Service settles the transfer.
         </p>
       </div>
 
-      {disputed ? (
+      {disputed && (
         <p role="status" data-testid="dispute-raised-note" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-          Dispute raised. An administrator will review it; the {credits} credits stay held until then.
+          {raised ? 'Dispute raised.' : 'The courier raised a dispute.'} An administrator will review it; the {credits} credits stay held until then.
         </p>
-      ) : (
+      )}
+      {!raised && (
         <div className="space-y-2">
           <button
             type="button"
@@ -577,7 +549,7 @@ function DeliveredRequesterActions({
 }
 
 // AI-generated (edited by jagdeepsh)
-/** The courier's side of an open dispute: the requester's message, then the courier's own report (once). */
+/** The courier's dispute block on a DELIVERED errand: the requester's message (empty until they write one), then the courier's own report (once). */
 function CourierDisputeResponse({
   order,
   actingAction,
@@ -593,9 +565,13 @@ function CourierDisputeResponse({
   const readOnlyBox = 'w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700';
   return (
     <div className="space-y-2" data-testid="courier-dispute">
-      <p role="status" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-        The requester raised a dispute on this delivery. An administrator will settle it; the credits stay held until then.
-      </p>
+      {submitted || order.dispute ? (
+        <p role="status" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          This delivery is under dispute. An administrator will settle it; the credits stay held until then.
+        </p>
+      ) : (
+        <p className="text-center text-xs text-slate-500 leading-relaxed">Delivered · Waiting for requester confirmation. If something went wrong you can report it below.</p>
+      )}
       <label className="block text-xs font-bold text-slate-600" htmlFor="requester-dispute-message">What the requester said</label>
       <textarea id="requester-dispute-message" readOnly rows={3} value={order.requesterDisputeDetails ?? ''} className={readOnlyBox} />
       {submitted ? (
@@ -778,9 +754,7 @@ function Actions({
       );
     }
     if (order.status === 'DELIVERED') {
-      return order.dispute
-        ? <CourierDisputeResponse order={order} actingAction={actingAction} onAction={onAction} />
-        : caption('Delivered · Waiting for requester confirmation');
+      return <CourierDisputeResponse order={order} actingAction={actingAction} onAction={onAction} />;
     }
   }
   if (role === 'requester') {

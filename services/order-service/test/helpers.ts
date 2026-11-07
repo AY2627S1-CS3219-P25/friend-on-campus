@@ -36,6 +36,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: Fake repository: courierDisputeOrder.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: fake repository follows the same dispute rules.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
@@ -406,7 +410,7 @@ export function makeFakeOrderRepository() {
       if (!order) throw new OrderNotFoundError();
       if (order.requesterId !== requesterId) throw new OrderAuthorizationError('Only the requester can dispute this errand');
       if (order.status !== 'DELIVERED') throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
-      if (order.dispute) throw new OrderStateConflictError('This errand is already under dispute');
+      if (order.requesterDisputeDetails) throw new OrderStateConflictError('The requester has already raised a dispute');
       order.dispute = true;
       order.requesterDisputeDetails = details;
       order.version += 1;
@@ -416,9 +420,10 @@ export function makeFakeOrderRepository() {
     async courierDisputeOrder(orderId: string, courierId: string, details: string): Promise<OrderDTO> {
       const order = orders.find((o) => o.id === orderId);
       if (!order) throw new OrderNotFoundError();
-      if (order.courierId !== courierId) throw new OrderAuthorizationError('Only the assigned courier can respond to this dispute');
-      if (order.status !== 'DELIVERED' || !order.dispute) throw new OrderStateConflictError('There is no open dispute on this errand');
-      if (order.courierDisputeDetails) throw new OrderStateConflictError('The courier has already responded to this dispute');
+      if (order.courierId !== courierId) throw new OrderAuthorizationError('Only the assigned courier can dispute this errand');
+      if (order.status !== 'DELIVERED') throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
+      if (order.courierDisputeDetails) throw new OrderStateConflictError('The courier has already raised a dispute');
+      order.dispute = true;
       order.courierDisputeDetails = details;
       order.version += 1;
       return { ...order };

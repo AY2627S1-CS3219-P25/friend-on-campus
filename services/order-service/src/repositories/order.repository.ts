@@ -46,6 +46,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: courierDisputeOrder: the assigned courier's response to an open dispute.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: courier dispute allowed on any DELIVERED errand and sets dispute; requester dispute allowed once even after the courier's.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
@@ -634,12 +638,12 @@ async function handleDisputeOrder(
       throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
     }
 
-    if (order.dispute) {
-      throw new OrderStateConflictError('This errand is already under dispute');
+    if (order.requesterDisputeDetails) {
+      throw new OrderStateConflictError('The requester has already raised a dispute');
     }
 
     const updatedResult = await tx.order.updateMany({
-      where: { id: orderId, status: 'DELIVERED', dispute: false, version: order.version, requesterId },
+      where: { id: orderId, status: 'DELIVERED', requesterDisputeDetails: null, version: order.version, requesterId },
       data: { dispute: true, requesterDisputeDetails: details, version: { increment: 1 } },
     });
 
@@ -665,20 +669,20 @@ async function handleCourierDisputeOrder(
     }
 
     if (order.courierId !== courierId) {
-      throw new OrderAuthorizationError('Only the assigned courier can respond to this dispute');
+      throw new OrderAuthorizationError('Only the assigned courier can dispute this errand');
     }
 
-    if (order.status !== 'DELIVERED' || !order.dispute) {
-      throw new OrderStateConflictError('There is no open dispute on this errand');
+    if (order.status !== 'DELIVERED') {
+      throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
     }
 
     if (order.courierDisputeDetails) {
-      throw new OrderStateConflictError('The courier has already responded to this dispute');
+      throw new OrderStateConflictError('The courier has already raised a dispute');
     }
 
     const updatedResult = await tx.order.updateMany({
-      where: { id: orderId, status: 'DELIVERED', dispute: true, courierId, courierDisputeDetails: null, version: order.version },
-      data: { courierDisputeDetails: details, version: { increment: 1 } },
+      where: { id: orderId, status: 'DELIVERED', courierId, courierDisputeDetails: null, version: order.version },
+      data: { dispute: true, courierDisputeDetails: details, version: { increment: 1 } },
     });
 
     if (updatedResult.count === 0) {
