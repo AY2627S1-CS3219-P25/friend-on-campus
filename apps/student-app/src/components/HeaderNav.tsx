@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Refined desktop profile button active styling with soft tinted blue background, accessible contrast, and subtle ring focus, eliminating harsh dark navy fill.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Renamed Tasks navigation item to My Errands for natural user mental model and consistent errand vocabulary.
  * Author review: <to be completed by yanhwee>
  *
@@ -240,13 +244,13 @@ export function HeaderNav({
             title="Profile"
             aria-current={activeTab === 'profile' ? 'page' : undefined}
             onClick={onOpenProfile}
-            className={`hidden md:flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
+            className={`group hidden md:flex items-center justify-center h-9 w-9 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
               activeTab === 'profile'
-                ? 'bg-nus-blue text-white border-nus-blue shadow-sm'
+                ? 'bg-blue-50 text-nus-blue border-nus-blue/40 ring-2 ring-blue-500/20 shadow-2xs'
                 : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-subtle hover:shadow-card'
             }`}
           >
-            <UserCircle className="w-5 h-5 text-slate-600 group-hover:text-slate-800" />
+            <UserCircle className={`w-5 h-5 transition-colors ${activeTab === 'profile' ? 'text-nus-blue' : 'text-slate-600 group-hover:text-slate-800'}`} />
             <span className="sr-only">Profile</span>
           </button>
         </div>

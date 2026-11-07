@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Softened desktop profile button active styling with subtle blue tint (bg-blue-50, text-nus-blue, border-nus-blue/40, ring-2 ring-blue-500/20) resolving harsh dark-navy fill and poor icon contrast.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned SpotsPage into high-density campus directory list view with list/grid toggle, dense mobile directory rows, and eliminated orphan whitespace rows across mobile toolbars (Spots, Feed, Tasks) by pairing search inputs, count badges, filter chips, and refresh buttons on unified rows.
 Author review: <to be completed by yanhwee>
 
