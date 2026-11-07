@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Eliminated phantom top margin on Student Profile view by isolating sr-only heading from space-y container, aligning NUS Student Pass flush with standard viewport padding.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Restored clean 1-line Credit Wallet page header with inline refresh action, paired with a compact, authoritative balance card (~85px) featuring bold available credits typography and contextual active order reservations.
  * Author review: <to be completed by yanhwee>
  *
@@ -119,13 +123,14 @@ export function ProfileWalletPage({
 }: ProfileWalletPageProps) {
   if (mode === 'profile') {
     return (
-      <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
-        <section aria-labelledby="profile-heading" className="space-y-4 sm:space-y-6">
+      <div className="w-full max-w-3xl mx-auto">
+        <section aria-labelledby="profile-heading">
           <h2 id="profile-heading" className="sr-only">
             Student Profile
           </h2>
 
-          {isLoadingProfile && (
+          <div className="space-y-4 sm:space-y-6">
+            {isLoadingProfile && (
             <div className="p-4 bg-nus-blue-50/80 border border-nus-blue-100 rounded-3xl text-nus-blue text-sm flex items-center gap-2.5 shadow-card">
               <RefreshCw className="w-4 h-4 animate-spin text-nus-blue" />
               <span className="font-semibold">Loading profile details…</span>
@@ -346,8 +351,9 @@ export function ProfileWalletPage({
               </button>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+    </div>
     );
   }
 

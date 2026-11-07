@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Eliminated phantom top margin on Student Profile view (ProfileWalletPage.tsx) by isolating the sr-only heading from the space-y card container, bringing the NUS Student Pass card flush with standard viewport padding.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restored clean 1-line Campus Alerts page title header without redundant multi-line subtitle copy in AlertsPage.tsx, eliminating phantom space-y margin bug and anchoring the notifications view with consistent page typography matching Credit Wallet.
 Author review: <to be completed by yanhwee>
 
