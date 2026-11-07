@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Unified Student Profile with clean 1-line header row and promoted Log Out action matching Credit Wallet and Alerts, eliminating redundant Session Management card to streamline account management above the fold.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Eliminated phantom top margin on Student Profile view by isolating sr-only heading from space-y container, aligning NUS Student Pass flush with standard viewport padding.
  * Author review: <to be completed by yanhwee>
  *
@@ -123,11 +127,27 @@ export function ProfileWalletPage({
 }: ProfileWalletPageProps) {
   if (mode === 'profile') {
     return (
-      <div className="w-full max-w-3xl mx-auto">
-        <section aria-labelledby="profile-heading">
-          <h2 id="profile-heading" className="sr-only">
-            Student Profile
-          </h2>
+      <div className="w-full max-w-3xl mx-auto space-y-4">
+        <section aria-labelledby="profile-heading" className="space-y-4">
+          {/* 1-Line Page Header matching Credit Wallet & Alerts */}
+          <div className="flex items-center justify-between">
+            <h2 id="profile-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Student Profile
+            </h2>
+            <button
+              type="button"
+              onClick={onLogout}
+              disabled={isLoggingOut}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200/80 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isLoggingOut ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-500" />
+              ) : (
+                <LogOut className="w-3.5 h-3.5 text-slate-500" />
+              )}
+              <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
+            </button>
+          </div>
 
           <div className="space-y-4 sm:space-y-6">
             {isLoadingProfile && (
@@ -306,29 +326,6 @@ export function ProfileWalletPage({
               </div>
             </div>
           )}
-
-          {/* Session Log Out */}
-          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-card flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <h4 className="font-bold text-slate-800 text-sm">Session Management</h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Sign out of this browser device. Your active errands will remain pending or in progress.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onLogout}
-              disabled={isLoggingOut}
-              className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm px-5 py-2.5 rounded-2xl transition disabled:opacity-60 cursor-pointer active:scale-[0.99]"
-            >
-              {isLoggingOut ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-600" />
-              ) : (
-                <LogOut className="w-4 h-4 text-slate-600" />
-              )}
-              <span>{isLoggingOut ? 'Logging out…' : 'Log Out'}</span>
-            </button>
-          </div>
 
           {/* Danger Zone: Collapsible/Isolated Account Deletion Card */}
           <div className="rounded-3xl border border-rose-200 bg-rose-50/50 p-5 sm:p-6 space-y-3 shadow-card">

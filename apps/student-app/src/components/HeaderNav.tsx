@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Direction A clean modern tech brand identity: removed confusing blinking pulse badge from package icon, unified brand typography to NUS Blue and Slate-900 with signature orange accent dot, and removed subtitle for compact 48px header height.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Illuminated wallet capsule with vibrant amber active state in top header when activeTab === 'wallet', matching NotificationBell's active treatment for instant user orientation.
  * Author review: <to be completed by yanhwee>
  *
@@ -103,7 +107,7 @@ export function HeaderNav({
   wsStatus,
 }: HeaderNavProps) {
   return (
-    <header className="bg-white/90 backdrop-blur-xl text-slate-800 px-3.5 py-2 sm:px-6 md:py-3 lg:px-8 sticky top-0 z-30 shadow-subtle border-b border-slate-200/80 transition-all">
+    <header className="bg-white/90 backdrop-blur-xl text-slate-800 px-3.5 py-2 sm:px-6 md:py-2.5 lg:px-8 sticky top-0 z-30 shadow-subtle border-b border-slate-200/80 transition-all">
       <div className="student-header-row max-w-7xl mx-auto flex items-center justify-between">
         {/* Left Cluster: Brand + Divider + Primary Browsing Tabs (Option A) */}
         <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6">
@@ -113,14 +117,13 @@ export function HeaderNav({
             className="flex items-center gap-2 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
             aria-label="CampusErrand Home"
           >
-            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-br from-nus-blue via-indigo-600 to-nus-blue-dark flex items-center justify-center text-white shadow-card group-hover:scale-105 group-hover:shadow-glow-blue transition-all duration-200 shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-br from-nus-blue via-blue-700 to-indigo-900 flex items-center justify-center text-white shadow-card group-hover:scale-105 group-hover:shadow-glow-blue transition-all duration-200 shrink-0">
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-white stroke-[2.2]" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-nus-orange ring-2 ring-white animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="font-black text-sm sm:text-base tracking-tight text-slate-900 group-hover:text-nus-blue transition-colors">
-                  <span className="text-nus-blue">NUS</span> Campus<span className="text-nus-orange">Errand</span>
+                  <span className="text-nus-blue">NUS</span> CampusErrand<span className="text-nus-orange">.</span>
                 </span>
                 {showWsStatus && (
                   <span
@@ -132,9 +135,6 @@ export function HeaderNav({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block font-medium mt-0.5">
-                Peer-to-Peer Campus Delivery
-              </p>
             </div>
           </button>
 

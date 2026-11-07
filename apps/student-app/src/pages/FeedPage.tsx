@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized empty-state CTA button with brand warm orange action styling, eliminating harsh dark navy button.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Standardized zone filter chips to soft tinted blue styling aligned with SpotsPage category chips.
  * Author review: <to be completed by yanhwee>
  *
@@ -239,7 +243,7 @@ export function FeedPage({
               <button
                 type="button"
                 onClick={() => onSelectZone('ALL')}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-nus-blue hover:bg-nus-blue-hover text-white shadow-2xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-nus-orange to-orange-500 hover:from-orange-600 hover:to-orange-500 text-white shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer"
               >
                 <Compass className="w-3.5 h-3.5" />
                 <span>Show All Campus Zones</span>
