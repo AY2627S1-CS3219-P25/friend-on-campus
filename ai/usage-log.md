@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Standardized filter chip aesthetics across FeedPage and SpotsPage using soft tinted blue active chips with matching count indicators. Streamlined My Errands (TasksPage) cards into sleek compact 2-line cards (~72px), removing duplicate status badges and box-in-a-box styling while giving route addresses full card width to prevent text clipping.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Harmonized toolbar element heights across SpotsPage and FeedPage: aligned search inputs, counter badges, and list/grid segmented switchers to strict h-11 (44px) using min-h-0 on buttons to prevent vertical protrusion caused by base CSS min-height rules.
 Author review: <to be completed by yanhwee>
 

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Standardized zone filter chips to soft tinted blue styling aligned with SpotsPage category chips.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized search input and open errands badge to strict h-11 (44px) matching SpotsPage toolbar height.
  * Author review: <to be completed by yanhwee>
  *
@@ -144,16 +148,16 @@ export function FeedPage({
                 key={zone}
                 type="button"
                 onClick={() => onSelectZone(zone)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 cursor-pointer flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-nus-orange focus:ring-offset-1 ${
+                className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-nus-orange text-white shadow-md shadow-nus-orange/25 scale-[1.03]'
-                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 shadow-subtle'
+                    ? 'bg-blue-50 text-nus-blue border border-blue-300 shadow-2xs'
+                    : 'bg-white text-slate-600 border border-slate-200/90 hover:bg-slate-50 hover:text-slate-900 shadow-2xs'
                 }`}
               >
                 <span>{zone}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    isSelected ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected ? 'bg-blue-100/90 text-nus-blue' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   {countInZone}

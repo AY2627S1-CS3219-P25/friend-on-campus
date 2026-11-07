@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined errand cards into sleek compact 2-line cards (~72px), eliminated duplicate status badge and box-in-a-box styling, and provided full-width route row to eliminate text clipping.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned My Errands into responsive full-width horizontal tracking rows (desktop) with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view.
  * Author review: <to be completed by yanhwee>
  *
@@ -80,8 +84,6 @@
 import { useState } from 'react';
 import { OrderDTO } from '@campus-errand/common-dtos';
 import { ArrowRight, Coins, MapPin, RefreshCw, Send, Truck } from 'lucide-react';
-import { ExpandableNotes } from '../components/ExpandableNotes';
-import { statusBadgeClasses } from '../errand/details';
 
 interface TasksPageProps {
   orders: OrderDTO[];
@@ -294,93 +296,76 @@ export function TasksPage({
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4 bg-white rounded-2xl p-4 sm:p-4.5 lg:p-5 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
+                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2.5"
                 >
-                  {/* Left Column: Metadata Tags, Item Title & Notes */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-mono font-extrabold text-nus-blue bg-nus-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
+                  {/* Top Line: Identifiers, Item Title, Status Summary & Action */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-mono font-extrabold text-nus-blue bg-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
                         {task.orderCode}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
                         <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
                         <span>{task.rewardCredits} C</span>
                       </span>
-                      {/* Mobile-only status badge */}
-                      <span
-                        className={`lg:hidden text-xs font-extrabold px-2.5 py-0.5 rounded-full shadow-2xs shrink-0 ${statusBadgeClasses(
-                          task.status
-                        )}`}
+                      <h4
+                        title={task.itemDescription}
+                        className="text-sm font-extrabold text-slate-900 group-hover:text-nus-blue transition-colors truncate"
                       >
-                        {task.status.replace(/_/g, ' ')}
-                      </span>
+                        {task.itemDescription}
+                      </h4>
                     </div>
 
-                    <h4
-                      title={task.itemDescription}
-                      className="text-sm font-extrabold text-slate-900 mt-2 leading-snug group-hover:text-nus-blue transition-colors line-clamp-2"
-                    >
-                      {task.itemDescription}
-                    </h4>
+                    <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 text-xs">
+                      {line && (
+                        <span className={`font-bold ${line.tone} truncate max-w-xs text-right`} title={line.text}>
+                          {line.text}
+                        </span>
+                      )}
 
-                    {task.specialNotes && (
-                      <div className="mt-1">
-                        <ExpandableNotes notes={task.specialNotes} />
-                      </div>
-                    )}
+                      <a
+                        href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
+                        data-testid="open-errand-link"
+                        aria-label={`View details of errand ${task.orderCode}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          onOpenErrand(task.id);
+                        }}
+                        className="inline-flex items-center gap-1 font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
+                      >
+                        <span>View details</span>
+                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </a>
+                    </div>
                   </div>
 
-                  {/* Middle Column: Pickup & Dropoff Route (Plenty of room so addresses never truncate) */}
-                  <div className="w-full lg:w-72 xl:w-96 shrink-0 bg-slate-50/90 rounded-xl px-3.5 py-2.5 border border-slate-100/90 text-xs space-y-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
+                  {/* Bottom Line: Full-width Pickup ➔ Dropoff Route & Special Notes */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
+                    <div className="inline-flex items-center gap-1.5 min-w-0">
                       <MapPin className="h-3.5 w-3.5 text-nus-blue shrink-0" />
-                      <span className="text-slate-400 font-bold text-[11px] shrink-0">Pickup:</span>
-                      <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
+                      <span className="text-slate-400 font-semibold text-[11px] shrink-0">Pickup:</span>
+                      <span className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs md:max-w-sm" title={task.supplierName}>
                         {task.supplierName}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <ArrowRight className="h-3.5 w-3.5 text-nus-orange shrink-0" />
-                      <span className="text-slate-400 font-bold text-[11px] shrink-0">Dropoff:</span>
-                      <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
+
+                    <span className="text-slate-300 select-none">➔</span>
+
+                    <div className="inline-flex items-center gap-1.5 min-w-0">
+                      <span className="text-slate-400 font-semibold text-[11px] shrink-0">Dropoff:</span>
+                      <span className="font-semibold text-slate-800 truncate max-w-[220px] sm:max-w-sm md:max-w-md" title={task.dropoffLocation}>
                         {task.dropoffLocation}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Right Column: Status Summary & Action CTA */}
-                  <div className="flex lg:flex-col items-center lg:items-end justify-between gap-2.5 pt-2.5 lg:pt-0 border-t lg:border-t-0 border-slate-100 lg:w-56 shrink-0 text-xs">
-                    {/* Desktop status badge */}
-                    <div className="hidden lg:flex items-center gap-2">
-                      <span
-                        className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full shadow-2xs shrink-0 ${statusBadgeClasses(
-                          task.status
-                        )}`}
-                      >
-                        {task.status.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-
-                    {line && (
-                      <p className={`font-bold ${line.tone} truncate max-w-full text-left lg:text-right`} title={line.text}>
-                        {line.text}
-                      </p>
+                    {task.specialNotes && (
+                      <>
+                        <span className="text-slate-300 hidden md:inline select-none">•</span>
+                        <span className="text-slate-500 italic text-[11px] truncate max-w-xs sm:max-w-sm md:max-w-md" title={task.specialNotes}>
+                          Note: {task.specialNotes}
+                        </span>
+                      </>
                     )}
-
-                    {/* Stretched link covers whole card */}
-                    <a
-                      href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
-                      data-testid="open-errand-link"
-                      aria-label={`View details of errand ${task.orderCode}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onOpenErrand(task.id);
-                      }}
-                      className="inline-flex items-center gap-1 font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
-                    >
-                      <span>View details</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </a>
                   </div>
                 </article>
               );
