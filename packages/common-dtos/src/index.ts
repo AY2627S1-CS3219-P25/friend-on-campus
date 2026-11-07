@@ -96,6 +96,14 @@
  * supplier-service DB columns being made NOT NULL in the same change. UpdateSupplierRequest and SupplierDTO
  * stay optional (same precedent as building/floor above — partial-update and read shapes stay flexible).
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: OrderDTO gained dispute and requesterDisputeDetails; added DisputeOrderRequest.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: OrderDTO gained courierDisputeDetails; added CourierDisputeRequest.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
@@ -271,6 +279,11 @@ export interface OrderDTO {
   dropoffLatitude?: number;
   dropoffLongitude?: number;
   estimatedRewardCredits?: number;
+  /** True while the requester's delivery dispute awaits an admin; the requester can no longer confirm delivery. */
+  dispute?: boolean;
+  requesterDisputeDetails?: string | null;
+  /** The assigned courier's answer to the dispute; null until they respond. */
+  courierDisputeDetails?: string | null;
   status: OrderStatus;
   rejectionReason?: string | null;
   expiresAt: string;
@@ -280,6 +293,16 @@ export interface OrderDTO {
   completedAt?: string | null;
   createdAt: string;
   version: number;
+}
+
+export interface DisputeOrderRequest {
+  /** Why the requester disputes the delivery. */
+  details: string;
+}
+
+export interface CourierDisputeRequest {
+  /** The courier's account of what happened. */
+  details: string;
 }
 
 export interface CreateOrderRequest {

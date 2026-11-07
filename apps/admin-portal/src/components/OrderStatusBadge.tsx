@@ -3,12 +3,26 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted OrderStatusBadge component into src/components/OrderStatusBadge.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: renderDisputedBadge (red Disputed pill).
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
 
-import { Activity, CheckCircle, CheckSquare, Clock, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, CheckSquare, Clock, XCircle } from 'lucide-react';
 import { OrderStatus } from '@campus-errand/common-dtos';
+
+/** Same pill as the status badges, in red, shown under DELIVERED while the order is disputed. */
+export function renderDisputedBadge() {
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">
+      <AlertTriangle className="w-3 h-3 mr-1" />
+      Disputed
+    </span>
+  );
+}
 
 export function renderOrderStatusBadge(status: OrderStatus) {
   switch (status) {

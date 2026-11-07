@@ -7,6 +7,10 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted OrdersPage state management component into src/pages/OrdersPage.tsx.
  * Author review: Verified by yanhwee on 2026-10-19
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Dispute filter chip (counts orders with dispute = true) and a View details button on disputed DELIVERED orders.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -25,7 +29,7 @@ import {
 } from 'lucide-react';
 import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
 import { CAMPUS_ZONES } from '../constants';
-import { renderOrderStatusBadge } from '../components/OrderStatusBadge';
+import { renderDisputedBadge, renderOrderStatusBadge } from '../components/OrderStatusBadge';
 
 interface OrdersPageProps {
   orders: OrderDTO[];
@@ -45,13 +49,14 @@ interface OrdersPageProps {
   setCurrentPageOrders: (page: number | ((p: number) => number)) => void;
   selectedOrderZone: string;
   setSelectedOrderZone: (zone: string) => void;
-  selectedOrderStatus: OrderStatus | 'ALL';
-  setSelectedOrderStatus: (status: OrderStatus | 'ALL') => void;
+  selectedOrderStatus: OrderStatus | 'ALL' | 'DISPUTE';
+  setSelectedOrderStatus: (status: OrderStatus | 'ALL' | 'DISPUTE') => void;
   isLoadingOrders: boolean;
   filteredAndSortedOrders: OrderDTO[];
   paginatedOrders: OrderDTO[];
   handleSortOrders: (field: keyof OrderDTO) => void;
   openOrderAction: (order: OrderDTO, type: 'cancel' | 'complete' | 'unassign') => void;
+  openDispute: (order: OrderDTO) => void;
   currentPageOrders: number;
   totalPagesOrders: number;
 }
@@ -72,6 +77,7 @@ export function OrdersPage({
   paginatedOrders,
   handleSortOrders,
   openOrderAction,
+  openDispute,
   currentPageOrders,
   totalPagesOrders,
 }: OrdersPageProps) {
@@ -175,12 +181,14 @@ export function OrdersPage({
                 {/* Status Filter Chips */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
                   <span className="text-xs font-semibold text-slate-500 mr-1">Status:</span>
-                  {(['ALL', 'PENDING', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED'] as const).map(
+                  {(['ALL', 'PENDING', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED', 'DISPUTE'] as const).map(
                     (st) => {
                       const isSelected = selectedOrderStatus === st;
                       const count =
                         st === 'ALL'
                           ? orders.length
+                          : st === 'DISPUTE'
+                          ? orders.filter((o) => o.dispute).length
                           : orders.filter((o) => o.status === st).length;
                       return (
                         <button
@@ -196,7 +204,7 @@ export function OrdersPage({
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                         >
-                          <span>{st === 'ALL' ? 'All Orders' : st}</span>
+                          <span>{st === 'ALL' ? 'All Orders' : st === 'DISPUTE' ? 'Dispute' : st}</span>
                           <span
                             className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                               isSelected ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
@@ -313,6 +321,7 @@ export function OrdersPage({
                                 </td>
                                 <td className="p-4 align-top">
                                   <div>{renderOrderStatusBadge(order.status)}</div>
+                                  {order.dispute && <div className="mt-1">{renderDisputedBadge()}</div>}
                                   <div className="text-[11px] font-mono text-slate-400 mt-1">
                                     v{order.version}
                                   </div>
@@ -360,7 +369,17 @@ export function OrdersPage({
                                       </button>
                                     )}
 
-                                    {order.status === 'DELIVERED' && (
+                                    {order.status === 'DELIVERED' && order.dispute && (
+                                      <button
+                                        onClick={() => openDispute(order)}
+                                        data-testid="view-dispute-btn"
+                                        className="text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-300 rounded-lg px-2.5 py-1 transition shadow-sm"
+                                      >
+                                        View details
+                                      </button>
+                                    )}
+
+                                    {order.status === 'DELIVERED' && !order.dispute && (
                                       <div className="flex items-center space-x-1.5">
                                         <button
                                           onClick={() => openOrderAction(order, 'complete')}
@@ -406,6 +425,7 @@ export function OrdersPage({
                               <div className="flex items-center space-x-2">
                                 <span className="text-[10px] font-mono text-slate-400">v{order.version}</span>
                                 {renderOrderStatusBadge(order.status)}
+                                {order.dispute && <span className="ml-1.5">{renderDisputedBadge()}</span>}
                               </div>
                             </div>
 
@@ -454,7 +474,15 @@ export function OrdersPage({
                                     Dispute Cancel
                                   </button>
                                 )}
-                                {order.status === 'DELIVERED' && (
+                                {order.status === 'DELIVERED' && order.dispute && (
+                                  <button
+                                    onClick={() => openDispute(order)}
+                                    className="text-xs font-bold text-rose-600 border border-rose-300 rounded-lg px-3 py-1.5"
+                                  >
+                                    View details
+                                  </button>
+                                )}
+                                {order.status === 'DELIVERED' && !order.dispute && (
                                   <>
                                     <button
                                       onClick={() => openOrderAction(order, 'complete')}

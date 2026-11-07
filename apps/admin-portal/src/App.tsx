@@ -20,6 +20,10 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic 3856-line Admin Portal App.tsx into modular pages, components, hooks, constants, and API modules while preserving 100% UI behavior and UAT selectors.
  * Author review: Verified by yanhwee on 2026-10-19
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Dispute filter on the Orders page and the dispute dialog (Refund / Complete) wired to the existing admin actions.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by huangjiaxi1111)
@@ -66,6 +70,7 @@ import { AdminSidebar } from './components/AdminSidebar';
 import { AdminHeader } from './components/AdminHeader';
 import { SupplierModals } from './components/SupplierModals';
 import { UserModals } from './components/UserModals';
+import { DisputeModal } from './components/DisputeModal';
 import { OrderActionModal } from './components/OrderActionModal';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { SuppliersPage } from './pages/SuppliersPage';
@@ -168,7 +173,7 @@ export default function App() {
   const [errorOrders, setErrorOrders] = useState<string | null>(null);
 
   const [searchQueryOrders, setSearchQueryOrders] = useState('');
-  const [selectedOrderStatus, setSelectedOrderStatus] = useState<OrderStatus | 'ALL'>('ALL');
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState<OrderStatus | 'ALL' | 'DISPUTE'>('ALL');
   const [selectedOrderZone, setSelectedOrderZone] = useState<string>('ALL');
   const [sortFieldOrders, setSortFieldOrders] = useState<keyof OrderDTO>('createdAt');
   const [sortDirectionOrders, setSortDirectionOrders] = useState<'asc' | 'desc'>('desc');
@@ -307,6 +312,8 @@ export default function App() {
     setOrderActionError(null);
     setIsConflictError(false);
   };
+
+  const [disputeOrder, setDisputeOrder] = useState<OrderDTO | null>(null);
 
   const closeOrderActionModal = () => {
     setTargetOrderForAction(null);
@@ -750,7 +757,9 @@ export default function App() {
         o.requesterId.toLowerCase().includes(query) ||
         (o.courierId && o.courierId.toLowerCase().includes(query));
 
-      const matchesStatus = selectedOrderStatus === 'ALL' || o.status === selectedOrderStatus;
+      const matchesStatus =
+        selectedOrderStatus === 'ALL' ||
+        (selectedOrderStatus === 'DISPUTE' ? Boolean(o.dispute) : o.status === selectedOrderStatus);
       const matchesZone = selectedOrderZone === 'ALL' || o.campusZone === selectedOrderZone;
 
       return matchesSearch && matchesStatus && matchesZone;
@@ -938,6 +947,7 @@ export default function App() {
               paginatedOrders={paginatedOrders}
               handleSortOrders={handleSortOrders}
               openOrderAction={openOrderAction}
+              openDispute={setDisputeOrder}
               currentPageOrders={currentPageOrders}
               totalPagesOrders={totalPagesOrders}
             />
@@ -1024,6 +1034,18 @@ export default function App() {
         toggleRoleError={toggleRoleError}
         setToggleRoleError={setToggleRoleError}
         handleToggleUserRole={handleToggleUserRole}
+      />
+
+      <DisputeModal
+        order={disputeOrder}
+        authFetch={authFetch}
+        onClose={() => setDisputeOrder(null)}
+        onReload={fetchOrders}
+        onSettled={(updated, message) => {
+          setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+          setActionAlert({ type: 'success', message });
+          setDisputeOrder(null);
+        }}
       />
 
       <OrderActionModal

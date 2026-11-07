@@ -28,6 +28,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Express router for Order Service lifecycle endpoints with Ed25519 authentication, authorization checks, and error mapping.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Added POST /:id/dispute.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Added POST /:id/courier-dispute.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
@@ -256,6 +264,28 @@ export function createOrderRouter(
       success: true,
       data: order,
       message: 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.',
+    });
+  }));
+
+  // 8b. Raise a delivery dispute (Requester only, while DELIVERED). Freezes the order for an administrator; no event.
+  router.post('/:id/dispute', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const requesterId = resolveUserId(req, res);
+    const order = await orderService.disputeOrder(req.params.id, requesterId, req.body?.details);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Dispute raised. An administrator will review it; credits stay held until then.',
+    });
+  }));
+
+  // 8c. Courier's answer to a dispute (assigned courier only, while the dispute is open). Saved on the order; no event.
+  router.post('/:id/courier-dispute', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
+    const courierId = resolveUserId(req, res);
+    const order = await orderService.courierDisputeOrder(req.params.id, courierId, req.body?.details);
+    res.json({
+      success: true,
+      data: order,
+      message: 'Your dispute report was submitted. An administrator will review both sides.',
     });
   }));
 
