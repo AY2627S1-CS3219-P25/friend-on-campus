@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed visual Campus Alerts title banner and subtitle in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned AlertsPage header with refined typography and disclosure metadata.
  * Author review: <to be completed by yanhwee>
@@ -48,13 +52,8 @@ interface AlertsPageProps {
 
 export function AlertsPage(props: AlertsPageProps) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Campus Alerts</h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-          Changes to your errands, newest first. Open one to go to the errand; actions themselves happen in Tasks.
-        </p>
-      </div>
+    <div className="space-y-4 sm:space-y-6">
+      <h2 className="sr-only">Campus Alerts</h2>
       <NotificationPanel {...props} />
     </div>
   );

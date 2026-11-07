@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed visual Campus Alerts title banner and subtitle from AlertsPage.tsx in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold aligned with other sub-pages.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined Credit Wallet summary card (ProfileWalletPage.tsx) into a compact 3-column stat bar (Available, In Active Orders, Total Value) and aligned header toolbar, reducing card height by ~60% and bringing transaction history above the fold.
 Author review: <to be completed by yanhwee>
 
