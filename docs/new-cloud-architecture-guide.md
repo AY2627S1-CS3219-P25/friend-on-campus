@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-07
+Scope: Expanded cloud and networking acronyms in the beginner glossary.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-07
 Scope: Expanded the team's existing infrastructure write-up into an educational companion with deployment details, cost assumptions, and a glossary.
 Author review: <to be completed by the author>
 -->
@@ -119,16 +123,24 @@ These are planning estimates, not a bill or a capacity guarantee. The budget ass
 
 | Term | What it means here |
 | --- | --- |
-| **Region and Availability Zone (AZ)** | A region is a geographic AWS location. Singapore is our region. An AZ is an isolated location inside that region. Separate hosts protect against a machine failure. Separate AZs protect against losing a whole location when the rest of the design also spans AZs. |
-| **VPC and security group** | A VPC is the deployment's private network. A security group controls which connections can reach a resource. For example, the database accepts connections from the deployed application rather than the public internet. |
-| **EC2, ECS, Fargate, task, and service** | EC2 provides virtual machines. ECS schedules containers. A **task** is a running unit of one or more containers. An ECS **service** keeps the desired number of tasks running. Fargate runs ECS tasks without the team managing the underlying hosts. |
-| **ALB, NGINX, and Service Connect** | The public ALB chooses a healthy gateway. NGINX chooses a service using the URL. Service Connect chooses a replica of that service. |
-| **Private NLB and AMQP** | The internal Network Load Balancer gives the app one broker address. AMQP is the protocol the app and Debezium use to talk to RabbitMQ. |
-| **EBS, gp3, and EFS** | EBS is a virtual disk. A gp3 volume normally attaches to one host at a time. EFS is a network filesystem that multiple hosts can mount. We use separate broker disks and shared access to connector checkpoints. |
+| **Amazon Web Services (AWS), region, and Availability Zone (AZ)** | AWS is the cloud provider. A region is a geographic AWS location. Singapore is our region. An AZ is an isolated location within a region. Separate hosts protect against a machine failure. Separate AZs protect against losing a whole location when the rest of the design also spans AZs. |
+| **Virtual Private Cloud (VPC) and security group** | A VPC is the deployment's private network. A security group controls which connections can reach a resource. For example, the database accepts connections from the deployed application rather than the public internet. |
+| **Amazon Elastic Compute Cloud (EC2)** | Provides the virtual machines that host the application's containers and the RabbitMQ brokers. |
+| **Amazon Elastic Container Service (ECS), Fargate, task, and service** | ECS schedules containers. A **task** is a running unit of one or more containers. An ECS **service** keeps the desired number of tasks running. Fargate runs ECS tasks without the team managing the underlying hosts. |
+| **Application Load Balancer (ALB), NGINX, and Service Connect** | The public ALB chooses a healthy gateway. NGINX chooses a service based on the request path. Service Connect chooses a replica of that service. |
+| **Network Load Balancer (NLB) and Advanced Message Queuing Protocol (AMQP)** | The private NLB gives the app one broker address. AMQP is the protocol the app and Debezium use to talk to RabbitMQ. |
+| **Amazon Elastic Block Store (EBS) and Amazon Elastic File System (EFS)** | EBS provides virtual disks. A **General Purpose SSD (gp3)** volume normally attaches to one host at a time. EFS is a network filesystem that multiple hosts can mount. We use separate broker disks and shared access to connector checkpoints. |
 | **RabbitMQ node, exchange, and queue** | A node is a running broker. An exchange routes published messages to queues using routing rules. A queue holds messages for consumers. |
 | **Quorum queue** | A queue replicated across broker nodes. With three members, two must be available for the queue to keep working. Each queue has its own leader. |
-| **RDS, primary, and standby** | RDS manages the database instance. The primary serves reads and writes. The standby is a ready copy that takes over after failure. |
+| **Amazon Relational Database Service (RDS), primary, and standby** | RDS manages the database instance. The primary serves reads and writes. The standby is a ready copy that takes over after failure. |
 | **Outbox, CDC, WAL, and offset** | An **outbox** stores events alongside application changes in a database transaction. **Change data capture (CDC)** reads committed changes. PostgreSQL's **write-ahead log (WAL)** records them. An **offset** is Debezium's checkpoint for where to resume. |
-| **ECR, Secrets Manager, and CloudWatch** | ECR stores container images. Secrets Manager holds credentials. CloudWatch collects logs and metrics for debugging and monitoring. |
-| **Egress and WebSocket** | Egress is outbound network traffic, such as Chat calling SoCLaaS. A WebSocket is a long-lived connection that lets the backend push a message to the browser. |
+| **Amazon Elastic Container Registry (ECR), Secrets Manager, and CloudWatch** | ECR stores container images. Secrets Manager holds credentials. CloudWatch collects logs and metrics for debugging and monitoring. |
+| **Amazon Elastic Kubernetes Service (EKS)** | An AWS service for running Kubernetes, which schedules containers across machines. |
+| **Amazon Simple Notification Service (SNS) and Amazon Simple Queue Service (SQS)** | SNS distributes an event to subscribers. SQS holds events until a consumer can process them. |
+| **Application Programming Interface (API), Uniform Resource Locator (URL), and Domain Name System (DNS)** | An API defines how software calls a service. A URL identifies a resource, such as an API endpoint. DNS resolves the hostname in a URL so the caller can reach it. |
+| **Hypertext Transfer Protocol (HTTP), HTTP Secure (HTTPS), and Transport Layer Security (TLS)** | HTTP carries web requests and responses. HTTPS uses TLS to encrypt that traffic. |
+| **Egress, WebSocket, and WSS** | Egress is outbound traffic. A WebSocket is a long-lived connection the backend can use to push messages to the browser. The `wss://` scheme denotes a WebSocket secured with TLS. |
+| **SoCLaaS (School of Computing Large Language Model as a Service)** | The National University of Singapore (NUS) service that Chat and Order call for translation and the order assistant. [SoCLaaS workshop](https://tg.me/nuswit/514) |
+| **Virtual central processing unit (vCPU), random-access memory (RAM), and gibibyte (GiB)** | A vCPU is a unit of compute capacity. RAM is working memory. GiB measures memory or storage. **ARM64** is the 64-bit processor architecture used by the planned Graviton hosts. |
+| **Goods and Services Tax (GST)** | The Singapore tax included in the guide's cost estimates. |
 | **Idempotency** | Handling the same event twice has the same effect as handling it once. For credits, a retried delivery must not apply a second ledger movement. |
