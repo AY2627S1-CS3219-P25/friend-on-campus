@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Resolved text truncation and missing dropoff icon on My Errands cards (TasksPage): gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined AI Errand Assistant in PostErrandPage into 1-click inline smart autofill: eliminated redundant intermediate draft preview card and extra "Apply to Form Below" button, directly populating form fields in place with inline success feedback and prominent parser warnings.
 Author review: <to be completed by yanhwee>
 

@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Resolved text truncation and missing dropoff icon on My Errands cards: gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Polished My Errands segmented filter into high-end h-11 control with unified blue active styling and embedded count badges.
  * Author review: <to be completed by yanhwee>
  *
@@ -321,11 +325,11 @@ export function TasksPage({
                   key={`${group.key}-${task.id}`}
                   data-testid={`task-card-${group.key}-${task.orderCode}`}
                   data-order-id={task.id}
-                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2.5"
+                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
                 >
-                  {/* Top Line: Identifiers, Item Title, Status Summary & Action */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                  {/* Top Line: Identifiers, Status Summary & Action CTA */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="text-xs font-mono font-extrabold text-nus-blue bg-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
                         {task.orderCode}
                       </span>
@@ -333,43 +337,45 @@ export function TasksPage({
                         <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
                         <span>{task.rewardCredits} C</span>
                       </span>
-                      <h4
-                        title={task.itemDescription}
-                        className="text-sm font-extrabold text-slate-900 group-hover:text-nus-blue transition-colors truncate"
-                      >
-                        {task.itemDescription}
-                      </h4>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0 text-xs">
                       {line && (
-                        <span className={`font-bold ${line.tone} truncate max-w-xs text-right`} title={line.text}>
-                          {line.text}
+                        <span className={`text-xs font-bold ${line.tone} inline-flex items-center gap-1.5 shrink-0`} title={line.text}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                          <span>{line.text}</span>
                         </span>
                       )}
-
-                      <a
-                        href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
-                        data-testid="open-errand-link"
-                        aria-label={`View details of errand ${task.orderCode}`}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          onOpenErrand(task.id);
-                        }}
-                        className="inline-flex items-center gap-1 font-extrabold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
-                      >
-                        <span>View details</span>
-                        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                      </a>
                     </div>
+
+                    <a
+                      href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
+                      data-testid="open-errand-link"
+                      aria-label={`View details of errand ${task.orderCode}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onOpenErrand(task.id);
+                      }}
+                      className="inline-flex items-center gap-1 font-extrabold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer ml-auto"
+                    >
+                      <span>View details</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </a>
                   </div>
 
-                  {/* Bottom Line: Full-width Pickup ➔ Dropoff Route & Special Notes */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
+                  {/* Middle Line: Full-width Item Description (Never squeezed or truncated prematurely) */}
+                  <div className="min-w-0">
+                    <h4
+                      title={task.itemDescription}
+                      className="text-sm sm:text-base font-extrabold text-slate-900 group-hover:text-nus-blue transition-colors line-clamp-2 leading-snug"
+                    >
+                      {task.itemDescription}
+                    </h4>
+                  </div>
+
+                  {/* Bottom Line: Connected Route (with blue Pickup pin & orange Dropoff pin) & Notes */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
                     <div className="inline-flex items-center gap-1.5 min-w-0">
                       <MapPin className="h-3.5 w-3.5 text-nus-blue shrink-0" />
                       <span className="text-slate-400 font-semibold text-[11px] shrink-0">Pickup:</span>
-                      <span className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs md:max-w-sm" title={task.supplierName}>
+                      <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
                         {task.supplierName}
                       </span>
                     </div>
@@ -377,16 +383,17 @@ export function TasksPage({
                     <span className="text-slate-300 select-none">➔</span>
 
                     <div className="inline-flex items-center gap-1.5 min-w-0">
+                      <MapPin className="h-3.5 w-3.5 text-nus-orange shrink-0" />
                       <span className="text-slate-400 font-semibold text-[11px] shrink-0">Dropoff:</span>
-                      <span className="font-semibold text-slate-800 truncate max-w-[220px] sm:max-w-sm md:max-w-md" title={task.dropoffLocation}>
+                      <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
                         {task.dropoffLocation}
                       </span>
                     </div>
 
                     {task.specialNotes && (
                       <>
-                        <span className="text-slate-300 hidden md:inline select-none">•</span>
-                        <span className="text-slate-500 italic text-[11px] truncate max-w-xs sm:max-w-sm md:max-w-md" title={task.specialNotes}>
+                        <span className="text-slate-300 hidden sm:inline select-none">•</span>
+                        <span className="text-slate-500 italic text-[11px] break-words" title={task.specialNotes}>
                           Note: {task.specialNotes}
                         </span>
                       </>
