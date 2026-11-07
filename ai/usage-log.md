@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned Credit Wallet in ProfileWalletPage.tsx into a consumer-first single-row hero card focused strictly on Available Balance, contextual active order reservations, and integrated refresh control, removing synthetic Total Account Value and redundant title banner to bring Recent Activity directly above the fold.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Removed visual Campus Alerts title banner and subtitle from AlertsPage.tsx in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold aligned with other sub-pages.
 Author review: <to be completed by yanhwee>
 

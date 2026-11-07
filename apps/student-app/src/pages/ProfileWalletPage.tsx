@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Redesigned Credit Wallet into a consumer-first single-row hero card focused strictly on Available Balance, contextual active order reservations, and integrated refresh control, removing synthetic Total Account Value and redundant title banner.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined Credit Wallet summary card into a compact 3-column stat bar (Available, In Active Orders, Total Value) and aligned header toolbar, reducing card height by ~60% and bringing transaction history above the fold.
  * Author review: <to be completed by yanhwee>
  *
@@ -341,29 +345,11 @@ export function ProfileWalletPage({
 
   // mode === 'wallet'
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
-      <section aria-labelledby="credit-heading" className="space-y-6">
-        {/* Header & Refresh */}
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 id="credit-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Credit Wallet
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-              Campus credit balance and recent activity
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onRefreshCredits}
-            disabled={isLoadingCredits}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99] shrink-0"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
-            <span>{creditError ? 'Retry credits' : 'Refresh wallet'}</span>
-          </button>
-        </div>
+    <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6">
+      <section aria-labelledby="credit-heading" className="space-y-4 sm:space-y-5">
+        <h2 id="credit-heading" className="sr-only">
+          Credit Wallet
+        </h2>
 
         {isLoadingCredits && (
           <p role="status" className="text-xs sm:text-sm text-slate-500 flex items-center gap-2 font-medium">
@@ -382,69 +368,56 @@ export function ProfileWalletPage({
         )}
 
         {wallet && (
-          <div className="space-y-6">
-            {/* Digital Wallet Card: Sleek 3-stat compact summary */}
+          <div className="space-y-5 sm:space-y-6">
+            {/* Consumer Wallet Hero Card (~75px height) */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-amber-50/25 to-orange-50/20 p-4 sm:p-5 text-slate-900 shadow-card border border-slate-200/90">
-              {/* Decorative glows */}
+              {/* Subtle decorative glow */}
               <div className="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-amber-300/15 blur-2xl pointer-events-none" />
               <div className="absolute -left-8 -bottom-8 w-44 h-44 rounded-full bg-blue-300/10 blur-2xl pointer-events-none" />
 
-              <div className="relative z-10 space-y-3">
-                {/* Header row: badge + earned */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                      <Coins className="w-3 h-3 text-amber-600 fill-amber-200" />
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
+                {/* Balance & Active Orders */}
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0 shadow-2xs">
+                      <Coins className="w-5 h-5 text-amber-600 fill-amber-200" />
                     </div>
-                    <span className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
-                      Campus Student Wallet
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Available Balance
+                      </span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                          {wallet.availableCredits}
+                        </span>
+                        <span className="text-xs font-black text-slate-500 uppercase">Credits</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {wallet.escrowCredits > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50/90 border border-amber-200/90 text-xs font-bold text-amber-800 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      <span>{wallet.escrowCredits} C in active orders</span>
                     </span>
-                  </div>
-                  <div className="text-xs text-slate-500 font-medium">
-                    Total earned: <span className="font-bold text-slate-800">+{wallet.totalEarnedCredits} C</span>
-                  </div>
+                  )}
                 </div>
 
-                {/* 3-stat grid */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-2.5 border-t border-slate-200/70">
-                  {/* 1. Available to Spend (Hero Emerald) */}
-                  <div className="bg-emerald-50/70 rounded-2xl p-2.5 sm:p-3 border border-emerald-200/80 shadow-2xs">
-                    <span className="text-[10px] sm:text-[11px] text-emerald-800 font-bold uppercase tracking-wider block truncate">
-                      Available to Spend
-                    </span>
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-xl sm:text-2xl font-black text-emerald-700 tracking-tight">
-                        {wallet.availableCredits}
-                      </span>
-                      <span className="text-xs font-bold text-emerald-600">C</span>
-                    </div>
-                  </div>
+                {/* Right controls: Total Earned + Refresh Wallet button */}
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                  <span className="text-xs text-slate-500 font-medium">
+                    Total earned: <strong className="font-bold text-slate-800">+{wallet.totalEarnedCredits} C</strong>
+                  </span>
 
-                  {/* 2. In Active Orders (Amber Reserve) */}
-                  <div className="bg-amber-50/70 rounded-2xl p-2.5 sm:p-3 border border-amber-200/80 shadow-2xs">
-                    <span className="text-[10px] sm:text-[11px] text-amber-800 font-bold uppercase tracking-wider block truncate">
-                      In Active Orders
-                    </span>
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-xl sm:text-2xl font-black text-amber-700 tracking-tight">
-                        {wallet.escrowCredits}
-                      </span>
-                      <span className="text-xs font-bold text-amber-600">C</span>
-                    </div>
-                  </div>
-
-                  {/* 3. Total Account Value (Clean Slate) */}
-                  <div className="bg-white/85 rounded-2xl p-2.5 sm:p-3 border border-slate-200/90 shadow-2xs">
-                    <span className="text-[10px] sm:text-[11px] text-slate-500 font-bold uppercase tracking-wider block truncate">
-                      Total Value
-                    </span>
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                        {wallet.availableCredits + wallet.escrowCredits}
-                      </span>
-                      <span className="text-xs font-bold text-slate-500">C</span>
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={onRefreshCredits}
+                    disabled={isLoadingCredits}
+                    className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.99] shrink-0"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isLoadingCredits ? 'animate-spin text-nus-blue' : ''}`} />
+                    <span>{creditError ? 'Retry' : 'Refresh'}</span>
+                  </button>
                 </div>
               </div>
             </div>
