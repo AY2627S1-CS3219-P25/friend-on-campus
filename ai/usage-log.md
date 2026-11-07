@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed visual "Post New Errand" title banner and subtitle from PostErrandPage, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) in PostErrandPage with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
 Author review: <to be completed by yanhwee>
 

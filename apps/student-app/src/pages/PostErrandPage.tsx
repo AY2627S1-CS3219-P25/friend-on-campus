@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed visual "Post New Errand" title banner and subtitle, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
  * Author review: <to be completed by yanhwee>
  *
@@ -337,14 +341,8 @@ export function PostErrandPage({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header section */}
-      <div className="border-b border-slate-200/80 pb-3">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Post New Errand</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Request items from NUS campus spots. Fellow students deliver for reward credits.
-        </p>
-      </div>
+    <div className="space-y-4 sm:space-y-5">
+      <h2 className="sr-only">Post New Errand</h2>
 
       {/* Backend / Network Submission Alerts */}
       {submissionError && !dismissError && (
