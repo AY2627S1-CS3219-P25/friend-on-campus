@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Eliminated orphan whitespace row on mobile errand cards (TasksPage) by locking order code, reward credits, and 'View details' CTA into unified top row, moving mobile status to dedicated left-aligned line.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Removed visual "Post New Errand" title banner and subtitle from PostErrandPage, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
 Author review: <to be completed by yanhwee>
 

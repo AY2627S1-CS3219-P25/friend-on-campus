@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Eliminated orphan whitespace row on mobile errand cards by locking order code, reward credits, and 'View details' CTA into unified top row and rendering mobile status on dedicated left-aligned line.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Resolved text truncation and missing dropoff icon on My Errands cards: gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
  * Author review: <to be completed by yanhwee>
  *
@@ -327,9 +331,9 @@ export function TasksPage({
                   data-order-id={task.id}
                   className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card-hover border border-slate-200/90 hover:border-nus-blue/50 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
                 >
-                  {/* Top Line: Identifiers, Status Summary & Action CTA */}
-                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  {/* Top Line: Identifiers, Desktop Status & Action CTA */}
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-mono font-extrabold text-nus-blue bg-blue-50/90 border border-nus-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
                         {task.orderCode}
                       </span>
@@ -338,7 +342,7 @@ export function TasksPage({
                         <span>{task.rewardCredits} C</span>
                       </span>
                       {line && (
-                        <span className={`text-xs font-bold ${line.tone} inline-flex items-center gap-1.5 shrink-0`} title={line.text}>
+                        <span className={`hidden sm:inline-flex text-xs font-bold ${line.tone} items-center gap-1.5 shrink-0`} title={line.text}>
                           <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
                           <span>{line.text}</span>
                         </span>
@@ -353,12 +357,22 @@ export function TasksPage({
                         event.preventDefault();
                         onOpenErrand(task.id);
                       }}
-                      className="inline-flex items-center gap-1 font-extrabold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer ml-auto"
+                      className="inline-flex items-center gap-1 font-extrabold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
                     >
                       <span>View details</span>
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </a>
                   </div>
+
+                  {/* Mobile-only status line (dedicated row without orphan whitespace) */}
+                  {line && (
+                    <div className="sm:hidden flex items-center min-w-0 -mt-0.5">
+                      <span className={`text-xs font-bold ${line.tone} inline-flex items-center gap-1.5 truncate`} title={line.text}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0" />
+                        <span className="truncate">{line.text}</span>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Middle Line: Full-width Item Description (Never squeezed or truncated prematurely) */}
                   <div className="min-w-0">
