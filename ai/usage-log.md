@@ -6386,3 +6386,16 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/errand/ErrandDetailsPage.tsx` — countdown/auto-complete removed; courier form always shown when DELIVERED; requester can still write a dispute after a courier one
 - `services/order-service/src/repositories/order.repository.ts` — courier dispute no longer needs an existing dispute and sets `dispute`; requester dispute allowed once even if courier disputed
 - `services/order-service/test/helpers.ts`, `services/order-service/test/order.service.test.ts` — fake repo and test updated
+
+## 2026-11-07 11:50 SGT — Author confirms courier-dispute design was their own
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** The author reviewed the previous change (courier dispute form by default) and asked Claude to verify that both dispute paths raise the order-service dispute flag and that each party can write at most one dispute text. The author clarified that the two points listed as "left to the author" in the previous entry (a courier dispute sets the dispute flag; the requester may still dispute afterwards, once) were not Claude's decisions: the author had already intended both and assumed they followed from the prompt, and after reviewing the work confirmed the implementation matches that intent. They asked for this to be recorded.
+
+**Usage scenario:** Debugging/verification assistance (read-only check of existing code and tests). No design decision was made by Claude; the design is the author's, as recorded above. Follow-up to the entry "Remove confirm countdown; courier dispute by default".
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
