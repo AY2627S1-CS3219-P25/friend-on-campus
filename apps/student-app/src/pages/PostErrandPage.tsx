@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed meta milestone labels (NUS SoCLaaS M3) and internal service references from user-facing post-errand builder.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned PostErrandPage with elevated card hierarchy, glowing AI assistant hero container, refined stepper & quick-set badges, and glassmorphic styling.
  * Author review: <to be completed by yanhwee>
@@ -389,7 +393,7 @@ export function PostErrandPage({
               </span>
               <h3 className="text-base font-extrabold text-slate-900 tracking-tight">AI Errand Assistant</h3>
               <span className="text-[11px] bg-nus-blue/10 text-nus-blue font-bold px-2.5 py-0.5 rounded-full border border-nus-blue/20">
-                NUS SoCLaaS M3
+                Smart AI Draft
               </span>
             </div>
             {(assistantPrompt || extractedDraft) && (
@@ -908,7 +912,7 @@ export function PostErrandPage({
                 <span className="text-xs font-semibold text-slate-600">minutes (30m – 24h)</span>
               </div>
               <p className="text-xs text-slate-400 mt-2">
-                If no student courier accepts before this window expires, your held credits are refunded automatically by Credit Service.
+                If no student courier accepts before this window expires, your held credits are refunded automatically to your balance.
               </p>
             </div>
 
@@ -949,7 +953,7 @@ export function PostErrandPage({
                 ) : submissionBusy ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
-                    <span>Reserving Escrow…</span>
+                    <span>Reserving Credits…</span>
                   </>
                 ) : isOverdraw ? (
                   <span>Insufficient Credits</span>

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed technical meta information (WS Hub) in favor of a sleek, formal Live network indicator with data-status attributes.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned HeaderNav with premium glassmorphism, animated pulse indicators, interactive tab pills, and refined wallet capsule.
  * Author review: <to be completed by yanhwee>
@@ -84,7 +88,11 @@ export function HeaderNav({
                   Peer-to-Peer Campus Delivery
                 </p>
                 {showWsStatus && (
-                  <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 font-medium bg-slate-100/80 px-2 py-0.5 rounded-full border border-slate-200/60">
+                  <span
+                    data-testid="ws-status"
+                    data-status={wsStatus}
+                    className="inline-flex items-center gap-1.5 text-[10px] text-slate-600 font-semibold bg-slate-100/90 px-2.5 py-0.5 rounded-full border border-slate-200/80 shadow-2xs"
+                  >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
                         wsStatus === 'connected'
@@ -94,7 +102,8 @@ export function HeaderNav({
                           : 'bg-rose-500'
                       }`}
                     />
-                    <span>WS Hub: {wsStatus}</span>
+                    <span>{wsStatus === 'connected' ? 'Live' : wsStatus === 'connecting' ? 'Connecting…' : 'Offline'}</span>
+                    <span className="sr-only">WS Hub: {wsStatus}</span>
                   </span>
                 )}
               </div>

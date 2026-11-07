@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed technical meta information and architecture jargon (WS Hub, Saga Escrow, NUS SoCLaaS M3, evaluator demo logins, microservice name leaks) across student-app into production-ready consumer presentation.
+Author review: <to be completed by yanhwee>
+
 Tool: Google Antigravity Agent, date: 2026-11-06
 Scope: Complete redesign of student-app frontend from scratch in worktree friend-on-campus-redesign: modern glassmorphic theme with elevated cards, glowing indicators, responsive layouts, role-based visual polish, while preserving all 51/51 unit tests and UAT locators.
 Author review: <to be completed by yanhwee>
@@ -6341,3 +6345,25 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `apps/student-app/src/map/DropoffPicker.tsx` — Strict Leaflet mouse event typing and disclosure block
 - `apps/student-app/src/App.tsx` — Updated disclosure header
 - `ai/usage-log.md` — Logged frontend redesign implementation record
+
+## 2026-11-07 10:55 SGT — Student App Meta Information Cleanup & Production Polish
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Run through the student app and remove any "meta" information, like WS HUB: connected, Saga Escrow (in Credit Wallet & Ledger), NUS SoCLaaS M3, etc... like make it polished and neat as a formal app.
+
+**Usage scenario:** UI polish and meta information cleanup across `@campus-errand/student-app`. Replaced debug indicators, microservice backend leaks, and academic milestone tags with consumer-facing, production-grade terminology while preserving all unit tests, UAT selectors, and accessibility labels.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Replaced "WS Hub: connected" with a sleek, formal "Live" network indicator with data-status attributes
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Replaced "Saga Escrow", "Credit Service & Escrow Saga", and "NUS Closed Economy" with "Escrow Protected", "Campus Student Wallet", and formal buyer protection explainer copy
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Replaced "NUS SoCLaaS M3" with "Smart AI Draft", and replaced internal service references in refund notices and submit button with "Reserving Credits…"
+- `apps/student-app/src/pages/SpotsPage.tsx` — Removed internal Supplier Service attribution in header in favor of clean campus directory copy
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Removed demo evaluator 1-click auto-fill account cards and "NUS OpenID / JWT" for a formal student authentication portal
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Removed microservice backend references from action button captions and timeline status notes
+- `apps/student-app/src/App.tsx` — Polished errand completion and cancellation toast messages into friendly consumer notifications
+- `scripts/uat/uat-d2-ui.mjs` — Updated UD2 to wait on semantic `[data-status="connected"]` attribute
+- `scripts/uat/uat-realtime.mjs` — Updated RT01 to wait on semantic `[data-status="connected"]` attribute
+- `ai/usage-log.md` — Logged meta cleanup session

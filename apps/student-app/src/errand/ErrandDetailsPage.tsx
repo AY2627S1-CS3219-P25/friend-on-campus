@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed internal microservice references (Credit Service) from user-facing errand action button captions and timeline details.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned ErrandDetailsPage with polished glassmorphic cards, luminous status tracker with pulsing milestone markers, route cards, tactile action buttons with NUS gradients, and full test-id preservation.
  * Author review: <to be completed by yanhwee>
@@ -222,7 +226,7 @@ function rowCopy(
         title: step.state === 'done' ? `Posted (${credits} in escrow)` : `Reserving ${credits}`,
         detail: at
           ? `${at} · ${role === 'requester' ? 'You' : 'Requester'}`
-          : 'Credit Service is reserving the reward',
+          : 'Reserving reward credits…',
       };
     case 'accepted':
       return {
@@ -567,7 +571,7 @@ function Actions({
           {label('accept', `Accept errand · earn ${credits} credits`, 'Accepting…')}
         </button>
         {caption(
-          `You become the courier. The ${credits} credits are paid to you after the requester confirms delivery and Credit Service settles the escrow.`
+          `You become the courier. The ${credits} credits are paid to you after the requester confirms delivery.`
         )}
       </div>
     );
@@ -610,7 +614,7 @@ function Actions({
           >
             {label('deliver', `Delivered to ${order.dropoffLocation}`, 'Marking delivered…')}
           </button>
-          {caption(`The requester confirms, then Credit Service releases ${credits} credits to you.`)}
+          {caption(`Once the requester confirms delivery, ${credits} credits are released to you.`)}
         </div>
       );
     }
@@ -630,7 +634,7 @@ function Actions({
           >
             {label('complete', `Confirm received & release ${credits} credits`, 'Confirming…')}
           </button>
-          {caption(`Releases ${credits} credits from escrow to the courier; Credit Service settles the transfer.`)}
+          {caption(`Releases ${credits} credits from escrow to the courier.`)}
         </div>
       );
     }
@@ -646,7 +650,7 @@ function Actions({
           >
             {label('cancel', 'Cancel errand', 'Cancelling…')}
           </button>
-          {caption(`Your ${credits} reserved credits are returned by Credit Service.`)}
+          {caption(`Your ${credits} reserved credits will be returned to your balance.`)}
         </div>
       );
     }

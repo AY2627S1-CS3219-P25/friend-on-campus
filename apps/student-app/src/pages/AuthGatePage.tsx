@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed demo evaluator auto-fill callouts and JWT technical metadata for a sleek, formal student portal.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned AuthGatePage with modern glassmorphic card layout, luminous brand crest with pulsing live indicator, tactile demo user chips, and preserved form IDs and aria labels.
  * Author review: <to be completed by yanhwee>
@@ -28,7 +32,6 @@ import {
   Package,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   User,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -78,12 +81,6 @@ export function AuthGatePage({
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupRetype, setShowSignupRetype] = useState(false);
-
-  const handleFillDemo = (email: string, pass: string) => {
-    setLoginEmail(email);
-    setLoginPassword(pass);
-    setLoginError(null);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50/70 via-slate-50 to-orange-50/50 px-4 py-12 relative overflow-hidden">
@@ -154,42 +151,6 @@ export function AuthGatePage({
 
           {authView === 'login' ? (
             <form onSubmit={onLoginSubmit} className="space-y-4">
-              {/* Evaluator Quick Demo Accounts Callout */}
-              <div className="bg-slate-50/90 rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-nus-blue flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    Demo Evaluator 1-Click Access
-                  </span>
-                  <span className="text-[10px] bg-blue-100/70 text-nus-blue font-bold px-1.5 py-0.5 rounded">
-                    Auto-Fill
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleFillDemo('alice@u.nus.edu', 'Password123!')}
-                    className="p-2.5 bg-white rounded-xl border border-slate-200 hover:border-nus-blue text-left transition hover:shadow-xs group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-1 font-black text-xs text-slate-900 group-hover:text-nus-blue">
-                      <span>👤 Alice</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-semibold">Requester • 73 C</p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleFillDemo('bob@u.nus.edu', 'Password123!')}
-                    className="p-2.5 bg-white rounded-xl border border-slate-200 hover:border-nus-orange text-left transition hover:shadow-xs group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-1 font-black text-xs text-slate-900 group-hover:text-nus-orange">
-                      <span>⚡ Bob</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-semibold">Courier • 62 C</p>
-                  </button>
-                </div>
-              </div>
-
               {loginError && (
                 <div
                   role="alert"
@@ -266,7 +227,7 @@ export function AuthGatePage({
                   />
                   <span className="font-medium">Keep me logged in</span>
                 </label>
-                <span className="text-slate-400 font-medium">NUS OpenID / JWT</span>
+                <span className="text-slate-400 font-medium">Single Sign-On (SSO)</span>
               </div>
 
               {/* Submit CTA */}

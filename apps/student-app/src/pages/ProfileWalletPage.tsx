@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed backend architecture meta terms (Saga Escrow, Credit Service) in favor of consumer-facing Escrow Protected wallet language.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned ProfileWalletPage with digital NUS student identity card, fintech-style escrow balance card with dual sub-wallets, tactile edit controls, category-iconized ledger transactions, and isolated danger zone.
  * Author review: <to be completed by yanhwee>
@@ -371,12 +375,12 @@ export function ProfileWalletPage({
               <h2 id="credit-heading" className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Credit Wallet &amp; Ledger
               </h2>
-              <span className="text-xs bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
-                Saga Escrow
+              <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold px-2.5 py-0.5 rounded-full shadow-2xs">
+                Escrow Protected
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-              Closed campus economy powered by Credit Service &amp; Escrow Saga
+              Secure campus credit balance and transaction history with delivery protection
             </p>
           </div>
 
@@ -419,7 +423,7 @@ export function ProfileWalletPage({
                 <div className="relative z-10 space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-[11px] font-black tracking-widest text-slate-500 uppercase">
-                      NUS Closed Economy
+                      Campus Student Wallet
                     </span>
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
                       <ShieldCheck className="w-3.5 h-3.5" />
@@ -464,14 +468,14 @@ export function ProfileWalletPage({
                 </div>
               </div>
 
-              {/* Escrow Saga Explainer Tip */}
+              {/* Escrow Protection Explainer Tip */}
               <div className="rounded-3xl p-4 sm:p-5 bg-blue-50/70 border border-blue-100 text-xs text-nus-blue space-y-1 shadow-card">
                 <p className="font-bold flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-nus-blue" />
                   <span>How Escrow Protection Works</span>
                 </p>
                 <p className="text-slate-600 leading-relaxed font-medium">
-                  When you post an errand, reward credits are held in escrow. They are released to the courier only upon your confirmed delivery.
+                  When you post an errand, reward credits are held securely in escrow. They are released to the student courier only after you confirm delivery.
                 </p>
               </div>
             </div>

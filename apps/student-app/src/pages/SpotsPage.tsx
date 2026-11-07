@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed internal backend service attribution from directory header for a formal consumer app appearance.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned SpotsPage with polished campus spot directory layout, sleek frosted search bar, tactile category pills, responsive skeleton states, and verified count badge.
  * Author review: <to be completed by yanhwee>
@@ -62,7 +66,7 @@ export function SpotsPage({
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-            Real-time verified campus pickup points from Supplier Service
+            Real-time verified pickup spots and merchants across campus
           </p>
         </div>
 
