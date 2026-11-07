@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Illuminated wallet capsule with vibrant amber active state in top header when activeTab === 'wallet', matching NotificationBell's active treatment for instant user orientation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Refined desktop profile button active styling with soft tinted blue background, accessible contrast, and subtle ring focus, eliminating harsh dark navy fill.
  * Author review: <to be completed by yanhwee>
  *
@@ -211,14 +215,27 @@ export function HeaderNav({
             onClick={() => onSelectTab('wallet')}
             className={`group flex items-center gap-1.5 sm:gap-2 h-9 min-h-0 px-2.5 sm:px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
               activeTab === 'wallet'
-                ? 'bg-amber-50/90 border-amber-300 text-slate-900 shadow-sm ring-2 ring-amber-300/40'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 border-amber-600 text-white shadow-xs'
                 : 'bg-white hover:bg-amber-50/40 border-slate-200/90 hover:border-amber-200 text-slate-800 shadow-subtle hover:shadow-card'
             }`}
           >
-            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-100 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              <Coins className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 fill-amber-200" />
+            <div
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+                activeTab === 'wallet' ? 'bg-white/20' : 'bg-amber-100'
+              }`}
+            >
+              <Coins
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                  activeTab === 'wallet' ? 'text-white fill-white/80' : 'text-amber-600 fill-amber-200'
+                }`}
+              />
             </div>
-            <span className="text-xs font-black text-slate-900 tracking-tight" aria-live="polite">
+            <span
+              className={`text-xs font-black tracking-tight ${
+                activeTab === 'wallet' ? 'text-white' : 'text-slate-900'
+              }`}
+              aria-live="polite"
+            >
               {wallet
                 ? `${wallet.availableCredits} C`
                 : isLoadingCredits
