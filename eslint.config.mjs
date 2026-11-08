@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
+// Scope: Added the k6 open() global to the tests/k6 block (tests/k6/lib/perf.js reads requirements.json and fixtures; issue #236).
+// Author review: <to be completed by Reallyeasy1>
+//
 // Tool: Google Antigravity Agent, date: 2026-10-28
 // Scope: Added k6 globals (__ENV, __VU, __ITER) for tests/k6 scripts.
 // Author review: <to be completed by yanhwee>
@@ -128,6 +132,7 @@ export default tseslint.config(
         __ENV: "readonly",
         __VU: "readonly",
         __ITER: "readonly",
+        open: "readonly",
       },
     },
   },

@@ -1,0 +1,139 @@
+# AI Assistance Disclosure:
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
+# Scope: Manual k6 performance workflow for issue #237: allowlisted target and bounded profile inputs, pinned k6,
+#        per-target concurrency lock, preflight -> fixtures -> k6 -> reconciliation/report -> cleanup through
+#        scripts/perf/run-perf.mjs, artifact upload after failure with the original verdict preserved.
+# Author review: <to be completed by Reallyeasy1>
+#
+# Never runs on push or pull request. The AWS target uses the `performance-aws` GitHub environment so required
+# reviewers can gate shared-cluster load; the gateway URL comes from the repository variable
+# PERF_AWS_GATEWAY_URL and the admin login from the secrets PERF_AWS_ADMIN_EMAIL / PERF_AWS_ADMIN_PASSWORD.
+name: Performance (k6, manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Load target (allowlisted)'
+        required: true
+        default: isolated-compose
+        type: choice
+        options:
+          - isolated-compose
+          - aws-gateway
+      profile:
+        description: 'smoke: 1-5 VUs for 1 min. load: issue VUs, 1 min warm-up + 5 min measured + 1 min drain. stress: +25 VUs per 2 min up to 150 VUs / 10 min.'
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - load
+          - stress
+      workload:
+        description: 'Workload to measure (all runs discovery, supplier, credit, then lifecycle)'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - discovery
+          - supplier
+          - credit
+          - lifecycle
+      vus:
+        description: 'Optional VU override (smoke 1-5, otherwise 1-150). Blank uses the issue baseline, e.g. 100 for supplier #33.'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+# One performance run per target at a time; an active run is never cancelled by a newer dispatch.
+concurrency:
+  group: performance-${{ inputs.target }}
+  cancel-in-progress: false
+
+env:
+  K6_VERSION: '1.5.0'
+
+jobs:
+  k6:
+    name: k6 ${{ inputs.profile }} / ${{ inputs.workload }} / ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    environment: ${{ inputs.target == 'aws-gateway' && 'performance-aws' || 'performance-compose' }}
+    env:
+      COMPOSE_PROJECT_NAME: foc-perf-${{ github.run_id }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install pinned k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+      - name: Record tool versions
+        run: |
+          k6 version
+          node --version
+      - name: Generate throwaway JWT keys
+        if: inputs.target == 'isolated-compose'
+        run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"
+      - name: Build and start isolated Compose stack
+        if: inputs.target == 'isolated-compose'
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml up --build -d --wait --wait-timeout 300
+      - name: Resolve allowlisted target
+        id: target
+        run: |
+          case "${{ inputs.target }}" in
+            isolated-compose)
+              echo "url=http://127.0.0.1" >> "$GITHUB_OUTPUT"
+              echo "ack=" >> "$GITHUB_OUTPUT"
+              ;;
+            aws-gateway)
+              url='${{ vars.PERF_AWS_GATEWAY_URL }}'
+              if [ -z "$url" ]; then
+                echo "Repository variable PERF_AWS_GATEWAY_URL is not set; refusing to guess a target." >&2
+                exit 1
+              fi
+              echo "url=$url" >> "$GITHUB_OUTPUT"
+              echo "ack=--acknowledge-remote-load" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+      - name: Run performance harness (preflight, fixtures, k6, reconciliation, report, cleanup)
+        env:
+          # The isolated stack falls back to the seeded administrator inside the wrapper; AWS needs the secrets.
+          PERF_ADMIN_EMAIL: ${{ inputs.target == 'aws-gateway' && secrets.PERF_AWS_ADMIN_EMAIL || '' }}
+          PERF_ADMIN_PASSWORD: ${{ inputs.target == 'aws-gateway' && secrets.PERF_AWS_ADMIN_PASSWORD || '' }}
+          VUS_FLAG: ${{ inputs.vus != '' && format('--vus {0}', inputs.vus) || '' }}
+        run: |
+          npm run perf:k6 -- --target "${{ steps.target.outputs.url }}" --profile "${{ inputs.profile }}" \
+            --workload "${{ inputs.workload }}" $VUS_FLAG ${{ steps.target.outputs.ack }} --out test-results
+      - name: Collect Compose logs
+        if: failure() && inputs.target == 'isolated-compose'
+        run: |
+          mkdir -p ci-logs
+          docker compose -f docker-compose.yml -f docker-compose.test.yml ps -a > ci-logs/docker-compose-ps.log
+          docker compose -f docker-compose.yml -f docker-compose.test.yml logs --no-color > ci-logs/docker-compose.log 2>&1
+      - name: Upload evidence bundle (also after failure; the job verdict is unchanged)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: performance-${{ inputs.target }}-${{ inputs.profile }}-${{ inputs.workload }}-${{ github.run_id }}
+          path: |
+            test-results/**
+            !test-results/**/.secrets/**
+            ci-logs/**
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Stop isolated Compose stack
+        if: always() && inputs.target == 'isolated-compose'
+        run: docker compose -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans

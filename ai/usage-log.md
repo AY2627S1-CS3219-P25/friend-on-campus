@@ -6104,3 +6104,151 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none (this entry only)
+
+## 2026-11-08 18:50 SGT — "pull" on feat/n4-student-app-request-resilience
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "pull".
+
+**Usage scenario:** Debugging assistance / git status report. Fetched origin; the branch's upstream ref no longer exists on the remote (deleted after PR #225 merged), so `git pull` had nothing to do. `origin/main` has advanced (PRs #226–#231). No merge or checkout performed because `ai/usage-log.md` is dirty and would conflict; the author decides how to take main's changes.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:14 SGT — k6 load-testing implementation (wiki design sections 6-8, task T4)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** Implement the k6 portion of the wiki "Automated System Testing and Evidence Design": create GitHub tasks first, repair the existing `tests/k6` scripts, add credit-balance and order-lifecycle HTTP workloads, bounded smoke/load/stress profiles, run-owned fixtures, per-operation issue thresholds with response-correctness checks, reconciliation, a manual `workflow_dispatch` performance workflow and an evidence bundle; validate locally and leave uncommitted.
+
+**Usage scenario:** Implementation code and boilerplate for a design the author selected in the wiki (k6 chosen; profiles, thresholds and evidence contract specified there and in issues #43/#44/#45/#74/#36/#29/#33). Task issues #236 and #237 were created because the prompt explicitly requested them; their acceptance criteria restate the wiki/issue text rather than new requirements. Measurement-method knobs (concurrency tolerance 0.95, sample minimum 100 for load/stress, smoke not assessing concurrency, cleanup deleting run accounts but leaving their orphan wallets) are harness defaults recorded in `tests/k6/requirements.json` and `summary.md` for the author to confirm. Not done: no commit/push, no AWS or shared-demo load, no autoscaling claim. Finding for the author (not fixed): Supplier Service derives `supplierCode` from `count + 1`, so parallel creates collide and surface as HTTP 409; the harness supplies explicit codes.
+
+**Checks run:** `npm run typecheck` (exit 0), `npx eslint tests/k6 scripts/perf eslint.config.mjs` (clean), `npm run ci:validate-tests` (passed), `k6 inspect` for 12 script/profile combinations, isolated Compose smoke run of all four workloads (`test-results/smoke-local-2`, PASS, 8 reconciliation invariants PASS), forced failures: wrong admin password -> BLOCKED exit 1; temporarily lowered threshold -> FAIL exit 1 with artifacts; tampered fixture -> correctness checks fail, k6 exit 99.
+
+**Files changed:**
+- `tests/k6/requirements.json` — new: workloads, issue-derived limits, hard profile bounds (JSON, no header)
+- `tests/k6/lib/perf.js` — new shared k6 helpers (profiles, sessions with token renewal, tags, response_ok rate, thresholds, summary)
+- `tests/k6/discovery-load.js` — rewritten: order-feed and supplier scenarios with correctness checks
+- `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js` — new workloads
+- `tests/k6/order-claim-race.js` — env credentials, run-owned order, abort on failed prerequisites
+- `tests/k6/README.md` — rewritten for the wrapper, thresholds and evidence bundle
+- `scripts/perf/run-perf.mjs`, `scripts/perf/lib/gateway.mjs`, `scripts/perf/lib/fixtures.mjs`, `scripts/perf/lib/report.mjs` — new orchestrator, HTTP client, fixtures/reconciliation/cleanup, timeline and verdict builders
+- `.github/workflows/performance.yml` — new manual workflow
+- `package.json` — `perf:k6` script (JSON, no header)
+- `eslint.config.mjs` — k6 `open` global
+- `README.md` — test table row and D4 cheat sheet replaced the unbounded k6 commands
+- `docs/infrastructure/ci-cd.md` — manual performance workflow section (file already had unrelated uncommitted edits by the author; preserved)
+
+## 2026-11-08 21:20 SGT — How to run the performance test
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok how do i run the performance test itself".
+
+**Usage scenario:** Learning support / explanation: described the local smoke and requirement-load commands (`npm run perf:k6`), where the evidence lands, and the GitHub Actions dispatch path with the required variable/secrets. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:33 SGT — npm command that runs all load tests
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "maybe it would be good to have an npm command that runs all load testing".
+
+**Usage scenario:** Implementation/boilerplate on the author's suggestion: added `npm run perf:k6:load` (load profile, all workloads, local gateway; extra flags override) and made `--workload all` under the load profile run the supplier population twice (50 and 100 VUs, directory `supplier-100vus`) so #29 and #33 are both measured. An unreachable gateway is now a BLOCKED preflight instead of FAIL. Verified with `node --check`, ESLint and a dry run without a stack (runs listed as discovery@100, supplier@50, supplier-100vus@100, credit@100, lifecycle@50; preflight BLOCKED). Not re-run against a live stack.
+
+**Files changed:**
+- `scripts/perf/run-perf.mjs` — per-run list (label, workload, VUs); supplier at 100 VUs in all-load mode; preflight BLOCKED on unreachable gateway
+- `package.json` — `perf:k6:load` script (JSON, no header)
+- `tests/k6/README.md`, `README.md` — documented the new command
+
+## 2026-11-08 21:40 SGT — Explain the PERF_ADMIN_* requirement
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** Pasted `npm run perf:k6:load` output ("PERF_ADMIN_EMAIL and PERF_ADMIN_PASSWORD must be set") and asked what it is about.
+
+**Usage scenario:** Learning support / explanation: the harness needs an admin login for fixtures and cleanup and takes it from the environment; showed the Git Bash command with the seeded local admin. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:43 SGT — Loopback default for the admin login
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "is it possible not to have PERF_ADMIN_EMAIL and admin_password".
+
+**Usage scenario:** Implementation on the author's request, following the existing `scripts/uat/uat-d2-api.mjs` convention: for a loopback target the wrapper defaults to the seeded local administrator; any other target still requires `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD`. The manifest records which source was used. The workflow no longer passes the seed credentials for the Compose target. Verified with ESLint, a dry run without env (loopback default recorded, BLOCKED on unreachable gateway) and a remote-target run without env (usage error).
+
+**Files changed:**
+- `scripts/perf/run-perf.mjs` — admin credential resolution (environment, else seeded admin on loopback), passed into fixtures
+- `scripts/perf/lib/fixtures.mjs` — takes the admin credentials as an option instead of reading the environment
+- `.github/workflows/performance.yml` — only the AWS target sets the admin secrets
+- `tests/k6/README.md`, `README.md` — documented the default
+
+## 2026-11-08 21:46 SGT — Is Docker running?
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "is the docker run right now?"
+
+**Usage scenario:** Status check: listed Compose projects and containers and probed the gateway; nothing running. Gave the start command. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:48 SGT — Start the Docker stack
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "can you start the docker containers as well".
+
+**Usage scenario:** Operational assistance: ran `docker compose up --build -d --wait` on the default compose file so `npm run perf:k6:load` can reach the gateway on port 80. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 22:05 SGT — Cross-replica Chat/Notification signalling: explanation, decision deferred
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "Decide and implement RabbitMQ or PostgreSQL signalling for cross-replica Chat/Notification delivery ... explain what this is most likely about".
+
+**Usage scenario:** Learning support and fact gathering. Explained the problem (per-process in-memory socket maps versus `replicas: 2` in `infra/k8s/04-stateless-services.yaml`, contradicting the wiki chat design's single-instance assumption) and listed code facts for each transport (existing `amqplib` and broker permission regexes; `pg` only in credit-service; client dedupe by id and duplicate-safe notification storage). Declined to choose the transport: that is an architecture decision reserved for the author (CLAUDE.md section 1). No code changed; implementation offered once the author decides transport, payload shape and whether Chat stays at one replica.
+
+**Files changed:**
+- none
+
+## 2026-11-08 22:12 SGT — Commit and push the k6 work to feat/t4-k6-load-profiles
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok push to a branch first".
+
+**Usage scenario:** Author-approved commit and push. Staged only the k6/performance files; for `ai/usage-log.md` and `docs/infrastructure/ci-cd.md` only this session's hunks were staged so the author's earlier uncommitted documentation edits stay in the working tree. No pull request opened.
+
+**Files changed:**
+- none beyond the commit itself

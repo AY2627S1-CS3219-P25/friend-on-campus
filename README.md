@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
+Scope: Documented the k6 performance harness command (npm run perf:k6, tests/k6/README.md, performance.yml) in the test table and the D4 cheat sheet; removed the unbounded discovery/claim-race commands (issues #236, #237).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
 Author review: <to be completed by yanhwee>
@@ -272,6 +276,7 @@ npm test
 | `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
 | `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
+| `npm run perf:k6 -- --target <gateway url> --profile smoke|load|stress --workload all|discovery|supplier|credit|lifecycle` | k6 API load harness (manual, not a CI gate): run-owned fixtures, per-operation thresholds from issues #74/#29/#33/#43/#45/#36, reconciliation and an evidence bundle under `test-results/<runId>/`; needs the `k6` binary; remote targets also need `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD` (loopback defaults to the seeded admin). `npm run perf:k6:load` runs every requirement-load population against the local stack. See [`tests/k6/README.md`](tests/k6/README.md) and the manual `performance.yml` workflow |
 
 ### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
 - **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
@@ -342,14 +347,12 @@ aws ssm start-session --target $(cd infra/terraform && terraform output -raw mas
 # 3. Verify running pods and services
 kubectl get pods -n foc -o wide
 
-# 4. Run distributed concurrency verification (Milestone D4 Category N3)
-# Via local k6:
-TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/order-claim-race.js
-# Or via Docker (no local installation required):
-docker run --rm -i -e TARGET_HOST=http://<ALB_DNS_NAME> -v "$PWD/tests/k6:/scripts" grafana/k6 run /scripts/order-claim-race.js
-
-# 5. Run traffic spike test to trigger live HPA autoscaling (Milestone D4 Category N4)
-TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/discovery-load.js
+# 4. Bounded k6 API load against the deployed gateway (Milestone D4 Categories N3/N4). Agree target and
+#    limits first; the manual "Performance (k6, manual)" GitHub Actions workflow runs the same command.
+PERF_ADMIN_EMAIL=<admin email> PERF_ADMIN_PASSWORD=<admin password> \
+  npm run perf:k6 -- --target http://<ALB_DNS_NAME> --profile smoke --workload all
+#    Requirement-load profiles need --acknowledge-remote-load; autoscaling is only evidenced by timestamped
+#    "kubectl get hpa -n foc -w" / pod observations captured alongside the run, never by the k6 result alone.
 
 # 6. Nightly Budget Pause (Halts compute billing to preserve S$50 SGD budget)
 aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 0

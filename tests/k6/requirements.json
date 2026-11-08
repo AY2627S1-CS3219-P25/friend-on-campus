@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    "Single source of truth for the k6 workloads, their issue-derived thresholds and the harness bounds.",
+    "Read by tests/k6/lib/perf.js (k6) and scripts/perf (Node). JSON cannot carry a disclosure header; see tests/k6/README.md.",
+    "Each operation's limits are chosen by the scenario's maximum VUs: the first entry whose upToVus >= maxVus applies.",
+    "maxErrorRate comes from the issue when errorRateSource names one; otherwise it is the harness default of 1%.",
+    "concurrency.mode: 'upTo' mirrors issue wording 'up to N concurrent'; 'sustained' mirrors 'sustained load of N concurrent requests' and is marked INCOMPLETE when the client-side in-flight estimate is below N * tolerance.",
+    "extraThresholds entries like p(95)>=0 only make k6 keep that steady-state sub-metric in the summary; they are reporting hooks, not acceptance limits."
+  ],
+  "limits": {
+    "maxVus": 150,
+    "smoke": {
+      "minVus": 1,
+      "maxVus": 5,
+      "maxDurationSeconds": 60,
+      "defaultVus": 2
+    },
+    "load": {
+      "warmupSeconds": 60,
+      "measureSeconds": 300,
+      "drainSeconds": 60
+    },
+    "stress": {
+      "stepVus": 25,
+      "holdSeconds": 120,
+      "maxVus": 150,
+      "maxTotalSeconds": 600
+    },
+    "minSteadySamples": {
+      "smoke": 1,
+      "load": 100,
+      "stress": 100
+    },
+    "concurrencyTolerance": 0.95
+  },
+  "workloads": {
+    "discovery": {
+      "script": "discovery-load.js",
+      "env": {
+        "WORKLOAD": "discovery"
+      },
+      "baselineVus": 100,
+      "accountSlots": 1,
+      "needsSuppliers": true,
+      "needsFeedOrders": true,
+      "operations": [
+        {
+          "operation": "order_feed",
+          "description": "GET /api/orders open-errand feed and query variants (status, page/limit, campusZone, search)",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 1000,
+              "comparator": "<",
+              "issue": "#74",
+              "criterion": "Order N2.1"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "harness default",
+          "concurrency": {
+            "required": 100,
+            "mode": "upTo",
+            "issue": "#74"
+          }
+        }
+      ]
+    },
+    "supplier": {
+      "script": "discovery-load.js",
+      "env": {
+        "WORKLOAD": "supplier"
+      },
+      "baselineVus": 50,
+      "accountSlots": 1,
+      "needsSuppliers": true,
+      "needsFeedOrders": false,
+      "operations": [
+        {
+          "operation": "supplier_search",
+          "description": "GET /api/suppliers listing, search, campusZone/category filter and pagination over >= 500 active records",
+          "limits": [
+            {
+              "upToVus": 50,
+              "p95Ms": 2000,
+              "comparator": "<=",
+              "issue": "#29",
+              "criterion": "Supplier N2.1"
+            },
+            {
+              "upToVus": 150,
+              "p95Ms": 4000,
+              "comparator": "<=",
+              "issue": "#33",
+              "criterion": "Supplier N4.1"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "#31 (99% of valid requests succeed)",
+          "concurrency": {
+            "required": 50,
+            "mode": "upTo",
+            "issue": "#29 / #33"
+          }
+        }
+      ]
+    },
+    "credit": {
+      "script": "credit-balance-load.js",
+      "env": {},
+      "baselineVus": 100,
+      "accountSlots": 1,
+      "needsSuppliers": false,
+      "needsFeedOrders": false,
+      "operations": [
+        {
+          "operation": "credit_wallet",
+          "description": "GET /api/credits/wallet balance enquiry for the VU's own run-owned account",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 500,
+              "comparator": "<=",
+              "issue": "#43",
+              "criterion": "Credit N2.1"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "#45 (Credit N2.3)",
+          "concurrency": {
+            "required": 100,
+            "mode": "sustained",
+            "issue": "#43"
+          }
+        }
+      ],
+      "notCovered": [
+        "#44 Credit N2.2 (reservation, settlement, release latency at the Credit service boundary) has no HTTP mutation endpoint; k6 only observes the gateway. Use the Node correctness harness (#64) for that evidence."
+      ]
+    },
+    "lifecycle": {
+      "script": "order-lifecycle-load.js",
+      "env": {},
+      "baselineVus": 50,
+      "accountSlots": 2,
+      "needsSuppliers": true,
+      "needsFeedOrders": false,
+      "operations": [
+        {
+          "operation": "order_create",
+          "description": "POST /api/orders (HTTP 202 acknowledgement only)",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 500,
+              "comparator": "<=",
+              "issue": "#36",
+              "criterion": "Order N2.2"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "harness default",
+          "concurrency": {
+            "required": 50,
+            "mode": "upTo",
+            "issue": "#36"
+          }
+        },
+        {
+          "operation": "order_accept",
+          "description": "POST /api/orders/{id}/accept by the paired courier",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 500,
+              "comparator": "<=",
+              "issue": "#36",
+              "criterion": "Order N2.2"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "harness default",
+          "concurrency": {
+            "required": 50,
+            "mode": "upTo",
+            "issue": "#36"
+          }
+        },
+        {
+          "operation": "order_pickup",
+          "description": "POST /api/orders/{id}/pickup",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 500,
+              "comparator": "<=",
+              "issue": "#36",
+              "criterion": "Order N2.2"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "harness default",
+          "concurrency": {
+            "required": 50,
+            "mode": "upTo",
+            "issue": "#36"
+          }
+        },
+        {
+          "operation": "order_deliver",
+          "description": "POST /api/orders/{id}/deliver",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 500,
+              "comparator": "<=",
+              "issue": "#36",
+              "criterion": "Order N2.2"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "harness default",
+          "concurrency": {
+            "required": 50,
+            "mode": "upTo",
+            "issue": "#36"
+          }
+        },
+        {
+          "operation": "order_complete",
+          "description": "POST /api/orders/{id}/complete by the requester",
+          "limits": [
+            {
+              "upToVus": 150,
+              "p95Ms": 500,
+              "comparator": "<=",
+              "issue": "#36",
+              "criterion": "Order N2.2"
+            }
+          ],
+          "maxErrorRate": 0.01,
+          "errorRateSource": "harness default",
+          "concurrency": {
+            "required": 50,
+            "mode": "upTo",
+            "issue": "#36"
+          }
+        }
+      ],
+      "asyncMetrics": [
+        {
+          "metric": "order_pending_to_open_ms",
+          "description": "PENDING -> OPEN through the Order/Credit CDC reservation saga, measured by bounded polling; reported, not thresholded"
+        }
+      ],
+      "extraThresholds": {
+        "lifecycle_incomplete": [
+          "count==0"
+        ],
+        "order_pending_to_open_ms{phase:steady}": [
+          "p(95)>=0"
+        ]
+      },
+      "notCovered": [
+        "#44 Credit N2.2: the PENDING -> OPEN duration includes gateway, CDC and polling delay; it is not the Credit service-boundary latency."
+      ]
+    }
+  }
+}
