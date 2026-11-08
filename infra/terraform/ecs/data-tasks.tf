@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Register one-off database jobs and three persistent Debezium connectors.
+# Scope: Register one-off database jobs, inject private User seed credentials and run three persistent Debezium connectors.
 # Author review: <to be completed by the author>
 
 # AI-generated (edited by ngkhengyang)
@@ -156,9 +156,16 @@ resource "aws_ecs_task_definition" "migration" {
     command          = ["migrate"]
     environment = concat(
       [for name in ["DB_HOST", "DB_NAME", "DB_USER"] : { name = name, value = local.backend_env[each.key][name] }],
-      [{ name = "SEED_SAMPLE_ORDERS", value = "true" }]
+      [{ name = "SEED_SAMPLE_ORDERS", value = "true" }],
+      each.key == "user-service" ? [{ name = "NODE_ENV", value = "production" }] : []
     )
-    secrets = [{ name = "DB_PASSWORD", valueFrom = "${local.backend_secrets[each.key].DB_PASSWORD}" }]
+    secrets = concat(
+      [{ name = "DB_PASSWORD", valueFrom = local.backend_secrets[each.key].DB_PASSWORD }],
+      [for user in ["alice", "bob", "admin"] : {
+        name      = "SEED_PASSWORD_${upper(user)}"
+        valueFrom = "${local.secret_arn}:seed_password_${user}::"
+      } if each.key == "user-service"]
+    )
   }])
 }
 

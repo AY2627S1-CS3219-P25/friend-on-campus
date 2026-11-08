@@ -20,6 +20,8 @@ Run Terraform in this directory with fresh state. The nine existing `foc/*` ECR 
 
 The three single-instance Auto Scaling groups give each broker a fixed disk and node name. Their combined ceiling is three hosts. Verify the trial task sizes under load and after a host replacement. Scaling all services to their ceilings exceeds the fleet's trial CPU budget. This root includes the broker infrastructure for existing consumers. Cross-replica Chat and Notification delivery remains application work.
 
+The generated runtime JSON contains the private demo login passwords in `seed_password_alice`, `seed_password_bob` and `seed_password_admin`. The User seed task requires them and applies them to the existing demo accounts. Rerunning that seed resets their passwords to the values in Secrets Manager. If you already generated a runtime file, preserve its existing values and add these three distinct fields. Each value must be 12 random bytes encoded as lowercase hex.
+
 ## Manual application deployment
 
 In GitHub Actions, select **Deploy applications to ECS**, then **Run workflow**. GitHub displays the dispatch button once this workflow is on the repository's default branch. Select the source branch, enter the deployment role ARN, and choose one service or `all`.
