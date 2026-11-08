@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-08
+// Scope: Align lifecycle posting fields and My Errands navigation with the redesigned UI using stable field IDs and current accessible names.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Codex (model: GPT-6), date: 2026-11-07
 // Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
 // Author review: <to be completed by yanhwee>
@@ -383,6 +387,9 @@ const browser = await chromium.launch();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     const txt = await page.locator('body').innerText();
     const m = txt.match(/(\d+)\s+Verified/);
+    // AI-generated (edited by yanhwee): a widened mobile page can displace the fixed bottom navigation.
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (pageWidth > MOBILE.width + 1) throw new Error(`mobile directory overflows: ${pageWidth}px at ${MOBILE.width}px`);
     await shot(page, 'student-spots-mobile');
     if (!m || Number(m[1]) < 21) throw new Error(`expected >=21 verified spots, saw "${m?.[0]}"`);
     return `${m[1]} verified spots`;
@@ -564,8 +571,8 @@ const browser = await chromium.launch();
     await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().click();
 
     await alicePage.locator('select:visible').first().waitFor();
-    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
-    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
+    await alicePage.locator('#errand-item-description').fill(lifecycleItem);
+    await alicePage.locator('#errand-dropoff-location').fill('COM1 Study Area');
     await alicePage.getByLabel('Reward credits').fill(String(LIFECYCLE_REWARD));
     const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
     if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
@@ -577,7 +584,7 @@ const browser = await chromium.launch();
     if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
     lifecycleCode = match[1];
 
-    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    await alicePage.getByRole('button', { name: 'My Errands', exact: true }).first().click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
     await aliceCard.waitFor();
     const details = await openErrand(alicePage, aliceCard);
@@ -594,7 +601,7 @@ const browser = await chromium.launch();
     await bobPage.locator('input[type=email]').fill('bob@u.nus.edu');
     await bobPage.locator('input[type=password]').fill(PW);
     await bobPage.getByRole('button', { name: 'Log In' }).click();
-    await bobPage.getByRole('button', { name: 'Tasks' }).first().waitFor();
+    await bobPage.getByRole('button', { name: 'My Errands', exact: true }).first().waitFor();
 
     const feedCard = bobPage.locator('article', { hasText: lifecycleItem }).first();
     await feedCard.waitFor();
@@ -605,7 +612,7 @@ const browser = await chromium.launch();
     await feedDetails.getByTestId('pickup-order-btn').waitFor();
     await backFromErrand(bobPage);
 
-    await bobPage.getByRole('button', { name: 'Tasks' }).first().click();
+    await bobPage.getByRole('button', { name: 'My Errands', exact: true }).first().click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
     await bobCard.waitFor();
     const details = await openErrand(bobPage, bobCard);
@@ -656,8 +663,8 @@ const browser = await chromium.launch();
   await lifecycleStep('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
     await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().click();
     await alicePage.locator('select:visible').first().waitFor();
-    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
-    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
+    await alicePage.locator('#errand-item-description').fill(cancelItem);
+    await alicePage.locator('#errand-dropoff-location').fill('Central Library');
     await alicePage.getByLabel('Reward credits').fill(String(CANCEL_REWARD));
     const banner = await postErrandConfirmingHours(alicePage);
     await banner.waitFor({ timeout: 20000 });
@@ -666,7 +673,7 @@ const browser = await chromium.launch();
     if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
     cancelCode = match[1];
 
-    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    await alicePage.getByRole('button', { name: 'My Errands', exact: true }).first().click();
     const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
     await cancelCard.waitFor();
     const cancelDetails = await openErrand(alicePage, cancelCard);

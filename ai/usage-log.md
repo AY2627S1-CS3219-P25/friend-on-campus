@@ -7319,3 +7319,31 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - Other upstream files were incorporated unchanged from main by the merge; no new schema or interface decisions.
 
 **External / temporary artifacts:** GitHub issues https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/234 and https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/235; updated description prepared for PR #230. Temporary fixture/browser checks `/tmp/foc-merge-ui.tsx`, `/tmp/foc-merge-ui-check.cjs`, screenshots `/tmp/foc-merge-tasks-{375,1024,1440}.png`, and unit output `/tmp/foc-redesign-merge-tests.log` remain outside the repository.
+
+## 2026-11-08 14:52 SGT — Clarify the sign-in tagline
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** The teammate found “A little help, a little closer” unclear; replace it with clearer wording.
+
+**Usage scenario:** Copy editing within the approved frontend design. Replaced the sign-in brand tagline with “Campus errands, made easier.” Maintained the consolidated disclosure. Left this new copy change uncommitted for the author; the earlier main-integration commit 3c03dcb has already been pushed to existing PR #230 and GitHub reports MERGEABLE. Created issues #234/#235 as authorized in the prior request. Remote CI for 3c03dcb has passed 25 jobs; browser UAT remains running at the time of this entry. This local tagline change is not part of that CI revision.
+
+**Validation:** All-workspace type checks, 55 student unit tests, student production build, targeted ESLint, and git whitespace checks passed. Existing PostCSS metadata and bundle-size warnings remain. No new server started and no live account or order data changed.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Clearer campus-errand tagline and disclosure entry.
+- `ai/usage-log.md` — Recorded the copy change and current integration verification status.
+
+### 2026-11-08 15:00 SGT — Continued PR 230 CI verification while changing the tagline
+
+The pushed integration run 42456136752 passed 25 jobs but failed Browser UAT (32/41 checks), so the aggregate test gate failed. Investigated actual CI screenshots/results. Reproduced the mobile Post/Profile timeout in the complete production-built app with repository supplier CSV fixtures and intercepted local API responses, without starting a server: long campus-zone/action rows widened the document to 436px at a 390px viewport, displaced the fixed bottom navigation below the visible viewport, and made content intercept its clicks. Allowed the directory's metadata/action rows to wrap and shrink, and constrained the search column. After rebuilding, the same fixture run remains 390px wide, bottom nav ends at 844px, and both Post/Profile clicks pass. Added an overflow assertion to existing US5. Replaced obsolete Post field placeholders with existing stable IDs and remaining Tasks selectors with My Errands in the D2 browser driver. Updated the realtime driver's navigation mapping and posting-field IDs, preserving the dynamic unread Alerts name. These are corrections necessary to finish the earlier authorized PR integration; preparing a separate fix commit/push with the log, leaving the newly requested tagline source change uncommitted.
+
+Repeated all-workspace typecheck, 55 student unit tests, production build, root lint, targeted final-script lint, JS syntax checks and whitespace checks: passed. Reran the merged-component browser probe at 375/1024/1440px and all dispute/reorder controls: passed. Preparing a new remote CI run for these fixes. Original screenshots/results are under /tmp/foc-ci-230-browser; fixture reproduction /tmp/foc-app-mobile-check.cjs uses only repository sample data.
+
+**Additional files changed:**
+- `apps/student-app/src/pages/SpotsPage.tsx` — Wrap long location metadata/actions to retain mobile viewport and usable fixed navigation; consolidated disclosure.
+- `scripts/uat/uat-d2-ui.mjs` — Current navigation/field selectors and explicit mobile directory overflow regression assertion; consolidated disclosure.
+- `scripts/uat/uat-realtime.mjs` — Current navigation mapping and stable Post field IDs; preserve unread Alerts matching; consolidated disclosure.
+- `ai/usage-log.md` — Continued verification and reproducible fix evidence.

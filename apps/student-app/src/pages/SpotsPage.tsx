@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Prevent long campus-zone/action rows from widening the mobile viewport and displacing fixed navigation.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
  * Author review: <to be completed by yanhwee>
@@ -100,7 +104,7 @@ export function SpotsPage({
       {/* Action-First Search Bar, Verified Counter & View Mode Toggle */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Spot Search Bar with Quick Clear */}
-        <div className="relative flex-1">
+        <div className="relative min-w-0 flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
@@ -299,9 +303,9 @@ export function SpotsPage({
                     </div>
 
                     {/* Right Column: Zone + Hours + Open Badge + CTA Button */}
-                    <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <span className="text-xs font-bold text-campus-blue bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100 whitespace-nowrap">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-xs font-bold text-campus-blue bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-100 max-w-full break-words">
                           {s.campusZone}
                         </span>
 

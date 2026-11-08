@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-08
+// Scope: Align lifecycle posting fields and My Errands navigation with the redesigned UI using stable field IDs and current accessible names.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Codex (model: GPT-6), date: 2026-11-07
 // Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
 // Author review: <to be completed by yanhwee>
@@ -79,7 +83,11 @@ async function login(page, email) {
   await page.getByRole('button', { name: 'Log In' }).click();
   await page.getByRole('button', { name: 'Post errand', exact: true }).first().waitFor();
 }
-const nav = async (page, tab) => page.getByRole('button', { name: new RegExp(`^${tab}`) }).first().click();
+// AI-generated (edited by yanhwee): use current accessible navigation names, distinct from the submit button.
+const nav = async (page, tab) => {
+  const label = { Feed: 'Browse', Tasks: 'My Errands', Post: 'Post errand' }[tab] ?? tab;
+  await page.getByRole('button', { name: tab === 'Alerts' ? /^Alerts(?:,|$)/ : label, exact: true }).first().click();
+};
 // The unread badge is read from a client on a list tab; the errand page is checked for its own live status instead.
 const badge = async (page) => {
   const b = page.getByTestId('notification-badge');
@@ -104,8 +112,8 @@ async function openFromFeed(page, item) {
 async function postErrand(page, item, reward) {
   await nav(page, 'Post');
   await page.locator('select:visible').first().waitFor();
-  await page.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(item);
-  await page.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
+  await page.locator('#errand-item-description').fill(item);
+  await page.locator('#errand-dropoff-location').fill('COM1 Study Area');
   await page.getByLabel('Reward credits').fill(String(reward));
   await page.getByRole('button', { name: 'Post Errand' }).click();
   const banner = page.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
