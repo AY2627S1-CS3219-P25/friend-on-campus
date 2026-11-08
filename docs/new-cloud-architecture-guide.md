@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Retire K3s deployment references and point readers to the ECS Terraform root.
+Scope: Retire K3s deployment references and record the manually triggered ECS deployment workflow.
 Author review: <to be completed by the author>
 
 Tool: Codex (model: GPT-6), date: 2026-11-08
@@ -33,7 +33,7 @@ Author review: <to be completed by the author>
 
 This guide explains how the selected cloud components work together, how the listed alternatives behave, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
 
-**Target architecture confirmed by the author on 8 November 2026, including CloudFront.** The [ECS Terraform root](../infra/terraform/ecs/README.md) implements this infrastructure. Live deployment testing and the ECS GitHub deployment workflow are pending. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
+**Target architecture confirmed by the author on 8 November 2026, including CloudFront.** The [ECS Terraform root](../infra/terraform/ecs/README.md) implements this infrastructure. The manually triggered **Deploy applications to ECS** workflow builds ARM64 images and deploys application service revisions. Automatic deployment triggers and live deployment testing are pending. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
 
 ## Contents
 

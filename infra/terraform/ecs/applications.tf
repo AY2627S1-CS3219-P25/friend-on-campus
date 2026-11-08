@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Define staged ARM64 application services, Service Connect routes, task inputs and scaling.
+# Scope: Define staged ARM64 application services, Service Connect routes, task inputs and scaling, with workflow ownership of deployed application revisions.
 # Author review: <to be completed by the author>
 
 # AI-generated (edited by ngkhengyang)
@@ -127,6 +127,10 @@ resource "aws_ecs_service" "base" {
   }
 
   depends_on = [aws_ecs_service.broker]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
 resource "aws_ecs_service" "order" {
   for_each                           = toset(["order-service"])
@@ -159,6 +163,10 @@ resource "aws_ecs_service" "order" {
   }
 
   depends_on = [aws_ecs_service.base]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
 resource "aws_ecs_service" "chat" {
   for_each                           = toset(["chat-service"])
@@ -191,6 +199,10 @@ resource "aws_ecs_service" "chat" {
   }
 
   depends_on = [aws_ecs_service.order]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
 resource "aws_ecs_service" "gateway" {
   name                               = "gateway"
@@ -220,6 +232,10 @@ resource "aws_ecs_service" "gateway" {
   }
 
   depends_on = [aws_ecs_service.chat, aws_lb_listener_rule.cloudfront]
+
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
 
 locals {
