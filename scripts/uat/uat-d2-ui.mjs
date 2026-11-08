@@ -1,6 +1,6 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-08
-// Scope: Align lifecycle posting fields and My Errands navigation with the redesigned UI using stable field IDs and current accessible names.
+// Scope: Align lifecycle fields, navigation, profile checks, and visible responsive history assertions with the redesigned UI; check mobile directory overflow.
 // Author review: <to be completed by yanhwee>
 //
 // Tool: Codex (model: GPT-6), date: 2026-11-07
@@ -645,18 +645,18 @@ const browser = await chromium.launch();
   await lifecycleStep('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
     await alicePage.getByRole('button', { name: 'Refresh' }).click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
-    await aliceCard.getByText(/Delivered · Review and confirm/i).waitFor();
+    await aliceCard.getByText(/Delivered · Review and confirm/i).filter({ visible: true }).waitFor();
     const aliceDetails = await openErrand(alicePage, aliceCard);
     await aliceDetails.getByTestId('complete-order-btn').click();
     await aliceDetails.getByText(new RegExp(`${LIFECYCLE_REWARD} credits paid to the courier once Credit Service settles the escrow`, 'i')).first().waitFor(); // timeline row and reward chip both say it
     await shot(alicePage, 'student-order-completed-requester-desktop');
     await backFromErrand(alicePage);
-    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
+    await aliceCard.getByText(/Completed · Delivery confirmed/i).filter({ visible: true }).waitFor();
 
     await backFromErrand(bobPage);
     await bobPage.getByRole('button', { name: 'Refresh' }).click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
-    await bobCard.getByText(new RegExp(`Completed · ${LIFECYCLE_REWARD} credits are paid once Credit Service settles the escrow`, 'i')).waitFor();
+    await bobCard.getByText(new RegExp(`Completed · ${LIFECYCLE_REWARD}-credit reward`, 'i')).filter({ visible: true }).waitFor();
     await shot(bobPage, 'student-order-completed-courier-desktop');
     return `${lifecycleCode} COMPLETED in requester + courier history`;
   });
@@ -682,7 +682,7 @@ const browser = await chromium.launch();
     await cancelDetails.getByTestId('end-state').getByText(/Cancelled/i).waitFor();
     await shot(alicePage, 'student-order-cancelled-desktop');
     await backFromErrand(alicePage);
-    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
+    await cancelCard.getByText(/Cancelled · Reserved credits will be returned/i).filter({ visible: true }).waitFor();
     return `${cancelCode} CANCELLED in requester history`;
   });
 
