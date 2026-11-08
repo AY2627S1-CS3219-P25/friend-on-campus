@@ -1,0 +1,52 @@
+#!/bin/bash
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: Attach the retained broker disk and publish the slot's private DNS before ECS starts.
+# Author review: <to be completed by the author>
+
+# AI-generated (edited by ngkhengyang)
+set -euo pipefail
+mkdir -p /etc/systemd/system/ecs.service.d /etc/ecs /srv/rabbitmq
+cat >/etc/systemd/system/ecs.service.d/broker-volume.conf <<'EOF'
+[Service]
+ExecStartPre=/usr/bin/mountpoint -q /srv/rabbitmq
+EOF
+systemctl daemon-reload
+
+export AWS_DEFAULT_REGION=ap-southeast-1
+export AWS_RETRY_MODE=standard AWS_MAX_ATTEMPTS=8
+token=$(curl -fsS --retry 5 -X PUT -H 'X-aws-ec2-metadata-token-ttl-seconds: 120' http://169.254.169.254/latest/api/token)
+instance=$(curl -fsS -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/instance-id)
+address=$(curl -fsS -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/local-ipv4)
+
+command -v aws >/dev/null || dnf install -y awscli-2
+volume='${volume}'
+device="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_$${volume//-/}"
+for attempt in $(seq 1 60); do
+    [ ! -b "$device" ] || break
+    state=$(aws ec2 describe-volumes --volume-ids "$volume" --query 'Volumes[0].State' --output text)
+    if [ "$state" = available ]; then
+        aws ec2 attach-volume --volume-id "$volume" --instance-id "$instance" --device /dev/sdf
+    fi
+    sleep 5
+done
+test -b "$device"
+if ! blkid "$device" >/dev/null; then
+    mkfs.xfs "$device"
+fi
+test "$(blkid -s TYPE -o value "$device")" = xfs
+uuid=$(blkid -s UUID -o value "$device")
+grep -q ' /srv/rabbitmq ' /etc/fstab || printf 'UUID=%s /srv/rabbitmq xfs defaults,nofail 0 2\n' "$uuid" >>/etc/fstab
+mountpoint -q /srv/rabbitmq || mount /srv/rabbitmq
+
+aws route53 change-resource-record-sets --hosted-zone-id '${zone_id}' --change-batch \
+  "{\"Changes\":[{\"Action\":\"UPSERT\",\"ResourceRecordSet\":{\"Name\":\"${name}\",\"Type\":\"A\",\"TTL\":10,\"ResourceRecords\":[{\"Value\":\"$address\"}]}}]}"
+
+cat >/etc/ecs/ecs.config <<'EOF'
+ECS_CLUSTER=${cluster}
+ECS_INSTANCE_ATTRIBUTES={"broker-slot":"${slot}"}
+ECS_RESERVED_MEMORY=1024
+ECS_ENABLE_AWSLOGS_EXECUTIONROLE_OVERRIDE=true
+ECS_DYNAMIC_HOST_PORT_RANGE=32768-65535
+EOF
+systemctl enable --now --no-block ecs.service

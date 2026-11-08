@@ -1,0 +1,12 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: List the inputs for a fresh Singapore ECS Terraform state.
+# Author review: <to be completed by the author>
+
+# AI-generated (edited by ngkhengyang)
+account_id     = "replace-with-aws-account-id"
+image_tag      = "replace-with-arm64-release-tag"
+debezium_image = "quay.io/debezium/server:2.7"
+phase          = "foundation"
+hosts_running  = true
+# Set TF_VAR_origin_header in your shell. Keep the generated value stable between runs.

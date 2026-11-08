@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Retire K3s deployment references and point readers to the ECS Terraform root.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Record confirmed HTTP origin and bridge networking, link the accepted sizing budget and record legacy retirement approval.
 Author review: <to be completed by the author>
 
@@ -148,7 +152,7 @@ To avoid client collisions in the root `node_modules/@prisma/client`, each micro
 | **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
 | **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
 | **D3** | **Order Service (M1), Credit Service (M4) & Notification Service (M5)**<br/>• All five services real (Prisma + PostgreSQL 16, one database each)<br/>• Errand lifecycle with transactional outbox, optimistic locking and single-winner accept<br/>• Credit wallets, ledger, escrow reserve/settle/refund and welcome grant over RabbitMQ<br/>• Notification consumer, store, REST and authenticated WebSocket; student-app bell, toasts and Alerts board<br/>• Admin order management (cancel, complete, unassign) and user management<br/>• CI with isolated test orchestration | 📋 **Prepared** (demo script and evidence: wiki [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3); Week 10) |
-| **D4** | **Cloud Deployment, Kubernetes & Distributed Concurrency Testing**<br/>• Production AWS Infrastructure as Code (VPC, Subnets, ALB, ECR, EBS, IAM) via Terraform<br/>• Lightweight Kubernetes (K3s) with stateful master (`t3.medium` + 25GB gp3) and elastic worker ASG (`t3.small`)<br/>• Two-Tier Autoscaling: Pod-level HPA (2 $\to$ 5 replicas) + VM-level EC2 ASG (1 $\to$ 3 nodes)<br/>• Keyless CI/CD via GitHub Actions using AWS IAM OIDC and SSH-free SSM Run Command<br/>• Distributed k6 concurrency verification (single-winner ACID claim race & traffic spike autoscaling)<br/>• Comprehensive student learning & architecture guide ([`docs/cloud-deployment-and-devops-guide.md`](docs/cloud-deployment-and-devops-guide.md)) | 🚀 **Ready & Configured** |
+| **D4** | **AWS ECS Deployment & Distributed Concurrency Testing**<br/>• Terraform for ECS, CloudFront, RDS, RabbitMQ and EFS<br/>• k6 concurrency and load tests | Infrastructure code ready for deployment testing |
 
 ---
 
@@ -321,72 +325,18 @@ npm run typecheck
 
 ## ☁️ Cloud Deployment & DevOps (Milestone D4)
 
-**Confirmed migration target (8 November 2026):** [CloudFront in front of ALB and ECS on three shared `m7g.xlarge` hosts](docs/new-cloud-architecture-guide.md), with one RabbitMQ node on each of those same hosts, private RDS PostgreSQL Multi-AZ, and EFS connector checkpoints. CloudFront provides public HTTPS/WSS and connects to the ALB over HTTP/WS. Bridge networking with host public-IP egress is selected, without a NAT gateway. Three hosts are the ceiling; CloudFront uses pay-as-you-go and the cloud starts with existing seeds. The guide records the accepted trial CPU/memory budget, S$220–221 base estimate plus incremental CloudFront pricing, and deferred Chat/Notification fanout and GitHub decisions. The author permits removing the old deployment before replacement verification, without preserving old data. Terraform and the deployment workflow still describe the K3s implementation below; the migration preserves business logic and local Docker Compose support.
+Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) to deploy in AWS Singapore. The stack runs on three shared ARM64 hosts behind CloudFront and an Application Load Balancer. The [cloud architecture guide](docs/new-cloud-architecture-guide.md) covers sizing, costs and verification. The ECS deployment workflow is pending.
 
-Friend on Campus implements a **Two-Tier Autoscaling Cloud-Native Architecture** on Amazon Web Services (AWS) using **Terraform (IaC)**, **Lightweight Kubernetes (K3s)**, **GitHub Actions Continuous Delivery (CD)**, and **k6 Distributed Concurrency Testing**:
-
-```
-[ Public Clients / k6 ] ──HTTPS──> [ AWS Application Load Balancer ]
-                                                 │ (Port 80)
-                ┌────────────────────────────────┴────────────────────────────────┐
-                ▼                                                                 ▼
-┌───────────────────────────────┐               ┌──────────────────────────────────────────────────┐
-│   Node 1: Master & Data Node  │               │   Stateless Worker Tier (Auto Scaling Group)     │
-│       (t3.medium / Fixed)     │               │   (t3.small / min=2, desired=2, max=3)          │
-│ • K3s Control Plane Server    │               │ • Traefik Ingress Controller                     │
-│ • PostgreSQL 16 (6 databases) │               │ • NGINX API Gateway                              │
-│ • RabbitMQ 3.13 Quorum Queues │               │ • 6 Microservices (Tier 1 HPA Replicas: 2 → 5)  │
-│ • Debezium Server 2.7 CDC     │               │ • Student App & Admin Portal SPAs                │
-│ • 25 GB gp3 Persistent EBS    │               └──────────────────────────────────────────────────┘
-└───────────────────────────────┘                                 │
-                ▲                                                 │ (Flannel VXLAN Overlay UDP 8472)
-                └─────────────────────────────────────────────────┘
-```
-
-### End-to-End Developer Workflow: Day 1 vs. Day 2
-
-| Phase | What Happens | Who Runs It | How It Works |
-| :--- | :--- | :--- | :--- |
-| **Day 1: Cloud Provisioning** (One-Time) | Cloud datacenter & K8s cluster genesis | 1 designated teammate | Run `terraform apply` locally from `infra/terraform/` to provision the VPC, ALB, ECR repositories, EBS volume, IAM OIDC trust, and EC2 nodes. Then bootstrap baseline K8s manifests (`infra/k8s/`) via AWS SSM. |
-| **Day 2: Everyday Coding** (Continuous) | Automated build, container push & rolling deployment | **Automated** on `git push origin main` | Developers work locally as usual (`npm run dev`). When code is pushed to `main`, GitHub Actions (`deploy.yml`) uses keyless AWS IAM OIDC, builds `linux/amd64` images via Docker Buildx, pushes to Amazon ECR, and executes AWS SSM Run Command on Node 1 (`kubectl set image` + `kubectl rollout status`) for **zero-downtime rolling updates**. |
-| **Day 3: Verification & Load Testing** | Concurrency verification & live scaling evidence | Any teammate | Open the public ALB DNS in your browser, or run k6 concurrency tests (`tests/k6/`) from your laptop against the cloud cluster. |
-
-### Quick Operations Cheat Sheet
+After deployment, use the CloudFront URL from Terraform's `public_url` output for k6 tests. Run from the repository root.
 
 ```bash
-# 1. Provision or update cloud infrastructure (Day 1 only)
-cd infra/terraform && terraform apply
-
-# 2. Open a secure terminal into the cluster (Zero SSH keys needed!)
-aws ssm start-session --target $(cd infra/terraform && terraform output -raw master_instance_id)
-
-# 3. Verify running pods and services
-kubectl get pods -n foc -o wide
-
-# 4. Run distributed concurrency verification (Milestone D4 Category N3)
-# Via local k6:
-TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/order-claim-race.js
-# Or via Docker (no local installation required):
-docker run --rm -i -e TARGET_HOST=http://<ALB_DNS_NAME> -v "$PWD/tests/k6:/scripts" grafana/k6 run /scripts/order-claim-race.js
-
-# 5. Run traffic spike test to trigger live HPA autoscaling (Milestone D4 Category N4)
-TARGET_HOST=http://<ALB_DNS_NAME> k6 run tests/k6/discovery-load.js
-
-# 6. Nightly Budget Pause (Halts compute billing to preserve S$50 SGD budget)
-aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 0
-aws ec2 stop-instances --instance-ids $(cd infra/terraform && terraform output -raw master_instance_id)
-
-# 7. Morning Cluster Resume (Wakes up cluster in ~60-90 seconds)
-aws ec2 start-instances --instance-ids $(cd infra/terraform && terraform output -raw master_instance_id)
-aws autoscaling set-desired-capacity --auto-scaling-group-name $(cd infra/terraform && terraform output -raw worker_asg_name) --desired-capacity 2
+# AI-generated (edited by ngkhengyang)
+export TARGET_HOST="$(terraform -chdir=infra/terraform/ecs output -raw public_url)"
+k6 run tests/k6/order-claim-race.js
+k6 run tests/k6/discovery-load.js
+# Docker alternative for the concurrency test
+docker run --rm -i -e TARGET_HOST -v "$PWD/tests/k6:/scripts" grafana/k6 run /scripts/order-claim-race.js
 ```
-
-> 📖 **Comprehensive Guides**:
-> - [Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md): Architectural deep-dive, two-tier autoscaling, OIDC CD, and cost budgets.
-> - [Kubernetes Manifests & Topology Guide](infra/k8s/README.md): Step-by-step breakdown of manifests `00` through `07`, ServiceLB networking, and persistence.
-
-
----
 
 ---
 
@@ -420,8 +370,7 @@ friend-on-campus/
 │   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
 │   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 ├── infra/
-│   ├── terraform/               # Production AWS IaC (VPC, ASG, ALB, ECR, EBS, IAM)
-│   └── k8s/                     # K3s manifests (Stateful data node + stateless worker tier)
+│   └── terraform/ecs/           # AWS ECS Terraform and rollout instructions
 ├── gateway/
 │   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
 ├── docker/
@@ -452,7 +401,7 @@ friend-on-campus/
 ## 📄 System Documentation & Project Wiki
 
 - **[Confirmed CloudFront and ECS cloud architecture](docs/new-cloud-architecture-guide.md)**: Viewer HTTPS, HTTP origin, bridge networking, three-host ceiling, accepted trial resources, costs and deferred team decisions.
-- **[Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md)**: Master student learning guide for AWS Terraform IaC, K3s manifests, two-tier autoscaling, GitHub Actions CD via OIDC/SSM, and k6 concurrency testing.
+- **[ECS Terraform rollout](infra/terraform/ecs/README.md)**: Provisioning, secrets, database setup and startup order.
 - **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
 - **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
 - **[Documentation verification and pending questions](docs/audits/review-findings.md)**: Actual check results, source boundaries and human review items.
