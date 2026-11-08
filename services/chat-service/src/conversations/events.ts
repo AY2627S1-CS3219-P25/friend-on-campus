@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Reuse the existing quorum consumer and infrastructure-failure classifier without changing event projection rules.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Order-event validation copied from notification-service/src/notifications/events.ts (same rules, the six
  * keys the F8 decision record names), and the projection the author specified in S3: order.accepted creates or
@@ -12,7 +16,8 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
-import { startRabbitConsumer, type Failure, type MessagingConfig } from '../messaging/rabbitmq';
+// AI-generated (edited by ngkhengyang)
+import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';
 import type { ConversationStore } from './store';
 
 export class InvalidChatEvent extends Error {}
@@ -81,6 +86,8 @@ export function parseOrderEvent(content: Buffer, routingKey: string): OrderEvent
 
 export function classifyChatFailure(error: unknown): Failure {
   if (error instanceof InvalidChatEvent) return { category: 'permanent', reason: 'invalid_event' };
+  // AI-generated (edited by ngkhengyang)
+  if (isInfrastructureFailure(error)) return { category: 'infrastructure', reason: 'dependency_unavailable' };
   return { category: 'transient', reason: 'processing_failure' };
 }
 

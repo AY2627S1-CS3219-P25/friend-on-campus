@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Remove links and reading dependencies on the team's private infrastructure decision reference.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-11-07
 Scope: Expanded cloud and networking acronyms in the beginner glossary.
 Author review: <to be completed by the author>
@@ -11,7 +15,7 @@ Author review: <to be completed by the author>
 
 # Friend on Campus cloud architecture guide
 
-This is the detailed companion to the [condensed infrastructure decision write-up](infrastructure/infra-decision.md). It explains how the selected components work together, why the alternatives listed in that write-up behave differently, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
+This guide explains how the selected cloud components work together, how the listed alternatives behave, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
 
 ## Contents
 
@@ -27,7 +31,7 @@ This is the detailed companion to the [condensed infrastructure decision write-u
 
 ## Architecture at a glance
 
-The deployment is in **AWS Singapore (`ap-southeast-1`)**. The detailed diagram and replica counts are in the [decision write-up](infrastructure/infra-decision.md). Two paths explain most of it:
+The deployment is in **AWS Singapore (`ap-southeast-1`)**. Host and replica counts are listed below. Two paths explain most of it:
 
 - **Browser traffic.** Browser → public ALB → NGINX → ECS Service Connect → frontend or backend task. NGINX selects the service based on the URL. Service Connect selects a replica of that service.
 - **Order and credit events.** A backend commits a database change and an outbox event to PostgreSQL. Debezium reads the committed event and publishes it to RabbitMQ. RabbitMQ routes it to the appropriate queues. Backend consumers process those events and update their own databases.
@@ -42,7 +46,7 @@ The **public Application Load Balancer (ALB)** accepts HTTPS and secure WebSocke
 
 Each portal already builds to static files served by its own NGINX container. Run them as **separate ECS services** so they can deploy and scale independently, while keeping the same browser hostname for frontend, API, and WebSocket traffic. The student app starts at two replicas because it serves the main user flows. The admin portal starts at one and can scale to two. At one replica, its availability after host failure depends on task replacement.
 
-| Alternative in the write-up | Trade-off |
+| Alternative | Trade-off |
 | --- | --- |
 | **Expose NGINX directly** | NGINX can serve HTTPS itself. Pointing public DNS at one host is simpler to set up, but a second replica does not automatically take over that address. The ALB provides a shared endpoint and health-based routing. |
 | **Amazon API Gateway** | Useful if the team needs managed API features such as per-route throttling. Replacing NGINX would mean recreating route and access rules and handling frontend serving separately. Moving the WebSockets to API Gateway's WebSocket API also changes how the app manages connections and sends messages. If API Gateway is added while keeping existing ingress, it adds request charges. [WebSocket API model](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-overview.html) · [Pricing](https://aws.amazon.com/api-gateway/pricing/) |
@@ -63,7 +67,7 @@ These are **per-service limits**, not a guarantee that every service can reach i
 
 Chat and Notification need a separate correctness check when scaled. A live socket belongs to the process that accepted it. A queue consumer on another replica may handle the event without having that socket. Load balancing incoming connections does not deliver those events across replicas. Verify cross-replica delivery before relying on the two-task production minimum. [Chat socket hub](../services/chat-service/src/ws/hub.ts) · [Notification delivery](../services/notification-service/src/notifications/events.ts)
 
-| Alternative in the write-up | Trade-off |
+| Alternative | Trade-off |
 | --- | --- |
 | **ECS on Fargate** | AWS manages the hosts. You pay for requested CPU and RAM for each task while it runs, including quiet periods. Smaller tasks and scaling out can save money if the workload fits, but scaling adds tasks rather than making one task larger. A cluster can use EC2 for some services and Fargate for others. A single service's capacity provider strategy cannot mix the two, so EC2 tasks do not automatically spill over onto Fargate. [Fargate pricing](https://aws.amazon.com/fargate/pricing/) · [ECS compute options](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/capacity-launch-type-comparison.html) |
 | **Run containers directly on EC2** | A single host can run different replica counts for each service, but they share one machine's capacity and failure risk. Across hosts, the team would own more of task placement, discovery, replacement, and deployment. |
@@ -78,7 +82,7 @@ Clients can connect to any broker in the cluster. The proposed **private NLB** g
 
 Each broker writes to its own data directory. Separate EBS volumes keep the disks independent. If a broker task restarts on its original host, it can reuse its mount. If the host fails, ECS does not automatically reattach that existing disk. Recover the node by mounting the retained disk on a replacement in the same AZ, or replace the node and rebuild its queue replicas from the surviving members. During repair, the other two members can continue serving quorum queues. Confirmed publishes and consumer acknowledgements help protect delivery. A retried event can still reach a consumer twice, so credit settlement must handle duplicates safely. [RabbitMQ reliability](https://www.rabbitmq.com/docs/reliability) · [EBS attachment rules](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html)
 
-| Alternative in the write-up | Trade-off |
+| Alternative | Trade-off |
 | --- | --- |
 | **One RabbitMQ task on EC2** | Lowest operational complexity and disk cost. If its host fails, all messaging waits for recovery. EBS can preserve data but cannot serve it while the broker is down. Two broker nodes also do not solve that problem when both are needed for quorum. |
 | **Amazon MQ for RabbitMQ** | AWS operates the broker infrastructure and provides an endpoint. A single broker still has an outage during replacement. A three-node cluster is the like-for-like availability comparison. At the earlier Singapore rates, 14 days of `mq.m7g.medium` compute was about S$80 for one broker or S$240 for three. AWS no longer offers `mq.t3.micro` for new RabbitMQ brokers. [Broker sizes](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rmq-broker-instance-types.html) · [Deployment options](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-broker-architecture.html) |
@@ -100,7 +104,7 @@ For a fresh evaluation environment, keep the Prisma schemas and migrations. Prov
 
 ## Demo schedule and cost
 
-The cost model uses **144 active hours** for setup, the **12 November 2026 demo**, and requested verification. Storage and both load balancers are retained through the **28 November exam**, estimated at **504 hours**. The detailed figures are in the [decision write-up's cost table](infrastructure/infra-decision.md#demo-and-verification-through-28-november-2026).
+The cost model uses **144 active hours** for setup, the **12 November 2026 demo**, and requested verification. Storage and both load balancers are retained through the **28 November exam**, estimated at **504 hours**. The estimates are summarized below.
 
 | Scenario | Estimated cost including assumed GST |
 | --- | ---: |

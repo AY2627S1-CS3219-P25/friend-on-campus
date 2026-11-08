@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Use native quorum redelivery instead of the retired Chat retry exchange and queue.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Configuration for the Chat Service, copied from notification-service/src/config.ts with the service's own
  * port (8006), database (chat_db, role chat_svc), broker account (chat_service) and queue names (chat-service.events*).
@@ -61,10 +65,9 @@ export const config = Object.freeze({
     url: process.env.RABBITMQ_URL || 'amqp://chat_service:chat-service-dev@localhost:5672/campus',
     exchange,
     queue,
-    retryExchange: process.env.CHAT_RETRY_EXCHANGE || `${queue}.retry`,
-    retryQueue: process.env.CHAT_RETRY_QUEUE || `${queue}.retry`,
     deadLetterExchange: process.env.CHAT_DLX || `${queue}.dlx`,
     deadLetterQueue: process.env.CHAT_DLQ || `${queue}.dlq`,
+    // AI-generated (edited by ngkhengyang): dependency outages retry even after the handler-failure limit.
     retryDelayMs: integer('CHAT_RETRY_DELAY_MS', 2000, 1),
     retryLimit: integer('CHAT_RETRY_LIMIT', 30, 0),
   },

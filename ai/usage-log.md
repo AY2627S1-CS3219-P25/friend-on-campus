@@ -6331,3 +6331,116 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none
+
+## 2026-11-08 14:02 SGT — Explain ALB and Kubernetes pod load balancing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Refer to the cloud deployment and DevOps guide to explain load balancing after the API gateway and whether ALB can handle a node without a healthy User Service pod.
+
+**Usage scenario:** Learning support. Checked the guide, Terraform target registration and health checks, Kubernetes Service and readiness configuration, and gateway routing against official AWS and Kubernetes documentation. Explained existing behavior; left architecture decisions to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:05 SGT — Explain cross-node Service packet forwarding
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how K3s forwards API gateway traffic from a node without User Service to a pod on another worker, including whether packets are intercepted.
+
+**Usage scenario:** Learning support. Explained CoreDNS, Service ClusterIP, EndpointSlice updates, kube-proxy kernel rules, and Flannel cross-node delivery using the existing guide and official documentation. No architecture changes or decisions made.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:07 SGT — Explain K3s server operations and maintenance responsibilities
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how to manage, maintain, and configure the K3s server compared with ECS.
+
+**Usage scenario:** Learning support. Read existing Terraform bootstrap, Kubernetes manifests, deployment workflow, and operations guide; checked official K3s and AWS documentation. Explained configuration layers, maintenance ownership, and existing automation without selecting or changing architecture.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:12 SGT — Compare K3s deployment and ECS architecture proposal
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Compare the existing cloud deployment guide with new-cloud-architecture-guide.md, including advantages and a preferred architecture, using the raised S$250 budget.
+
+**Usage scenario:** Learning support and factual document review. Compared both guides, the linked cost write-up, existing Terraform/Kubernetes/deployment files, and official AWS, Kubernetes, and RabbitMQ documentation. Flagged recovery, capacity, cost-assumption, and implementation gaps. Left architecture preference and decision rationale to the human author under CLAUDE.md section 1. No live infrastructure tests or complete current-price recalculation performed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 17:41 SGT — Prepare application runtime for redesigned cloud deployment
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Implement application changes that can proceed before AWS setup, preserving all business rules and local Docker Compose operation.
+
+**Usage scenario:** Implementation of the author's selected deployment direction, runtime refactoring, supporting container configuration, regression testing, and documentation updates. Reused the existing messaging workspace for Chat quorum delivery and infrastructure-failure retries; added bounded graceful Chat/Notification shutdown with in-flight SEND draining. Preserved schemas, DTOs, authorization, event projections, order transitions and credit rules. Kept the original six migration/seed commands in Compose while images start the application directly. Cross-replica live delivery remains for an author-selected design; no AWS resources were changed. Removed cloud-guide references to the private decision file as requested earlier. Restored locked local dependencies. The first aggregate test exposed shared Credit/Order CDC fixtures; isolated their test databases and corrected profiled-container cleanup. A subsequent build encountered an npm network reset; system checks and the final complete suite passed after retry. Validation: all-workspace typecheck, changed-code ESLint, git diff whitespace check, exact local-startup command comparison against HEAD, and npm test (unit, integration, messaging, migration, seed, acceptance, API E2E and Chromium UI). Acceptance: 62/62 API checks, 22/22 notification checks, 7/7 CDC checks; API E2E 56/56 and UI 41/41. Both socket services closed clients with 1001 and exited 0 on SIGTERM. The final isolated project was removed. No commits or pushes.
+
+**Files changed:**
+- `docker-compose.yml` — preserve original local migration/seeding commands and allow socket-service shutdown grace.
+- `services/user-service/Dockerfile` — start the application without implicit database initialization.
+- `services/supplier-service/Dockerfile` — start the application without implicit database initialization.
+- `services/order-service/Dockerfile` — start the application without implicit database initialization.
+- `services/credit-service/Dockerfile` — start the application without implicit database initialization.
+- `services/notification-service/Dockerfile` — start the application without implicit database initialization.
+- `services/chat-service/Dockerfile` — include the existing messaging workspace and start the application directly.
+- `services/chat-service/package.json` — reuse the messaging workspace and keep amqplib for tests.
+- `package-lock.json` — synchronize the existing workspace dependency and development-only dependency flags.
+- `services/chat-service/src/config.ts` — retire the separate retry exchange/queue settings.
+- `services/chat-service/src/conversations/events.ts` — reuse the quorum consumer and infrastructure-failure classifier; projection rules unchanged.
+- `services/chat-service/src/messaging/rabbitmq.ts` — remove the replaced service-local consumer copy.
+- `services/chat-service/src/index.ts` — drain HTTP, WebSockets, consumer and database resources on shutdown.
+- `services/notification-service/src/index.ts` — drain HTTP, WebSockets, consumer and database resources on shutdown.
+- `services/chat-service/src/ws/hub.ts` — stop accepting new work and await in-flight sends during shutdown.
+- `services/chat-service/test/events.test.ts` — cover dependency-outage classification.
+- `services/chat-service/test/hub.test.ts` — cover socket closure and in-flight SEND draining.
+- `services/chat-service/test/messaging.integration.test.ts` — cover quorum declarations, native DLQ metadata, infrastructure recovery and bounded unexpected failures.
+- `scripts/ci/run-all-tests.mjs` — isolate Order/Credit CDC fixtures, clean profiled test resources, and check real container SIGTERM behavior.
+- `docs/infrastructure/docker-and-deployment.md` — document image/Compose startup and shutdown behavior.
+- `docs/infrastructure/cdc-and-broker.md` — document Chat runtime delivery and the required existing-queue handover.
+- `docs/services/chat-service/README.md` — update Chat runtime references.
+- `docs/new-cloud-architecture-guide.md` — remove links and reading dependencies on the private decision reference.
+
+## 2026-11-08 18:50 SGT — Explain permanent Terraform folder and Windows PATH setup
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Give a permanent folder for Terraform and explain how to add it to PATH.
+
+**Usage scenario:** Learning and setup support. Provided a user-owned Terraform folder, Windows user PATH steps and a version verification command. No installation or environment setting was changed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 19:04 SGT — Diagnose Terraform PATH and clarify NUS AWS SSO login
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Suggest a commit title, check why Terraform is not found, and explain AWS console/CLI login from the open NUS access portal.
+
+**Usage scenario:** Setup support and debugging using the diagnosing-bugs skill. Reproduced failed command lookup under normal Windows access. Verified Terraform 1.17.1 by full path; found a custom Terraform environment variable pointing to the executable rather than a PATH entry. Appended its existing containing folder to Windows user PATH, preserved existing variables, and verified persisted registration plus successful terraform version command lookup. Read the open NUS portal and existing Singapore console session without revealing access keys; confirmed Identity Center role access. The foc CLI identity check still reports NoCredentials. Corrected earlier generic aws login guidance to aws configure sso / aws sso login for this NUS account, using official AWS documentation. Suggested a commit title only; did not commit or change AWS settings.
+
+**Files changed:**
+- none (usage bookkeeping only; Windows user PATH updated)
