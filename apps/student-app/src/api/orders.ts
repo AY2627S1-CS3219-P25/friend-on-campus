@@ -26,6 +26,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted order feed, user activity, and accept order API helpers from student-app App.tsx into modular api/orders.ts.
  * Author review: Verified by yanhwee
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Added disputeOrderById and the 'dispute' task action.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Added courierDisputeOrderById and the 'courier-dispute' task action.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -33,7 +41,7 @@
 import { OrderDTO, ParsedErrandDraftDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './auth';
 
-export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel' | 'unassign';
+export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel' | 'unassign' | 'dispute' | 'courier-dispute';
 
 // AI-generated (edited by Reallyeasy1)
 export type FetchOrderResult =
@@ -144,6 +152,36 @@ export async function completeOrderById(
     orderId,
     'complete',
     'Unable to confirm delivery for this errand.'
+  );
+}
+
+// AI-generated (edited by jagdeepsh)
+export async function disputeOrderById(
+  authFetch: AuthFetchFn,
+  orderId: string,
+  details: string
+): Promise<OrderDTO> {
+  return postOrderLifecycleAction(
+    authFetch,
+    orderId,
+    'dispute',
+    'Unable to raise a dispute for this errand.',
+    { details }
+  );
+}
+
+// AI-generated (edited by jagdeepsh)
+export async function courierDisputeOrderById(
+  authFetch: AuthFetchFn,
+  orderId: string,
+  details: string
+): Promise<OrderDTO> {
+  return postOrderLifecycleAction(
+    authFetch,
+    orderId,
+    'courier-dispute',
+    'Unable to submit your dispute report.',
+    { details }
   );
 }
 

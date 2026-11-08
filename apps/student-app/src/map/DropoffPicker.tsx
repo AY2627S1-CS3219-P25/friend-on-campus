@@ -1,5 +1,17 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Simplify the optional building-pin label to complement the posting page disclosure.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Typed useMapEvents click handler parameter with L.LeafletMouseEvent for strict TypeScript compliance.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Two-tier drop-off picker for Post Errand (author's decision A16): search the NUS building snapshot and pick
  * one, or, when the building is not listed, open the same Leaflet / OpenStreetMap map as the pickup picker and click
@@ -65,7 +77,7 @@ export function DropoffPicker({ value, onChange, pickup, pickupName }: DropoffPi
       onClick={() => setIsMapOpen(true)}
       title={value ? 'Move the pin on the map' : 'Not listed? Pick on map'}
       aria-label={value ? 'Move the pin on the map' : 'Not listed? Pick on map'}
-      className="shrink-0 px-3 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-nus-blue flex items-center justify-center transition"
+      className="shrink-0 px-3 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-campus-blue flex items-center justify-center transition"
     >
       <MapIcon className="w-4 h-4" />
     </button>
@@ -75,10 +87,10 @@ export function DropoffPicker({ value, onChange, pickup, pickupName }: DropoffPi
     <div data-testid="dropoff-picker">
       <div className="flex justify-between items-center mb-1.5">
         <label htmlFor={inputId} className="block text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <Navigation className="w-4 h-4 text-nus-orange" />
-          <span>Drop-off Map Pin (Optional)</span>
+          <Navigation className="w-4 h-4 text-orange-700" />
+          <span>Building or map point</span>
         </label>
-        <span className="text-xs text-nus-blue font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+        <span className="text-xs text-campus-blue font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
           Suggests a reward
         </span>
       </div>
@@ -87,9 +99,9 @@ export function DropoffPicker({ value, onChange, pickup, pickupName }: DropoffPi
         <div className="flex items-stretch gap-2">
           <div className="flex-1 min-w-0 flex items-center gap-2 text-sm p-3 rounded-xl border border-slate-300 bg-white">
             {value.buildingName ? (
-              <Building2 className="w-4 h-4 text-nus-orange shrink-0" />
+              <Building2 className="w-4 h-4 text-orange-700 shrink-0" />
             ) : (
-              <MapPin className="w-4 h-4 text-nus-orange shrink-0" />
+              <MapPin className="w-4 h-4 text-orange-700 shrink-0" />
             )}
             <span className="font-semibold text-slate-800 truncate">{value.buildingName ?? 'Point on map'}</span>
             <span className="ml-auto shrink-0 text-xs font-mono text-slate-500 hidden sm:inline">
@@ -128,7 +140,7 @@ export function DropoffPicker({ value, onChange, pickup, pickupName }: DropoffPi
                 }
                 if (e.key === 'Escape') setQuery('');
               }}
-              className="w-full text-sm p-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-nus-blue focus:border-transparent outline-none transition"
+              className="w-full text-base sm:text-sm p-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
             />
             {results.length > 0 && (
               <ul
@@ -180,7 +192,7 @@ export function DropoffPicker({ value, onChange, pickup, pickupName }: DropoffPi
 
 function ClickToPlace({ onPlace }: { onPlace: (point: LatLng) => void }) {
   useMapEvents({
-    click(event) {
+    click(event: L.LeafletMouseEvent) {
       onPlace({ latitude: event.latlng.lat, longitude: event.latlng.lng });
     },
   });
@@ -227,16 +239,16 @@ function DropoffPickMap({ initial, pickup, pickupName, onConfirm, onClose }: Dro
       >
         <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center space-x-2">
-            <MapPin className="w-5 h-5 text-nus-orange" />
+            <MapPin className="w-5 h-5 text-orange-700" />
             <div>
               <h3 className="font-bold text-base text-slate-900">Pick a Drop-off Point</h3>
               <p className="text-xs text-slate-500">Tap the map to place the pin; tap again to move it</p>
               <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
                 <span className="inline-flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-nus-blue" /> Pickup
+                  <MapPin className="w-3 h-3 text-campus-blue" /> Pickup
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-nus-orange border border-white shadow" /> Drop-off
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-campus-coral border border-white shadow" /> Drop-off
                 </span>
               </p>
             </div>
@@ -280,7 +292,7 @@ function DropoffPickMap({ initial, pickup, pickupName, onConfirm, onClose }: Dro
             type="button"
             disabled={!pin}
             onClick={() => pin && onConfirm(pin)}
-            className="px-4 py-2.5 rounded-xl bg-nus-orange hover:bg-orange-600 text-white text-sm font-extrabold shadow-md transition disabled:bg-slate-300 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 rounded-xl bg-campus-blue hover:bg-campus-blue-hover text-white text-sm font-semibold shadow-subtle transition disabled:bg-slate-300 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Use this point
           </button>

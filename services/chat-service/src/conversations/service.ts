@@ -14,11 +14,16 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
  * Scope: Added translate(): display-only translations of a conversation's messages through the injected translator; send is unchanged.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: send() runs the optional moderator after the validation checks and before store.append; a flagged text returns 'flagged' and is not stored.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { OrderStatus } from '@campus-errand/common-dtos';
 import type { OrderClient } from '../clients/order.client';
+import type { Moderator } from '../moderation/moderate';
 import type { Translator } from '../translation/translate';
 import type { ConversationRow, ConversationStore, MessageRow } from './store';
 
@@ -33,6 +38,8 @@ export type OpenResult =
 
 export type SendResult =
   | { kind: 'sent'; message: MessageRow; recipientIds: string[] }
+  /** The moderator flagged the text; nothing was stored. */
+  | { kind: 'flagged'; recipientIds: string[] }
   | { kind: 'not_found' }
   | { kind: 'forbidden' }
   | { kind: 'closed' }
@@ -64,6 +71,8 @@ export function createConversationService(deps: {
   orders: OrderClient;
   /** Translates messages for display only (nothing is stored); absent when no translator is configured. */
   translate?: Translator;
+  /** Checks a message before it is stored; absent when no moderator is configured. */
+  moderate?: Moderator;
   now?: () => Date;
 }) {
   const now = deps.now ?? (() => new Date());
@@ -99,6 +108,10 @@ export function createConversationService(deps: {
     if (trimmed.length === 0) return { kind: 'empty' };
     // D6: the name is the token's claim; a token without one cannot be attributed (F8.2.2).
     if (!principal.username) return { kind: 'no_username' };
+    // Content moderation runs before anything is written, so a flagged message is never stored or pushed.
+    if (deps.moderate && (await deps.moderate(trimmed))) {
+      return { kind: 'flagged', recipientIds: [conversation.requesterId, conversation.courierId] };
+    }
     // The checks above are a fast path on a possibly stale row; the store repeats them under the row lock (P2), so a
     // close or re-courier committed in between is refused and the recipients reflect the locked state.
     const appended = await deps.store.append({

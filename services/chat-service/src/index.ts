@@ -13,6 +13,10 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
  * Scope: Passed a translator built from the SOCLAAS settings into the conversation service.
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: Passed a moderator built from the SOCLAAS settings into the conversation service.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import http from 'http';
@@ -25,11 +29,12 @@ import { createConversationService } from './conversations/service';
 import { startChatConsumer } from './conversations/events';
 import { createConversationStore } from './conversations/store';
 import { prisma } from './database/client';
+import { createModerator } from './moderation/moderate';
 import { createTranslator } from './translation/translate';
 import { createChatHub, createSocketAuthenticator } from './ws/hub';
 
 const store = createConversationStore(prisma);
-const conversations = createConversationService({ store, orders: createOrderClient(config.orderServiceUrl), translate: createTranslator(config.soclaas) });
+const conversations = createConversationService({ store, orders: createOrderClient(config.orderServiceUrl), translate: createTranslator(config.soclaas), moderate: createModerator(config.soclaas) });
 const hub = createChatHub({ authenticate: createSocketAuthenticator(config.auth), send: conversations.send });
 let consumerReady = () => false;
 // AI-generated (edited by ngkhengyang)

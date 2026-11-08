@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Polished ChatPanel message bubbles with gradients, glowing indicators, and tactile send button.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for outgoing chat bubble styling.
  * Author review: <to be completed by yanhwee>
@@ -37,6 +45,10 @@
  * reset inFlight when switching languages or turning translation off, and keep the translate toggle accessible when
  * the conversation is closed/read-only.
  * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: Red translucent notices: the sender's MODERATED error and the other participant's removed-message notice.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import React, { useEffect, useRef, useState } from 'react';
@@ -91,8 +103,8 @@ function Bubble({ message, mine, translated }: { message: ChatMessageDTO; mine: 
   const isTranslated = translated !== undefined && translated !== message.text;
   return (
     <li className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[85%] px-3.5 py-2 shadow-2xs ${mine ? 'bg-blue-600 text-white rounded-2xl rounded-br-md' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-md'}`}>
-        <p className={`text-[11px] mb-0.5 ${mine ? 'text-blue-100' : 'text-slate-500'}`}>
+      <div className={`max-w-[85%] px-4 py-2.5 shadow-2xs ${mine ? 'bg-campus-blue text-white rounded-2xl rounded-br-sm shadow-sm' : 'bg-slate-100 text-slate-800 rounded-2xl rounded-bl-sm border border-slate-200/50'}`}>
+        <p className={`text-xs mb-0.5 ${mine ? 'text-blue-100' : 'text-slate-500'}`}>
           <span className={`font-semibold ${mine ? 'text-white' : 'text-slate-700'}`}>{mine ? 'You' : message.senderUsername}</span>
           {' · '}
           <time dateTime={message.sentAt}>{time}</time>
@@ -114,6 +126,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   const thread = chat.threads[orderId];
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
+  const [moderated, setModerated] = useState(false);
   const [isSending, setIsSending] = useState(false);
   // Translate toggle: null is off. When a language is chosen every message is shown translated into it; the stored
   // text is never changed, and turning the toggle off shows the stored text again.
@@ -210,9 +223,11 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
     if (draft.trim().length === 0) { setSendError('A message cannot be empty'); return; }
     setIsSending(true);
     setSendError(null);
+    setModerated(false);
     const outcome = await chat.send(orderId, draft);
     setIsSending(false);
     if (outcome.ok) setDraft('');
+    else if (!outcome.ok && outcome.code === 'MODERATED') setModerated(true);
     else setSendError(outcome.message);
   };
 
@@ -226,13 +241,13 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
         aria-expanded={language ? undefined : menuOpen}
         aria-label="Translate"
         title={language ? `Translating to ${language} (click to turn off)` : 'Translate messages'}
-        className={`h-10 w-10 rounded-full flex items-center justify-center border shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-300 ${language ? 'bg-nus-blue border-nus-blue text-white hover:bg-blue-800' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+        className={`h-11 w-11 rounded-full flex items-center justify-center border shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${language ? 'bg-campus-blue border-blue-600 text-white hover:bg-campus-blue-hover' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
       >
         <Languages className="h-4 w-4" />
       </button>
       {menuOpen && (
         <div role="menu" aria-label="Translate messages to" className="absolute bottom-12 right-0 z-10 w-48 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-          <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Translate to</p>
+          <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Translate to</p>
           {TRANSLATE_LANGUAGES.map((choice) => (
             <button
               key={choice}
@@ -252,7 +267,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
   return (
     <section aria-label="Live errand chat" className="flex flex-col gap-3 lg:flex-1 lg:min-h-0" data-testid="chat-panel">
       <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900"><MessageCircle className="h-4 w-4 text-nus-blue" /> Live errand chat</h3>
+        <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900"><MessageCircle className="h-4 w-4 text-campus-blue" /> Live errand chat</h3>
         <SocketDot status={chat.status} />
       </div>
       {language && (
@@ -271,16 +286,21 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
 
       <ul ref={list} onScroll={onListScroll} className="max-h-80 min-h-[8rem] overflow-y-auto overscroll-contain space-y-2 pr-1 lg:flex-1 lg:min-h-0 lg:max-h-none" aria-live="polite">
         {thread?.isLoading && !thread.messages.length && (
-          <li className="text-xs text-slate-400 flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Loading…</li>
+          <li className="text-xs text-slate-500 flex items-center gap-1"><RefreshCw className="h-3 w-3 animate-spin" /> Loading…</li>
         )}
         {noConversation && (
-          <li className="text-xs text-slate-400">No conversation for this errand: no courier accepted it.</li>
+          <li className="text-xs text-slate-500">No conversation for this errand: no courier accepted it.</li>
         )}
         {thread && !thread.isLoading && !thread.loadError && thread.messages.length === 0 && (
-          <li className="text-xs text-slate-400">No messages yet. Say where you are or when you’ll arrive.</li>
+          <li className="text-xs text-slate-500">No messages yet. Say where you are or when you’ll arrive.</li>
         )}
         {thread?.messages.map((message) => (
           <Bubble key={message.id} message={message} mine={message.senderId === currentUserId} translated={language ? translations[`${language}|${message.id}`] : undefined} />
+        ))}
+        {Array.from({ length: thread?.removedNotices ?? 0 }, (_, index) => (
+          <li key={`removed-${index}`} data-testid="removed-notice" className="rounded-xl border border-rose-300 bg-rose-500/10 px-3 py-2 text-xs text-rose-800">
+            This message was removed as it was harmful and abusive.
+          </li>
         ))}
       </ul>
 
@@ -294,27 +314,32 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
           <div className="flex items-end gap-2">
             <textarea
               value={draft}
-              onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); }}
+              onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); if (moderated) setModerated(false); }}
               onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void handleSend(event); } }}
               rows={1}
               placeholder="Write a message"
               aria-label="Message"
               disabled={isSending || !thread?.conversation}
-              className="flex-1 resize-none rounded-full border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:opacity-50"
+              className="flex-1 min-w-0 resize-none rounded-full border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50"
             />
             {translateControl}
             <button
               type="submit"
               disabled={isSending || !thread?.conversation || chat.status !== 'connected'}
               aria-label="Send"
-              className="h-10 w-10 shrink-0 rounded-full bg-nus-orange hover:bg-orange-600 text-white flex items-center justify-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 w-11 shrink-0 rounded-full bg-campus-blue hover:bg-campus-blue-hover text-white flex items-center justify-center shadow-subtle active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
+          {moderated && (
+            <p role="alert" data-testid="moderated-notice" className="rounded-xl border border-rose-300 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-800">
+              Harmful and abusive messages will not be tolerated.
+            </p>
+          )}
           {sendError && <p role="alert" className="text-xs text-rose-700">{sendError}</p>}
           {chat.status !== 'connected' && !sendError && (
-            <p className="text-xs text-slate-400">Reconnecting… messages can be sent once connected.</p>
+            <p className="text-xs text-slate-500">Reconnecting… messages can be sent once connected.</p>
           )}
         </form>
       )}

@@ -1,5 +1,69 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Resolve main merge conflicts; retain redesigned cards and toolbar with upstream posted columns, reorder action, and dispute status.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized TasksPage with Direction A Warm Campus Mango theme: updated card hover border and title to warm orange, and empty state icon to warm amber tint.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Eliminated orphan whitespace row on mobile errand cards by locking order code, reward credits, and 'View details' CTA into unified top row and rendering mobile status on dedicated left-aligned line.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Resolved text truncation and missing dropoff icon on My Errands cards: gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Polished My Errands segmented filter into high-end h-11 control with unified blue active styling and embedded count badges.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined errand cards into sleek compact 2-line cards (~72px), eliminated duplicate status badge and box-in-a-box styling, and provided full-width route row to eliminate text clipping.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Redesigned My Errands into responsive full-width horizontal tracking rows (desktop) with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact mobile toolbar pairing segmented filter tabs and refresh action in a single row without orphan whitespace.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized Tasks page copy to Errand terminology ('Errands posted', 'Errands delivering') matching My Errands navigation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact high-density task cards: inlined order code and reward badges, single-line connected route snippet, removed redundant list-view progress stepper, tightened card padding.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed internal backend microservice references (Credit Service) in favor of clear consumer wallet language.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined TasksPage header into an action-first segmented toolbar, eliminating redundant static title while preserving Refresh button accessibility and role filter counts.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned TasksPage with elevated card ergonomics, glassmorphic card containers, animated milestone progress bar, and refined filter tabs.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light interactive pill button styling for View Details CTA.
  * Author review: <to be completed by yanhwee>
@@ -40,16 +104,21 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx.
  * Author review: Verified by yanhwee
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: DELIVERED status line says when the errand is under dispute.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Posted by Me splits into Open / Cancelled / Completed columns; completed cards get an Order again button.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by Reallyeasy1)
 
 import { useState } from 'react';
-import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
-import { ArrowRight, Coins, MapPin, RefreshCw, Send, Truck } from 'lucide-react';
-import { ExpandableNotes } from '../components/ExpandableNotes';
-import { statusBadgeClasses } from '../errand/details';
+import { OrderDTO } from '@campus-errand/common-dtos';
+import { ArrowRight, Coins, MapPin, RefreshCw, RotateCw, Send, Truck } from 'lucide-react';
 
 interface TasksPageProps {
   orders: OrderDTO[];
@@ -58,6 +127,10 @@ interface TasksPageProps {
   onRefreshOrders?: () => void;
   /** Opens the errand's details page (#188), which carries the chat and the actions. */
   onOpenErrand: (orderId: string) => void;
+  /** Posts a new errand with the same details as a completed one. */
+  onOrderAgain?: (order: OrderDTO) => void;
+  /** True while a submission is being posted or reserved; Order again waits for it. */
+  orderAgainBusy?: boolean;
 }
 
 /** One line under the card so the list still tells the state at a glance; the page has the detail and the actions. */
@@ -70,7 +143,7 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
     case 'ACCEPTED':
       return {
         text: side === 'accepted' ? 'Accepted · Head to the pickup spot' : 'Accepted · A courier is on it',
-        tone: 'text-nus-blue',
+        tone: 'text-campus-blue',
       };
     case 'IN_TRANSIT':
       return {
@@ -78,6 +151,7 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         tone: 'text-amber-700',
       };
     case 'DELIVERED':
+      if (task.dispute) return { text: 'Delivered · Under dispute, an administrator will settle it', tone: 'text-rose-700' };
       return {
         text: side === 'posted' ? 'Delivered · Review and confirm' : 'Delivered · Waiting for requester confirmation',
         tone: 'text-blue-700',
@@ -87,19 +161,19 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         text:
           side === 'posted'
             ? 'Completed · Delivery confirmed'
-            : `Completed · ${task.rewardCredits} credits are paid once Credit Service settles the escrow`,
+            : `Completed · ${task.rewardCredits}-credit reward`,
         tone: 'text-emerald-700',
       };
     case 'CANCELLED':
       return {
         text:
           side === 'posted'
-            ? 'Cancelled · Reserved credits are returned by Credit Service'
+            ? 'Cancelled · Reserved credits will be returned'
             : 'Cancelled · Order was cancelled before completion',
         tone: 'text-slate-500',
       };
     case 'EXPIRED':
-      return { text: 'Expired · Reserved credits are returned by Credit Service', tone: 'text-slate-500' };
+      return { text: 'Expired · Reserved credits refunded to wallet', tone: 'text-slate-500' };
     case 'REJECTED':
       return {
         text: task.rejectionReason ? `Declined: ${task.rejectionReason}` : 'Declined · Credit reservation failed',
@@ -110,42 +184,25 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
   }
 }
 
-/** Returns the active milestone index (0 to 4) for normal lifecycle */
-function getProgressStep(status: OrderStatus): number {
-  switch (status) {
-    case 'PENDING':
-      return 0;
-    case 'OPEN':
-      return 1;
-    case 'ACCEPTED':
-      return 2;
-    case 'IN_TRANSIT':
-      return 3;
-    case 'DELIVERED':
-      return 4;
-    case 'COMPLETED':
-      return 5;
-    default:
-      return -1;
-  }
-}
-
 export function TasksPage({
   orders,
   currentUserId,
   ordersLoading = false,
   onRefreshOrders,
   onOpenErrand,
+  onOrderAgain,
+  orderAgainBusy = false,
 }: TasksPageProps) {
   const [filterView, setFilterView] = useState<'all' | 'posted' | 'accepted'>('all');
 
   const postedTasks = orders.filter((task) => currentUserId && task.requesterId === currentUserId);
   const acceptedTasks = orders.filter((task) => currentUserId && task.courierId === currentUserId);
+  const totalCount = postedTasks.length + acceptedTasks.length;
 
   const groups = [
     {
       key: 'posted' as const,
-      title: 'Tasks posted',
+      title: 'Errands posted',
       description: 'Errands you requested from other students.',
       tasks: postedTasks,
       emptyCta: 'Need food, drinks, or printouts?',
@@ -153,7 +210,7 @@ export function TasksPage({
     },
     {
       key: 'accepted' as const,
-      title: 'Tasks accepted',
+      title: 'Errands delivering',
       description: 'Errands you are delivering for other students.',
       tasks: acceptedTasks,
       emptyCta: 'Earn extra credits on campus between lectures.',
@@ -161,81 +218,233 @@ export function TasksPage({
     },
   ];
 
-  const visibleGroups = groups.filter((g) => filterView === 'all' || filterView === g.key);
+  // Posted by Me is split into three columns by where each errand ended up.
+  const POSTED_COLUMNS = [
+    { key: 'open', title: 'Open', statuses: ['PENDING', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'DISPUTED'] },
+    { key: 'cancelled', title: 'Cancelled', statuses: ['CANCELLED', 'EXPIRED', 'REJECTED'] },
+    { key: 'completed', title: 'Completed', statuses: ['COMPLETED'] },
+  ] as const;
 
-  return (
-    <div className="space-y-6">
-      {/* Top Header & Refresh Control */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            My Tasks &amp; Deliveries
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Track active requests and your delivery courier commitments
-          </p>
+  // AI-generated (edited by yanhwee)
+  const renderTask = (task: OrderDTO, groupKey: 'posted' | 'accepted') => {
+    const line = statusLine(task, groupKey);
+
+    return (
+      <article
+        key={`${groupKey}-${task.id}`}
+        data-testid={`task-card-${groupKey}-${task.orderCode}`}
+        data-order-id={task.id}
+        className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
+      >
+        {/* Top Line: Identifiers, Desktop Status & Action CTA */}
+        <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="text-xs font-mono font-semibold text-campus-blue bg-blue-50/90 border border-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
+              {task.orderCode}
+            </span>
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
+              <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+              <span>{task.rewardCredits} C</span>
+            </span>
+            {line && (
+              <span className={`hidden sm:inline-flex text-sm font-medium ${line.tone} items-center gap-1.5 min-w-0`} title={line.text}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                <span>{line.text}</span>
+              </span>
+            )}
+          </div>
+
+          <a
+            href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
+            data-testid="open-errand-link"
+            aria-label={`View details of errand ${task.orderCode}`}
+            onClick={(event) => {
+              event.preventDefault();
+              onOpenErrand(task.id);
+            }}
+            className="inline-flex items-center gap-1 font-semibold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
+          >
+            <span>View details</span>
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </a>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {onRefreshOrders && (
-            <button
-              type="button"
-              onClick={onRefreshOrders}
-              disabled={ordersLoading}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-subtle transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-nus-blue' : ''}`} />
-              <span>Refresh</span>
-            </button>
+        {/* Mobile-only status line (dedicated row without orphan whitespace) */}
+        {line && (
+          <div className="sm:hidden flex items-center min-w-0 -mt-0.5">
+            <span className={`text-sm font-medium ${line.tone} inline-flex items-center gap-1.5 truncate`} title={line.text}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0" />
+              <span className="truncate">{line.text}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Middle Line: Full-width Item Description (Never squeezed or truncated prematurely) */}
+        <div className="min-w-0">
+          <h4
+            title={task.itemDescription}
+            className="text-sm sm:text-base font-semibold text-slate-900 group-hover:text-campus-blue transition-colors line-clamp-2 leading-snug"
+          >
+            {task.itemDescription}
+          </h4>
+        </div>
+
+        {/* Bottom Line: Connected Route (with blue Pickup pin & orange Dropoff pin) & Notes */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
+          <div className="inline-flex items-center gap-1.5 min-w-0">
+            <MapPin className="h-3.5 w-3.5 text-campus-blue shrink-0" />
+            <span className="text-slate-500 font-semibold text-xs shrink-0">Pickup:</span>
+            <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
+              {task.supplierName}
+            </span>
+          </div>
+
+          <span className="text-slate-300 select-none">➔</span>
+
+          <div className="inline-flex items-center gap-1.5 min-w-0">
+            <MapPin className="h-3.5 w-3.5 text-nus-orange shrink-0" />
+            <span className="text-slate-500 font-semibold text-xs shrink-0">Dropoff:</span>
+            <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
+              {task.dropoffLocation}
+            </span>
+          </div>
+
+          {task.specialNotes && (
+            <>
+              <span className="text-slate-300 hidden sm:inline select-none">•</span>
+              <span className="text-slate-500 italic text-xs break-words" title={task.specialNotes}>
+                Note: {task.specialNotes}
+              </span>
+            </>
           )}
         </div>
+        {groupKey === 'posted' && task.status === 'COMPLETED' && onOrderAgain && (
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              data-testid="order-again-btn"
+              disabled={orderAgainBusy}
+              onClick={() => onOrderAgain(task)}
+              className="relative z-10 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-campus-blue hover:bg-campus-blue-hover px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${orderAgainBusy ? 'animate-spin' : ''}`} />
+              <span>{orderAgainBusy ? 'Posting…' : 'Order again'}</span>
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  };
+
+  // In 'all' view, only show groups that actually have tasks to avoid giant empty placeholder boxes.
+  // In specific tab views ('posted' or 'accepted'), show the group even if empty so the user gets clear feedback.
+  const visibleGroups = groups.filter((g) => {
+    if (filterView === 'all') {
+      return g.tasks.length > 0;
+    }
+    return filterView === g.key;
+  });
+
+  return (
+    <div className="space-y-4 sm:space-y-5">
+      {/* Action-First Tasks Toolbar: Role Filter Pills & Refresh Action */}
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+        {/* Segmented Filter Pills */}
+        <div className="h-11 p-1 flex items-center bg-slate-100/90 rounded-2xl border border-slate-200/60 shadow-2xs shrink-0">
+          <button
+            type="button"
+            onClick={() => setFilterView('all')}
+            className={`h-full px-3 sm:px-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
+              filterView === 'all'
+                ? 'bg-campus-blue-soft text-campus-blue'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>All</span>
+            <span
+              className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                filterView === 'all' ? 'bg-blue-100/80 text-blue-700' : 'bg-slate-200/70 text-slate-600'
+              }`}
+            >
+              {totalCount}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterView('posted')}
+            className={`h-full px-3 sm:px-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
+              filterView === 'posted'
+                ? 'bg-campus-blue-soft text-campus-blue'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="hidden sm:inline">Posted by Me</span>
+            <span className="sm:hidden">Posted</span>
+            <span
+              className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                filterView === 'posted' ? 'bg-blue-100/80 text-blue-700' : 'bg-slate-200/70 text-slate-600'
+              }`}
+            >
+              {postedTasks.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterView('accepted')}
+            className={`h-full px-3 sm:px-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-1.5 min-h-0 ${
+              filterView === 'accepted'
+                ? 'bg-campus-blue-soft text-campus-blue'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span>Delivering</span>
+            <span
+              className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${
+                filterView === 'accepted' ? 'bg-blue-100/80 text-blue-700' : 'bg-slate-200/70 text-slate-600'
+              }`}
+            >
+              {acceptedTasks.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Refresh Action */}
+        {onRefreshOrders && (
+          <button
+            type="button"
+            onClick={onRefreshOrders}
+            disabled={ordersLoading}
+            className="h-11 min-h-0 inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white/90 px-3.5 text-sm font-medium text-slate-700 shadow-2xs transition-all hover:bg-slate-50 hover:shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${ordersLoading ? 'animate-spin text-campus-blue' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        )}
       </div>
 
-      {/* Segmented Filter Pills */}
-      <div className="flex p-1 bg-slate-100 rounded-xl max-w-md">
-        <button
-          type="button"
-          onClick={() => setFilterView('all')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-            filterView === 'all'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          All ({postedTasks.length + acceptedTasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterView('posted')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-            filterView === 'posted'
-              ? 'bg-white text-nus-blue shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Posted by Me ({postedTasks.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterView('accepted')}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition ${
-            filterView === 'accepted'
-              ? 'bg-white text-nus-orange shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          Delivering ({acceptedTasks.length})
-        </button>
-      </div>
+      {/* Global Empty State (All view with 0 total errands) */}
+      {totalCount === 0 && filterView === 'all' && (
+        <div className="rounded-2xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 sm:p-12 text-center shadow-card flex flex-col items-center justify-center">
+          <div className="h-12 w-12 rounded-2xl bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 mb-3 shadow-2xs">
+            <Send className="h-5 w-5 text-orange-600" />
+          </div>
+          <p className="font-semibold text-slate-900 text-base">
+            No active errands yet
+          </p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+            When you request an errand or accept a delivery on campus, your active orders will appear here.
+          </p>
+        </div>
+      )}
 
       {/* Task Groups */}
       {visibleGroups.map((group) => (
-        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3.5">
+        <section key={group.key} aria-labelledby={`tasks-${group.key}`} className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 id={`tasks-${group.key}`} className="text-lg font-bold text-slate-900">
-                {group.title}{' '}
-                <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
+              <h3 id={`tasks-${group.key}`} className="text-base sm:text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <span>{group.title}</span>
+                <span className="text-xs font-semibold bg-blue-50 text-campus-blue border border-blue-200/70 px-2.5 py-0.5 rounded-full">
                   {group.tasks.length}
                 </span>
               </h3>
@@ -243,139 +452,50 @@ export function TasksPage({
             </div>
           </div>
 
-          <div className="responsive-card-grid items-start">
-            {group.tasks.length === 0 && (
-              <div className="col-span-full rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-8 text-center shadow-subtle flex flex-col items-center justify-center">
-                <div className="h-11 w-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-2.5">
-                  {group.key === 'posted' ? (
-                    <Send className="h-5 w-5 text-nus-blue" />
-                  ) : (
-                    <Truck className="h-5 w-5 text-nus-orange" />
+          {group.key === 'posted' && filterView === 'posted' ? (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-0 lg:divide-x lg:divide-slate-200" data-testid="posted-split">
+              {POSTED_COLUMNS.map((column) => {
+                const columnTasks = group.tasks.filter((task) => (column.statuses as readonly string[]).includes(task.status));
+                return (
+                  <div key={column.key} data-testid={`posted-column-${column.key}`} className="min-w-0 space-y-3 lg:px-4 lg:first:pl-0 lg:last:pr-0">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      {column.title}{' '}
+                      <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
+                        {columnTasks.length}
+                      </span>
+                    </h4>
+                    {columnTasks.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-slate-200 bg-white/60 p-4 text-center text-xs text-slate-400">
+                        No {column.title.toLowerCase()} errands.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">{columnTasks.map((task) => renderTask(task, 'posted'))}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {group.tasks.length === 0 && (
+                <div className="rounded-2xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
+                  <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3 shadow-2xs">
+                    {group.key === 'posted' ? (
+                      <Send className="h-5 w-5 text-campus-blue" />
+                    ) : (
+                      <Truck className="h-5 w-5 text-nus-orange" />
                   )}
                 </div>
-                <p className="font-bold text-slate-700 text-sm">No {group.key} tasks yet.</p>
+                <p className="font-semibold text-slate-800 text-sm">
+                  No {group.key === 'posted' ? 'posted' : 'delivering'} errands yet.
+                </p>
                 <p className="text-xs text-slate-500 mt-1">{group.emptyCta}</p>
               </div>
             )}
 
-            {group.tasks.map((task) => {
-              const line = statusLine(task, group.key);
-              const stepIndex = getProgressStep(task.status);
-              const isTerminal = ['COMPLETED', 'CANCELLED', 'EXPIRED', 'REJECTED', 'DISPUTED'].includes(
-                task.status
-              );
-
-              return (
-                <article
-                  key={`${group.key}-${task.id}`}
-                  data-testid={`task-card-${group.key}-${task.orderCode}`}
-                  data-order-id={task.id}
-                  className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle border border-slate-200 hover:border-nus-blue/40 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange"
-                >
-                  <div className="space-y-3">
-                    {/* Top Order Code & Status Badge */}
-                    <div className="flex flex-wrap justify-between items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-nus-blue bg-nus-blue-50 border border-nus-blue-100 px-2 py-0.5 rounded-md">
-                        {task.orderCode}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-xs font-bold px-2.5 py-0.5 rounded-md ${statusBadgeClasses(
-                            task.status
-                          )}`}
-                        >
-                          {task.status.replace(/_/g, ' ')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Item Description */}
-                    <h4
-                      title={task.itemDescription}
-                      className="text-sm sm:text-base font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
-                    >
-                      {task.itemDescription}
-                    </h4>
-
-                    {/* Reward Badge */}
-                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-700 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/80 w-fit">
-                      <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
-                      <span>{task.rewardCredits} credits reward</span>
-                    </div>
-
-                    {/* Special Notes */}
-                    <div className="pt-0.5">
-                      <ExpandableNotes notes={task.specialNotes} />
-                    </div>
-
-                    {/* Route Details */}
-                    <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 space-y-1.5 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-100 text-nus-blue">
-                          <MapPin className="h-2.5 w-2.5" />
-                        </span>
-                        <span className="font-bold text-slate-500 shrink-0">Pickup:</span>
-                        <span className="font-medium text-slate-800 truncate" title={task.supplierName}>
-                          {task.supplierName}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-orange-100 text-nus-orange">
-                          <ArrowRight className="h-2.5 w-2.5" />
-                        </span>
-                        <span className="font-bold text-slate-500 shrink-0">Dropoff:</span>
-                        <span className="font-medium text-slate-800 truncate" title={task.dropoffLocation}>
-                          {task.dropoffLocation}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Visual Milestone Stepper for Active Tasks */}
-                    {stepIndex >= 0 && !isTerminal && (
-                      <div className="pt-1">
-                        <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 mb-1">
-                          <span className={stepIndex >= 1 ? 'text-nus-blue font-bold' : ''}>Open</span>
-                          <span className={stepIndex >= 2 ? 'text-nus-blue font-bold' : ''}>Accepted</span>
-                          <span className={stepIndex >= 3 ? 'text-nus-blue font-bold' : ''}>En Route</span>
-                          <span className={stepIndex >= 4 ? 'text-nus-blue font-bold' : ''}>Delivered</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                          <div
-                            className="bg-nus-blue transition-all duration-300 rounded-full"
-                            style={{ width: `${Math.min(100, Math.max(15, (stepIndex / 4) * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Footer: Status Copy & View Details Link */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    {line ? (
-                      <p className={`text-xs font-semibold ${line.tone} line-clamp-1`}>{line.text}</p>
-                    ) : (
-                      <span />
-                    )}
-
-                    {/* Stretched link covers whole card */}
-                    <a
-                      href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
-                      data-testid="open-errand-link"
-                      aria-label={`View details of errand ${task.orderCode}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onOpenErrand(task.id);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100/90 border border-blue-200/80 hover:border-blue-300 px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all"
-                    >
-                      <span>View details</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </a>
-                  </div>
-                </article>
-              );
-            })}
+            {group.tasks.map((task) => renderTask(task, group.key))}
           </div>
+          )}
         </section>
       ))}
     </div>

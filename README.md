@@ -11,6 +11,13 @@ Author review: <to be completed by the author>
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Link the confirmed shared-host ECS architecture and distinguish it from the existing K3s deployment configuration.
 Author review: <to be completed by the author>
+Tool: Codex (model: GPT-6), date: 2026-11-07
+Scope: Restore Friend on Campus as the product name in the heading and overview.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Updated project heading and overview to tompang. — Friend on Campus (FoC), fixing historical 'Friend of Campus' typo to align with official CS3219 lecture project designation (FoC – Friend on Campus).
+Author review: <to be completed by yanhwee>
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
@@ -76,12 +83,12 @@ Author review: <to be completed by huangjiaxi1111>
 
 
 
-# Friend of Campus (FoC) 🏃‍♂️💨
+# Friend on Campus (FoC) 🏃‍♂️💨
 
 > **CS3219 Software Design and Architecture (AY26/27 S1) — Project Group 25**  
 > Peer-to-Peer Campus Errand Platform with Closed Credit Economy & Verified Campus Suppliers
 
-Friend of Campus connects NUS students who need quick favors (coffee from COM3, printing at Central Library, parcel pickup from PGPR) with peers already walking nearby. The platform operates on a **closed credit economy** with escrow guarantees, discrete milestone updates, role-based access control, and asynchronous event notifications.
+**Friend on Campus (FoC)** connects NUS students who need quick favors (coffee from COM3, printing at Central Library, parcel pickup from PGPR) with peers already walking nearby. The platform operates on a **closed credit economy** with escrow guarantees, discrete milestone updates, role-based access control, and asynchronous event notifications.
 
 ---
 

@@ -44,6 +44,10 @@ model Order {
   dropoffLatitude        Float?  @map("dropoff_latitude")
   dropoffLongitude       Float?  @map("dropoff_longitude")
   estimatedRewardCredits Int?    @map("estimated_reward_credits")
+  // AI-generated (edited by jagdeepsh): delivery dispute raised by the requester; an admin settles it.
+  dispute                Boolean @default(false)
+  requesterDisputeDetails String? @map("requester_dispute_details") @db.Text
+  courierDisputeDetails   String? @map("courier_dispute_details") @db.Text
   status               String    @default("PENDING") @db.VarChar(30)
   rejectionReason      String?   @map("rejection_reason") @db.Text
   expiresAt            DateTime  @map("expires_at") @db.Timestamptz(6)

@@ -1,5 +1,25 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Resolve main merge conflict by preserving the delivered-requester dispute and confirmation controls alongside redesigned details.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Redesigned ErrandDetailsPage into a balanced, centered single-column layout (max-w-3xl), eliminating empty space, 2-column height asymmetry, and redundant header item titles, while strictly preserving all data-testids, locators, and UAT contracts.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed internal microservice references (Credit Service) from user-facing errand action button captions and timeline details.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned ErrandDetailsPage with polished glassmorphic cards, luminous status tracker with pulsing milestone markers, route cards, tactile action buttons with NUS gradients, and full test-id preservation.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for primary action buttons.
  * Author review: <to be completed by yanhwee>
@@ -42,6 +62,18 @@
  * places, the straight-line distance, and "Estimated M · Offered N credits", or "The poster did not use the
  * estimator" when the order has no estimate. Visible before accepting.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Requester DELIVERED block: confirm countdown (deliveredAt + 5 min, auto-completes when it runs out), Raise Dispute with a required reason, and dispute notes for requester and courier.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Courier dispute response: the requester's message above a text box and a Submit dispute report button.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: removed the 5-minute confirm countdown; courier dispute form shown by default on DELIVERED.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by Reallyeasy1)
@@ -83,7 +115,7 @@ export interface ErrandDetailsPageProps {
   /** The last action failure from the Order Service (400 / 403 / 409 text), or null. */
   actionError: string | null;
   onAccept: (orderId: string, courierContactNote?: string) => void;
-  onAction: (orderId: string, action: TaskOrderAction) => void;
+  onAction: (orderId: string, action: TaskOrderAction, details?: string) => void;
   /** The order's pickup store from the loaded supplier list, for its operating hours; null if not loaded. */
   supplier?: SupplierDTO | null;
 }
@@ -110,15 +142,15 @@ const dateTimeOf = (iso: string) =>
     minute: '2-digit',
   });
 
-const CARD = 'bg-white rounded-2xl border border-slate-200/90 shadow-subtle';
+const CARD = 'bg-white rounded-2xl border border-slate-200 shadow-subtle';
 const BIG =
-  'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm sm:text-base font-extrabold transition disabled:opacity-50 disabled:cursor-not-allowed';
-const PRIMARY = `${BIG} bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer`;
-const ACCENT = `${BIG} bg-nus-orange hover:bg-orange-600 text-white shadow-md shadow-nus-orange/20`;
+  'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm sm:text-base font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.99]';
+const PRIMARY = `${BIG} bg-campus-blue hover:bg-campus-blue-hover text-white shadow-subtle hover:shadow-sm`;
+const ACCENT = `${BIG} bg-campus-blue hover:bg-campus-blue-hover text-white shadow-subtle hover:shadow-sm`;
 const GHOST =
-  'w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border';
-const GHOST_DANGER = `${GHOST} border-rose-200 text-rose-700 bg-white hover:bg-rose-50`;
-const GHOST_QUIET = `${GHOST} border-slate-200 text-slate-700 bg-white hover:bg-slate-50`;
+  'w-full inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border cursor-pointer active:scale-[0.99]';
+const GHOST_DANGER = `${GHOST} border-rose-200 text-rose-700 bg-rose-50/60 hover:bg-rose-100 hover:border-rose-300`;
+const GHOST_QUIET = `${GHOST} border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:border-slate-300`;
 
 function Card({
   children,
@@ -178,7 +210,7 @@ function Participant({
     <Card className="p-4 sm:p-5 flex items-center gap-3.5" testId="participant-card">
       <span
         aria-hidden="true"
-        className="h-11 w-11 shrink-0 rounded-2xl bg-nus-blue-50 border border-nus-blue-100 flex items-center justify-center text-nus-blue shadow-sm"
+        className="h-11 w-11 shrink-0 rounded-2xl bg-campus-blue-soft border border-blue-200 flex items-center justify-center text-campus-blue shadow-sm"
       >
         <User className="h-5 w-5" />
       </span>
@@ -192,8 +224,8 @@ function Participant({
           title={note || undefined}
           className={`max-w-[45%] truncate rounded-full border px-3 py-1 text-xs font-bold ${
             note
-              ? 'border-nus-blue/40 text-nus-blue bg-nus-blue-50/50'
-              : 'border-slate-200 text-slate-400 bg-slate-50'
+              ? 'border-blue-300 text-campus-blue bg-campus-blue-soft shadow-2xs'
+              : 'border-slate-200 text-slate-500 bg-slate-50'
           }`}
         >
           {note || 'No contact note'}
@@ -218,7 +250,7 @@ function rowCopy(
         title: step.state === 'done' ? `Posted (${credits} in escrow)` : `Reserving ${credits}`,
         detail: at
           ? `${at} · ${role === 'requester' ? 'You' : 'Requester'}`
-          : 'Credit Service is reserving the reward',
+          : 'Reserving reward credits…',
       };
     case 'accepted':
       return {
@@ -288,7 +320,7 @@ function Timeline({ order, role }: { order: OrderDTO; role: Role }) {
                 <span
                   aria-hidden="true"
                   className={`absolute left-[11px] top-6 bottom-0 w-0.5 ${
-                    step.state === 'done' ? 'bg-nus-blue' : 'bg-slate-200'
+                    step.state === 'done' ? 'bg-campus-blue' : 'bg-slate-200'
                   }`}
                 />
               )}
@@ -296,21 +328,21 @@ function Timeline({ order, role }: { order: OrderDTO; role: Role }) {
                 aria-hidden="true"
                 className={`relative z-10 mt-0.5 h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${
                   step.state === 'done'
-                    ? 'bg-nus-blue border-nus-blue text-white shadow-sm'
+                    ? 'bg-campus-blue border-blue-600 text-white shadow-sm'
                     : step.state === 'current'
-                    ? 'bg-white border-nus-orange shadow-sm ring-4 ring-orange-100'
+                    ? 'bg-white border-blue-600 ring-4 ring-blue-100'
                     : 'bg-white border-slate-300'
                 }`}
               >
                 {step.state === 'done' && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
                 {step.state === 'current' && (
-                  <span className="h-2.5 w-2.5 rounded-full bg-nus-orange animate-pulse" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-campus-blue" />
                 )}
               </span>
               <div className="min-w-0 pt-0.5">
                 <p
                   className={`text-xs sm:text-sm font-bold leading-5 break-words ${
-                    step.state === 'todo' ? 'text-slate-400' : 'text-slate-900'
+                    step.state === 'todo' ? 'text-slate-500' : 'text-slate-900'
                   }`}
                 >
                   {title}
@@ -324,7 +356,7 @@ function Timeline({ order, role }: { order: OrderDTO; role: Role }) {
                 </p>
                 <p
                   className={`text-xs leading-4 break-words ${
-                    step.state === 'todo' ? 'text-slate-400' : 'text-slate-500'
+                    step.state === 'todo' ? 'text-slate-500' : 'text-slate-500'
                   }`}
                 >
                   {step.at ? <time dateTime={step.at}>{detail}</time> : detail}
@@ -370,35 +402,35 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
   return (
     <Card className="p-4 sm:p-5 space-y-3.5" testId="item-card">
       <div>
-        <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
           Errand Request
         </p>
-        <p className="text-sm sm:text-base font-bold text-slate-900 break-words mt-0.5">
+        <p className="text-base sm:text-lg font-semibold text-slate-900 break-words mt-0.5">
           {order.itemDescription}
         </p>
         <p
-          className="text-xs sm:text-sm text-slate-600 whitespace-pre-wrap break-words mt-1.5 bg-slate-50/80 p-3 rounded-xl border border-slate-100"
+          className="text-xs sm:text-sm text-slate-600 whitespace-pre-wrap break-words mt-1.5 bg-slate-50/90 p-3 rounded-2xl border border-slate-100"
           data-testid="special-notes-full"
         >
           {order.specialNotes || 'No special notes.'}
         </p>
       </div>
-      <dl className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-2 gap-2.5 text-xs">
-        <div className="rounded-xl bg-slate-50/90 border border-slate-100 p-3 min-w-0">
-          <dt className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
-            <MapPin className="h-3.5 w-3.5 text-nus-blue" />
+      <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div className="rounded-2xl bg-slate-50/90 border border-slate-100 p-3.5 min-w-0 shadow-2xs">
+          <dt className="flex items-center gap-1.5 text-slate-500 font-semibold mb-1">
+            <MapPin className="h-3.5 w-3.5 text-campus-blue" />
             <span>Pickup</span>
           </dt>
           <dd className="text-slate-900 font-bold truncate" title={order.supplierName}>
             {order.supplierName ?? 'Pickup spot'}
           </dd>
           {order.campusZone && (
-            <dd className="text-[11px] text-nus-blue font-semibold mt-0.5">{order.campusZone}</dd>
+            <dd className="text-xs text-campus-blue font-semibold mt-0.5">{order.campusZone}</dd>
           )}
           {supplier && (
             <dd
               data-testid="pickup-operating-hours"
-              className="flex flex-wrap items-center gap-x-1 text-[11px] text-slate-500 mt-0.5"
+              className="flex flex-wrap items-center gap-x-1 text-xs text-slate-500 mt-0.5"
             >
               <Clock className="h-3 w-3 shrink-0" />
               <span className="whitespace-nowrap">{hours ?? HOURS_NOT_LISTED}</span>
@@ -407,33 +439,33 @@ function ItemCard({ order, supplier, now }: { order: OrderDTO; supplier?: Suppli
             </dd>
           )}
         </div>
-        <div className="rounded-xl bg-slate-50/90 border border-slate-100 p-3 min-w-0">
-          <dt className="flex items-center gap-1.5 text-slate-400 font-semibold mb-1">
-            <MapPin className="h-3.5 w-3.5 text-nus-orange" />
+        <div className="rounded-2xl bg-slate-50/90 border border-slate-100 p-3.5 min-w-0 shadow-2xs">
+          <dt className="flex items-center gap-1.5 text-slate-500 font-semibold mb-1">
+            <MapPin className="h-3.5 w-3.5 text-orange-700" />
             <span>Dropoff</span>
           </dt>
           <dd className="text-slate-900 font-bold truncate" title={order.dropoffLocation}>
             {order.dropoffLocation}
           </dd>
           {dropoff ? (
-            <dd data-testid="dropoff-point" className="text-[11px] text-slate-500 mt-0.5">
+            <dd data-testid="dropoff-point" className="text-xs text-slate-500 mt-0.5">
               <span className="font-mono">{formatCoordinates(dropoff)}</span>
               {pickup && <span className="block">{haversineKm(pickup, dropoff).toFixed(2)} km from pickup</span>}
             </dd>
           ) : (
-            <dd className="text-[11px] text-slate-500 mt-0.5">Final destination</dd>
+            <dd className="text-xs text-slate-500 mt-0.5">Final destination</dd>
           )}
         </div>
-        <div className="rounded-xl bg-amber-50/80 border border-amber-200/80 p-3 min-w-0 lg:col-span-2">
+        <div className="rounded-2xl bg-amber-50/80 border border-amber-200/80 p-3.5 min-w-0 shadow-2xs">
           <dt className="flex items-center gap-1.5 text-amber-700/80 font-semibold mb-1">
             <Coins className="h-3.5 w-3.5 text-amber-600 fill-amber-400" />
-            <span>Escrow Reward</span>
+            <span>Reward</span>
           </dt>
-          <dd className="text-amber-900 font-black text-sm">{order.rewardCredits} credits</dd>
-          <dd className="text-[10px] text-amber-700/90 leading-tight mt-0.5">
+          <dd className="text-amber-900 font-semibold text-sm">{order.rewardCredits} credits</dd>
+          <dd className="text-xs text-amber-700/90 leading-tight mt-0.5">
             {escrowCopy(escrowState(order.status), order.rewardCredits)}
           </dd>
-          <dd data-testid="reward-estimate" className="text-[10px] text-amber-700/90 leading-tight mt-1 font-semibold">
+          <dd data-testid="reward-estimate" className="text-xs text-amber-700/90 leading-tight mt-1 font-semibold">
             {typeof estimatedRewardCredits === 'number'
               ? `Estimated ${estimatedRewardCredits} · Offered ${order.rewardCredits} credits`
               : 'The poster did not use the estimator'}
@@ -460,6 +492,137 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
       <Clock className="h-3.5 w-3.5 text-amber-600" />
       <span>{remaining === '0:00' ? 'Expiry time reached; closing shortly' : `Expires in ${remaining}`}</span>
     </p>
+  );
+}
+
+// AI-generated (edited by jagdeepsh)
+/**
+ * The requester's DELIVERED block: confirm whenever they like, or Raise Dispute. Once a dispute exists (theirs or the
+ * courier's) confirmation is disabled until an administrator settles the errand; the requester can still add their own
+ * side if they have not yet.
+ */
+function DeliveredRequesterActions({
+  order,
+  actingAction,
+  onAction,
+}: {
+  order: OrderDTO;
+  actingAction: ErrandDetailsPageProps['actingAction'];
+  onAction: ErrandDetailsPageProps['onAction'];
+}) {
+  const [reason, setReason] = useState('');
+  const disputed = Boolean(order.dispute);
+  const raised = Boolean(order.requesterDisputeDetails);
+  const busy = actingAction !== null;
+  const credits = order.rewardCredits;
+
+  const canDispute = !raised && !busy && reason.trim().length > 0;
+  const label = (action: 'complete' | 'dispute', idle: string, active: string) => (actingAction === action ? active : idle);
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <button
+          type="button"
+          data-testid="complete-order-btn"
+          disabled={busy || disputed}
+          onClick={() => onAction(order.id, 'complete')}
+          className={PRIMARY}
+        >
+          {label('complete', `Confirm received & release ${credits} credits`, 'Confirming…')}
+        </button>
+        <p className="text-center text-xs text-slate-500 leading-relaxed">
+          Releases {credits} credits from escrow to the courier.
+        </p>
+      </div>
+
+      {disputed && (
+        <p role="status" data-testid="dispute-raised-note" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          {raised ? 'Dispute raised.' : 'The courier raised a dispute.'} An administrator will review it; the {credits} credits stay held until then.
+        </p>
+      )}
+      {!raised && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            data-testid="raise-dispute-btn"
+            disabled={!canDispute}
+            onClick={() => onAction(order.id, 'dispute', reason.trim())}
+            className={`${BIG} bg-rose-600 hover:bg-rose-700 text-white shadow-xs`}
+          >
+            {label('dispute', 'Raise Dispute', 'Raising dispute…')}
+          </button>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            maxLength={1000}
+            rows={3}
+            aria-label="Reason for the dispute"
+            placeholder="Why are you disputing this delivery? (required)"
+            disabled={busy}
+            className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:opacity-50"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// AI-generated (edited by jagdeepsh)
+/** The courier's dispute block on a DELIVERED errand: the requester's message (empty until they write one), then the courier's own report (once). */
+function CourierDisputeResponse({
+  order,
+  actingAction,
+  onAction,
+}: {
+  order: OrderDTO;
+  actingAction: ErrandDetailsPageProps['actingAction'];
+  onAction: ErrandDetailsPageProps['onAction'];
+}) {
+  const [reason, setReason] = useState('');
+  const busy = actingAction !== null;
+  const submitted = Boolean(order.courierDisputeDetails);
+  const readOnlyBox = 'w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700';
+  return (
+    <div className="space-y-2" data-testid="courier-dispute">
+      {submitted || order.dispute ? (
+        <p role="status" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          This delivery is under dispute. An administrator will settle it; the credits stay held until then.
+        </p>
+      ) : (
+        <p className="text-center text-xs text-slate-500 leading-relaxed">Delivered · Waiting for requester confirmation. If something went wrong you can report it below.</p>
+      )}
+      <label className="block text-xs font-bold text-slate-600" htmlFor="requester-dispute-message">What the requester said</label>
+      <textarea id="requester-dispute-message" readOnly rows={3} value={order.requesterDisputeDetails ?? ''} className={readOnlyBox} />
+      {submitted ? (
+        <>
+          <label className="block text-xs font-bold text-slate-600" htmlFor="courier-dispute-sent">Your dispute report</label>
+          <textarea id="courier-dispute-sent" readOnly rows={3} value={order.courierDisputeDetails ?? ''} className={readOnlyBox} />
+        </>
+      ) : (
+        <>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            maxLength={1000}
+            rows={3}
+            aria-label="Your account of what happened"
+            placeholder="What happened, and why? (required)"
+            disabled={busy}
+            className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50"
+          />
+          <button
+            type="button"
+            data-testid="submit-courier-dispute-btn"
+            disabled={busy || reason.trim().length === 0}
+            onClick={() => onAction(order.id, 'courier-dispute', reason.trim())}
+            className={PRIMARY}
+          >
+            {actingAction === 'courier-dispute' ? 'Submitting…' : 'Submit dispute report'}
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -500,7 +663,7 @@ function Actions({
       <p
         role="note"
         data-testid="accept-store-closed-note"
-        className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900"
+        className="flex items-start gap-2 rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900"
       >
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
         <span>
@@ -510,7 +673,7 @@ function Actions({
       </p>
     );
     return confirmingAccept ? (
-      <div className="space-y-2.5 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="space-y-2.5 bg-slate-50/90 p-4 rounded-2xl border border-slate-200 shadow-card">
         {closedReminder}
         <label className="block text-xs font-bold text-slate-700">
           Contact details for the requester (optional)
@@ -521,7 +684,7 @@ function Actions({
             onChange={(e) => setContactNote(e.target.value)}
             maxLength={255}
             placeholder="e.g. @telegram_handle or 9123 4567"
-            className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal text-slate-800 placeholder:text-slate-400 focus:border-nus-blue focus:outline-none bg-white shadow-inner"
+            className="mt-1.5 w-full rounded-2xl border border-slate-200 px-3.5 py-2.5 text-sm font-normal text-slate-800 placeholder:text-slate-500 focus:border-blue-600 focus:outline-none bg-white shadow-inner"
           />
         </label>
         {/* The note stays typed if the accept fails. */}
@@ -563,7 +726,7 @@ function Actions({
           {label('accept', `Accept errand · earn ${credits} credits`, 'Accepting…')}
         </button>
         {caption(
-          `You become the courier. The ${credits} credits are paid to you after the requester confirms delivery and Credit Service settles the escrow.`
+          `You become the courier. The ${credits} credits are paid to you after the requester confirms delivery.`
         )}
       </div>
     );
@@ -606,29 +769,17 @@ function Actions({
           >
             {label('deliver', `Delivered to ${order.dropoffLocation}`, 'Marking delivered…')}
           </button>
-          {caption(`The requester confirms, then Credit Service releases ${credits} credits to you.`)}
+          {caption(`Once the requester confirms delivery, ${credits} credits are released to you.`)}
         </div>
       );
     }
-    if (order.status === 'DELIVERED')
-      return caption('Delivered · Waiting for requester confirmation');
+    if (order.status === 'DELIVERED') {
+      return <CourierDisputeResponse order={order} actingAction={actingAction} onAction={onAction} />;
+    }
   }
   if (role === 'requester') {
     if (order.status === 'DELIVERED') {
-      return (
-        <div className="space-y-2">
-          <button
-            type="button"
-            data-testid="complete-order-btn"
-            disabled={busy}
-            onClick={() => onAction(order.id, 'complete')}
-            className={PRIMARY}
-          >
-            {label('complete', `Confirm received & release ${credits} credits`, 'Confirming…')}
-          </button>
-          {caption(`Releases ${credits} credits from escrow to the courier; Credit Service settles the transfer.`)}
-        </div>
-      );
+      return <DeliveredRequesterActions order={order} actingAction={actingAction} onAction={onAction} />;
     }
     if (order.status === 'OPEN' || order.status === 'ACCEPTED') {
       return (
@@ -642,7 +793,7 @@ function Actions({
           >
             {label('cancel', 'Cancel errand', 'Cancelling…')}
           </button>
-          {caption(`Your ${credits} reserved credits are returned by Credit Service.`)}
+          {caption(`Your ${credits} reserved credits will be returned to your balance.`)}
         </div>
       );
     }
@@ -705,7 +856,7 @@ export function ErrandDetailsPage({
       {actionError && (
         <p
           role="alert"
-          className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700"
+          className="rounded-2xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-sm text-rose-700"
         >
           {actionError}{' '}
           <button
@@ -723,49 +874,52 @@ export function ErrandDetailsPage({
   );
 
   return (
-    <div data-testid="errand-details" data-order-id={orderId}>
-      {/* Header: back, title, status pill, as the wireframe's top row. */}
-      <header className="flex items-center gap-2 mb-4">
-        <button
-          type="button"
-          data-testid="errand-back-btn"
-          onClick={onBack}
-          aria-label="Back"
-          className="-ml-2 h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-200/80 transition"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg lg:text-xl font-black text-slate-900 leading-tight truncate">
-              Errand
-            </h2>
-            {order && (
-              <span className="font-mono text-xs font-bold text-nus-blue bg-nus-blue-50 border border-nus-blue-100 px-2 py-0.5 rounded-md">
-                {order.orderCode}
-              </span>
-            )}
-          </div>
-          {order && (
-            <p className="text-xs text-slate-500 truncate mt-0.5" title={order.itemDescription}>
-              {order.itemDescription}
-            </p>
-          )}
-        </div>
-        {order && (
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold tracking-wide shadow-sm ${statusBadgeClasses(
-              order.status
-            )}`}
+    <div data-testid="errand-details" data-order-id={orderId} className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
+      {/* Header: back, title, order code, status pill, countdown */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            data-testid="errand-back-btn"
+            onClick={onBack}
+            aria-label="Back"
+            className="-ml-2 h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-200/80 transition cursor-pointer"
           >
-            {order.status.replace(/_/g, ' ')}
-          </span>
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 leading-tight">
+                Errand
+              </h2>
+              {order && (
+                <span className="font-mono text-xs font-bold text-campus-blue bg-campus-blue-soft border border-blue-100 px-2 py-0.5 rounded-md">
+                  {order.orderCode}
+                </span>
+              )}
+              {order && (
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-bold tracking-wide shadow-2xs ${statusBadgeClasses(
+                    order.status
+                  )}`}
+                >
+                  {order.status.replace(/_/g, ' ')}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {order?.status === 'OPEN' && (
+          <div className="self-start sm:self-auto">
+            <Countdown expiresAt={order.expiresAt} />
+          </div>
         )}
       </header>
 
       {result === null && (
         <p role="status" className="flex items-center gap-2 text-sm text-slate-500 py-12 justify-center">
-          <RefreshCw className="h-4 w-4 animate-spin text-nus-blue" />
+          <RefreshCw className="h-4 w-4 animate-spin text-campus-blue" />
           <span>Loading errand…</span>
         </p>
       )}
@@ -790,38 +944,37 @@ export function ErrandDetailsPage({
       )}
 
       {order && (
-        <div className="lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-6 lg:items-start">
-          {/* Left column: who, where it stands, and the live chat. */}
-          <div className="space-y-3.5">
-            {order.status === 'OPEN' && <Countdown expiresAt={order.expiresAt} />}
-            <Participant
-              order={order}
-              role={role}
-              hadCourier={Boolean(chat.threads[order.id]?.conversation)}
-            />
-            <Timeline order={order} role={role} />
-            {showChat && (
-              // A fixed desktop height bounds the message list (ChatPanel scrolls inside it).
-              <Card className="p-4 sm:p-5 lg:h-[30rem] lg:flex lg:flex-col">
-                <ChatPanel
-                  orderId={order.id}
-                  status={order.status}
-                  currentUserId={currentUserId}
-                  chat={chat}
-                />
-              </Card>
-            )}
-          </div>
+        <div className="space-y-4 sm:space-y-5">
+          {/* Main request card */}
+          <ItemCard order={order} supplier={supplier} now={now} />
 
-          {/* Right column on desktop: what is being asked, then the action at the bottom. On phones they follow. */}
-          <div className="mt-3.5 lg:mt-0 flex flex-col gap-3">
-            <ItemCard order={order} supplier={supplier} now={now} />
-            {actionBlock}
-            <footer className="text-[11px] text-slate-400 space-y-0.5 px-1 pt-1">
-              <p className="break-all font-mono">Order ID {order.id}</p>
-              <p>Posted {dateTimeOf(order.createdAt)}</p>
-            </footer>
-          </div>
+          {/* Primary action block (Accept, Pickup, Deliver, Complete, or Cancel) */}
+          {actionBlock}
+
+          {/* Participant and lifecycle progress */}
+          <Participant
+            order={order}
+            role={role}
+            hadCourier={Boolean(chat.threads[order.id]?.conversation)}
+          />
+          <Timeline order={order} role={role} />
+
+          {/* Live chat conversation when active */}
+          {showChat && (
+            <Card className="p-4 sm:p-5 lg:h-[28rem] flex flex-col">
+              <ChatPanel
+                orderId={order.id}
+                status={order.status}
+                currentUserId={currentUserId}
+                chat={chat}
+              />
+            </Card>
+          )}
+
+          {/* Clean footer */}
+          <footer className="text-center text-xs text-slate-500 py-2">
+            <p>Posted {dateTimeOf(order.createdAt)}</p>
+          </footer>
         </div>
       )}
     </div>

@@ -16,6 +16,10 @@
  * Scope: Review fix (PR #148, second round): a terminal Order fallback whose row is created by an accept event during
  * the lookup still returns a closed conversation and later sends are refused.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: Moderation test: a flagged send is not stored.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -225,4 +229,23 @@ test('translate: readable by participants and admins, stores nothing, and sends 
   assert.equal(calls.length, 2);
   const none = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }) });
   assert.equal((await none.translate(ORDER, principal(ALICE), 'English', [sent.message.id])).kind, 'unavailable');
+});
+
+test('send: a flagged message is not stored; a clean one is; an absent moderator changes nothing', async () => {
+  const { store, messages } = memoryStore();
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const orders = fakeOrders({ kind: 'not_found' });
+  const checked: string[] = [];
+  const service = createConversationService({ store, orders, moderate: async (text) => { checked.push(text); return text.includes('badword'); } });
+  const flagged = await service.send(ORDER, principal(ALICE, { username: 'alice' }), '  badword  ');
+  assert.deepEqual(flagged, { kind: 'flagged', recipientIds: [ALICE, BOB] });
+  assert.equal(messages.length, 0);
+  assert.equal((await service.send(ORDER, principal(ALICE, { username: 'alice' }), 'hello')).kind, 'sent');
+  assert.equal(messages.length, 1);
+  assert.deepEqual(checked, ['badword', 'hello']);
+  // Blank text is rejected before the moderator is asked.
+  await service.send(ORDER, principal(ALICE, { username: 'alice' }), '   ');
+  assert.equal(checked.length, 2);
+  const plain = createConversationService({ store, orders });
+  assert.equal((await plain.send(ORDER, principal(BOB, { username: 'bob' }), 'badword')).kind, 'sent');
 });

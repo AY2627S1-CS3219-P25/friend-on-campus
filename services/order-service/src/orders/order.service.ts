@@ -30,6 +30,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored Order Service orchestrator into modular, extracted domain handler functions and a lightweight factory function.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Added disputeOrder (validates the requester's details, then the repository raises the dispute).
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: courierDisputeOrder (validates the courier's details).
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
 import type {
@@ -82,6 +90,8 @@ export interface OrderService {
   pickupOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   deliverOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
+  disputeOrder(orderId: string, requesterId: string, details: unknown): Promise<OrderDTO>;
+  courierDisputeOrder(orderId: string, courierId: string, details: unknown): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   unassignOrder(orderId: string, courierId: string): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, req: AdminCancelOrderRequest): Promise<OrderDTO>;
@@ -406,6 +416,28 @@ async function handleCompleteOrder(
   return repository.completeOrder(existing.id, requesterId, event);
 }
 
+// AI-generated (edited by jagdeepsh)
+async function handleDisputeOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  requesterId: string,
+  details: unknown
+): Promise<OrderDTO> {
+  const text = validateRequiredText(details, 'details', 1000);
+  return deps.repository.disputeOrder(orderId, requesterId, text);
+}
+
+// AI-generated (edited by jagdeepsh)
+async function handleCourierDisputeOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  courierId: string,
+  details: unknown
+): Promise<OrderDTO> {
+  const text = validateRequiredText(details, 'details', 1000);
+  return deps.repository.courierDisputeOrder(orderId, courierId, text);
+}
+
 async function handleCancelOrder(
   deps: OrderServiceDependencies,
   orderId: string,
@@ -576,6 +608,8 @@ export function createOrderService(deps: OrderServiceDependencies): OrderService
     pickupOrder: (orderId, courierId, courierUsername) => handlePickupOrder(deps, orderId, courierId, courierUsername),
     deliverOrder: (orderId, courierId, courierUsername) => handleDeliverOrder(deps, orderId, courierId, courierUsername),
     completeOrder: (orderId, requesterId) => handleCompleteOrder(deps, orderId, requesterId),
+    disputeOrder: (orderId, requesterId, details) => handleDisputeOrder(deps, orderId, requesterId, details),
+    courierDisputeOrder: (orderId, courierId, details) => handleCourierDisputeOrder(deps, orderId, courierId, details),
     cancelOrder: (orderId, requesterId) => handleCancelOrder(deps, orderId, requesterId),
     unassignOrder: (orderId, courierId) => handleUnassignOrder(deps, orderId, courierId),
     adminCancelOrder: (orderId, adminUserId, req) =>
