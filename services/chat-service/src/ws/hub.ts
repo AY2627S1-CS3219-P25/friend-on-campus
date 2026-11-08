@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Drain in-flight SEND handlers during shutdown and reject new socket work while closing.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: The chat socket hub, copied from notification-service/src/ws/hub.ts (the author's Notification Service
  * socket design: AUTH first within a time limit, sockets filed by user, close at token expiry, ping eviction) and
@@ -69,6 +73,9 @@ export function createChatHub(options: {
   const byUser = new Map<string, Set<WebSocket>>();
   const all = new Set<WebSocket>();
   const answeredPing = new WeakSet<WebSocket>();
+  // AI-generated (edited by ngkhengyang)
+  const pending = new Set<Promise<void>>();
+  let closing = false;
 
   // A socket that did not answer the previous ping is gone; terminating it fires its close handler.
   const pinger = setInterval(() => {
@@ -124,6 +131,8 @@ export function createChatHub(options: {
   }
 
   function handleConnection(ws: WebSocket) {
+    // AI-generated (edited by ngkhengyang)
+    if (closing) { ws.close(1001); return; }
     let principal: AuthenticatedPrincipal | undefined;
     let expiryTimer: NodeJS.Timeout | undefined;
     const reject = () => ws.close(UNAUTHORIZED);
@@ -143,6 +152,7 @@ export function createChatHub(options: {
     });
 
     ws.on('message', (data) => {
+      if (closing) return;
       let frame: Record<string, unknown>;
       try {
         const parsed: unknown = JSON.parse(data.toString());
@@ -175,7 +185,9 @@ export function createChatHub(options: {
       }
 
       if (frame.type === 'SEND') {
-        void handleSend(ws, principal, frame).catch(() => ws.close(1011));
+        // AI-generated (edited by ngkhengyang)
+        const work = handleSend(ws, principal, frame).catch(() => { ws.close(1011); }).finally(() => pending.delete(work));
+        pending.add(work);
         return;
       }
       sendFrame(ws, { type: 'ERROR', code: 'BAD_FRAME', message: ERROR_TEXT.BAD_FRAME });
@@ -189,9 +201,12 @@ export function createChatHub(options: {
     connectionCount(userId?: string): number {
       return userId ? byUser.get(userId)?.size ?? 0 : all.size;
     },
-    close() {
+    // AI-generated (edited by ngkhengyang)
+    async close() {
+      closing = true;
       clearInterval(pinger);
       for (const ws of all) ws.close(1001);
+      await Promise.allSettled(pending);
     },
   };
 }

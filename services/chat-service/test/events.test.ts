@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Regression checks for recoverable PostgreSQL, Prisma and network outages versus bounded handler errors.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Unit checks for order-event validation and the S3 projection: accept creates, a second accept replaces the
  * courier only, pickup and delivery are recorded once, the three terminal keys close once, and events for an order
@@ -45,8 +49,19 @@ for (const [name, content, key] of [
   });
 }
 
-test('anything else is transient', () => {
+test('unexpected handler errors remain transient', () => {
   assert.deepEqual(classifyChatFailure(new Error('db')), { category: 'transient', reason: 'processing_failure' });
+});
+
+// AI-generated (edited by ngkhengyang)
+test('dependency outages are infrastructure failures, including wrapped Prisma errors', () => {
+  for (const error of [
+    { code: 'P1001' }, { errorCode: 'P1017' }, { code: 'ECONNRESET' },
+    { code: '57P01' }, { code: 'P2010', meta: { code: '08006' } },
+    new Error('wrapped', { cause: { code: 'P2024' } }),
+  ]) {
+    assert.deepEqual(classifyChatFailure(error), { category: 'infrastructure', reason: 'dependency_unavailable' });
+  }
 });
 
 test('accept creates the row; a later accept replaces the courier and nothing else', async () => {

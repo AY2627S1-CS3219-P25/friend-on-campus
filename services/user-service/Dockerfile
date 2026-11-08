@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: Start only the application; Compose retains local migrations and development seeding.
+# Author review: <to be completed by the author>
+#
 # Tool: Codex (model: GPT-6), date: 2026-10-21
 # Scope: Remove the User application messaging dependency after moving outbox publication to Debezium.
 # Author review: <to be completed by huangjiaxi1111>
@@ -104,4 +108,5 @@ EXPOSE 8001
 
 USER node
 
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
+# AI-generated (edited by ngkhengyang)
+CMD ["node", "dist/index.js"]

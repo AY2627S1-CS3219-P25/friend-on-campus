@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Resolve the merge by preserving shutdown draining and moderation socket tests together.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Verify shutdown closes sockets with 1001 and waits for an in-flight SEND operation.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Socket tests for the chat hub: the AUTH handshake and its 4401 rejections, SEND delivered as MESSAGE to
  * both participants and to every tab of the sender but not to a third user, ERROR frames with the client id for
@@ -44,7 +52,7 @@ describe('chat hub', () => {
   });
 
   after(async () => {
-    hub.close();
+    await hub.close();
     await new Promise<void>((resolve) => wss.close(() => resolve()));
   });
 
@@ -121,6 +129,41 @@ describe('chat hub', () => {
   });
 });
 
+// AI-generated (edited by ngkhengyang)
+it('drains an in-flight SEND before shutdown finishes', { timeout: 5000 }, async () => {
+  const keys = makeKeys();
+  let release!: () => void;
+  let started!: () => void;
+  const sending = new Promise<void>((resolve) => { started = resolve; });
+  const finish = new Promise<void>((resolve) => { release = resolve; });
+  const hub = createChatHub({
+    authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
+    async send() { started(); await finish; return { kind: 'not_found' }; },
+  });
+  const wss = new WebSocketServer({ port: 0 });
+  wss.on('connection', hub.handleConnection);
+  await new Promise<void>((resolve) => wss.once('listening', resolve));
+  const client = await openSocket(`ws://127.0.0.1:${(wss.address() as AddressInfo).port}`);
+  try {
+    client.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE, { username: 'alice' }) });
+    await client.frame('AUTH_OK');
+    client.send({ type: 'SEND', orderId: ORDER, text: 'already in flight' });
+    await sending;
+    let drained = false;
+    const closing = hub.close().then(() => { drained = true; });
+    assert.equal(await client.closed(), 1001);
+    assert.equal(drained, false, 'database work is still in flight after the socket closes');
+    release();
+    await closing;
+    assert.equal(drained, true);
+  } finally {
+    release();
+    client.ws.terminate();
+    await hub.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+  }
+});
+
 describe('chat hub moderation', () => {
   const keys = makeKeys();
   const { store, messages } = memoryStore();
@@ -145,7 +188,7 @@ describe('chat hub moderation', () => {
   });
 
   after(async () => {
-    hub.close();
+    await hub.close();
     await new Promise<void>((resolve) => wss.close(() => resolve()));
   });
 

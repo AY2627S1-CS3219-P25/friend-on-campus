@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: Start only the application; Compose retains local migrations and development seeding.
+# Author review: <to be completed by the author>
+#
 # Tool: Google Antigravity, date: 2026-10-20
 # Scope: Updated runtime Prisma generated client copy path to src/generated -> dist/generated.
 # Author review: <to be completed by author after review>
@@ -95,4 +99,5 @@ EXPOSE 8002
 
 USER node
 
-CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
+# AI-generated (edited by ngkhengyang)
+CMD ["node", "dist/index.js"]

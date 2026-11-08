@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Verify quorum declarations, broker dead-letter metadata and recovery beyond the handler retry budget.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: End-to-end test of the consumer with a real broker and database (the pattern of the Notification Service's
  * messaging suite): order.accepted creates the conversation, a redelivery changes nothing, in_transit and completed
@@ -14,7 +18,7 @@ import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import amqp from 'amqplib';
-import type { MessagingConfig } from '../src/messaging/rabbitmq';
+import { queueArguments, type MessagingConfig } from '@campus-errand/messaging';
 import { startChatConsumer } from '../src/conversations/events';
 import { createConversationStore } from '../src/conversations/store';
 import { ALICE, BOB, CAROL, makeTestDatabase, until } from './helpers';
@@ -28,8 +32,6 @@ describe('order events to conversations (RabbitMQ + PostgreSQL)', { skip: !datab
     url: brokerUrl!,
     exchange: `${prefix}.in`,
     queue: prefix,
-    retryExchange: `${prefix}.retry`,
-    retryQueue: `${prefix}.retry`,
     deadLetterExchange: `${prefix}.dlx`,
     deadLetterQueue: `${prefix}.dlq`,
     retryDelayMs: 50,
@@ -39,6 +41,8 @@ describe('order events to conversations (RabbitMQ + PostgreSQL)', { skip: !datab
   let consumer: Awaited<ReturnType<typeof startChatConsumer>>;
   let connection: Awaited<ReturnType<typeof amqp.connect>>;
   let channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createConfirmChannel']>>;
+  // AI-generated (edited by ngkhengyang)
+  const outage = { remaining: 0, code: 'P1001' };
 
   const event = (eventType: string, orderId: string, overrides: Record<string, unknown> = {}) => ({
     eventId: randomUUID(),
@@ -58,7 +62,15 @@ describe('order events to conversations (RabbitMQ + PostgreSQL)', { skip: !datab
 
   before(async () => {
     database = await makeTestDatabase(databaseUrl!);
-    consumer = await startChatConsumer(config, createConversationStore(database.db));
+    // AI-generated (edited by ngkhengyang)
+    const store = createConversationStore(database.db);
+    consumer = await startChatConsumer(config, {
+      ...store,
+      async upsertAccepted(input) {
+        if (outage.remaining-- > 0) throw Object.assign(new Error('simulated outage'), { code: outage.code });
+        return store.upsertAccepted(input);
+      },
+    });
     connection = await amqp.connect(brokerUrl!);
     channel = await connection.createConfirmChannel();
     await until(() => consumer.isReady(), 'consumer ready');
@@ -66,8 +78,8 @@ describe('order events to conversations (RabbitMQ + PostgreSQL)', { skip: !datab
 
   after(async () => {
     await consumer.close();
-    for (const queue of [config.queue, config.retryQueue, config.deadLetterQueue]) await channel.deleteQueue(queue).catch(() => {});
-    for (const exchange of [config.exchange, config.retryExchange, config.deadLetterExchange]) await channel.deleteExchange(exchange).catch(() => {});
+    for (const queue of [config.queue, config.deadLetterQueue]) await channel.deleteQueue(queue).catch(() => {});
+    for (const exchange of [config.exchange, config.deadLetterExchange]) await channel.deleteExchange(exchange).catch(() => {});
     await connection.close();
     await database.drop();
   });
@@ -102,7 +114,41 @@ describe('order events to conversations (RabbitMQ + PostgreSQL)', { skip: !datab
     await until(() => row(orderId), 'queue still drains after the malformed message');
     assert.equal(await row(stray), null);
     const dead = await until(() => channel.get(config.deadLetterQueue, { noAck: true }).then((m) => m || undefined), 'dead-lettered message');
-    assert.equal(dead.properties.headers?.['x-chat-failure-category'], 'permanent');
-    assert.equal(dead.properties.headers?.['x-chat-original-routing-key'], 'order.accepted');
+    assert.equal(dead.properties.headers?.['x-first-death-reason'], 'rejected');
+    assert.equal(dead.properties.headers?.['x-first-death-queue'], config.queue);
+    assert.deepEqual(dead.properties.headers?.['x-death']?.[0]?.['routing-keys'], ['order.accepted']);
+  });
+
+  // AI-generated (edited by ngkhengyang)
+  it('uses a quorum queue and recovers from a database outage longer than the normal retry allowance', async () => {
+    await channel.assertQueue(config.queue, { durable: true, arguments: queueArguments(config) });
+    const orderId = randomUUID();
+    outage.remaining = config.retryLimit + 3;
+    try {
+      await publishEvent(event('order.accepted', orderId));
+      await until(() => row(orderId), 'conversation created after database recovery');
+      assert.equal((await channel.checkQueue(config.deadLetterQueue)).messageCount, 0);
+    } finally {
+      outage.remaining = 0;
+    }
+  });
+
+  it('keeps unexpected handler failures bounded and continues with later messages', async () => {
+    const failedOrder = randomUUID();
+    outage.code = 'UNEXPECTED';
+    outage.remaining = config.retryLimit + 2;
+    try {
+      await publishEvent(event('order.accepted', failedOrder));
+      const dead = await until(() => channel.get(config.deadLetterQueue, { noAck: true }).then((m) => m || undefined), 'exhausted handler failure');
+      assert.equal(JSON.parse(dead.content.toString()).orderId, failedOrder);
+      assert.equal(outage.remaining, 1, 'one initial attempt plus the configured retries');
+      assert.equal(await row(failedOrder), null);
+    } finally {
+      outage.remaining = 0;
+      outage.code = 'P1001';
+    }
+    const nextOrder = randomUUID();
+    await publishEvent(event('order.accepted', nextOrder));
+    await until(() => row(nextOrder), 'later event still processed');
   });
 });

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Update runtime composition, shared quorum messaging, shutdown behavior and migration guidance for cloud preparation.
+Author review: <to be completed by the author>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Source-linked description of the Chat Service as implemented at PR #148 head f39ab1f (not on main), with module map, configuration, known limits and links to the D4 specification. No application change.
 Author review: <to be completed by Reallyeasy1>
@@ -13,18 +17,18 @@ Chat Service owns one private text conversation per accepted errand (F8, [issue 
 
 ## Composition
 
-[`index.ts`](../../../services/chat-service/src/index.ts) builds the Prisma store, the conversation service with the Order client, the Express app and the socket hub on the same HTTP server, listens, then starts the broker consumer; a consumer fatal callback exits the process for a Compose restart. The container applies Prisma migrations before Node ([`Dockerfile`](../../../services/chat-service/Dockerfile), `CMD`).
+Runtime update (2026-11-08): [`index.ts`](../../../services/chat-service/src/index.ts) builds the Prisma store, the conversation service with the Order client, the Express app and the socket hub on the same HTTP server, listens, then starts the broker consumer. Signals and consumer failure stop readiness, drain socket/request/consumer work, and disconnect Prisma before exit. The image starts only Node; Compose applies migrations before Node. See [container startup](../../infrastructure/docker-and-deployment.md) and [existing classic-queue handover](../../infrastructure/cdc-and-broker.md#topology-ownership).
 
 | Module | Responsibility |
 |---|---|
-| [`config.ts`](../../../services/chat-service/src/config.ts) | Port 8006, `chat_db`, broker account `chat_service`, queue `chat-service.events` with `.retry`/`.dlx`/`.dlq`, retry 2000 ms x 30 |
+| [`config.ts`](../../../services/chat-service/src/config.ts) | Port 8006, `chat_db`, broker account `chat_service`, quorum queue `chat-service.events` with `.dlx`/`.dlq`, handler retry 2000 ms x 30; infrastructure failures retry without that limit |
 | [`database/client.ts`](../../../services/chat-service/src/database/client.ts) | Service-specific Prisma client facade |
 | [`app.ts`](../../../services/chat-service/src/app.ts) | `/health`, `/ready` (consumer ready and `SELECT 1`), `/api/chat` mount, JSON/500 error handler |
 | [`clients/order.client.ts`](../../../services/chat-service/src/clients/order.client.ts) | `GET /api/orders/:id` with the caller's token, 4 s timeout; keeps `id`, `requesterId`, `courierId`, `status`, `acceptedAt`, `completedAt` (drops `version`) |
 | [`conversations/store.ts`](../../../services/chat-service/src/conversations/store.ts) | `upsertAccepted` with the `courierSince` replay guard, set-once lifecycle marks, `append` with the locked participant/closure recheck, paging, ping |
 | [`conversations/service.ts`](../../../services/chat-service/src/conversations/service.ts) | `open` (local row, else Order fallback), `send` pre-checks then store verdict, `history`, read/send rules (`canRead`, `canSend`, `OPEN_STATUSES`) |
 | [`conversations/events.ts`](../../../services/chat-service/src/conversations/events.ts) | Six `order.*` routing keys, strict parser, projection (`created_or_recouriered`, `picked_up`, `delivered`, `closed`, `ignored`), failure classifier |
-| [`messaging/rabbitmq.ts`](../../../services/chat-service/src/messaging/rabbitmq.ts) | Asserts exchange/queues/bindings, prefetch 1, header-counted retry via a confirmed publisher, dead-letter, `isReady` |
+| [`@campus-errand/messaging`](../../../packages/messaging/src/index.ts) | Shared quorum consumer: exchange/queue/binding declarations, prefetch 1, native redelivery, dead-lettering, readiness and close |
 | [`chat/routes.ts`](../../../services/chat-service/src/chat/routes.ts) | `GET /api/chat/:orderId` with `afterSequence` (0..2147483647) and `limit` (1..100, default 50) |
 | [`ws/hub.ts`](../../../services/chat-service/src/ws/hub.ts) | AUTH-first handshake (5 s), sockets filed by user, close 4401 at token expiry, 30 s ping eviction, `SEND` to `MESSAGE`/`ERROR`, sender echo carries `clientId` |
 
@@ -38,7 +42,7 @@ Student app: [`apps/student-app/src/chat/useChat.ts`](../../../apps/student-app/
 | DATABASE_URL / CHAT_DATABASE_URL | Role `chat_svc`, database `chat_db`; safe reference in [`.env.example`](../../../.env.example) |
 | ORDER_SERVICE_URL | `http://localhost:8003`; `http://order-service:8003` in Compose |
 | JWT_PUBLIC_KEY / JWT_ISSUER / JWT_AUDIENCE | Shared offline verification ([auth package](../../packages/auth.md)) |
-| RABBITMQ_URL, CHAT_EXCHANGE, CHAT_QUEUE, CHAT_RETRY_* , CHAT_DLX / CHAT_DLQ | `campus.events`, `chat-service.events` and derived names |
+| RABBITMQ_URL, CHAT_EXCHANGE, CHAT_QUEUE, CHAT_DLX / CHAT_DLQ | `campus.events`, `chat-service.events` and derived names; the former separate retry exchange/queue is retired |
 | CHAT_RETRY_DELAY_MS / CHAT_RETRY_LIMIT | 2000 / 30 |
 
 Gateway: `/api/chat`, `/api/chat/` and the `/ws/chat/` upgrade in [`gateway/nginx.conf`](../../../gateway/nginx.conf) (longest-prefix match keeps it apart from Notification's `/ws/`). Compose service `chat-service` with `init: true`, `/ready` healthcheck, and the gateway depending on it ([`docker-compose.yml`](../../../docker-compose.yml)); role and database in [`docker/postgres-init/01-init-databases.sql`](../../../docker/postgres-init/01-init-databases.sql) (fresh volumes only). Broker account and vhost permissions in [`docker/rabbitmq/definitions.json`](../../../docker/rabbitmq/definitions.json); the queue and its six bindings are asserted by the consumer at startup, and no `topic_permissions` entry exists for `chat_service`. CI matrix entries for unit, integration and messaging suites in [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml); isolated databases in [`scripts/ci/run-all-tests.mjs`](../../../scripts/ci/run-all-tests.mjs); dev target `chat` in [`scripts/dev.mjs`](../../../scripts/dev.mjs).
@@ -57,7 +61,7 @@ Source-inspected at `f39ab1f`: [`app.test.ts`](../../../services/chat-service/te
 - The replay guard is timestamp-based (`courierSince`), not Order-version-based; the backfill sets every pre-existing row's `courier_since` to its `created_at`.
 - `clientId` is correlated on the socket only; it is not persisted, so a retry after an uncertain outcome can store a second message.
 - History pages are complete only up to the last short page the client fetched; a live frame can advance the displayed sequence past REST coverage.
-- Text length, socket payload (`ws` default `maxPayload`), send rate and outgoing buffer are unbounded; shutdown is not graceful (no signal handler).
+- Text length, socket payload (`ws` default `maxPayload`), send rate and outgoing buffer are unbounded. The 2026-11-08 runtime update adds bounded graceful shutdown, including in-flight SEND draining.
 - Admin reads are allowed (`canRead`), which issue #56 F8.1.2 does not grant; see the decision register in the specification.
 
 ## Source evidence and related reading

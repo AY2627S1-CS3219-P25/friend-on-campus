@@ -1,5 +1,17 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Update confirmed migration decisions and architecture navigation.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Update target-architecture navigation for the author-requested CloudFront entry point, origin TLS requirements and incremental costs.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Link the author's confirmed shared-host ECS target architecture separately from implemented deployment references.
+Author review: <to be completed by the author>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 Scope: Inventory row for the errand details page implementation plan (docs/superpowers/plans/, issues #188 and #189).
 Author review: <to be completed by Reallyeasy1>
@@ -32,6 +44,7 @@ Code/configuration establish implemented behavior; verified human specifications
 | Understand runtime components and integrations | [System overview](architecture/system-overview.md), [service boundaries](architecture/service-boundaries.md), [events](architecture/communication-and-events.md) |
 | Trace an HTTP/event/data path | Service reference below; [auth](packages/auth.md), [DTOs](packages/common-dtos.md), [messaging](packages/messaging.md) |
 | Run locally or diagnose UAT broker targeting | [Local development](development/local-development.md), [test/UAT configuration](development/testing-strategy.md#driver-environment-matrix) |
+| Prepare the confirmed CloudFront/ECS migration | [Cloud architecture guide](new-cloud-architecture-guide.md): HTTPS viewer, HTTP origin, bridge networking, three-host ceiling, accepted trial resources, costs and deferred decisions |
 | Maintain docs or Claude instructions | [Conventions](development/repository-conventions.md), [Claude workflow](development/claude-code-workflow.md) |
 | Review evidence or unresolved discrepancies | [Coverage](audits/documentation-coverage.md), [verification](audits/review-findings.md), [drift](audits/documentation-drift.md), [source inventory](audits/source-inventory.md) |
 | Inspect the unmerged inbox change | [PR184 review](audits/pr-184-review.md), pinned separately to its inspected head |
@@ -56,6 +69,7 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 | File | Purpose |
 |---|---|
 | [README.md](README.md) | Navigation, service coverage and complete inventory |
+| [new-cloud-architecture-guide.md](new-cloud-architecture-guide.md) | Author-confirmed CloudFront/ECS target, networking, trial resources and costs; deployment implementation pending |
 | [architecture/authentication-and-security.md](architecture/authentication-and-security.md) | Authentication and authorization |
 | [architecture/communication-and-events.md](architecture/communication-and-events.md) | Communication and event catalogue |
 | [architecture/data-ownership.md](architecture/data-ownership.md) | Data ownership and persistence |
