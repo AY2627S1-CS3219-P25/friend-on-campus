@@ -1,3 +1,12 @@
+<!--
+AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Mark the retired K3s guide as historical and link the current rollout.
+Author review: <to be completed by the author>
+-->
+
+> **Historical reference.** This guide describes the retired K3s deployment. For the current deployment, use the [ECS Terraform rollout](../infra/terraform/ecs/README.md). The old manifests, Terraform and workflow are available in Git history at `47d0e9e`.
+
 # The Complete Student Guide to Cloud Deployment, Kubernetes & DevOps
 ## Architecture, Infrastructure as Code, CI/CD, and Distributed Load Testing
 
