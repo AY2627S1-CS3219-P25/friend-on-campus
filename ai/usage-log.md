@@ -6444,3 +6444,116 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none (usage bookkeeping only; Windows user PATH updated)
+
+## 2026-11-08 19:22 SGT — Recheck cloud preparation and remaining implementation scope
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Double-check pre-implementation setup and list the implementation work still outstanding.
+
+**Usage scenario:** Read-only setup verification and source-based implementation inventory using the AWS sign-in, container and IAM skills. Verified Terraform 1.17.1 in user PATH, Node/npm, a working Linux Docker engine, Compose/Buildx ARM64 capability, complete workspace dependencies, and successful foc SSO identity in the expected account/region. Confirmed nine ECR repositories, three running old K3s EC2 hosts (6 vCPUs), and no regional ECS clusters, RDS instances, EFS filesystems, ACM certificates or Secrets Manager secrets. EC2 standard vCPU quota lookup is explicitly denied by an organization service control policy; actual quota remains unknown. Read the existing GitHub deployment-role trust (repo:* wildcard) and inline ECR/SSM actions; reported the required trust restriction and ECS deployment permission updates without altering them. Reviewed commit ea399ff and existing passing test evidence; did not rerun unchanged application tests. Listed remaining cross-replica Chat/Notification delivery, cloud gateway/configuration, infrastructure/CI conversion and cloud verification. Left delivery mechanism and task-networking choices to the author; business rules, schemas and public contracts remain unchanged. No resource provisioning, permission changes or login switching performed. Terraform provider initialization/authentication and budget/DNS ownership were not validated.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 19:49 SGT — Explain remaining cloud preparation steps
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how to complete the remaining preparation items.
+
+**Usage scenario:** Learning and setup support based on the previous live preflight, current repository configuration, NUS sandbox announcement, and official AWS, GitHub and HashiCorp documentation. Explained administrator quota confirmation, DNS validation for an ACM certificate, secret preparation, coordination of repository-scoped OIDC trust with Terraform, retrieval of existing Terraform state, and the team leader's ISB budget tracker. Flagged GitHub's documented immutable OIDC subject format so a name-only condition is not assumed. Left deployment branch/environment, network mode, fanout mechanism and architecture decisions to the author. No AWS settings or application/infrastructure code changed; no messages sent and no tests needed for this explanation. Actual quota, remaining allowance, DNS ownership, Terraform provider access and the repository's emitted OIDC subject remain unverified.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:56 SGT — Clarify quota, CPU allocation, demo HTTPS and secret injection
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain why quota checking is needed versus attempting deployment, the vCPU distribution and budget distinction, certificate/DNS purpose and issuance timing for Thursday's demo, and whether secrets use Secrets Manager.
+
+**Usage scenario:** Learning support using AWS compute and container guidance plus official EC2, ACM and ECS documentation. Corrected the earlier implication that quota lookup is mandatory; explained independent regional capacity quotas, planned 14-18 EC2 vCPUs and up to 24 with existing K3s overlap. Distinguished shared task CPU sizing and separate RDS capacity. Explained domain ownership and provider access, ACM DNS validation timing and no-charge non-exportable certificates for ALB. Checked User Service production Secure refresh-cookie configuration to explain the functional effect of plain HTTP. Explained Secrets Manager storage and ECS startup injection while retaining local Compose environment configuration. No architecture/security decision, resource launch, AWS setting, application code or infrastructure code changed. No new bill calculation or account/DNS verification, and no tests needed for this explanation.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:58 SGT — Reconcile shared versus dedicated RabbitMQ hosts
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Clarify whether the three RabbitMQ nodes share the EC2 hosts that run backend, infrastructure and frontend tasks.
+
+**Usage scenario:** Learning support and document comparison. Read the checked-in cloud guide and private decision reference. Both currently describe separate broker hosts; the decision reference also records that the earlier S estimate assumed three shared application/broker hosts. Explained the user's shared-host interpretation, conditional 12-vCPU total for three m7g.xlarge hosts and 18 with the previously observed K3s overlap, and that broker task CPU is part of that shared capacity. Flagged the mismatch without selecting or changing architecture. No documentation, application/infrastructure code or AWS resources changed; no new cost calculation or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:59 SGT — Request explicit architecture confirmation before document edits
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Reconfirm the architecture with the author and update documents only after an explicit yes.
+
+**Usage scenario:** Clarification of the author's intended shared-host arrangement against the current guide. Presented three shared application/broker hosts and the remaining documented components for confirmation. Kept task networking, cross-replica live delivery, host scaling ceiling and hostname unresolved rather than selecting them. Flagged that CPU sizing and cost estimates need revision for shared hosts. No architecture documents, code or AWS settings changed; waiting for the author's explicit approval before document updates. No tests needed for this clarification.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:08 SGT — Reverify shared-host deployment cost breakdown
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Reverify the existing cost breakdown and clarify whether the three broker tasks run on the same m7g.xlarge application hosts.
+
+**Usage scenario:** Learning and cost verification using AWS billing guidance, the checked-in guide and private reference. Confirmed that the intended shared layout means three total m7g.xlarge hosts, each also hosting one RabbitMQ node, rather than three additional broker hosts. The account Pricing GetProducts call was denied by an organization SCP, so read public AWS EC2, RDS and ELB catalogues without credentials plus public IPv4 pricing. Verified m7g.xlarge USD0.204/hour, db.t4g.small PostgreSQL Multi-AZ USD0.102/hour, RDS Multi-AZ gp3 USD0.276/GB-month, EC2 gp3 USD0.096/GB-month, ALB/NLB USD0.0252/hour each, and IPv4 USD0.005/address-hour. Found the dedicated t4g.large rate is USD0.0848/hour rather than the documented USD0.0874/hour. Recomputed with Python Decimal, retaining 144 active hours, 504 retained hours, 730-hour storage approximation, assumed SGD1.28/USD and assumed 9 percent GST. Shared layout: USD157.97, SGD220.40; using a 720-hour storage month gives SGD220.63. Existing dedicated layout at verified rates: SGD238.09. Retained USD0.79 light LCU and USD10 other usage allowances as unmeasured assumptions. Flagged unpriced network decisions, retained old resources and unknown prior spending. No architecture document, infrastructure/application code or AWS setting changed; explicit architecture approval remains pending. No tests needed for this explanation.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 20:08 SGT — Account for stopped K3s instances during cost review
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Ignore running K3s compute because the author has stopped those instances and will terminate them only after the replacement infrastructure works.
+
+**Usage scenario:** Incorporated the author's environment update into the active cost review. Excluded old K3s running compute and noted that retained disks, snapshots and allocated Elastic IPs can still be charged separately. Did not stop, terminate, inspect or alter those resources. Distinguished the intended shared m7g.xlarge fleet from the previously observed K3s hosts.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:16 SGT — Update confirmed shared-host cloud architecture documentation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Update the docs after the architecture and shared-host costs were reconfirmed.
+
+**Usage scenario:** Documentation improvements implementing the author's confirmed architecture. Updated the cloud guide to three shared m7g.xlarge hosts with one RabbitMQ broker on each, added a Mermaid placement/flow diagram, corrected host-failure verification and CPU-sizing boundaries, recorded Secrets Manager startup injection and local Compose support, and replaced dedicated-broker estimates with the verified shared-host cost breakdown. Recorded pending host maximum, network/egress, cross-replica live delivery and hostname decisions. Root README and docs index now link the confirmed target separately from implemented K3s configuration. No private decision-file reference was introduced or private reference file modified. Validation: Python Decimal assertions for each cost row and total, Markdown fence and disclosure counts, guide relative-link existence, diagram host-node counts, stale topology search and git diff --check. No application tests or rendered Mermaid check; code, AWS resources and infrastructure configuration unchanged. No commit or push.
+
+**Files changed:**
+- `docs/new-cloud-architecture-guide.md` — shared topology, diagram, sizing boundaries, secret injection, cost breakdown, pending decisions and verification steps.
+- `docs/README.md` — target-architecture navigation and inventory entry.
+- `README.md` — distinguish the confirmed ECS migration target from existing K3s deployment configuration and link the guide.
+## 2026-11-08 20:18 SGT — Explain outstanding implementation options and certificate domain ownership
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain outstanding team implementation decisions, options and recommendations, and whether a domain purchase is necessary for a certificate.
+
+**Usage scenario:** Learning support and source-based explanation of implementation choices. Explained that the repository course policy reserves architecture proposals and performance/security trade-offs for human authors, so provided factual options rather than project architecture recommendations. Read the current Chat/Notification socket hubs, notification delivery and shared RabbitMQ consumer. Explained shared-queue delivery versus per-replica live broadcast, RabbitMQ/Redis/PostgreSQL signalling options, bridge versus awsvpc networking and outbound connectivity, host ceiling and shared resource reservations, and hostname/DNS input. Verified facts using official AWS, RabbitMQ, Redis and PostgreSQL documentation. Explained that ACM requires control of the requested hostname rather than buying a new domain, that a teammate-owned subdomain may be used with validation access, and that Amazon-owned ALB hostnames cannot be certified by the team. No further architecture decisions, document edits, code changes or AWS actions. No tests needed for this explanation; existing documentation checks from the preceding update remain the verification evidence.
+
+**Files changed:**
+- none (usage bookkeeping only)

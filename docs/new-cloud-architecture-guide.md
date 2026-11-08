@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Record the author's confirmed three shared application/RabbitMQ hosts, add the placement diagram and verified cost breakdown, and identify pending implementation decisions.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Remove links and reading dependencies on the team's private infrastructure decision reference.
 Author review: <to be completed by the author>
 
@@ -16,6 +20,8 @@ Author review: <to be completed by the author>
 # Friend on Campus cloud architecture guide
 
 This guide explains how the selected cloud components work together, how the listed alternatives behave, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
+
+**Target architecture confirmed by the author on 8 November 2026.** The ECS infrastructure and deployment workflow still need implementation; the checked-in Terraform and cloud deployment workflow currently describe K3s. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
 
 ## Contents
 
@@ -36,7 +42,38 @@ The deployment is in **AWS Singapore (`ap-southeast-1`)**. Host and replica coun
 - **Browser traffic.** Browser → public ALB → NGINX → ECS Service Connect → frontend or backend task. NGINX selects the service based on the URL. Service Connect selects a replica of that service.
 - **Order and credit events.** A backend commits a database change and an outbox event to PostgreSQL. Debezium reads the committed event and publishes it to RabbitMQ. RabbitMQ routes it to the appropriate queues. Backend consumers process those events and update their own databases.
 
-The **application fleet scales from two to three EC2 hosts**. RabbitMQ has **three separate, fixed EC2 hosts**, so an application scale-in does not remove a broker. The demo places these fleets in one AZ because a full AZ outage is out of scope. The public ALB still uses two AZ subnets, and RDS has a standby in another AZ for database failover. An ALB with two subnets does not make application tasks in a single AZ resilient to losing that AZ.
+The baseline is **three shared `m7g.xlarge` EC2 hosts**, providing **12 vCPU and 48 GiB RAM in total**. Backend services, both frontends, NGINX, Debezium and RabbitMQ run on this same fleet. Each host runs **one RabbitMQ node** with its own data volume; there are no additional dedicated broker instances. The baseline keeps three shared hosts online; the maximum host count above three remains an author decision. A host failure temporarily leaves two surviving hosts until replacement.
+
+The demo places the shared fleet and EFS in one AZ because a full AZ outage is out of scope. The public ALB still uses two AZ subnets, and RDS has a standby in another AZ for database failover. An ALB with two subnets does not make application tasks in a single AZ resilient to losing that AZ.
+
+```mermaid
+%% AI-generated (edited by ngkhengyang)
+flowchart TB
+    Browser["Browser"] -->|"HTTPS / WSS"| ALB["Public ALB · ACM certificate"]
+    subgraph Fleet["ECS on EC2 · three shared m7g.xlarge hosts · one AZ"]
+        NGINX["NGINX · 2–3 tasks"] --> SC["Service Connect"]
+        SC --> FE["Student · 2–3 tasks<br/>Admin · 1–2 tasks"]
+        SC --> API["Six backends · 2–3 tasks per service"]
+        CDC["Debezium · 3 singleton connectors"]
+        subgraph Hosts["Application and connector tasks are distributed across these same hosts"]
+            H1["Host 1 · RabbitMQ node A<br/>Own 10 GiB gp3 data volume"]
+            H2["Host 2 · RabbitMQ node B<br/>Own 10 GiB gp3 data volume"]
+            H3["Host 3 · RabbitMQ node C<br/>Own 10 GiB gp3 data volume"]
+        end
+    end
+    ALB --> NGINX
+    API -->|"Prisma reads / writes"| RDS["Private RDS PostgreSQL 16 · Multi-AZ<br/>Six logical databases"]
+    RDS -->|"Logical replication"| CDC
+    CDC <-->|"Separate checkpoint directories"| EFS["EFS One Zone"]
+    CDC -->|"Publish"| NLB["Private NLB · shared AMQP endpoint"]
+    API <-->|"Publish / consume"| NLB
+    NLB -->|"AMQP"| H1
+    NLB -->|"AMQP"| H2
+    NLB -->|"AMQP"| H3
+    API -->|"Outbound HTTPS · connectivity pending"| SoCLaaS["NUS SoCLaaS"]
+```
+
+The application boxes show logical services, not extra hosts. The three RabbitMQ nodes share the hosts on which ECS places the application and connector tasks.
 
 ## Public entry point and frontend hosting
 
@@ -53,19 +90,23 @@ Each portal already builds to static files served by its own NGINX container. Ru
 
 ## Backend compute and scaling
 
-**ECS on EC2** runs each backend as its own ECS service. Scaling Order Service adds Order tasks without changing the other services. Service Auto Scaling adjusts the task count when configured. An EC2 Auto Scaling group, connected through an ECS capacity provider with managed scaling, can separately add a host when more capacity is needed. If existing hosts have spare room, extra tasks can run without another EC2 instance charge. Running EC2 hosts are billed even while idle. The ECS control plane adds no separate charge for this launch model. Storage, networking, and other services still have their own charges. [ECS pricing](https://aws.amazon.com/ecs/pricing/) · [Service Auto Scaling](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html) · [Capacity providers](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html)
+**ECS on EC2** runs each backend as its own ECS service. Scaling Order Service adds Order tasks without changing the other services. Service Auto Scaling adjusts the task count when configured. The EC2 Auto Scaling group maintains the shared hosts and replaces failed instances. Scaling above the three-host baseline requires a confirmed maximum and updated capacity and cost calculations. Normal scale-in must retain at least three shared hosts for the three broker placements. If existing hosts have spare room, extra tasks can run without another EC2 instance charge. Running EC2 hosts are billed even while idle. The ECS control plane adds no separate charge for this launch model. Storage, networking, and other services still have their own charges. [ECS pricing](https://aws.amazon.com/ecs/pricing/) · [Service Auto Scaling](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html) · [Capacity providers](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html)
 
 | What scales | Target range |
 | --- | --- |
-| Application EC2 fleet | **2–3 `m7g.xlarge` hosts**, each with 4 vCPU and 16 GiB RAM |
+| Shared EC2 fleet | **Three `m7g.xlarge` hosts** at baseline, each with 4 vCPU and 16 GiB RAM; maximum above three pending |
 | NGINX, student frontend, User, Supplier, Order, Credit, Chat, Notification | **2–3 tasks per service**, with replicas on different hosts where possible |
 | Admin frontend | **1–2 tasks** |
 | Debezium | **3 fixed tasks**, one active task per connector |
-| RabbitMQ | **3 fixed brokers**, each on its own host |
+| RabbitMQ | **3 fixed broker tasks**, one on each of the same three shared hosts, each with a retained **10 GiB gp3 data volume** |
 
-These are **per-service limits**, not a guarantee that every service can reach its maximum simultaneously. The earlier sizing model estimates **29 application-fleet tasks and 11.25 vCPU** at all current maxima, before host overhead. Raising all eight 2–3 services to four would mean **37 tasks and about 14.25 vCPU**, more than the three hosts' 12 vCPU. The estimate assumes 0.125 vCPU for each frontend, backend, or gateway task plus AWS's recommended 0.25 vCPU allowance for its Service Connect proxy, and 0.5 vCPU per Debezium task. Measure actual CPU, memory, task placement, and startup time before setting thresholds or raising selected limits. At the two-host minimum, losing one host leaves only **4 vCPU** on the application fleet until a replacement joins. [Service Connect proxy resources](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect-concepts-deploy.html)
+These are **per-service targets**, not a guarantee that every service can reach its maximum simultaneously. The earlier sizing model estimated **29 application/connector tasks and 11.25 vCPU** at all current maxima, using 0.125 vCPU per frontend, backend or gateway task, 0.25 vCPU per Service Connect proxy, and 0.5 vCPU per Debezium task. **That estimate excludes the three RabbitMQ tasks and host overhead** and must not be treated as a complete reservation plan for the shared fleet. Broker and application CPU/memory reservations and operating-system headroom still need to be set and measured. Losing one shared host leaves **8 vCPU and 32 GiB RAM** for the surviving application tasks and two broker nodes until replacement. Verify task placement, startup time and the required user flows under that condition before claiming host-failure recovery. [Service Connect proxy resources](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect-concepts-deploy.html)
 
 Chat and Notification need a separate correctness check when scaled. A live socket belongs to the process that accepted it. A queue consumer on another replica may handle the event without having that socket. Load balancing incoming connections does not deliver those events across replicas. Verify cross-replica delivery before relying on the two-task production minimum. [Chat socket hub](../services/chat-service/src/ws/hub.ts) · [Notification delivery](../services/notification-service/src/notifications/events.ts)
+
+**Secrets and local execution.** Store application credentials and keys in **AWS Secrets Manager** and reference the required values in ECS task definitions. ECS retrieves them at task startup using the execution role and supplies the existing application environment variables. Updated values require new tasks. Local Docker Compose continues to supply local environment configuration without requiring Secrets Manager access. [ECS secret injection](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/secrets-envvar-secrets-manager.html)
+
+**Pending author decisions:** maximum host count above three, ECS task network mode and outbound connectivity, the Chat/Notification cross-replica live-delivery mechanism, and the HTTPS hostname/DNS access. These details are not selected by this guide; cloud runtime configuration and the deployment workflow still need implementation.
 
 | Alternative | Trade-off |
 | --- | --- |
@@ -76,9 +117,9 @@ Chat and Notification need a separate correctness check when scaled. A live sock
 
 ## RabbitMQ and message delivery
 
-Run **three RabbitMQ nodes**, one per dedicated EC2 host, each with its own retained **10 GiB gp3 EBS data volume**. A three-member quorum queue has one leader and two followers. RabbitMQ routes operations to that queue's leader and replicates its state. Different queues can have leaders on different nodes. With two members online, the queue can still operate. With only one survivor, it cannot form a majority. That's why all three broker hosts run whenever the system is online, even when the application fleet has only two hosts. [RabbitMQ quorum queues](https://www.rabbitmq.com/docs/quorum-queues)
+Run **three RabbitMQ broker tasks**, **one on each of the three shared `m7g.xlarge` EC2 hosts**, alongside application and connector tasks. Each broker has its own retained **10 GiB gp3 EBS data volume**. There is no separate broker EC2 fleet. A three-member quorum queue has one leader and two followers. RabbitMQ routes operations to that queue's leader and replicates its state. Different queues can have leaders on different nodes. With two members online, the queue can still operate. With only one survivor, it cannot form a majority. The normal baseline therefore has three shared hosts and three broker nodes; after a host failure, two brokers can continue while the failed node is recovered. [RabbitMQ quorum queues](https://www.rabbitmq.com/docs/quorum-queues)
 
-Clients can connect to any broker in the cluster. The proposed **private NLB** gives the backends and Debezium one AMQP address for new connections to healthy brokers. It serves internal messaging rather than public browser traffic. If a broker connection drops, the client still has to reconnect. Adding an application host does not add a broker. If broker load becomes the bottleneck, first check whether consumers, disk throughput, or a busy queue leader are limiting throughput. You can resize the brokers or distribute queue leaders. Adding broker nodes requires managing queue placement and does not automatically speed up one busy queue.
+Clients can connect to any broker in the cluster. The **private NLB** gives the backends and Debezium one AMQP address for new connections to healthy brokers. It serves internal messaging rather than public browser traffic. If a broker connection drops, the client still has to reconnect. Scaling an application service changes its task count, not the three-node broker count. Broker CPU and memory usage are part of the shared fleet's capacity. If broker load becomes the bottleneck, first check whether consumers, disk throughput, or a busy queue leader are limiting throughput. Adding broker nodes requires managing queue placement and does not automatically speed up one busy queue.
 
 Each broker writes to its own data directory. Separate EBS volumes keep the disks independent. If a broker task restarts on its original host, it can reuse its mount. If the host fails, ECS does not automatically reattach that existing disk. Recover the node by mounting the retained disk on a replacement in the same AZ, or replace the node and rebuild its queue replicas from the surviving members. During repair, the other two members can continue serving quorum queues. Confirmed publishes and consumer acknowledgements help protect delivery. A retried event can still reach a consumer twice, so credit settlement must handle duplicates safely. [RabbitMQ reliability](https://www.rabbitmq.com/docs/reliability) · [EBS attachment rules](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html)
 
@@ -104,22 +145,38 @@ For a fresh evaluation environment, keep the Prisma schemas and migrations. Prov
 
 ## Demo schedule and cost
 
-The cost model uses **144 active hours** for setup, the **12 November 2026 demo**, and requested verification. Storage and both load balancers are retained through the **28 November exam**, estimated at **504 hours**. The estimates are summarized below.
+The estimate uses **three shared `m7g.xlarge` hosts** and **144 total active hours** for setup, the **Thursday, 12 November 2026 demo**, and requested verification. The stack can be stopped and resumed after the demo, with data retained for verification through **28 November**. **504 hours** is the retained-resource allowance; align actual creation/deletion times with the verification window. It is not 504 hours of running EC2 or RDS compute.
 
-| Scenario | Estimated cost including assumed GST |
-| --- | ---: |
-| Demo baseline with two application hosts and three broker hosts | **S$240** |
-| Baseline plus a third application host for up to 24 active hours | **S$247** |
-| Three application hosts online for all 144 active hours | **S$284** |
-| Continuous production, 730 hours, two to three application hosts | **S$925–1,142 per month** |
+The following Singapore On-Demand rates were checked against AWS's public catalogues on **8 November 2026**. Storage is prorated with the earlier **730-hour month approximation**. Figures are USD before tax, with no Free Tier or account credits deducted.
 
-These are planning estimates, not a bill or a capacity guarantee. The budget assumes the hosts and RDS are stopped when no verification is needed, light traffic, and an existing HTTPS hostname. EBS, EFS, and retained load balancers still cost money while compute is stopped. The third application host has very little budget headroom. RDS automatically restarts after seven consecutive days stopped, so check it before the exam and stop it again when appropriate. Use the EC2 Auto Scaling group's standby procedure when stopping managed hosts so it does not launch replacements unexpectedly. [RDS stop behavior](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html) · [EC2 Auto Scaling standby](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-enter-exit-standby.html)
+| Item | Basis | Estimated USD before tax |
+| --- | --- | ---: |
+| Shared EC2 compute | 3 × `m7g.xlarge` × 144 h × US$0.204/h | 88.13 |
+| Additional broker EC2 instances | None; RabbitMQ shares those three hosts | 0.00 |
+| RDS PostgreSQL Multi-AZ compute | `db.t4g.small` × 144 h × US$0.102/h; rate includes the standby | 14.69 |
+| RDS storage | 20 GiB × US$0.276/GB-month × 504/730; Multi-AZ rate | 3.81 |
+| EC2 root and broker disks | 3 × 30 GiB root + 3 × 10 GiB broker gp3, at US$0.096/GB-month × 504/730 | 7.95 |
+| Public ALB and private NLB | 2 × 504 h × US$0.0252/h | 25.40 |
+| Load-balancer traffic allowance | Very light LCU/NLCU usage; unmeasured allowance | 0.79 |
+| Public IPv4 | 2 ALB addresses × 504 h + 3 host addresses × 144 h, at US$0.005/address-h | 7.20 |
+| Other usage allowance | EFS, ECR, logs, secrets, modest data transfer and short RDS restarts; unmeasured allowance | 10.00 |
+| **Total** | Calculated before rounding individual rows | **157.97** |
+
+At the retained assumptions of **US$1 = S$1.28** and **9% GST**, the total is **S$220.40**, approximately **S$220–221**. Using a 720-hour storage month gives **S$220.63**. This is the shared-host estimate; the previous separate-broker-host totals no longer describe the selected deployment. Exchange rate, tax treatment, usage allowances and operating hours remain assumptions rather than a verified account bill.
+
+The estimate assumes an existing HTTPS hostname, light traffic and host public-IP egress. It excludes new domain registration, NAT gateways, paid interface endpoints, additional hosts, excess backup/storage usage, unexpected RDS burst CPU charges and heavier traffic. The task network mode and egress path remain pending; update the estimate when those are confirmed. Retained Elastic IPs are charged even while idle; the host IPv4 row assumes charges only for the listed active hours. The US$10 allowance does not establish the actual cost of its included services.
+
+The author reports the old K3s instances are **stopped** and will be terminated only after the replacement infrastructure is verified. This estimate excludes their running compute, prior account spending, and charges for their retained disks, snapshots or allocated Elastic IPs. Those retained-resource charges still count against the total **S$250 project allowance**. This document does not instruct their termination.
+
+EBS, EFS, and retained load balancers still cost money while compute is stopped. RDS automatically restarts after seven consecutive days stopped, so check it before the exam and stop it again when appropriate. Use the EC2 Auto Scaling group's standby procedure when stopping managed hosts so it does not launch replacements unexpectedly. [RDS stop behavior](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html) · [EC2 Auto Scaling standby](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-enter-exit-standby.html)
+
+Rate sources: [Singapore EC2 Linux catalogue](https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/Asia%20Pacific%20%28Singapore%29/Linux/index.json) · [Singapore RDS catalogue](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-southeast-1/index.json) · [Singapore load-balancer catalogue](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ap-southeast-1/index.json) · [EBS pricing](https://aws.amazon.com/ebs/pricing/) · [Public IPv4 pricing](https://aws.amazon.com/vpc/pricing/)
 
 ## What to verify before the demo
 
 1. **Build and start.** Verify the deployed images on ARM64, inject secrets, run migrations and seeding, and check that the gateway can reach all service endpoints.
 2. **Try the user flows.** Check both portals, login, live chat translation and the order assistant through SoCLaaS, and the internal escrow route's public block. Chat and Order need outbound HTTPS from the deployment.
-3. **Lose one host at a time.** Test an application host and a broker host separately. Check task placement, connector checkpoint recovery, RabbitMQ reconnects, and whether the surviving capacity is enough.
+3. **Lose one shared host at a time.** Its application/connector tasks and one RabbitMQ node fail together. Check task placement on the two surviving hosts, connector checkpoint recovery, RabbitMQ reconnects, recovery of the third broker and whether the surviving capacity is enough.
 4. **Force RDS failover.** Confirm the app reconnects and all three connectors resume. Submit a transaction around the interruption and verify the order and credit workflow settles within the target, with no missing or duplicate credit movement.
 5. **Stop and resume the stack.** Retain the broker data disks and connector checkpoints. Bring the database, brokers, and applications back and run the key user flows again before depending on on-demand verification.
 
@@ -132,7 +189,9 @@ These are planning estimates, not a bill or a capacity guarantee. The budget ass
 | **Amazon Elastic Compute Cloud (EC2)** | Provides the virtual machines that host the application's containers and the RabbitMQ brokers. |
 | **Amazon Elastic Container Service (ECS), Fargate, task, and service** | ECS schedules containers. A **task** is a running unit of one or more containers. An ECS **service** keeps the desired number of tasks running. Fargate runs ECS tasks without the team managing the underlying hosts. |
 | **Application Load Balancer (ALB), NGINX, and Service Connect** | The public ALB chooses a healthy gateway. NGINX chooses a service based on the request path. Service Connect chooses a replica of that service. |
+| **AWS Certificate Manager (ACM)** | Stores and manages the TLS certificate used by the ALB for HTTPS and WSS. The hostname must be validated through domain ownership; the hostname and DNS access remain pending. |
 | **Network Load Balancer (NLB) and Advanced Message Queuing Protocol (AMQP)** | The private NLB gives the app one broker address. AMQP is the protocol the app and Debezium use to talk to RabbitMQ. |
+| **Load Balancer Capacity Unit (LCU) and Network Load Balancer Capacity Unit (NLCU)** | Usage-based billing units for ALB and NLB traffic, charged in addition to each load balancer's hourly fee. The cost table carries an allowance rather than measured usage. |
 | **Amazon Elastic Block Store (EBS) and Amazon Elastic File System (EFS)** | EBS provides virtual disks. A **General Purpose SSD (gp3)** volume normally attaches to one host at a time. EFS is a network filesystem that multiple hosts can mount. We use separate broker disks and shared access to connector checkpoints. |
 | **RabbitMQ node, exchange, and queue** | A node is a running broker. An exchange routes published messages to queues using routing rules. A queue holds messages for consumers. |
 | **Quorum queue** | A queue replicated across broker nodes. With three members, two must be available for the queue to keep working. Each queue has its own leader. |

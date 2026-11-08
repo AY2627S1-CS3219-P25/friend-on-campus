@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Link the confirmed shared-host ECS architecture and distinguish it from the existing K3s deployment configuration.
+Author review: <to be completed by the author>
+
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
 Author review: <to be completed by yanhwee>
@@ -302,6 +306,8 @@ npm run typecheck
 
 ## ☁️ Cloud Deployment & DevOps (Milestone D4)
 
+**Confirmed migration target (8 November 2026):** [ECS on three shared `m7g.xlarge` hosts](docs/new-cloud-architecture-guide.md), with one RabbitMQ node on each of those same hosts, private RDS PostgreSQL Multi-AZ, and EFS connector checkpoints. The guide contains the placement diagram, S$220–221 demo estimate and pending implementation decisions. Terraform and the deployment workflow still describe the K3s implementation below; the ECS migration preserves business logic and local Docker Compose support.
+
 Friend on Campus implements a **Two-Tier Autoscaling Cloud-Native Architecture** on Amazon Web Services (AWS) using **Terraform (IaC)**, **Lightweight Kubernetes (K3s)**, **GitHub Actions Continuous Delivery (CD)**, and **k6 Distributed Concurrency Testing**:
 
 ```
@@ -430,6 +436,7 @@ friend-on-campus/
 
 ## 📄 System Documentation & Project Wiki
 
+- **[Confirmed ECS cloud architecture](docs/new-cloud-architecture-guide.md)**: Target deployment on three shared application/RabbitMQ hosts, with a placement diagram, verified rate breakdown and pending implementation decisions.
 - **[Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md)**: Master student learning guide for AWS Terraform IaC, K3s manifests, two-tier autoscaling, GitHub Actions CD via OIDC/SSM, and k6 concurrency testing.
 - **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
 - **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
