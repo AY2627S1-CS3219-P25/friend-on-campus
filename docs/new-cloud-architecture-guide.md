@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Add the author-requested CloudFront entry point, distinguish viewer and origin TLS, and document deployment requirements and incremental pricing.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Record the author's confirmed three shared application/RabbitMQ hosts, add the placement diagram and verified cost breakdown, and identify pending implementation decisions.
 Author review: <to be completed by the author>
 
@@ -21,7 +25,7 @@ Author review: <to be completed by the author>
 
 This guide explains how the selected cloud components work together, how the listed alternatives behave, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
 
-**Target architecture confirmed by the author on 8 November 2026.** The ECS infrastructure and deployment workflow still need implementation; the checked-in Terraform and cloud deployment workflow currently describe K3s. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
+**Target architecture confirmed by the author on 8 November 2026, including CloudFront.** The CloudFront/ECS infrastructure and deployment workflow still need implementation; the checked-in Terraform and cloud deployment workflow currently describe K3s. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
 
 ## Contents
 
@@ -37,9 +41,9 @@ This guide explains how the selected cloud components work together, how the lis
 
 ## Architecture at a glance
 
-The deployment is in **AWS Singapore (`ap-southeast-1`)**. Host and replica counts are listed below. Two paths explain most of it:
+The regional origin resources are in **AWS Singapore (`ap-southeast-1`)**. **Amazon CloudFront** is a global service in front of the Singapore ALB; its creation permissions and compatibility with the course/sandbox's regional restrictions still need confirmation. Host and replica counts are listed below. Two paths explain most of it:
 
-- **Browser traffic.** Browser → public ALB → NGINX → ECS Service Connect → frontend or backend task. NGINX selects the service based on the URL. Service Connect selects a replica of that service.
+- **Browser traffic.** Browser → CloudFront over HTTPS/WSS → public ALB → NGINX → ECS Service Connect → frontend or backend task. CloudFront provides the generated public HTTPS hostname. The CloudFront-to-ALB protocol remains pending as described below. NGINX selects the service based on the URL. Service Connect selects a replica of that service.
 - **Order and credit events.** A backend commits a database change and an outbox event to PostgreSQL. Debezium reads the committed event and publishes it to RabbitMQ. RabbitMQ routes it to the appropriate queues. Backend consumers process those events and update their own databases.
 
 The baseline is **three shared `m7g.xlarge` EC2 hosts**, providing **12 vCPU and 48 GiB RAM in total**. Backend services, both frontends, NGINX, Debezium and RabbitMQ run on this same fleet. Each host runs **one RabbitMQ node** with its own data volume; there are no additional dedicated broker instances. The baseline keeps three shared hosts online; the maximum host count above three remains an author decision. A host failure temporarily leaves two surviving hosts until replacement.
@@ -49,7 +53,8 @@ The demo places the shared fleet and EFS in one AZ because a full AZ outage is o
 ```mermaid
 %% AI-generated (edited by ngkhengyang)
 flowchart TB
-    Browser["Browser"] -->|"HTTPS / WSS"| ALB["Public ALB · ACM certificate"]
+    Browser["Browser"] -->|"HTTPS / WSS"| CF["CloudFront · global edge service<br/>Generated cloudfront.net hostname and certificate"]
+    CF -->|"Origin protocol pending<br/>HTTP / WS or HTTPS / WSS with a trusted origin certificate"| ALB["Public ALB · Singapore origin"]
     subgraph Fleet["ECS on EC2 · three shared m7g.xlarge hosts · one AZ"]
         NGINX["NGINX · 2–3 tasks"] --> SC["Service Connect"]
         SC --> FE["Student · 2–3 tasks<br/>Admin · 1–2 tasks"]
@@ -77,9 +82,24 @@ The application boxes show logical services, not extra hosts. The three RabbitMQ
 
 ## Public entry point and frontend hosting
 
-The **public Application Load Balancer (ALB)** accepts HTTPS and secure WebSocket connections. It forwards traffic to healthy NGINX tasks. Two gateway tasks on different hosts let the ALB continue sending new connections to the other gateway when one host fails. Existing WebSocket connections to the failed task may drop and need to reconnect.
+**CloudFront is the public entry point** for both portals, APIs and WebSockets. Use its generated `https://<distribution>.cloudfront.net` hostname and AWS-provided viewer certificate; no team-owned domain, DNS validation or separately requested viewer ACM certificate is needed for that address. The frontends remain ECS services behind NGINX; adding CloudFront does not move them to S3. [CloudFront-provided viewer HTTPS](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-viewers-to-cloudfront.html)
 
-**NGINX** keeps the app's routing and access rules. It sends the root path to the student app, `/admin/` to the admin portal, and API and WebSocket paths to the corresponding backend. It also blocks public access to internal credit escrow routes. The routes carry over, but the deployed NGINX configuration must use ECS service endpoints rather than relying on the Docker Compose resolver. For public HTTPS, plan for a hostname and a matching certificate. Check that the ALB, NGINX, and Service Connect timeouts work together for WebSockets. [Current gateway configuration](../gateway/nginx.conf) · [ALB integration with ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/alb.html) · [Service Connect configuration](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect-concepts-deploy.html)
+The **public Application Load Balancer (ALB)** is CloudFront's origin and forwards traffic to healthy NGINX tasks. Two gateway tasks on different hosts let the ALB continue sending new connections to the other gateway when one host fails. Existing WebSocket connections to the failed task may drop and need to reconnect.
+
+**Viewer TLS and origin TLS are separate connections.** CloudFront supports both HTTP and HTTPS to the ALB. The author has accepted HTTP for the demo, but has not yet confirmed the origin protocol after adding CloudFront:
+
+| CloudFront-to-ALB connection | What it requires |
+| --- | --- |
+| **HTTP / WS** | ALB HTTP listener and forwarding configuration. No origin certificate is needed. Browser-to-CloudFront traffic remains HTTPS/WSS; this origin connection is unencrypted. |
+| **HTTPS / WSS** | ALB HTTPS listener with a certificate from a publicly trusted CA, covering the configured origin hostname or the forwarded `Host` name. An ACM origin certificate for the Singapore ALB must be in Singapore. CloudFront's generated viewer certificate does not supply a certificate for the ALB. |
+
+For origin HTTPS, CloudFront validates the certificate's name, chain and validity. It rejects self-signed or invalid origin certificates with a 502 response. The team's own ACM request cannot cover AWS-owned `amazonaws.com` or `cloudfront.net` names. A validated origin hostname and matching trusted certificate are therefore still needed before using ALB origin HTTPS; changing the origin protocol setting alone is insufficient. [Origin HTTPS requirements](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-cloudfront-to-custom-origin.html) · [AWS-owned certificate names](https://docs.aws.amazon.com/acm/latest/userguide/troubleshooting-cert-requests.html)
+
+CloudFront configuration must permit the HTTP methods used by the APIs and forward the required authorization headers, cookies, query strings and WebSocket handshake headers. Authenticated responses and `Set-Cookie` responses must not be shared through caching. Set and verify the cache/origin request policies for API/authentication and WebSocket paths; verify static-content caching separately. Keep NGINX's public block on internal escrow routes. CloudFront supports WebSockets, but does not solve cross-replica socket delivery. [CloudFront WebSockets](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-working-with.websockets.html) · [Cache policy settings](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html)
+
+Configure the application's public origin for the CloudFront HTTPS address. The existing production `Secure` refresh-cookie setting can remain when the browser uses that address, including when the origin connection is HTTP. Both portals already use relative API paths, and the Student app chooses WSS for an HTTPS page. Verify cookie forwarding, refresh/logout and both socket connections through CloudFront. Local Docker Compose continues to use its existing local configuration.
+
+**NGINX** keeps the app's routing and access rules. It sends the root path to the student app, `/admin/` to the admin portal, and API and WebSocket paths to the corresponding backend. It also blocks public access to internal credit escrow routes. The routes carry over, but the deployed NGINX configuration must use ECS service endpoints rather than relying on the Docker Compose resolver. Check that CloudFront, ALB, NGINX and Service Connect timeouts work together for WebSockets. [Current gateway configuration](../gateway/nginx.conf) · [ALB integration with ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/alb.html) · [Service Connect configuration](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect-concepts-deploy.html)
 
 Each portal already builds to static files served by its own NGINX container. Run them as **separate ECS services** so they can deploy and scale independently, while keeping the same browser hostname for frontend, API, and WebSocket traffic. The student app starts at two replicas because it serves the main user flows. The admin portal starts at one and can scale to two. At one replica, its availability after host failure depends on task replacement.
 
@@ -106,7 +126,7 @@ Chat and Notification need a separate correctness check when scaled. A live sock
 
 **Secrets and local execution.** Store application credentials and keys in **AWS Secrets Manager** and reference the required values in ECS task definitions. ECS retrieves them at task startup using the execution role and supplies the existing application environment variables. Updated values require new tasks. Local Docker Compose continues to supply local environment configuration without requiring Secrets Manager access. [ECS secret injection](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/secrets-envvar-secrets-manager.html)
 
-**Pending author decisions:** maximum host count above three, ECS task network mode and outbound connectivity, the Chat/Notification cross-replica live-delivery mechanism, and the HTTPS hostname/DNS access. These details are not selected by this guide; cloud runtime configuration and the deployment workflow still need implementation.
+**Pending author decisions:** maximum host count above three, ECS task network mode and outbound connectivity, the Chat/Notification cross-replica live-delivery mechanism, CloudFront's origin protocol (with origin hostname/certificate if HTTPS is selected), and CloudFront pricing plan. Confirm account permissions, applicable pricing allowances and whether the global service is permitted under the course/sandbox's regional restrictions. CloudFront's generated hostname resolves the viewer-domain prerequisite. Cloud runtime configuration and the deployment workflow still need implementation.
 
 | Alternative | Trade-off |
 | --- | --- |
@@ -160,11 +180,21 @@ The following Singapore On-Demand rates were checked against AWS's public catalo
 | Load-balancer traffic allowance | Very light LCU/NLCU usage; unmeasured allowance | 0.79 |
 | Public IPv4 | 2 ALB addresses × 504 h + 3 host addresses × 144 h, at US$0.005/address-h | 7.20 |
 | Other usage allowance | EFS, ECR, logs, secrets, modest data transfer and short RDS restarts; unmeasured allowance | 10.00 |
-| **Total** | Calculated before rounding individual rows | **157.97** |
+| **Base subtotal, excluding CloudFront** | Calculated before rounding individual rows | **157.97** |
 
-At the retained assumptions of **US$1 = S$1.28** and **9% GST**, the total is **S$220.40**, approximately **S$220–221**. Using a 720-hour storage month gives **S$220.63**. This is the shared-host estimate; the previous separate-broker-host totals no longer describe the selected deployment. Exchange rate, tax treatment, usage allowances and operating hours remain assumptions rather than a verified account bill.
+At the retained assumptions of **US$1 = S$1.28** and **9% GST**, the base estimate is **S$220.40**, approximately **S$220–221**, before CloudFront usage. Using a 720-hour storage month gives **S$220.63**. This is the shared-host estimate; the previous separate-broker-host totals no longer describe the selected deployment. Exchange rate, tax treatment, usage allowances and operating hours remain assumptions rather than a verified account bill.
 
-The estimate assumes an existing HTTPS hostname, light traffic and host public-IP egress. It excludes new domain registration, NAT gateways, paid interface endpoints, additional hosts, excess backup/storage usage, unexpected RDS burst CPU charges and heavier traffic. The task network mode and egress path remain pending; update the estimate when those are confirmed. Retained Elastic IPs are charged even while idle; the host IPv4 row assumes charges only for the listed active hours. The US$10 allowance does not establish the actual cost of its included services.
+The base estimate assumes light traffic and host public-IP egress. CloudFront supplies the viewer hostname and certificate without a domain purchase. A custom origin hostname/certificate, if selected for origin HTTPS, is not provisioned or included here. The estimate excludes NAT gateways, paid interface endpoints, additional hosts, excess backup/storage usage, unexpected RDS burst CPU charges and heavier traffic. The task network mode and egress path remain pending; update the estimate when those are confirmed. Retained Elastic IPs are charged even while idle; the host IPv4 row assumes charges only for the listed active hours. The US$10 allowance does not establish the actual cost of its included services.
+
+### Incremental CloudFront pricing
+
+The pricing plan remains pending. AWS's published **pay-as-you-go** monthly allowances are **1 TB of viewer data transfer and 10 million HTTP/HTTPS requests**, subject to account/billing eligibility and remaining allowance. Do not assume that the NUS sandbox has unused allowances. For Singapore delivery after the allowances, the next transfer tier is **US$0.120/GB**, and HTTPS requests are **US$0.012 per 10,000**. WebSockets have no separate protocol surcharge; traffic and request charges still apply.
+
+As a usage illustration, **10 GB of billable viewer delivery plus 100,000 billable HTTPS requests**, without deducting free allowances, costs **US$1.32**, or **S$1.84** at the retained exchange-rate/GST assumptions. The base estimate plus that example is **S$222.24**. This is not a measured usage forecast. Viewer-to-origin data transfer, such as request bodies and client-to-server WebSocket traffic, is separately priced (currently **US$0.060/GB** for Singapore); logging and optional features can also add charges and are excluded from this illustration. The generated viewer hostname/certificate does not require a domain purchase. ALB, EC2 and the other origin resources remain billable. [CloudFront pay-as-you-go pricing](https://aws.amazon.com/cloudfront/pricing/pay-as-you-go/)
+
+AWS also publishes a **US$0/month Free flat-rate plan** with **100 GB and 1 million requests**, but it has account and configuration restrictions, including limits on custom caching controls. Its applicability to this app's API/cookie/WebSocket configuration has not been verified. Do not substitute a guaranteed zero CloudFront cost without confirming the selected plan and eligibility. [Flat-rate pricing](https://aws.amazon.com/cloudfront/pricing/) · [Plan restrictions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/flat-rate-pricing-plan.html)
+
+The author reports **S$249 remaining** in the sandbox allowance. The S$222.24 example would leave **S$26.76**, before excluded charges and deviations from the assumptions. Reconcile this with the actual account tracker during deployment.
 
 The author reports the old K3s instances are **stopped** and will be terminated only after the replacement infrastructure is verified. This estimate excludes their running compute, prior account spending, and charges for their retained disks, snapshots or allocated Elastic IPs. Those retained-resource charges still count against the total **S$250 project allowance**. This document does not instruct their termination.
 
@@ -174,8 +204,8 @@ Rate sources: [Singapore EC2 Linux catalogue](https://b0.p.awsstatic.com/pricing
 
 ## What to verify before the demo
 
-1. **Build and start.** Verify the deployed images on ARM64, inject secrets, run migrations and seeding, and check that the gateway can reach all service endpoints.
-2. **Try the user flows.** Check both portals, login, live chat translation and the order assistant through SoCLaaS, and the internal escrow route's public block. Chat and Order need outbound HTTPS from the deployment.
+1. **Build and start.** Verify the deployed images on ARM64, inject secrets, run migrations and seeding, and check CloudFront-to-ALB-to-gateway connectivity and access to all service endpoints. Confirm the selected origin protocol; if HTTPS, verify its trusted certificate and hostname match.
+2. **Try the user flows through CloudFront.** Check both portals, login, refresh/logout, isolation of different users' responses, live chat/notifications, translation and the order assistant through SoCLaaS, and the internal escrow route's public block. Verify API methods, cookie/header forwarding, cache behaviour and WSS reconnects. Chat and Order need outbound HTTPS from the deployment.
 3. **Lose one shared host at a time.** Its application/connector tasks and one RabbitMQ node fail together. Check task placement on the two surviving hosts, connector checkpoint recovery, RabbitMQ reconnects, recovery of the third broker and whether the surviving capacity is enough.
 4. **Force RDS failover.** Confirm the app reconnects and all three connectors resume. Submit a transaction around the interruption and verify the order and credit workflow settles within the target, with no missing or duplicate credit movement.
 5. **Stop and resume the stack.** Retain the broker data disks and connector checkpoints. Bring the database, brokers, and applications back and run the key user flows again before depending on on-demand verification.
@@ -184,12 +214,13 @@ Rate sources: [Singapore EC2 Linux catalogue](https://b0.p.awsstatic.com/pricing
 
 | Term | What it means here |
 | --- | --- |
-| **Amazon Web Services (AWS), region, and Availability Zone (AZ)** | AWS is the cloud provider. A region is a geographic AWS location. Singapore is our region. An AZ is an isolated location within a region. Separate hosts protect against a machine failure. Separate AZs protect against losing a whole location when the rest of the design also spans AZs. |
+| **Amazon Web Services (AWS), region, and Availability Zone (AZ)** | AWS is the cloud provider. A region is a geographic AWS location. Singapore hosts the regional origin resources; CloudFront is global. An AZ is an isolated location within a region. Separate hosts protect against a machine failure. Separate AZs protect against losing a whole location when the rest of the design also spans AZs. |
 | **Virtual Private Cloud (VPC) and security group** | A VPC is the deployment's private network. A security group controls which connections can reach a resource. For example, the database accepts connections from the deployed application rather than the public internet. |
 | **Amazon Elastic Compute Cloud (EC2)** | Provides the virtual machines that host the application's containers and the RabbitMQ brokers. |
 | **Amazon Elastic Container Service (ECS), Fargate, task, and service** | ECS schedules containers. A **task** is a running unit of one or more containers. An ECS **service** keeps the desired number of tasks running. Fargate runs ECS tasks without the team managing the underlying hosts. |
-| **Application Load Balancer (ALB), NGINX, and Service Connect** | The public ALB chooses a healthy gateway. NGINX chooses a service based on the request path. Service Connect chooses a replica of that service. |
-| **AWS Certificate Manager (ACM)** | Stores and manages the TLS certificate used by the ALB for HTTPS and WSS. The hostname must be validated through domain ownership; the hostname and DNS access remain pending. |
+| **Amazon CloudFront, content delivery network (CDN), viewer and origin** | CloudFront is the public HTTPS/WSS entry point, using an AWS-provided hostname/certificate. A viewer is the browser connecting to CloudFront. The origin is the ALB from which CloudFront fetches responses. Viewer TLS and origin TLS are separate connections. |
+| **Application Load Balancer (ALB), NGINX, and Service Connect** | The public ALB receives origin requests from CloudFront and chooses a healthy gateway. NGINX chooses a service based on the request path. Service Connect chooses a replica of that service. |
+| **AWS Certificate Manager (ACM)** | Can manage an ALB origin certificate if origin HTTPS is selected. The certificate must match a validated hostname. CloudFront's generated viewer hostname already has an AWS-provided certificate; it does not supply the ALB's origin certificate. |
 | **Network Load Balancer (NLB) and Advanced Message Queuing Protocol (AMQP)** | The private NLB gives the app one broker address. AMQP is the protocol the app and Debezium use to talk to RabbitMQ. |
 | **Load Balancer Capacity Unit (LCU) and Network Load Balancer Capacity Unit (NLCU)** | Usage-based billing units for ALB and NLB traffic, charged in addition to each load balancer's hourly fee. The cost table carries an allowance rather than measured usage. |
 | **Amazon Elastic Block Store (EBS) and Amazon Elastic File System (EFS)** | EBS provides virtual disks. A **General Purpose SSD (gp3)** volume normally attaches to one host at a time. EFS is a network filesystem that multiple hosts can mount. We use separate broker disks and shared access to connector checkpoints. |

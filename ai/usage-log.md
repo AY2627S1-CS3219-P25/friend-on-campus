@@ -6557,3 +6557,88 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none (usage bookkeeping only)
+## 2026-11-08 20:22 SGT — Suggest documentation commit title
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Provide a one-line commit name.
+
+**Usage scenario:** Writing support. Suggested a title for the confirmed shared-host ECS architecture and revised cost documentation. No commit, push, implementation change or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:25 SGT — Explain generated deployment links and ACM benefits
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain whether the demo can be accessed through a generated link without requesting an ACM certificate for a custom hostname, and the advantages of ACM.
+
+**Usage scenario:** Learning support using official ALB, ACM and CloudFront documentation plus AWS networking guidance. Confirmed an internet-facing ALB's generated DNS name can serve HTTP with a suitable listener and healthy targets; ACM cannot issue the team's certificate for Amazon-owned names. Rechecked the User Service production Secure refresh-cookie configuration and frontend ws/wss selection to explain the functional limitation of plain HTTP without changing it. Explained ACM certificate issuance/storage/renewal and integration, and no additional charge for standard non-exportable public certificates on ALB. Identified CloudFront's AWS-provided HTTPS hostname/certificate as a factual alternative that adds a global component, requires dynamic API/cookie/WebSocket configuration, and does not automatically encrypt the origin connection. CloudFront-specific bundled skill was unavailable, so used primary AWS service documentation. No project architecture recommendation or selection, resource provisioning, setting, document or code changes. No tests needed; actual endpoint availability, CloudFront account access, costs and compatibility remain unverified.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:28 SGT — Clarify whether ACM requires buying a domain
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Clarify whether purchasing an owned domain is mandatory for ACM.
+
+**Usage scenario:** Learning support based on official ACM ownership-validation documentation verified earlier in this conversation. Explained that an existing controlled domain or a teammate-provided subdomain with validation access is sufficient; a new purchase is not mandatory. No domain ownership check, AWS action, configuration, code or documentation changes, and no tests needed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:31 SGT — Explain ALB HTTPS requirements and HTTP implementation scope
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain why the generated ALB-link option lacks HTTPS and what code changes an HTTP deployment would need.
+
+**Usage scenario:** Learning and source-based implementation analysis. Verified AWS HTTPS listener certificate requirements and ACM restrictions on Amazon-owned names. Traced User Service secureCookies from configuration through login/refresh/logout/account-deletion routes and inspected existing cookie assertions. Confirmed both frontends use relative API requests and Student Chat/Notification select ws or wss from page protocol. Explained that public HTTP requires refresh cookies without Secure, while HttpOnly/SameSite and business logic can remain. Distinguished the existing non-production NODE_ENV configuration path from a future explicit override that preserves production mode, with example/environment/deployment wiring and relevant test scope. Identified HTTP listener/security-group and public-origin configuration as infrastructure work. Searched inspected frontend source for secure-context APIs without finding additional direct usages. No HTTP security decision, source/configuration edit, AWS operation or tests performed; only analysis requested. Noted that HTTP transmits credentials/tokens without TLS.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:45 SGT — Explain HTTP demo preparation and cloud credential provisioning
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Accept public HTTP for this demo, explain why HTTPS uses certificates and certificate options without an owned domain, reiterate remaining preparation after JWT/SoCLaaS credentials are ready, and explain the source of database/RabbitMQ credentials and possible reuse of local environment values.
+
+**Usage scenario:** Learning and setup support for the author's HTTP demo choice. Reviewed the committed PostgreSQL role/database bootstrap, RabbitMQ account names/vhost definitions, Debezium database configuration, existing Terraform variables/trust configuration and prior setup evidence without reading local .env files. Used AWS database guidance and official RDS, Secrets Manager, RabbitMQ, TLS and certificate-authority documentation; unavailable RDS-specific skill was handled using its documented official-source fallback. Explained server identity validation in browser TLS, self-signed certificates, Let's Encrypt IP certificates and provider-managed HTTPS hostnames without selecting a new architecture. Removed domain/DNS/ACM work from the current HTTP preparation checklist. Distinguished RDS administrator credentials, bootstrap-created service/CDC users, self-hosted RabbitMQ users and the shared Erlang cookie; secret storage alone does not create these accounts. Explained that local usernames/passwords work only if cloud accounts match, local endpoint URLs must change, and committed development defaults are public. Identified remaining secret storage, state recovery, GitHub deployment/trust coordination, team decisions and optional quota confirmation. RDS/broker provisioning and HTTP cookie configuration remain implementation work. No credential generation, local .env access, AWS resource/settings change, architecture-document edit, code edit or tests performed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 20:45 SGT — Incorporate reported remaining sandbox allowance
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** The sandbox tracker reports 249 remaining.
+
+**Usage scenario:** Incorporated the author's reported balance as SGD249 under the project's SGD budget. Used Python Decimal to calculate SGD28.60 conditional headroom against the earlier SGD220.40 estimate. Retained the distinction between an estimated new deployment and unpriced/retained resources; no billing API or portal access, resource changes or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:55 SGT — Assess CloudFront integration work and demo pricing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain whether adding CloudFront to the selected architecture is easy and what it would cost.
+
+**Usage scenario:** Source-based feasibility, implementation-scope and pricing explanation for the author's named CloudFront option. Verified official CloudFront origin, managed HTTPS hostname, WebSocket, caching and pricing documentation. Explained a distribution using the existing public ALB as an HTTP origin, with browser HTTPS allowing the existing production Secure cookie setting to remain, subject to correct cookie/header forwarding and no authenticated-response caching. Identified infrastructure/configuration and verification work without selecting a new architecture or changing business rules. Distinguished pay-as-you-go's published monthly free allowances from unverified account eligibility and flat-rate plan restrictions. Used Python Decimal for an illustrative 10 GB plus 100,000 billable HTTPS request example: USD1.32, SGD1.84 at prior FX/GST assumptions, conditional stack total SGD222.24, excluding additional costs. A bounded read-only CloudFront list-distributions call succeeded with no access denial; creation permissions and billing eligibility remain unverified. No distribution, AWS setting, application/infrastructure code or architecture document changed; no tests or deployment performed.
+
+**Files changed:**
+- none (usage bookkeeping only)
