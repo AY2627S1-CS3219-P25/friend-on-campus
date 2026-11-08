@@ -7144,3 +7144,44 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `ai/usage-log.md` — Recorded the authorized push and existing PR update for inclusion in the published branch.
 
 **External update:** https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/230
+
+
+## 2026-11-07 22:04 SGT — Explain why origin/main is ahead of local main
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Check why origin/main is ahead of local main and explain the changes.
+
+**Usage scenario:** Read-only Git history and source-diff inspection, with a fetch to refresh origin/main. Verified local main is 59d1ab3 and origin/main is 7f10ecc: 0 local-only commits and 7 remote-only commits. Identified merged PR #229 (order disputes, courier reports, reorder, and related admin/database work) and PR #231 (chat moderation). Reviewed their implementation diffs and noted overlapping frontend files with the redesign branch. The separate main worktree is clean. Did not pull, merge, rebase, advance local main, commit, or push. No application code changed, so no tests were run.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the history comparison and explanation.
+
+
+## 2026-11-07 22:17 SGT — Verify merged PRs 229 and 231
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Verify the implementations of merged order-dispute/reorder PR #229 and chat-moderation PR #231.
+
+**Usage scenario:** Read-only implementation review of origin/main at 7f10ecc, compared with both PR descriptions. Created an isolated Git-archive snapshot at /tmp/foc-pr-review-20261107 with existing dependencies, independent local workspace package links, and a freshly generated Order Prisma client. Did not check out, merge, rebase, or edit either application worktree. Wrote temporary review-only probes in that snapshot. No fixes, commits, pushes, GitHub comments, or issue changes were made.
+
+**Validation:** All-workspace type checks passed; the static CI test matrix passed (19 workspace suites and 4 system commands); lint passed for all 26 changed JavaScript/TypeScript files. Existing unit suites passed: Order Service 74, Chat Service 49, student app 55 (178 total). The first restricted run could not bind test ports; reran successfully with temporary local-server access and stopped the blocked run. Started a throwaway PostgreSQL container using a cached image, exposed only at localhost:55439, with disposable credentials/data. All five Order migrations applied. Seven existing chat-store integration tests and three new real-Order-repository checks passed, including 20 dispute-versus-completion races and 10 competing-admin-settlement races. Verified dispute authorization, freeze, both reports, cleared flag on settlement, and exactly one corresponding outbox event. Removed the temporary container and its data after verification. No live application database or AI provider was used; complete broker-driven credit settlement and live-model classification were not tested.
+
+**Findings:**
+- PR #229: App.tsx handleOrderAgain directly calls submission.submit and bypasses the closed-store confirmation in PostErrandPage. A probe executing the actual extracted handler with a closed pickup and sufficient credits recorded a submission instead of confirmation.
+- PR #231: conversations/service.ts captures participants before awaiting moderation and returns that old recipient list when flagged. Reproduced with both a snapshot-faithful fixture and a real PostgreSQL conversation: replacing courier B with C during moderation still returns B as a notice recipient, which the hub pushes to the former courier.
+- Documentation mismatch: PR #229 still describes five-minute automatic confirmation, but its final merged commit explicitly removed that timer.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the implementation review, verification, reproducible findings, limitations, and cleanup.
+
+**Temporary review artefacts (outside the working tree):**
+- `/tmp/foc-pr-review-20261107/services/order-service/test/review-prisma-dispute.test.ts` — Passing real database dispute/concurrency checks.
+- `/tmp/foc-pr-review-20261107/services/chat-service/test/review-moderation-race.test.ts` — Reproduces stale moderation recipients using a snapshot-faithful fixture.
+- `/tmp/foc-pr-review-20261107/services/chat-service/test/review-moderation-race-db.test.ts` — Reproduces stale moderation recipients against PostgreSQL.
+- `/tmp/foc-pr-review-20261107/apps/student-app/test/review-reorder-hours.test.ts` — Reproduces the closed-store confirmation bypass using the actual App handler.
