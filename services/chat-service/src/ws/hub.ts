@@ -11,6 +11,10 @@
  * Scope: Review fix (PR #148): the sender's own MESSAGE echo carries the SEND's clientId; other recipients get the
  * frame without it.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: A flagged send answers the sender with ERROR MODERATED (with clientId) and the other participant with ERROR MODERATED_PEER.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import { WebSocket } from 'ws';
@@ -52,6 +56,8 @@ const ERROR_TEXT: Record<ChatErrorCode, string> = {
   EMPTY: 'A message cannot be empty',
   NO_USERNAME: 'Your session has no username; log in again to send messages',
   BAD_FRAME: 'Unrecognised frame',
+  MODERATED: 'Harmful and abusive messages will not be tolerated',
+  MODERATED_PEER: 'This message was removed as it was harmful and abusive',
 };
 
 export function createChatHub(options: {
@@ -95,6 +101,14 @@ export function createChatHub(options: {
       return;
     }
     const result = await options.send(orderId, principal, frame.text);
+    if (result.kind === 'flagged') {
+      sendFrame(ws, { type: 'ERROR', orderId, clientId, code: 'MODERATED', message: ERROR_TEXT.MODERATED });
+      // The sender's other tabs hear nothing; the other participant is told a message was removed.
+      for (const userId of new Set(result.recipientIds)) {
+        if (userId !== principal.userId) push(userId, { type: 'ERROR', orderId, code: 'MODERATED_PEER', message: ERROR_TEXT.MODERATED_PEER });
+      }
+      return;
+    }
     if (result.kind !== 'sent') {
       const code = result.kind.toUpperCase() as ChatErrorCode;
       sendFrame(ws, { type: 'ERROR', orderId, clientId, code, message: ERROR_TEXT[code] });

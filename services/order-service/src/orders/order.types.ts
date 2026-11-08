@@ -13,6 +13,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Domain types, custom errors, and DTO mappers for Order Service.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: toOrderDTO maps the dispute flag and the requester's dispute details.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: toOrderDTO maps courierDisputeDetails.
+ * Author review: <to be completed by the author>
  */
 import type {
   CreditReservationRequestEvent,
@@ -143,6 +151,9 @@ export function toOrderDTO(order: PrismaOrder): OrderDTO {
     dropoffLatitude: order.dropoffLatitude ?? undefined,
     dropoffLongitude: order.dropoffLongitude ?? undefined,
     estimatedRewardCredits: order.estimatedRewardCredits ?? undefined,
+    dispute: order.dispute,
+    requesterDisputeDetails: order.requesterDisputeDetails ?? null,
+    courierDisputeDetails: order.courierDisputeDetails ?? null,
     status: order.status as OrderStatus,
     rejectionReason: order.rejectionReason ?? null,
     expiresAt: order.expiresAt.toISOString(),

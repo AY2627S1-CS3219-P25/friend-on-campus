@@ -42,6 +42,10 @@
  * Scope: PR #228 review fixes: chunk messageIds to at most 200 per POST /api/chat/:orderId/translate request and pass
  * a 25 s request deadline signal so authFetch's default 10 s deadline does not abort the backend's 20 s LLM timeout.
  * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: A MODERATED_PEER ERROR frame adds a removed-message notice to the thread (in memory only).
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -57,6 +61,8 @@ export interface ChatThread {
   isLoading: boolean;
   /** Why the conversation could not be loaded (404, 403, 503), or null. */
   loadError: string | null;
+  /** How many messages from the other participant were removed by moderation since this page loaded (not stored). */
+  removedNotices: number;
 }
 
 export type SendOutcome = { ok: true } | { ok: false; code: ChatErrorCode | 'DISCONNECTED' | 'UNCONFIRMED'; message: string };
@@ -93,7 +99,7 @@ const PAGE_SIZE = 100;
 const TRANSLATE_MAX_IDS = 200;
 const TRANSLATE_DEADLINE_MS = 25_000;
 
-const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null };
+const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null, removedNotices: 0 };
 
 export function mergeMessage(list: ChatMessageDTO[], message: ChatMessageDTO): ChatMessageDTO[] {
   if (list.some((m) => m.id === message.id)) return list;
@@ -192,7 +198,7 @@ export function useChat(options: {
         const fetchedThrough = pages.length ? pages[pages.length - 1].sequence : afterSequence;
         return {
           ...current,
-          [orderId]: { conversation, messages, loadedThrough: coveredThrough(messages, Math.max(thread.loadedThrough, fetchedThrough)), isLoading: false, loadError: null },
+          [orderId]: { conversation, messages, loadedThrough: coveredThrough(messages, Math.max(thread.loadedThrough, fetchedThrough)), isLoading: false, loadError: null, removedNotices: thread.removedNotices },
         };
       });
     } catch (e) {
@@ -316,6 +322,14 @@ export function useChat(options: {
           // Only the sender's own echo carries the client id; a frame from anyone else settles nothing (F8.2.3).
           settle(frame.clientId, { ok: true });
         } else if (frame.type === 'ERROR') {
+          if (frame.code === 'MODERATED_PEER' && frame.orderId) {
+            const { orderId } = frame;
+            updateThreads((current) => {
+              const thread = current[orderId] ?? EMPTY;
+              return { ...current, [orderId]: { ...thread, removedNotices: thread.removedNotices + 1 } };
+            });
+            return;
+          }
           settle(frame.clientId, { ok: false, code: frame.code, message: frame.message });
         }
       };

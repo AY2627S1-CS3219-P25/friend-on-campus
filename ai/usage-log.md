@@ -7185,3 +7185,137 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `/tmp/foc-pr-review-20261107/services/chat-service/test/review-moderation-race.test.ts` — Reproduces stale moderation recipients using a snapshot-faithful fixture.
 - `/tmp/foc-pr-review-20261107/services/chat-service/test/review-moderation-race-db.test.ts` — Reproduces stale moderation recipients against PostgreSQL.
 - `/tmp/foc-pr-review-20261107/apps/student-app/test/review-reorder-hours.test.ts` — Reproduces the closed-store confirmation bypass using the actual App handler.
+
+## 2026-11-06 18:45 SGT — Delivery dispute flow and confirmation countdown
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Student app: a 5-minute countdown (deliveredAt + 5 min) on the confirm-delivery box that completes the order at zero, and a red Raise Dispute button with a required reason. Order Service: new `dispute` boolean and requester dispute details columns. Admin portal: a Dispute filter and a details dialog with Refund (order.cancelled) and Complete (order.completed); the flag is cleared when the admin settles.
+
+**Usage scenario:** Writing implementation code for a design the author specified.
+
+**Files changed:**
+- `services/order-service/prisma/schema.prisma` — `dispute` (default false) and `requester_dispute_details` columns
+- `services/order-service/prisma/migrations/20261106120000_order_dispute/migration.sql` — new migration
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `order.routes.ts`, `order.types.ts` — disputeOrder, completion guard, admin actions clear the flag, DTO mapping
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repository and new dispute tests
+- `packages/common-dtos/src/index.ts` — OrderDTO `dispute` / `requesterDisputeDetails`, DisputeOrderRequest
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts`, `pages/TasksPage.tsx` — countdown, Raise Dispute, dispute notes
+- `apps/admin-portal/src/components/DisputeModal.tsx` (new), `pages/OrdersPage.tsx`, `App.tsx` — Dispute filter, View details, Refund / Complete
+
+## 2026-11-06 18:53 SGT — Countdown completes immediately when the window has passed
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** The author settled the open decisions: keep the settlement reason wording, note that the 5-minute timer stays frontend-only for now, and when the requester opens the page after the 5 minutes show "Time is up" and run the normal complete workflow.
+
+**Usage scenario:** Writing implementation code for a behaviour the author decided. A server-side timer was left for a later session.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — an expired window now completes the order once on open, with a "Time is up" message
+
+## 2026-11-06 19:11 SGT — Courier dispute response and Disputed badge
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** (1) red "Disputed" badge under the Delivered badge in the admin Orders page; (2) new nullable `courier_dispute_details` column, and in the student app the courier sees the requester's dispute message above a text box and a "Submit dispute report" button, saved on the order; (3) admin dispute dialog also shows the courier's message (compact and empty if none).
+
+**Usage scenario:** Writing implementation code for a design the author specified.
+
+**Files changed:**
+- `services/order-service/prisma/schema.prisma`, `prisma/migrations/20261106130000_order_courier_dispute_details/migration.sql` — new column and migration
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `order.routes.ts`, `order.types.ts` — courierDisputeOrder and route
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repository and test
+- `packages/common-dtos/src/index.ts` — `courierDisputeDetails`, CourierDisputeRequest
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts` — courier response UI and action
+- `apps/admin-portal/src/components/OrderStatusBadge.tsx`, `pages/OrdersPage.tsx`, `components/DisputeModal.tsx` — red badge and courier text box
+
+## 2026-11-06 19:43 SGT — Posted by Me split view and Order again
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** In the Tasks page "Posted by Me" tab, split the errands into Open, Cancelled and Completed, and give completed errand cards an "Order again" button (bottom right) that posts a new errand with the same details.
+
+**Usage scenario:** Writing implementation code for a UI the author specified. Choices left for review: three columns on large screens (stacked on small), Expired and Rejected shown under Cancelled, the in-progress statuses grouped under Open, and admin audit tags stripped from the copied special notes. No backend change; Order again reuses the existing post flow.
+
+**Files changed:**
+- `apps/student-app/src/orders/reorder.ts` (new) — builds the repeat request
+- `apps/student-app/test/reorder.test.ts` (new) — tests, added to the test:unit script in `apps/student-app/package.json` (JSON, no header possible)
+- `apps/student-app/src/pages/TasksPage.tsx` — split columns and the Order again button
+- `apps/student-app/src/App.tsx` — handleOrderAgain wired to the existing order submission
+
+## 2026-11-07 11:35 SGT — Remove confirm countdown; courier dispute by default
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Drop the 5-minute auto-confirm countdown; show the courier's dispute form (with the requester's read-only message, empty if none) on every DELIVERED errand, not only after the requester disputes.
+
+**Usage scenario:** Implementation of a design the author decided (debugging/refactoring of own feature). Left to the author: whether a courier dispute should set the dispute flag (I made it do so, so admins see it and confirmation is frozen) and whether the requester may still dispute afterwards (I allowed it, once).
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — countdown/auto-complete removed; courier form always shown when DELIVERED; requester can still write a dispute after a courier one
+- `services/order-service/src/repositories/order.repository.ts` — courier dispute no longer needs an existing dispute and sets `dispute`; requester dispute allowed once even if courier disputed
+- `services/order-service/test/helpers.ts`, `services/order-service/test/order.service.test.ts` — fake repo and test updated
+
+## 2026-11-07 11:50 SGT — Author confirms courier-dispute design was their own
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** The author reviewed the previous change (courier dispute form by default) and asked Claude to verify that both dispute paths raise the order-service dispute flag and that each party can write at most one dispute text. The author clarified that the two points listed as "left to the author" in the previous entry (a courier dispute sets the dispute flag; the requester may still dispute afterwards, once) were not Claude's decisions: the author had already intended both and assumed they followed from the prompt, and after reviewing the work confirmed the implementation matches that intent. They asked for this to be recorded.
+
+**Usage scenario:** Debugging/verification assistance (read-only check of existing code and tests). No design decision was made by Claude; the design is the author's, as recorded above. Follow-up to the entry "Remove confirm countdown; courier dispute by default".
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-11-07 17:45 SGT — Chat content moderation via SoCLaaS
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Before a chat message is stored or pushed, call the SoCLaaS LLM (package `@campus-errand/llm`, left unedited) to check for abusive or harmful content; write the prompt. If flagged, do not store it; the sender gets an error shown as a red translucent notice ("Harmful and abusive messages will not be tolerated") and the other participant a notice that the message was removed.
+
+**Usage scenario:** Implementation of a design the author decided (check before the DB save, no migration, fail open when the LLM is unavailable, error + red notices on both sides). Plan approved by the author.
+
+**Files changed:**
+- `services/chat-service/src/moderation/moderate.ts` (new) — prompt and `createModerator` (fail open)
+- `services/chat-service/src/conversations/service.ts` — `send` runs the moderator before `store.append`; new `flagged` result
+- `services/chat-service/src/ws/hub.ts` — ERROR `MODERATED` to the sender, `MODERATED_PEER` to the other participant
+- `services/chat-service/src/index.ts` — wires the moderator
+- `services/chat-service/test/moderate.test.ts` (new), `service.test.ts`, `hub.test.ts` — tests
+- `services/chat-service/package.json` — moderate test added to `test:unit` (JSON, no header possible)
+- `packages/common-dtos/src/index.ts` — `ChatErrorCode` gains two values
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx` — removed-message notice state and the red translucent notices
+
+## 2026-11-08 14:46 SGT — File review bugs and integrate main into frontend PR 230
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Create the two verified bug issues via gh and ensure the existing redesign PR is mergeable with origin/main.
+
+**Usage scenario:** Debugging, implementation integration, and documentation under the user's authorization to update the existing PR. Created GitHub issues #234 (reorder closed-store confirmation bypass) and #235 (stale moderation recipients after courier reassignment), with reproduction evidence. Fetched origin, preserved and committed the previously uncommitted review bookkeeping (5345548), and integrated origin/main 7f10ecc into frontend-redesign without changing main. Resolved append-only log, TasksPage, and ErrandDetailsPage conflicts while preserving both frontend design and upstream functionality. Preparing the verified merge commit for push to existing PR #230 and updating its description; retaining draft state. The existing missing dedicated tracking-issue link remains visible in the PR body; the two new bug issues are not closed by this redesign.
+
+**Validation:** Regenerated the ignored Order Prisma client for main's existing schema. All-workspace type checks, root ESLint, student production build, CI matrix validation (19 workspace suites / 4 system commands), and whitespace checks passed. Existing unit tests passed: student 55, admin 4, Order 74, Chat 49 (182). Temporary Playwright harness bundled actual merged components without starting a dev server or calling live APIs: passed posted status-column grouping, isolated reorder callback and busy state, requester reason/action validation, disputed completion freeze, courier-first dispute action, no browser errors, and no horizontal overflow at 375/1024/1440px. Initial browser check detected mobile grid min-content overflow; corrected with an explicit single-column grid and shrinkable status-column children, then reran successfully. Inspected the 1024px screenshot. Build retains existing PostCSS metadata / bundle-size warnings. Full stack/broker and live-model flows not rerun. No fixes to #234/#235 were included. No backend, shared-contract, or admin differences relative to current main were introduced by the integration.
+
+**Files changed:**
+- `apps/student-app/src/pages/TasksPage.tsx` — Preserve redesigned toolbar/cards with main's status columns, reorder callback/busy state, dispute text; prevent merged phone layout overflow; maintain disclosures.
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Keep main's requester/courier dispute controls with redesigned actions; retain consumer-facing credit caption; maintain disclosures.
+- `ai/usage-log.md` — Preserve both branch histories and record this prompt.
+- Other upstream files were incorporated unchanged from main by the merge; no new schema or interface decisions.
+
+**External / temporary artifacts:** GitHub issues https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/234 and https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/235; updated description prepared for PR #230. Temporary fixture/browser checks `/tmp/foc-merge-ui.tsx`, `/tmp/foc-merge-ui-check.cjs`, screenshots `/tmp/foc-merge-tasks-{375,1024,1440}.png`, and unit output `/tmp/foc-redesign-merge-tests.log` remain outside the repository.

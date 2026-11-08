@@ -127,6 +127,18 @@
  * Scope: Passes the focused errand's pickup store from the loaded supplier list to ErrandDetailsPage so the page can
  * show the store's operating hours (author's request of 2026-11-04).
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Wired the 'dispute' task action (raise a delivery dispute) and its optional details.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Wired the 'courier-dispute' task action.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: handleOrderAgain: posts a completed errand's details again through the existing order submission.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -139,6 +151,8 @@ import {
   acceptOrderById,
   cancelOrderById,
   completeOrderById,
+  disputeOrderById,
+  courierDisputeOrderById,
   deliverOrderById,
   fetchCombinedOrders,
   fetchOrderById,
@@ -163,6 +177,7 @@ import { estimateRewardCredits, supplierPoint } from './map/creditEstimate';
 import { NUS_SPAN_KM } from './map/nusBuildings';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
+import { buildReorderRequest } from './orders/reorder';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -627,6 +642,20 @@ export default function App() {
     void fetchLiveSuppliers();
   }, []);
 
+  // AI-generated (edited by jagdeepsh): "Order again" posts a new errand with the details of a completed one.
+  const handleOrderAgain = (order: OrderDTO) => {
+    if (submission.busy) return;
+    if (wallet && order.rewardCredits > wallet.availableCredits) {
+      setNoticeTone('alert');
+      setNotification(
+        `Insufficient credits: this errand offers ${order.rewardCredits} C, but you only have ${wallet.availableCredits} C available.`
+      );
+      return;
+    }
+    setNotification(null);
+    void submission.submit(buildReorderRequest(order));
+  };
+
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (submission.busy || !suppliers.some((s) => s.id === formData.supplierId && s.isActive)) {
@@ -684,7 +713,7 @@ export default function App() {
     }
   };
 
-  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction) => {
+  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction, details?: string) => {
     if (taskActionInFlight || acceptingOrder) return;
     const requestId = orderRequestId.current;
     setTaskActionInFlight({ orderId, action });
@@ -704,6 +733,14 @@ export default function App() {
         case 'complete':
           updated = await completeOrderById(authFetch, orderId);
           successMessage = 'Delivery confirmed! The courier payout has been initiated.';
+          break;
+        case 'dispute':
+          updated = await disputeOrderById(authFetch, orderId, details ?? '');
+          successMessage = 'Dispute raised. An administrator will review it; the credits stay held until then.';
+          break;
+        case 'courier-dispute':
+          updated = await courierDisputeOrderById(authFetch, orderId, details ?? '');
+          successMessage = 'Your dispute report was submitted. An administrator will review both sides.';
           break;
         case 'cancel':
           updated = await cancelOrderById(authFetch, orderId);
@@ -876,7 +913,7 @@ export default function App() {
             }
             actionError={actionError}
             onAccept={(orderId, note) => void handleAcceptOrder(orderId, note)}
-            onAction={(orderId, action) => void handleTaskOrderAction(orderId, action)}
+            onAction={(orderId, action, details) => void handleTaskOrderAction(orderId, action, details)}
             supplier={
               focusOrder?.status === 'ok'
                 ? suppliers.find((s) => s.id === focusOrder.order.supplierId) ?? null
@@ -939,6 +976,8 @@ export default function App() {
             ordersLoading={ordersLoading}
             onRefreshOrders={() => void fetchOrders()}
             onOpenErrand={(orderId) => openErrand(orderId, 'tasks')}
+            onOrderAgain={handleOrderAgain}
+            orderAgainBusy={submission.busy}
           />
         )}
 

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Resolve main merge conflicts; retain redesigned cards and toolbar with upstream posted columns, reorder action, and dispute status.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
  * Author review: <to be completed by yanhwee>
@@ -100,6 +104,13 @@
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx.
  * Author review: Verified by yanhwee
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: DELIVERED status line says when the errand is under dispute.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Posted by Me splits into Open / Cancelled / Completed columns; completed cards get an Order again button.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -107,7 +118,7 @@
 
 import { useState } from 'react';
 import { OrderDTO } from '@campus-errand/common-dtos';
-import { ArrowRight, Coins, MapPin, RefreshCw, Send, Truck } from 'lucide-react';
+import { ArrowRight, Coins, MapPin, RefreshCw, RotateCw, Send, Truck } from 'lucide-react';
 
 interface TasksPageProps {
   orders: OrderDTO[];
@@ -116,6 +127,10 @@ interface TasksPageProps {
   onRefreshOrders?: () => void;
   /** Opens the errand's details page (#188), which carries the chat and the actions. */
   onOpenErrand: (orderId: string) => void;
+  /** Posts a new errand with the same details as a completed one. */
+  onOrderAgain?: (order: OrderDTO) => void;
+  /** True while a submission is being posted or reserved; Order again waits for it. */
+  orderAgainBusy?: boolean;
 }
 
 /** One line under the card so the list still tells the state at a glance; the page has the detail and the actions. */
@@ -136,6 +151,7 @@ function statusLine(task: OrderDTO, side: 'posted' | 'accepted'): { text: string
         tone: 'text-amber-700',
       };
     case 'DELIVERED':
+      if (task.dispute) return { text: 'Delivered · Under dispute, an administrator will settle it', tone: 'text-rose-700' };
       return {
         text: side === 'posted' ? 'Delivered · Review and confirm' : 'Delivered · Waiting for requester confirmation',
         tone: 'text-blue-700',
@@ -174,6 +190,8 @@ export function TasksPage({
   ordersLoading = false,
   onRefreshOrders,
   onOpenErrand,
+  onOrderAgain,
+  orderAgainBusy = false,
 }: TasksPageProps) {
   const [filterView, setFilterView] = useState<'all' | 'posted' | 'accepted'>('all');
 
@@ -199,6 +217,124 @@ export function TasksPage({
       emptyAction: 'Browse Errand Feed',
     },
   ];
+
+  // Posted by Me is split into three columns by where each errand ended up.
+  const POSTED_COLUMNS = [
+    { key: 'open', title: 'Open', statuses: ['PENDING', 'OPEN', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED', 'DISPUTED'] },
+    { key: 'cancelled', title: 'Cancelled', statuses: ['CANCELLED', 'EXPIRED', 'REJECTED'] },
+    { key: 'completed', title: 'Completed', statuses: ['COMPLETED'] },
+  ] as const;
+
+  // AI-generated (edited by yanhwee)
+  const renderTask = (task: OrderDTO, groupKey: 'posted' | 'accepted') => {
+    const line = statusLine(task, groupKey);
+
+    return (
+      <article
+        key={`${groupKey}-${task.id}`}
+        data-testid={`task-card-${groupKey}-${task.orderCode}`}
+        data-order-id={task.id}
+        className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
+      >
+        {/* Top Line: Identifiers, Desktop Status & Action CTA */}
+        <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="text-xs font-mono font-semibold text-campus-blue bg-blue-50/90 border border-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
+              {task.orderCode}
+            </span>
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
+              <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+              <span>{task.rewardCredits} C</span>
+            </span>
+            {line && (
+              <span className={`hidden sm:inline-flex text-sm font-medium ${line.tone} items-center gap-1.5 min-w-0`} title={line.text}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                <span>{line.text}</span>
+              </span>
+            )}
+          </div>
+
+          <a
+            href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
+            data-testid="open-errand-link"
+            aria-label={`View details of errand ${task.orderCode}`}
+            onClick={(event) => {
+              event.preventDefault();
+              onOpenErrand(task.id);
+            }}
+            className="inline-flex items-center gap-1 font-semibold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
+          >
+            <span>View details</span>
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </a>
+        </div>
+
+        {/* Mobile-only status line (dedicated row without orphan whitespace) */}
+        {line && (
+          <div className="sm:hidden flex items-center min-w-0 -mt-0.5">
+            <span className={`text-sm font-medium ${line.tone} inline-flex items-center gap-1.5 truncate`} title={line.text}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0" />
+              <span className="truncate">{line.text}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Middle Line: Full-width Item Description (Never squeezed or truncated prematurely) */}
+        <div className="min-w-0">
+          <h4
+            title={task.itemDescription}
+            className="text-sm sm:text-base font-semibold text-slate-900 group-hover:text-campus-blue transition-colors line-clamp-2 leading-snug"
+          >
+            {task.itemDescription}
+          </h4>
+        </div>
+
+        {/* Bottom Line: Connected Route (with blue Pickup pin & orange Dropoff pin) & Notes */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
+          <div className="inline-flex items-center gap-1.5 min-w-0">
+            <MapPin className="h-3.5 w-3.5 text-campus-blue shrink-0" />
+            <span className="text-slate-500 font-semibold text-xs shrink-0">Pickup:</span>
+            <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
+              {task.supplierName}
+            </span>
+          </div>
+
+          <span className="text-slate-300 select-none">➔</span>
+
+          <div className="inline-flex items-center gap-1.5 min-w-0">
+            <MapPin className="h-3.5 w-3.5 text-nus-orange shrink-0" />
+            <span className="text-slate-500 font-semibold text-xs shrink-0">Dropoff:</span>
+            <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
+              {task.dropoffLocation}
+            </span>
+          </div>
+
+          {task.specialNotes && (
+            <>
+              <span className="text-slate-300 hidden sm:inline select-none">•</span>
+              <span className="text-slate-500 italic text-xs break-words" title={task.specialNotes}>
+                Note: {task.specialNotes}
+              </span>
+            </>
+          )}
+        </div>
+        {groupKey === 'posted' && task.status === 'COMPLETED' && onOrderAgain && (
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              data-testid="order-again-btn"
+              disabled={orderAgainBusy}
+              onClick={() => onOrderAgain(task)}
+              className="relative z-10 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-campus-blue hover:bg-campus-blue-hover px-3 py-1.5 rounded-xl shadow-2xs whitespace-nowrap transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${orderAgainBusy ? 'animate-spin' : ''}`} />
+              <span>{orderAgainBusy ? 'Posting…' : 'Order again'}</span>
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  };
 
   // In 'all' view, only show groups that actually have tasks to avoid giant empty placeholder boxes.
   // In specific tab views ('posted' or 'accepted'), show the group even if empty so the user gets clear feedback.
@@ -316,14 +452,38 @@ export function TasksPage({
             </div>
           </div>
 
-          <div className="space-y-3">
-            {group.tasks.length === 0 && (
-              <div className="rounded-2xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
-                <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3 shadow-2xs">
-                  {group.key === 'posted' ? (
-                    <Send className="h-5 w-5 text-campus-blue" />
-                  ) : (
-                    <Truck className="h-5 w-5 text-nus-orange" />
+          {group.key === 'posted' && filterView === 'posted' ? (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-0 lg:divide-x lg:divide-slate-200" data-testid="posted-split">
+              {POSTED_COLUMNS.map((column) => {
+                const columnTasks = group.tasks.filter((task) => (column.statuses as readonly string[]).includes(task.status));
+                return (
+                  <div key={column.key} data-testid={`posted-column-${column.key}`} className="min-w-0 space-y-3 lg:px-4 lg:first:pl-0 lg:last:pr-0">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      {column.title}{' '}
+                      <span className="text-xs font-bold bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-full ml-1">
+                        {columnTasks.length}
+                      </span>
+                    </h4>
+                    {columnTasks.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-slate-200 bg-white/60 p-4 text-center text-xs text-slate-400">
+                        No {column.title.toLowerCase()} errands.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">{columnTasks.map((task) => renderTask(task, 'posted'))}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {group.tasks.length === 0 && (
+                <div className="rounded-2xl border-2 border-dashed border-slate-200/80 bg-white/70 backdrop-blur-sm p-8 text-center shadow-card flex flex-col items-center justify-center">
+                  <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 mb-3 shadow-2xs">
+                    {group.key === 'posted' ? (
+                      <Send className="h-5 w-5 text-campus-blue" />
+                    ) : (
+                      <Truck className="h-5 w-5 text-nus-orange" />
                   )}
                 </div>
                 <p className="font-semibold text-slate-800 text-sm">
@@ -333,102 +493,9 @@ export function TasksPage({
               </div>
             )}
 
-            {group.tasks.map((task) => {
-              const line = statusLine(task, group.key);
-
-              return (
-                <article
-                  key={`${group.key}-${task.id}`}
-                  data-testid={`task-card-${group.key}-${task.orderCode}`}
-                  data-order-id={task.id}
-                  className="group relative bg-white rounded-2xl p-3.5 sm:p-4 shadow-subtle hover:shadow-card border border-slate-200/90 hover:border-orange-300 hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange space-y-2"
-                >
-                  {/* Top Line: Identifiers, Desktop Status & Action CTA */}
-                  <div className="flex items-center justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-mono font-semibold text-campus-blue bg-blue-50/90 border border-blue-100 px-2 py-0.5 rounded-lg shadow-2xs shrink-0">
-                        {task.orderCode}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/90 shadow-2xs shrink-0">
-                        <Coins className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
-                        <span>{task.rewardCredits} C</span>
-                      </span>
-                      {line && (
-                        <span className={`hidden sm:inline-flex text-sm font-medium ${line.tone} items-center gap-1.5 shrink-0`} title={line.text}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-                          <span>{line.text}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <a
-                      href={`/?tab=tasks&orderId=${encodeURIComponent(task.id)}`}
-                      data-testid="open-errand-link"
-                      aria-label={`View details of errand ${task.orderCode}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        onOpenErrand(task.id);
-                      }}
-                      className="inline-flex items-center gap-1 font-semibold text-xs text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 hover:border-blue-300 px-2.5 py-1 rounded-xl shadow-2xs whitespace-nowrap focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] group-hover:shadow-xs group-hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
-                    >
-                      <span>View details</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </a>
-                  </div>
-
-                  {/* Mobile-only status line (dedicated row without orphan whitespace) */}
-                  {line && (
-                    <div className="sm:hidden flex items-center min-w-0 -mt-0.5">
-                      <span className={`text-sm font-medium ${line.tone} inline-flex items-center gap-1.5 truncate`} title={line.text}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0" />
-                        <span className="truncate">{line.text}</span>
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Middle Line: Full-width Item Description (Never squeezed or truncated prematurely) */}
-                  <div className="min-w-0">
-                    <h4
-                      title={task.itemDescription}
-                      className="text-sm sm:text-base font-semibold text-slate-900 group-hover:text-campus-blue transition-colors line-clamp-2 leading-snug"
-                    >
-                      {task.itemDescription}
-                    </h4>
-                  </div>
-
-                  {/* Bottom Line: Connected Route (with blue Pickup pin & orange Dropoff pin) & Notes */}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100/90">
-                    <div className="inline-flex items-center gap-1.5 min-w-0">
-                      <MapPin className="h-3.5 w-3.5 text-campus-blue shrink-0" />
-                      <span className="text-slate-500 font-semibold text-xs shrink-0">Pickup:</span>
-                      <span className="font-semibold text-slate-800 truncate" title={task.supplierName}>
-                        {task.supplierName}
-                      </span>
-                    </div>
-
-                    <span className="text-slate-300 select-none">➔</span>
-
-                    <div className="inline-flex items-center gap-1.5 min-w-0">
-                      <MapPin className="h-3.5 w-3.5 text-nus-orange shrink-0" />
-                      <span className="text-slate-500 font-semibold text-xs shrink-0">Dropoff:</span>
-                      <span className="font-semibold text-slate-800 truncate" title={task.dropoffLocation}>
-                        {task.dropoffLocation}
-                      </span>
-                    </div>
-
-                    {task.specialNotes && (
-                      <>
-                        <span className="text-slate-300 hidden sm:inline select-none">•</span>
-                        <span className="text-slate-500 italic text-xs break-words" title={task.specialNotes}>
-                          Note: {task.specialNotes}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+            {group.tasks.map((task) => renderTask(task, group.key))}
           </div>
+          )}
         </section>
       ))}
     </div>

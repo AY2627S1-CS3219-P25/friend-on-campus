@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Resolve main merge conflict by preserving the delivered-requester dispute and confirmation controls alongside redesigned details.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
  * Author review: <to be completed by yanhwee>
@@ -58,6 +62,18 @@
  * places, the straight-line distance, and "Estimated M · Offered N credits", or "The poster did not use the
  * estimator" when the order has no estimate. Visible before accepting.
  * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Requester DELIVERED block: confirm countdown (deliveredAt + 5 min, auto-completes when it runs out), Raise Dispute with a required reason, and dispute notes for requester and courier.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Courier dispute response: the requester's message above a text box and a Submit dispute report button.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: removed the 5-minute confirm countdown; courier dispute form shown by default on DELIVERED.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by Reallyeasy1)
@@ -99,7 +115,7 @@ export interface ErrandDetailsPageProps {
   /** The last action failure from the Order Service (400 / 403 / 409 text), or null. */
   actionError: string | null;
   onAccept: (orderId: string, courierContactNote?: string) => void;
-  onAction: (orderId: string, action: TaskOrderAction) => void;
+  onAction: (orderId: string, action: TaskOrderAction, details?: string) => void;
   /** The order's pickup store from the loaded supplier list, for its operating hours; null if not loaded. */
   supplier?: SupplierDTO | null;
 }
@@ -479,6 +495,137 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
+// AI-generated (edited by jagdeepsh)
+/**
+ * The requester's DELIVERED block: confirm whenever they like, or Raise Dispute. Once a dispute exists (theirs or the
+ * courier's) confirmation is disabled until an administrator settles the errand; the requester can still add their own
+ * side if they have not yet.
+ */
+function DeliveredRequesterActions({
+  order,
+  actingAction,
+  onAction,
+}: {
+  order: OrderDTO;
+  actingAction: ErrandDetailsPageProps['actingAction'];
+  onAction: ErrandDetailsPageProps['onAction'];
+}) {
+  const [reason, setReason] = useState('');
+  const disputed = Boolean(order.dispute);
+  const raised = Boolean(order.requesterDisputeDetails);
+  const busy = actingAction !== null;
+  const credits = order.rewardCredits;
+
+  const canDispute = !raised && !busy && reason.trim().length > 0;
+  const label = (action: 'complete' | 'dispute', idle: string, active: string) => (actingAction === action ? active : idle);
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <button
+          type="button"
+          data-testid="complete-order-btn"
+          disabled={busy || disputed}
+          onClick={() => onAction(order.id, 'complete')}
+          className={PRIMARY}
+        >
+          {label('complete', `Confirm received & release ${credits} credits`, 'Confirming…')}
+        </button>
+        <p className="text-center text-xs text-slate-500 leading-relaxed">
+          Releases {credits} credits from escrow to the courier.
+        </p>
+      </div>
+
+      {disputed && (
+        <p role="status" data-testid="dispute-raised-note" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          {raised ? 'Dispute raised.' : 'The courier raised a dispute.'} An administrator will review it; the {credits} credits stay held until then.
+        </p>
+      )}
+      {!raised && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            data-testid="raise-dispute-btn"
+            disabled={!canDispute}
+            onClick={() => onAction(order.id, 'dispute', reason.trim())}
+            className={`${BIG} bg-rose-600 hover:bg-rose-700 text-white shadow-xs`}
+          >
+            {label('dispute', 'Raise Dispute', 'Raising dispute…')}
+          </button>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            maxLength={1000}
+            rows={3}
+            aria-label="Reason for the dispute"
+            placeholder="Why are you disputing this delivery? (required)"
+            disabled={busy}
+            className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:opacity-50"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// AI-generated (edited by jagdeepsh)
+/** The courier's dispute block on a DELIVERED errand: the requester's message (empty until they write one), then the courier's own report (once). */
+function CourierDisputeResponse({
+  order,
+  actingAction,
+  onAction,
+}: {
+  order: OrderDTO;
+  actingAction: ErrandDetailsPageProps['actingAction'];
+  onAction: ErrandDetailsPageProps['onAction'];
+}) {
+  const [reason, setReason] = useState('');
+  const busy = actingAction !== null;
+  const submitted = Boolean(order.courierDisputeDetails);
+  const readOnlyBox = 'w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700';
+  return (
+    <div className="space-y-2" data-testid="courier-dispute">
+      {submitted || order.dispute ? (
+        <p role="status" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          This delivery is under dispute. An administrator will settle it; the credits stay held until then.
+        </p>
+      ) : (
+        <p className="text-center text-xs text-slate-500 leading-relaxed">Delivered · Waiting for requester confirmation. If something went wrong you can report it below.</p>
+      )}
+      <label className="block text-xs font-bold text-slate-600" htmlFor="requester-dispute-message">What the requester said</label>
+      <textarea id="requester-dispute-message" readOnly rows={3} value={order.requesterDisputeDetails ?? ''} className={readOnlyBox} />
+      {submitted ? (
+        <>
+          <label className="block text-xs font-bold text-slate-600" htmlFor="courier-dispute-sent">Your dispute report</label>
+          <textarea id="courier-dispute-sent" readOnly rows={3} value={order.courierDisputeDetails ?? ''} className={readOnlyBox} />
+        </>
+      ) : (
+        <>
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            maxLength={1000}
+            rows={3}
+            aria-label="Your account of what happened"
+            placeholder="What happened, and why? (required)"
+            disabled={busy}
+            className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-50"
+          />
+          <button
+            type="button"
+            data-testid="submit-courier-dispute-btn"
+            disabled={busy || reason.trim().length === 0}
+            onClick={() => onAction(order.id, 'courier-dispute', reason.trim())}
+            className={PRIMARY}
+          >
+            {actingAction === 'courier-dispute' ? 'Submitting…' : 'Submit dispute report'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** The one thing to do next, as the wireframe's bottom button: a primary action, its caption, and any secondary one. */
 function Actions({
   order,
@@ -626,25 +773,13 @@ function Actions({
         </div>
       );
     }
-    if (order.status === 'DELIVERED')
-      return caption('Delivered · Waiting for requester confirmation');
+    if (order.status === 'DELIVERED') {
+      return <CourierDisputeResponse order={order} actingAction={actingAction} onAction={onAction} />;
+    }
   }
   if (role === 'requester') {
     if (order.status === 'DELIVERED') {
-      return (
-        <div className="space-y-2">
-          <button
-            type="button"
-            data-testid="complete-order-btn"
-            disabled={busy}
-            onClick={() => onAction(order.id, 'complete')}
-            className={PRIMARY}
-          >
-            {label('complete', `Confirm received & release ${credits} credits`, 'Confirming…')}
-          </button>
-          {caption(`Releases ${credits} credits from escrow to the courier.`)}
-        </div>
-      );
+      return <DeliveredRequesterActions order={order} actingAction={actingAction} onAction={onAction} />;
     }
     if (order.status === 'OPEN' || order.status === 'ACCEPTED') {
       return (
