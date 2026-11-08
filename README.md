@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Record confirmed HTTP origin and bridge networking, link the accepted sizing budget and record legacy retirement approval.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Add the confirmed CloudFront entry point and separate origin TLS and incremental pricing from the shared-host migration baseline.
 Author review: <to be completed by the author>
 
@@ -310,7 +314,7 @@ npm run typecheck
 
 ## ☁️ Cloud Deployment & DevOps (Milestone D4)
 
-**Confirmed migration target (8 November 2026):** [CloudFront in front of ALB and ECS on three shared `m7g.xlarge` hosts](docs/new-cloud-architecture-guide.md), with one RabbitMQ node on each of those same hosts, private RDS PostgreSQL Multi-AZ, and EFS connector checkpoints. CloudFront provides the public HTTPS/WSS hostname and viewer certificate. The CloudFront-to-ALB protocol remains pending; HTTPS requires a matching trusted origin certificate. The guide contains the placement diagram, S$220–221 base estimate plus incremental CloudFront pricing, and pending implementation decisions. Terraform and the deployment workflow still describe the K3s implementation below; the migration preserves business logic and local Docker Compose support.
+**Confirmed migration target (8 November 2026):** [CloudFront in front of ALB and ECS on three shared `m7g.xlarge` hosts](docs/new-cloud-architecture-guide.md), with one RabbitMQ node on each of those same hosts, private RDS PostgreSQL Multi-AZ, and EFS connector checkpoints. CloudFront provides public HTTPS/WSS and connects to the ALB over HTTP/WS. Bridge networking with host public-IP egress is selected, without a NAT gateway. Three hosts are the ceiling; CloudFront uses pay-as-you-go and the cloud starts with existing seeds. The guide records the accepted trial CPU/memory budget, S$220–221 base estimate plus incremental CloudFront pricing, and deferred Chat/Notification fanout and GitHub decisions. The author permits removing the old deployment before replacement verification, without preserving old data. Terraform and the deployment workflow still describe the K3s implementation below; the migration preserves business logic and local Docker Compose support.
 
 Friend on Campus implements a **Two-Tier Autoscaling Cloud-Native Architecture** on Amazon Web Services (AWS) using **Terraform (IaC)**, **Lightweight Kubernetes (K3s)**, **GitHub Actions Continuous Delivery (CD)**, and **k6 Distributed Concurrency Testing**:
 
@@ -440,7 +444,7 @@ friend-on-campus/
 
 ## 📄 System Documentation & Project Wiki
 
-- **[Confirmed CloudFront and ECS cloud architecture](docs/new-cloud-architecture-guide.md)**: CloudFront viewer HTTPS, separate origin TLS requirements, three shared application/RabbitMQ hosts, placement diagram, base and incremental costs, and pending implementation decisions.
+- **[Confirmed CloudFront and ECS cloud architecture](docs/new-cloud-architecture-guide.md)**: Viewer HTTPS, HTTP origin, bridge networking, three-host ceiling, accepted trial resources, costs and deferred team decisions.
 - **[Cloud Deployment, Kubernetes & DevOps Guide](docs/cloud-deployment-and-devops-guide.md)**: Master student learning guide for AWS Terraform IaC, K3s manifests, two-tier autoscaling, GitHub Actions CD via OIDC/SSM, and k6 concurrency testing.
 - **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
 - **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
