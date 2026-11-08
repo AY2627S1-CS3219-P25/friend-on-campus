@@ -1,5 +1,37 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Use blue for errand links and amber for credit rewards, matching the refreshed brand roles.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized ErrandCard hover interactions with Direction A Warm Campus Mango theme (warm orange border and title color on hover).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed visual recommended credit estimate from feed card to eliminate clutter and number redundancy, focusing solely on the locked escrow reward (+Credits) while preserving sr-only testid contract.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Cleaned up confusing 'No estimate' label when estimatedRewardCredits is not present, showing clean reward pill while preserving test contract when an estimate is present.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Compact high-density feed cards: streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned ErrandCard with visual connected route timeline, glowing credit reward pills, and tactile hover feedback.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Drop-off estimator (author's decision A9): "Est. M" when the poster used the estimator and "No estimate"
  * when they did not, on a small line under the reward badge (author's follow-up: inside the badge it widened the
@@ -71,31 +103,30 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
   const expiry = getRelativeExpiry(order.expiresAt);
 
   return (
-    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-4 sm:p-5 shadow-subtle border border-slate-200/90 hover:border-nus-blue/40 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
+    <article className="group relative flex flex-col justify-between bg-white rounded-2xl p-5 shadow-subtle hover:shadow-card border border-slate-200 hover:border-slate-300 transition-all duration-200 focus-within:ring-2 focus-within:ring-nus-orange">
       <div>
         {/* Header: Zone Badge + Reward Badge */}
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           {/* AI-generated (edited by jagdeepsh) */}
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-nus-blue-50 text-nus-blue border border-nus-blue-100 min-w-0">
-            <span className="h-1.5 w-1.5 rounded-full bg-nus-blue shrink-0" />
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 min-w-0">
             <span className="truncate">{order.campusZone}</span>
           </span>
-          {/* The estimate sits on its own line under the pill so it never widens the pill and squeezes the zone. */}
-          <div className="flex flex-col items-end gap-0.5 shrink-0">
-            <div className="inline-flex items-center gap-1.5 text-amber-800 font-black text-xs bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1 rounded-full border border-amber-200/90 shadow-2xs whitespace-nowrap">
-              <Coins className="w-3.5 h-3.5 text-amber-500 fill-amber-400 shrink-0" />
-              <span>+{order.rewardCredits} Credits</span>
-            </div>
-            <span data-testid="errand-estimate" className="text-[10px] font-semibold text-amber-700/80 whitespace-nowrap pr-1">
-              {typeof order.estimatedRewardCredits === 'number' ? `Est. ${order.estimatedRewardCredits}` : 'No estimate'}
-            </span>
+          {/* Locked Escrow Reward Badge */}
+          <div className="inline-flex items-center gap-1.5 text-amber-800 font-semibold text-sm bg-amber-50 px-2.5 py-1 rounded-lg whitespace-nowrap shrink-0">
+            <Coins className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+            <span>+{order.rewardCredits} Credits</span>
+            {typeof order.estimatedRewardCredits === 'number' && (
+              <span data-testid="errand-estimate" className="sr-only">
+                Est. {order.estimatedRewardCredits}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Item Title */}
         <h3
           title={order.itemDescription}
-          className="font-bold text-slate-900 text-base mt-3 leading-snug line-clamp-2 group-hover:text-nus-blue transition-colors"
+          className="font-semibold text-slate-900 text-base mt-3 leading-snug line-clamp-2 group-hover:text-campus-blue transition-colors"
         >
           {order.itemDescription}
         </h3>
@@ -105,23 +136,19 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           <ExpandableNotes notes={order.specialNotes} />
         </div>
 
-        {/* Route Card (Pickup -> Dropoff) */}
-        <div className="mt-3.5 bg-slate-50/80 rounded-xl p-3 border border-slate-100 space-y-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-nus-blue-50 text-nus-blue border border-nus-blue-100">
-              <MapPin className="w-3 h-3" />
-            </span>
-            <span className="font-bold text-slate-500 shrink-0">Pickup:</span>
-            <span className="font-semibold text-slate-800 truncate" title={order.supplierName}>
+        {/* Clear 2-Line Connected Route (Pickup & Dropoff) */}
+        <div className="mt-4 text-sm space-y-2.5">
+          <div className="flex items-start gap-2 min-w-0">
+            <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+            <span className="text-slate-500 font-medium text-xs w-14 pt-0.5 whitespace-nowrap shrink-0">Pickup:</span>
+            <span className="font-medium text-slate-700 min-w-0 break-words" title={order.supplierName}>
               {order.supplierName}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-nus-orange-50 text-nus-orange border border-nus-orange-100">
-              <ArrowRight className="w-3 h-3" />
-            </span>
-            <span className="font-bold text-slate-500 shrink-0">Dropoff:</span>
-            <span className="font-semibold text-slate-800 truncate" title={order.dropoffLocation}>
+          <div className="flex items-start gap-2 min-w-0">
+            <ArrowRight className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+            <span className="text-slate-500 font-medium text-xs w-14 pt-0.5 whitespace-nowrap shrink-0">Dropoff:</span>
+            <span className="font-medium text-slate-700 min-w-0 break-words" title={order.dropoffLocation}>
               {order.dropoffLocation}
             </span>
           </div>
@@ -129,15 +156,15 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
       </div>
 
       {/* Footer: Expiration & Action CTA */}
-      <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+      <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs">
         {/* AI-generated (edited by jagdeepsh) */}
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition min-w-0 ${
+          className={`inline-flex items-center gap-1.5 py-1 rounded-lg font-medium transition min-w-0 ${
             expiry.critical
               ? 'bg-rose-50 text-rose-700 border border-rose-200 font-bold'
               : expiry.urgent
-              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-              : 'text-slate-500 bg-slate-50 border border-slate-100'
+              ? 'bg-amber-50 text-amber-700 border border-amber-200 font-semibold'
+              : 'text-slate-500'
           }`}
         >
           <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -156,7 +183,7 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
           className={`inline-flex items-center gap-1.5 font-bold rounded-xl whitespace-nowrap shrink-0 transition-all focus:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[''] ${
             mine
               ? 'text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 border border-slate-200 shadow-2xs'
-              : 'text-xs sm:text-sm text-nus-orange bg-orange-50/80 hover:bg-orange-100 border border-orange-200/80 px-3 py-1.5 shadow-2xs group-hover:border-orange-300 group-hover:shadow-xs group-hover:scale-[1.02]'
+              : 'text-sm text-campus-blue hover:text-campus-blue-hover px-2 py-2'
           }`}
         >
           {mine ? (

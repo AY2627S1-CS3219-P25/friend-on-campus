@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-20
  * Scope: Extracted ExpandableNotes component from student-app App.tsx into components/ExpandableNotes.tsx.
  * Author review: Verified by yanhwee
@@ -32,17 +36,17 @@ export function ExpandableNotes({ notes }: { notes?: string }) {
   }, [notes, expanded]);
 
   return (
-    <div className="mt-1 text-sm text-slate-500" data-testid="special-notes">
+    <div className="mt-1 text-sm text-slate-600" data-testid="special-notes">
       <p
         id={notesId}
         ref={preview}
         className={`whitespace-pre-wrap break-words leading-5 ${
-          expanded ? 'max-h-40 overflow-y-auto' : 'line-clamp-2 h-10'
+          expanded ? 'max-h-40 overflow-y-auto' : 'line-clamp-2'
         }`}
       >
         {notes || 'No special notes.'}
       </p>
-      <div className="h-11">
+      <div>
         {(overflows || expanded) && (
           <button
             type="button"

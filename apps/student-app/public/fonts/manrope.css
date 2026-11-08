@@ -1,0 +1,13 @@
+/* AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Load the bundled, unmodified Manrope variable font; its original licence is in Manrope-OFL.txt.
+ * Author review: <to be completed by yanhwee>
+ */
+/* AI-generated (edited by yanhwee) */
+@font-face {
+  font-family: 'Manrope';
+  src: url('./Manrope-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}

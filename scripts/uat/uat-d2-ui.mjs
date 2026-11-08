@@ -1,4 +1,16 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-08
+// Scope: Align lifecycle fields, navigation, profile checks, and visible responsive history assertions with the redesigned UI; check mobile directory overflow.
+// Author review: <to be completed by yanhwee>
+//
+// Tool: Codex (model: GPT-6), date: 2026-11-07
+// Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
+// Author review: <to be completed by yanhwee>
+//
+// Tool: Google Antigravity Agent, date: 2026-11-07
+// Scope: Updated UD2 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Codex (model: GPT-6), date: 2026-11-01
 // Scope: Fixed supplier form selectors/coordinates and made failed browser checks fail CI.
 // Author review: <to be completed by Reallyeasy1>
@@ -97,7 +109,7 @@ async function step(id, name, fn) {
   }
 }
 async function postErrandConfirmingHours(page) {
-  await page.getByRole('button', { name: 'Post Errand' }).click();
+  await page.locator('form').getByRole('button', { name: 'Post Errand', exact: true }).click();
   const banner = page.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
   const postAnyway = page.getByRole('button', { name: 'Post anyway' });
   await banner.or(postAnyway).first().waitFor({ timeout: 20000 });
@@ -363,18 +375,21 @@ const browser = await chromium.launch();
     await page.locator('input[type=password]').fill(PW);
     await page.locator('input[type=checkbox]').check();
     await page.getByRole('button', { name: 'Log In' }).click();
-    await page.getByRole('button', { name: 'Spots' }).waitFor();
+    await page.getByRole('button', { name: 'Places', exact: true }).waitFor();
     await shot(page, 'student-feed-mobile');
   });
   await step('US4', 'student (mobile): reload keeps the session', async () => {
     await page.reload();
-    await page.getByRole('button', { name: 'Spots' }).waitFor();
+    await page.getByRole('button', { name: 'Places', exact: true }).waitFor();
   });
   await step('US5', 'student (mobile): Spots tab shows the live supplier directory', async () => {
-    await page.getByRole('button', { name: 'Spots' }).click();
+    await page.getByRole('button', { name: 'Places', exact: true }).click();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     const txt = await page.locator('body').innerText();
     const m = txt.match(/(\d+)\s+Verified/);
+    // AI-generated (edited by yanhwee): a widened mobile page can displace the fixed bottom navigation.
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (pageWidth > MOBILE.width + 1) throw new Error(`mobile directory overflows: ${pageWidth}px at ${MOBILE.width}px`);
     await shot(page, 'student-spots-mobile');
     if (!m || Number(m[1]) < 21) throw new Error(`expected >=21 verified spots, saw "${m?.[0]}"`);
     return `${m[1]} verified spots`;
@@ -390,17 +405,18 @@ const browser = await chromium.launch();
     return `${m[1]} spots match "print"`;
   });
   await step('US7', 'student (mobile): Post tab pre-selects a live supplier', async () => {
-    await page.getByRole('button', { name: 'Post' }).click();
+    await page.getByRole('button', { name: 'Post errand', exact: true }).click();
     await page.locator('select:visible').first().waitFor();
     const options = await page.locator('select:visible').first().locator('option').count();
     await shot(page, 'student-post-mobile');
     if (options < 21) throw new Error(`only ${options} supplier options`);
     return `${options} supplier options`;
   });
-  await step('US8', 'student (mobile): Profile shows the live account and edits the username', async () => {
+  await step('US8', 'student (mobile): Profile shows the live account details', async () => {
     await page.getByRole('button', { name: 'Profile' }).click();
-    await page.locator('input[value="alice@u.nus.edu"]').waitFor();
-    await page.getByText('STUDENT', { exact: true }).first().waitFor();
+    await page.locator('#profile-email').waitFor();
+    if (await page.locator('#profile-email').inputValue() !== 'alice@u.nus.edu') throw new Error('incorrect profile email');
+    if (!(await page.locator('#profile-username').inputValue()).trim()) throw new Error('missing profile username');
     await shot(page, 'student-profile-mobile');
   });
   await step('US9', 'student (mobile): Log Out returns to the login page and the session is gone', async () => {
@@ -422,9 +438,9 @@ const browser = await chromium.launch();
     await page.locator('input[type=email]').fill('bob@u.nus.edu');
     await page.locator('input[type=password]').fill(PW);
     await page.getByRole('button', { name: 'Log In' }).click();
-    await page.getByRole('button', { name: 'Spots' }).waitFor();
+    await page.getByRole('button', { name: 'Places', exact: true }).waitFor();
     await shot(page, 'student-feed-desktop');
-    await page.getByRole('button', { name: 'Spots' }).click();
+    await page.getByRole('button', { name: 'Places', exact: true }).click();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     await shot(page, 'student-spots-desktop');
   });
@@ -433,7 +449,7 @@ const browser = await chromium.launch();
   // Notifications (issue #52, F5): Order Service does not publish yet, so the event is published here as order_service.
   let bobId;
   await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
-    await page.getByText('WS Hub: connected').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
+    await page.locator('[data-status="connected"]').waitFor(); // needs VITE_SHOW_WS_STATUS unset or true (the default)
     await page.getByRole('button', { name: /^Alerts/ }).first().waitFor();
     const token = await apiLogin('bob@u.nus.edu');
     bobId = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')).sub;
@@ -443,7 +459,7 @@ const browser = await chromium.launch();
     const markAll = page.getByRole('button', { name: 'Mark all as read' });
     if (await markAll.isEnabled()) await markAll.click();
     await page.waitForFunction(() => document.querySelectorAll('[data-testid=notification-badge]').length === 0);
-    await page.getByRole('button', { name: 'Feed' }).first().click();
+    await page.getByRole('button', { name: 'Browse', exact: true }).first().click();
     if (await page.getByTestId('notification-badge').count() > 0) throw new Error('badge shown with nothing unread');
     return 'connected, badge hidden';
   });
@@ -552,12 +568,12 @@ const browser = await chromium.launch();
     await alicePage.locator('input[type=email]').fill('alice@u.nus.edu');
     await alicePage.locator('input[type=password]').fill(PW);
     await alicePage.getByRole('button', { name: 'Log In' }).click();
-    await alicePage.getByRole('button', { name: 'Post' }).first().waitFor();
-    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().waitFor();
+    await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().click();
 
     await alicePage.locator('select:visible').first().waitFor();
-    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(lifecycleItem);
-    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('COM1 Study Area');
+    await alicePage.locator('#errand-item-description').fill(lifecycleItem);
+    await alicePage.locator('#errand-dropoff-location').fill('COM1 Study Area');
     await alicePage.getByLabel('Reward credits').fill(String(LIFECYCLE_REWARD));
     const durationVal = await alicePage.getByLabel('Acceptance duration in minutes').inputValue();
     if (durationVal !== '30') throw new Error(`expected default duration 30, got ${durationVal}`);
@@ -569,7 +585,7 @@ const browser = await chromium.launch();
     if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
     lifecycleCode = match[1];
 
-    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    await alicePage.getByRole('button', { name: 'My Errands', exact: true }).first().click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
     await aliceCard.waitFor();
     const details = await openErrand(alicePage, aliceCard);
@@ -586,7 +602,7 @@ const browser = await chromium.launch();
     await bobPage.locator('input[type=email]').fill('bob@u.nus.edu');
     await bobPage.locator('input[type=password]').fill(PW);
     await bobPage.getByRole('button', { name: 'Log In' }).click();
-    await bobPage.getByRole('button', { name: 'Tasks' }).first().waitFor();
+    await bobPage.getByRole('button', { name: 'My Errands', exact: true }).first().waitFor();
 
     const feedCard = bobPage.locator('article', { hasText: lifecycleItem }).first();
     await feedCard.waitFor();
@@ -597,7 +613,7 @@ const browser = await chromium.launch();
     await feedDetails.getByTestId('pickup-order-btn').waitFor();
     await backFromErrand(bobPage);
 
-    await bobPage.getByRole('button', { name: 'Tasks' }).first().click();
+    await bobPage.getByRole('button', { name: 'My Errands', exact: true }).first().click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
     await bobCard.waitFor();
     const details = await openErrand(bobPage, bobCard);
@@ -629,27 +645,27 @@ const browser = await chromium.launch();
   await lifecycleStep('UO5', 'student (desktop): requester clicks Confirm Delivery -> COMPLETED and remains in history for both users', async () => {
     await alicePage.getByRole('button', { name: 'Refresh' }).click();
     const aliceCard = alicePage.getByTestId(`task-card-posted-${lifecycleCode}`);
-    await aliceCard.getByText(/Delivered · Review and confirm/i).waitFor();
+    await aliceCard.getByText(/Delivered · Review and confirm/i).filter({ visible: true }).waitFor();
     const aliceDetails = await openErrand(alicePage, aliceCard);
     await aliceDetails.getByTestId('complete-order-btn').click();
     await aliceDetails.getByText(new RegExp(`${LIFECYCLE_REWARD} credits paid to the courier once Credit Service settles the escrow`, 'i')).first().waitFor(); // timeline row and reward chip both say it
     await shot(alicePage, 'student-order-completed-requester-desktop');
     await backFromErrand(alicePage);
-    await aliceCard.getByText(/Completed · Delivery confirmed/i).waitFor();
+    await aliceCard.getByText(/Completed · Delivery confirmed/i).filter({ visible: true }).waitFor();
 
     await backFromErrand(bobPage);
     await bobPage.getByRole('button', { name: 'Refresh' }).click();
     const bobCard = bobPage.getByTestId(`task-card-accepted-${lifecycleCode}`);
-    await bobCard.getByText(new RegExp(`Completed · ${LIFECYCLE_REWARD} credits are paid once Credit Service settles the escrow`, 'i')).waitFor();
+    await bobCard.getByText(new RegExp(`Completed · ${LIFECYCLE_REWARD}-credit reward`, 'i')).filter({ visible: true }).waitFor();
     await shot(bobPage, 'student-order-completed-courier-desktop');
     return `${lifecycleCode} COMPLETED in requester + courier history`;
   });
 
   await lifecycleStep('UO6', 'student (desktop): requester posts an errand and clicks Cancel Errand -> CANCELLED in history', async () => {
-    await alicePage.getByRole('button', { name: 'Post' }).first().click();
+    await alicePage.getByRole('button', { name: 'Post errand', exact: true }).first().click();
     await alicePage.locator('select:visible').first().waitFor();
-    await alicePage.getByPlaceholder('e.g. 1x Cold Brew Coffee + 1x Croissant').fill(cancelItem);
-    await alicePage.getByPlaceholder('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)').fill('Central Library');
+    await alicePage.locator('#errand-item-description').fill(cancelItem);
+    await alicePage.locator('#errand-dropoff-location').fill('Central Library');
     await alicePage.getByLabel('Reward credits').fill(String(CANCEL_REWARD));
     const banner = await postErrandConfirmingHours(alicePage);
     await banner.waitFor({ timeout: 20000 });
@@ -658,7 +674,7 @@ const browser = await chromium.launch();
     if (!match) throw new Error(`could not parse orderCode from "${bannerText}"`);
     cancelCode = match[1];
 
-    await alicePage.getByRole('button', { name: 'Tasks' }).first().click();
+    await alicePage.getByRole('button', { name: 'My Errands', exact: true }).first().click();
     const cancelCard = alicePage.getByTestId(`task-card-posted-${cancelCode}`);
     await cancelCard.waitFor();
     const cancelDetails = await openErrand(alicePage, cancelCard);
@@ -666,7 +682,7 @@ const browser = await chromium.launch();
     await cancelDetails.getByTestId('end-state').getByText(/Cancelled/i).waitFor();
     await shot(alicePage, 'student-order-cancelled-desktop');
     await backFromErrand(alicePage);
-    await cancelCard.getByText(/Cancelled · Reserved credits are returned by Credit Service/i).waitFor();
+    await cancelCard.getByText(/Cancelled · Reserved credits will be returned/i).filter({ visible: true }).waitFor();
     return `${cancelCode} CANCELLED in requester history`;
   });
 
