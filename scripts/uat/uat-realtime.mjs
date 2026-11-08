@@ -115,7 +115,7 @@ async function postErrand(page, item, reward) {
   await page.locator('#errand-item-description').fill(item);
   await page.locator('#errand-dropoff-location').fill('COM1 Study Area');
   await page.getByLabel('Reward credits').fill(String(reward));
-  await page.getByRole('button', { name: 'Post Errand' }).click();
+  await page.locator('form').getByRole('button', { name: 'Post Errand', exact: true }).click();
   const banner = page.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
   // outside the pre-selected store's hours the page asks to confirm first.
   const postAnyway = page.getByRole('button', { name: 'Post anyway' });

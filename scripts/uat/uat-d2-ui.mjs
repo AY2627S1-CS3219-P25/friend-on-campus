@@ -109,7 +109,7 @@ async function step(id, name, fn) {
   }
 }
 async function postErrandConfirmingHours(page) {
-  await page.getByRole('button', { name: 'Post Errand' }).click();
+  await page.locator('form').getByRole('button', { name: 'Post Errand', exact: true }).click();
   const banner = page.getByText(/Errand ORD-\w+ posted\. Credits reserved\./);
   const postAnyway = page.getByRole('button', { name: 'Post anyway' });
   await banner.or(postAnyway).first().waitFor({ timeout: 20000 });
@@ -412,10 +412,11 @@ const browser = await chromium.launch();
     if (options < 21) throw new Error(`only ${options} supplier options`);
     return `${options} supplier options`;
   });
-  await step('US8', 'student (mobile): Profile shows the live account and edits the username', async () => {
+  await step('US8', 'student (mobile): Profile shows the live account details', async () => {
     await page.getByRole('button', { name: 'Profile' }).click();
-    await page.locator('input[value="alice@u.nus.edu"]').waitFor();
-    await page.getByText('STUDENT', { exact: true }).first().waitFor();
+    await page.locator('#profile-email').waitFor();
+    if (await page.locator('#profile-email').inputValue() !== 'alice@u.nus.edu') throw new Error('incorrect profile email');
+    if (!(await page.locator('#profile-username').inputValue()).trim()) throw new Error('missing profile username');
     await shot(page, 'student-profile-mobile');
   });
   await step('US9', 'student (mobile): Log Out returns to the login page and the session is gone', async () => {
