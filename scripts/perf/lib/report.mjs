@@ -4,6 +4,12 @@
 //        derived from k6's JSON output, and per-operation verdicts (thresholds, sample minimums, VUs versus
 //        estimated in-flight requests versus requests per second) derived from k6-summary.json.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+// Scope: stageStatus and overallVerdict, moved out of run-perf.mjs so they can be tested: a stage status is always
+//        a verdict, and the run passes only when every required stage passed. compareRuns and renderComparison:
+//        a per-operation benchmark table for two runs (scripts/perf/compare-runs.mjs).
+// Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by Reallyeasy1)
 import { createReadStream, createWriteStream } from 'node:fs';
 import { createInterface } from 'node:readline';
@@ -25,6 +31,29 @@ function percentile(sorted, fraction) {
  * percentiles, so the written output is bounded by (run seconds / bucketSeconds) x distinct tag combinations
  * rather than by request count.
  */
+const VERDICTS = new Set(['PASS', 'FAIL', 'BLOCKED', 'INCOMPLETE']);
+
+// AI-generated (edited by Reallyeasy1)
+/**
+ * The status of a stage that threw: the verdict the error carries, BLOCKED for a fixture problem, FAIL otherwise.
+ * A gateway error carries an HTTP code in `status`; that is not a verdict (a reconciliation once ended as "401").
+ */
+export function stageStatus(error) {
+  if (VERDICTS.has(error.status)) return error.status;
+  return error.name === 'FixtureError' ? 'BLOCKED' : 'FAIL';
+}
+
+/** The run's verdict from its required stages; `runCount` k6 runs plus preflight and fixtures must at least have started. */
+export function overallVerdict(stages, runCount) {
+  const required = stages.filter((entry) => entry.required);
+  if (required.some((entry) => entry.status === 'BLOCKED')) return 'BLOCKED';
+  if (required.some((entry) => entry.status === 'FAIL')) return 'FAIL';
+  if (required.some((entry) => entry.status === 'INCOMPLETE')) return 'INCOMPLETE';
+  if (required.length < 2 + runCount) return 'BLOCKED';
+  // Anything that is not PASS fails the run, whatever its status is called.
+  return required.every((entry) => entry.status === 'PASS') ? 'PASS' : 'FAIL';
+}
+
 export async function buildTimeline(rawPath, gzPath, { bucketSeconds = 10 } = {}) {
   const buckets = new Map();
   let lines = 0;
@@ -131,7 +160,9 @@ export function performanceFromSummary(summary, workloadSpec, context) {
       description: op.description,
       issue: limit.issue,
       criterion: limit.criterion,
-      limit: { p95Ms: limit.p95Ms, comparator: limit.comparator, maxErrorRate: op.maxErrorRate, errorRateSource: op.errorRateSource },
+      // requirementP95Ms / requirementVus: what the linked issue states, when the enforced limit was raised above it
+      // or the workload runs with fewer users than the issue describes.
+      limit: { p95Ms: limit.p95Ms, comparator: limit.comparator, requirementP95Ms: limit.requirementP95Ms ?? null, requirementVus: limit.requirementVus ?? null, maxErrorRate: op.maxErrorRate, errorRateSource: op.errorRateSource },
       thresholds,
       steady: duration ? {
         count,
@@ -173,4 +204,82 @@ export function performanceFromSummary(summary, workloadSpec, context) {
   if (k6ExitCode !== 0) verdict = 'FAIL';
   if (extra.some((row) => !row.ok)) verdict = 'FAIL';
   return { verdict, k6ExitCode, runSeconds, steadySeconds, operations, asyncMetrics, extraThresholds: extra, notCovered: workloadSpec.notCovered ?? [] };
+}
+
+// AI-generated (edited by Reallyeasy1)
+/**
+ * Benchmark rows for two runs ({ manifest, workloads: { label: performance.json } }), one per operation present in
+ * both. `comparable` is false when the virtual-user counts differ: latency under another load is another measurement.
+ * Changes are fractions of the baseline (-0.5 = half); null when either side is missing.
+ */
+export function compareRuns(baseline, current) {
+  const change = (before, after) => (typeof before === 'number' && typeof after === 'number' && before > 0 ? (after - before) / before : null);
+  const pair = (before, after) => ({ baseline: before ?? null, current: after ?? null, change: change(before, after) });
+  const rows = [];
+  for (const [workload, now] of Object.entries(current.workloads)) {
+    const then = baseline.workloads[workload];
+    if (!then) continue;
+    for (const op of now.operations ?? []) {
+      const old = (then.operations ?? []).find((candidate) => candidate.operation === op.operation);
+      if (!old?.steady || !op.steady) continue;
+      const vus = { baseline: old.concurrency?.configuredVus ?? null, current: op.concurrency?.configuredVus ?? null };
+      rows.push({
+        workload,
+        operation: op.operation,
+        vus,
+        comparable: vus.baseline === vus.current,
+        p50Ms: pair(old.steady.p50Ms, op.steady.p50Ms),
+        p95Ms: pair(old.steady.p95Ms, op.steady.p95Ms),
+        requestsPerSecond: pair(old.steady.requestsPerSecond, op.steady.requestsPerSecond),
+        errorRate: { baseline: old.steady.httpFailedRate ?? null, current: op.steady.httpFailedRate ?? null },
+        verdict: { baseline: old.verdict, current: op.verdict },
+      });
+    }
+    for (const metric of now.asyncMetrics ?? []) {
+      const old = (then.asyncMetrics ?? []).find((candidate) => candidate.metric === metric.metric);
+      if (!old?.steady || !metric.steady) continue;
+      rows.push({
+        workload,
+        operation: `${metric.metric} (reported only)`,
+        vus: { baseline: null, current: null },
+        comparable: true,
+        p50Ms: pair(old.steady.p50Ms, metric.steady.p50Ms),
+        p95Ms: pair(old.steady.p95Ms, metric.steady.p95Ms),
+        requestsPerSecond: pair(null, null),
+        errorRate: { baseline: null, current: null },
+        verdict: { baseline: 'n/a', current: 'n/a' },
+      });
+    }
+  }
+  return rows;
+}
+
+/** Markdown for compareRuns rows. `meta` carries the two manifests. States measurements only, no pass or fail. */
+export function renderComparison(rows, meta) {
+  const ms = (value) => (typeof value === 'number' ? value.toFixed(0) : 'n/a');
+  const rate = (value) => (typeof value === 'number' ? value.toFixed(1) : 'n/a');
+  const percent = (value) => (typeof value === 'number' ? `${value > 0 ? '+' : ''}${(value * 100).toFixed(0)}%` : 'n/a');
+  const errors = (value) => (typeof value === 'number' ? `${(value * 100).toFixed(1)}%` : 'n/a');
+  const describe = (manifest) => [manifest.runId, manifest.startedAt, manifest.profile, (manifest.commit ?? 'unknown').slice(0, 7), manifest.tools?.k6 ?? 'unknown', manifest.target?.hostname ?? 'unknown'];
+  const [a, b] = [describe(meta.baseline), describe(meta.current)];
+  const lines = [
+    '# Benchmark comparison',
+    '',
+    '| | Baseline | Current |',
+    '|---|---|---|',
+    ...['Run', 'Started', 'Profile', 'Harness commit', 'k6', 'Target'].map((label, index) => `| ${label} | ${a[index]} | ${b[index]} |`),
+    '',
+    'Steady-state measurements at the gateway. Lower latency and higher throughput are better. This table compares',
+    'two runs; whether a run meets its requirement thresholds is in that run\'s own `summary.md`.',
+    '',
+    '| Workload | Operation | VUs | p50 ms | p50 change | p95 ms | p95 change | req/s | req/s change | Errors |',
+    '|---|---|---|---|---|---|---|---|---|---|',
+  ];
+  for (const row of rows) {
+    const vus = row.vus.current === null ? '-' : row.comparable ? String(row.vus.current) : `${row.vus.baseline} -> ${row.vus.current} *`;
+    lines.push(`| ${row.workload} | ${row.operation} | ${vus} | ${ms(row.p50Ms.baseline)} -> ${ms(row.p50Ms.current)} | ${percent(row.p50Ms.change)} | ${ms(row.p95Ms.baseline)} -> ${ms(row.p95Ms.current)} | ${percent(row.p95Ms.change)} | ${rate(row.requestsPerSecond.baseline)} -> ${rate(row.requestsPerSecond.current)} | ${percent(row.requestsPerSecond.change)} | ${errors(row.errorRate.baseline)} -> ${errors(row.errorRate.current)} |`);
+  }
+  if (rows.length === 0) lines.push('| - | no operation is present in both runs | | | | | | | | |');
+  if (rows.some((row) => !row.comparable)) lines.push('', '\\* Different virtual-user counts: not a like-for-like comparison.');
+  return `${lines.join('\n')}\n`;
 }

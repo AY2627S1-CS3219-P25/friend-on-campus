@@ -5,6 +5,13 @@
 //        errands, reconciles orders/wallets/ledgers over HTTP with the issue #64 invariants, then cancels and
 //        deletes only what the run created.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+// Scope: Fixes from run perf-20261108T135152Z-b09772, whose reconciliation and cleanup got HTTP 401 on a 26-minute-old
+//        admin token and left 100 accounts and 500 suppliers behind: the administrator and the account logins are
+//        self-renewing sessions (gateway.session), and findRunOwned locates one run's fixtures by its tag so that a
+//        failed or interrupted run can be cleaned up afterwards (the administrator cancels its open errands).
+// Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by Reallyeasy1)
 import { randomBytes, randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -32,11 +39,11 @@ export function fixtureTag() {
 }
 
 /**
- * Creates everything the k6 scripts need. `admin` is { email, password } resolved by the orchestrator.
- * Returns { fixtures (safe to publish), accounts (secret: passwords), owned (ids for cleanup), adminToken }.
+ * Creates everything the k6 scripts need. `admin` is the administrator's gateway session (gw.session).
+ * Returns { fixtures (safe to publish), accounts (secret: passwords), owned (ids for cleanup) }.
  */
 export async function createFixtures(gw, options) {
-  const partial = { owned: { userIds: [], supplierIds: [], feedOrderIds: [] }, accounts: [], adminToken: null };
+  const partial = { owned: { userIds: [], supplierIds: [], feedOrderIds: [] }, accounts: [] };
   try {
     return await buildFixtures(gw, options, partial);
   } catch (error) {
@@ -46,13 +53,12 @@ export async function createFixtures(gw, options) {
   }
 }
 
-async function buildFixtures(gw, { tag, admin: adminCredentials, accountCount, supplierCount, feedOrderCount, openTimeoutMs, log }, partial) {
+async function buildFixtures(gw, { tag, admin, accountCount, supplierCount, feedOrderCount, openTimeoutMs, log }, partial) {
   const owned = partial.owned;
-  const admin = await gw.login(adminCredentials.email, adminCredentials.password).catch((error) => {
+  const adminLogin = await admin.current().catch((error) => {
     throw new FixtureError(`admin login failed: ${error.message}`);
   });
-  if (admin.role !== 'ADMIN') throw new FixtureError('the configured admin account is not an administrator');
-  partial.adminToken = admin.token;
+  if (adminLogin.role !== 'ADMIN') throw new FixtureError('the configured admin account is not an administrator');
   log(`admin login ok; registering ${accountCount} run-owned accounts`);
 
   const accounts = await mapLimit(Array.from({ length: accountCount }, (_, index) => index), PARALLELISM, async (index) => {
@@ -87,7 +93,7 @@ async function buildFixtures(gw, { tag, admin: adminCredentials, accountCount, s
     await mapLimit(Array.from({ length: supplierCount }, (_, index) => index), PARALLELISM, async (index) => {
       const response = await gw.request('/api/suppliers', {
         method: 'POST',
-        token: admin.token,
+        token: await admin.token(),
         body: {
           // Explicit code: the service derives codes from count + 1, which collides under parallel creation.
           supplierCode: `PERF-${tag.toUpperCase()}-${String(index).padStart(3, '0')}`,
@@ -146,7 +152,6 @@ async function buildFixtures(gw, { tag, admin: adminCredentials, accountCount, s
   });
 
   return {
-    adminToken: admin.token,
     owned,
     fixtures: {
       tag,
@@ -166,21 +171,47 @@ async function buildFixtures(gw, { tag, admin: adminCredentials, accountCount, s
   };
 }
 
-async function listOrdersFor(gw, adminToken, userId) {
+/**
+ * Finds what the run tagged `tag` created, from its naming scheme: suppliers named "perf-<tag> stall N" and accounts
+ * perf-<tag>-N@u.nus.edu. For a run whose own cleanup failed or never ran; the account passwords are gone by then.
+ */
+export async function findRunOwned(gw, admin, tag) {
+  if (!/^[0-9a-f]{6}$/.test(String(tag))) throw new FixtureError('a run tag is six hexadecimal characters ("tag" in the run\'s fixtures.json)');
+  const supplierIds = [];
+  const stallPrefix = `perf-${tag} stall `;
+  for (let page = 1; ; page += 1) {
+    const response = await gw.request(`/api/suppliers?search=perf-${tag}&page=${page}&limit=100`, { token: await admin.token() });
+    const data = gw.expect(response, 200, 'GET /api/suppliers?search');
+    // The search is a substring match; only the exact fixture name pattern is run-owned.
+    supplierIds.push(...data.suppliers.filter((supplier) => String(supplier.name).startsWith(stallPrefix)).map((supplier) => supplier.id));
+    if (data.suppliers.length === 0 || page * 100 >= data.total) break;
+  }
+  const listed = gw.expect(await gw.request('/api/users', { token: await admin.token() }), 200, 'GET /api/users');
+  const pattern = new RegExp(`^perf-${tag}-(\\d+)@u\\.nus\\.edu$`);
+  const accounts = listed.users
+    .flatMap((user) => {
+      const match = pattern.exec(String(user.email));
+      return match ? [{ index: Number(match[1]), userId: user.userId, email: user.email }] : [];
+    })
+    .sort((a, b) => a.index - b.index);
+  return { accounts, owned: { supplierIds, userIds: accounts.map((account) => account.userId), feedOrderIds: [] } };
+}
+
+async function listOrdersFor(gw, admin, userId) {
   const orders = [];
   for (let page = 1; ; page += 1) {
-    const response = await gw.request(`/api/orders?requesterId=${userId}&status=ALL&limit=100&page=${page}`, { token: adminToken });
+    const response = await gw.request(`/api/orders?requesterId=${userId}&status=ALL&limit=100&page=${page}`, { token: await admin.token() });
     const data = gw.expect(response, 200, 'GET /api/orders?requesterId');
     orders.push(...data);
     if (data.length === 0 || orders.length >= (response.json.total ?? 0)) return orders;
   }
 }
 
-async function snapshot(gw, adminToken, accounts, tokens) {
+async function snapshot(gw, admin, accounts, sessions) {
   const perAccount = await mapLimit(accounts, PARALLELISM, async (account) => {
-    const token = tokens.get(account.userId);
+    const token = await sessions.get(account.userId).token();
     const [orders, walletResponse, ledgerResponse] = await Promise.all([
-      listOrdersFor(gw, adminToken, account.userId),
+      listOrdersFor(gw, admin, account.userId),
       gw.request('/api/credits/wallet', { token }),
       gw.request('/api/credits/ledger', { token }),
     ]);
@@ -220,16 +251,14 @@ function settled(order, counts) {
  * Waits (bounded) for the run's asynchronous credit effects to converge, then asserts the invariants over
  * run-owned accounts only. Returns { pass, checks, summary } and never throws on a violation.
  */
-export async function reconcile(gw, { adminToken, accounts, timeoutMs, log }) {
-  const tokens = new Map();
-  await mapLimit(accounts, PARALLELISM, async (account) => {
-    tokens.set(account.userId, (await gw.login(account.email, account.password)).token);
-  });
+export async function reconcile(gw, { admin, accounts, timeoutMs, log }) {
+  // Sessions, not tokens: the wait below and the cleanup after it can outlast one access token.
+  const sessions = new Map(accounts.map((account) => [account.userId, gw.session(account.email, account.password)]));
 
   let state;
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    state = await snapshot(gw, adminToken, accounts, tokens);
+    state = await snapshot(gw, admin, accounts, sessions);
     const counts = ledgerCounts(state.ledger);
     const unsettled = state.orders.filter((order) => !settled(order, counts.get(order.id) ?? { ESCROW_HOLD: 0, ESCROW_RELEASE: 0, ESCROW_REFUND: 0 }));
     if (unsettled.length === 0) break;
@@ -306,66 +335,74 @@ export async function reconcile(gw, { adminToken, accounts, timeoutMs, log }) {
     pass: checks.every((check) => check.pass),
     checks,
     summary: { accounts: accounts.length, orders: state.orders.length, ordersByStatus: byStatus, ledgerRows: state.ledger.length, supply },
-    tokens,
+    sessions,
   };
 }
 
-/** Cancels the run's open work and deletes run-owned suppliers and accounts. Errors are reported, never thrown. */
-export async function cleanup(gw, { adminToken, accounts, owned, tokens, log }) {
+/**
+ * Cancels the run's open work and deletes run-owned suppliers and accounts. Errors are reported, never thrown.
+ * `admin` is the administrator's session; `sessions` (userId -> session) may come from reconcile.
+ */
+export async function cleanup(gw, { admin, accounts, owned, sessions, log }) {
   const report = { cancelledOrders: 0, skippedOrders: [], deletedSuppliers: 0, deletedAccounts: 0, errors: [] };
   const note = (message) => { report.errors.push(message); log(`cleanup: ${message}`); };
 
-  if (adminToken) {
-    for (const account of accounts) {
-      let orders = [];
-      try {
-        orders = await listOrdersFor(gw, adminToken, account.userId);
-      } catch (error) {
-        note(`could not list orders for account ${account.index}: ${error.message}`);
+  try {
+    await admin.token();
+  } catch (error) {
+    note(`admin login failed (${error.message}); run-owned data was left in place`);
+    return report;
+  }
+  const own = new Map(sessions ?? []);
+  for (const account of accounts) {
+    let orders = [];
+    try {
+      orders = await listOrdersFor(gw, admin, account.userId);
+    } catch (error) {
+      note(`could not list orders for account ${account.index}: ${error.message}`);
+      continue;
+    }
+    for (const order of orders) {
+      if (TERMINAL_STATUSES.has(order.status)) continue;
+      if (order.status === 'PENDING') {
+        report.skippedOrders.push(`${order.id}: PENDING cannot be cancelled`);
         continue;
       }
-      for (const order of orders) {
-        if (TERMINAL_STATUSES.has(order.status)) continue;
-        if (order.status === 'PENDING') {
-          report.skippedOrders.push(`${order.id}: PENDING cannot be cancelled`);
-          continue;
-        }
-        try {
-          let token = tokens?.get(account.userId);
-          if (!token && (order.status === 'OPEN' || order.status === 'ACCEPTED')) {
-            token = (await gw.login(account.email, account.password)).token;
-            tokens?.set(account.userId, token);
-          }
-          const response = order.status === 'OPEN' || order.status === 'ACCEPTED'
-            ? await gw.request(`/api/orders/${order.id}/cancel`, { method: 'POST', token })
-            : await gw.request(`/api/orders/${order.id}/admin/cancel`, { method: 'POST', token: adminToken, body: { reason: 'performance run cleanup' } });
-          if (response.status === 200) report.cancelledOrders += 1;
-          else report.skippedOrders.push(`${order.id}: HTTP ${response.status} (${order.status})`);
-        } catch (error) {
-          note(`cancel ${order.id}: ${error.message}`);
-        }
-      }
-    }
-    for (const supplierId of owned.supplierIds) {
       try {
-        const response = await gw.request(`/api/suppliers/${supplierId}?permanent=true`, { method: 'DELETE', token: adminToken });
-        if (response.status === 200) report.deletedSuppliers += 1;
-        else note(`delete supplier: HTTP ${response.status}`);
+        // The requester cancels their own OPEN or ACCEPTED errand. Everything else goes through the administrator, and
+        // so does every errand of an account whose password is not known (a run found again by its tag).
+        let requester = null;
+        if (order.status === 'OPEN' || order.status === 'ACCEPTED') {
+          if (!own.has(account.userId) && account.password) own.set(account.userId, gw.session(account.email, account.password));
+          requester = own.get(account.userId) ?? null;
+        }
+        const response = requester
+          ? await gw.request(`/api/orders/${order.id}/cancel`, { method: 'POST', token: await requester.token() })
+          : await gw.request(`/api/orders/${order.id}/admin/cancel`, { method: 'POST', token: await admin.token(), body: { reason: 'performance run cleanup' } });
+        if (response.status === 200) report.cancelledOrders += 1;
+        else report.skippedOrders.push(`${order.id}: HTTP ${response.status} (${order.status})`);
       } catch (error) {
-        note(`delete supplier: ${error.message}`);
+        note(`cancel ${order.id}: ${error.message}`);
       }
     }
-    for (const userId of owned.userIds) {
-      try {
-        const response = await gw.request(`/api/users/${userId}`, { method: 'DELETE', token: adminToken });
-        if (response.status === 204) report.deletedAccounts += 1;
-        else note(`delete account: HTTP ${response.status}`);
-      } catch (error) {
-        note(`delete account: ${error.message}`);
-      }
+  }
+  for (const supplierId of owned.supplierIds) {
+    try {
+      const response = await gw.request(`/api/suppliers/${supplierId}?permanent=true`, { method: 'DELETE', token: await admin.token() });
+      if (response.status === 200) report.deletedSuppliers += 1;
+      else note(`delete supplier: HTTP ${response.status}`);
+    } catch (error) {
+      note(`delete supplier: ${error.message}`);
     }
-  } else {
-    note('no admin token; run-owned data was left in place');
+  }
+  for (const userId of owned.userIds) {
+    try {
+      const response = await gw.request(`/api/users/${userId}`, { method: 'DELETE', token: await admin.token() });
+      if (response.status === 204) report.deletedAccounts += 1;
+      else note(`delete account: HTTP ${response.status}`);
+    } catch (error) {
+      note(`delete account: ${error.message}`);
+    }
   }
   return report;
 }

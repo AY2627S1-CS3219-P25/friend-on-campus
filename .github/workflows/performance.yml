@@ -5,6 +5,11 @@
 #        scripts/perf/run-perf.mjs, artifact upload after failure with the original verdict preserved.
 # Author review: <to be completed by Reallyeasy1>
 #
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+# Scope: Runs the wrapper's self-tests (scripts/perf/test) before any load is generated; the VU input hint follows
+#        the supplier load the author lowered on 2026-11-09.
+# Author review: <to be completed by Reallyeasy1>
+#
 # Never runs on push or pull request. The AWS target uses the `performance-aws` GitHub environment so required
 # reviewers can gate shared-cluster load; the gateway URL comes from the repository variable
 # PERF_AWS_GATEWAY_URL and the admin login from the secrets PERF_AWS_ADMIN_EMAIL / PERF_AWS_ADMIN_PASSWORD.
@@ -42,7 +47,7 @@ on:
           - credit
           - lifecycle
       vus:
-        description: 'Optional VU override (smoke 1-5, otherwise 1-150). Blank uses the issue baseline, e.g. 100 for supplier #33.'
+        description: 'Optional VU override (smoke 1-5, otherwise 1-150). Blank uses the baseline in tests/k6/requirements.json; e.g. 30 for the second supplier population (#33).'
         required: false
         default: ''
         type: string
@@ -84,6 +89,8 @@ jobs:
         run: |
           k6 version
           node --version
+      - name: Wrapper self-tests (login renewal, stage verdicts, cleanup by tag)
+        run: node --test scripts/perf/test/harness.test.mjs
       - name: Generate throwaway JWT keys
         if: inputs.target == 'isolated-compose'
         run: node scripts/generate-jwt-keys.mjs >> "$GITHUB_ENV"

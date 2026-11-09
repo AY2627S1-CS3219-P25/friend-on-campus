@@ -4,9 +4,19 @@
 //        k6 per workload -> reconciliation and report -> cleanup, writing the evidence bundle under
 //        test-results/<runId>/ and exiting nonzero whenever a required stage fails, blocks or is incomplete.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+// Scope: Fixes from run perf-20261108T135152Z-b09772: one self-renewing administrator session for the whole run
+//        (reconciliation and cleanup had reused a 26-minute-old token and got HTTP 401); stage statuses and the run
+//        verdict come from lib/report.mjs so an HTTP code can no longer stand in for a verdict; --cleanup-tag removes
+//        the fixtures of a run whose own cleanup failed; the summary names that command when cleanup had errors.
+//        The second load population comes from requirements.json (secondLoadVus), and the summary shows the
+//        figure an issue states beside any limit or load the author changed.
+// Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by Reallyeasy1)
 //
 //   npm run perf:k6 -- --target http://127.0.0.1 --profile smoke --workload all
+//   npm run perf:k6 -- --target http://127.0.0.1 --cleanup-tag <tag>    (remove a failed run's fixtures)
 //   PERF_ADMIN_EMAIL / PERF_ADMIN_PASSWORD select the administrator account used for fixtures and cleanup.
 //   A loopback target defaults to the seeded local admin (README "Default Seed Accounts"); remote targets require them.
 import { spawn, spawnSync } from 'node:child_process';
@@ -15,8 +25,8 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createGateway } from './lib/gateway.mjs';
-import { createFixtures, reconcile, cleanup, fixtureTag, FixtureError } from './lib/fixtures.mjs';
-import { buildTimeline, performanceFromSummary } from './lib/report.mjs';
+import { createFixtures, reconcile, cleanup, findRunOwned, fixtureTag, FixtureError } from './lib/fixtures.mjs';
+import { buildTimeline, overallVerdict, performanceFromSummary, stageStatus } from './lib/report.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const k6Directory = path.join(repositoryRoot, 'tests/k6');
@@ -36,6 +46,7 @@ const { values: args } = parseArgs({
     suppliers: { type: 'string' },
     'feed-orders': { type: 'string' },
     'keep-fixtures': { type: 'boolean', default: false },
+    'cleanup-tag': { type: 'string' },
     'acknowledge-remote-load': { type: 'boolean', default: false },
     k6: { type: 'string', default: process.env.K6_BIN ?? 'k6' },
   },
@@ -44,6 +55,7 @@ const { values: args } = parseArgs({
 function usage(message) {
   console.error(`run-perf: ${message}`);
   console.error('usage: node scripts/perf/run-perf.mjs --target <gateway url> [--profile smoke|load|stress] [--workload all|discovery|supplier|credit|lifecycle] [--vus N] [--suppliers N] [--feed-orders N] [--out dir] [--keep-fixtures] [--acknowledge-remote-load]');
+  console.error('       node scripts/perf/run-perf.mjs --target <gateway url> --cleanup-tag <tag>   (remove the fixtures of an earlier run; the tag is in its fixtures.json)');
   process.exit(2);
 }
 
@@ -79,11 +91,13 @@ if (!admin) usage('PERF_ADMIN_EMAIL and PERF_ADMIN_PASSWORD must be set for a no
 
 const profile = args.profile;
 const baselineVus = (name) => vusOverride ?? (profile === 'smoke' ? LIMITS.smoke.defaultVus : REQUIREMENTS.workloads[name].baselineVus);
-// One k6 process per run. `all` under the load profile adds supplier at 100 VUs so #33 is measured alongside #29.
+// One k6 process per run. `all` under the load profile adds a workload's second population (secondLoadVus in
+// requirements.json; supplier has one for #33) so it is measured alongside the first.
 const runs = workloads.flatMap((name) => {
   const base = { label: name, workload: name, vus: baselineVus(name) };
-  if (args.workload === 'all' && profile === 'load' && vusOverride === undefined && name === 'supplier') {
-    return [base, { label: 'supplier-100vus', workload: name, vus: 100 }];
+  const second = REQUIREMENTS.workloads[name].secondLoadVus;
+  if (args.workload === 'all' && profile === 'load' && vusOverride === undefined && second) {
+    return [base, { label: `${name}-${second}vus`, workload: name, vus: second }];
   }
   return [base];
 });
@@ -136,7 +150,7 @@ async function stage(name, required, fn) {
     return result;
   } catch (error) {
     if (error.partial) partialFixtures = error.partial;
-    entry.status = error.status ?? (error instanceof FixtureError ? 'BLOCKED' : 'FAIL');
+    entry.status = stageStatus(error);
     entry.detail = error.message;
     log(`stage ${name}: ${entry.status} - ${error.message}`);
     return null;
@@ -177,6 +191,10 @@ function runK6(workload, env, directory) {
 }
 
 const gateway = createGateway(targetUrl.toString(), { timeoutMs: 15_000 });
+// One administrator login for the whole run; it renews itself, because a load run outlives one access token.
+const adminSession = gateway.session(admin.email, admin.password);
+// Names every fixture of this run; --cleanup-tag finds them again if the run's own cleanup fails.
+const tag = fixtureTag();
 const k6Binary = k6Version();
 const manifest = {
   schemaVersion: 1,
@@ -188,7 +206,7 @@ const manifest = {
   profile,
   workloads: runs.map((run) => ({ name: run.label, workload: run.workload, script: REQUIREMENTS.workloads[run.workload].script, configuredVus: vusFor(run), maxVus: maxVusFor(run), accountSlots: REQUIREMENTS.workloads[run.workload].accountSlots })),
   limits: LIMITS,
-  fixtures: { accountCount, supplierCount, feedOrderCount, openTimeoutMs, reconcileTimeoutMs },
+  fixtures: { tag, accountCount, supplierCount, feedOrderCount, openTimeoutMs, reconcileTimeoutMs },
   tools: { k6: k6Binary, node: process.version, platform: `${process.platform}/${process.arch}` },
   commit: process.env.GITHUB_SHA ?? gitValue(['rev-parse', 'HEAD']),
   branch: process.env.GITHUB_REF_NAME ?? gitValue(['branch', '--show-current']),
@@ -216,16 +234,39 @@ await stage('preflight', true, async () => {
     throw new FixtureError(`gateway unreachable: ${error.message}`);
   });
   if (health.status !== 200) throw new FixtureError(`gateway /health returned HTTP ${health.status}`);
-  const session = await gateway.login(admin.email, admin.password).catch((error) => {
+  const session = await adminSession.current().catch((error) => {
     throw new FixtureError(`admin login failed (${admin.source}): ${error.message}`);
   });
   if (session.role !== 'ADMIN') throw new FixtureError('the configured admin account is not an administrator');
   return { detail: `gateway healthy, k6 v${k6Binary}, admin login ok (${admin.source})` };
 });
 
+if (args['cleanup-tag']) {
+  // Recovery only: remove what an earlier run left behind (its cleanup failed, or it was interrupted), then stop.
+  if (stages.at(-1).status === 'PASS') {
+    await stage('cleanup', true, async () => {
+      const found = await findRunOwned(gateway, adminSession, args['cleanup-tag']);
+      log(`tag ${args['cleanup-tag']}: found ${found.accounts.length} accounts and ${found.owned.supplierIds.length} suppliers`);
+      const report = await cleanup(gateway, { admin: adminSession, accounts: found.accounts, owned: found.owned, log });
+      writeJson('cleanup.json', report);
+      return { status: report.errors.length === 0 ? 'PASS' : 'FAIL', detail: `${report.cancelledOrders} orders cancelled, ${report.deletedSuppliers} suppliers and ${report.deletedAccounts} accounts deleted, ${report.skippedOrders.length} orders skipped, ${report.errors.length} errors` };
+    });
+  }
+  const cleaned = stages.every((entry) => entry.status === 'PASS');
+  manifest.status = cleaned ? 'PASS' : 'FAIL';
+  manifest.mode = `cleanup of tag ${args['cleanup-tag']}`;
+  manifest.endedAt = new Date().toISOString();
+  writeJson('manifest.json', manifest);
+  writeJson('results.json', { schemaVersion: 1, runId, status: manifest.status, exitCode: cleaned ? 0 : 1, stages });
+  rmSync(secretsDirectory, { recursive: true, force: true });
+  log(`cleanup of tag ${args['cleanup-tag']}: ${manifest.status}; ${stages.at(-1).detail}`);
+  await new Promise((resolve) => logFile.end(resolve));
+  process.exit(cleaned ? 0 : 1);
+}
+
 if (stages.at(-1).status === 'PASS') {
   fixtureSet = await stage('fixtures', true, async () => {
-    const created = await createFixtures(gateway, { tag: fixtureTag(), admin, accountCount, supplierCount, feedOrderCount, openTimeoutMs, log });
+    const created = await createFixtures(gateway, { tag, admin: adminSession, accountCount, supplierCount, feedOrderCount, openTimeoutMs, log });
     writeJson('fixtures.json', { ...created.fixtures, owned: { users: created.owned.userIds.length, suppliers: created.owned.supplierIds.length, feedOrders: created.owned.feedOrderIds.length } });
     writeFileSync(path.join(secretsDirectory, 'accounts.json'), JSON.stringify({ accounts: created.accounts }));
     created.status = 'PASS';
@@ -283,7 +324,7 @@ if (fixtureSet) {
   }
 
   reconciliation = await stage('reconciliation', true, async () => {
-    const result = await reconcile(gateway, { adminToken: fixtureSet.adminToken, accounts: fixtureSet.accounts, timeoutMs: reconcileTimeoutMs, log });
+    const result = await reconcile(gateway, { admin: adminSession, accounts: fixtureSet.accounts, timeoutMs: reconcileTimeoutMs, log });
     writeJson('reconciliation.json', { pass: result.pass, summary: result.summary, checks: result.checks });
     if (!result.pass) throw new Error(result.checks.filter((check) => !check.pass).map((check) => `${check.id} ${check.name}`).join('; '));
     result.status = 'PASS';
@@ -295,19 +336,14 @@ if (fixtureSet) {
 const toClean = fixtureSet ?? partialFixtures;
 if (toClean && !args['keep-fixtures']) {
   await stage('cleanup', false, async () => {
-    cleanupReport = await cleanup(gateway, { adminToken: toClean.adminToken, accounts: toClean.accounts, owned: toClean.owned, tokens: reconciliation?.tokens, log });
+    cleanupReport = await cleanup(gateway, { admin: adminSession, accounts: toClean.accounts, owned: toClean.owned, sessions: reconciliation?.sessions, log });
     writeJson('cleanup.json', cleanupReport);
     return { status: cleanupReport.errors.length === 0 ? 'PASS' : 'FAIL', detail: `${cleanupReport.cancelledOrders} orders cancelled, ${cleanupReport.deletedSuppliers} suppliers and ${cleanupReport.deletedAccounts} accounts deleted, ${cleanupReport.errors.length} errors` };
   });
 }
 rmSync(secretsDirectory, { recursive: true, force: true });
 
-const requiredStages = stages.filter((entry) => entry.required);
-const overall = requiredStages.some((entry) => entry.status === 'BLOCKED') ? 'BLOCKED'
-  : requiredStages.some((entry) => entry.status === 'FAIL') ? 'FAIL'
-    : Object.values(workloadResults).some((result) => result.verdict === 'INCOMPLETE') ? 'INCOMPLETE'
-      : requiredStages.length < 2 + runs.length ? 'BLOCKED'
-        : 'PASS';
+const overall = overallVerdict(stages, runs.length);
 const exitCode = overall === 'PASS' ? 0 : 1;
 manifest.status = overall;
 manifest.endedAt = new Date().toISOString();
@@ -337,7 +373,7 @@ const lines = [
 ];
 for (const [workload, result] of Object.entries(workloadResults)) {
   for (const op of result.operations) {
-    lines.push(`| ${workload} | ${op.operation} | ${op.issue} | p95 ${op.limit.comparator} ${op.limit.p95Ms} ms, errors < ${op.limit.maxErrorRate * 100}% | ${ms(op.steady.p50Ms)} | ${ms(op.steady.p95Ms)} | ${ms(op.steady.p99Ms)} | ${op.steady.count} | ${op.steady.requestsPerSecond?.toFixed(1) ?? 'n/a'} | ${op.concurrency.configuredVus} | ${op.concurrency.estimatedInFlight?.toFixed(1) ?? 'n/a'} (${op.concurrency.status}) | ${op.verdict} |`);
+    lines.push(`| ${workload} | ${op.operation} | ${op.issue} | p95 ${op.limit.comparator} ${op.limit.p95Ms} ms${op.limit.requirementP95Ms ? ` (raised; the issue states ${op.limit.requirementP95Ms} ms${op.limit.requirementVus ? ` at ${op.limit.requirementVus} users` : ''})` : ''}, errors < ${op.limit.maxErrorRate * 100}% |${ms(op.steady.p50Ms)} | ${ms(op.steady.p95Ms)} | ${ms(op.steady.p99Ms)} | ${op.steady.count} | ${op.steady.requestsPerSecond?.toFixed(1) ?? 'n/a'} | ${op.concurrency.configuredVus} | ${op.concurrency.estimatedInFlight?.toFixed(1) ?? 'n/a'} (${op.concurrency.status}) | ${op.verdict} |`);
   }
   for (const metric of result.asyncMetrics ?? []) {
     if (metric.steady) lines.push(`| ${workload} | ${metric.metric} (reported, no threshold) | - | - | ${ms(metric.steady.p50Ms)} | ${ms(metric.steady.p95Ms)} | ${ms(metric.steady.p99Ms)} | ${metric.steady.count ?? ''} | - | - | - | n/a |`);
@@ -351,9 +387,13 @@ if (reconciliation) {
   lines.push(stages.find((entry) => entry.stage === 'reconciliation')?.detail ?? 'Not run (fixtures or preflight failed).');
 }
 lines.push('', '## Limitations and scope', '', ...manifest.limitations.map((item) => `- ${item}`));
+if (Object.values(workloadResults).some((result) => result.operations.some((op) => op.limit.requirementP95Ms))) {
+  lines.push('- Limits marked "raised" are above the figure in their linked issue, and supplier search runs with fewer users than its issues state (tests/k6/requirements.json); a PASS against them does not show that the issue\'s requirement is met.');
+}
 for (const result of Object.values(workloadResults)) for (const item of result.notCovered) lines.push(`- ${item}`);
 if (profile === 'stress') lines.push('- A stress run that crosses a threshold describes saturation; it is not a passing requirement-load result.');
 if (cleanupReport) lines.push('', `Cleanup: ${cleanupReport.cancelledOrders} orders cancelled, ${cleanupReport.deletedSuppliers} suppliers and ${cleanupReport.deletedAccounts} accounts deleted; ${cleanupReport.skippedOrders.length} orders skipped; ${cleanupReport.errors.length} errors. Credit wallets of deleted accounts remain in credit_db.`);
+if (cleanupReport?.errors.length) lines.push('', `Run-owned fixtures are still on the target. Remove them with \`node scripts/perf/run-perf.mjs --target ${targetUrl.origin} --cleanup-tag ${tag}\`.`);
 lines.push('', '## Artifacts', '', '`manifest.json`, `thresholds.json`, `fixtures.json`, `results.json`, `reconciliation.json`, `cleanup.json`, `run.log`, and per workload `k6-summary.json`, `k6-metrics.json.gz`, `performance.json`, `k6.log`. The run-local credentials file was deleted.');
 writeFileSync(path.join(runDirectory, 'summary.md'), `${lines.join('\n')}\n`);
 
