@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-09
+// Scope: Match the GitHub Script REST client shape in source-selection tests.
+// Author review: <to be completed by the author>
+//
+// Tool: Codex (model: GPT-6), date: 2026-11-09
 // Scope: Guard native ARM64 image builds against reintroducing cross-architecture emulation.
 // Author review: <to be completed by the author>
 //
@@ -57,8 +61,10 @@ async function selectSource({ sha = 'main-sha', latestSha = sha, checkAccess = f
   await new AsyncFunction('context', 'github', 'core', sourceScript)(
     { sha, repo: { owner: 'team', repo: 'demo' }, payload: { inputs: { check_access: String(checkAccess) } } },
     {
-      repos: { getBranch: async () => ({ data: { commit: { sha: latestSha } } }) },
-      actions: { listWorkflowRuns: async () => ({ data: { workflow_runs: [{ conclusion }] } }) },
+      rest: {
+        repos: { getBranch: async () => ({ data: { commit: { sha: latestSha } } }) },
+        actions: { listWorkflowRuns: async () => ({ data: { workflow_runs: [{ conclusion }] } }) },
+      },
     },
     { setOutput: (name, value) => { outputs[name] = value; }, notice: () => {} },
   );

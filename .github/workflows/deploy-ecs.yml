@@ -1,5 +1,9 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Use the GitHub Script REST client for branch and CI lookups.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Build release images on native ARM64 runners after a QEMU illegal-instruction failure.
 # Author review: <to be completed by the author>
 #
@@ -77,14 +81,14 @@ jobs:
         with:
           script: |
             const sha = context.sha;
-            const { data: main } = await github.repos.getBranch({ ...context.repo, branch: 'main' });
+            const { data: main } = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' });
             if (main.commit.sha !== sha) {
               core.notice('Skipping a superseded main commit.');
               core.setOutput('release', 'false');
               return;
             }
             if (String(context.payload.inputs?.check_access) !== 'true') {
-              const { data } = await github.actions.listWorkflowRuns({
+              const { data } = await github.rest.actions.listWorkflowRuns({
                 ...context.repo, workflow_id: 'ci.yml', event: 'push', head_sha: sha, per_page: 1
               });
               if (data.workflow_runs[0]?.conclusion !== 'success') {
