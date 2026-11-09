@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: The Browse feed is built with orders/feedZones.ts and passed whole to FeedPage for the zone tab counts;
+ * only the cards are narrowed to the selected tab.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the soft blue-white campus canvas behind the existing app layout.
  * Author review: <to be completed by yanhwee>
@@ -177,6 +182,7 @@ import { estimateRewardCredits, supplierPoint } from './map/creditEstimate';
 import { NUS_SPAN_KM } from './map/nusBuildings';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
+import { feedOrders, inFeedZone } from './orders/feedZones';
 import { buildReorderRequest } from './orders/reorder';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
@@ -771,11 +777,10 @@ export default function App() {
     }
   };
 
-  const filteredOrders = orders.filter((o) => {
-    if (o.status !== 'OPEN' || o.requesterId === currentUserId) return false;
-    if (selectedZone === 'ALL') return true;
-    return o.campusZone === selectedZone;
-  });
+  // AI-generated (edited by Reallyeasy1): the whole feed goes to FeedPage for the tab counts; only the cards are
+  // narrowed to the selected tab.
+  const feed = feedOrders(orders, currentUserId);
+  const filteredOrders = feed.filter((o) => inFeedZone(o, selectedZone));
 
   const activeSuppliers = suppliers.filter((s) => s.isActive);
 
@@ -924,6 +929,7 @@ export default function App() {
 
         {page === 'feed' && (
           <FeedPage
+            feedOrders={feed}
             filteredOrders={filteredOrders}
             selectedZone={selectedZone}
             onSelectZone={setSelectedZone}

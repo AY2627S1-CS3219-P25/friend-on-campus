@@ -67,6 +67,11 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: Errand details page (issues #188, #189): feed cards open the errand's page; the accept props left this file.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Zone tab counts are taken from the whole feed (new feedOrders prop, orders/feedZones.ts) instead of the
+ * list already narrowed to the selected tab, which made ALL and the other tabs show 0.
+ * Author review: <to be completed by Reallyeasy1>
  */
 
 // AI-generated (edited by yanhwee)
@@ -75,10 +80,12 @@ import { OrderDTO } from '@campus-errand/common-dtos';
 import { AlertCircle, Compass, PackageSearch, RefreshCw, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ErrandCard } from '../components/ErrandCard';
-
-const FEED_ZONES = ['ALL', 'COM3', 'UTown', 'PGPR', 'FASS', 'Science', 'Engineering'];
+import { FEED_ZONES, countByFeedZone } from '../orders/feedZones';
 
 interface FeedPageProps {
+  /** Every errand in the feed, whichever tab is selected; the tab counts come from this. */
+  feedOrders: OrderDTO[];
+  /** The feed narrowed to the selected tab; the cards come from this. */
   filteredOrders: OrderDTO[];
   selectedZone: string;
   onSelectZone: (zone: string) => void;
@@ -90,6 +97,7 @@ interface FeedPageProps {
 }
 
 export function FeedPage({
+  feedOrders,
   filteredOrders,
   selectedZone,
   onSelectZone,
@@ -111,6 +119,10 @@ export function FeedPage({
         (o.specialNotes && o.specialNotes.toLowerCase().includes(q))
     );
   }, [filteredOrders, keyword]);
+
+  // AI-generated (edited by Reallyeasy1): counted over the whole feed. Counting filteredOrders made ALL and every
+  // other tab show the selected tab's number or 0.
+  const zoneCounts = countByFeedZone(feedOrders);
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -155,10 +167,7 @@ export function FeedPage({
         <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 md:flex-wrap no-scrollbar">
           {FEED_ZONES.map((zone) => {
             const isSelected = selectedZone === zone;
-            const countInZone =
-              zone === 'ALL'
-                ? filteredOrders.length
-                : filteredOrders.filter((o) => o.campusZone === zone).length;
+            const countInZone = zoneCounts[zone];
 
             return (
               <button

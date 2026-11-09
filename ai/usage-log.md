@@ -8155,3 +8155,55 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-11-09 19:33 SGT — Bring the local branch up to date and record the k6 work in the testing design page
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "resolve the parts in the things to know and then also may be consider updating the design docs in wiki page" (Automated System Testing and Evidence Design).
+
+**Usage scenario:** Operational assistance and documentation; no repository file was committed. (1) The local branch was one merge commit behind the remote: the author's uncommitted edits to `ai/usage-log.md` and `docs/README.md` were backed up and stashed, the branch fast-forwarded to b47e7dc, and the edits re-applied; both re-applies conflicted and were resolved so that the added lines are identical to before (218 and 24 lines, verified). (2) The performance workflow can only be dispatched once it is on the default branch, so it stays unrun until pull request #252 is merged; that merge was not requested and was put to the author. (3) The wiki page was updated and pushed (wiki commit acff8a6): an implementation-status note, a subsection with the commands, the limits and supplier load the author changed beside the figures the issues state, the two passing local load runs, observations and what is not done, plus corrections of statements that predate the implementation and the move from K3s to ECS. The observations are recorded as facts; no decision or rationale was written for the author.
+
+**Files changed:**
+- none committed (`ai/usage-log.md` and `docs/README.md` in the working tree were re-based onto the pulled branch with the author's own edits unchanged; wiki page `Automated-System-Testing-and-Evidence-Design.md` in the wiki repository)
+
+**External / temporary artifacts:** stash entry "claude: your edits to usage-log and docs/README, set aside for the pull (2026-11-09)" kept as a backup; copies in the session scratchpad under `backup-before-pull`.
+
+## 2026-11-09 20:02 SGT — Fix the feed's FASS tab and the zone tab numbers, with a browser check
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/student-app-feed-zone-filter
+
+**Prompt (summarised):** Investigate and fix the report "FASS filter hides a relevant errand" (Browse → All showed an errand labelled Arts & Social Sciences from The Deck; FASS showed zero), then run a browser acceptance check that the zone tabs and their numbers stay correct when switching tabs, because the numbers sometimes read 0 while errands exist.
+
+**Usage scenario:** Debugging assistance, implementation code and tests. Two causes were found and fixed. (1) The Order Service sample seed gave the two Deck errands the zone name `Arts & Social Sciences`, while the supplier seed, the admin zone list and the feed tabs all use `FASS`; the seed only inserts missing rows, so a data-only migration corrects the two sample order codes on databases seeded earlier. (2) The feed page counted each tab from the list that was already narrowed to the selected tab, so every other tab read 0 and ALL showed the selected tab's number; the counts now come from the whole feed. Checks run: student-app unit tests 61/61, order-service unit tests 74/74, typecheck, lint and `ci:validate-tests` clean; the migration applied to a throwaway PostgreSQL (only the two sample codes change); a Playwright check against the local stack on the fixed build passed 28/28 (two students, desktop and mobile, every tab and back, the 15 s background refresh, the empty-tab button, search); the same check against the old counting line passed only 11/28, which shows it detects the fault. Nothing was committed or pushed. Left to the author: reviewing the change, whether to keep the data migration (it alters existing rows on deploy), creating an issue before any pull request (none exists for this report), the Author review lines, and the decisions noted in the reply (zones that have no tab, such as Central Lib, appear only under ALL; the zone names are listed separately in four places; the sample seed's supplier names differ from the supplier data).
+
+**Files changed:**
+- `apps/student-app/src/orders/feedZones.ts` — new: the tab list, the feed selection, the zone match and the per-tab counts as pure functions
+- `apps/student-app/src/pages/FeedPage.tsx` — tab numbers computed from the whole feed (new `feedOrders` prop) instead of the already-narrowed list
+- `apps/student-app/src/App.tsx` — builds the feed once and passes both the feed and the narrowed list to the page
+- `apps/student-app/test/feed-zones.test.ts` — new: 3 tests for the zone match and the counts
+- `apps/student-app/package.json` — `test:unit` runs the new test file (JSON, no disclosure header; the script name is unchanged, so the CI matrix needs no edit)
+- `services/order-service/src/database/seed.ts` — the two Deck sample errands use zone `FASS`
+- `services/order-service/prisma/migrations/20261109190000_sample_errand_zone_fass/migration.sql` — new: data-only correction of the two sample order codes
+- `ai/usage-log.md` — this entry
+
+**External / temporary artifacts:** `uat-zone-tabs.mjs`, the screenshot folders `uat-zone-tabs/` (fixed build) and `uat-zone-tabs-old-behaviour/` (control run), and `FeedPage.fixed.tsx` in the session scratchpad (not in the repository). The check posted three errands as alice and cancelled them afterwards.
+
+## 2026-11-09 20:05 SGT — Commit the feed zone fix and push it to the k6 pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok now i would like you to commit and push to the same pr as the k6" (the feed zone fix from the previous entry, onto pull request #252).
+
+**Usage scenario:** Author-approved commit and push. The fix was written on a side branch cut from `main`; it was carried unchanged onto the head of `feat/t4-k6-load-profiles` (b47e7dc), where none of the touched files differ from `main`, and committed as one commit. Checks repeated on the combined tree before pushing: typecheck clean across the workspaces, student-app unit tests 61/61, order-service unit tests 74/74, lint clean, `ci:validate-tests` passed. This commit also carries the two earlier entries of today that were still uncommitted (19:33 and 20:02). The author's own uncommitted work in the main checkout (the 7 November log entries and the documentation files) is not part of the commit and was kept in place when the local branch was moved forward. Left to the author: pull request #252 now holds a fix that its title and description do not mention and that has no issue to close; the Author review lines; whether to keep the data migration.
+
+**Files changed:**
+- `apps/student-app/src/orders/feedZones.ts`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/test/feed-zones.test.ts`, `apps/student-app/package.json` — committed as described in the previous entry; no further change
+- `services/order-service/src/database/seed.ts`, `services/order-service/prisma/migrations/20261109190000_sample_errand_zone_fass/migration.sql` — committed as described in the previous entry; no further change
+- `ai/usage-log.md` — this entry, and the 19:33 and 20:02 entries committed with it

@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: The two Deck sample errands use the zone name 'FASS' instead of 'Arts & Social Sciences', which no feed tab
+ * matched. Rows seeded earlier are corrected by migration 20261109190000_sample_errand_zone_fass.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Assigned deterministic UUIDs to the 4 seeded sample orders so Credit Service can seed matching escrow reservations.
  * Author review: <to be completed by yanhwee>
@@ -47,7 +52,8 @@ export async function seedOrders() {
       courierId: null,
       supplierId: '10000000-0000-4000-8000-000000000002',
       supplierName: 'The Deck (Arts Canteen)',
-      campusZone: 'Arts & Social Sciences',
+      // AI-generated (edited by Reallyeasy1): the zone name every other source uses for The Deck; the feed tab is FASS.
+      campusZone: 'FASS',
       itemDescription: '2x Yong Tau Foo dry with bee hoon (sweet sauce)',
       specialNotes: 'Less noodles if possible',
       dropoffLocation: 'AS6 Level 2 Foyer',
@@ -84,7 +90,7 @@ export async function seedOrders() {
       courierId: null,
       supplierId: '10000000-0000-4000-8000-000000000002',
       supplierName: 'The Deck (Arts Canteen)',
-      campusZone: 'Arts & Social Sciences',
+      campusZone: 'FASS',
       itemDescription: '1x Vegetarian rice with tofu and two vegetable sides',
       specialNotes: 'No egg, please. Ask for a spoon and fork.',
       dropoffLocation: 'Central Library Level 1 main entrance',
