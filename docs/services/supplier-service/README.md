@@ -30,7 +30,7 @@ Owns the campus pickup directory in `supplier_db` (port 8002). Reads are public;
 
 **Config:** port from `PORT` or `SUPPLIER_SERVICE_PORT` (default 8002); `DATABASE_URL` (falls back to `SUPPLIER_DATABASE_URL`); `JWT_PUBLIC_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE` (the key is required or the app will not start). `CORS_ORIGIN` is loaded but unused: `cors()` allows every origin.
 
-**Startup:** the container runs `prisma migrate deploy`, then the seed, then the server. The seed reads the CSV path from the CLI, `SEED_CSV_PATH`, or `data/csv/supplier-seed-data.csv`. It upserts rows one at a time, keeps ids, active state and recorded coordinates, and updates the descriptive fields.
+**Startup:** under Docker Compose, the service `command` runs `prisma migrate deploy`, then the seed, then the server. The image's own `CMD` only starts the server (`node dist/index.js`), so any other deployment must migrate and seed separately. The seed reads the CSV path from the CLI, `SEED_CSV_PATH`, or `data/csv/supplier-seed-data.csv`. It upserts rows one at a time, keeps ids, active state and recorded coordinates, and updates the descriptive fields.
 
 See [contracts and data](contracts-and-data.md), [runtime and tests](runtime-and-testing.md) and [coordinate upgrades](coordinate-upgrades.md).
 

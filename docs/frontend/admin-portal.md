@@ -137,7 +137,7 @@ sequenceDiagram
 
 ## Supplier coordinates and the map
 
-Administrators control where pickup pins appear. The admin portal has no map of its own; it only has **Latitude** and **Longitude** number fields in Add Supplier and Edit Supplier. Those values are what the student app plots. Arrows follow the legend under [Diagrams](#diagrams).
+Administrators set where pickup pins appear through the **Latitude** and **Longitude** number fields in Add Supplier and Edit Supplier. The student app plots those values. Arrows follow the legend under [Diagrams](#diagrams).
 
 - **Add Supplier:** both coordinates are required finite numbers.
 - **Edit Supplier:** a legacy supplier with no coordinates may stay blank ("Not recorded yet") while other fields are saved; once a coordinate is recorded it cannot be blanked.
@@ -171,7 +171,7 @@ flowchart LR
   OSM -->|"data: PNG map tiles"| PM
 ```
 
-**The one external API call** is the map tiles. Each Leaflet map (pickup map, drop-off picker, errand route map in `apps/student-app/src/map/`) loads `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` straight from the browser. It needs no key, is not routed through the gateway, and no backend service calls it. Only the tiles come from OpenStreetMap; the pins, the NUS building list and the distance maths are local. If the tile server is unreachable the pins still show on a blank map.
+**Map tiles.** Each Leaflet map (pickup map, drop-off picker, errand route map in `apps/student-app/src/map/`) loads `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` from the browser, without a key and outside the gateway. Pins, the NUS building list and the distance calculation are computed locally.
 
 ## Behaviour to know
 

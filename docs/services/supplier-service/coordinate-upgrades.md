@@ -11,7 +11,7 @@ Author review: <to be completed by Reallyeasy1>
 
 # Supplier coordinate upgrades
 
-New suppliers need numeric latitude and longitude (enforced by the API). Older suppliers may have none; they stay readable and editable, and the map skips them until an administrator enters coordinates in **Edit Supplier**. Nothing invents positions or deletes records. Database columns stay nullable until every record has verified coordinates. Each container start reruns the CSV seed, which fills only missing coordinates and keeps recorded ones.
+New suppliers need numeric latitude and longitude (enforced by the API). Older suppliers may have none; they stay readable and editable, and the map skips them until an administrator enters coordinates in **Edit Supplier**. Nothing invents positions or deletes records. Database columns stay nullable until every record has verified coordinates. Under Docker Compose, each container start reruns the CSV seed (the image alone does not), which fills only missing coordinates and keeps recorded ones.
 
 ## Upgrading
 

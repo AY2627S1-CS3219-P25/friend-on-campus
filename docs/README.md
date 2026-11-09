@@ -63,8 +63,53 @@ Code/configuration establish implemented behavior; verified human specifications
 | Credit | Wallet/ledger, grants/escrow/refunds/settlement, serializable processing, replay/retry and tests | [Credit](services/credit-service/README.md) |
 | Notification | Full module/REST/socket/event traces, mapping, persistence, ACK/retry/DLQ boundaries and structural review | [Notification](services/notification-service/README.md) |
 | Chat (pending, PR #148 head `f39ab1f`, not on `main`) | F8 private conversation per accepted errand: REST history route, `/ws/chat/` socket hub, order-event projection, tests, known limits; proposed D4 work with decision register | [Chat](services/chat-service/README.md) · [D4 specification (proposal)](services/chat-service/d4-implementation-specification.md) |
+| Student app | Student-facing React app: pages, errand flow, chat and notifications UI, map | [Student app](frontend/student-app.md) |
+| Admin portal | Admin React app: login/session, supplier and user management, dispute settling, service health, supplier coordinates and map | [Admin portal](frontend/admin-portal.md) |
 
 Coverage is source-backed documentation, not a claim that all runtime acceptance checks passed. See the verification record for executed and unavailable checks, and human-only review fields.
+
+## Tech stack by component
+
+Read from each workspace `package.json`, [`docker-compose.yml`](../docker-compose.yml) and [`docker/debezium/`](../docker/debezium); cloud deployment is not covered. Everything is TypeScript on Node.js, tested with *node --test* and linted with *ESLint*. Legend: *italic text* is a library or framework, solid `->` is data flow, dashed `-.-.-.-` is control flow.
+
+```mermaid
+flowchart LR
+  subgraph FE["Frontend: <i>React</i>, <i>Vite</i>, <i>Tailwind</i>"]
+    SA["Student app<br/><i>Leaflet</i>"]
+    AP["Admin portal"]
+  end
+  OSM["OpenStreetMap tiles"]
+  GW["<i>NGINX</i>"]
+  subgraph SV["Services: <i>Express</i>, <i>Prisma</i>"]
+    US["User"]
+    SU["Supplier"]
+    OR["Order"]
+    CR["Credit"]
+    NO["Notification<br/><i>ws</i>"]
+    CH["Chat<br/><i>ws</i>"]
+  end
+  AUTH["<i>@campus-errand/auth</i>"]
+  DTO["<i>@campus-errand/common-dtos</i>"]
+  PG[("<i>PostgreSQL 16</i>")]
+  DBZ["<i>Debezium</i>"]
+  MQ[("<i>RabbitMQ 3.13</i><br/><i>rabbitmq-client</i>")]
+  LLM["SoCLaaS<br/><i>@campus-errand/llm</i>"]
+
+  SA -->|"data"| GW
+  AP -->|"data"| GW
+  SA -->|"data: map tiles"| OSM
+  GW -->|"data"| US & SU & OR & CR & NO & CH
+  OR -->|"data"| SU
+  US & SU & OR & CR & NO & CH -->|"data via <i>Prisma</i>"| PG
+  AUTH -.->|"control"| SV
+  DTO -.->|"control"| SV
+  DTO -.->|"control"| FE
+  PG -.->|"control: outbox"| DBZ
+  DBZ -->|"data"| MQ
+  NO & CH -->|"data"| MQ
+  MQ -->|"data"| CR & OR & NO & CH
+  OR & CH -->|"data"| LLM
+```
 
 ## Complete documentation file inventory
 
@@ -74,6 +119,7 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 |---|---|
 | [README.md](README.md) | Navigation, service coverage and complete inventory |
 | [new-cloud-architecture-guide.md](new-cloud-architecture-guide.md) | CloudFront/ECS architecture, networking, trial resources and costs |
+| [cloud-deployment-and-devops-guide.md](cloud-deployment-and-devops-guide.md) | Student guide to cloud deployment, Kubernetes and DevOps |
 | [architecture/authentication-and-security.md](architecture/authentication-and-security.md) | Authentication and authorization |
 | [architecture/communication-and-events.md](architecture/communication-and-events.md) | Communication and event catalogue |
 | [architecture/data-ownership.md](architecture/data-ownership.md) | Data ownership and persistence |
@@ -113,9 +159,11 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 | [services/supplier-service/README.md](services/supplier-service/README.md) | Supplier Service implementation |
 | [services/supplier-service/contracts-and-data.md](services/supplier-service/contracts-and-data.md) | Supplier contracts and data |
 | [services/supplier-service/runtime-and-testing.md](services/supplier-service/runtime-and-testing.md) | Supplier runtime, failures and tests |
+| [services/supplier-service/coordinate-upgrades.md](services/supplier-service/coordinate-upgrades.md) | Supplier coordinate upgrade and recovery steps |
 | [services/user-service/README.md](services/user-service/README.md) | User Service implementation |
 | [services/user-service/contracts-and-data.md](services/user-service/contracts-and-data.md) | User contracts and data |
 | [services/user-service/runtime-and-testing.md](services/user-service/runtime-and-testing.md) | User runtime, failure behavior and tests |
+| [superpowers/plans/2026-10-22-notification-inbox.md](superpowers/plans/2026-10-22-notification-inbox.md) | Implementation plan for the student notification inbox (a plan, not a specification) |
 | [superpowers/plans/2026-10-26-errand-details-page.md](superpowers/plans/2026-10-26-errand-details-page.md) | Implementation plan for the student-app errand details page (issues #188, #189; author-approved design of 2026-10-26, not a specification) |
 
 ## Maintenance and pending work
