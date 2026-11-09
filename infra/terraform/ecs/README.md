@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Document native ARM64 GitHub image builds following the emulation crash.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Document the verified Debezium EFS ownership and registration-to-wallet dependency on the live phase.
 Author review: <to be completed by the author>
 
@@ -48,6 +52,8 @@ Merge the release into `main` and wait for that commit's CI run to succeed. In G
 - For updates to running application services, the run builds all selected images before deployment starts. It checks all selected services and image digests, then runs the selected backend migration tasks using those new images. A failed or unplaceable migration stops the release before any application service is updated. The migration task command is explicitly `migrate`. Seeds and database-role setup remain part of the initial rollout.
 - After migrations succeed, it pins images by digest, updates services sequentially and checks each rollout completes with the intended task revision. A failed rollout stops subsequent updates. Earlier successful service updates and committed migrations remain deployed. Schema migrations must remain compatible with the application version running during the rollout.
 - Choosing `all` includes shared-package changes. A single-service selection builds and migrates only that service. The workflow targets the nine application services in `foc-ecs` in Singapore.
+
+Image builds use GitHub's native `ubuntu-24.04-arm` runners with the `linux/arm64` Docker target. This avoids the QEMU illegal-instruction crash observed during the Supplier image's `npm ci` step on an x64 runner. [GitHub runner architectures](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 
 Terraform continues to register application task templates. The workflow reads the latest template from each `foc-ecs-<service>` family and owns the revision selected by the application service. Terraform ignores changes to that service's `task_definition` field so a later apply does not revert a workflow deployment. The infrastructure workflow below applies and rolls updated application templates with the deployed images. After a local Terraform apply, explicitly roll the affected application services to their new task revisions. Broker and CDC task revisions continue to be selected by Terraform.
 

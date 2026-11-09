@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-09
+// Scope: Guard native ARM64 image builds against reintroducing cross-architecture emulation.
+// Author review: <to be completed by the author>
+//
+// Tool: Codex (model: GPT-6), date: 2026-11-09
 // Scope: Verify runtime generation keeps database and broker secrets random without generating demo passwords.
 // Author review: <to be completed by the author>
 //
@@ -24,6 +28,12 @@ const application = yaml.load(readFileSync(path.join(root, '.github/workflows/de
 const infrastructure = yaml.load(readFileSync(path.join(root, '.github/workflows/deploy-infra.yml'), 'utf8'));
 const sourceScript = application.jobs.prepare.steps.find(step => step.id === 'source').with.script;
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+test('ARM64 image builds use a native ARM64 runner', () => {
+  assert.equal(application.jobs.build['runs-on'], 'ubuntu-24.04-arm');
+  const build = application.jobs.build.steps.find(step => step.uses?.startsWith('docker/build-push-action@'));
+  assert.equal(build.with.platforms, 'linux/arm64');
+});
 
 test('runtime generation keeps infrastructure secrets random and leaves demo passwords to the seed', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'foc-runtime-test-'));
