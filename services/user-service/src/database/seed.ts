@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Seed all demo accounts with Password123! in every environment using the existing password hasher.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Require distinct private credentials for the production demo seed.
+ * Author review: <to be completed by the author>
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Assigned deterministic UUIDs to development seed accounts so offline Credit and Order Service seeds align across services.
@@ -41,9 +48,9 @@ const seedUsers: SeedUser[] = [
 ];
 
 async function main() {
-  const passwordHash = await hashPassword('Password123!');
-
+  // AI-generated (edited by ngkhengyang)
   for (const user of seedUsers) {
+    const passwordHash = await hashPassword('Password123!');
     const existingUsers = await prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id
       FROM users

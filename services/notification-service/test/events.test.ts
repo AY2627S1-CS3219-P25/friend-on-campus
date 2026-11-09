@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: createDeliver takes only the store and returns the applied result; push assertions moved to test/realtime.test.ts (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Increment 6 receipt parsing added 2026-10-23. Version-2 parsing (envelope, actor, reason code, versions, assignee fields), the payload fingerprint, the
  * infrastructure/permanent/transient classifier and createDeliver's push-after-commit, stale and duplicate behaviour,
@@ -148,30 +152,22 @@ test('classification: invalid contracts are permanent, connectivity failures are
 });
 
 // AI-generated (edited by Reallyeasy1)
-function fakeHub(steps: string[]) {
-  return {
-    push: (userId: string, n: NotificationDTO) => { steps.push(`push ${userId} ${n.kind}`); },
-    inboxChanged: (userId: string) => { steps.push(`inbox ${userId}`); },
-  };
-}
 const dto = (userId: string, kind: string) => ({ userId, notification: { id: `${userId}-${kind}`, kind } as unknown as NotificationDTO });
 
-test('delivery applies the event in the store first, then pushes one frame per recipient and one INBOX_CHANGED each', async () => {
-  const steps: string[] = [];
+// Pushing moved to the realtime subscriber (test/realtime.test.ts): delivery commits through the store and returns
+// what the store applied, so the consumer's outcome is observable without sockets (issue #241).
+test('delivery applies the event in the store with its recipients and returns the applied result', async () => {
   let received: ProcessedEventInput | undefined;
   const deliver = createDeliver({
     applyEvent: async (event, drafts) => {
-      steps.push('apply');
       received = event;
       return { outcome: 'created', stale: false, created: drafts.map((d) => dto(d.userId, d.kind)) };
     },
-  }, fakeHub(steps));
-  await deliver(parseOrderEvent(body({ ...cancelledV2, actorRole: 'ADMIN', actorId: '90000000-0000-4000-8000-000000000001', reasonCode: 'ADMIN_CANCELLED' }), 'order.cancelled'));
-  assert.equal(steps[0], 'apply');
-  assert.deepEqual(steps.slice(1).sort(), [
-    `inbox ${accepted.courierId}`, `inbox ${accepted.requesterId}`,
-    `push ${accepted.courierId} ORDER_CANCELLED`, `push ${accepted.requesterId} ORDER_CANCELLED`,
-  ].sort());
+  });
+  const applied = await deliver(parseOrderEvent(body({ ...cancelledV2, actorRole: 'ADMIN', actorId: '90000000-0000-4000-8000-000000000001', reasonCode: 'ADMIN_CANCELLED' }), 'order.cancelled'));
+  assert.deepEqual([applied.outcome, applied.stale, applied.created.map((c) => `${c.userId} ${c.notification.kind}`).sort()], [
+    'created', false, [`${accepted.courierId} ORDER_CANCELLED`, `${accepted.requesterId} ORDER_CANCELLED`].sort(),
+  ]);
   assert.deepEqual(received, {
     producer: 'order-service',
     eventId: cancelledV2.eventId,
@@ -188,29 +184,26 @@ test('delivery applies the event in the store first, then pushes one frame per r
 
 test('a version-1 event carries no projection and is stored with the event time', async () => {
   let received: ProcessedEventInput | undefined;
-  const deliver = createDeliver({ applyEvent: async (event) => { received = event; return { outcome: 'created', stale: false, created: [] }; } }, fakeHub([]));
+  const deliver = createDeliver({ applyEvent: async (event) => { received = event; return { outcome: 'created', stale: false, created: [] }; } });
   await deliver(parseOrderEvent(body(accepted), 'order.accepted'));
   assert.equal(received?.schemaVersion, 1);
   assert.equal(received?.projection, undefined);
   assert.equal(received?.occurredAt, accepted.timestamp);
 });
 
-test('a stale event is stored but not pushed; its recipients still get INBOX_CHANGED', async () => {
-  const steps: string[] = [];
+test('a stale event reports stale so no replica toasts it', async () => {
   const deliver = createDeliver({
     applyEvent: async (): Promise<AppliedEvent> => ({ outcome: 'created', stale: true, created: [dto(accepted.requesterId, 'ORDER_DELIVERED')] }),
-  }, fakeHub(steps));
-  await deliver(parseOrderEvent(body(accepted), 'order.accepted'));
-  assert.deepEqual(steps, [`inbox ${accepted.requesterId}`]);
+  });
+  const applied = await deliver(parseOrderEvent(body(accepted), 'order.accepted'));
+  assert.deepEqual([applied.outcome, applied.stale], ['created', true]);
 });
 
-test('a duplicate or suppressed event is neither pushed nor invalidated', async () => {
-  const steps: string[] = [];
+test('a duplicate or suppressed event is returned as such', async () => {
   for (const applied of [{ outcome: 'duplicate', stale: false, created: [] }, { outcome: 'suppressed', stale: false, created: [] }] as AppliedEvent[]) {
-    const deliver = createDeliver({ applyEvent: async () => applied }, fakeHub(steps));
-    await deliver(parseOrderEvent(body(accepted), 'order.accepted'));
+    const deliver = createDeliver({ applyEvent: async () => applied });
+    assert.equal((await deliver(parseOrderEvent(body(accepted), 'order.accepted'))).outcome, applied.outcome);
   }
-  assert.deepEqual(steps, []);
 });
 
 // AI-generated (edited by Reallyeasy1)
@@ -244,7 +237,7 @@ for (const [name, payload, key] of [
 
 test('a receipt is stored under producer credit-service with no order projection', async () => {
   let received: ProcessedEventInput | undefined;
-  const deliver = createDeliver({ applyEvent: async (event) => { received = event; return { outcome: 'created', stale: false, created: [] }; } }, fakeHub([]));
+  const deliver = createDeliver({ applyEvent: async (event) => { received = event; return { outcome: 'created', stale: false, created: [] }; } });
   await deliver(parseNotificationEvent(body(settled), 'credit.escrow.settled'));
   assert.deepEqual([received?.producer, received?.projection, received?.orderCode, received?.courierId], ['credit-service', undefined, 'ORD-1042', accepted.courierId]);
 });

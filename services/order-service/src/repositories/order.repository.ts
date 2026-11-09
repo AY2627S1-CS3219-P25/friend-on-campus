@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: CreateOrderParams and the create write carry the optional drop-off coordinates and estimated credit.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Lint fix (PR #184): the list filter is built as Prisma.OrderWhereInput instead of Record<string, any>.
  * Author review: <to be completed by Reallyeasy1>
@@ -34,6 +38,18 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored persistence repository for Order Service using extracted domain handler functions and a lightweight factory function.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Delivery dispute: disputeOrder, a guard on requester completion, and admin cancel/complete clear the flag (kept requesterDisputeDetails as the record).
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: courierDisputeOrder: the assigned courier's response to an open dispute.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: courier dispute allowed on any DELIVERED errand and sets dispute; requester dispute allowed once even after the courier's.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
@@ -63,6 +79,9 @@ export interface CreateOrderParams {
   dropoffLocation: string;
   requesterContactNote?: string;
   rewardCredits: number;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  estimatedRewardCredits?: number;
   expiresAt: Date;
 }
 
@@ -91,6 +110,8 @@ export interface OrderRepository {
   pickupOrder(orderId: string, courierId: string, event: OrderEventDraft): Promise<OrderDTO>;
   deliverOrder(orderId: string, courierId: string, event: OrderEventDraft): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string, event: OrderEventDraft): Promise<OrderDTO>;
+  disputeOrder(orderId: string, requesterId: string, details: string): Promise<OrderDTO>;
+  courierDisputeOrder(orderId: string, courierId: string, details: string): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string, event: OrderEventDraft): Promise<OrderDTO>;
   unassignOrder(orderId: string, courierId: string, event: OrderEventDraft): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, reason: string, event: OrderEventDraft, expectedVersion?: number): Promise<OrderDTO>;
@@ -123,6 +144,9 @@ async function handleCreateOrderWithOutbox(
         dropoffLocation: data.dropoffLocation,
         requesterContactNote: data.requesterContactNote,
         rewardCredits: data.rewardCredits,
+        dropoffLatitude: data.dropoffLatitude,
+        dropoffLongitude: data.dropoffLongitude,
+        estimatedRewardCredits: data.estimatedRewardCredits,
         status: initialStatus,
         expiresAt: data.expiresAt,
         version: 1,
@@ -556,6 +580,10 @@ async function handleCompleteOrder(
       throw new OrderStateConflictError(`Cannot complete errand from status ${order.status}. Errand must be DELIVERED first.`);
     }
 
+    if (order.dispute) {
+      throw new OrderStateConflictError('This errand is under dispute; an administrator will settle it.');
+    }
+
     const updatedResult = await tx.order.updateMany({
       where: {
         id: orderId,
@@ -586,6 +614,82 @@ async function handleCompleteOrder(
       },
     });
     return toOrderDTO(refreshed);
+  });
+}
+
+// AI-generated (edited by jagdeepsh)
+async function handleDisputeOrder(
+  prisma: PrismaClient,
+  orderId: string,
+  requesterId: string,
+  details: string
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (order.requesterId !== requesterId) {
+      throw new OrderAuthorizationError('Only the requester can dispute this errand');
+    }
+
+    if (order.status !== 'DELIVERED') {
+      throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
+    }
+
+    if (order.requesterDisputeDetails) {
+      throw new OrderStateConflictError('The requester has already raised a dispute');
+    }
+
+    const updatedResult = await tx.order.updateMany({
+      where: { id: orderId, status: 'DELIVERED', requesterDisputeDetails: null, version: order.version, requesterId },
+      data: { dispute: true, requesterDisputeDetails: details, version: { increment: 1 } },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
+
+    return toOrderDTO(await tx.order.findUniqueOrThrow({ where: { id: orderId } }));
+  });
+}
+
+// AI-generated (edited by jagdeepsh)
+async function handleCourierDisputeOrder(
+  prisma: PrismaClient,
+  orderId: string,
+  courierId: string,
+  details: string
+): Promise<OrderDTO> {
+  return await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new OrderNotFoundError();
+    }
+
+    if (order.courierId !== courierId) {
+      throw new OrderAuthorizationError('Only the assigned courier can dispute this errand');
+    }
+
+    if (order.status !== 'DELIVERED') {
+      throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
+    }
+
+    if (order.courierDisputeDetails) {
+      throw new OrderStateConflictError('The courier has already raised a dispute');
+    }
+
+    const updatedResult = await tx.order.updateMany({
+      where: { id: orderId, status: 'DELIVERED', courierId, courierDisputeDetails: null, version: order.version },
+      data: { dispute: true, courierDisputeDetails: details, version: { increment: 1 } },
+    });
+
+    if (updatedResult.count === 0) {
+      throw new OrderStateConflictError('Errand was modified concurrently');
+    }
+
+    return toOrderDTO(await tx.order.findUniqueOrThrow({ where: { id: orderId } }));
   });
 }
 
@@ -809,6 +913,7 @@ async function handleAdminCancelOrder(
       },
       data: {
         status: 'CANCELLED',
+        dispute: false,
         specialNotes: updatedNotes,
         version: { increment: 1 },
       },
@@ -871,6 +976,7 @@ async function handleAdminCompleteOrder(
       data: {
         status: 'COMPLETED',
         completedAt: new Date(),
+        dispute: false,
         specialNotes: updatedNotes,
         version: { increment: 1 },
       },
@@ -976,6 +1082,8 @@ export function createOrderRepository(prisma: PrismaClient): OrderRepository {
     pickupOrder: (orderId, courierId, event) => handlePickupOrder(prisma, orderId, courierId, event),
     deliverOrder: (orderId, courierId, event) => handleDeliverOrder(prisma, orderId, courierId, event),
     completeOrder: (orderId, requesterId, event) => handleCompleteOrder(prisma, orderId, requesterId, event),
+    disputeOrder: (orderId, requesterId, details) => handleDisputeOrder(prisma, orderId, requesterId, details),
+    courierDisputeOrder: (orderId, courierId, details) => handleCourierDisputeOrder(prisma, orderId, courierId, details),
     cancelOrder: (orderId, requesterId, event) => handleCancelOrder(prisma, orderId, requesterId, event),
     unassignOrder: (orderId, courierId, event) => handleUnassignOrder(prisma, orderId, courierId, event),
     adminCancelOrder: (orderId, adminUserId, reason, event, expectedVersion) =>

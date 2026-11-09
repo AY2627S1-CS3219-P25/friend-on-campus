@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Issue #242 (RT4.1): a NOTIFICATION frame whose id was already seen in this logged-in session no longer calls
+ * onNotification again (realtime signals are at-least-once); the merge and the refresh are unchanged.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
  * Scope: Issue #208 (simulated UAT case E04, 2 of 3 attempts): after the browser went offline and online the badge
  * never caught up while the chat socket reconnected. The browser's offline event now closes the socket (status
@@ -32,6 +37,7 @@
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NotificationDTO, NotificationPageDTO } from '@campus-errand/common-dtos';
+import { createFirstSeen } from '../hooks/recentIds';
 import { applyPages, inboxQuery, mergeNotifications, type InboxView } from './inbox';
 
 export type SocketStatus = 'connecting' | 'connected' | 'disconnected';
@@ -199,6 +205,8 @@ export function useNotifications(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    // AI-generated (edited by Reallyeasy1): one cache per logged-in session, discarded with this effect (issue #242).
+    const firstSeen = createFirstSeen();
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/`;
 
@@ -222,7 +230,8 @@ export function useNotifications(options: {
           const notification = frame.data;
           // The frame is a hint: merge the row (a duplicate changes nothing) and let the server say what is unread.
           setItems((current) => mergeNotifications(current, [notification]));
-          latest.current.onNotification?.(notification);
+          // A replayed signal repeats the frame: the toast fires once per id (issue #242).
+          if (firstSeen(notification.id)) latest.current.onNotification?.(notification);
           void refresh();
         } else if (frame.type === 'INBOX_CHANGED') {
           void refresh();

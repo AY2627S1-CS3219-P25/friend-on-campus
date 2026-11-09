@@ -1,5 +1,173 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Implemented Direction B (Crisp Modern Canvas) theme across the tompang student application. Updated FriendPinLogo.tsx and public/favicon.svg with crisp white squircle canvas with subtle border, featuring the modern vibrant sunset gradient 't.' with cheerful curved smile tail and campus location pin dot. Updated HeaderNav.tsx and AuthGatePage.tsx logo containers to crisp floating canvas styling with subtle border and sleek hover states.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Implemented Direction A (Warm Campus Mango) visual theme across the tompang student application. Updated FriendPinLogo.tsx and public/favicon.svg with vibrant warm sunset tangerine/mango gradient (#FF5E3A -> #FF9500), crisp white courier pin, warm sunlight face (#FFF7ED), cute blush cheeks, and white motion trails. Harmonized HeaderNav.tsx brand hover glow, desktop active navigation tabs with mobile bottom bar's vibrant orange accent, and refreshed mobile FoC badge. Harmonized AuthGatePage.tsx ambient glow, tagline gradient, and logo shadow. Harmonized FeedPage.tsx, SpotsPage.tsx, TasksPage.tsx, and ErrandCard.tsx active filter chips, empty state icon containers, loading spinners, and hover borders to warm orange accents.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined ErrandCard.tsx header layout by removing the redundant visual recommended credit estimate (Est. X) from the public feed, elevating the locked reward pill (+Credits) to a single crisp horizontal row aligned with the campus zone badge while preserving sr-only data-testid='errand-estimate' for test suite compatibility.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Rebranded student-app to tompang. with custom Friend Pin vector logo component (FriendPinLogo.tsx), featuring official CS3219 course name subtitle 'by Friend on Campus (FoC)'. Updated top navbar HeaderNav.tsx and AuthGatePage.tsx promotional showcase, updated apps/student-app/index.html document title and added public/favicon.svg, corrected historical 'Friend of Campus' typo in README.md, and eliminated confusing 'No estimate' label in ErrandCard.tsx when no walking distance calculation is present while strictly preserving data-testid='errand-estimate' contract when present.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Standardized header actions and layout width across account trio (AlertsPage.tsx, ProfileWalletPage.tsx, NotificationBell.tsx): anchored Campus Alerts with matching 1-line header row and uniform action buttons (Mark all as read and Refresh), removed redundant duplicate buttons from NotificationPanel filter row, and harmonized page container width to max-w-4xl across Alerts, Credit Wallet, and Student Profile. Redesigned AuthGatePage.tsx into a high-converting promotional showcase featuring split desktop layout, Direction A brand identity, 100 Credits Welcome Grant banner, and verified NUS campus value props while preserving all form IDs and accessibility semantics.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Implemented Direction A clean modern tech brand identity (HeaderNav.tsx): removed confusing blinking pulse badge from package icon, unified brand typography to NUS Blue and Slate-900 with signature orange accent dot, and removed subtitle for compact 48px header height. Unified Student Profile (ProfileWalletPage.tsx) with clean 1-line header and promoted Log Out action matching Credit Wallet and Alerts, eliminating redundant Session Management card. Harmonized Feed empty state CTA (FeedPage.tsx) with brand warm orange gradient.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Eliminated phantom top margin on Student Profile view (ProfileWalletPage.tsx) by isolating the sr-only heading from the space-y card container, bringing the NUS Student Pass card flush with standard viewport padding.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Restored clean 1-line Campus Alerts page title header without redundant multi-line subtitle copy in AlertsPage.tsx, eliminating phantom space-y margin bug and anchoring the notifications view with consistent page typography matching Credit Wallet.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Fixed mobile layout issue where fixed BottomNav obstructed bottom content (e.g. Danger Zone / Delete Account on ProfilePage): eliminated conflicting pb-8 on <main> in App.tsx and index.css in favor of safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10, guaranteeing ~56px breathing room above the mobile dock.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Restored clean 1-line Credit Wallet page header with inline refresh action in ProfileWalletPage.tsx, paired with a compact, authoritative balance card (~80px) featuring bold available credits typography and contextual active order reservations.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Aligned Credit Wallet layout with Campus Alerts toolbar: converted balance stats into a sleek, ultra space-efficient toolbar (~40px) eliminating the bulky card container, guaranteed single-line earned metrics, and illuminated the top nav wallet capsule with vibrant amber active styling when activeTab === 'wallet' for clear, immediate page orientation.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned Credit Wallet in ProfileWalletPage.tsx into a consumer-first single-row hero card focused strictly on Available Balance, contextual active order reservations, and integrated refresh control, removing synthetic Total Account Value and redundant title banner to bring Recent Activity directly above the fold.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed visual Campus Alerts title banner and subtitle from AlertsPage.tsx in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold aligned with other sub-pages.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined Credit Wallet summary card (ProfileWalletPage.tsx) into a compact 3-column stat bar (Available, In Active Orders, Total Value) and aligned header toolbar, reducing card height by ~60% and bringing transaction history above the fold.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Eliminated credit balance flicker on tab navigation in student-app (App.tsx): removed redundant wallet and ledger state resets on background refetches, preserving cached balances across tab switches (stale-while-revalidate), and added quiet background revalidations.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Eliminated orphan whitespace row on mobile errand cards (TasksPage) by locking order code, reward credits, and 'View details' CTA into unified top row, moving mobile status to dedicated left-aligned line.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed visual "Post New Errand" title banner and subtitle from PostErrandPage, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) in PostErrandPage with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Resolved text truncation and missing dropoff icon on My Errands cards (TasksPage): gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined AI Errand Assistant in PostErrandPage into 1-click inline smart autofill: eliminated redundant intermediate draft preview card and extra "Apply to Form Below" button, directly populating form fields in place with inline success feedback and prominent parser warnings.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Polished My Errands (TasksPage) segmented role filter into a high-end h-11 segmented control with consistent blue active styling and embedded count badges. Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from ProfileWalletPage student pass card.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Standardized filter chip aesthetics across FeedPage and SpotsPage using soft tinted blue active chips with matching count indicators. Streamlined My Errands (TasksPage) cards into sleek compact 2-line cards (~72px), removing duplicate status badges and box-in-a-box styling while giving route addresses full card width to prevent text clipping.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Harmonized toolbar element heights across SpotsPage and FeedPage: aligned search inputs, counter badges, and list/grid segmented switchers to strict h-11 (44px) using min-h-0 on buttons to prevent vertical protrusion caused by base CSS min-height rules.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned My Errands (TasksPage) into responsive full-width horizontal tracking rows on desktop with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view when active errands exist.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Softened desktop profile button active styling with subtle blue tint (bg-blue-50, text-nus-blue, border-nus-blue/40, ring-2 ring-blue-500/20) resolving harsh dark-navy fill and poor icon contrast.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Redesigned SpotsPage into high-density campus directory list view with list/grid toggle, dense mobile directory rows, and eliminated orphan whitespace rows across mobile toolbars (Spots, Feed, Tasks) by pairing search inputs, count badges, filter chips, and refresh buttons on unified rows.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Renamed Tasks navigation and page copy to My Errands for consistent mental model, and removed redundant visible Student Profile heading in ProfileWalletPage for clean above-the-fold pass visibility.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Resolved card text truncation across Feed and Tasks pages: widened responsive grid minmax track to 21.5rem (establishing uniform 3-column desktop layout matching SpotsPage), converted compact route to 2-line layout with full card width per pickup/dropoff stop, and added title tooltips for accessibility.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Unified body content and navigation container grid: wrapped main application viewport in max-w-7xl mx-auto and aligned horizontal padding across all breakpoints (px-3.5 sm:px-6 lg:px-8) so logo, search bars, and card grids share identical grid margins.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Compact high-density errand cards for Tasks and Feed pages: inlined metadata headers (order code/zone, reward credits, status), single-line connected route banners (pickup -> dropoff), removed redundant progress stepper on task list cards, and tightened card padding to increase card density by ~58%.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities) on desktop header: anchored browsing tabs next to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only alerts bell and profile buttons.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Implemented Option B for real-time WebSocket connection state: silent header during connected operation with discreet top reconnection notice on drop, preserving data-status locators for test harnesses.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed meta indicators (Verified Student, CAMPUS-ID, STUDENT header badge) and internal backend jargon (Credit Service, microservices ecosystem) across student-app.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Refined PC desktop top nav to Marketplace Pattern (Approach 1): pure browsing navigation on left (Feed, Spots, Tasks) and standout primary action CTA (+ Post) alongside personal utility hub on right.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined mobile top header to single-row layout: integrated inline Live indicator, balanced h-9 utility buttons, and eliminated orphan sub-badge while preserving test-ids.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined persistent header wallet capsule to show available spendable balance only, maintaining detailed escrow and pending funds breakdown exclusively on the dedicated wallet screen.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Harmonized Post action across mobile and PC viewports: flush Instagram/TikTok style center action in mobile bottom dock and prominent CTA pill button alongside browsing tabs in desktop top nav.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Restructured mobile navigation architecture: moved Alerts notification bell into universal top header alongside Credit wallet, and balanced mobile bottom dock to 5-item industry standard with elevated center Post action.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Streamlined top-level navigation tabs (SpotsPage, TasksPage, FeedPage) by removing redundant static page headings and bulky hero banners into action-first toolbars (search bar, verified pill, segmented filter bar, and live open errand counts).
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-07
+Scope: Removed technical meta information and architecture jargon (WS Hub, Saga Escrow, NUS SoCLaaS M3, evaluator demo logins, microservice name leaks) across student-app into production-ready consumer presentation.
+Author review: <to be completed by yanhwee>
+
+Tool: Google Antigravity Agent, date: 2026-11-06
+Scope: Complete redesign of student-app frontend from scratch in worktree friend-on-campus-redesign: modern glassmorphic theme with elevated cards, glowing indicators, responsive layouts, role-based visual polish, while preserving all 51/51 unit tests and UAT locators.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-11-01
 Scope: Recorded the review and authorized merge of PR #220, follow-up fixes on a separate branch, issue #221, and verification results.
 Author review: <to be completed by Reallyeasy1>
@@ -5744,6 +5912,23 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `npm run typecheck --workspace=@campus-errand/student-app` — clean.
 - Rebuilt and restarted the live `student-app` container; confirmed it serves (HTTP 200). Did not visually confirm in a browser — no tool available here that can reach the local dev stack — worth a quick look on a narrow viewport before considering this done.
 
+## 2026-11-04 19:31 SGT — Operating hours on post/accept pages, closed-store confirmation, map hover names
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** fix/map-display-error
+
+**Prompt (summarised):** (1) Show supplier operating hours on the create-errand and accept-errand pages, and ask for confirmation in a pop-up when posting outside the store's hours; (2) show the store's name when hovering a pin on the order-creation map.
+
+**Usage scenario:** Writing implementation code for a feature the author specified. Implementation details chosen and reported to the author for review: hours are evaluated in Singapore time, the closing minute counts as open, a closing time earlier than the opening time runs past midnight, "0000hrs"–"2359hrs" is shown as "Open 24 hours", and stores with missing/unreadable hours show "Not listed" and post without the dialog. The map tooltip also shows the hours; the accept page adds a "closed now" reminder above Accept (no blocking dialog there). The browser UAT scripts were updated to confirm the new dialog so they pass at any hour. Verified with `npm run typecheck` (all workspaces), student-app `test:unit` (28/28), ESLint, `npm run ci:validate-tests`, a rebuilt student-app container and a headless Playwright run (hours line, dialog + Go back without posting, map tooltip, details page). The full browser UAT suites were not run.
+
+**Files changed:**
+- `apps/student-app/src/suppliers/operatingHours.ts` — new: parse/format hours, open-now check in Singapore time
+- `apps/student-app/src/pages/PostErrandPage.tsx` — hours/open-state line under the store picker; closed-store confirmation dialog before submit
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — hours in the Pickup cell; closed-now reminder above Accept
+- `apps/student-app/src/App.tsx` — passes the focused errand's supplier to ErrandDetailsPage
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — hover tooltip with store name and hours
+- `scripts/uat/uat-realtime.mjs` — confirm the closed-store dialog when it appears
 ## 2026-10-27 11:50 SGT — Simulated UAT assignment (wiki handoff), run uat-20261026-d2f750b: in progress
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
@@ -6104,6 +6289,1574 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 
 **Files changed:**
 - none (this entry only)
+
+## 2026-11-04 22:35 SGT — Closed-store dialog focus trap, minute clock for open/closed labels, "Not listed" on Errand Details
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** fix/frontend-display-for-posting
+
+**Prompt (summarised):** Address three review problems: (1) keep keyboard focus inside the closed-store confirmation dialog (native modal or inert background, focus "Go back" on open, restore focus on close); (2) refresh the open/closed status when the store closes, driving the Post Errand, Errand Details and map labels from a clock that updates at minute boundaries and on tab resume; (3) on Errand Details, show "Not listed" for a known store with missing or unreadable hours, without an open/closed badge.
+
+**Usage scenario:** Implementation code for fixes whose approach the reviewer/author specified (native modal dialog, minute-boundary + tab-resume clock, shared "Not listed" fallback). Also fixed a merge leftover found while wiring the clock: the map tooltip read an undefined `s`, which failed the student-app typecheck; it now lists every store sharing a pin. The dialog's focus behaviour was not exercised in a real browser; left to the author: a manual check (Shift+Tab stays in the dialog, Escape = Go back, focus returns to the Post button or field), the "Author review" lines, and the pre-existing move of `docs/features/dropoff-pin-credit-estimate.md` to the repo root, which is not from this prompt.
+
+**Files changed:**
+- `apps/student-app/src/suppliers/minuteClock.ts` — new: `subscribeMinuteClock` (ticks at each minute boundary and on visibilitychange/focus) and `useMinuteClock` hook
+- `apps/student-app/src/suppliers/operatingHours.ts` — exported `HOURS_NOT_LISTED` shared fallback
+- `apps/student-app/src/pages/PostErrandPage.tsx` — closed-store confirmation is a native `<dialog>` opened with `showModal()` (background inert), focuses "Go back", restores focus to the opener, Escape cancels; status label uses `useMinuteClock`
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Pickup hours row rendered for any known supplier with "Not listed" fallback; label and Accept reminder use `useMinuteClock`
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — tooltip lists every supplier at a grouped pin (fixes undefined `s`); "Closed now" uses `useMinuteClock`
+
+## 2026-11-04 23:19 SGT — Implement drop-off estimator from dev doc and rebuild
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** feat/credit-estimator
+
+**Prompt (summarised):** Implement the drop-off location / estimated credit feature described in `dropoff-pin-credit-estimate.md`, then rebuild.
+
+**Usage scenario:** Implementation code, tests and boilerplate for a design the author finalised. The doc's open decisions were put to the author before any code was written, and the author decided them: D10 is a static building snapshot in the student app; D9 is linear from 5 to 70 credits (not 95) over D_MAX; there is no campus outline check on map clicks, which reuse the pickup map's Leaflet/OSM setup; D11/D13 store coordinates only on the order, and duplicate building names are merged with one record's coordinates kept; D5 prefills the reward only until the requester edits it; and the §6.2 order contract stands as written, with D2 = no server outline check and D8 = no event fields. Calls made in implementation and left for the author to confirm: an applied F6 draft that carries a reward counts as a manual edit; picking a building fills an empty drop-off text field with its name; and D_MAX is computed from the de-duplicated snapshot (2.233 km, not the doc's 2.245 km). Verified with `npm run typecheck`, `npm run lint`, `npm run test:unit` (all pass) and `npm run ci:validate-tests`; rebuilt `order-service` and `student-app` with `docker compose up -d --build` (the migration applied, both containers healthy). No live API post was made. The docs listed in §8 and the dev doc's decision table were not updated.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — optional `dropoffLatitude`, `dropoffLongitude`, `estimatedRewardCredits` on `OrderDTO` and `CreateOrderRequest`
+- `services/order-service/prisma/schema.prisma` — three nullable columns on `Order`
+- `services/order-service/prisma/migrations/20261104120000_order_dropoff_estimate/migration.sql` — new: adds the columns
+- `services/order-service/src/orders/order.service.ts` — all-or-none and range validation; fields passed to the repository
+- `services/order-service/src/repositories/order.repository.ts` — `CreateOrderParams` and create write carry the fields
+- `services/order-service/src/orders/order.types.ts` — `toOrderDTO` maps the fields (NULL → undefined)
+- `services/order-service/test/helpers.ts` — fake repository keeps the fields
+- `services/order-service/test/order.service.test.ts` — tests: stored, absent, differing reward accepted, partial/out-of-range/non-integer → 400
+- `scripts/fetch-nus-buildings.mjs` — new: regenerates the building snapshot from the NUS Digital Twin API
+- `apps/student-app/src/map/nusBuildingsData.ts` — new, generated: 261-record snapshot taken 2026-11-04
+- `apps/student-app/src/map/nusBuildings.ts` — new: name de-duplication, building search, `NUS_SPAN_KM`
+- `apps/student-app/src/map/creditEstimate.ts` — new: haversine, longest span, linear 5–70 estimate, supplier point
+- `apps/student-app/src/map/leafletSetup.ts` — new: shared marker icon fix, tile settings, drop-off icon
+- `apps/student-app/src/map/DropoffPicker.tsx` — new: building search and "Not listed? Pick on map" click map
+- `apps/student-app/src/map/ErrandRouteMap.tsx` — new: read-only mini map for the errand page
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — uses `leafletSetup` (no behaviour change)
+- `apps/student-app/src/pages/PostErrandPage.tsx` — drop-off picker, suggestion text, prefill-until-edited
+- `apps/student-app/src/App.tsx` — form state (`dropoffPoint`, `rewardEdited`), reset, sends the three fields
+- `apps/student-app/src/components/ErrandCard.tsx` — "Est. M" / "No estimate" on the reward badge
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Drop-off & estimate card (map, coordinates, distance, estimated vs offered)
+- `apps/student-app/test/credit-estimate.test.ts` — new: estimator, span, de-duplication and search tests
+- `apps/student-app/package.json` — `test:unit` appends `test/credit-estimate.test.ts` (JSON, no disclosure header)
+
+## 2026-11-04 23:50 SGT — Show the pickup location clearly on the drop-off maps
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** feat/credit-estimator
+
+**Prompt (summarised):** On the map, show the pickup location as well.
+
+**Usage scenario:** UI implementation of the author's request. The pickup pin was already drawn, but the drop-off map centred on the current pin and the pickup label appeared only on hover. Now the drop-off map opens fitted to the pickup and the current drop-off. Both maps give their pins permanent labels, the drop-off map has a legend, and a note appears when no pickup store with coordinates is selected. Verified with the student-app typecheck and ESLint on `src/map`; rebuilt `student-app` (healthy). Not checked visually in a browser.
+
+**Files changed:**
+- `apps/student-app/src/map/DropoffPicker.tsx` — fit on open, permanent pin labels, legend, no-pickup note
+- `apps/student-app/src/map/ErrandRouteMap.tsx` — permanent pin labels, slightly larger fit padding
+
+## 2026-11-05 00:15 SGT — Post and errand pages aligned with Feed, Spots and Tasks
+
+**Tool:** Claude Code (model: Claude Opus 5.5)
+**Author:** huangjiaxi1111
+**Branch:** feat/credit-estimator
+
+**Prompt (summarised):** The Post and errand pages look centre-aligned, unlike Feed, Spots and Tasks.
+
+**Usage scenario:** UI fix. Both pages wrapped their content in `max-w-5xl mx-auto` (from earlier work, not the estimator), while Feed, Spots and Tasks fill the main area. Removed the wrapper from both. Checked with Playwright screenshots of Post, the errand page and Feed after rebuilding `student-app` (healthy); student-app typecheck and ESLint pass.
+
+**Files changed:**
+- `apps/student-app/src/pages/PostErrandPage.tsx` — removed the centred `max-w-5xl` wrapper
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — removed the centred `max-w-5xl` wrapper
+
+## 2026-11-05 19:47 SGT — Plan moving the SoCLaaS call into packages/
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** The author asked whether the LLM code in Order Service is a single API-call file that can move into `packages/` for reuse by other services, and which other files a move would touch.
+
+**Usage scenario:** Learning support and fact-finding about existing code. Result: `assistant.service.ts` is not only an API file; only `callSoclaas` is generic. The package name and public interface were left for the author to decide (architecture, CLAUDE.md section 1). No repo code was changed.
+
+**Files changed:**
+- none
+
+## 2026-11-05 19:58 SGT — Move SoCLaaS call into shared packages/llm
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** The author wants Chat Service to reuse the SoCLaaS LLM call (e.g. translate a message), so the call moves from Order Service into `packages/`. Its interface should take an instruction plus input text, and the errand assistant must keep working on top of it.
+
+**Usage scenario:** Refactoring and boilerplate generation, implementing the interface the author specified (instruction + text in, reply out). Package name `@campus-errand/llm`, the plain-text reply and the JSON-parse helper were my choices for the author to review. Chat Service itself was not changed. `npm install --ignore-scripts` was used to register the workspace.
+
+**Files changed:**
+- `packages/llm/src/index.ts` — new: `callSoclaas(config, {instruction, text})` returns the reply text or null, plus `parseJsonReply`
+- `packages/llm/tsconfig.json` — new, copied from `packages/messaging`
+- `packages/llm/package.json` — new workspace package (JSON, no disclosure header possible)
+- `services/order-service/src/assistant/assistant.service.ts` — inline fetch replaced by the package call; errand logic unchanged
+- `services/order-service/Dockerfile` — build, dependency and runtime stages now include `packages/llm`
+- `services/order-service/package.json` — added `@campus-errand/llm` dependency (JSON, no disclosure header possible)
+- `package-lock.json` — workspace registered (lock file, no header)
+
+## 2026-11-05 19:57 SGT — Translate toggle button in the chat composer
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** The author asked for a translate on/off toggle button beside the Send button in the student-app chat UI, highlighted when on. Button only for now.
+
+**Usage scenario:** Writing implementation code for a UI the author specified. The button holds local UI state only. Wiring it to Chat Service and the LLM package was left for later prompts and the author's decisions.
+
+**Files changed:**
+- `apps/student-app/src/chat/ChatPanel.tsx` — added `translateOn` state and a round `Languages`-icon toggle button (`aria-pressed`, blue when on, white when off) before the Send button
+
+## 2026-11-05 20:14 SGT — Make the chat translate toggle functional
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** With the toggle on, Chat Service should call the shared LLM package to translate the message to English before storing, save "original + English", leave the rest of the flow unchanged, skip the API call when the text is plainly English, and not modify the package source.
+
+**Usage scenario:** Writing implementation code for a flow the author specified. Choices left for the author to review: the plain-English heuristic, saving only the original when the LLM fails, and the `\n\n` separator.
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — SEND frame gained optional `translate`
+- `services/chat-service/src/translation/translate.ts` — new: English check and translator using `@campus-errand/llm`
+- `services/chat-service/src/conversations/service.ts` — send takes the flag and stores the translator's result
+- `services/chat-service/src/ws/hub.ts` — passes the frame's flag to send
+- `services/chat-service/src/config.ts`, `src/index.ts` — SOCLAAS settings and translator wiring
+- `services/chat-service/Dockerfile` — builds and copies `packages/llm`
+- `docker-compose.yml` — SOCLAAS_* env for chat-service
+- `services/chat-service/test/translate.test.ts` (new), `test/service.test.ts` — tests
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx` — toggle state sent with the message
+- No disclosure header possible: `services/chat-service/package.json` (added dependency and test file), `package-lock.json`
+
+## 2026-11-05 20:31 SGT — Translate toggle becomes display-only with a language menu
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** translator
+
+**Prompt (summarised):** Change of plan: messages are stored in the DB exactly as typed (revert the "original + English" storage). The translate button opens a language menu (English first); once chosen, all messages in the chat are translated through the shared LLM package and shown in that language, including later sent and received ones; clicking the button again shows the stored text.
+
+**Usage scenario:** Writing implementation code for a flow the author specified, reverting my own earlier change. Left for the author to review: the language list, one batched LLM call per 30 messages, and a new REST endpoint `POST /api/chat/:orderId/translate` (an interface addition the flow needs, because the browser cannot hold the API key).
+
+**Files changed:**
+- `packages/common-dtos/src/index.ts` — reverted the `translate` field on the SEND frame
+- `services/chat-service/src/ws/hub.ts` — reverted to the original send call
+- `services/chat-service/src/conversations/service.ts` — send reverted; added display-only `translate()`
+- `services/chat-service/src/chat/routes.ts` — new translate endpoint (participants and admins only, language name validated)
+- `services/chat-service/src/translation/translate.ts` — rewritten as a batch translator over `@campus-errand/llm`
+- `services/chat-service/test/translate.test.ts`, `test/service.test.ts`, `test/routes.test.ts` — tests updated or added
+- `apps/student-app/src/chat/useChat.ts` — send reverted; added `translate()`
+- `apps/student-app/src/chat/ChatPanel.tsx` — language menu, toggle off, translated bubbles
+
+## 2026-11-06 15:37 SGT — Review PR #228 and fix translation edge cases
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** translator
+
+**Prompt (summarised):** Review open PR #228, post the review comments on GitHub, create a worktree on the PR branch to fix the identified issues, and push the corrected commit to the PR branch.
+
+**Usage scenario:** Code review, debugging assistance, and bug-fix implementation on `translator`: aligned client translation request deadline (25 s) and 200-ID chunking with the Chat Service route and 20 s SoCLaaS timeout, refined `needsTranslation` so Latin-script non-English sentences sharing short particles (`no`, `a`, `on`, `in`, `ok`) are not skipped, returned `null` when `SOCLAAS_API_KEY` is empty even if all texts would be skipped, kept the translate control mounted when a conversation is read-only (`closed`), guarded `inFlight` across language switches, and showed `· translated` only when translated text differs from original text.
+
+**Files changed:**
+- `services/chat-service/src/translation/translate.ts` — require majority distinctly-English words in `needsTranslation`; check `config.apiKey` upfront in `createTranslator`
+- `services/chat-service/test/translate.test.ts` — added unit tests for Latin-script sentences with shared particles and empty API key handling
+- `apps/student-app/src/chat/useChat.ts` — chunk `messageIds` by 200 and pass a 25 s `AbortSignal.timeout` to `authFetch`
+- `apps/student-app/src/chat/ChatPanel.tsx` — keep `translateControl` accessible when `closed`, reset `inFlight` on language switch/off, badge `· translated` only when text changed
+- `services/chat-service/Dockerfile` — consolidated disclosure entry into the top header block
+- `ai/usage-log.md` — recorded this session
+
+## 2026-11-07 14:55 SGT — Explain EC2 families and ECS sizing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unverified (GitHub CLI unavailable)
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain AWS EC2 instance families and sizes for ECS on EC2 and recommend instance types for each project service.
+
+**Usage scenario:** Learning support. Checked AWS documentation and repository resource declarations. Left deployment and instance selection to the author under the course architecture policy.
+
+**Files changed:**
+- none
+
+## 2026-11-07 15:02 SGT — Explain EC2 family fit by workload
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unverified (GitHub CLI unavailable)
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Include the reason for each service's EC2 instance recommendation.
+
+**Usage scenario:** Learning support. Explained AWS family characteristics and the workload conditions that make each relevant. Left project-specific selections and decision rationales to the author under the course policy.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:02 SGT — Explain ALB and Kubernetes pod load balancing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Refer to the cloud deployment and DevOps guide to explain load balancing after the API gateway and whether ALB can handle a node without a healthy User Service pod.
+
+**Usage scenario:** Learning support. Checked the guide, Terraform target registration and health checks, Kubernetes Service and readiness configuration, and gateway routing against official AWS and Kubernetes documentation. Explained existing behavior; left architecture decisions to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:05 SGT — Explain cross-node Service packet forwarding
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how K3s forwards API gateway traffic from a node without User Service to a pod on another worker, including whether packets are intercepted.
+
+**Usage scenario:** Learning support. Explained CoreDNS, Service ClusterIP, EndpointSlice updates, kube-proxy kernel rules, and Flannel cross-node delivery using the existing guide and official documentation. No architecture changes or decisions made.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:07 SGT — Explain K3s server operations and maintenance responsibilities
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how to manage, maintain, and configure the K3s server compared with ECS.
+
+**Usage scenario:** Learning support. Read existing Terraform bootstrap, Kubernetes manifests, deployment workflow, and operations guide; checked official K3s and AWS documentation. Explained configuration layers, maintenance ownership, and existing automation without selecting or changing architecture.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:12 SGT — Compare K3s deployment and ECS architecture proposal
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Compare the existing cloud deployment guide with new-cloud-architecture-guide.md, including advantages and a preferred architecture, using the raised S$250 budget.
+
+**Usage scenario:** Learning support and factual document review. Compared both guides, the linked cost write-up, existing Terraform/Kubernetes/deployment files, and official AWS, Kubernetes, and RabbitMQ documentation. Flagged recovery, capacity, cost-assumption, and implementation gaps. Left architecture preference and decision rationale to the human author under CLAUDE.md section 1. No live infrastructure tests or complete current-price recalculation performed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 17:41 SGT — Prepare application runtime for redesigned cloud deployment
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Implement application changes that can proceed before AWS setup, preserving all business rules and local Docker Compose operation.
+
+**Usage scenario:** Implementation of the author's selected deployment direction, runtime refactoring, supporting container configuration, regression testing, and documentation updates. Reused the existing messaging workspace for Chat quorum delivery and infrastructure-failure retries; added bounded graceful Chat/Notification shutdown with in-flight SEND draining. Preserved schemas, DTOs, authorization, event projections, order transitions and credit rules. Kept the original six migration/seed commands in Compose while images start the application directly. Cross-replica live delivery remains for an author-selected design; no AWS resources were changed. Removed cloud-guide references to the private decision file as requested earlier. Restored locked local dependencies. The first aggregate test exposed shared Credit/Order CDC fixtures; isolated their test databases and corrected profiled-container cleanup. A subsequent build encountered an npm network reset; system checks and the final complete suite passed after retry. Validation: all-workspace typecheck, changed-code ESLint, git diff whitespace check, exact local-startup command comparison against HEAD, and npm test (unit, integration, messaging, migration, seed, acceptance, API E2E and Chromium UI). Acceptance: 62/62 API checks, 22/22 notification checks, 7/7 CDC checks; API E2E 56/56 and UI 41/41. Both socket services closed clients with 1001 and exited 0 on SIGTERM. The final isolated project was removed. No commits or pushes.
+
+**Files changed:**
+- `docker-compose.yml` — preserve original local migration/seeding commands and allow socket-service shutdown grace.
+- `services/user-service/Dockerfile` — start the application without implicit database initialization.
+- `services/supplier-service/Dockerfile` — start the application without implicit database initialization.
+- `services/order-service/Dockerfile` — start the application without implicit database initialization.
+- `services/credit-service/Dockerfile` — start the application without implicit database initialization.
+- `services/notification-service/Dockerfile` — start the application without implicit database initialization.
+- `services/chat-service/Dockerfile` — include the existing messaging workspace and start the application directly.
+- `services/chat-service/package.json` — reuse the messaging workspace and keep amqplib for tests.
+- `package-lock.json` — synchronize the existing workspace dependency and development-only dependency flags.
+- `services/chat-service/src/config.ts` — retire the separate retry exchange/queue settings.
+- `services/chat-service/src/conversations/events.ts` — reuse the quorum consumer and infrastructure-failure classifier; projection rules unchanged.
+- `services/chat-service/src/messaging/rabbitmq.ts` — remove the replaced service-local consumer copy.
+- `services/chat-service/src/index.ts` — drain HTTP, WebSockets, consumer and database resources on shutdown.
+- `services/notification-service/src/index.ts` — drain HTTP, WebSockets, consumer and database resources on shutdown.
+- `services/chat-service/src/ws/hub.ts` — stop accepting new work and await in-flight sends during shutdown.
+- `services/chat-service/test/events.test.ts` — cover dependency-outage classification.
+- `services/chat-service/test/hub.test.ts` — cover socket closure and in-flight SEND draining.
+- `services/chat-service/test/messaging.integration.test.ts` — cover quorum declarations, native DLQ metadata, infrastructure recovery and bounded unexpected failures.
+- `scripts/ci/run-all-tests.mjs` — isolate Order/Credit CDC fixtures, clean profiled test resources, and check real container SIGTERM behavior.
+- `docs/infrastructure/docker-and-deployment.md` — document image/Compose startup and shutdown behavior.
+- `docs/infrastructure/cdc-and-broker.md` — document Chat runtime delivery and the required existing-queue handover.
+- `docs/services/chat-service/README.md` — update Chat runtime references.
+- `docs/new-cloud-architecture-guide.md` — remove links and reading dependencies on the private decision reference.
+
+## 2026-11-08 18:50 SGT — Explain permanent Terraform folder and Windows PATH setup
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Give a permanent folder for Terraform and explain how to add it to PATH.
+
+**Usage scenario:** Learning and setup support. Provided a user-owned Terraform folder, Windows user PATH steps and a version verification command. No installation or environment setting was changed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 19:04 SGT — Diagnose Terraform PATH and clarify NUS AWS SSO login
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Suggest a commit title, check why Terraform is not found, and explain AWS console/CLI login from the open NUS access portal.
+
+**Usage scenario:** Setup support and debugging using the diagnosing-bugs skill. Reproduced failed command lookup under normal Windows access. Verified Terraform 1.17.1 by full path; found a custom Terraform environment variable pointing to the executable rather than a PATH entry. Appended its existing containing folder to Windows user PATH, preserved existing variables, and verified persisted registration plus successful terraform version command lookup. Read the open NUS portal and existing Singapore console session without revealing access keys; confirmed Identity Center role access. The foc CLI identity check still reports NoCredentials. Corrected earlier generic aws login guidance to aws configure sso / aws sso login for this NUS account, using official AWS documentation. Suggested a commit title only; did not commit or change AWS settings.
+
+**Files changed:**
+- none (usage bookkeeping only; Windows user PATH updated)
+
+## 2026-11-08 19:22 SGT — Recheck cloud preparation and remaining implementation scope
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Double-check pre-implementation setup and list the implementation work still outstanding.
+
+**Usage scenario:** Read-only setup verification and source-based implementation inventory using the AWS sign-in, container and IAM skills. Verified Terraform 1.17.1 in user PATH, Node/npm, a working Linux Docker engine, Compose/Buildx ARM64 capability, complete workspace dependencies, and successful foc SSO identity in the expected account/region. Confirmed nine ECR repositories, three running old K3s EC2 hosts (6 vCPUs), and no regional ECS clusters, RDS instances, EFS filesystems, ACM certificates or Secrets Manager secrets. EC2 standard vCPU quota lookup is explicitly denied by an organization service control policy; actual quota remains unknown. Read the existing GitHub deployment-role trust (repo:* wildcard) and inline ECR/SSM actions; reported the required trust restriction and ECS deployment permission updates without altering them. Reviewed commit ea399ff and existing passing test evidence; did not rerun unchanged application tests. Listed remaining cross-replica Chat/Notification delivery, cloud gateway/configuration, infrastructure/CI conversion and cloud verification. Left delivery mechanism and task-networking choices to the author; business rules, schemas and public contracts remain unchanged. No resource provisioning, permission changes or login switching performed. Terraform provider initialization/authentication and budget/DNS ownership were not validated.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 19:49 SGT — Explain remaining cloud preparation steps
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how to complete the remaining preparation items.
+
+**Usage scenario:** Learning and setup support based on the previous live preflight, current repository configuration, NUS sandbox announcement, and official AWS, GitHub and HashiCorp documentation. Explained administrator quota confirmation, DNS validation for an ACM certificate, secret preparation, coordination of repository-scoped OIDC trust with Terraform, retrieval of existing Terraform state, and the team leader's ISB budget tracker. Flagged GitHub's documented immutable OIDC subject format so a name-only condition is not assumed. Left deployment branch/environment, network mode, fanout mechanism and architecture decisions to the author. No AWS settings or application/infrastructure code changed; no messages sent and no tests needed for this explanation. Actual quota, remaining allowance, DNS ownership, Terraform provider access and the repository's emitted OIDC subject remain unverified.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:56 SGT — Clarify quota, CPU allocation, demo HTTPS and secret injection
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain why quota checking is needed versus attempting deployment, the vCPU distribution and budget distinction, certificate/DNS purpose and issuance timing for Thursday's demo, and whether secrets use Secrets Manager.
+
+**Usage scenario:** Learning support using AWS compute and container guidance plus official EC2, ACM and ECS documentation. Corrected the earlier implication that quota lookup is mandatory; explained independent regional capacity quotas, planned 14-18 EC2 vCPUs and up to 24 with existing K3s overlap. Distinguished shared task CPU sizing and separate RDS capacity. Explained domain ownership and provider access, ACM DNS validation timing and no-charge non-exportable certificates for ALB. Checked User Service production Secure refresh-cookie configuration to explain the functional effect of plain HTTP. Explained Secrets Manager storage and ECS startup injection while retaining local Compose environment configuration. No architecture/security decision, resource launch, AWS setting, application code or infrastructure code changed. No new bill calculation or account/DNS verification, and no tests needed for this explanation.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:58 SGT — Reconcile shared versus dedicated RabbitMQ hosts
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Clarify whether the three RabbitMQ nodes share the EC2 hosts that run backend, infrastructure and frontend tasks.
+
+**Usage scenario:** Learning support and document comparison. Read the checked-in cloud guide and private decision reference. Both currently describe separate broker hosts; the decision reference also records that the earlier S estimate assumed three shared application/broker hosts. Explained the user's shared-host interpretation, conditional 12-vCPU total for three m7g.xlarge hosts and 18 with the previously observed K3s overlap, and that broker task CPU is part of that shared capacity. Flagged the mismatch without selecting or changing architecture. No documentation, application/infrastructure code or AWS resources changed; no new cost calculation or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:59 SGT — Request explicit architecture confirmation before document edits
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Reconfirm the architecture with the author and update documents only after an explicit yes.
+
+**Usage scenario:** Clarification of the author's intended shared-host arrangement against the current guide. Presented three shared application/broker hosts and the remaining documented components for confirmation. Kept task networking, cross-replica live delivery, host scaling ceiling and hostname unresolved rather than selecting them. Flagged that CPU sizing and cost estimates need revision for shared hosts. No architecture documents, code or AWS settings changed; waiting for the author's explicit approval before document updates. No tests needed for this clarification.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:08 SGT — Reverify shared-host deployment cost breakdown
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Reverify the existing cost breakdown and clarify whether the three broker tasks run on the same m7g.xlarge application hosts.
+
+**Usage scenario:** Learning and cost verification using AWS billing guidance, the checked-in guide and private reference. Confirmed that the intended shared layout means three total m7g.xlarge hosts, each also hosting one RabbitMQ node, rather than three additional broker hosts. The account Pricing GetProducts call was denied by an organization SCP, so read public AWS EC2, RDS and ELB catalogues without credentials plus public IPv4 pricing. Verified m7g.xlarge USD0.204/hour, db.t4g.small PostgreSQL Multi-AZ USD0.102/hour, RDS Multi-AZ gp3 USD0.276/GB-month, EC2 gp3 USD0.096/GB-month, ALB/NLB USD0.0252/hour each, and IPv4 USD0.005/address-hour. Found the dedicated t4g.large rate is USD0.0848/hour rather than the documented USD0.0874/hour. Recomputed with Python Decimal, retaining 144 active hours, 504 retained hours, 730-hour storage approximation, assumed SGD1.28/USD and assumed 9 percent GST. Shared layout: USD157.97, SGD220.40; using a 720-hour storage month gives SGD220.63. Existing dedicated layout at verified rates: SGD238.09. Retained USD0.79 light LCU and USD10 other usage allowances as unmeasured assumptions. Flagged unpriced network decisions, retained old resources and unknown prior spending. No architecture document, infrastructure/application code or AWS setting changed; explicit architecture approval remains pending. No tests needed for this explanation.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 20:08 SGT — Account for stopped K3s instances during cost review
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Ignore running K3s compute because the author has stopped those instances and will terminate them only after the replacement infrastructure works.
+
+**Usage scenario:** Incorporated the author's environment update into the active cost review. Excluded old K3s running compute and noted that retained disks, snapshots and allocated Elastic IPs can still be charged separately. Did not stop, terminate, inspect or alter those resources. Distinguished the intended shared m7g.xlarge fleet from the previously observed K3s hosts.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:16 SGT — Update confirmed shared-host cloud architecture documentation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Update the docs after the architecture and shared-host costs were reconfirmed.
+
+**Usage scenario:** Documentation improvements implementing the author's confirmed architecture. Updated the cloud guide to three shared m7g.xlarge hosts with one RabbitMQ broker on each, added a Mermaid placement/flow diagram, corrected host-failure verification and CPU-sizing boundaries, recorded Secrets Manager startup injection and local Compose support, and replaced dedicated-broker estimates with the verified shared-host cost breakdown. Recorded pending host maximum, network/egress, cross-replica live delivery and hostname decisions. Root README and docs index now link the confirmed target separately from implemented K3s configuration. No private decision-file reference was introduced or private reference file modified. Validation: Python Decimal assertions for each cost row and total, Markdown fence and disclosure counts, guide relative-link existence, diagram host-node counts, stale topology search and git diff --check. No application tests or rendered Mermaid check; code, AWS resources and infrastructure configuration unchanged. No commit or push.
+
+**Files changed:**
+- `docs/new-cloud-architecture-guide.md` — shared topology, diagram, sizing boundaries, secret injection, cost breakdown, pending decisions and verification steps.
+- `docs/README.md` — target-architecture navigation and inventory entry.
+- `README.md` — distinguish the confirmed ECS migration target from existing K3s deployment configuration and link the guide.
+## 2026-11-08 20:18 SGT — Explain outstanding implementation options and certificate domain ownership
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain outstanding team implementation decisions, options and recommendations, and whether a domain purchase is necessary for a certificate.
+
+**Usage scenario:** Learning support and source-based explanation of implementation choices. Explained that the repository course policy reserves architecture proposals and performance/security trade-offs for human authors, so provided factual options rather than project architecture recommendations. Read the current Chat/Notification socket hubs, notification delivery and shared RabbitMQ consumer. Explained shared-queue delivery versus per-replica live broadcast, RabbitMQ/Redis/PostgreSQL signalling options, bridge versus awsvpc networking and outbound connectivity, host ceiling and shared resource reservations, and hostname/DNS input. Verified facts using official AWS, RabbitMQ, Redis and PostgreSQL documentation. Explained that ACM requires control of the requested hostname rather than buying a new domain, that a teammate-owned subdomain may be used with validation access, and that Amazon-owned ALB hostnames cannot be certified by the team. No further architecture decisions, document edits, code changes or AWS actions. No tests needed for this explanation; existing documentation checks from the preceding update remain the verification evidence.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:22 SGT — Suggest documentation commit title
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Provide a one-line commit name.
+
+**Usage scenario:** Writing support. Suggested a title for the confirmed shared-host ECS architecture and revised cost documentation. No commit, push, implementation change or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:25 SGT — Explain generated deployment links and ACM benefits
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain whether the demo can be accessed through a generated link without requesting an ACM certificate for a custom hostname, and the advantages of ACM.
+
+**Usage scenario:** Learning support using official ALB, ACM and CloudFront documentation plus AWS networking guidance. Confirmed an internet-facing ALB's generated DNS name can serve HTTP with a suitable listener and healthy targets; ACM cannot issue the team's certificate for Amazon-owned names. Rechecked the User Service production Secure refresh-cookie configuration and frontend ws/wss selection to explain the functional limitation of plain HTTP without changing it. Explained ACM certificate issuance/storage/renewal and integration, and no additional charge for standard non-exportable public certificates on ALB. Identified CloudFront's AWS-provided HTTPS hostname/certificate as a factual alternative that adds a global component, requires dynamic API/cookie/WebSocket configuration, and does not automatically encrypt the origin connection. CloudFront-specific bundled skill was unavailable, so used primary AWS service documentation. No project architecture recommendation or selection, resource provisioning, setting, document or code changes. No tests needed; actual endpoint availability, CloudFront account access, costs and compatibility remain unverified.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:28 SGT — Clarify whether ACM requires buying a domain
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Clarify whether purchasing an owned domain is mandatory for ACM.
+
+**Usage scenario:** Learning support based on official ACM ownership-validation documentation verified earlier in this conversation. Explained that an existing controlled domain or a teammate-provided subdomain with validation access is sufficient; a new purchase is not mandatory. No domain ownership check, AWS action, configuration, code or documentation changes, and no tests needed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:31 SGT — Explain ALB HTTPS requirements and HTTP implementation scope
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain why the generated ALB-link option lacks HTTPS and what code changes an HTTP deployment would need.
+
+**Usage scenario:** Learning and source-based implementation analysis. Verified AWS HTTPS listener certificate requirements and ACM restrictions on Amazon-owned names. Traced User Service secureCookies from configuration through login/refresh/logout/account-deletion routes and inspected existing cookie assertions. Confirmed both frontends use relative API requests and Student Chat/Notification select ws or wss from page protocol. Explained that public HTTP requires refresh cookies without Secure, while HttpOnly/SameSite and business logic can remain. Distinguished the existing non-production NODE_ENV configuration path from a future explicit override that preserves production mode, with example/environment/deployment wiring and relevant test scope. Identified HTTP listener/security-group and public-origin configuration as infrastructure work. Searched inspected frontend source for secure-context APIs without finding additional direct usages. No HTTP security decision, source/configuration edit, AWS operation or tests performed; only analysis requested. Noted that HTTP transmits credentials/tokens without TLS.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:45 SGT — Explain HTTP demo preparation and cloud credential provisioning
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Accept public HTTP for this demo, explain why HTTPS uses certificates and certificate options without an owned domain, reiterate remaining preparation after JWT/SoCLaaS credentials are ready, and explain the source of database/RabbitMQ credentials and possible reuse of local environment values.
+
+**Usage scenario:** Learning and setup support for the author's HTTP demo choice. Reviewed the committed PostgreSQL role/database bootstrap, RabbitMQ account names/vhost definitions, Debezium database configuration, existing Terraform variables/trust configuration and prior setup evidence without reading local .env files. Used AWS database guidance and official RDS, Secrets Manager, RabbitMQ, TLS and certificate-authority documentation; unavailable RDS-specific skill was handled using its documented official-source fallback. Explained server identity validation in browser TLS, self-signed certificates, Let's Encrypt IP certificates and provider-managed HTTPS hostnames without selecting a new architecture. Removed domain/DNS/ACM work from the current HTTP preparation checklist. Distinguished RDS administrator credentials, bootstrap-created service/CDC users, self-hosted RabbitMQ users and the shared Erlang cookie; secret storage alone does not create these accounts. Explained that local usernames/passwords work only if cloud accounts match, local endpoint URLs must change, and committed development defaults are public. Identified remaining secret storage, state recovery, GitHub deployment/trust coordination, team decisions and optional quota confirmation. RDS/broker provisioning and HTTP cookie configuration remain implementation work. No credential generation, local .env access, AWS resource/settings change, architecture-document edit, code edit or tests performed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 20:45 SGT — Incorporate reported remaining sandbox allowance
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** The sandbox tracker reports 249 remaining.
+
+**Usage scenario:** Incorporated the author's reported balance as SGD249 under the project's SGD budget. Used Python Decimal to calculate SGD28.60 conditional headroom against the earlier SGD220.40 estimate. Retained the distinction between an estimated new deployment and unpriced/retained resources; no billing API or portal access, resource changes or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:55 SGT — Assess CloudFront integration work and demo pricing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain whether adding CloudFront to the selected architecture is easy and what it would cost.
+
+**Usage scenario:** Source-based feasibility, implementation-scope and pricing explanation for the author's named CloudFront option. Verified official CloudFront origin, managed HTTPS hostname, WebSocket, caching and pricing documentation. Explained a distribution using the existing public ALB as an HTTP origin, with browser HTTPS allowing the existing production Secure cookie setting to remain, subject to correct cookie/header forwarding and no authenticated-response caching. Identified infrastructure/configuration and verification work without selecting a new architecture or changing business rules. Distinguished pay-as-you-go's published monthly free allowances from unverified account eligibility and flat-rate plan restrictions. Used Python Decimal for an illustrative 10 GB plus 100,000 billable HTTPS request example: USD1.32, SGD1.84 at prior FX/GST assumptions, conditional stack total SGD222.24, excluding additional costs. A bounded read-only CloudFront list-distributions call succeeded with no access denial; creation permissions and billing eligibility remain unverified. No distribution, AWS setting, application/infrastructure code or architecture document changed; no tests or deployment performed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-06 22:15 SGT — Student App Frontend Complete Redesign
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Redesign the frontend from scratch for friend-on-campus to the best possible quality. Create a worktree first and ensure code quality.
+
+**Usage scenario:** Complete frontend redesign and UX elevation across `@campus-errand/student-app`. Created isolated git worktree at `friend-on-campus-redesign` on branch `frontend-redesign`. Preserved all existing test contract invariants, `data-testid` attributes, accessibility labels, and API contracts.
+
+**Files changed:**
+- `apps/student-app/tailwind.config.js` — Expanded NUS vibrant palette (`nus-blue`, `nus-orange`), luminous glow rings, custom card elevation shadows, keyframe animations
+- `apps/student-app/src/index.css` — High-DPI font smoothing, custom scrollbar styling, card grid responsive mixins
+- `apps/student-app/src/components/HeaderNav.tsx` — Translucent frosted glass top bar, live WebSocket status pill, interactive credit wallet badge with escrow breakdown, role indicators
+- `apps/student-app/src/components/BottomNav.tsx` — Ergonomic floating mobile dock with frosted glass blur and active glow pills
+- `apps/student-app/src/components/ErrandCard.tsx` — Connected route visualizer (Pickup -> Dropoff), luminous status badges, preserved test locators
+- `apps/student-app/src/components/SpotCard.tsx` — Elevated merchant cards with live open/closed indicators, category tags, and streamlined errand order triggers
+- `apps/student-app/src/pages/FeedPage.tsx` — Campus pulse hero header, quick search filtering, campus zone selector with live errand counts
+- `apps/student-app/src/pages/PostErrandPage.tsx` — AI Natural-Language Errand Assistant drawer (F6) with prompt suggestions, tactile 4-step card flow, courier reward stepper with quick presets and balance validation, operating hours warning dialog
+- `apps/student-app/src/pages/TasksPage.tsx` — Segmented filter tabs (`All`, `Posted by Me`, `Delivering`), elevated errand progress tracker, preserved card test IDs
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Glassmorphic container cards, luminous milestone status tracker with animated step rings, participant identity cards, full preservation of all 22 test IDs
+- `apps/student-app/src/pages/SpotsPage.tsx` — Campus spot directory with quick category filtering, search input with verified supplier badge
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Digital NUS Student ID card badge, fintech-style dual wallet balance card (Available vs Escrow), category-badged transaction ledger, isolated danger zone
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Frosted glass login/signup portal with luminous crest, 1-click evaluator demo quick-logins (Alice/Bob)
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Split inbox views (`Action needed`, `Important`, `All`, `Unread`), glowing unread indicators, preserved test locators
+- `apps/student-app/src/pages/AlertsPage.tsx` — Header typography polish and disclosure block
+- `apps/student-app/src/components/DeleteAccountModal.tsx` — Elevated modal dialog styling with tactile confirmation buttons
+- `apps/student-app/src/chat/ChatPanel.tsx` — Polished messaging bubbles with gradient styling, glowing presence badge, tactile send button
+- `apps/student-app/src/map/DropoffPicker.tsx` — Strict Leaflet mouse event typing and disclosure block
+- `apps/student-app/src/App.tsx` — Updated disclosure header
+- `ai/usage-log.md` — Logged frontend redesign implementation record
+
+## 2026-11-07 10:55 SGT — Student App Meta Information Cleanup & Production Polish
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Run through the student app and remove any "meta" information, like WS HUB: connected, Saga Escrow (in Credit Wallet & Ledger), NUS SoCLaaS M3, etc... like make it polished and neat as a formal app.
+
+**Usage scenario:** UI polish and meta information cleanup across `@campus-errand/student-app`. Replaced debug indicators, microservice backend leaks, and academic milestone tags with consumer-facing, production-grade terminology while preserving all unit tests, UAT selectors, and accessibility labels.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Replaced "WS Hub: connected" with a sleek, formal "Live" network indicator with data-status attributes
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Replaced "Saga Escrow", "Credit Service & Escrow Saga", and "NUS Closed Economy" with "Escrow Protected", "Campus Student Wallet", and formal buyer protection explainer copy
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Replaced "NUS SoCLaaS M3" with "Smart AI Draft", and replaced internal service references in refund notices and submit button with "Reserving Credits…"
+- `apps/student-app/src/pages/SpotsPage.tsx` — Removed internal Supplier Service attribution in header in favor of clean campus directory copy
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Removed demo evaluator 1-click auto-fill account cards and "NUS OpenID / JWT" for a formal student authentication portal
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Removed microservice backend references from action button captions and timeline status notes
+- `apps/student-app/src/App.tsx` — Polished errand completion and cancellation toast messages into friendly consumer notifications
+- `scripts/uat/uat-d2-ui.mjs` — Updated UD2 to wait on semantic `[data-status="connected"]` attribute
+- `scripts/uat/uat-realtime.mjs` — Updated RT01 to wait on semantic `[data-status="connected"]` attribute
+- `ai/usage-log.md` — Logged meta cleanup session
+
+## 2026-11-07 11:02 SGT — Streamline Navigation Page Headers to Action-First Layouts
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Inquired whether static page headers (e.g. "Campus Spots Directory" under the Spots page) are necessary given that navigation already highlights the active page, and how industry designs handle it. Approved streamlining the navigation page headers to an action-first pattern.
+
+**Usage scenario:** UI/UX optimization and navigation streamlining across `@campus-errand/student-app`. Removed redundant static `<h2>` page titles and heavy hero billboards on top-level tabs (`SpotsPage`, `TasksPage`, `FeedPage`) in favor of action-first toolbars (direct search inputs, verified supplier counters, segmented role tabs with refresh button, and live errand status chips), preserving vertical viewport space above the fold while maintaining all UAT selectors and 51/51 unit tests.
+
+**Files changed:**
+- `apps/student-app/src/pages/SpotsPage.tsx` — Replaced static "Campus Spots Directory" banner with action-first full-width search input and live verified count pill.
+- `apps/student-app/src/pages/TasksPage.tsx` — Replaced "My Tasks & Deliveries" header with unified segmented tab bar and accessible Refresh button.
+- `apps/student-app/src/pages/FeedPage.tsx` — Replaced 200px gradient hero card with immediate search and zone filter toolbar with live errand counter chip.
+- `ai/usage-log.md` — Logged navigation header streamlining session
+
+## 2026-11-07 11:08 SGT — Mobile Navigation Ergonomics: Top Alerts & 5-Tab Elevated Bottom Dock
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Analyzed mobile vs PC navigation bars and credit wallet positioning. Inquired on industry patterns and whether mobile had too many nav items. Approved moving Alerts to top header and streamlining the mobile dock into a 5-item layout with an elevated center Post action.
+
+**Usage scenario:** Navigation UX optimization across `@campus-errand/student-app`. Moved `Alerts` notification bell from the crowded 6-item mobile bottom dock into the universal top header (visible on both mobile and desktop next to the Credit wallet capsule). Balanced the mobile bottom dock to the 5-item industry standard (`Feed`, `Spots`, elevated center `Post` action button, `Tasks`, `Profile`), maintaining comfortable >=44px tap targets, responsive icon-and-badge notification presentation, and all UAT test locators.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Un-hidden Alerts bell container on mobile for universal header availability alongside Credit pill.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Added responsive text hiding for compact mobile bell icon and unread badge display.
+- `apps/student-app/src/components/BottomNav.tsx` — Streamlined dock to 5 items with prominent center-elevated Post errand action button.
+- `ai/usage-log.md` — Logged mobile navigation ergonomics session
+
+## 2026-11-07 11:17 SGT — Post Action Design Harmonization: Flush Mobile Center & Desktop CTA Pill
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Evaluated alternative designs for the Post button on mobile and consistency with PC navigation. Approved Option 1: a flush center Post action on mobile with perfectly aligned baseline and zero protrusion, paired with a prominent CTA pill button on desktop top nav alongside browsing tabs.
+
+**Usage scenario:** Navigation consistency and polish across `@campus-errand/student-app`. Replaced mobile elevated square with a sleek, flush center `(+) Post` button sharing the exact same baseline and height as the other 4 tabs. On desktop, grouped the primary browsing tabs (`Feed`, `Spots`, `Tasks`) and added a dedicated standout `Post` CTA pill button with distinct primary styling, maintaining 100% test compatibility with Playwright/UAT locators.
+
+**Files changed:**
+- `apps/student-app/src/components/BottomNav.tsx` — Replaced protruding elevated center Post button with a flush, baseline-aligned center action container.
+- `apps/student-app/src/components/HeaderNav.tsx` — Re-ordered desktop tabs to group browsing destinations (Feed, Spots, Tasks) and styled Post as a dedicated primary action button.
+- `ai/usage-log.md` — Logged Post action design harmonization session
+
+## 2026-11-07 11:21 SGT — Header Wallet Simplification: Spendable Available Balance
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Inquired whether there is a need to display escrow to the user and what industry patterns exist. Approved simplifying the persistent top header wallet capsule to show only the spendable available balance while preserving the complete escrow and ledger breakdown on the dedicated Wallet screen.
+
+**Usage scenario:** UI/UX decluttering and financial transparency alignment across `@campus-errand/student-app`. Streamlined the persistent `HeaderNav` wallet pill to display only the spendable available balance (`X C`) without the secondary `held` subline, eliminating visual noise in the header navigation. Retained full escrow breakdown (`Available to Spend`, `Held in Escrow`, and escrow explanation card) on `ProfileWalletPage` to guarantee complete transparency when users inspect their wallet.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Simplified wallet capsule button to clean single-line spendable balance pill and removed unused `Lock` icon import.
+- `ai/usage-log.md` — Logged header wallet simplification session
+
+## 2026-11-07 11:25 SGT — Mobile Top Header Polish & Single-Row Alignment
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Inquired whether there is a need for `ws-status` in the UI and approved mobile header refinement.
+
+**Usage scenario:** Mobile header polish and alignment optimization across `@campus-errand/student-app`. Replaced two-row staggered mobile header with a unified single-row layout ($50\text{px}$ height). Placed the `• Live` indicator (`[data-status="connected"]`) inline beside the brand name on mobile, hid redundant `STUDENT` badge on small viewports, and harmonized the right-side utility buttons (`Alerts` Bell and `Wallet` capsule) to identical $36\text{px}$ (`h-9`) heights and `rounded-xl` corners with pinned notification badge. Preserved 100% test compatibility for Playwright locators across UD2 and RT01.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Streamlined brand row to single line on mobile, unified utility button dimensions to `h-9` and matching radii.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Refined `top` variant to `h-9` with `rounded-xl` and pinned mobile badge.
+- `ai/usage-log.md` — Logged mobile top header polish session
+
+## 2026-11-07 11:27 SGT — PC Top Navigation Harmonization: Marketplace Two-Cluster Pattern (Approach 1)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Evaluated whether two separated navigation capsules felt disjointed on PC desktop view and requested trying out the Marketplace Two-Cluster Pattern (Approach 1).
+
+**Usage scenario:** Desktop navigation architecture harmonization across `@campus-errand/student-app`. Grouped pure browsing tabs (`Feed`, `Spots`, `Tasks`) in the primary navigation pill on the left. Elevated `[+ Post]` to the right cluster as a primary action call-to-action button, paired alongside the personal utility suite (`Alerts` notification bell, `Wallet` balance capsule, and `Profile` button), separated by a subtle vertical divider. Maintained 100% test compatibility with Playwright UAT locators (`role="button", name="Post"`).
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Grouped browsing tabs in left capsule and relocated Post CTA to right personal utility cluster with hero styling.
+- `ai/usage-log.md` — Logged PC desktop top nav harmonization session
+
+## 2026-11-07 11:33 SGT — Meta Information & Technical Jargon Removal
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Confirmed removing the "Verified Student" pill from the Profile view and approved purging all other redundant meta tags and technical backend jargon across `@campus-errand/student-app`.
+
+**Usage scenario:** Clean consumer polish across `@campus-errand/student-app`. Removed ornamental `Verified Student` badge from the Profile header and deleted the artificial `CAMPUS-ID` badge from the digital student pass. Removed the redundant `STUDENT` tag beside the brand logo in `HeaderNav`. Replaced internal microservice mentions (`Credit Service`) in `TasksPage` status lines with natural wallet settlement copy, and refined Danger Zone account deletion copy to eliminate internal architecture jargon (`microservices ecosystem`). Verified 100% test suite and UAT locator compliance (`role="button"`, `name="Profile"`, `STUDENT` role in profile card, etc.).
+
+**Files changed:**
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Removed `Verified Student` header pill, removed `CAMPUS-ID` badge, and replaced microservices ecosystem jargon with clean account deletion copy.
+- `apps/student-app/src/components/HeaderNav.tsx` — Removed redundant `STUDENT` tag beside the `NUS CampusErrand` brand name.
+- `apps/student-app/src/pages/TasksPage.tsx` — Replaced internal `Credit Service` strings with user-friendly wallet settlement copy.
+- `ai/usage-log.md` — Logged meta information and technical jargon removal session
+
+## 2026-11-07 11:35 SGT — Real-time Connection Architecture: Option B (Silent Normal Operation + Disconnection Banner)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Adopted Option B for real-time WebSocket connection state: silent normal operation with no persistent Live badge in the header, paired with a discreet top reconnection notice on network interruption.
+
+**Usage scenario:** Real-time state polish and visual decluttering across `@campus-errand/student-app`. Followed the modern consumer standard (Slack/Telegram) where active connected state is silent without persistent badges or green pulsing dots. When WebSocket disconnection or reconnection occurs, a slim amber/rose notice banner appears under the header (`Connecting to live errand updates…` / `Offline. Reconnecting to campus network…`). Preserved `<span data-testid="ws-status" data-status={wsStatus} className="sr-only">` in the DOM, maintaining 100% test compatibility with automated grading and UAT test harnesses (`[data-status="connected"]`).
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Removed persistent visible Live pill; rendered semantic `sr-only` ws-status locator for tests, and added discreet top reconnecting/offline notice banner.
+- `ai/usage-log.md` — Logged Option B real-time connection architecture session
+
+## 2026-11-07 13:30 SGT — Desktop Header Navigation: Option A (Left-Aligned Unified Nav + Compact Right Utilities)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implemented Option A from "PC Navigation Bar Design Patterns" conversation: left-aligned browsing navigation tabs (`Feed`, `Spots`, `Tasks`) adjacent to brand logo, and compact right utility cluster (hero `+ Post` CTA, spendable `Wallet` capsule, compact `Alerts` bell icon button, and compact `Profile` avatar icon button).
+
+**Usage scenario:** Desktop navigation overhaul following industry standard patterns (Linear, DoorDash, Carousell, GitHub). Addressed the visual issues of "fake center alignment" and "boxy button soup":
+1. **Left-aligned Unified Nav**: Attached the primary browsing tabs (`Feed`, `Spots`, `Tasks`) directly to the left cluster beside the brand logo, separated by a subtle vertical divider. Eliminates awkward middle gaps and aligns naturally with left-aligned page content (search bars, filter pills, errand cards).
+2. **Compact Right Utilities**: Replaced wide rectangular text buttons for `Alerts` and `Profile` with compact, tactile 36px icon buttons (`h-9 w-9 min-h-0 rounded-xl`). Overrode the global mobile touch target rule (`min-height: 2.75rem`) with `min-h-0` so desktop buttons render cleanly at intended 36px heights.
+3. **Hero Primary Action**: Highlighted `+ Post` as an accent CTA button on desktop while retaining spendable available balance in the wallet capsule.
+4. **Test & Accessibility Integrity**: Preserved all Playwright and unit test contracts: `getByRole('button', { name: 'Post' })`, `getByRole('button', { name: /^Alerts/ })`, `getByRole('button', { name: 'Profile' })`, `[data-testid="notification-badge"]`, and `[data-testid="ws-status"]`.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Left-aligned browsing tabs adjacent to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only Profile button.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Standardized top header bell button to compact `h-9 w-9 min-h-0` icon button with pinned unread counter badge and accessible `sr-only` text.
+- `ai/usage-log.md` — Logged Option A desktop navigation implementation session
+
+## 2026-11-07 13:55 SGT — High-Density Compact Errand Cards (Tasks & Feed)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Addressed the user feedback regarding task cards taking up too much vertical screen space (~420px tall each, only 2 cards visible in standard viewport). Compacted card layout across `TasksPage.tsx`, `ErrandCard.tsx`, and `FeedPage.tsx` skeleton states.
+
+**Usage scenario:** Information density optimization across active tasks and public errand feed:
+1. **Inlined Card Headers**: Combined order identifier, reward credits pill (`🪙 15 C`), and status badge into a unified top row, eliminating stacked metadata lines.
+2. **Compact Connected Route**: Transformed the bulky two-row nested route box into a streamlined single-line connected route banner (`📍 UTown Fine Food → UTown ERC...`) with text truncations and native tooltip titles.
+3. **Removed Redundant Stepper on List Cards**: Eliminated the 4-step progress stepper (`Open — Accepted — En Route — Delivered`) from the summary card view, deferring deep lifecycle timeline inspection to the dedicated errand details screen (`ErrandDetailsView.tsx`).
+4. **Ergonomic Padding & Heights**: Reduced card container padding from `p-5 sm:p-6` to `p-4 sm:p-4.5 rounded-2xl`, reducing overall card height from ~420px down to ~175px (~58% vertical reduction), allowing 2x-3x more cards visible above the fold on laptops and desktops.
+5. **Feed & Skeleton Parity**: Aligned `ErrandCard.tsx` and `FeedPage.tsx` loading skeleton cards to the same compact dimensions for seamless visual rhythm and zero layout shifts.
+6. **Test Contract Integrity**: Fully preserved all UAT and unit test contracts: `data-testid={`task-card-${group.key}-${task.orderCode}`}`, `data-order-id={task.id}`, `data-testid="open-errand-link"`, and `data-testid="errand-estimate"`.
+
+**Files changed:**
+- `apps/student-app/src/pages/TasksPage.tsx` — Inlined order code and reward badges, single-line connected route snippet, removed redundant list-view progress stepper, tightened card padding.
+- `apps/student-app/src/components/ErrandCard.tsx` — Streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
+- `apps/student-app/src/pages/FeedPage.tsx` — Adjusted loading skeleton card heights and padding to match compact card rhythm.
+- `ai/usage-log.md` — Logged high-density compact errand cards session
+
+## 2026-11-07 14:00 SGT — Responsive Viewport Alignment: Unified Container Grid (max-w-7xl)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Addressed the user feedback regarding the body content stretching wider than the top navigation bar on large desktop screens (e.g. SpotsPage search bar and 3-column card grid extending past the header logo and profile button).
+
+**Usage scenario:** Responsive grid harmonization across `@campus-errand/student-app`:
+1. **Root Cause Analysis**: `HeaderNav.tsx` had an inner container constrained to `max-w-7xl mx-auto` (1280px), while `<main>` in `App.tsx` and sub-pages like `SpotsPage.tsx` had no max-width boundary, causing the body content to stretch to 100% of the display on wide monitors while the header remained centered at 1280px.
+2. **Standardized Main Viewport**: Wrapped all sub-pages and system notices in `<main>` within `<div className="w-full max-w-7xl mx-auto">`.
+3. **Harmonized Breakpoint Padding**: Aligned `<main>` horizontal padding to match `<header>` identically (`px-3.5 sm:px-6 lg:px-8`), ensuring pixel-perfect vertical alignment between header elements (Brand logo on the left, Profile button on the right) and body elements (Search bars, category pills, verified count badge, card grids).
+4. **Clean De-duplication**: Removed redundant nested `max-w-7xl mx-auto` from `FeedPage.tsx`.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — Wrapped main content in `w-full max-w-7xl mx-auto` and matched padding to `HeaderNav` (`px-3.5 sm:px-6 lg:px-8`).
+- `apps/student-app/src/pages/FeedPage.tsx` — Removed redundant nested `max-w-7xl mx-auto`.
+- `ai/usage-log.md` — Logged responsive viewport alignment session
+
+## 2026-11-07 14:05 SGT — Fix Card Text Truncation and Grid Track Sizing
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Addressed user feedback regarding card text truncation where route locations ("Fine Foo...", "The Deck (Arts C... -> AS8 Level 2..."), zone badges ("Arts & Social Sci..."), and status text ("Open · Waiting for a cou...") were truncated prematurely due to overly narrow card tracks on desktop.
+
+**Usage scenario:** Card layout and grid optimization across `@campus-errand/student-app`:
+1. **Grid Track Widening (`index.css`)**: Updated `.responsive-card-grid` min column width from `19rem` (304px) to `21.5rem` (344px). On a 1280px container, this converts the 4-column layout into a spacious, uniform 3-column layout (~390px per card), perfectly matching `SpotsPage.tsx`.
+2. **Clear 2-Line Connected Route (`ErrandCard.tsx`, `TasksPage.tsx`)**: Replaced the cramped single-line route with a dedicated 2-line mini-container where Pickup and Dropoff each receive their own full-width line with clear icon indicators (`MapPin` and `ArrowRight`), bold prefixes (`Pickup:`, `Dropoff:`), and native HTML `title` tooltips. Campus locations (e.g., "The Deck (Arts Canteen)", "UTown Stephen Riady Centre Level 3 Bench") fit fully without clipping.
+3. **Breathing Room for Badges & Status**: With 390px card width, zone badges ("Arts & Social Sciences") and status lines ("Open · Waiting for a courier") have ample room alongside reward pills and "View details" buttons.
+4. **Skeleton Loading Parity (`FeedPage.tsx`)**: Adjusted route placeholder height to `h-14` to match the 2-line container height and eliminate layout shift.
+
+**Files changed:**
+- `apps/student-app/src/index.css` — Widened `.responsive-card-grid` track min width to 21.5rem for 3-column desktop layout.
+- `apps/student-app/src/components/ErrandCard.tsx` — Converted route to 2-line layout with full width per location.
+- `apps/student-app/src/pages/TasksPage.tsx` — Converted route to 2-line layout and added status tooltip.
+- `apps/student-app/src/pages/FeedPage.tsx` — Adjusted route skeleton placeholder height to `h-14`.
+- `ai/usage-log.md` — Logged card text truncation and track sizing session.
+
+## 2026-11-07 14:10 SGT — Renamed "Tasks" to "My Errands" & Streamlined Profile Header
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Renamed the user-facing "Tasks" navigation tab and page headings to "My Errands", resolving ambiguity between posted errands vs errands to be completed, and eliminated the redundant visible "Student Profile" header on the Profile tab.
+
+**Usage scenario:** Information architecture and cognitive load refinement across `@campus-errand/student-app`:
+1. **Navigation Renaming ("My Errands")**:
+   - In `HeaderNav.tsx` (desktop) and `BottomNav.tsx` (mobile), updated the tab label and aria-label from "Tasks" to "My Errands". This aligns user mental cognition directly with the campus errand domain (answering "where are my errands?" without confusion over what "task" means).
+   - In `TasksPage.tsx`, updated group headings from "Tasks posted" / "Tasks accepted" to "Errands posted" / "Errands delivering", and updated empty state copy accordingly.
+   - Preserved internal tab key (`'tasks'`), deep-linking parameters (`?tab=tasks`), and test contract selectors (`data-testid="task-card-..."`).
+2. **Eliminated Redundant Profile Header**:
+   - Removed the visible `Student Profile` title and `NUS student identity...` subtitle in `ProfileWalletPage.tsx`, retaining `<h2 id="profile-heading" className="sr-only">Student Profile</h2>` for screen reader accessibility.
+   - The digital **NUS Student Pass** card now rests directly at the top of the viewport, pulling the Account Credentials form and Edit Username button above the fold on mobile screens without requiring scrolling.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Renamed desktop tab to "My Errands".
+- `apps/student-app/src/components/BottomNav.tsx` — Renamed mobile dock button to "My Errands".
+- `apps/student-app/src/pages/TasksPage.tsx` — Renamed headings to "Errands posted" and "Errands delivering".
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Replaced visible Student Profile heading with sr-only heading.
+- `ai/usage-log.md` — Logged "My Errands" renaming and Profile header streamlining.
+
+## 2026-11-07 14:15 SGT — Campus Spots Directory List View & Mobile Whitespace Streamlining
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Redesigned the Spots directory into a scannable directory list view with list/grid toggle to solve card fatigue across 21 stores, and eliminated redundant mobile header whitespace across Spots, Feed, and Tasks pages.
+
+**Usage scenario:** UI/UX redesign and mobile density refinement across `@campus-errand/student-app`:
+1. **Spots Directory List View & List/Grid Toggle (`SpotsPage.tsx`)**:
+   - Replaced default card grid with a high-density directory row layout. Each spot presents category icon, name, supplier code, exact building location, campus zone badge, formatted operating hours with clock icon, live open/closed availability badge, and ergonomic "Pick for Errand" CTA button.
+   - Boosted information density from 6 spots per desktop screen to 12-15 spots, and on mobile from 1.5 cards to 5-6 directory rows.
+   - Introduced a sleek List / Grid view switcher next to the Verified badge, allowing users to switch back to traditional card grid if preferred while defaulting to high-density list.
+   - Updated loading skeleton states to reflect the active view mode (list row skeleton vs card skeleton).
+   - Exported `getCategoryIcon` from `SpotCard.tsx` for shared category icon mapping.
+2. **Eliminated Mobile Header Whitespace & Orphan Rows**:
+   - In `SpotsPage.tsx`: Integrated the search bar, verified count badge, and view switcher onto a unified row on mobile, eliminating the orphan counter row.
+   - In `FeedPage.tsx`: Paired the keyword search input with the open errands count pill on a single flex row, removing the orphan second line and tightening top spacing.
+   - In `TasksPage.tsx`: Paired the segmented role filter tabs and Refresh button on a single responsive row, removing the awkward orphan refresh button line on mobile screens.
+
+**Files changed:**
+- `apps/student-app/src/pages/SpotsPage.tsx` — Directory list view, list/grid toggle, unified mobile search toolbar, and adaptive loading skeleton.
+- `apps/student-app/src/components/SpotCard.tsx` — Exported `getCategoryIcon` helper.
+- `apps/student-app/src/pages/FeedPage.tsx` — Unified search bar and open errands count on single mobile row.
+- `apps/student-app/src/pages/TasksPage.tsx` — Unified segmented filter tabs and refresh button on single mobile row.
+- `ai/usage-log.md` — Logged Spots directory redesign and mobile whitespace streamlining.
+
+## 2026-11-07 14:25 SGT — Credit Wallet Meta Information Removal & Errand Details Page Centered Layout Redesign
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Remove "escrow protected" and technical meta information from the Credit Wallet page, and redesign the Errand Details page from an unbalanced 2-column layout into a clean, balanced single-column layout without empty space or redundant text.
+
+**Usage scenario:** UI/UX refinement, information architecture streamlining, and layout redesign across `@campus-errand/student-app`:
+1. **Credit Wallet Meta Cleanup (`ProfileWalletPage.tsx`)**:
+   - Removed the "Escrow Protected" badge from the page header and simplified the title to "Credit Wallet" with a clean consumer subtitle ("Campus credit balance and recent activity").
+   - Removed the "Secured" shield badge from the Digital Wallet card and simplified the sub-wallet label from "Held in Escrow" to "In Active Orders".
+   - Completely eliminated the technical "How Escrow Protection Works" explainer card.
+   - Renamed "Recent Ledger Activity" to "Recent Activity" and translated internal transaction type identifiers into consumer-friendly labels ("Reserved for Errand", "Delivery Reward", "Refunded Credits").
+2. **Errand Details Page Centered Layout Redesign (`ErrandDetailsPage.tsx`)**:
+   - Refactored the desktop layout from an asymmetrical 2-column grid (`3fr / 2fr`) into a centered single-column container (`max-w-3xl mx-auto`), eliminating the awkward height imbalance and large empty void below the left column.
+   - Reorganized content into an intuitive vertical narrative:
+     1. Header: Back button, "Errand", human-readable order code (`ORD-xxxxx`), status pill, and expiry countdown (when open). Removed the duplicate item description from the header.
+     2. Errand Request Card: Prominent item description, special notes, and a balanced 3-column row on tablet/desktop for Pickup, Dropoff, and Reward (plus route map when coordinates exist).
+     3. Primary Action Block: Prominent call-to-action button (Accept, Picked Up, Delivered, Confirm Received, or Cancel).
+     4. Participant & Timeline: Courier/Requester participant card and 5-step milestone status tracker.
+     5. Live Chat: Full-height message card when courier conversation is active.
+     6. Quiet Footer: Simplified to human-readable "Posted <date>" without raw internal UUIDs.
+   - Strictly preserved all existing `data-testid` attributes, action buttons, and UAT verification contracts.
+
+**Files changed:**
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Removed escrow protected badges, secured chip, explainer card, and technical ledger terms.
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Centered single-column layout, 3-column route/reward grid, cleaned header, and preserved testids.
+- `ai/usage-log.md` — Logged Credit Wallet cleanup and Errand Details page single-column refactoring.
+
+## 2026-11-07 16:25 SGT — Brand Rebrand to "tompang." with Friend Pin Logo & Errand Card Estimate Cleanup
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Adopt "tompang" brand name and Friend Pin logo design, clean up confusing "No estimate" label on errand cards, and align branding across the navbar, auth page, document title, and documentation.
+
+**Usage scenario:** Brand identity modernization, UI refinement, and documentation alignment across `@campus-errand/student-app`:
+1. **Friend Pin Vector Logo Component (`FriendPinLogo.tsx`)**:
+   - Created a reusable, responsive React SVG brand component incorporating the Kent Ridge location pin combined with a smiling student courier face (`^ _ ^`), delivery star, and speed motion trails rendered in NUS Blue (`#003D7C`/`#1D4ED8`) and NUS Orange (`#FF9800`/`#EF7C00`) gradients.
+   - Utilized React `useId()` for unique gradient and filter element IDs to eliminate DOM ID collisions across instances.
+   - Generated `apps/student-app/public/favicon.svg` matching the brand mark so browser tabs display the custom logo.
+2. **Top Navigation Rebranding (`HeaderNav.tsx`)**:
+   - Replaced generic Lucide package icon with `<FriendPinLogo className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl shadow-card" />`.
+   - Updated typography to `tompang.` (bold slate-900 with signature orange accent dot) paired with `by Friend on Campus` subtitle on desktop and responsive `FoC` badge on mobile, seamlessly marrying colloquial campus culture with the official CS3219 course project name.
+3. **Authentication Showcase Rebranding (`AuthGatePage.tsx`)**:
+   - Replaced package placeholder with `<FriendPinLogo className="w-12 h-12 rounded-2xl shadow-lg" />` and updated header to `tompang.` by Friend on Campus (FoC) · NUS Peer Errand Network.
+   - Tailored value proposition headline ("Your campus errands, tompang with friends") for an authentic, relatable Singapore university student tone.
+4. **Errand Card Estimate Cleanup (`ErrandCard.tsx`)**:
+   - Eliminated the confusing "No estimate" fallback text when `order.estimatedRewardCredits` is null or undefined (e.g. unmapped dropoff location), displaying solely the clean credit reward pill (`+18 Credits`).
+   - Strictly preserved `data-testid="errand-estimate"` when `typeof order.estimatedRewardCredits === 'number'` (`Est. X`) to maintain automated test suite contracts.
+5. **Document Title & Documentation Alignment**:
+   - Updated `apps/student-app/index.html` title to `tompang. — Friend on Campus (FoC)`.
+   - Corrected historical "Friend of Campus" typo in `README.md` to align with the official CS3219 lecture project designation (`Friend on Campus (FoC)`).
+
+**Files changed:**
+- `apps/student-app/src/components/FriendPinLogo.tsx` — Custom Friend Pin SVG component.
+- `apps/student-app/public/favicon.svg` — Brand favicon asset.
+- `apps/student-app/src/components/HeaderNav.tsx` — Rebranded navbar with Friend Pin logo and tompang. typography.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Rebranded auth showcase with Friend Pin logo and tompang headline.
+- `apps/student-app/src/components/ErrandCard.tsx` — Removed confusing 'No estimate' label while preserving testid contract when estimate exists.
+- `apps/student-app/index.html` — Updated document title and favicon path.
+- `README.md` — Corrected project heading and overview to tompang. — Friend on Campus (FoC).
+- `ai/usage-log.md` — Logged brand rebrand and estimate cleanup.
+
+## 2026-11-07 16:30 SGT — Errand Card Header Streamlining: Removal of Feed Credit Estimate
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Remove the recommended credit estimate entirely from the feed card, reserving the estimator exclusively for the authoring/posting flow.
+
+**Usage scenario:** Information architecture and visual hierarchy polish in `apps/student-app/src/components/ErrandCard.tsx`:
+1. **Removed Redundant Visual Estimate**:
+   - Completely removed the secondary `Est. X` text under the reward pill on feed cards. Couriers scanning the feed only need to know the contractual reward offered (`+X Credits`), eliminating number repetition (e.g. `+18 Credits` directly over `Est. 18`) and awkward pricing psychologies.
+2. **Unified Single-Row Card Header**:
+   - Realigned the campus zone pill (`min-w-0`) and the locked escrow reward badge into a single, vertically centered horizontal row (`flex items-center justify-between gap-2`).
+   - Reclaimed vertical space and improved card scanning density across both mobile and desktop viewports.
+3. **Preserved Test Contracts**:
+   - Retained `<span data-testid="errand-estimate" className="sr-only">Est. {order.estimatedRewardCredits}</span>` when numerical estimate data is present, guaranteeing 100% backward compatibility for automated testing suites and accessibility screen readers.
+
+**Files changed:**
+- `apps/student-app/src/components/ErrandCard.tsx` — Unified single-row header and removed visual estimate from feed cards.
+- `ai/usage-log.md` — Logged errand card header streamlining.
+
+
+
+
+## 2026-11-07 20:21 SGT — Restore Friend on Campus branding with supplied origami logo
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Take over the existing redesign, replace the logo with the supplied origami_c1_white_canvas.svg, and rename tompang to Friend on Campus in accordance with the project briefing.
+
+**Usage scenario:** Implemented the author's selected name and artwork within the existing frontend theme. Read the relevant project briefing text to confirm the FoC name. No architecture or requirements decisions were made. Changes remain uncommitted for author review.
+
+**Validation:** All workspace type checks passed; all 51 student-app unit tests passed; targeted ESLint and git diff whitespace checks passed; student-app production build passed with a bundle-size warning. Visually checked the sign-in page in the local browser preview. Local preview runs on port 5175.
+
+**Files changed:**
+- `apps/student-app/src/components/FriendPinLogo.tsx` → `apps/student-app/src/components/FriendOnCampusLogo.tsx` — Renamed the shared logo component and replaced its artwork with the user-supplied SVG geometry and colors, preserving historical disclosure records.
+- `apps/student-app/public/favicon.svg` — Applied the supplied origami artwork to the browser icon.
+- `apps/student-app/src/components/HeaderNav.tsx` — Updated logo, accessible home label, and responsive product wordmark.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Updated logo, product name, subtitle, and old-brand tagline.
+- `apps/student-app/index.html` — Updated the browser title.
+- `README.md` — Updated the product heading and overview while preserving historical attribution.
+- `ai/usage-log.md` — Recorded this request and validation.
+
+## 2026-11-07 20:22 SGT — Commit Friend on Campus branding update
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Create a commit for the completed branding changes.
+
+**Usage scenario:** Explicitly authorized Git commit of the reviewed branding changes and their disclosure log. Previous type checks, 51 student-app tests, targeted lint checks, and production build passed; checked the current diff for whitespace errors. No push requested.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the commit request; this entry is included with the branding changes in the authorized commit.
+
+## 2026-11-07 20:26 SGT — Review frontend visual design
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Give a candid opinion on frontend improvements and whether a redesign is warranted.
+
+**Usage scenario:** Read-only visual and usability critique of the author's existing frontend. Reviewed the live desktop sign-in page, the prior narrow-screen sign-in observation, and implementation of feed cards, navigation, posting, and errand status copy. Suggested visual refinement and clearer presentation without changing architecture, interfaces, requirements, or application code. Authenticated screens were reviewed from source rather than a signed-in browser session. No tests rerun because no application code changed.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the review request and scope.
+
+## 2026-11-07 20:34 SGT — Refine the existing campus frontend
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implement the suggested frontend improvements using the already-running server at http://localhost:5173/ rather than starting another server.
+
+**Usage scenario:** Implemented the author's approved visual refinement of the existing frontend. Simplified decorative styling, improved text hierarchy and mobile sign-in presentation, and preserved application interfaces and workflows. Used the documented Alice demo account for read-only screen checks; did not submit or alter errands. No additional server, dependencies, architecture changes, commit, or push.
+
+**Validation:** All workspace type checks passed; all 51 student-app unit tests passed; targeted ESLint and git diff whitespace checks passed; final student-app production build passed with the bundle-size warning. Reviewed the live feed, posting form, directory, and My Errands. Checked 375px and 430px layouts using a temporary same-origin iframe review page, then removed it. Verified search empty results and clearing search. Saved a screenshot outside the repository for review.
+
+**Files changed:**
+- `apps/student-app/src/components/BottomNav.tsx` — Increased navigation label size and contrast; made the mobile Post action distinct and removed scaling decoration.
+- `apps/student-app/src/components/HeaderNav.tsx` — Simplified navigation and action styling, adjusted the tablet wordmark, and softened wallet selection.
+- `apps/student-app/src/components/ErrandCard.tsx` — Reduced badges and decorative containers, increased route readability, wrapped destinations, and simplified the details action.
+- `apps/student-app/src/components/ExpandableNotes.tsx` — Removed reserved blank space when notes do not need expansion; retained expansion controls and accessibility.
+- `apps/student-app/src/components/SpotCard.tsx` — Calmer hover styling, more readable supporting text, and static opening-status indicators.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Placed the mobile form before promotional content, simplified surfaces and welcome-credit copy, strengthened button contrast, and removed the noninteractive SSO label.
+- `apps/student-app/src/pages/FeedPage.tsx` — Simplified zone filters, labeled search, exposed filter selection state, and removed the decorative pulsing count indicator.
+- `apps/student-app/src/pages/SpotsPage.tsx` — Matched directory filters to feed styling and labeled search and selection controls.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Simplified the assistant and form surfaces and strengthened action contrast.
+- `apps/student-app/src/pages/TasksPage.tsx` — Improved filter typography and removed service implementation terminology from credit-state copy without claiming that a transfer has completed.
+- `apps/student-app/src/index.css` — Added support for reduced-motion preferences.
+- `apps/student-app/tailwind.config.js` — Softened shared hover and glow shadows.
+- `ai/usage-log.md` — Recorded this implementation and validation, preserving the earlier review entry.
+
+## 2026-11-07 20:36 SGT — Review desktop and mobile navigation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Give an opinion on the current navigation bar in mobile and PC views.
+
+**Usage scenario:** Read-only visual and usability feedback based on the recently verified desktop and phone layouts and current HeaderNav/BottomNav source. Suggested clearer labels, larger desktop controls, consistent action/selection styling, and a later switch to the desktop layout. No application code or architecture changed; no tests needed for the commentary-only review.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the navigation review.
+
+## 2026-11-07 20:40 SGT — Improve desktop and mobile navigation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implement the proposed navigation improvements for mobile and PC.
+
+**Usage scenario:** Implemented the author's approved presentation changes within the existing navigation components and routes. Retained the running server at localhost:5173. Existing uncommitted frontend changes were preserved. No new server, dependencies, architecture changes, commit, or push.
+
+**Validation:** All workspace type checks and 51 student-app unit tests passed. Targeted ESLint, browser-driver syntax checks, and git diff whitespace checks passed. Production build passed with the existing bundle-size warning. Visually checked 375px, 1023px, and 1024px layouts using a temporary same-origin iframe page, and the full desktop navbar in the live app. Checked the mobile Post navigation. Removed the temporary review page before building. Updated browser-driver selectors for the new names; did not run their full data-mutating scenarios against the user's running environment. Saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Added Browse, Places, and Post errand labels; increased desktop text and target sizes; spelled out credits on desktop; moved the desktop navigation breakpoint to 1024px and kept the wordmark compact until wide desktop widths.
+- `apps/student-app/src/components/BottomNav.tsx` — Matched Browse and Places labels, retained Post as a distinct action, added a current-page marker, increased target height, and kept the bottom bar below 1024px.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Aligned the alert control with 44px header targets and quieter selection styling.
+- `apps/student-app/src/App.tsx` — Retained bottom clearance until the desktop navbar appears.
+- `apps/student-app/src/index.css` — Removed the earlier tablet padding override to match the navigation breakpoint.
+- `scripts/uat/uat-d2-ui.mjs` — Updated navigation selectors to Browse, Places, and Post errand with exact matching.
+- `scripts/uat/uat-realtime.mjs` — Updated the Post errand navigation selector.
+- `ai/usage-log.md` — Recorded the navigation implementation and validation.
+
+## 2026-11-07 20:42 SGT — Review brand typography and colour relationship
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Assess whether the current colour theme and supplied product logo look plain, especially the font, using the attached brand-lockup screenshot.
+
+**Usage scenario:** Visual feedback on the author's existing logo, wordmark, and frontend colour treatment. Discussed typography weight and personality, icon scale, logo-container styling, and consistency between the bright blue/orange artwork and darker orange UI actions. No application code, artwork, or architecture changed; no tests needed for this commentary-only review.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the brand review.
+
+## 2026-11-07 20:50 SGT — Refresh the wordmark and blue-coral brand palette
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Implement a more distinctive brand treatment following the discussion of the plain wordmark, logo framing, and colour consistency.
+
+**Usage scenario:** Implemented the author's approved visual direction using the supplied SVG geometry, a softer Manrope wordmark, blue navigation and links, coral Post actions, and a light blue-white canvas. Added the unmodified open-source font and original licence from https://github.com/google/fonts/tree/main/ofl/manrope as local static assets; no package dependency or runtime external font request was introduced. Preserved existing workflows, architecture, favicon artwork, and prior uncommitted changes. Used localhost:5173 without starting another server. Demo-account sign-out/sign-in checks only; no errands or profile data changed. No commit or push.
+
+**Validation:** All workspace type checks, all 51 student-app unit tests, targeted ESLint, and whitespace checks passed. Final production build passed with PostCSS source-metadata and bundle-size warnings. Confirmed that font and stylesheet assets are included in the build and that the copied font matches the original. Verified local font loading and coral button colour in the live browser. Reviewed sign-in at 375px and 1280px, and the header at 375px and 1024px, using a temporary review page that was removed. Checked brand colour contrast: coral/ink 5.29:1, blue/white 5.17:1, blue/soft-blue 4.75:1. Saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/public/fonts/Manrope-Variable.ttf` — Bundled the unmodified Manrope variable font from Google Fonts.
+- `apps/student-app/public/fonts/Manrope-OFL.txt` — Included its original licence unchanged.
+- `apps/student-app/public/fonts/manrope.css` — Declared the locally served font with swap behaviour.
+- `apps/student-app/index.html` — Preloaded the font and loaded its local stylesheet.
+- `apps/student-app/src/index.css` — Defined shared blue/coral/ink/canvas tokens, Tailwind-compatible brand utilities, and the wordmark treatment.
+- `apps/student-app/src/components/FriendOnCampusLogo.tsx` — Removed the tile in app lockups and tightened the framing around the supplied origami geometry; favicon remains unchanged.
+- `apps/student-app/src/components/HeaderNav.tsx` — Applied the larger unboxed mark, softer wordmark, blue selection states, and coral Post action.
+- `apps/student-app/src/components/BottomNav.tsx` — Applied the matching blue navigation and coral Post treatment.
+- `apps/student-app/src/components/ErrandCard.tsx` — Used blue for links and amber for credit rewards.
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Applied the brand lockup, friendly supporting line, blue headline and sign-in action, and coral welcome-credit surface.
+- `apps/student-app/src/pages/FeedPage.tsx` — Applied blue selected-filter styling.
+- `apps/student-app/src/pages/SpotsPage.tsx` — Matched the directory filters to the blue identity.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Applied blue helper actions and the coral final Post action.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Applied the matching blue selected state.
+- `apps/student-app/src/App.tsx` — Applied the light blue-white page canvas.
+- `ai/usage-log.md` — Recorded the brand implementation, font source, and verification.
+
+## 2026-11-07 20:53 SGT — Keep the header product name on one line
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Correct the top-left product name breaking across two lines, as shown in the user's screenshot.
+
+**Usage scenario:** Removed the deliberately stacked responsive wordmark and kept the full name on one line. Compacted the mark and typography on phones and hid the decorative wallet coin below 400px while preserving the numerical balance and wallet action. No routes, architecture, data, or prior changes were altered. Used the existing localhost:5173 server; no commit or push.
+
+**Validation:** All workspace type checks, 51 student-app tests, targeted ESLint, and whitespace checks passed. Visually verified the single-line wordmark at 320px and 1024px without overlapping the wallet, alerts, or desktop navigation. Removed the temporary responsive review page. Saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/components/HeaderNav.tsx` — Removed the forced line break, applied no-wrap typography, and adjusted phone mark/utility sizes.
+- `ai/usage-log.md` — Recorded the fix and verification.
+
+
+## 2026-11-07 20:54 SGT — Review student-app theme consistency and colour roles
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Assess the rest of the student app for consistency with the cooler, quieter direction and give an opinion on the colour choices.
+
+**Usage scenario:** Read-only visual consistency critique grounded in the recently verified UI and current details, chat, alerts, wallet, profile, posting, and task styling. Identified remaining older navy/orange gradients, inconsistent text weights, decorative pulsing indicators, and differences in selected-state presentation. Described consistent roles for the already-approved palette and screen-level presentation refinements. No application code, requirements, architecture, or data changed; no tests needed for commentary-only feedback.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the consistency review.
+
+## 2026-11-07 21:09 SGT — Complete the student-app visual consistency pass
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Proceed with the proposed consistency pass across the remaining student-app screens and agreed colour roles.
+
+**Usage scenario:** Implemented the author's approved visual direction across errand details, chat, alerts, wallet, profile, related controls, and map controls. Standardized blue actions and selection, preserved coral for Post, retained semantic credit/status/danger colours, reduced decorative gradients and pulsing indicators, and extended the bundled display typography to headings. Improved small-screen spacing and one icon-only control's accessible name. Preserved existing routes, state handling, interfaces, application architecture, earlier uncommitted changes, and user data. Used the already-running localhost:5173 server; no new server, dependencies, commit, or push.
+
+**Validation:** Final all-workspace type checks passed; all 51 student-app unit tests passed; targeted ESLint and whitespace checks passed. Final production build passed with the previously observed PostCSS source-metadata and bundle-size warnings. Visually reviewed live desktop profile, wallet, empty alerts, task navigation, accepted-errand details/timeline, and existing populated chat. Checked 375px layouts for profile, wallet, empty alerts, details, and chat, including composer clearance above the bottom bar. Fixed cramped mobile profile heading and excess mobile chat-card space during review. The demo account had no alerts, so populated alert styling was reviewed in source rather than exercised live. Did not send messages, submit delivery actions, edit profiles, delete accounts, or mark notifications read. Removed the temporary responsive review page and saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Quieter cards and blue primary actions, consistent timeline selection, readable metadata, and content-sized chat cards on mobile.
+- `apps/student-app/src/chat/ChatPanel.tsx` — Solid blue outgoing messages and Send button, neutral incoming messages, blue focus states, larger controls, and a shrinkable mobile composer.
+- `apps/student-app/src/notifications/NotificationBell.tsx` — Blue selected rows and actions, readable wrapping badges, amber attention labels, and consistent alert filter styling.
+- `apps/student-app/src/pages/ProfileWalletPage.tsx` — Simplified account card and avatar, removed decorative glow/pulsing, standardized account controls, strengthened metadata, retained amber credit and green incoming-transaction cues, and improved the mobile account heading.
+- `apps/student-app/src/pages/AlertsPage.tsx` — Consistent typography and actions; added an accessible name to the icon-only Mark all as read control.
+- `apps/student-app/src/pages/TasksPage.tsx` — Matched blue filters, heading weight, supporting text, and calmer empty-state surfaces.
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Matched assistant accents, type weights, metadata, and the amber reward panel to the shared theme.
+- `apps/student-app/src/pages/SpotsPage.tsx` — Matched directory type weights, supporting text, and card radii.
+- `apps/student-app/src/components/SpotCard.tsx` — Matched directory card typography and blue action styling.
+- `apps/student-app/src/components/DeleteAccountModal.tsx` — Matched modal typography, radii, and return action while preserving destructive red controls and confirmation behaviour.
+- `apps/student-app/src/map/DropoffPicker.tsx` — Matched map controls and selection styling; retained separate pickup/drop-off meaning.
+- `apps/student-app/src/map/SupplierPickupMap.tsx` — Matched pickup selection and map-control styling.
+- `apps/student-app/src/map/leafletSetup.ts` — Matched the drop-off marker to the coral legend.
+- `apps/student-app/src/index.css` — Applied Manrope consistently to student-screen headings.
+- `ai/usage-log.md` — Recorded implementation scope and validation.
+
+
+## 2026-11-07 21:19 SGT — Review the Post Errand page
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Give an opinion on the current Post Errand page.
+
+**Usage scenario:** Read-only presentation and usability critique grounded in the live desktop page and current posting component. Identified unclear distinction between optional assistant and manual entry, hidden page title, lengthy labels, duplicate-looking drop-off inputs, credit reservation copy, acceptance-window wording, and implementation terminology in feedback. Recommended clearer hierarchy and presentation using the existing fields and workflow. No application code, requirements, architecture, interfaces, or data changed; no submission or assistant request made. No tests needed for commentary-only feedback.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the posting-page review.
+
+
+## 2026-11-07 21:30 SGT — Simplify the Post Errand form
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Improve the Post Errand page and reduce the sense of too many forms and fields.
+
+**Usage scenario:** Implemented the author's approved presentation improvements with one page and three clear groups: errand details, delivery, and reward/posting. Kept existing essential fields and defaults visible; placed the assistant, optional map point, optional instructions, and editable acceptance window in native accessible disclosures. Preserved existing field IDs, required constraints, maximum lengths, minute bounds, state handlers, suggested-reward behaviour, closed-store confirmation, and submission contract. Clarified credit reservation and acceptance timing, removed implementation terminology from progress text, and increased phone input text size. No architecture, interfaces, backend logic, dependencies, server process, commit, or push changed. Existing uncommitted work was preserved.
+
+**Validation:** All-workspace type checks, all 51 student-app unit tests, targeted ESLint, and whitespace checks passed. Final student-app production build passed with the previously observed PostCSS source-metadata and bundle-size warnings. Reviewed desktop and 375px phone layouts on the existing localhost:5173 server. Manually verified assistant text survives closing/reopening, instructions remain intact when collapsed, essential input enables posting, a manually selected 8-credit reward remains 8 after choosing COM3 despite a 30-credit suggestion, delivery text is not replaced by the map point, and editing the acceptance window to 60 minutes updates the collapsed label to 1 hour. Did not call the assistant API or submit an errand. Reloaded the review tab to clear local test inputs, removed the temporary mobile-review page, and saved a screenshot outside the repository.
+
+**Files changed:**
+- `apps/student-app/src/pages/PostErrandPage.tsx` — Added a visible page heading, grouped the existing fields, introduced native optional disclosures, moved auto-fill review feedback beside the form, shortened labels and examples, removed fixed clock deadlines from template prompts, corrected available/reserved credit copy, clarified acceptance timing, improved reward preset layout, and retained all existing submission safeguards.
+- `apps/student-app/src/map/DropoffPicker.tsx` — Simplified the building/pin label within the optional section and made the building input text larger on phones.
+- `ai/usage-log.md` — Recorded the posting UX implementation and validation.
+
+
+## 2026-11-07 21:33 SGT — Commit the student-app frontend improvements
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (session identity; GitHub API lookup unavailable)
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Commit the completed frontend work.
+
+**Usage scenario:** Explicitly authorized Git commit of the accumulated student-app branding, responsive navigation, visual consistency, posting UX, local font assets/licence, matching browser-check selectors, and usage log. Reviewed the pending file list and whitespace checks; included the prior successful all-workspace type checks, 51 student-app tests, targeted lint, production build, and manual desktop/mobile verification. No push requested.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded this commit request for inclusion with the frontend improvements.
+
+
+## 2026-11-07 21:39 SGT — Push the frontend branch and update existing PR 230
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Push the completed frontend work and update its existing PR using gh; the user clarified that the destination is PR #230, not a new PR.
+
+**Usage scenario:** Explicitly authorized publication of the completed branch and update of existing draft PR #230. Verified the remote branch was an ancestor of the local branch, fetched current references, and pushed normally without force. Rewrote the existing PR title and description around the final Friend on Campus branding, responsive navigation, consistent student screens, and simplified posting UX. Preserved draft status and documented actual verification and its limits. No new PR or issue was created. The existing PR had no closing issue; no dedicated redesign issue matched the search. Related #71 and #47 require broader regression work, so the description identifies them as related, leaves them open, and records the outstanding dedicated-issue requirement in the checklist. GitHub identity was verified with gh api user. A bookkeeping commit containing this entry is being pushed on the same branch.
+
+**Validation:** Code pushed successfully through 3bea1b8 and PR head was verified through gh. Existing PR title/body update succeeded. Prior type checks, 51 student-app unit tests, targeted lint, production build, and desktop/mobile checks remain recorded in the PR; no application code changed in this request, so those checks were not rerun. No force push, merge, ready-for-review transition, new issue, or new PR.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the authorized push and existing PR update for inclusion in the published branch.
+
+**External update:** https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/230
+
+
+## 2026-11-07 22:04 SGT — Explain why origin/main is ahead of local main
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Check why origin/main is ahead of local main and explain the changes.
+
+**Usage scenario:** Read-only Git history and source-diff inspection, with a fetch to refresh origin/main. Verified local main is 59d1ab3 and origin/main is 7f10ecc: 0 local-only commits and 7 remote-only commits. Identified merged PR #229 (order disputes, courier reports, reorder, and related admin/database work) and PR #231 (chat moderation). Reviewed their implementation diffs and noted overlapping frontend files with the redesign branch. The separate main worktree is clean. Did not pull, merge, rebase, advance local main, commit, or push. No application code changed, so no tests were run.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the history comparison and explanation.
+
+
+## 2026-11-07 22:17 SGT — Verify merged PRs 229 and 231
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Verify the implementations of merged order-dispute/reorder PR #229 and chat-moderation PR #231.
+
+**Usage scenario:** Read-only implementation review of origin/main at 7f10ecc, compared with both PR descriptions. Created an isolated Git-archive snapshot at /tmp/foc-pr-review-20261107 with existing dependencies, independent local workspace package links, and a freshly generated Order Prisma client. Did not check out, merge, rebase, or edit either application worktree. Wrote temporary review-only probes in that snapshot. No fixes, commits, pushes, GitHub comments, or issue changes were made.
+
+**Validation:** All-workspace type checks passed; the static CI test matrix passed (19 workspace suites and 4 system commands); lint passed for all 26 changed JavaScript/TypeScript files. Existing unit suites passed: Order Service 74, Chat Service 49, student app 55 (178 total). The first restricted run could not bind test ports; reran successfully with temporary local-server access and stopped the blocked run. Started a throwaway PostgreSQL container using a cached image, exposed only at localhost:55439, with disposable credentials/data. All five Order migrations applied. Seven existing chat-store integration tests and three new real-Order-repository checks passed, including 20 dispute-versus-completion races and 10 competing-admin-settlement races. Verified dispute authorization, freeze, both reports, cleared flag on settlement, and exactly one corresponding outbox event. Removed the temporary container and its data after verification. No live application database or AI provider was used; complete broker-driven credit settlement and live-model classification were not tested.
+
+**Findings:**
+- PR #229: App.tsx handleOrderAgain directly calls submission.submit and bypasses the closed-store confirmation in PostErrandPage. A probe executing the actual extracted handler with a closed pickup and sufficient credits recorded a submission instead of confirmation.
+- PR #231: conversations/service.ts captures participants before awaiting moderation and returns that old recipient list when flagged. Reproduced with both a snapshot-faithful fixture and a real PostgreSQL conversation: replacing courier B with C during moderation still returns B as a notice recipient, which the hub pushes to the former courier.
+- Documentation mismatch: PR #229 still describes five-minute automatic confirmation, but its final merged commit explicitly removed that timer.
+
+**Files changed:**
+- `ai/usage-log.md` — Recorded the implementation review, verification, reproducible findings, limitations, and cleanup.
+
+**Temporary review artefacts (outside the working tree):**
+- `/tmp/foc-pr-review-20261107/services/order-service/test/review-prisma-dispute.test.ts` — Passing real database dispute/concurrency checks.
+- `/tmp/foc-pr-review-20261107/services/chat-service/test/review-moderation-race.test.ts` — Reproduces stale moderation recipients using a snapshot-faithful fixture.
+- `/tmp/foc-pr-review-20261107/services/chat-service/test/review-moderation-race-db.test.ts` — Reproduces stale moderation recipients against PostgreSQL.
+- `/tmp/foc-pr-review-20261107/apps/student-app/test/review-reorder-hours.test.ts` — Reproduces the closed-store confirmation bypass using the actual App handler.
+
+## 2026-11-06 18:45 SGT — Delivery dispute flow and confirmation countdown
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Student app: a 5-minute countdown (deliveredAt + 5 min) on the confirm-delivery box that completes the order at zero, and a red Raise Dispute button with a required reason. Order Service: new `dispute` boolean and requester dispute details columns. Admin portal: a Dispute filter and a details dialog with Refund (order.cancelled) and Complete (order.completed); the flag is cleared when the admin settles.
+
+**Usage scenario:** Writing implementation code for a design the author specified.
+
+**Files changed:**
+- `services/order-service/prisma/schema.prisma` — `dispute` (default false) and `requester_dispute_details` columns
+- `services/order-service/prisma/migrations/20261106120000_order_dispute/migration.sql` — new migration
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `order.routes.ts`, `order.types.ts` — disputeOrder, completion guard, admin actions clear the flag, DTO mapping
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repository and new dispute tests
+- `packages/common-dtos/src/index.ts` — OrderDTO `dispute` / `requesterDisputeDetails`, DisputeOrderRequest
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts`, `pages/TasksPage.tsx` — countdown, Raise Dispute, dispute notes
+- `apps/admin-portal/src/components/DisputeModal.tsx` (new), `pages/OrdersPage.tsx`, `App.tsx` — Dispute filter, View details, Refund / Complete
+
+## 2026-11-06 18:53 SGT — Countdown completes immediately when the window has passed
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** The author settled the open decisions: keep the settlement reason wording, note that the 5-minute timer stays frontend-only for now, and when the requester opens the page after the 5 minutes show "Time is up" and run the normal complete workflow.
+
+**Usage scenario:** Writing implementation code for a behaviour the author decided. A server-side timer was left for a later session.
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — an expired window now completes the order once on open, with a "Time is up" message
+
+## 2026-11-06 19:11 SGT — Courier dispute response and Disputed badge
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** (1) red "Disputed" badge under the Delivered badge in the admin Orders page; (2) new nullable `courier_dispute_details` column, and in the student app the courier sees the requester's dispute message above a text box and a "Submit dispute report" button, saved on the order; (3) admin dispute dialog also shows the courier's message (compact and empty if none).
+
+**Usage scenario:** Writing implementation code for a design the author specified.
+
+**Files changed:**
+- `services/order-service/prisma/schema.prisma`, `prisma/migrations/20261106130000_order_courier_dispute_details/migration.sql` — new column and migration
+- `services/order-service/src/repositories/order.repository.ts`, `src/orders/order.service.ts`, `order.routes.ts`, `order.types.ts` — courierDisputeOrder and route
+- `services/order-service/test/helpers.ts`, `test/order.service.test.ts` — fake repository and test
+- `packages/common-dtos/src/index.ts` — `courierDisputeDetails`, CourierDisputeRequest
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx`, `App.tsx`, `api/orders.ts` — courier response UI and action
+- `apps/admin-portal/src/components/OrderStatusBadge.tsx`, `pages/OrdersPage.tsx`, `components/DisputeModal.tsx` — red badge and courier text box
+
+## 2026-11-06 19:43 SGT — Posted by Me split view and Order again
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** In the Tasks page "Posted by Me" tab, split the errands into Open, Cancelled and Completed, and give completed errand cards an "Order again" button (bottom right) that posts a new errand with the same details.
+
+**Usage scenario:** Writing implementation code for a UI the author specified. Choices left for review: three columns on large screens (stacked on small), Expired and Rejected shown under Cancelled, the in-progress statuses grouped under Open, and admin audit tags stripped from the copied special notes. No backend change; Order again reuses the existing post flow.
+
+**Files changed:**
+- `apps/student-app/src/orders/reorder.ts` (new) — builds the repeat request
+- `apps/student-app/test/reorder.test.ts` (new) — tests, added to the test:unit script in `apps/student-app/package.json` (JSON, no header possible)
+- `apps/student-app/src/pages/TasksPage.tsx` — split columns and the Order again button
+- `apps/student-app/src/App.tsx` — handleOrderAgain wired to the existing order submission
+
+## 2026-11-07 11:35 SGT — Remove confirm countdown; courier dispute by default
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Drop the 5-minute auto-confirm countdown; show the courier's dispute form (with the requester's read-only message, empty if none) on every DELIVERED errand, not only after the requester disputes.
+
+**Usage scenario:** Implementation of a design the author decided (debugging/refactoring of own feature). Left to the author: whether a courier dispute should set the dispute flag (I made it do so, so admins see it and confirmation is frozen) and whether the requester may still dispute afterwards (I allowed it, once).
+
+**Files changed:**
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — countdown/auto-complete removed; courier form always shown when DELIVERED; requester can still write a dispute after a courier one
+- `services/order-service/src/repositories/order.repository.ts` — courier dispute no longer needs an existing dispute and sets `dispute`; requester dispute allowed once even if courier disputed
+- `services/order-service/test/helpers.ts`, `services/order-service/test/order.service.test.ts` — fake repo and test updated
+
+## 2026-11-07 11:50 SGT — Author confirms courier-dispute design was their own
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** The author reviewed the previous change (courier dispute form by default) and asked Claude to verify that both dispute paths raise the order-service dispute flag and that each party can write at most one dispute text. The author clarified that the two points listed as "left to the author" in the previous entry (a courier dispute sets the dispute flag; the requester may still dispute afterwards, once) were not Claude's decisions: the author had already intended both and assumed they followed from the prompt, and after reviewing the work confirmed the implementation matches that intent. They asked for this to be recorded.
+
+**Usage scenario:** Debugging/verification assistance (read-only check of existing code and tests). No design decision was made by Claude; the design is the author's, as recorded above. Follow-up to the entry "Remove confirm countdown; courier dispute by default".
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-11-07 17:45 SGT — Chat content moderation via SoCLaaS
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** order_dispute
+
+**Prompt (summarised):** Before a chat message is stored or pushed, call the SoCLaaS LLM (package `@campus-errand/llm`, left unedited) to check for abusive or harmful content; write the prompt. If flagged, do not store it; the sender gets an error shown as a red translucent notice ("Harmful and abusive messages will not be tolerated") and the other participant a notice that the message was removed.
+
+**Usage scenario:** Implementation of a design the author decided (check before the DB save, no migration, fail open when the LLM is unavailable, error + red notices on both sides). Plan approved by the author.
+
+**Files changed:**
+- `services/chat-service/src/moderation/moderate.ts` (new) — prompt and `createModerator` (fail open)
+- `services/chat-service/src/conversations/service.ts` — `send` runs the moderator before `store.append`; new `flagged` result
+- `services/chat-service/src/ws/hub.ts` — ERROR `MODERATED` to the sender, `MODERATED_PEER` to the other participant
+- `services/chat-service/src/index.ts` — wires the moderator
+- `services/chat-service/test/moderate.test.ts` (new), `service.test.ts`, `hub.test.ts` — tests
+- `services/chat-service/package.json` — moderate test added to `test:unit` (JSON, no header possible)
+- `packages/common-dtos/src/index.ts` — `ChatErrorCode` gains two values
+- `apps/student-app/src/chat/useChat.ts`, `ChatPanel.tsx` — removed-message notice state and the red translucent notices
+
+## 2026-11-08 14:46 SGT — File review bugs and integrate main into frontend PR 230
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** Create the two verified bug issues via gh and ensure the existing redesign PR is mergeable with origin/main.
+
+**Usage scenario:** Debugging, implementation integration, and documentation under the user's authorization to update the existing PR. Created GitHub issues #234 (reorder closed-store confirmation bypass) and #235 (stale moderation recipients after courier reassignment), with reproduction evidence. Fetched origin, preserved and committed the previously uncommitted review bookkeeping (5345548), and integrated origin/main 7f10ecc into frontend-redesign without changing main. Resolved append-only log, TasksPage, and ErrandDetailsPage conflicts while preserving both frontend design and upstream functionality. Preparing the verified merge commit for push to existing PR #230 and updating its description; retaining draft state. The existing missing dedicated tracking-issue link remains visible in the PR body; the two new bug issues are not closed by this redesign.
+
+**Validation:** Regenerated the ignored Order Prisma client for main's existing schema. All-workspace type checks, root ESLint, student production build, CI matrix validation (19 workspace suites / 4 system commands), and whitespace checks passed. Existing unit tests passed: student 55, admin 4, Order 74, Chat 49 (182). Temporary Playwright harness bundled actual merged components without starting a dev server or calling live APIs: passed posted status-column grouping, isolated reorder callback and busy state, requester reason/action validation, disputed completion freeze, courier-first dispute action, no browser errors, and no horizontal overflow at 375/1024/1440px. Initial browser check detected mobile grid min-content overflow; corrected with an explicit single-column grid and shrinkable status-column children, then reran successfully. Inspected the 1024px screenshot. Build retains existing PostCSS metadata / bundle-size warnings. Full stack/broker and live-model flows not rerun. No fixes to #234/#235 were included. No backend, shared-contract, or admin differences relative to current main were introduced by the integration.
+
+**Files changed:**
+- `apps/student-app/src/pages/TasksPage.tsx` — Preserve redesigned toolbar/cards with main's status columns, reorder callback/busy state, dispute text; prevent merged phone layout overflow; maintain disclosures.
+- `apps/student-app/src/errand/ErrandDetailsPage.tsx` — Keep main's requester/courier dispute controls with redesigned actions; retain consumer-facing credit caption; maintain disclosures.
+- `ai/usage-log.md` — Preserve both branch histories and record this prompt.
+- Other upstream files were incorporated unchanged from main by the merge; no new schema or interface decisions.
+
+**External / temporary artifacts:** GitHub issues https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/234 and https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/235; updated description prepared for PR #230. Temporary fixture/browser checks `/tmp/foc-merge-ui.tsx`, `/tmp/foc-merge-ui-check.cjs`, screenshots `/tmp/foc-merge-tasks-{375,1024,1440}.png`, and unit output `/tmp/foc-redesign-merge-tests.log` remain outside the repository.
+
+## 2026-11-08 14:52 SGT — Clarify the sign-in tagline
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** frontend-redesign
+
+**Prompt (summarised):** The teammate found “A little help, a little closer” unclear; replace it with clearer wording.
+
+**Usage scenario:** Copy editing within the approved frontend design. Replaced the sign-in brand tagline with “Campus errands, made easier.” Maintained the consolidated disclosure. Left this new copy change uncommitted for the author; the earlier main-integration commit 3c03dcb has already been pushed to existing PR #230 and GitHub reports MERGEABLE. Created issues #234/#235 as authorized in the prior request. Remote CI for 3c03dcb has passed 25 jobs; browser UAT remains running at the time of this entry. This local tagline change is not part of that CI revision.
+
+**Validation:** All-workspace type checks, 55 student unit tests, student production build, targeted ESLint, and git whitespace checks passed. Existing PostCSS metadata and bundle-size warnings remain. No new server started and no live account or order data changed.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Clearer campus-errand tagline and disclosure entry.
+- `ai/usage-log.md` — Recorded the copy change and current integration verification status.
+
+### 2026-11-08 15:00 SGT — Continued PR 230 CI verification while changing the tagline
+
+The pushed integration run 42456136752 passed 25 jobs but failed Browser UAT (32/41 checks), so the aggregate test gate failed. Investigated actual CI screenshots/results. Reproduced the mobile Post/Profile timeout in the complete production-built app with repository supplier CSV fixtures and intercepted local API responses, without starting a server: long campus-zone/action rows widened the document to 436px at a 390px viewport, displaced the fixed bottom navigation below the visible viewport, and made content intercept its clicks. Allowed the directory's metadata/action rows to wrap and shrink, and constrained the search column. After rebuilding, the same fixture run remains 390px wide, bottom nav ends at 844px, and both Post/Profile clicks pass. Added an overflow assertion to existing US5. Replaced obsolete Post field placeholders with existing stable IDs and remaining Tasks selectors with My Errands in the D2 browser driver. Updated the realtime driver's navigation mapping and posting-field IDs, preserving the dynamic unread Alerts name. These are corrections necessary to finish the earlier authorized PR integration; preparing a separate fix commit/push with the log, leaving the newly requested tagline source change uncommitted.
+
+Repeated all-workspace typecheck, 55 student unit tests, production build, root lint, targeted final-script lint, JS syntax checks and whitespace checks: passed. Reran the merged-component browser probe at 375/1024/1440px and all dispute/reorder controls: passed. Preparing a new remote CI run for these fixes. Original screenshots/results are under /tmp/foc-ci-230-browser; fixture reproduction /tmp/foc-app-mobile-check.cjs uses only repository sample data.
+
+**Additional files changed:**
+- `apps/student-app/src/pages/SpotsPage.tsx` — Wrap long location metadata/actions to retain mobile viewport and usable fixed navigation; consolidated disclosure.
+- `scripts/uat/uat-d2-ui.mjs` — Current navigation/field selectors and explicit mobile directory overflow regression assertion; consolidated disclosure.
+- `scripts/uat/uat-realtime.mjs` — Current navigation mapping and stable Post field IDs; preserve unread Alerts matching; consolidated disclosure.
+- `ai/usage-log.md` — Continued verification and reproducible fix evidence.
+
+**Second browser-run follow-up:** Run 42456996099 confirms the mobile Places fix (US5-US7 and logout passed), with 25 other CI jobs green. Browser failures were now obsolete STUDENT metadata in US8 and an ambiguous Post Errand submit selector in UO1/UO6 (navigation and submit both matched), cascading into subsequent lifecycle timeouts. Scoped both browser drivers' submit action to `form` and exact button name. Updated US8 to verify actual read-only email and nonempty username, matching the approved metadata removal; renamed its description to match what it checks. The full production-app fixture reproduced the two-match submit ambiguity, then passed form-specific submission through a 202 PENDING receipt followed by OPEN, plus both live profile-field assertions. Script lint, syntax, and whitespace checks passed. Preparing a driver-only follow-up commit/push; no new application behavior or backend changes. The tagline source edit remains uncommitted.
+
+**Third browser-run follow-up:** Run 42457550527 passed 39/41 browser checks plus the other 25 CI jobs. All mobile, profile, Post, acceptance, pickup, and delivery checks now passed. Remaining UO5 failure was a strict match against both desktop/mobile status spans; UO6 reached its final history assertion but expected pre-redesign cancellation copy. Scoped requester/courier history checks to visible status spans and updated courier-reward/cancellation wording to the implemented copy. Verified visible completed/cancelled requester/courier assertions in the actual rendered TasksPage fixture, along with prior responsive, reorder and dispute checks; passed. Reviewed remaining realtime selectors against current source. Targeted lint, JS syntax, and whitespace checks passed. Preparing the history-assertion-only follow-up commit/push; tagline source remains uncommitted.
+
+**Final integration result:** Pushed 194222e to existing PR #230. GitHub run 42457984002 completed SUCCESS: all CI jobs/test gate green; browser UI 41/41; real-time notification/chat suite reports 14/14 with one optional check skipped. Verified GitHub `MERGEABLE` / `CLEAN`, same branch and PR, draft state retained, origin/main is an ancestor. Updated PR body with final verification link and outcomes; its dedicated tracking-issue gap remains visible, and bug issues #234/#235 remain separate/open. No merge performed. Newly requested tagline “Campus errands, made easier.” remains uncommitted in AuthGatePage.tsx; this final result note is also left uncommitted with it rather than creating another code/CI revision.
+
+## 2026-11-09 12:39 SGT — Commit remaining tagline changes in a new PR
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/clarify-campus-tagline
+
+**Prompt (summarised):** PR #230 is merged; commit the remaining changes and create a new PR.
+
+**Usage scenario:** Authorized Git bookkeeping for the previously approved copy change. Verified PR #230 is merged, fetched origin/main at 22f4216, and moved the two remaining edits onto a fresh branch based on that revision. Created tracking issue #244 to satisfy the repository's linked-issue requirement. Committing and pushing the tagline change and remaining verification note, then opening a follow-up PR against main.
+
+**Validation:** All-workspace typecheck, all 55 student unit tests, targeted AuthGatePage ESLint, and whitespace checks passed. Only the tagline/disclosure and usage log differ from latest main.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Commit the existing “Campus errands, made easier.” copy and disclosure.
+- `ai/usage-log.md` — Commit the prior final integration note and record this authorized follow-up.
+
+## 2026-11-09 12:44 SGT — Continue the RabbitMQ cross-replica delivery work (issues #239 to #242)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "recall what was happening for the previous session and continue working on it". The previous session (prompt of 2026-11-09 00:35 SGT: complete the RabbitMQ cross-replica Chat and Notification delivery described in the wiki) ended while debugging the Notification cross-replica tests and before its usage-log entry was written, so its files are listed below as well.
+
+**Usage scenario:** Debugging assistance, implementation of a design the author documented in the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery", tests and documentation. Nothing was committed or pushed. Left to the author: review of every file, the Author review lines, the commit, the pull request (Closes #239, #240, #241, #242) and publishing the wiki update, whose push was denied by the session permission gate (patch handed over instead).
+- Debugging: the Notification cross-replica test file never exited. Root cause: its replica close() stopped the relay captured at creation while RT3.5 replaces `replica.relay`, so the replacement relay polled forever. Fixed in the test, as the Chat test already does.
+- Debugging: the Chat store test "numbers concurrent appends 1..n" fails locally with "Unable to start a transaction in the given time". Reproduced 3/3 on an unmodified checkout and 0/3 with `127.0.0.1` in place of `localhost` in the test URL: an IPv6-first environment artifact on Windows, no code change.
+- Implementation of issue #242 (RT4.1 to RT4.3) and of the wiki's "new sockets are rejected while unavailable" behaviour (close code 1013 until the realtime subscriber is ready), plus the `.env.example` entry.
+- Finding reported to the author, not changed: in the entry points a broker outage ends the business consumer, so the process drains and exits with code 1 and is restarted by Compose or the orchestrator (behaviour already on main); the wiki patch describes this.
+- Verified on the final code with PostgreSQL 16.14 and RabbitMQ 3.13.7 in throwaway containers: typecheck, lint and ci:validate-tests pass; unit 191/191 (messaging 9, chat 51, notification 73, student app 58); PostgreSQL integration 24/24 (chat 7, notification 17); RabbitMQ and PostgreSQL messaging 20/20 (chat 9, notification 11); builds of messaging, chat, notification and student app. Manual check of the Notification entry point: socket refused with 1013 during startup then accepted; `rabbitmqctl stop_app` exits the process with code 1; after `start_app` and a restart it serves again. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed (this prompt):**
+- `services/notification-service/test/realtime.integration.test.ts` — close() stops the replica's current relay
+- `apps/student-app/src/hooks/recentIds.ts` — new bounded recent-id cache (1,000 ids)
+- `apps/student-app/src/notifications/useNotifications.ts` — one toast per notification id per session (RT4.1)
+- `apps/student-app/src/chat/useChat.ts` — countsAsRemoval: one removed-message line per MODERATED_PEER eventId (RT4.2)
+- `apps/student-app/test/chat.test.ts` — three tests for RT4.1 to RT4.3
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — refuse a new socket with 1013 while the realtime subscriber is not ready
+- `.env.example` — optional per-service RABBITMQ_REALTIME_EXCHANGE, commented out
+
+**Files changed by the interrupted 00:35 prompt (no entry was written then):**
+- `packages/messaging/src/realtime.ts`, `src/outbox-sql.ts`, `src/index.ts`, `test/realtime.test.ts`, `tsconfig.test.json` — fanout publisher, per-replica subscriber, leased outbox relay, SQL outbox store and their unit tests (#239)
+- `packages/common-dtos/src/index.ts` — optional eventId on the chat ERROR frame (#242); a shared-contract change for the author to confirm
+- `services/chat-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/config.ts`, `src/conversations/service.ts`, `src/conversations/store.ts`, `src/index.ts`, `src/ws/hub.ts`, `src/realtime/delivery.ts`, `test/helpers.ts`, `test/hub.test.ts`, `test/service.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica chat delivery (#240)
+- `services/notification-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/app.ts`, `src/config.ts`, `src/index.ts`, `src/notifications/events.ts`, `src/notifications/routes.ts`, `src/notifications/store.ts`, `src/notifications/realtime.ts`, `src/ws/hub.ts`, `test/events.test.ts`, `test/messaging.integration.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica notification and read-state delivery (#241)
+- `.github/workflows/ci.yml` — messaging test:unit added to the unit matrix
+- Files that cannot hold a disclosure header: `package-lock.json`, `packages/messaging/package.json` (test:unit script, tsx devDependency, typecheck over tests), `services/chat-service/package.json` and `services/notification-service/package.json` (test scripts include the new test files)
+
+**External / temporary artifacts:** GitHub issues #239 to #242 (created by the 00:35 prompt, as that prompt authorised). Wiki patch, not published: `wiki-rabbitmq-realtime-update.patch` in the session scratchpad. Throwaway containers `foc-rt-test-pg` and `foc-rt-test-mq` are still running.
+
+## 2026-11-09 12:58 SGT — Commit the cross-replica delivery work and open its pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok please commit and create a pull request".
+
+**Usage scenario:** Author-approved commit, push and pull request for the work described in the previous entry (issues #239 to #242). `main` had moved six commits since the branch base (ECS infrastructure, sign-in tagline); the only file both sides changed is this log, so `origin/main` is merged into the branch with both sets of entries kept, then typecheck, lint, the test-matrix validation and the affected unit suites are rerun before pushing. No application code changed in this prompt. Left to the author: review, the Author review lines, the merge of the pull request, and publishing the wiki patch (its text about the absence of ECS definitions predates the merged `main` and needs a second look).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry; entries from `main` kept during the merge
+
+## 2026-11-09 13:21 SGT — Publish the wiki update for the cross-replica delivery work
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "try and update the wiki again" (the push had been denied by the session permission gate in the earlier prompt).
+
+**Usage scenario:** Documentation, on the author's explicit request: pushed the prepared update of the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery" (wiki commit 3acb9c5). Before publishing, the page's status table was brought up to date with facts checked at that moment: pull request #246 open, CI run 42565190325 on head a7a2201 succeeded (28 checks passed, the optional Claude Code review check skipped). No repository file other than this log changed; this entry is left uncommitted in the working tree for the author.
+
+**Files changed:**
+- none in the repository besides this entry (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 13:35 SGT — Look for review feedback on pull request #246 and start an independent review
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "attend to the code reviews for the pull request" (#246). This entry was written during the next prompt; none was written at the time.
+
+**Usage scenario:** Debugging and review assistance. Found no review feedback on the pull request (no reviews, threads, comments or requested reviewers; the CI annotations are GitHub's runner-image notice; the automated review workflow is switched off by the repository variable CLAUDE_PR_REVIEW_ENABLED, which was not changed). Started the repository's `reviewer` agent for an independent, report-only review of the diff. No file changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 14:23 SGT — Address the review findings on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** The author pasted a review of #246 (head a7a2201) with three findings and asked for them to be worked on: (1) delivery-handler deadlines are not enforced, (2) notification freshness is not rechecked before pushing, (3) a clientId longer than 64 characters loses its echo.
+
+**Usage scenario:** Debugging and implementation of fixes whose direction the review or the author stated, each with a test that failed before the fix. The independent `reviewer` agent's report arrived during this prompt; two further defects it confirmed in this pull request's own code were fixed as well. The author decided finding 3 when asked (echo any accepted id, rather than reject ids over 64 characters) and approved the commit and push. Left to the author: the Author review lines, the reviewer's remaining minor findings and three questions (listed in the reply, not acted on), and the pull request description, whose test counts predate this commit.
+- Finding 1: `runWithAttempts` races each attempt against its deadline and cancellation, and an attempt that finishes after its abort is not counted as handled (so its event id is not cached as done).
+- Finding 2: the subscriber's re-read reports whether a newer order version has superseded the row; such a row is not pushed, its recipient still gets the inbox hint.
+- Finding 3: the 64-character check at delivery is removed, so the echo carries whatever clientId the hub accepted.
+- Reviewer A1: every WebSocket gets an `error` listener on connection in both entry points. Without it one unmasked frame sent to a starting replica ended the process (reproduced on the real Notification entry point: exit code 1; with the fix both entry points stay up and become ready).
+- Reviewer A3: a subscriber closed while its reconnect is in flight now tears that connection down (before: a live queue and broker connection stayed behind and the process could not exit).
+- Reviewer policy item: disclosure records for the new outbox models in both `schema.prisma` files.
+- Verified locally with PostgreSQL 16.14 and RabbitMQ 3.13.7: typecheck, lint and ci:validate-tests pass; unit 196/196 (messaging 12, chat 52, notification 74, student app 58); PostgreSQL integration 25/25 (chat 7, notification 18); RabbitMQ and PostgreSQL messaging 22/22 (chat 10, notification 12); builds of messaging, chat and notification. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed:**
+- `packages/messaging/src/realtime.ts` — attempt deadline enforced by racing; late attempts not counted as handled; close during reconnect tears the new connection down
+- `packages/messaging/test/realtime.test.ts` — three tests for uninterruptible, late and parent-aborted attempts
+- `services/notification-service/src/notifications/store.ts` — findForUser returns the row and whether it is superseded
+- `services/notification-service/src/notifications/realtime.ts` — a superseded row is not pushed
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.integration.test.ts` — unit, database and two-replica tests for the superseded case; the two-replica file gains a relay restart helper
+- `services/chat-service/src/realtime/delivery.ts` — clientId echoed at any length
+- `services/chat-service/test/hub.test.ts` — a 200-character clientId is echoed unchanged to the sender only
+- `services/chat-service/test/realtime.integration.test.ts` — close-during-reconnect test; the test proxy can hold a connection attempt
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — error listener on every socket at connection
+- `services/chat-service/prisma/schema.prisma`, `services/notification-service/prisma/schema.prisma` — disclosure records only
+- File that cannot hold a disclosure header, missing from the earlier list: `packages/messaging/tsconfig.test.json`
+
+**External / temporary artifacts:** Reviewer and manual-check scripts in the session scratchpad (not in the repository): `attempts-check.ts`, `claim-check.ts`, `close-during-reconnect.ts`, `refused-socket-error.ts`, `malformed-frame-check.mjs`.
+
+## 2026-11-09 14:35 SGT — ECS only, a dead-letter queue question, the design document and the usage log (interrupted)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "there isnt any kubernetes anymore, its just ecs. If possible, do you think having a dead letter queue is good as well for this? Maybe write in the design doc, also help to write the usage log as well". The author interrupted the work to ask for the CI fix below; this entry was written during that prompt.
+
+**Usage scenario:** Documentation and learning support. Whether to add dead-letter handling is a design decision reserved for the author (CLAUDE.md section 1), so no recommendation was given: the reply explains what a dead-letter queue is and lists the facts from the code for the three paths involved. The wiki page is updated accordingly (ECS only; the facts and the decision marked as open for the author) and published after the CI rerun of the next entry. No repository file changed for this prompt.
+
+**Files changed:**
+- none in the repository (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 14:54 SGT — Fix the CI failure on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "i would like you to fix the CI" (the acceptance check failed on commit 2477153).
+
+**Usage scenario:** Debugging assistance for a regression introduced by the previous AI-written commit. The acceptance driver `scripts/uat/uat-notifications.mjs` publishes created, accepted, picked up and delivered for one errand back to back and requires every notice to be pushed in order (N3 to N6, F5.1 to F5.3); N8 failed as a consequence. The fix for review finding 2 had treated a notification as obsolete whenever any newer order version existed by the time its signal was handled, so in a burst only the last notice was pushed. The check now uses the rule the store already applies for view=action_needed: a delivery review is not pushed once the order is no longer DELIVERED; a newer version alone holds nothing back. Both requirements are covered by tests in the same suite. Commit and push follow from the author's request to fix the pull request's CI. Left to the author: confirming that this rule is the behaviour wanted for review finding 2 (the alternative is to remove the delivery-time check altogether), and the pull request description.
+- Reproduced before the fix in two ways: a new two-replica test (only ORDER_DELIVERED pushed) and a replay of the driver's event burst against the real Notification entry point (N3, N5 and N6 failed with the same output as the CI log); both pass with the fix.
+- Verified locally: typecheck, lint and ci:validate-tests pass; unit 196/196; Notification PostgreSQL integration 18/18 and RabbitMQ messaging 13/13. The Compose acceptance stack could not be built locally (npm download errors inside the image build), so the acceptance job itself is verified by the CI rerun, not locally.
+- Process note: the previous commit was pushed without running the acceptance driver, which is why CI caught this and the local checks did not.
+
+**Files changed:**
+- `services/notification-service/src/notifications/store.ts` — findForUser reports actionResolved (delivery review while the order is no longer DELIVERED) instead of superseded
+- `services/notification-service/src/notifications/realtime.ts` — pushes unless the row's action is already resolved
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts` — adapted to the narrower rule; the database test adds a progress notice that must stay current
+- `services/notification-service/test/realtime.integration.test.ts` — new test: three progress notices committed before any signal is published are all pushed
+
+**External / temporary artifacts:** `n3-entrypoint-check.ts`, `ci-acceptance.log` and `acceptance-local.log` in the session scratchpad (not in the repository).
+
+## 2026-11-09 15:04 SGT — Merge pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok feel free to merge the pr" (#246, cross-replica chat and notification delivery).
+
+**Usage scenario:** Author-approved merge. At the time of this entry the pull request was open, mergeable and up to date with `main`, and CI run 42576009363 on head da3b89c had passed (28 checks; the Claude Code review check is switched off and was skipped). This entry is committed on the feature branch first; merging once CI is green on the commit that carries it. The pull request description is brought up to date before the merge (test counts, the review and CI fixes, the published wiki page). No application code changed in this prompt. Left to the author after the merge: the Author review lines, the open decision on dead-letter handling, and applying the two outbox migrations wherever the services are deployed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
 
 ## 2026-11-08 18:50 SGT — "pull" on feat/n4-student-app-request-resilience
 

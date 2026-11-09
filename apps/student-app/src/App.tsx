@@ -1,5 +1,39 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the soft blue-white campus canvas behind the existing app layout.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Preserve bottom-navigation clearance on tablet widths until the desktop header appears at 1024px.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Fixed mobile layout issue where fixed BottomNav was covering bottom content (e.g. Danger Zone / Delete Account on ProfilePage): replaced conflicting pb-8 on <main> with safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Eliminated credit balance flicker on tab navigation by removing redundant wallet/ledger state wipes and introducing quiet background revalidation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Unified body and navigation max-width: wrapped main content in max-w-7xl mx-auto container and aligned horizontal padding with HeaderNav across all responsive breakpoints.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Polished lifecycle action toast notifications to user-friendly consumer copy without internal microservice references.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned student-app frontend shell and layout, enhanced card styling and rounded-3xl aesthetics across all sub-pages.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Drop-off estimator: the post form keeps the drop-off point and whether the reward was set by hand, clears
+ * both after a post, and sends dropoffLatitude / dropoffLongitude / estimatedRewardCredits only when the pickup store
+ * has coordinates and a drop-off point is chosen.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #225 review: a profile result from an earlier session is discarded (profileRequestId, bumped on session
  * clear like the orders and credits counters), and a quiet Feed poll is skipped while an orders load is still in
@@ -88,6 +122,23 @@
  * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
  * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Passes the focused errand's pickup store from the loaded supplier list to ErrandDetailsPage so the page can
+ * show the store's operating hours (author's request of 2026-11-04).
+ * Author review: <to be completed by huangjiaxi1111>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Wired the 'dispute' task action (raise a delivery dispute) and its optional details.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Wired the 'courier-dispute' task action.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: handleOrderAgain: posts a completed errand's details again through the existing order submission.
+ * Author review: <to be completed by the author>
  */
 
 // AI-generated (edited by yanhwee)
@@ -100,10 +151,12 @@ import {
   acceptOrderById,
   cancelOrderById,
   completeOrderById,
+  disputeOrderById,
+  courierDisputeOrderById,
   deliverOrderById,
   fetchCombinedOrders,
-  FetchOrderResult,
   fetchOrderById,
+  FetchOrderResult,
   pickupOrderById,
   TaskOrderAction,
   unassignOrderById,
@@ -114,13 +167,17 @@ import {
   fetchCurrentUserProfile,
   updateCurrentUsername,
 } from './api/users';
+import { useChat } from './chat/useChat';
 import { BottomNav } from './components/BottomNav';
 import { DeleteAccountModal } from './components/DeleteAccountModal';
 import { HeaderNav, StudentTab } from './components/HeaderNav';
+import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
 import { describeWriteFailure, useAuthSession } from './hooks/useAuthSession';
+import { estimateRewardCredits, supplierPoint } from './map/creditEstimate';
+import { NUS_SPAN_KM } from './map/nusBuildings';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
-import { useChat } from './chat/useChat';
+import { buildReorderRequest } from './orders/reorder';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -129,7 +186,6 @@ import { PostErrandFormData, PostErrandPage } from './pages/PostErrandPage';
 import { ProfileWalletPage } from './pages/ProfileWalletPage';
 import { SpotsPage } from './pages/SpotsPage';
 import { TasksPage } from './pages/TasksPage';
-import { ErrandDetailsPage } from './errand/ErrandDetailsPage';
 
 /** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
 const FEED_POLL_MS = 15_000;
@@ -209,6 +265,8 @@ export default function App() {
     dropoffLocation: '',
     rewardCredits: 15,
     durationMinutes: 30,
+    dropoffPoint: null,
+    rewardEdited: false,
   });
 
   const [notification, setNotification] = useState<string | null>(null);
@@ -347,23 +405,29 @@ export default function App() {
   const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
-  const fetchCredits = async () => {
+  const walletRef = useRef(wallet);
+  walletRef.current = wallet;
+
+  // AI-generated (edited by yanhwee): quiet background revalidation prevents credit flickering on tab navigation
+  // by keeping existing wallet/ledger state in memory instead of clearing it before the fetch settles.
+  const fetchCredits = async (quiet = Boolean(walletRef.current)) => {
     const requestId = ++creditRequestId.current;
-    setIsLoadingCredits(true);
-    setCreditError(null);
-    setWallet(null);
-    setLedger([]);
+    if (!quiet) {
+      setIsLoadingCredits(true);
+      setCreditError(null);
+    }
     try {
       const result = await fetchWalletAndLedger(authFetch);
       if (requestId !== creditRequestId.current) return;
       if (result.status === 'ok') {
         setWallet(result.wallet);
         setLedger(result.ledger);
+        if (quiet) setCreditError(null);
       } else {
         setCreditError(result.message);
       }
     } finally {
-      if (requestId === creditRequestId.current) setIsLoadingCredits(false);
+      if (requestId === creditRequestId.current && !quiet) setIsLoadingCredits(false);
     }
   };
 
@@ -453,6 +517,8 @@ export default function App() {
           dropoffLocation: '',
           rewardCredits: 15,
           durationMinutes: 30,
+          dropoffPoint: null,
+          rewardEdited: false,
         }));
         if (activeTab === 'post') setActiveTab('feed');
       } else if (receipt.status === 'REJECTED') {
@@ -576,6 +642,20 @@ export default function App() {
     void fetchLiveSuppliers();
   }, []);
 
+  // AI-generated (edited by jagdeepsh): "Order again" posts a new errand with the details of a completed one.
+  const handleOrderAgain = (order: OrderDTO) => {
+    if (submission.busy) return;
+    if (wallet && order.rewardCredits > wallet.availableCredits) {
+      setNoticeTone('alert');
+      setNotification(
+        `Insufficient credits: this errand offers ${order.rewardCredits} C, but you only have ${wallet.availableCredits} C available.`
+      );
+      return;
+    }
+    setNotification(null);
+    void submission.submit(buildReorderRequest(order));
+  };
+
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (submission.busy || !suppliers.some((s) => s.id === formData.supplierId && s.isActive)) {
@@ -589,6 +669,12 @@ export default function App() {
       return;
     }
     setNotification(null);
+    const dropoffPoint = formData.dropoffPoint;
+    const estimatedRewardCredits = estimateRewardCredits(
+      supplierPoint(suppliers.find((s) => s.id === formData.supplierId)),
+      dropoffPoint,
+      NUS_SPAN_KM
+    );
     void submission.submit({
       supplierId: formData.supplierId,
       itemDescription: formData.itemDescription,
@@ -596,6 +682,13 @@ export default function App() {
       dropoffLocation: formData.dropoffLocation,
       rewardCredits: formData.rewardCredits,
       durationMinutes: Number.isFinite(formData.durationMinutes) ? formData.durationMinutes : 30,
+      ...(dropoffPoint && estimatedRewardCredits !== null
+        ? {
+          dropoffLatitude: dropoffPoint.latitude,
+          dropoffLongitude: dropoffPoint.longitude,
+          estimatedRewardCredits,
+        }
+        : {}),
     });
   };
 
@@ -620,7 +713,7 @@ export default function App() {
     }
   };
 
-  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction) => {
+  const handleTaskOrderAction = async (orderId: string, action: TaskOrderAction, details?: string) => {
     if (taskActionInFlight || acceptingOrder) return;
     const requestId = orderRequestId.current;
     setTaskActionInFlight({ orderId, action });
@@ -639,12 +732,19 @@ export default function App() {
           break;
         case 'complete':
           updated = await completeOrderById(authFetch, orderId);
-          // AI-generated (edited by Reallyeasy1): the payment is Credit Service's commit, not this one.
-          successMessage = 'Delivery confirmed. The courier is paid once Credit Service settles the escrow.';
+          successMessage = 'Delivery confirmed! The courier payout has been initiated.';
+          break;
+        case 'dispute':
+          updated = await disputeOrderById(authFetch, orderId, details ?? '');
+          successMessage = 'Dispute raised. An administrator will review it; the credits stay held until then.';
+          break;
+        case 'courier-dispute':
+          updated = await courierDisputeOrderById(authFetch, orderId, details ?? '');
+          successMessage = 'Your dispute report was submitted. An administrator will review both sides.';
           break;
         case 'cancel':
           updated = await cancelOrderById(authFetch, orderId);
-          successMessage = 'Errand cancelled. Reserved credits are returned once Credit Service processes it.';
+          successMessage = 'Errand cancelled. Reserved credits have been returned to your wallet.';
           break;
         case 'unassign':
           updated = await unassignOrderById(authFetch, orderId);
@@ -732,7 +832,7 @@ export default function App() {
   const page: StudentTab | null = focusOrderId ? null : activeTab;
 
   return (
-    <div className="student-shell flex flex-col min-h-dvh w-full bg-slate-50 text-slate-900 relative font-sans">
+    <div className="student-shell flex flex-col min-h-dvh w-full bg-campus-canvas text-slate-900 relative font-sans">
       <HeaderNav
         activeTab={activeTab}
         onSelectTab={selectTab}
@@ -754,7 +854,8 @@ export default function App() {
         </div>
       )}
 
-      <main className="student-main flex-1 min-w-0 px-4 pt-3.5 pb-8 md:px-6 md:pt-4 md:pb-10 lg:px-8">
+      <main className="student-main flex-1 min-w-0 px-3.5 pt-3.5 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 md:pt-4 lg:pb-10 lg:px-8">
+        <div className="w-full max-w-7xl mx-auto">
         {(submission.unconfirmed ||
           (submission.receipt && submission.receipt.status !== 'OPEN')) && (
           <div
@@ -812,7 +913,12 @@ export default function App() {
             }
             actionError={actionError}
             onAccept={(orderId, note) => void handleAcceptOrder(orderId, note)}
-            onAction={(orderId, action) => void handleTaskOrderAction(orderId, action)}
+            onAction={(orderId, action, details) => void handleTaskOrderAction(orderId, action, details)}
+            supplier={
+              focusOrder?.status === 'ok'
+                ? suppliers.find((s) => s.id === focusOrder.order.supplierId) ?? null
+                : null
+            }
           />
         )}
 
@@ -870,6 +976,8 @@ export default function App() {
             ordersLoading={ordersLoading}
             onRefreshOrders={() => void fetchOrders()}
             onOpenErrand={(orderId) => openErrand(orderId, 'tasks')}
+            onOrderAgain={handleOrderAgain}
+            orderAgainBusy={submission.busy}
           />
         )}
 
@@ -919,9 +1027,10 @@ export default function App() {
             ledger={ledger}
             isLoadingCredits={isLoadingCredits}
             creditError={creditError}
-            onRefreshCredits={() => void fetchCredits()}
+            onRefreshCredits={() => void fetchCredits(false)}
           />
         )}
+        </div>
       </main>
 
       <BottomNav

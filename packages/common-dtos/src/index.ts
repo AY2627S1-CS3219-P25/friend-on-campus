@@ -1,5 +1,14 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Optional eventId on the chat ERROR frame for the transient MODERATED_PEER notice (issue #242).
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Optional drop-off coordinates and estimated credit (dropoffLatitude, dropoffLongitude,
+ * estimatedRewardCredits) on OrderDTO and CreateOrderRequest, per the author's drop-off estimator decisions.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Represent missing legacy supplier coordinates in read responses; create inputs remain required.
  * Author review: <to be completed by Reallyeasy1>
@@ -91,6 +100,18 @@
  * supplier-service DB columns being made NOT NULL in the same change. UpdateSupplierRequest and SupplierDTO
  * stay optional (same precedent as building/floor above — partial-update and read shapes stay flexible).
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: OrderDTO gained dispute and requesterDisputeDetails; added DisputeOrderRequest.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: OrderDTO gained courierDisputeDetails; added CourierDisputeRequest.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: ChatErrorCode gains MODERATED and MODERATED_PEER (chat content moderation).
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
@@ -262,6 +283,15 @@ export interface OrderDTO {
   requesterContactNote?: string;
   courierContactNote?: string | null;
   rewardCredits: number;
+  // Drop-off point and the browser's suggested reward; all three are present or all absent.
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  estimatedRewardCredits?: number;
+  /** True while the requester's delivery dispute awaits an admin; the requester can no longer confirm delivery. */
+  dispute?: boolean;
+  requesterDisputeDetails?: string | null;
+  /** The assigned courier's answer to the dispute; null until they respond. */
+  courierDisputeDetails?: string | null;
   status: OrderStatus;
   rejectionReason?: string | null;
   expiresAt: string;
@@ -273,6 +303,16 @@ export interface OrderDTO {
   version: number;
 }
 
+export interface DisputeOrderRequest {
+  /** Why the requester disputes the delivery. */
+  details: string;
+}
+
+export interface CourierDisputeRequest {
+  /** The courier's account of what happened. */
+  details: string;
+}
+
 export interface CreateOrderRequest {
   supplierId: string;
   itemDescription: string;
@@ -281,6 +321,10 @@ export interface CreateOrderRequest {
   requesterContactNote?: string;
   rewardCredits: number;
   durationMinutes?: number;
+  // Send all three or none; the Order Service stores them as given (the browser calculates the estimate).
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
+  estimatedRewardCredits?: number;
 }
 
 // AI-generated (edited by yanhwee)
@@ -665,7 +709,9 @@ export interface ChatMessageDTO {
   sentAt: string;
 }
 
-export type ChatErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CLOSED' | 'EMPTY' | 'NO_USERNAME' | 'BAD_FRAME';
+export type ChatErrorCode = 'NOT_FOUND' | 'FORBIDDEN' | 'CLOSED' | 'EMPTY' | 'NO_USERNAME' | 'BAD_FRAME'
+  /** MODERATED: the sender's message was flagged and not stored. MODERATED_PEER: tells the other participant one was removed. */
+  | 'MODERATED' | 'MODERATED_PEER';
 
 export type ChatClientFrame =
   | { type: 'AUTH'; token: string }
@@ -675,7 +721,8 @@ export type ChatServerFrame =
   | { type: 'AUTH_OK' }
   /** clientId is present only on the sender's own echo, so the client can settle exactly the SEND it answers. */
   | { type: 'MESSAGE'; orderId: string; clientId?: string; message: ChatMessageDTO }
-  | { type: 'ERROR'; orderId?: string; clientId?: string; code: ChatErrorCode; message: string };
+  /** eventId is set on the transient MODERATED_PEER notice so a replayed realtime signal is counted once (issue #242). */
+  | { type: 'ERROR'; orderId?: string; clientId?: string; eventId?: string; code: ChatErrorCode; message: string };
 
 export interface ChatHistoryResponse {
   conversation: ConversationDTO;

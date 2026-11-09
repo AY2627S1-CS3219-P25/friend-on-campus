@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Tests for the optional drop-off coordinates and estimated credit on createOrder: stored when all three are
+ * sent, absent when none are, 400 on a partial set, out-of-range coordinates or a non-integer estimate, and a reward
+ * that differs from the estimate is accepted.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Version-2 outbox facts of the author's Notification Redesign (§6): a failed reservation now writes
  * order.rejected; new suite asserts actor, reason code, committed version/status, cancellation assignee and
@@ -32,6 +38,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Unit test suite for Order Service core lifecycle state machine, escrow reservation, single-winner concurrency, and sweeper.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: disputeOrder tests (freeze, authorisation, validation, admin settlement clears the flag).
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: courier-first dispute test.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
@@ -173,6 +187,56 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(order.status, 'PENDING');
       assert.equal(order.rewardCredits, 2147483647);
       assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
+    });
+
+    // AI-generated (edited by huangjiaxi1111)
+    describe('drop-off estimate fields', () => {
+      const baseRequest = { supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'COM1', rewardCredits: 20 };
+      const estimate = { dropoffLatitude: 1.29496, dropoffLongitude: 103.77373, estimatedRewardCredits: 25 };
+
+      it('stores and returns all three fields when they are sent together', async () => {
+        const { service, fakeRepo } = setupTest();
+        const order = await service.createOrder(REQUESTER_ID, { ...baseRequest, ...estimate });
+        assert.equal(order.dropoffLatitude, 1.29496);
+        assert.equal(order.dropoffLongitude, 103.77373);
+        assert.equal(order.estimatedRewardCredits, 25);
+        assert.equal(fakeRepo.orders[0].estimatedRewardCredits, 25);
+      });
+
+      it('leaves the fields absent when none are sent', async () => {
+        const { service } = setupTest();
+        const order = await service.createOrder(REQUESTER_ID, baseRequest);
+        assert.equal(order.dropoffLatitude, undefined);
+        assert.equal(order.dropoffLongitude, undefined);
+        assert.equal(order.estimatedRewardCredits, undefined);
+      });
+
+      it('accepts a reward that differs from the estimate', async () => {
+        const { service } = setupTest();
+        const order = await service.createOrder(REQUESTER_ID, { ...baseRequest, ...estimate, rewardCredits: 60 });
+        assert.equal(order.rewardCredits, 60);
+        assert.equal(order.estimatedRewardCredits, 25);
+      });
+
+      it('rejects a partial set, out-of-range coordinates and a non-integer estimate with 400', async () => {
+        const { service, fakeRepo } = setupTest();
+        const invalid = [
+          { dropoffLatitude: 1.29496, dropoffLongitude: 103.77373 },
+          { estimatedRewardCredits: 25 },
+          { ...estimate, dropoffLatitude: 91 },
+          { ...estimate, dropoffLongitude: -181 },
+          { ...estimate, dropoffLatitude: Number.NaN },
+          { ...estimate, estimatedRewardCredits: 12.5 },
+          { ...estimate, estimatedRewardCredits: 0 },
+        ];
+        for (const fields of invalid) {
+          await assert.rejects(
+            service.createOrder(REQUESTER_ID, { ...baseRequest, ...fields }),
+            (error: Error) => error instanceof OrderValidationError && error.status === 400,
+          );
+        }
+        assert.equal(fakeRepo.orders.length, 0);
+      });
     });
 
     it('rejects order creation if requesterId or supplierId is not a valid UUID', async () => {
@@ -546,6 +610,70 @@ describe('Order Service Lifecycle and Concurrency', () => {
         () => service.completeOrder(order.id, REQUESTER_ID),
         (err: Error) => err instanceof OrderStateConflictError && /DELIVERED/i.test(err.message),
       );
+    });
+  });
+
+  // AI-generated (edited by jagdeepsh)
+  describe('disputeOrder', () => {
+    async function delivered() {
+      const ctx = setupTest();
+      const order = await ctx.fundedService.createOrder(REQUESTER_ID, {
+        supplierId: SUPPLIER_ID, itemDescription: 'Fruit Cup', dropoffLocation: 'Sheares Hall', rewardCredits: 12,
+      });
+      await ctx.service.acceptOrder(order.id, COURIER_1_ID);
+      await ctx.service.pickupOrder(order.id, COURIER_1_ID);
+      await ctx.service.deliverOrder(order.id, COURIER_1_ID);
+      return { ...ctx, order };
+    }
+
+    it('freezes a delivered order: no completion by the requester, no event emitted', async () => {
+      const { service, fakeRepo, order } = await delivered();
+      const events = fakeRepo.outboxEvents.length;
+      const disputed = await service.disputeOrder(order.id, REQUESTER_ID, '  Never arrived  ');
+      assert.equal(disputed.dispute, true);
+      assert.equal(disputed.requesterDisputeDetails, 'Never arrived');
+      assert.equal(disputed.status, 'DELIVERED');
+      assert.equal(fakeRepo.outboxEvents.length, events);
+      await assert.rejects(() => service.completeOrder(order.id, REQUESTER_ID), (err: Error) => err instanceof OrderStateConflictError && /dispute/i.test(err.message));
+      await assert.rejects(() => service.disputeOrder(order.id, REQUESTER_ID, 'again'), OrderStateConflictError);
+    });
+
+    it('rejects the courier, blank details and orders that are not DELIVERED', async () => {
+      const { service, order } = await delivered();
+      await assert.rejects(() => service.disputeOrder(order.id, COURIER_1_ID, 'x'), OrderAuthorizationError);
+      await assert.rejects(() => service.disputeOrder(order.id, REQUESTER_ID, '   '), OrderValidationError);
+      await assert.rejects(() => service.disputeOrder(order.id, REQUESTER_ID, undefined), OrderValidationError);
+      await service.completeOrder(order.id, REQUESTER_ID);
+      await assert.rejects(() => service.disputeOrder(order.id, REQUESTER_ID, 'late'), OrderStateConflictError);
+    });
+
+    it('lets the assigned courier dispute a delivered order by default, once, without any event', async () => {
+      const { service, fakeRepo, order } = await delivered();
+      const events = fakeRepo.outboxEvents.length;
+      await assert.rejects(() => service.courierDisputeOrder(order.id, REQUESTER_ID, 'x'), OrderAuthorizationError);
+      await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, '  '), OrderValidationError);
+      const answered = await service.courierDisputeOrder(order.id, COURIER_1_ID, '  Left it at the door  ');
+      assert.equal(answered.courierDisputeDetails, 'Left it at the door');
+      assert.equal(answered.requesterDisputeDetails ?? null, null);
+      assert.equal(answered.dispute, true);
+      assert.equal(fakeRepo.outboxEvents.length, events);
+      await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, 'again'), OrderStateConflictError);
+      // The requester can still add their own side afterwards, once.
+      const both = await service.disputeOrder(order.id, REQUESTER_ID, 'Never arrived');
+      assert.equal(both.requesterDisputeDetails, 'Never arrived');
+      assert.equal(both.courierDisputeDetails, 'Left it at the door');
+      await assert.rejects(() => service.courierDisputeOrder(order.id, COURIER_1_ID, 'x'), OrderStateConflictError);
+    });
+
+    it('is settled by the existing admin actions, which publish the usual events and clear the flag', async () => {
+      for (const [action, eventType, status] of [['adminCancelOrder', 'order.cancelled', 'CANCELLED'], ['adminCompleteOrder', 'order.completed', 'COMPLETED']] as const) {
+        const { service, fakeRepo, order } = await delivered();
+        await service.disputeOrder(order.id, REQUESTER_ID, 'Wrong item');
+        const settled = await service[action](order.id, 'admin-1', { reason: 'Dispute settled' });
+        assert.equal(settled.status, status);
+        assert.equal(settled.dispute, false);
+        assert.equal(fakeRepo.outboxEvents[fakeRepo.outboxEvents.length - 1].eventType, eventType);
+      }
     });
   });
 

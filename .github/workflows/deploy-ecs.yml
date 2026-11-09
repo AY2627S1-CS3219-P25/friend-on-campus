@@ -1,0 +1,207 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Use the GitHub Script REST client for branch and CI lookups.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Build release images on native ARM64 runners after a QEMU illegal-instruction failure.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Manually deliver tested main commits and expose an AWS OIDC access check.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: Manually build ARM64 release images and deploy ECS application services through AWS OIDC.
+# Author review: <to be completed by the author>
+
+# AI-generated (edited by ngkhengyang)
+name: Deploy applications to ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      role_arn:
+        description: AWS deployment role ARN with GitHub OIDC trust
+        required: false
+        type: string
+      service:
+        description: Application service to build and deploy
+        type: choice
+        default: all
+        options:
+          - all
+          - user-service
+          - supplier-service
+          - order-service
+          - credit-service
+          - notification-service
+          - chat-service
+          - student-app
+          - admin-portal
+          - gateway
+      deploy:
+        description: Deploy after building (disable for initial image preparation)
+        type: boolean
+        default: true
+      check_access:
+        description: Only print the OIDC subject and test AWS sign-in
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foc-ecs-release
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_PAGER: ""
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    outputs:
+      release: ${{ steps.source.outputs.release }}
+      sha: ${{ steps.source.outputs.sha }}
+      role_arn: ${{ steps.release.outputs.role_arn }}
+      services: ${{ steps.release.outputs.services }}
+      image_tag: ${{ steps.release.outputs.image_tag }}
+    steps:
+      - name: Select a tested main commit
+        id: source
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const sha = context.sha;
+            const { data: main } = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' });
+            if (main.commit.sha !== sha) {
+              core.notice('Skipping a superseded main commit.');
+              core.setOutput('release', 'false');
+              return;
+            }
+            if (String(context.payload.inputs?.check_access) !== 'true') {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                ...context.repo, workflow_id: 'ci.yml', event: 'push', head_sha: sha, per_page: 1
+              });
+              if (data.workflow_runs[0]?.conclusion !== 'success') {
+                throw new Error('The latest CI run for this main commit must succeed before building or deploying.');
+              }
+            }
+            core.setOutput('sha', sha);
+            core.setOutput('release', 'true');
+      - name: Select services and release tag
+        id: release
+        if: steps.source.outputs.release == 'true'
+        env:
+          SERVICE: ${{ inputs.service || 'all' }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          ROLE_ARN: ${{ inputs.role_arn || vars.AWS_DEPLOY_ROLE_ARN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ROLE_ARN" || { echo 'Set the AWS_DEPLOY_ROLE_ARN repository variable or enter role_arn.' >&2; exit 1; }
+          services='["user-service","supplier-service","order-service","credit-service","notification-service","chat-service","student-app","admin-portal","gateway"]'
+          if [ "$SERVICE" != all ]; then
+            services=$(jq -ce --arg service "$SERVICE" 'map(select(. == $service)) | select(length == 1)' <<< "$services")
+          fi
+          {
+            echo "services=$services"
+            echo "image_tag=$SOURCE_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+            echo "role_arn=$ROLE_ARN"
+          } >> "$GITHUB_OUTPUT"
+      - name: Show the exact GitHub identity for AWS trust
+        if: steps.source.outputs.release == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            core.info(`AWS trust subject: ${claims.sub}`);
+            await core.summary.addHeading('AWS OIDC identity').addCodeBlock(claims.sub).write();
+      - name: Test AWS sign-in
+        if: steps.source.outputs.release == 'true' && inputs.check_access
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ steps.release.outputs.role_arn }}
+          aws-region: ${{ env.AWS_REGION }}
+
+  build:
+    if: needs.prepare.outputs.release == 'true' && !inputs.check_access
+    needs: prepare
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        service: ${{ fromJSON(needs.prepare.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ needs.prepare.outputs.role_arn }}
+          role-session-name: foc-build-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - uses: docker/setup-buildx-action@v3
+      - name: Select Dockerfile
+        id: dockerfile
+        env:
+          SERVICE: ${{ matrix.service }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$SERVICE" in
+            gateway) file=gateway/Dockerfile ;;
+            student-app|admin-portal) file="apps/$SERVICE/Dockerfile" ;;
+            *) file="services/$SERVICE/Dockerfile" ;;
+          esac
+          echo "path=$file" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.dockerfile.outputs.path }}
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/foc/${{ matrix.service }}:${{ needs.prepare.outputs.image_tag }}
+      - name: Report image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/foc/${{ matrix.service }}:${{ needs.prepare.outputs.image_tag }}
+        run: echo "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    if: inputs.deploy
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ needs.prepare.outputs.role_arn }}
+          role-session-name: foc-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy application revisions
+        env:
+          SERVICES: ${{ needs.prepare.outputs.services }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+        run: bash infra/terraform/ecs/deploy-applications.sh

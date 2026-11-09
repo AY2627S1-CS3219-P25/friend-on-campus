@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: Fake createOrderWithOutbox keeps the optional drop-off coordinates and estimated credit, like the real one.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Fake repository mirrors the version-2 outbox facts of the real one: payloads completed with completeEvent(),
  * order.rejected on a failed reservation, order.unassigned on both unassignment paths, SYSTEM actor on created/expired.
@@ -24,24 +28,36 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: In-memory repository fakes, mock clients, and HTTP test server helpers for Order Service unit/integration testing.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Fake repository: disputeOrder, completion guard, admin cancel/complete clear the dispute flag.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Fake repository: courierDisputeOrder.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: fake repository follows the same dispute rules.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by yanhwee)
-import { generateKeyPairSync } from 'node:crypto';
-import type { Express } from 'express';
-import type { AddressInfo } from 'node:net';
 import type { CreditReservationResultEvent, OrderCreatedEvent, OrderDTO, OrderExpiredEvent } from '@campus-errand/common-dtos';
-import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
+import type { Express } from 'express';
+import { generateKeyPairSync } from 'node:crypto';
+import type { AddressInfo } from 'node:net';
 import type { SupplierClient, SupplierDetails } from '../src/clients/supplier.client';
 import {
   completeEvent,
-  OrderNotFoundError,
   OrderAuthorizationError,
   type OrderEventDraft,
   type OrderLifecycleEvent,
+  OrderNotFoundError,
   OrderStateConflictError,
   SelfAcceptForbiddenError,
 } from '../src/orders/order.types';
+import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
 
 // AI-generated (edited by Reallyeasy1)
 const systemActor = (orderId: string) =>
@@ -79,6 +95,9 @@ export function makeFakeOrderRepository() {
         requesterContactNote: data.requesterContactNote,
         courierContactNote: null,
         rewardCredits: data.rewardCredits,
+        dropoffLatitude: data.dropoffLatitude,
+        dropoffLongitude: data.dropoffLongitude,
+        estimatedRewardCredits: data.estimatedRewardCredits,
         status: initialStatus,
         rejectionReason: null,
         expiresAt: data.expiresAt.toISOString(),
@@ -386,6 +405,30 @@ export function makeFakeOrderRepository() {
       return { ...order };
     },
 
+    async disputeOrder(orderId: string, requesterId: string, details: string): Promise<OrderDTO> {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new OrderNotFoundError();
+      if (order.requesterId !== requesterId) throw new OrderAuthorizationError('Only the requester can dispute this errand');
+      if (order.status !== 'DELIVERED') throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
+      if (order.requesterDisputeDetails) throw new OrderStateConflictError('The requester has already raised a dispute');
+      order.dispute = true;
+      order.requesterDisputeDetails = details;
+      order.version += 1;
+      return { ...order };
+    },
+
+    async courierDisputeOrder(orderId: string, courierId: string, details: string): Promise<OrderDTO> {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order) throw new OrderNotFoundError();
+      if (order.courierId !== courierId) throw new OrderAuthorizationError('Only the assigned courier can dispute this errand');
+      if (order.status !== 'DELIVERED') throw new OrderStateConflictError(`Cannot dispute errand from status ${order.status}. Errand must be DELIVERED.`);
+      if (order.courierDisputeDetails) throw new OrderStateConflictError('The courier has already raised a dispute');
+      order.dispute = true;
+      order.courierDisputeDetails = details;
+      order.version += 1;
+      return { ...order };
+    },
+
     async completeOrder(orderId: string, requesterId: string, event: OrderEventDraft): Promise<OrderDTO> {
       const order = orders.find((o) => o.id === orderId);
       if (!order) throw new OrderNotFoundError();
@@ -397,6 +440,10 @@ export function makeFakeOrderRepository() {
 
       if (order.status !== 'DELIVERED') {
         throw new OrderStateConflictError(`Cannot complete errand from status ${order.status}. Errand must be DELIVERED first.`);
+      }
+
+      if (order.dispute) {
+        throw new OrderStateConflictError('This errand is under dispute; an administrator will settle it.');
       }
 
       order.status = 'COMPLETED';
@@ -513,6 +560,7 @@ export function makeFakeOrderRepository() {
       }
 
       order.status = 'CANCELLED';
+      order.dispute = false;
       order.version += 1;
       const noteTag = `[Admin Cancel by ${adminUserId}: ${reason}]`;
       order.specialNotes = order.specialNotes ? `${order.specialNotes} | ${noteTag}` : noteTag;
@@ -554,6 +602,7 @@ export function makeFakeOrderRepository() {
       }
 
       order.status = 'COMPLETED';
+      order.dispute = false;
       order.completedAt = new Date().toISOString();
       order.version += 1;
       const noteTag = `[Admin Force-Complete by ${adminUserId}: ${reason}]`;

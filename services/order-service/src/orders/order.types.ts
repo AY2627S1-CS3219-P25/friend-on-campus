@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: toOrderDTO maps the nullable drop-off coordinates and estimated credit (NULL -> undefined).
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Version-2 Order events per the author's Notification Redesign (§6): OrderLifecycleEvent gains order.rejected and
  * order.unassigned; OrderEventDraft is what the service builds and completeEvent() fills orderVersion, previousStatus,
@@ -9,8 +13,15 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Domain types, custom errors, and DTO mappers for Order Service.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: toOrderDTO maps the dispute flag and the requester's dispute details.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: toOrderDTO maps courierDisputeDetails.
+ * Author review: <to be completed by the author>
  */
-import { randomBytes } from 'node:crypto';
 import type {
   CreditReservationRequestEvent,
   OrderAcceptedEvent,
@@ -25,6 +36,7 @@ import type {
   OrderStatus,
   OrderUnassignedEvent,
 } from '@campus-errand/common-dtos';
+import { randomBytes } from 'node:crypto';
 import type { Order as PrismaOrder } from '../database/client';
 
 export type OrderLifecycleEvent =
@@ -136,6 +148,12 @@ export function toOrderDTO(order: PrismaOrder): OrderDTO {
     requesterContactNote: order.requesterContactNote ?? undefined,
     courierContactNote: order.courierContactNote ?? undefined,
     rewardCredits: order.rewardCredits,
+    dropoffLatitude: order.dropoffLatitude ?? undefined,
+    dropoffLongitude: order.dropoffLongitude ?? undefined,
+    estimatedRewardCredits: order.estimatedRewardCredits ?? undefined,
+    dispute: order.dispute,
+    requesterDisputeDetails: order.requesterDisputeDetails ?? null,
+    courierDisputeDetails: order.courierDisputeDetails ?? null,
     status: order.status as OrderStatus,
     rejectionReason: order.rejectionReason ?? null,
     expiresAt: order.expiresAt.toISOString(),

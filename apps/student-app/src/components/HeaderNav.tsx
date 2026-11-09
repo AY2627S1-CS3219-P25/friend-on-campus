@@ -1,5 +1,93 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Keep the full product name on one line at every viewport width and compact phone utilities to fit.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the unboxed origami mark and Manrope wordmark, blue page selection, and a coral Post action.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Improve desktop navigation labels and target sizes, clarify the credit balance, and retain mobile navigation below 1024px.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-07
+ * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Direction B (Crisp Modern Canvas) theme in HeaderNav: updated brand logo styling to crisp floating canvas with subtle border and sleek hover states.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized HeaderNav with Direction A Warm Campus Mango theme: updated brand hover to warm glow, unified desktop active nav indicators with mobile bottom bar's vibrant orange accent, and refreshed mobile FoC badge.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Rebranded navbar identity to tompang. with Friend Pin logo, featuring 'by Friend on Campus' (FoC) brand signature and responsive badge.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Direction A clean modern tech brand identity: removed confusing blinking pulse badge from package icon, unified brand typography to NUS Blue and Slate-900 with signature orange accent dot, and removed subtitle for compact 48px header height.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Illuminated wallet capsule with vibrant amber active state in top header when activeTab === 'wallet', matching NotificationBell's active treatment for instant user orientation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Refined desktop profile button active styling with soft tinted blue background, accessible contrast, and subtle ring focus, eliminating harsh dark navy fill.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Renamed Tasks navigation item to My Errands for natural user mental model and consistent errand vocabulary.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities): anchored primary browsing nav tabs next to brand logo, streamlined right cluster with prominent Post CTA, spendable wallet capsule, and compact icon-only alerts and profile buttons.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Implemented Option B (Silent when connected, warning banner when disconnected) for WebSocket status, removing persistent Live badge from header while preserving test locators and providing discreet top alert on disconnection.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed redundant STUDENT badge from brand header for clean, minimal consumer presentation.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Refined PC desktop top nav to Marketplace Pattern (Approach 1): left nav pure browsing (Feed, Spots, Tasks), right cluster hero Post CTA and unified personal hub.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Polished mobile header to single-row alignment: integrated inline Live indicator, balanced h-9 utility buttons, and eliminated orphan sub-badge.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Streamlined header wallet capsule to show spendable available balance only, moving held funds breakdown exclusively to the wallet screen.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Harmonized desktop Post action as a prominent CTA pill alongside browsing tabs (Feed, Spots, Tasks).
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Moved Alerts notification bell to universal header presentation across both mobile and desktop views.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-07
+ * Scope: Removed technical meta information (WS Hub) in favor of a sleek, formal Live network indicator with data-status attributes.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: Redesigned HeaderNav with premium glassmorphism, animated pulse indicators, interactive tab pills, and refined wallet capsule.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Styled HeaderNav active tabs, profile button, and wallet capsule in light elegant aesthetic without dark button colors.
  * Author review: <to be completed by yanhwee>
@@ -20,12 +108,11 @@ import {
   Clock,
   Coins,
   Compass,
-  Lock,
-  Package,
   PlusCircle,
   Store,
   UserCircle,
 } from 'lucide-react';
+import { FriendOnCampusLogo } from './FriendOnCampusLogo';
 import { NotificationBell } from '../notifications/NotificationBell';
 
 export type StudentTab = 'feed' | 'post' | 'spots' | 'tasks' | 'alerts' | 'profile' | 'wallet';
@@ -52,114 +139,148 @@ export function HeaderNav({
   wsStatus,
 }: HeaderNavProps) {
   return (
-    <header className="bg-white/95 backdrop-blur-md text-slate-800 px-4 py-2.5 md:py-3 md:px-6 lg:px-8 sticky top-0 z-30 shadow-xs border-b border-slate-200/90">
-      <div className="student-header-row">
-        {/* Brand, Student Badge & Inline Live Hub */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+    <header className="bg-white/95 backdrop-blur-md text-slate-800 px-3.5 py-2 sm:px-6 md:py-2.5 lg:px-8 sticky top-0 z-30 shadow-subtle border-b border-slate-200/80 transition-all">
+      <div className="student-header-row max-w-7xl mx-auto flex items-center justify-between">
+        {/* Left Cluster: Brand + Divider + Primary Browsing Tabs (Option A) */}
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-3 xl:gap-6">
           <button
             type="button"
             onClick={() => onSelectTab('feed')}
-            className="flex items-center gap-2.5 text-left focus:outline-none group cursor-pointer"
-            aria-label="CampusErrand Home"
+            className="flex shrink-0 items-center gap-1.5 sm:gap-2.5 text-left focus:outline-none group cursor-pointer"
+            aria-label="Friend on Campus Home"
           >
-            <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
-              <Package className="w-4 h-4 text-white" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-nus-orange ring-2 ring-white" />
-            </div>
+            <FriendOnCampusLogo className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 transition-transform duration-200 group-hover:-rotate-6" />
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-sm md:text-base tracking-tight text-slate-900">
-                  <span className="text-blue-700">NUS</span> Campus<span className="text-nus-orange">Errand</span>
+              <div className="flex items-baseline gap-1 sm:gap-1.5">
+                {/* AI-generated (edited by yanhwee) */}
+                <span className="brand-wordmark whitespace-nowrap text-sm sm:text-lg xl:text-xl leading-tight">
+                  <span>Friend <span className="brand-connector">on</span></span>{' '}
+                  <span>Campus</span>
                 </span>
-                <span className="bg-orange-50 text-nus-orange border border-orange-200/80 text-[10px] font-black px-1.5 py-0.5 rounded-full tracking-wider">
-                  STUDENT
-                </span>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-[11px] text-slate-500 hidden sm:block font-medium">
-                  Peer-to-Peer Campus Delivery
-                </p>
                 {showWsStatus && (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-500 font-medium">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        wsStatus === 'connected'
-                          ? 'bg-emerald-500 motion-safe:animate-pulse'
-                          : wsStatus === 'connecting'
-                          ? 'bg-amber-500'
-                          : 'bg-rose-500'
-                      }`}
-                    />
-                    <span>WS Hub: {wsStatus}</span>
+                  <span
+                    data-testid="ws-status"
+                    data-status={wsStatus}
+                    className="sr-only"
+                  >
+                    WS Hub: {wsStatus}
                   </span>
                 )}
               </div>
             </div>
           </button>
+
+          {/* Subtle vertical divider between Brand and Primary Nav (desktop only) */}
+          <div className="hidden lg:block h-6 w-px bg-slate-200/90" aria-hidden="true" />
+
+          {/* Desktop Top Navigation Bar (Errand Workspace, Left-Aligned) */}
+          <nav
+            aria-label="Main navigation"
+            className="student-top-nav hidden lg:flex items-center gap-1 rounded-xl p-1"
+          >
+            <button
+              aria-current={activeTab === 'feed' ? 'page' : undefined}
+              onClick={() => onSelectTab('feed')}
+              className={`flex items-center space-x-1.5 h-11 min-h-0 px-3 xl:px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                activeTab === 'feed'
+                  ? 'bg-campus-blue-soft text-campus-blue'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Compass className="w-4 h-4 stroke-[2.2]" />
+              <span>Browse</span>
+            </button>
+
+            <button
+              aria-current={activeTab === 'spots' ? 'page' : undefined}
+              onClick={() => onSelectTab('spots')}
+              className={`flex items-center space-x-1.5 h-11 min-h-0 px-3 xl:px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                activeTab === 'spots'
+                  ? 'bg-campus-blue-soft text-campus-blue'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Store className="w-4 h-4 stroke-[2.2]" />
+              <span>Places</span>
+            </button>
+
+            <button
+              aria-current={activeTab === 'tasks' ? 'page' : undefined}
+              onClick={() => onSelectTab('tasks')}
+              className={`flex items-center space-x-1.5 h-11 min-h-0 px-3 xl:px-3.5 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer ${
+                activeTab === 'tasks'
+                  ? 'bg-campus-blue-soft text-campus-blue'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Clock className="w-4 h-4 stroke-[2.2]" />
+              <span>My Errands</span>
+            </button>
+          </nav>
         </div>
 
-        {/* Desktop Top Navigation Bar (Errand Workspace) */}
-        <nav
-          aria-label="Main navigation"
-          className="student-top-nav hidden md:flex items-center gap-1 bg-slate-100/90 rounded-2xl p-1 border border-slate-200/80 shadow-2xs"
-        >
+        {/* Right Section: Primary Actions & Compact Personal Hub (Option A) */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Desktop Primary Action CTA: Post Errand */}
           <button
-            aria-current={activeTab === 'feed' ? 'page' : undefined}
-            onClick={() => onSelectTab('feed')}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'feed'
-                ? 'bg-blue-50 text-nus-blue border border-blue-200/90 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Feed</span>
-          </button>
-
-          <button
+            type="button"
+            aria-label="Post errand"
             aria-current={activeTab === 'post' ? 'page' : undefined}
             onClick={() => onSelectTab('post')}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`hidden lg:inline-flex items-center space-x-1.5 h-11 min-h-0 px-4 rounded-xl text-sm font-semibold transition-all duration-150 cursor-pointer shadow-xs active:scale-95 ${
               activeTab === 'post'
-                ? 'bg-blue-50 text-nus-blue border border-blue-200/90 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                ? 'bg-campus-coral-hover text-campus-ink ring-2 ring-orange-200'
+                : 'bg-campus-coral hover:bg-campus-coral-hover text-campus-ink'
             }`}
           >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Post</span>
+            <PlusCircle className="w-3.5 h-3.5 stroke-[2.4]" />
+            <span>Post errand</span>
           </button>
 
+          <div className="hidden lg:block h-5 w-px bg-slate-200 mx-0.5" aria-hidden="true" />
+
+          {/* Interactive Wallet Balance Capsule (Available Spendable Balance) */}
           <button
-            aria-current={activeTab === 'spots' ? 'page' : undefined}
-            onClick={() => onSelectTab('spots')}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'spots'
-                ? 'bg-blue-50 text-nus-blue border border-blue-200/90 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+            type="button"
+            aria-label="Open wallet"
+            aria-current={activeTab === 'wallet' ? 'page' : undefined}
+            onClick={() => onSelectTab('wallet')}
+            className={`group flex items-center gap-1.5 sm:gap-2 h-11 min-h-0 px-2.5 sm:px-3 rounded-xl border transition-all duration-150 cursor-pointer ${
+              activeTab === 'wallet'
+                ? 'bg-amber-50 border-amber-300 text-amber-900'
+                : 'bg-white hover:bg-amber-50/40 border-slate-200/90 hover:border-amber-200 text-slate-800 shadow-subtle hover:shadow-card'
             }`}
           >
-            <Store className="w-3.5 h-3.5" />
-            <span>Spots</span>
+            <div
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg hidden min-[400px]:flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 ${
+                activeTab === 'wallet' ? 'bg-amber-100' : 'bg-amber-50'
+              }`}
+            >
+              <Coins
+                className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                  activeTab === 'wallet' ? 'text-amber-700' : 'text-amber-600'
+                }`}
+              />
+            </div>
+            <span
+              className={`text-xs sm:text-sm font-semibold tracking-tight ${
+                activeTab === 'wallet' ? 'text-amber-900' : 'text-slate-900'
+              }`}
+              aria-live="polite"
+            >
+              {/* AI-generated (edited by yanhwee): keep the balance compact on phones and explicit on desktop. */}
+              {wallet || !isLoadingCredits ? (
+                <>
+                  {wallet?.availableCredits ?? 0}
+                  <span className="lg:hidden"> C</span>
+                  <span className="hidden lg:inline"> credits</span>
+                </>
+              ) : 'Loading…'}
+            </span>
           </button>
 
-          <button
-            aria-current={activeTab === 'tasks' ? 'page' : undefined}
-            onClick={() => onSelectTab('tasks')}
-            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'tasks'
-                ? 'bg-blue-50 text-nus-blue border border-blue-200/90 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Tasks</span>
-          </button>
-        </nav>
-
-        {/* Right Section: Personal Account & Financial Hub */}
-        <div className="flex items-center gap-2">
-          {/* Alerts Bell (Desktop only; on mobile it lives in the ergonomic bottom dock) */}
-          <div className="hidden md:flex">
+          {/* Alerts Bell (Visible on both mobile and desktop) */}
+          <div className="flex">
             <NotificationBell
               variant="top"
               unreadCount={unreadNotificationsCount}
@@ -168,52 +289,47 @@ export function HeaderNav({
             />
           </div>
 
-          {/* Interactive Wallet Balance Capsule */}
+          {/* Profile Button (Desktop compact icon button with accessible name) */}
           <button
             type="button"
-            aria-label="Open wallet"
-            aria-current={activeTab === 'wallet' ? 'page' : undefined}
-            onClick={() => onSelectTab('wallet')}
-            className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
-              activeTab === 'wallet'
-                ? 'bg-amber-50/80 border-amber-300 text-slate-900 shadow-2xs ring-2 ring-amber-300/30'
-                : 'bg-white hover:bg-slate-50 border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs'
-            }`}
-          >
-            <Coins className="w-4 h-4 text-amber-500 fill-amber-100 group-hover:scale-105 transition-transform shrink-0" />
-            <div className="flex flex-col text-left leading-none">
-              <span className="text-xs font-bold text-slate-900" aria-live="polite">
-                {wallet
-                  ? `${wallet.availableCredits} C`
-                  : isLoadingCredits
-                  ? 'Loading…'
-                  : '0 C'}
-              </span>
-              {wallet && wallet.escrowCredits > 0 && (
-                <span className="text-[10px] text-slate-500 font-medium flex items-center gap-0.5 mt-0.5">
-                  <Lock className="w-2.5 h-2.5 text-slate-400" />
-                  {wallet.escrowCredits} held
-                </span>
-              )}
-            </div>
-          </button>
-
-          {/* Profile Button (Desktop only; on mobile it lives in the bottom dock) */}
-          <button
-            type="button"
+            aria-label="Profile"
+            title="Profile"
             aria-current={activeTab === 'profile' ? 'page' : undefined}
             onClick={onOpenProfile}
-            className={`hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`group hidden lg:flex items-center justify-center h-11 w-11 min-h-0 rounded-xl transition-all duration-150 cursor-pointer border ${
               activeTab === 'profile'
-                ? 'bg-blue-50 text-nus-blue border-blue-200/90 shadow-2xs'
-                : 'bg-white text-slate-700 border-slate-200/80 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-2xs'
+                ? 'bg-campus-blue-soft text-campus-blue border-blue-200 ring-2 ring-blue-500/10 shadow-2xs'
+                : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-subtle hover:shadow-card'
             }`}
           >
-            <UserCircle className="w-4 h-4 text-slate-500" />
-            <span>Profile</span>
+            <UserCircle className={`w-5 h-5 transition-colors ${activeTab === 'profile' ? 'text-campus-blue' : 'text-slate-600 group-hover:text-slate-800'}`} />
+            <span className="sr-only">Profile</span>
           </button>
         </div>
       </div>
+
+      {/* Discreet Reconnecting / Offline Notice (Visible only when socket is not connected) */}
+      {showWsStatus && wsStatus !== 'connected' && (
+        <div
+          role="status"
+          className={`-mx-3.5 sm:-mx-6 lg:-mx-8 -mb-2 sm:-mb-3 mt-2 py-1 px-4 text-xs font-semibold text-center flex items-center justify-center gap-2 border-t transition-all ${
+            wsStatus === 'connecting'
+              ? 'bg-amber-50 text-amber-800 border-amber-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              wsStatus === 'connecting' ? 'bg-amber-500 animate-ping' : 'bg-rose-500'
+            }`}
+          />
+          <span>
+            {wsStatus === 'connecting'
+              ? 'Connecting to live errand updates…'
+              : 'Offline. Reconnecting to campus network…'}
+          </span>
+        </div>
+      )}
     </header>
   );
 }

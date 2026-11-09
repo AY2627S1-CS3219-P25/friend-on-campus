@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: The flagged send result now carries the conversation; the assertion checks kind and recipients (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Unit checks for the conversation rules: open uses the local row, else the Order Service fallback (S4) and
  * fails closed on 404 or outage; read for participants and admins, not others (F8.1.2, D8); send only for
@@ -16,6 +20,10 @@
  * Scope: Review fix (PR #148, second round): a terminal Order fallback whose row is created by an accept event during
  * the lookup still returns a closed conversation and later sends are refused.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: Moderation test: a flagged send is not stored.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
@@ -200,4 +208,50 @@ test('P2: a terminal fallback racing an accept event that creates the row still 
   assert.equal(conversations.get(ORDER)?.closedAt, '2026-10-20T06:00:00.000Z', 'the row itself is closed, not just the response');
   assert.equal((await service.send(ORDER, principal(ALICE), 'too late')).kind, 'closed');
   assert.equal((await service.send(ORDER, principal(BOB), 'too late')).kind, 'closed');
+});
+
+// AI-generated (edited by jagdeepsh)
+test('translate: readable by participants and admins, stores nothing, and sends were never altered', async () => {
+  const { store } = memoryStore();
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const calls: Array<[string[], string]> = [];
+  const translate = async (texts: string[], language: string) => { calls.push([texts, language]); return texts.map((t) => `[${language}] ${t}`); };
+  const service = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }), translate });
+  const sent = await service.send(ORDER, principal(ALICE, { username: 'alice' }), '我在这里');
+  if (sent.kind !== 'sent') throw new Error('send failed');
+  assert.equal(sent.message.text, '我在这里');
+
+  const result = await service.translate(ORDER, principal(BOB), 'English', [sent.message.id]);
+  assert.deepEqual(result, { kind: 'translated', translations: { [sent.message.id]: '[English] 我在这里' } });
+  assert.equal((await service.translate(ORDER, principal(ADMIN, { role: 'ADMIN' }), 'English', [sent.message.id])).kind, 'translated');
+  assert.equal((await service.translate(ORDER, principal(CAROL), 'English', [sent.message.id])).kind, 'forbidden');
+  assert.equal((await service.translate('30000000-0000-4000-8000-000000000002', principal(ALICE), 'English', [])).kind, 'not_found');
+  assert.equal((await service.history(ORDER, principal(ALICE), { afterSequence: 0, limit: 10 })).kind, 'found');
+  assert.equal((await service.messages(sent.message.conversationId, { afterSequence: 0, limit: 10 }))[0].text, '我在这里');
+  // Unknown ids translate nothing; forbidden callers never reach the translator.
+  assert.deepEqual(await service.translate(ORDER, principal(ALICE), 'English', ['30000000-0000-4000-8000-000000000009']), { kind: 'translated', translations: {} });
+  assert.equal(calls.length, 2);
+  const none = createConversationService({ store, orders: fakeOrders({ kind: 'not_found' }) });
+  assert.equal((await none.translate(ORDER, principal(ALICE), 'English', [sent.message.id])).kind, 'unavailable');
+});
+
+test('send: a flagged message is not stored; a clean one is; an absent moderator changes nothing', async () => {
+  const { store, messages } = memoryStore();
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const orders = fakeOrders({ kind: 'not_found' });
+  const checked: string[] = [];
+  const service = createConversationService({ store, orders, moderate: async (text) => { checked.push(text); return text.includes('badword'); } });
+  const flagged = await service.send(ORDER, principal(ALICE, { username: 'alice' }), '  badword  ');
+  // The flagged result also carries the conversation so the hub can address the transient peer notice (issue #240).
+  assert.equal(flagged.kind, 'flagged');
+  assert.deepEqual(flagged.kind === 'flagged' && flagged.recipientIds, [ALICE, BOB]);
+  assert.equal(messages.length, 0);
+  assert.equal((await service.send(ORDER, principal(ALICE, { username: 'alice' }), 'hello')).kind, 'sent');
+  assert.equal(messages.length, 1);
+  assert.deepEqual(checked, ['badword', 'hello']);
+  // Blank text is rejected before the moderator is asked.
+  await service.send(ORDER, principal(ALICE, { username: 'alice' }), '   ');
+  assert.equal(checked.length, 2);
+  const plain = createConversationService({ store, orders });
+  assert.equal((await plain.send(ORDER, principal(BOB, { username: 'bob' }), 'badword')).kind, 'sent');
 });

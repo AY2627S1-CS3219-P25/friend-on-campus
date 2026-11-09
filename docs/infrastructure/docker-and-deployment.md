@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Document application-only image startup, preserved Compose bootstrap, and graceful socket-service shutdown.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -13,20 +17,22 @@ This document describes current Compose/Docker implementation. The AWS Wiki page
 
 ## Startup and persistence
 
-PostgreSQL starts with logical replication enabled. Provisioning SQL creates five databases and roles. Backend images run `prisma migrate deploy` before the service; User/Supplier/Order/Credit also seed development data, while Notification does not. Order/Credit seed failures are logged without necessarily stopping startup. Each backend uses `init: true`; application runtime stages use the base image's non-root user.
+PostgreSQL starts with logical replication enabled. Provisioning SQL creates six databases and roles. Backend images start only `node dist/index.js`. The Compose `command` overrides run `prisma migrate deploy` before the service; User/Supplier/Order/Credit also seed development data, while Chat and Notification do not. Order/Credit seed failures are logged without necessarily stopping startup. Each backend uses `init: true`; application runtime stages use the base image's non-root user.
 
-User and Supplier depend on PostgreSQL. Order/Credit/Notification additionally depend on RabbitMQ. Credit seed startup waits for User. Each Debezium connector waits for the corresponding service so its outbox table exists. Gateway waits for all five services and both frontends, but not CDC readiness. A healthy gateway does not prove an event has traversed the connectors.
+For cloud deployments, run the existing Prisma migration executable (`/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma`) from each service image's working directory as an initialization task before starting its application replicas. Seed a fresh demo environment explicitly using the compiled `node dist/database/seed.js` entrypoints for User, Supplier, Order and Credit; ordinary image startup performs neither migrations nor seeds. `docker compose up --build` keeps its existing local bootstrap behavior and requires no AWS credentials.
+
+User and Supplier depend on PostgreSQL. Order/Credit/Chat/Notification additionally depend on RabbitMQ. Credit seed startup waits for User. Each Debezium connector waits for the corresponding service so its outbox table exists. Gateway waits for all six services and both frontends, but not CDC readiness. A healthy gateway does not prove an event has traversed the connectors.
 
 | Component | Compose check | Meaning |
 |---|---|---|
-| User/Supplier/Notification | /ready | Service-defined dependency check |
+| User/Supplier/Chat/Notification | /ready | Service-defined dependency check |
 | Order/Credit | /health | Process liveness; /ready exists separately |
 | Apps | Local HTTP request to static NGINX | Assets can be served |
 | PostgreSQL | pg_isready | Server accepts connections |
 | RabbitMQ | check_port_connectivity as rabbitmq user | Broker probe, not end-to-end message processing |
 | Debezium | No Compose healthcheck | Inspect connector logs and actual event progress |
 
-The RabbitMQ health command uses `su-exec rabbitmq`; changing its effective user can affect cookie ownership during cold boot. Retain this and backend `init: true` per repository instructions. Order/Credit/Notification and CDC containers have restart policies; check actual lifecycle callbacks before claiming graceful shutdown.
+The RabbitMQ health command uses `su-exec rabbitmq`; changing its effective user can affect cookie ownership during cold boot. Retain this and backend `init: true` per repository instructions. Order/Credit/Chat/Notification and CDC containers have restart policies. Chat and Notification stop advertising readiness, close sockets with code 1001, drain requests/consumer work, and disconnect Prisma on SIGINT/SIGTERM or broker failure. Chat also drains in-flight SEND handlers. Shutdown has a 10-second deadline; Compose gives these services a 30-second stop grace period.
 
 ## Build and environment
 

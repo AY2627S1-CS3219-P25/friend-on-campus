@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
+ * Scope: createOrder validates the optional drop-off point and estimated credit (all three or none, coordinate and
+ * integer range checks only) and passes them to the repository, per the author's drop-off estimator decisions.
+ * Author review: <to be completed by huangjiaxi1111>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§6): every outbox draft carries the version-2 fields (schemaVersion,
  * producer, correlationId, actor, reason code) via v2(); courier drop and admin unassign now emit order.unassigned.
@@ -25,6 +30,14 @@
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored Order Service orchestrator into modular, extracted domain handler functions and a lightweight factory function.
  * Author review: (to be completed by author after review)
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: Added disputeOrder (validates the requester's details, then the repository raises the dispute).
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
+ * Scope: courierDisputeOrder (validates the courier's details).
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
 import type {
@@ -77,6 +90,8 @@ export interface OrderService {
   pickupOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   deliverOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
   completeOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
+  disputeOrder(orderId: string, requesterId: string, details: unknown): Promise<OrderDTO>;
+  courierDisputeOrder(orderId: string, courierId: string, details: unknown): Promise<OrderDTO>;
   cancelOrder(orderId: string, requesterId: string): Promise<OrderDTO>;
   unassignOrder(orderId: string, courierId: string): Promise<OrderDTO>;
   adminCancelOrder(orderId: string, adminUserId: string, req: AdminCancelOrderRequest): Promise<OrderDTO>;
@@ -135,6 +150,37 @@ interface ValidatedCreateOrderInput {
   requesterContactNote?: string;
   rewardCredits: number;
   durationMinutes: number;
+  dropoffEstimate?: DropoffEstimate;
+}
+
+interface DropoffEstimate {
+  dropoffLatitude: number;
+  dropoffLongitude: number;
+  estimatedRewardCredits: number;
+}
+
+// The browser calculates the estimate, so the server checks only that the three fields arrive together and are in
+// range. The reward actually offered (rewardCredits) may differ from the estimate.
+function validateDropoffEstimate(req: CreateOrderRequest): DropoffEstimate | undefined {
+  const { dropoffLatitude, dropoffLongitude, estimatedRewardCredits } = req;
+  const presentCount = [dropoffLatitude, dropoffLongitude, estimatedRewardCredits]
+    .filter((value) => value !== undefined && value !== null).length;
+  if (presentCount === 0) {
+    return undefined;
+  }
+  if (presentCount !== 3) {
+    throw new OrderValidationError('dropoffLatitude, dropoffLongitude and estimatedRewardCredits must be sent together');
+  }
+  if (typeof dropoffLatitude !== 'number' || !Number.isFinite(dropoffLatitude) || dropoffLatitude < -90 || dropoffLatitude > 90) {
+    throw new OrderValidationError('dropoffLatitude must be a number between -90 and 90');
+  }
+  if (typeof dropoffLongitude !== 'number' || !Number.isFinite(dropoffLongitude) || dropoffLongitude < -180 || dropoffLongitude > 180) {
+    throw new OrderValidationError('dropoffLongitude must be a number between -180 and 180');
+  }
+  if (typeof estimatedRewardCredits !== 'number' || !Number.isInteger(estimatedRewardCredits) || estimatedRewardCredits <= 0 || estimatedRewardCredits > 2147483647) {
+    throw new OrderValidationError('estimatedRewardCredits must be an integer between 1 and 2147483647');
+  }
+  return { dropoffLatitude, dropoffLongitude, estimatedRewardCredits };
 }
 
 function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrderInput {
@@ -167,6 +213,8 @@ function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrd
     durationMinutes = req.durationMinutes;
   }
 
+  const dropoffEstimate = validateDropoffEstimate(req);
+
   return {
     supplierId: req.supplierId.trim(),
     itemDescription,
@@ -175,6 +223,7 @@ function validateCreateOrderRequest(req: CreateOrderRequest): ValidatedCreateOrd
     requesterContactNote,
     rewardCredits: req.rewardCredits,
     durationMinutes,
+    dropoffEstimate,
   };
 }
 
@@ -237,6 +286,7 @@ async function handleCreateOrder(
       dropoffLocation: validatedInput.dropoffLocation,
       requesterContactNote: validatedInput.requesterContactNote,
       rewardCredits: validatedInput.rewardCredits,
+      ...validatedInput.dropoffEstimate,
       expiresAt,
     },
     reservationEvent
@@ -364,6 +414,28 @@ async function handleCompleteOrder(
   };
 
   return repository.completeOrder(existing.id, requesterId, event);
+}
+
+// AI-generated (edited by jagdeepsh)
+async function handleDisputeOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  requesterId: string,
+  details: unknown
+): Promise<OrderDTO> {
+  const text = validateRequiredText(details, 'details', 1000);
+  return deps.repository.disputeOrder(orderId, requesterId, text);
+}
+
+// AI-generated (edited by jagdeepsh)
+async function handleCourierDisputeOrder(
+  deps: OrderServiceDependencies,
+  orderId: string,
+  courierId: string,
+  details: unknown
+): Promise<OrderDTO> {
+  const text = validateRequiredText(details, 'details', 1000);
+  return deps.repository.courierDisputeOrder(orderId, courierId, text);
 }
 
 async function handleCancelOrder(
@@ -536,6 +608,8 @@ export function createOrderService(deps: OrderServiceDependencies): OrderService
     pickupOrder: (orderId, courierId, courierUsername) => handlePickupOrder(deps, orderId, courierId, courierUsername),
     deliverOrder: (orderId, courierId, courierUsername) => handleDeliverOrder(deps, orderId, courierId, courierUsername),
     completeOrder: (orderId, requesterId) => handleCompleteOrder(deps, orderId, requesterId),
+    disputeOrder: (orderId, requesterId, details) => handleDisputeOrder(deps, orderId, requesterId, details),
+    courierDisputeOrder: (orderId, courierId, details) => handleCourierDisputeOrder(deps, orderId, courierId, details),
     cancelOrder: (orderId, requesterId) => handleCancelOrder(deps, orderId, requesterId),
     unassignOrder: (orderId, courierId) => handleUnassignOrder(deps, orderId, courierId),
     adminCancelOrder: (orderId, adminUserId, req) =>

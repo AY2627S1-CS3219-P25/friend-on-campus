@@ -1,5 +1,18 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Hub tests deliver through the loopback realtime and createChatDelivery, as production does through RabbitMQ (issue #240).
+ *        PR #246 review: a clientId longer than 64 characters is echoed unchanged.
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Resolve the merge by preserving shutdown draining and moderation socket tests together.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Verify shutdown closes sockets with 1001 and waits for an in-flight SEND operation.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Socket tests for the chat hub: the AUTH handshake and its 4401 rejections, SEND delivered as MESSAGE to
  * both participants and to every tab of the sender but not to a third user, ERROR frames with the client id for
@@ -9,25 +22,36 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
  * Scope: Review fix (PR #148): asserts the sender's MESSAGE echo carries the clientId and the recipient's does not.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: Moderation socket test: flagged send gives the sender ERROR MODERATED and the other participant MODERATED_PEER, nothing stored.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer } from 'ws';
+import { createLoopbackRealtime } from '@campus-errand/messaging';
 import { createConversationService } from '../src/conversations/service';
+import { createChatDelivery } from '../src/realtime/delivery';
 import { createChatHub, createSocketAuthenticator } from '../src/ws/hub';
 import { ALICE, AUDIENCE, BOB, CAROL, ISSUER, ORDER, makeKeys, memoryStore, openSocket, signToken, until } from './helpers';
 
 describe('chat hub', () => {
   const keys = makeKeys();
-  const { store } = memoryStore();
+  // Production delivers stored messages through the realtime subscriber on every replica; here the loopback plays the
+  // broker and hands the store's delivery intent straight to this hub's delivery (issue #240).
+  const realtime = createLoopbackRealtime();
+  const { store } = memoryStore({ onAppended: (signal) => realtime.publish(signal) });
   const service = createConversationService({ store, orders: { async getOrder() { return { kind: 'not_found' }; } } });
   const hub = createChatHub({
     authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
     send: service.send,
+    broadcast: realtime.publish,
     authTimeoutMs: 300,
   });
+  realtime.subscribe(createChatDelivery({ store, hub }).handle);
   let wss: WebSocketServer;
   let url: string;
 
@@ -40,7 +64,7 @@ describe('chat hub', () => {
   });
 
   after(async () => {
-    hub.close();
+    await hub.close();
     await new Promise<void>((resolve) => wss.close(() => resolve()));
   });
 
@@ -87,6 +111,18 @@ describe('chat hub', () => {
     await until(() => hub.connectionCount() === 0, 'sockets evicted');
   });
 
+  // PR #246 review: the hub accepts a clientId of any length, so the echo must carry it back unchanged.
+  it('echoes a long clientId unchanged to the sender and never to the other participant', async () => {
+    const alice = await connect(ALICE, { username: 'alice' });
+    const bob = await connect(BOB, { username: 'bob' });
+    const clientId = 'x'.repeat(200);
+    alice.send({ type: 'SEND', orderId: ORDER, text: 'long id', clientId });
+    const [a, b] = await Promise.all([alice.frame('MESSAGE'), bob.frame('MESSAGE')]);
+    assert.deepEqual([a.clientId, b.clientId], [clientId, undefined]);
+    for (const c of [alice, bob]) c.ws.close();
+    await until(() => hub.connectionCount() === 0, 'sockets evicted');
+  });
+
   it('answers a rejected SEND with ERROR carrying the client id and the reason', async () => {
     const alice = await connect(ALICE, { username: 'alice' });
     const carol = await connect(CAROL);
@@ -113,6 +149,100 @@ describe('chat hub', () => {
 
     alice.ws.close();
     carol.ws.close();
+    await until(() => hub.connectionCount() === 0, 'sockets evicted');
+  });
+});
+
+// AI-generated (edited by ngkhengyang)
+it('drains an in-flight SEND before shutdown finishes', { timeout: 5000 }, async () => {
+  const keys = makeKeys();
+  let release!: () => void;
+  let started!: () => void;
+  const sending = new Promise<void>((resolve) => { started = resolve; });
+  const finish = new Promise<void>((resolve) => { release = resolve; });
+  const hub = createChatHub({
+    authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
+    async send() { started(); await finish; return { kind: 'not_found' }; },
+    broadcast: async () => {},
+  });
+  const wss = new WebSocketServer({ port: 0 });
+  wss.on('connection', hub.handleConnection);
+  await new Promise<void>((resolve) => wss.once('listening', resolve));
+  const client = await openSocket(`ws://127.0.0.1:${(wss.address() as AddressInfo).port}`);
+  try {
+    client.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE, { username: 'alice' }) });
+    await client.frame('AUTH_OK');
+    client.send({ type: 'SEND', orderId: ORDER, text: 'already in flight' });
+    await sending;
+    let drained = false;
+    const closing = hub.close().then(() => { drained = true; });
+    assert.equal(await client.closed(), 1001);
+    assert.equal(drained, false, 'database work is still in flight after the socket closes');
+    release();
+    await closing;
+    assert.equal(drained, true);
+  } finally {
+    release();
+    client.ws.terminate();
+    await hub.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+  }
+});
+
+describe('chat hub moderation', () => {
+  const keys = makeKeys();
+  const realtime = createLoopbackRealtime();
+  const { store, messages } = memoryStore({ onAppended: (signal) => realtime.publish(signal) });
+  const service = createConversationService({
+    store,
+    orders: { async getOrder() { return { kind: 'not_found' }; } },
+    moderate: async (text) => text.includes('badword'),
+  });
+  const hub = createChatHub({
+    authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
+    send: service.send,
+    broadcast: realtime.publish,
+  });
+  realtime.subscribe(createChatDelivery({ store, hub }).handle);
+  let wss: WebSocketServer;
+  let url: string;
+
+  before(async () => {
+    await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+    wss = new WebSocketServer({ port: 0 });
+    wss.on('connection', hub.handleConnection);
+    await new Promise<void>((resolve) => wss.once('listening', resolve));
+    url = `ws://127.0.0.1:${(wss.address() as AddressInfo).port}`;
+  });
+
+  after(async () => {
+    await hub.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+  });
+
+  const connect = async (userId: string) => {
+    const client = await openSocket(url);
+    client.send({ type: 'AUTH', token: signToken(keys.privateKey, userId, { username: userId === ALICE ? 'alice' : 'bob' }) });
+    await client.frame('AUTH_OK');
+    return client;
+  };
+
+  it('tells the sender and the other participant, and stores nothing', async () => {
+    const alice = await connect(ALICE);
+    const bob = await connect(BOB);
+    alice.send({ type: 'SEND', orderId: ORDER, text: 'you badword', clientId: 'm1' });
+    const mine = await alice.frame('ERROR');
+    assert.deepEqual([mine.code, mine.clientId, mine.orderId], ['MODERATED', 'm1', ORDER]);
+    const theirs = await bob.frame('ERROR');
+    assert.deepEqual([theirs.code, theirs.clientId, theirs.orderId], ['MODERATED_PEER', undefined, ORDER]);
+    assert.equal(messages.length, 0);
+    assert.equal(alice.frames.filter((f) => f.type === 'MESSAGE').length + bob.frames.filter((f) => f.type === 'MESSAGE').length, 0);
+
+    alice.send({ type: 'SEND', orderId: ORDER, text: 'hello', clientId: 'm2' });
+    assert.equal((await bob.frame('MESSAGE')).message.text, 'hello');
+    assert.equal(messages.length, 1);
+    alice.ws.close();
+    bob.ws.close();
     await until(() => hub.connectionCount() === 0, 'sockets evicted');
   });
 });

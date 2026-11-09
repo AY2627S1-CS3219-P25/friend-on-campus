@@ -33,10 +33,29 @@
  * cursor that is the contiguous coverage of fetched history (loadedThrough), not the highest displayed sequence, so a
  * message that landed between the REST read and the socket authentication is fetched and a gap is never skipped over.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Added translate(): asks the Chat Service for display-only translations of stored messages.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Google Antigravity Agent, date: 2026-11-06
+ * Scope: PR #228 review fixes: chunk messageIds to at most 200 per POST /api/chat/:orderId/translate request and pass
+ * a 25 s request deadline signal so authFetch's default 10 s deadline does not abort the backend's 20 s LLM timeout.
+ * Author review: <to be completed by yanhwee>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: A MODERATED_PEER ERROR frame adds a removed-message notice to the thread (in memory only).
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Issue #242 (RT4.2): a MODERATED_PEER frame whose eventId was already seen in this logged-in session is not
+ * counted again (countsAsRemoval); a frame without an eventId keeps the previous behaviour.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatErrorCode, ChatHistoryResponse, ChatMessageDTO, ChatServerFrame, ConversationDTO } from '@campus-errand/common-dtos';
+import { createFirstSeen } from '../hooks/recentIds';
 
 export type ChatSocketStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -48,6 +67,8 @@ export interface ChatThread {
   isLoading: boolean;
   /** Why the conversation could not be loaded (404, 403, 503), or null. */
   loadError: string | null;
+  /** How many messages from the other participant were removed by moderation since this page loaded (not stored). */
+  removedNotices: number;
 }
 
 export type SendOutcome = { ok: true } | { ok: false; code: ChatErrorCode | 'DISCONNECTED' | 'UNCONFIRMED'; message: string };
@@ -80,7 +101,17 @@ const RECONCILE_MS = 30_000;
 /** The server's maximum page; a page shorter than this is the last one. */
 const PAGE_SIZE = 100;
 
-const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null };
+/** Maximum message IDs accepted by POST /api/chat/:orderId/translate per request, and client deadline matching the 20 s backend LLM timeout. */
+const TRANSLATE_MAX_IDS = 200;
+const TRANSLATE_DEADLINE_MS = 25_000;
+
+const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null, removedNotices: 0 };
+
+// AI-generated (edited by Reallyeasy1)
+/** Whether a MODERATED_PEER notice adds a removed-message line: once per eventId; always when it carries none (issue #242). */
+export function countsAsRemoval(eventId: string | undefined, firstSeen: (id: string) => boolean): boolean {
+  return !eventId || firstSeen(eventId);
+}
 
 export function mergeMessage(list: ChatMessageDTO[], message: ChatMessageDTO): ChatMessageDTO[] {
   if (list.some((m) => m.id === message.id)) return list;
@@ -179,7 +210,7 @@ export function useChat(options: {
         const fetchedThrough = pages.length ? pages[pages.length - 1].sequence : afterSequence;
         return {
           ...current,
-          [orderId]: { conversation, messages, loadedThrough: coveredThrough(messages, Math.max(thread.loadedThrough, fetchedThrough)), isLoading: false, loadError: null },
+          [orderId]: { conversation, messages, loadedThrough: coveredThrough(messages, Math.max(thread.loadedThrough, fetchedThrough)), isLoading: false, loadError: null, removedNotices: thread.removedNotices },
         };
       });
     } catch (e) {
@@ -229,6 +260,32 @@ export function useChat(options: {
     });
   }, [reconcilePending]);
 
+  /**
+   * Display-only translations of stored messages into `language` (POST /api/chat/:orderId/translate).
+   * Resolves to a map of message id to translated text, or null when translation is unavailable.
+   */
+  // AI-generated (edited by yanhwee)
+  const translate = useCallback(async (orderId: string, language: string, messageIds: string[]): Promise<Record<string, string> | null> => {
+    try {
+      const merged: Record<string, string> = {};
+      for (let start = 0; start < messageIds.length; start += TRANSLATE_MAX_IDS) {
+        const chunk = messageIds.slice(start, start + TRANSLATE_MAX_IDS);
+        const res = await latest.current.authFetch(`/api/chat/${orderId}/translate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language, messageIds: chunk }),
+          signal: AbortSignal.timeout(TRANSLATE_DEADLINE_MS),
+        });
+        const body = await res.json();
+        if (!res.ok || !body.success) return null;
+        Object.assign(merged, (body.data as { translations: Record<string, string> }).translations);
+      }
+      return merged;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     if (!options.enabled) {
       setStatus('disconnected');
@@ -240,6 +297,8 @@ export function useChat(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    // AI-generated (edited by Reallyeasy1): one cache per logged-in session, discarded with this effect (issue #242).
+    const firstSeen = createFirstSeen();
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/chat/`;
 
@@ -277,6 +336,15 @@ export function useChat(options: {
           // Only the sender's own echo carries the client id; a frame from anyone else settles nothing (F8.2.3).
           settle(frame.clientId, { ok: true });
         } else if (frame.type === 'ERROR') {
+          if (frame.code === 'MODERATED_PEER' && frame.orderId) {
+            const { orderId } = frame;
+            if (!countsAsRemoval(frame.eventId, firstSeen)) return;
+            updateThreads((current) => {
+              const thread = current[orderId] ?? EMPTY;
+              return { ...current, [orderId]: { ...thread, removedNotices: thread.removedNotices + 1 } };
+            });
+            return;
+          }
           settle(frame.clientId, { ok: false, code: frame.code, message: frame.message });
         }
       };
@@ -343,7 +411,7 @@ export function useChat(options: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.enabled]);
 
-  return { status, threads, load, send, watch };
+  return { status, threads, load, send, watch, translate };
 }
 
 export type ChatApi = ReturnType<typeof useChat>;

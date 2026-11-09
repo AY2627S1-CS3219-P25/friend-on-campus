@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: disconnectAll() for realtime subscription loss (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: inboxChanged(): a user-scoped INBOX_CHANGED frame after inserts and read changes so every open tab refetches
  * (author's Notification Redesign §7); frames stay hints, the client reads counts from REST.
@@ -129,6 +133,10 @@ export function createHub(options: {
     /** Authenticated sockets of one user, or every connected socket when no user is given. */
     connectionCount(userId?: string): number {
       return userId ? byUser.get(userId)?.size ?? 0 : all.size;
+    },
+    /** The replica queue was lost: close every socket so clients reconnect and refresh from REST (issue #241). */
+    disconnectAll(code = 1012) {
+      for (const ws of all) ws.close(code);
     },
     close() {
       clearInterval(pinger);

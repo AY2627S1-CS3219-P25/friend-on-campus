@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: Preserve local migration/seed startup while images start only the app, and allow bounded socket-service shutdown.
+# Author review: <to be completed by the author>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 # Scope: RabbitMQ health-probe budget: timeout 5 s -> 20 s (as PR #147) and start_period 60 s -> 180 s. A cold boot on a
 # 5 GB Docker Desktop VM took 231 s to open the listeners, so the probe gave up before Erlang had started and compose up
@@ -184,6 +188,8 @@ services:
   # ----------------------------------------------------
   # AI-generated (edited by ngkhengyang)
   user-service:
+    # AI-generated (edited by ngkhengyang): local bootstrap stays in Compose, outside the cloud application command.
+    command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/user-service/Dockerfile
@@ -218,6 +224,8 @@ services:
       start_period: 10s
 
   supplier-service:
+    # AI-generated (edited by ngkhengyang)
+    command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/supplier-service/Dockerfile
@@ -248,6 +256,8 @@ services:
       start_period: 10s
 
   order-service:
+    # AI-generated (edited by ngkhengyang)
+    command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && (node dist/database/seed.js || echo >&2 '[order-seed] Automatic startup seed skipped or failed') && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/order-service/Dockerfile
@@ -288,6 +298,8 @@ services:
       start_period: 10s
 
   credit-service:
+    # AI-generated (edited by ngkhengyang)
+    command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && (node dist/database/seed.js || echo >&2 '[credit-seed] Automatic startup seed failed; continuing without development wallet seeding') && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/credit-service/Dockerfile
@@ -325,6 +337,9 @@ services:
       start_period: 10s
 
   notification-service:
+    # AI-generated (edited by ngkhengyang)
+    command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && exec node dist/index.js"]
+    stop_grace_period: 30s
     build:
       context: .
       dockerfile: services/notification-service/Dockerfile
@@ -360,6 +375,9 @@ services:
 
   # AI-generated (edited by Reallyeasy1): Chat Service (F8), same shape as notification-service.
   chat-service:
+    # AI-generated (edited by ngkhengyang)
+    command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && exec node dist/index.js"]
+    stop_grace_period: 30s
     build:
       context: .
       dockerfile: services/chat-service/Dockerfile
@@ -374,6 +392,10 @@ services:
       - DATABASE_URL=postgresql://chat_svc:chat-service-dev@postgres:5432/chat_db
       - RABBITMQ_URL=amqp://chat_service:chat-service-dev@rabbitmq:5672/campus
       - ORDER_SERVICE_URL=http://order-service:8003
+      # AI-generated (edited by jagdeepsh): SoCLaaS settings for optional chat message translation
+      - SOCLAAS_BASE_URL=${SOCLAAS_BASE_URL:-https://soclaas-api.comp.nus.edu.sg/v1}
+      - SOCLAAS_API_KEY=${SOCLAAS_API_KEY:-}
+      - SOCLAAS_MODEL=${SOCLAAS_MODEL:-default}
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}

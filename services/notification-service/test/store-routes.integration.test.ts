@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Read routes are checked through the committed INBOX_CHANGED outbox intents instead of a local callback (issue #241).
+ *        PR #246 review: findForUser reports whether the order's current state already resolved the row's action.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Rewritten for the author's Notification Redesign (§7, §8): applyEvent's one-transaction two-recipient commit,
  * replay as a no-op that keeps read_at, fingerprint mismatch, suppressed-event memory, forward-only projection with
@@ -44,7 +49,9 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
   let store: NotificationStore;
   let server: Server;
   let base: string;
-  const inboxChanges: string[] = [];
+  /** Users named by committed INBOX_CHANGED intents (what every replica's subscriber will push), in commit order. */
+  const inboxChanges = async () => (await database.db.notificationRealtimeOutbox.findMany({ where: { kind: 'inbox_changed' }, orderBy: { createdAt: 'asc' } }))
+    .map((row) => (row.payload as { userId: string }).userId);
 
   const processed = (overrides: Partial<ProcessedEventInput> = {}): ProcessedEventInput => ({
     producer: 'order-service',
@@ -88,7 +95,6 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       authenticate: authMiddleware({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
       isReady: async () => true,
       port: 0,
-      onInboxChanged: (userId) => { inboxChanges.push(userId); },
     });
     server = app.listen(0);
     await new Promise<void>((resolve) => server.once('listening', resolve));
@@ -99,7 +105,7 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
     await database.db.notification.deleteMany();
     await database.db.processedNotificationEvent.deleteMany();
     await database.db.orderNotificationState.deleteMany();
-    inboxChanges.length = 0;
+    await database.db.notificationRealtimeOutbox.deleteMany();
   });
 
   after(async () => {
@@ -168,6 +174,24 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       assert.deepEqual([state.highestOrderVersion, state.status], [7, 'COMPLETED']);
       assert.equal((await list(ALICE, 'action_needed')).total, 0, 'completion already resolved the delivery review');
       assert.equal((await list(ALICE, 'all')).total, 1, 'the delivery notice stays as history');
+    });
+
+    // PR #246 review: what the realtime subscriber re-reads before pushing.
+    it('findForUser reports a delivery review resolved once the order leaves DELIVERED; a newer version alone resolves nothing', async () => {
+      const orderId = randomUUID();
+      const accepted = await store.applyEvent(processed({ orderId, projection: projection(3, 'ACCEPTED') }), [draft(ALICE, 'ORDER_ACCEPTED')]);
+      const delivered = await store.applyEvent(processed({ orderId, projection: projection(5, 'DELIVERED') }), [draft(ALICE, 'ORDER_DELIVERED', 'REVIEW_DELIVERY')]);
+      const id = delivered.created[0].notification.id;
+      const progress = accepted.created[0].notification.id;
+      assert.equal((await store.findForUser(ALICE, id))?.actionResolved, false, 'the review is open while the order is DELIVERED');
+      assert.equal((await store.findForUser(ALICE, progress))?.actionResolved, false, 'an earlier progress notice is still news (F5.1 to F5.3)');
+      await store.applyEvent(processed({ orderId, projection: projection(6, 'COMPLETED') }), [draft(BOB, 'ORDER_COMPLETED')]);
+      const after = await store.findForUser(ALICE, id);
+      assert.deepEqual([after?.actionResolved, after?.notification.orderStatus, after?.notification.sourceVersion], [true, 'COMPLETED', 5]);
+      assert.equal((await store.findForUser(ALICE, progress))?.actionResolved, false, 'a progress notice has no action to resolve');
+      const legacy = await store.applyEvent(processed({ schemaVersion: 1 }), [draft(ALICE, 'ORDER_DELIVERED', 'REVIEW_DELIVERY')]);
+      assert.equal((await store.findForUser(ALICE, legacy.created[0].notification.id))?.actionResolved, false, 'no projected state: the review stays open');
+      assert.equal(await store.findForUser(BOB, id), null, 'another user\'s row is not returned');
     });
 
     it('view=action_needed keeps a delivered notice while the order is DELIVERED or unknown; view=important lists IMPORTANT only', async () => {
@@ -271,7 +295,7 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       assert.equal(read.status, 200);
       assert.equal(typeof read.body.data.readAt, 'string');
       assert.deepEqual(read.body.meta, { unreadCount: 1 });
-      assert.deepEqual(inboxChanges, [ALICE]);
+      assert.deepEqual(await inboxChanges(), [ALICE], 'the read change committed an INBOX_CHANGED intent for the caller');
       const again = await call('PATCH', `/api/notifications/${mine.id}/read`, ALICE);
       assert.equal(again.body.data.readAt, read.body.data.readAt, 'reading twice keeps the first read time');
 
@@ -292,14 +316,14 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       assert.deepEqual(unread.body.data.items.map((n: any) => n.title), ['two']);
       assert.deepEqual([unread.body.data.total, unread.body.data.unreadCount], [1, 1]);
 
-      inboxChanges.length = 0;
+      await database.db.notificationRealtimeOutbox.deleteMany({ where: { kind: 'inbox_changed' } });
       const all = await call('POST', '/api/notifications/read-all', ALICE);
       assert.deepEqual(all.body, { success: true, data: { updated: 1, unreadCount: 0 } });
-      assert.deepEqual(inboxChanges, [ALICE]);
+      assert.deepEqual(await inboxChanges(), [ALICE]);
       assert.equal((await call('GET', '/api/notifications?unread=true', ALICE)).body.data.total, 0);
       assert.equal(await store.unreadCount(BOB), 1);
       const nothing = await call('POST', '/api/notifications/read-all', ALICE);
-      assert.deepEqual([nothing.body.data.updated, inboxChanges.length], [0, 1], 'no invalidation when nothing changed');
+      assert.deepEqual([nothing.body.data.updated, (await inboxChanges()).length], [0, 1], 'no intent when nothing changed');
     });
 
     it('page and limit default to 1 and 20 and are clamped', async () => {

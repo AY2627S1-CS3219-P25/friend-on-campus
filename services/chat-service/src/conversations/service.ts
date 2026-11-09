@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: send() takes the optional clientId and hands it to store.append for the delivery intent; the flagged result carries the conversation (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: The conversation rules from issue #56 and the author's decisions: open with the local row, else the Order
  * Service fallback (S4); read for the two participants and admins (F8.1.2, D8); send for participants only while
@@ -10,11 +14,21 @@
  * Scope: Review fix (PR #148 P2): send keeps its fast pre-checks but takes the final participant/closure verdict and
  * the recipients from store.append, which decides under the conversation row lock.
  * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
+ * Scope: Added translate(): display-only translations of a conversation's messages through the injected translator; send is unchanged.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
+ * Scope: send() runs the optional moderator after the validation checks and before store.append; a flagged text returns 'flagged' and is not stored.
+ * Author review: <to be completed by the author>
  */
 // AI-generated (edited by Reallyeasy1)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { OrderStatus } from '@campus-errand/common-dtos';
 import type { OrderClient } from '../clients/order.client';
+import type { Moderator } from '../moderation/moderate';
+import type { Translator } from '../translation/translate';
 import type { ConversationRow, ConversationStore, MessageRow } from './store';
 
 /** Statuses in which messages may be sent (F8.2; D7). Every other status closes the conversation to writes. */
@@ -28,11 +42,19 @@ export type OpenResult =
 
 export type SendResult =
   | { kind: 'sent'; message: MessageRow; recipientIds: string[] }
+  /** The moderator flagged the text; nothing was stored. The conversation lets the hub address the transient peer notice. */
+  | { kind: 'flagged'; conversation: ConversationRow; recipientIds: string[] }
   | { kind: 'not_found' }
   | { kind: 'forbidden' }
   | { kind: 'closed' }
   | { kind: 'empty' }
   | { kind: 'no_username' };
+
+export type TranslateResult =
+  | { kind: 'translated'; translations: Record<string, string> }
+  | { kind: 'not_found' }
+  | { kind: 'forbidden' }
+  | { kind: 'unavailable' };
 
 export function isParticipant(conversation: ConversationRow, userId: string): boolean {
   return conversation.requesterId === userId || conversation.courierId === userId;
@@ -51,6 +73,10 @@ export function canSend(conversation: ConversationRow, principal: AuthenticatedP
 export function createConversationService(deps: {
   store: ConversationStore;
   orders: OrderClient;
+  /** Translates messages for display only (nothing is stored); absent when no translator is configured. */
+  translate?: Translator;
+  /** Checks a message before it is stored; absent when no moderator is configured. */
+  moderate?: Moderator;
   now?: () => Date;
 }) {
   const now = deps.now ?? (() => new Date());
@@ -77,7 +103,7 @@ export function createConversationService(deps: {
     return { kind: 'found', conversation };
   }
 
-  async function send(orderId: string, principal: AuthenticatedPrincipal, text: string): Promise<SendResult> {
+  async function send(orderId: string, principal: AuthenticatedPrincipal, text: string, clientId?: string): Promise<SendResult> {
     const conversation = await deps.store.findByOrderId(orderId);
     if (!conversation) return { kind: 'not_found' };
     if (!canSend(conversation, principal)) return { kind: 'forbidden' };
@@ -86,6 +112,10 @@ export function createConversationService(deps: {
     if (trimmed.length === 0) return { kind: 'empty' };
     // D6: the name is the token's claim; a token without one cannot be attributed (F8.2.2).
     if (!principal.username) return { kind: 'no_username' };
+    // Content moderation runs before anything is written, so a flagged message is never stored or pushed.
+    if (deps.moderate && (await deps.moderate(trimmed))) {
+      return { kind: 'flagged', conversation, recipientIds: [conversation.requesterId, conversation.courierId] };
+    }
     // The checks above are a fast path on a possibly stale row; the store repeats them under the row lock (P2), so a
     // close or re-courier committed in between is refused and the recipients reflect the locked state.
     const appended = await deps.store.append({
@@ -95,6 +125,7 @@ export function createConversationService(deps: {
       senderRole: principal.role,
       text: trimmed,
       sentAt: now().toISOString(),
+      clientId,
     });
     if (appended.kind !== 'appended') return appended;
     return { kind: 'sent', message: appended.message, recipientIds: appended.recipientIds };
@@ -112,7 +143,30 @@ export function createConversationService(deps: {
     return deps.store.listMessages(conversationId, options);
   }
 
-  return { open, send, history, messages };
+  /**
+   * Display-only translations of messages in a conversation the caller may read (participants and admins).
+   * Nothing is written: the stored text is untouched.
+   */
+  async function translate(orderId: string, principal: AuthenticatedPrincipal, language: string, messageIds: string[]): Promise<TranslateResult> {
+    const conversation = await deps.store.findByOrderId(orderId);
+    if (!conversation) return { kind: 'not_found' };
+    if (!canRead(conversation, principal)) return { kind: 'forbidden' };
+    if (!deps.translate) return { kind: 'unavailable' };
+    const wanted = new Set(messageIds);
+    const found: MessageRow[] = [];
+    for (let after = 0; wanted.size > found.length; ) {
+      const page = await deps.store.listMessages(conversation.id, { afterSequence: after, limit: 100 });
+      for (const message of page) if (wanted.has(message.id)) found.push(message);
+      if (page.length < 100) break;
+      after = page[page.length - 1].sequence;
+    }
+    if (found.length === 0) return { kind: 'translated', translations: {} };
+    const texts = await deps.translate(found.map((m) => m.text), language);
+    if (!texts) return { kind: 'unavailable' };
+    return { kind: 'translated', translations: Object.fromEntries(found.map((m, i) => [m.id, texts[i]])) };
+  }
+
+  return { open, send, history, messages, translate };
 }
 
 export type ConversationService = ReturnType<typeof createConversationService>;

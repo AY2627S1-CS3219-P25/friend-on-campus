@@ -7,13 +7,15 @@
   "types": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test:unit": "node --import tsx --test test/realtime.test.ts"
   },
   "dependencies": {
     "rabbitmq-client": "^5.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "tsx": "^4.11.0",
     "typescript": "^5.4.5"
   }
 }
