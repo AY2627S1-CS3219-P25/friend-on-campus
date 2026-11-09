@@ -36,7 +36,7 @@ See [contracts and data](contracts-and-data.md), [runtime and tests](runtime-and
 
 ## Diagrams
 
-**Arrows:** solid `-->` is **data flow** (a body, query or rows move along it). Dashed `-.->` is **control flow** (a call, check or trigger). In sequence diagrams, `->>` is a request or call and `-->>` is a return.
+**Arrows:** `->` (solid) is **data flow**: a body, query or rows move along it. `-.-.-.-` (dashed) is **control flow**: a call, check or trigger. In sequence diagrams, a solid arrow is a call and a dashed arrow is a return.
 
 ### 1. Where it sits
 
