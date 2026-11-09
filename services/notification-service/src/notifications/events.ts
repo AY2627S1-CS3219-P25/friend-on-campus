@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: createDeliver no longer pushes to local sockets; the committed delivery intent and the realtime subscriber do that on every replica (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-23
  * Scope: Increment 6: credit.escrow.settled / credit.escrow.refunded are bound and parsed (parseCreditReceipt: Credit is
  * the only producer, beneficiary must match the outcome), parseNotificationEvent dispatches by key family, and
@@ -32,10 +36,10 @@
  */
 // AI-generated (edited by Reallyeasy1)
 import { createHash } from 'node:crypto';
-import type { NotificationDTO, OrderActorRole, OrderReasonCode, OrderStatus } from '@campus-errand/common-dtos';
+import type { OrderActorRole, OrderReasonCode, OrderStatus } from '@campus-errand/common-dtos';
 import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';
 import { POLICY_VERSION, toNotifications } from './policy';
-import { ContractMismatch, type NotificationStore } from './store';
+import { ContractMismatch, type AppliedEvent, type NotificationStore } from './store';
 
 export class InvalidNotificationEvent extends Error {}
 
@@ -277,22 +281,19 @@ export function classifyNotificationFailure(error: unknown): Failure {
   return { category: 'transient', reason: 'processing_failure' };
 }
 
-export type Deliver = (event: NotificationEvent) => Promise<void>;
-
-export interface LiveHints {
-  push(userId: string, notification: NotificationDTO): unknown;
-  inboxChanged(userId: string): unknown;
-}
+export type Deliver = (event: NotificationEvent) => Promise<AppliedEvent>;
 
 /**
- * The policy decides the recipients, the store commits them in one transaction, and only then do the sockets hear
- * about it: a socket failure after the commit changes nothing, and REST finds the rows on the next load. A stale
- * event (older than the projection) is stored as history but not pushed, so it cannot show an outdated toast.
+ * The policy decides the recipients and the store commits them in one transaction together with the realtime
+ * delivery intent (issue #241). Sockets are not touched here: the subscriber in every replica re-reads the committed
+ * rows and pushes to the connections it holds, so a crash or socket failure after the commit changes nothing and REST
+ * finds the rows on the next load. A stale event (older than the projection) is stored as history and flagged so no
+ * replica shows an outdated toast.
  */
-export function createDeliver(store: Pick<NotificationStore, 'applyEvent'>, hub: LiveHints): Deliver {
+export function createDeliver(store: Pick<NotificationStore, 'applyEvent'>): Deliver {
   return async (event) => {
     const drafts = toNotifications(event);
-    const applied = await store.applyEvent(
+    return store.applyEvent(
       {
         producer: event.schemaVersion === 2 && event.producer === 'credit-service' ? 'credit-service' : 'order-service',
         eventId: event.eventId,
@@ -315,13 +316,6 @@ export function createDeliver(store: Pick<NotificationStore, 'applyEvent'>, hub:
       },
       drafts,
     );
-    if (applied.outcome === 'duplicate') return;
-    const recipients = new Set<string>();
-    for (const { userId, notification } of applied.created) {
-      if (!applied.stale) hub.push(userId, notification);
-      recipients.add(userId);
-    }
-    for (const userId of recipients) hub.inboxChanged(userId);
   };
 }
 

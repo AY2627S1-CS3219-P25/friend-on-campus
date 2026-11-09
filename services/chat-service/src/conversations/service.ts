@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: send() takes the optional clientId and hands it to store.append for the delivery intent; the flagged result carries the conversation (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: The conversation rules from issue #56 and the author's decisions: open with the local row, else the Order
  * Service fallback (S4); read for the two participants and admins (F8.1.2, D8); send for participants only while
@@ -38,8 +42,8 @@ export type OpenResult =
 
 export type SendResult =
   | { kind: 'sent'; message: MessageRow; recipientIds: string[] }
-  /** The moderator flagged the text; nothing was stored. */
-  | { kind: 'flagged'; recipientIds: string[] }
+  /** The moderator flagged the text; nothing was stored. The conversation lets the hub address the transient peer notice. */
+  | { kind: 'flagged'; conversation: ConversationRow; recipientIds: string[] }
   | { kind: 'not_found' }
   | { kind: 'forbidden' }
   | { kind: 'closed' }
@@ -99,7 +103,7 @@ export function createConversationService(deps: {
     return { kind: 'found', conversation };
   }
 
-  async function send(orderId: string, principal: AuthenticatedPrincipal, text: string): Promise<SendResult> {
+  async function send(orderId: string, principal: AuthenticatedPrincipal, text: string, clientId?: string): Promise<SendResult> {
     const conversation = await deps.store.findByOrderId(orderId);
     if (!conversation) return { kind: 'not_found' };
     if (!canSend(conversation, principal)) return { kind: 'forbidden' };
@@ -110,7 +114,7 @@ export function createConversationService(deps: {
     if (!principal.username) return { kind: 'no_username' };
     // Content moderation runs before anything is written, so a flagged message is never stored or pushed.
     if (deps.moderate && (await deps.moderate(trimmed))) {
-      return { kind: 'flagged', recipientIds: [conversation.requesterId, conversation.courierId] };
+      return { kind: 'flagged', conversation, recipientIds: [conversation.requesterId, conversation.courierId] };
     }
     // The checks above are a fast path on a possibly stale row; the store repeats them under the row lock (P2), so a
     // close or re-courier committed in between is refused and the recipients reflect the locked state.
@@ -121,6 +125,7 @@ export function createConversationService(deps: {
       senderRole: principal.role,
       text: trimmed,
       sentAt: now().toISOString(),
+      clientId,
     });
     if (appended.kind !== 'appended') return appended;
     return { kind: 'sent', message: appended.message, recipientIds: appended.recipientIds };

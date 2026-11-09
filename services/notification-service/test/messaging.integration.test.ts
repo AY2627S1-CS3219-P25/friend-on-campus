@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Delivery runs through the outbox relay and a loopback fanout into createNotificationDelivery (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Folded the PR #140 retry-path tests in (relative counts, dead-letter drain) and made the malformed-message test wait for its own row, which the next test's baseline depends on.
  * Author review: <to be completed by Reallyeasy1>
@@ -36,8 +40,9 @@ import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
 import amqp, { type GetMessage } from 'amqplib';
 import { WebSocketServer } from 'ws';
-import type { MessagingConfig } from '@campus-errand/messaging';
+import { createLoopbackRealtime, createOutboxRelay, createSqlOutboxStore, type MessagingConfig } from '@campus-errand/messaging';
 import { createDeliver, startNotificationConsumer } from '../src/notifications/events';
+import { createNotificationDelivery } from '../src/notifications/realtime';
 import { createNotificationStore } from '../src/notifications/store';
 import { createHub, createSocketAuthenticator } from '../src/ws/hub';
 import { ALICE, AUDIENCE, BOB, ISSUER, makeKeys, makeTestDatabase, openSocket, signToken, until } from './helpers';
@@ -61,6 +66,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
   let wss: WebSocketServer;
   let hub: ReturnType<typeof createHub>;
   let consumer: Awaited<ReturnType<typeof startNotificationConsumer>>;
+  let relay: ReturnType<typeof createOutboxRelay>;
   let connection: Awaited<ReturnType<typeof amqp.connect>>;
   let channel: Awaited<ReturnType<Awaited<ReturnType<typeof amqp.connect>>['createConfirmChannel']>>;
   let alice: Awaited<ReturnType<typeof openSocket>>;
@@ -105,19 +111,27 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     // AI-generated (edited by Reallyeasy1)
     // outage.remaining > 0 makes the next deliveries throw a plain error, standing in for an unexpected handler
     // failure (the retry budget; connectivity errors would retry without limit).
-    const deliver = createDeliver(store, hub);
+    // The consumer commits rows plus a realtime intent; a relay drains the intent and the loopback stands in for the
+    // fanout exchange, handing it to this process's delivery (issue #241). The real broker path is covered by
+    // test/realtime.integration.test.ts.
+    const realtime = createLoopbackRealtime();
+    realtime.subscribe(createNotificationDelivery({ store, hub }).handle);
+    relay = createOutboxRelay({ store: createSqlOutboxStore(database.db, 'notification_realtime_outbox'), publish: realtime.publish, pollMs: 25, log: () => {} });
+    relay.start();
+    const deliver = createDeliver(store);
     consumer = await startNotificationConsumer(config, async (event) => {
       if (outage.remaining > 0) {
         outage.remaining -= 1;
         throw new Error('simulated handler failure');
       }
-      await deliver(event);
+      return deliver(event);
     });
     connection = await amqp.connect(config.url);
     channel = await connection.createConfirmChannel();
   });
 
   after(async () => {
+    await relay?.stop();
     await consumer?.close();
     if (channel) {
       for (const queue of [config.queue, config.deadLetterQueue]) await channel.deleteQueue(queue);
@@ -187,8 +201,10 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     };
     const before = { alice: alice.frames.length, bob: bob.frames.length };
     await publishEvent(cancelled);
-    const forAlice = await until(() => alice.frames.slice(before.alice).find((f) => f.type === 'NOTIFICATION'), 'requester frame');
-    const forBob = await until(() => bob.frames.slice(before.bob).find((f) => f.type === 'NOTIFICATION'), 'courier frame');
+    // Frames now arrive through the relay a few milliseconds after the row commits, so a frame from the previous
+    // test's last event may land after this snapshot: select by order id.
+    const forAlice = await until(() => alice.frames.slice(before.alice).find((f) => f.type === 'NOTIFICATION' && f.data.orderId === orderId), 'requester frame');
+    const forBob = await until(() => bob.frames.slice(before.bob).find((f) => f.type === 'NOTIFICATION' && f.data.orderId === orderId), 'courier frame');
     assert.deepEqual([forAlice.data.kind, forAlice.data.category, forAlice.data.priority, forAlice.data.orderStatus], ['ORDER_CANCELLED', 'IMPORTANT', 'HIGH', 'CANCELLED']);
     assert.equal(forBob.data.body, 'An administrator cancelled ORD-1042. Open the errand for its current status.');
     assert.ok(alice.frames.slice(before.alice).some((f) => f.type === 'INBOX_CHANGED'), 'the requester tab is told to refetch');
@@ -198,7 +214,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     await publishEvent(accepted({ requesterId: BOB, courierId: ALICE }));
     await until(async () => (await rowsFor(BOB)) === 4, 'the event after the redelivery');
     assert.equal(await database.db.notification.count({ where: { orderId } }), 2);
-    assert.equal(alice.frames.slice(before.alice).filter((f) => f.type === 'NOTIFICATION').length, 1);
+    assert.equal(alice.frames.slice(before.alice).filter((f) => f.type === 'NOTIFICATION' && f.data.orderId === orderId).length, 1);
     const state = await database.db.orderNotificationState.findUniqueOrThrow({ where: { orderId } });
     assert.deepEqual([state.highestOrderVersion, state.status, state.courierId], [5, 'CANCELLED', BOB]);
   });
@@ -214,7 +230,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     };
     const before = bob.frames.length;
     await publishEvent(settled);
-    const frame = await until(() => bob.frames.slice(before).find((f) => f.type === 'NOTIFICATION'), 'courier receipt');
+    const frame = await until(() => bob.frames.slice(before).find((f) => f.type === 'NOTIFICATION' && f.data.orderId === orderId), 'courier receipt');
     assert.deepEqual([frame.data.kind, frame.data.category, frame.data.priority, frame.data.actionType, frame.data.producer, frame.data.orderStatus],
       ['CREDITS_RECEIVED', 'RECEIPT', 'NORMAL', 'REVIEW_WALLET', 'credit-service', null]);
     assert.equal(frame.data.title, '8 credits received');
