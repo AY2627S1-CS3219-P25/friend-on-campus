@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Replace the vague sign-in tagline with clearer campus-errand wording.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Bring the brand lockup, friendly supporting line, blue headline, and coral welcome offer into the sign-in page.
  * Author review: <to be completed by yanhwee>
@@ -138,7 +142,7 @@ export function AuthGatePage({
                   Friend <span className="brand-connector">on</span> Campus
                 </h1>
                 <p className="text-xs font-medium text-slate-500 mt-1.5">
-                  A little help, a little closer.
+                  Campus errands, made easier.
                 </p>
               </div>
             </div>

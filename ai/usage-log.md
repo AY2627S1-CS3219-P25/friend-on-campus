@@ -7688,7 +7688,25 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Third browser-run follow-up:** Run 42457550527 passed 39/41 browser checks plus the other 25 CI jobs. All mobile, profile, Post, acceptance, pickup, and delivery checks now passed. Remaining UO5 failure was a strict match against both desktop/mobile status spans; UO6 reached its final history assertion but expected pre-redesign cancellation copy. Scoped requester/courier history checks to visible status spans and updated courier-reward/cancellation wording to the implemented copy. Verified visible completed/cancelled requester/courier assertions in the actual rendered TasksPage fixture, along with prior responsive, reorder and dispute checks; passed. Reviewed remaining realtime selectors against current source. Targeted lint, JS syntax, and whitespace checks passed. Preparing the history-assertion-only follow-up commit/push; tagline source remains uncommitted.
 
-## 2026-11-09 04:44 SGT — Continue the RabbitMQ cross-replica delivery work (issues #239 to #242)
+**Final integration result:** Pushed 194222e to existing PR #230. GitHub run 42457984002 completed SUCCESS: all CI jobs/test gate green; browser UI 41/41; real-time notification/chat suite reports 14/14 with one optional check skipped. Verified GitHub `MERGEABLE` / `CLEAN`, same branch and PR, draft state retained, origin/main is an ancestor. Updated PR body with final verification link and outcomes; its dedicated tracking-issue gap remains visible, and bug issues #234/#235 remain separate/open. No merge performed. Newly requested tagline “Campus errands, made easier.” remains uncommitted in AuthGatePage.tsx; this final result note is also left uncommitted with it rather than creating another code/CI revision.
+
+## 2026-11-09 12:39 SGT — Commit remaining tagline changes in a new PR
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/clarify-campus-tagline
+
+**Prompt (summarised):** PR #230 is merged; commit the remaining changes and create a new PR.
+
+**Usage scenario:** Authorized Git bookkeeping for the previously approved copy change. Verified PR #230 is merged, fetched origin/main at 22f4216, and moved the two remaining edits onto a fresh branch based on that revision. Created tracking issue #244 to satisfy the repository's linked-issue requirement. Committing and pushing the tagline change and remaining verification note, then opening a follow-up PR against main.
+
+**Validation:** All-workspace typecheck, all 55 student unit tests, targeted AuthGatePage ESLint, and whitespace checks passed. Only the tagline/disclosure and usage log differ from latest main.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Commit the existing “Campus errands, made easier.” copy and disclosure.
+- `ai/usage-log.md` — Commit the prior final integration note and record this authorized follow-up.
+
+## 2026-11-09 12:44 SGT — Continue the RabbitMQ cross-replica delivery work (issues #239 to #242)
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
 **Author:** Reallyeasy1
@@ -7722,7 +7740,7 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **External / temporary artifacts:** GitHub issues #239 to #242 (created by the 00:35 prompt, as that prompt authorised). Wiki patch, not published: `wiki-rabbitmq-realtime-update.patch` in the session scratchpad. Throwaway containers `foc-rt-test-pg` and `foc-rt-test-mq` are still running.
 
-## 2026-11-09 04:58 SGT — Commit the cross-replica delivery work and open its pull request
+## 2026-11-09 12:58 SGT — Commit the cross-replica delivery work and open its pull request
 
 **Tool:** Claude Code (model: Claude Fable 5.1)
 **Author:** Reallyeasy1
