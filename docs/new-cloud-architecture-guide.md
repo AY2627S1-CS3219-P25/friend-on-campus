@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Explain the configured ECS objects, request routing, task scaling, fixed host capacity and recovery boundaries with focused diagrams and examples; distinguish configuration from live evidence.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate cloud, gateway and container operations into one source-verified guide with request routing, scaling, state, probes and troubleshooting; retain decision history through pinned links.
 Author review: <to be completed by Reallyeasy1>
 
@@ -79,34 +83,41 @@ Author review: <to be completed by Reallyeasy1>
 
 # Cloud deployment and operations
 
-This guide explains how an HTTP request, a container and persisted data move through the current AWS deployment. Use it to understand a failure before changing infrastructure. The [ECS Terraform runbook](../infra/terraform/ecs/README.md) contains the provisioning, migration, release and stop/resume commands; [local development](development/local-development.md) covers Docker Compose.
+This guide explains how the checked-in AWS configuration routes a request, runs containers and preserves data. Use it to understand a failure before changing infrastructure. The [ECS Terraform runbook](../infra/terraform/ecs/README.md) contains the provisioning, migration, release and stop/resume commands; [local development](development/local-development.md) covers Docker Compose.
 
 Implementation was checked against main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026. The configuration described here is not evidence that a particular image or resource is currently running in AWS.
+
+## What runs where
+
+Amazon Elastic Container Service (ECS) manages the containers; Amazon Elastic Compute Cloud (EC2) supplies the machines they run on. This repository uses ECS on EC2. The same host can run tasks from several application services alongside a RabbitMQ broker.
+
+| Object | Meaning in this deployment | Example |
+|---|---|---|
+| Container image | Built application files and their runtime, stored in a registry | The Order image built from its Dockerfile and pushed to ECR |
+| Container | A running process environment created from an image | A Node process serving Order requests |
+| Task definition | A versioned template describing containers, commands, resource limits, ports and secret references | The `foc-ecs-order-service` family |
+| Task | A running instance of a task definition; it can include multiple containers | An Order container with the ECS-managed Service Connect proxy |
+| ECS service | Maintains a desired task count and manages replacement and rollout | `order-service` starts at two tasks when applications are enabled |
+| EC2 instance / host | A machine providing CPU, memory and local storage to multiple tasks | One of the three `m7g.xlarge` host slots |
+| ECS cluster | The management group containing these registered hosts, services and tasks | `foc-ecs` |
+
+Creating another Order task creates another running copy of Order. It does not create another Order database or another EC2 host. Replacing an image changes what a task runs; changing a service's desired count changes how many copies ECS tries to keep running. [applications.tf](../infra/terraform/ecs/applications.tf) defines the application tasks and services; [hosts.tf](../infra/terraform/ecs/hosts.tf) defines their machines.
 
 ## Follow a browser request
 
 Suppose a student opens the app and then requests `/api/orders`. CloudFront is the public HTTPS entry point. The Application Load Balancer (ALB) selects a healthy gateway task, and NGINX selects the destination service from the URL path. ECS Service Connect supplies connectivity between the gateway and that service.
 
-The diagram separates public ingress from the application fleet and private state. Each service is a group of tasks, not a dedicated EC2 machine.
+The diagram follows request routing only. The Service Connect box represents proxies associated with the application tasks, rather than another shared gateway machine. Storage and event delivery are explained separately below.
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Browser["Student or administrator"] -->|"HTTPS / WSS"| CF["CloudFront"]
     CF -->|"HTTP / WS and origin header"| ALB["Public ALB"]
-    subgraph Fleet["ECS tasks on three shared EC2 hosts"]
-        GW["NGINX gateway tasks"] --> SC["Service Connect"]
-        SC --> UI["Student and admin frontends"]
-        SC --> API["Six backend services"]
-        CDC["Three Debezium connectors"]
-        RMQ["Three RabbitMQ nodes"]
-    end
-    ALB -->|"Dynamic host ports"| GW
-    API --> DB["Private RDS PostgreSQL"]
-    API <-->|"AMQP"| NLB["Private broker NLB"]
-    NLB --> RMQ
-    DB -->|"Outbox changes"| CDC
-    CDC --> NLB
-    CDC --- EFS["EFS checkpoint storage"]
+    ALB -->|"Select gateway host and port"| GW["NGINX in a gateway task"]
+    GW -->|"Choose service from URL path"| SC["Service Connect task proxies"]
+    SC -->|"Frontend destination"| UI["Student or admin task"]
+    SC -->|"API or socket destination"| API["Backend task"]
 ```
 
 CloudFront, ALB and NGINX serve different purposes:
@@ -116,10 +127,12 @@ CloudFront, ALB and NGINX serve different purposes:
 | CloudFront | Public TLS termination and forwarding to the configured origin | Whether an order or wallet operation completed |
 | ALB | Which healthy gateway task receives the connection | Which backend owns `/api/orders` or whether its dependencies work |
 | NGINX gateway | Which frontend, backend or socket endpoint matches the path | Whether the caller is authorized to use that operation |
-| Service Connect | Connectivity/naming for ECS services | Cross-replica delivery of Chat or Notification updates |
+| Service Connect | Resolves the selected service through task proxies and connects to its replicas | Cross-replica delivery of Chat or Notification updates |
 | Backend middleware and handlers | Authentication, authorization and business processing | Completion of downstream asynchronous work merely because HTTP succeeded |
 
 For example, a `202` from Order means the request was accepted. The gateway does not reserve credits or wait for the Saga to finish. Follow the persisted state described in the [Order guide](services/order-service/README.md).
+
+Opening `/` first retrieves the student app's static files. The JavaScript then makes a separate `/api/orders` request through the same public entry point. NGINX routes the first request to Student and the second to Order. The ALB chooses a gateway target; the gateway chooses a service name; Service Connect connects that request to a service replica. These are separate routing decisions, so a working page does not establish that Order is reachable.
 
 ### Routes that matter when debugging
 
@@ -153,6 +166,8 @@ ECS overrides the gateway's startup command. [gateway-start.sh](../infra/terrafo
 
 ECS registers gateway tasks in the ALB's **instance target group** using dynamically allocated host ports. ALB traffic reaches a host/port mapping; it does not discover or route to Kubernetes pod IPs.
 
+Bridge networking separates the port inside a container from the port exposed on its host. Two gateway tasks can each listen on container port 80 because their host ports differ. The ALB uses those registered host ports. For internal calls, the gateway uses aliases such as `order-service:8003`; its startup script substitutes the local Service Connect alias address, not a fixed address of an Order task. A task replacement can therefore change the destination replica without requiring a hard-coded replacement IP in NGINX.
+
 ## Network and security boundaries
 
 [edge.tf](../infra/terraform/ecs/edge.tf) configures HTTPS/WSS between browsers and CloudFront, with HTTP viewers redirected to HTTPS. CloudFront's connection to the ALB is **HTTP/WS**. Browser HTTPS therefore does not establish end-to-end TLS to the origin.
@@ -167,7 +182,7 @@ Runtime JWT keys and service credentials are referenced from Secrets Manager. Ke
 
 ## What scales, and what stays fixed
 
-An **ECS task** is an instance of a container definition; an **ECS service** maintains its desired number of tasks. EC2 hosts provide the CPU and memory on which those tasks can run. Increasing a task count does not create additional hardware in this configuration.
+There are two separate controls: the number of application tasks and the number of EC2 hosts available to run them. Application Auto Scaling can change the first. The host Auto Scaling groups maintain fixed slots; they do not expand in response to a queue of unplaced tasks.
 
 [hosts.tf](../infra/terraform/ecs/hosts.tf) defines three Auto Scaling groups, each with a maximum of **one** EC2 instance. With `hosts_running = true`, there are three ARM64 `m7g.xlarge` host slots. Each has a 30 GiB root disk and a separate retained 10 GiB RabbitMQ disk. The groups replace hosts but cannot expand beyond the three-host ceiling.
 
@@ -182,7 +197,24 @@ Application tasks use bridge networking, dynamic host ports and spread placement
 
 The target is 65% average service CPU, with a 60-second scale-out cooldown and a 180-second scale-in cooldown. If Order is busy, its desired count can rise while another service remains at its minimum. That is independent service scaling within a shared fleet.
 
-Actual placement still needs free host resources. The configured task CPU ceilings exceed the trial fleet budget if all services reach their maxima simultaneously. An increased desired count with tasks stuck pending is a capacity/placement problem, not evidence that another EC2 instance will automatically appear. Rolling updates also need spare capacity because application deployment permits up to twice the desired task count while retaining the healthy minimum.
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    CPU["Average CPU for one service"] --> Policy["CPU target tracking"]
+    Policy --> Desired["Desired task count within limits"]
+    Desired --> Scheduler["ECS task placement"]
+    Scheduler --> Tasks["Running application tasks"]
+    Tasks --> CPU
+    Failure["A host is lost"] --> ASG["Its one-instance Auto Scaling group"]
+    ASG --> Host["Replacement host completes bootstrap"]
+    Host -->|"Available CPU and memory"| Scheduler
+```
+
+Read the upper loop as demand for task copies and the lower branch as replacement of hardware. There is no configured link that turns pending application tasks into a fourth host. Spread placement distributes tasks across instances where capacity permits; it is not a reserved machine for each service or a guarantee that another task can fit.
+
+For a concrete count, the minimum is **17 application tasks**: twelve backend tasks, two Student, one Admin and two Gateway. Their combined maximum is **26**. Each application task definition has 384 CPU units; three brokers and three CDC tasks add 512 units each. In the `live` phase, the configured task totals are therefore `17 × 384 + 6 × 512 = 9,600` CPU units at application minima, and `26 × 384 + 6 × 512 = 13,056` at maxima. These are configured task allocations, not measured CPU use or throughput. They also exclude temporary database jobs and extra tasks during deployment. The [runbook](../infra/terraform/ecs/README.md) records that the simultaneous maxima exceed the trial fleet budget.
+
+Actual placement needs both CPU and memory on a suitable host. For example, if Order's desired count rises from two to three but its running count stays at two, inspect ECS placement events and remaining host resources before expecting more capacity. Rolling updates also need spare room: application deployment allows up to twice the desired task count while retaining the healthy minimum. That limit permits overlap; it does not reserve resources for it.
 
 ## Where state lives
 
@@ -196,6 +228,10 @@ Restarting a task and recovering its data are separate concerns. These are the c
 | Application process memory | The task itself | WebSocket connections disappear on replacement; clients must reconnect and recover persisted state |
 
 A private NLB provides the AMQP endpoint for the three RabbitMQ nodes. Each broker task is constrained to its host slot. [Host bootstrap](../infra/terraform/ecs/host-bootstrap.sh.tftpl) waits for the retained disk, attaches/mounts it and publishes private DNS before ECS starts. It does not force-detach a disk that is still unavailable. This protects the storage handover, but can delay replacement; retaining a disk is not proof of a particular recovery time.
+
+The event path also crosses these storage boundaries. Order, User and Credit write their outbox records to PostgreSQL. Their Debezium tasks read database changes, publish to RabbitMQ through the private NLB, and retain connector checkpoints on EFS. Backend consumers then process the messages. A healthy HTTP route, a database row, and a completed downstream operation are three separate observations. Use [messaging and recovery](infrastructure/cdc-and-broker.md) to follow a delayed operation across them.
+
+Compare two failures. If only an Order task exits, ECS can replace that copy on an eligible host and it reconnects to the existing RDS database. If a host disappears, all tasks on it lose their processes together. Application tasks can be placed on remaining capacity, but that host slot's broker needs its retained disk and stable node identity restored on the replacement. Existing WebSocket connections also disappear; browser reconnect and history reconciliation recover the view. None of those steps justifies reseeding committed orders or wallet records.
 
 On a host failure, ECS has application tasks to replace, the Auto Scaling group has a host slot to replace, and RabbitMQ has a member to recover. Available capacity, disk attachment and quorum health determine the outcome. RDS Multi-AZ does not fix an application-AZ outage, and EFS One Zone is another single-AZ dependency. The team’s recorded demo constraint excludes a complete AZ outage; it still requires recovery of the main order/credit workflow within minutes of a host failure. That is a requirement to demonstrate, not a result established by these files.
 

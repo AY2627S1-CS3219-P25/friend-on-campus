@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Clarify Compose test-version requirements, foreground development sessions and API E2E target troubleshooting.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate local setup and contribution guidance into one developer walkthrough, with source-checked commands, outcomes and troubleshooting.
 Author review: <to be completed by Reallyeasy1>
 
@@ -37,7 +41,9 @@ All commands below run from the repository root. The [documentation index](../RE
 | Browser entry | `http://localhost` and `/admin/` | `http://localhost:5173` and `http://localhost:5174/admin/` |
 | Schema/data setup | Compose startup commands migrate and seed | You run migrations and seed commands explicitly |
 
-Install Docker with Compose v2. For host commands, use Node **22.3 or newer** and npm; CI uses Node 22. The application Dockerfiles use their own pinned Node 20/NGINX images, so changing your host Node version does not change the container runtime. Ports 80, 5432, 5672, 15672, 8001–8006 and 5173–5174 must be available for the default full stack.
+Install Docker with Compose v2; use **Compose 2.24.4 or newer** if you will run `npm test` or `npm run test:e2e`. Those commands load [`docker-compose.test.yml`](../../docker-compose.test.yml), whose `!override` tags require that version. Check with `docker compose version`; the ordinary local stack does not use those tags. For host commands, use Node **22.3 or newer** and npm; CI uses Node 22.
+
+The application Dockerfiles use their own pinned Node 20/NGINX images, so changing your host Node version does not change the container runtime. Ports 80, 5432, 5672, 15672, 8001–8006 and 5173–5174 must be available for the default full stack.
 
 Do not run both application modes on their default ports simultaneously. Starting a Vite app while its container already occupies 5173, for example, can leave you looking at a different process from the one you are editing.
 
@@ -119,7 +125,7 @@ npm run dev
 
 `--no-deps` is intentional here: the connectors need PostgreSQL/RabbitMQ and migrated outbox tables, but Compose must not also start the application containers whose ports the host processes will use. Debezium reads committed database changes and forwards business events to RabbitMQ. Without it, account creation can succeed while the welcome wallet or a later order reservation remains unprocessed.
 
-`npm run dev` starts six backends and both frontends with prefixed logs. The student app is at `http://localhost:5173`; the admin app is at `http://localhost:5174/admin/`. Ctrl+C stops the child application processes. The infrastructure containers continue running until you stop them separately.
+`npm run dev` starts six backends and both frontends with prefixed logs and stays in the foreground. The student app is at `http://localhost:5173`; the admin app is at `http://localhost:5174/admin/`. Keep this terminal open and use a second terminal at the repository root for typechecks and focused tests. Ctrl+C stops the child application processes. The infrastructure containers continue running until you stop them separately.
 
 For a smaller editing session, select only the processes you need:
 
@@ -194,6 +200,8 @@ A normal restart or upgrade should preserve volumes. If an existing environment 
 | Chat/alerts work only after refresh | Check both WebSocket routes, then the realtime relay/subscriber | REST history and live delivery are separate paths |
 | UAT gets broker `ACCESS_REFUSED` | Check AMQP port, identity and `/campus` vhost | `GW` changes HTTP routing, not the broker used by a test driver |
 | API E2E cannot bind 8001/8002 | Stop existing User/Supplier listeners or use the driver's port overrides | That driver starts its own service processes |
+| API E2E ignores a configured test database URL | Check the [driver's fixed database targets](testing-strategy.md#run-user-and-supplier-api-e2e-directly) and selected PostgreSQL port | It always uses `user_db` and `supplier_db` with local `postgres:postgres` credentials; URL overrides do not retarget it |
+| Aggregate tests fail while parsing `!override` | Run `docker compose version` | The test override file requires Compose 2.24.4+ |
 
 For event, queue and retry diagnosis continue with [messaging and recovery](../infrastructure/cdc-and-broker.md). For a failing test, use the [testing guide](testing-strategy.md) rather than changing live infrastructure to satisfy a local test.
 

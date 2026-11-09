@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Keep the thirteen-guide index concise while linking corrected failure boundaries and recording the expanded explanations, diagrams and executed checks.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Replace fragmented navigation/audits with one task index, compact provenance and unresolved-boundary notes; preserve prior attribution in history and consolidated records.
 Author review: <to be completed by Reallyeasy1>
 
@@ -89,9 +93,13 @@ Commands with specialist operational detail stay beside their implementation: [E
 
 ## Known limits and design context
 
-The service guides describe implemented behavior, including its limits. Read their failure sections before promising recovery or access guarantees. In particular, Chat's administrator reads and stale membership projection differ from stricter participant-only acceptance wording; repeated SEND is not persistently idempotent. Order has no general PENDING watchdog. Shared messaging has no automated DLQ replay/alert loop. Configured AWS logs and scaling policies are not evidence of a complete monitoring stack or successful failover.
+The service guides describe implemented behavior, including its limits. Read their failure sections before promising recovery or access guarantees:
 
-The [testing guide](development/testing-strategy.md) keeps original performance requirements separate from relaxed k6 limits and records the four unresolved findings on merged PR #252. A merged PR, a closed issue, an HTTP success response and a completed business operation are different kinds of evidence.
+- [Chat access and projection](services/chat-service/README.md#opening-a-conversation-and-checking-access): administrator reads and stale membership differ from stricter participant-only wording. A terminal event received before the conversation exists is discarded; waiting does not necessarily repair its state. Repeated SEND is not persistently idempotent.
+- [Wallet initialization](services/credit-service/README.md#wallet-initialization): a missing wallet can reflect delayed processing or the User/Credit email-limit mismatch. [Order](services/order-service/README.md#submission-and-the-saga) has no general PENDING watchdog; [messaging](infrastructure/cdc-and-broker.md) has no automated DLQ replay/alert loop.
+- [Cloud operations](new-cloud-architecture-guide.md): configured logs and scaling policies are not evidence of a complete monitoring stack, extra host capacity or successful failover.
+
+The [testing guide](development/testing-strategy.md) explains target overrides and fixture cleanup before its commands, keeps original performance requirements separate from relaxed k6 limits, and records the four unresolved findings on merged PR #252. A merged PR, a closed issue, an HTTP success response and a completed business operation are different kinds of evidence.
 
 The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) remains useful for design and milestone history, but some pages still say five services, pending Chat/inbox/fanout work, or current K3s/Traefik deployment. Notification bindings/retry descriptions, Supplier commands/coordinate requirements and some testing/monitoring proposals also need reconciliation. These pages were left unchanged; use source and the current guides for implementation.
 
@@ -99,9 +107,9 @@ Earlier plans, review findings, human decision fields, estimates and dated test 
 
 ## Baseline and verification
 
-- **Code/configuration:** main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), rechecked 9 November 2026 (SGT). Documentation was consolidated from [PR #255](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/255), head `c45f9ed`. No live AWS state is inferred.
+- **Code/configuration:** [PR #255](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/255) head [`bc0efa4`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/bc0efa46e9385ddb482cd3b56dbeea86badedce2), with application baseline main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), rechecked 9 November 2026 (SGT). The expanded explanations describe that source, not verified live AWS state.
 - **Wiki:** read-only revision `0571db5d4ad8c89679131c8707aae105402c7618`; 42 pages inventoried, relevant implementation descriptions compared with source.
-- **Checks for this consolidation:** typechecking passed all twelve workspaces; the CI matrix validator passed twenty workspace suites and four system commands. All thirteen docs are reachable from this index. Across the retained docs and changed external references, 332 local links and ten fragments resolve, and all twelve diagrams parse with Mermaid 12.3.0. Pinned repository/wiki references, command names and whitespace checks passed.
-- **Not exercised:** database/broker integration, browser UAT, live load, AWS deployment or failover. Diagram visual rendering remains unverified: the Chromium download returned an invalid archive. Application code is unchanged; previous unit-test evidence was not presented as a new run. Third-party website availability was not exhaustively checked.
+- **Checks for this expansion:** typechecking passed all twelve workspaces; the CI matrix validator passed twenty workspace suites and four system commands. Focused User/Order/Credit unit runs passed 115/74/22 tests respectively. All thirteen docs remain reachable from this index; local links/anchors, pinned repository/wiki references, command names and whitespace checks passed. All twenty diagrams parse with Mermaid 12.3.0.
+- **Not exercised:** database/broker integration, browser UAT, live load, AWS deployment or failover. Diagram visual rendering remains unverified: the headless Chromium download returned an invalid archive. Application code is unchanged. Third-party website availability was not exhaustively checked.
 
 To maintain these docs, update the owning guide and its source links when behavior changes. Keep current limitations beside the affected flow; keep this index as navigation, not a second specification. Preserve historical attribution and pending human-review fields, and only change a verification date after checking the relevant claims. [CLAUDE.md](../CLAUDE.md) contains contribution and AI-use policy.

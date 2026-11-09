@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Add concrete receipt/read-state examples, clarify the legacy event envelope, and diagram read-state synchronization between replicas.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate recipient policy, inbox/read contracts, persistence, realtime eligibility and operational diagnosis into one source-checked guide.
 Author review: <to be completed by Reallyeasy1>
 
@@ -18,6 +22,8 @@ Author review: <to be completed by Reallyeasy1>
 Notification turns committed business events into a student's durable inbox. It decides **who should hear about a change and what they need to do next**; it does not accept errands, settle payments or authorize those commands. Its HTTP API is `/api/notifications`, its WebSocket endpoint is `/ws/`, and its local port is **8005**.
 
 Consider a completed delivery. `order.delivered` asks the requester to review it. When the requester confirms, `order.completed` tells the courier that confirmation happened. A separate `credit.escrow.settled` receipt says the credits were actually transferred. The distinction is intentional: Order confirmation can precede Credit settlement because the two services process events asynchronously.
+
+For a 12-credit errand, the courier can therefore see “Delivery confirmed” before “12 credits received.” Once Notification processes the settlement event, the receipt is stored even if the courier has no connected browser. Reading that receipt only marks an inbox row read; it neither transfers credits nor changes the wallet. Receipt toasts are suppressed by the frontend, so no toast is also the expected behavior for a successfully stored receipt.
 
 ## Who receives an inbox item
 
@@ -38,7 +44,7 @@ The service consumes nine Order routing keys and two Credit receipt keys from `c
 
 For Order events, duplicate recipient IDs are removed and the acting user is excluded when `actorId` is present. No intended recipient is a valid outcome: the service records that event as suppressed rather than repeatedly trying to create a row. Credit receipts name their financial beneficiary and are not inferred from an Order status.
 
-Version-1 compatibility produces only the original accepted, picked-up and delivered requester alerts. Expanded recipients require the V2 fields, including producer, committed Order version, actor/status data and applicable reasons. [`events.ts`](../../../services/notification-service/src/notifications/events.ts) checks the envelope against the routing key before applying this policy.
+Version-1 compatibility produces only the original accepted, picked-up and delivered requester alerts. A legacy V1 envelope **omits `schemaVersion`**; an explicit `schemaVersion: 1` is rejected. Expanded recipients require the V2 fields, including producer, committed Order version, actor/status data and applicable reasons. [`events.ts`](../../../services/notification-service/src/notifications/events.ts) checks the envelope against the routing key before applying this policy.
 
 ## From a fact to durable inbox state
 
@@ -86,6 +92,8 @@ Rows sort by `storedAt DESC, id DESC`. Pagination is offset-based, so a new arri
 
 Reading a row preserves its first `readAt`; repeating the call does not move that timestamp. Mark-all changes only the caller's unread rows stored by the transaction's time boundary, so later arrivals remain unread. Read changes and their delivery intent commit together. A delivery action is resolved by the projected Order lifecycle, not merely by marking the notification read.
 
+For example, marking “Review the delivery” read removes it from `unread=true` results, but it remains in `view=action_needed` while the local Order projection is still `DELIVERED`. Confirming the delivery is a separate Order command. When the resulting completion event advances the projection, the review item stops matching `action_needed`; the historical inbox row remains.
+
 ## Live updates and read-state synchronization
 
 The socket's first frame must be `AUTH` with a valid access token within five seconds. Invalid or expired credentials close with 4401; a 30-second heartbeat removes unresponsive connections. Later client frames are ignored: mark-read operations use HTTP.
@@ -99,6 +107,7 @@ The socket's first frame must be `AUTH` with a valid access token within five se
 The shared [realtime transport](../../infrastructure/cdc-and-broker.md) sends hints to every running replica. Notification's subscriber then rereads the owner and **current stored state**, rather than trusting an old payload. This service-specific check prevents a delayed hint from restoring an item that the student already read or an action that a newer Order event resolved:
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Signal["Notification hint"] --> Stale{"Stale at event processing?"}
     Stale -->|Yes| Refresh["Send INBOX_CHANGED"]
@@ -113,6 +122,32 @@ flowchart TD
 A missing or wrong-owner row also skips `NOTIFICATION`. The `INBOX_CHANGED` path still runs for valid recipients even when the intent was stale or the live item was suppressed. An event that produced no recipients does not create such an intent.
 
 When one tab marks a row read, other tabs on any replica receive an inbox-change hint and refetch. [`useNotifications.ts`](../../../apps/student-app/src/notifications/useNotifications.ts) reconciles on authentication/reconnection and hints, merges by ID and avoids repeated toasts for already seen IDs. [`inbox.ts`](../../../apps/student-app/src/notifications/inbox.ts) suppresses receipt/publication-confirmation toasts and can use the frontend's newer Order state to hide resolved delivery actions.
+
+The following successful-delivery example uses two tabs belonging to the same student. The HTTP response and asynchronous hint can arrive in either order; both refer back to the committed inbox state.
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+sequenceDiagram
+    participant Tabs as Student's two tabs
+    participant A as Replica A
+    participant DB as notification_db
+    participant B as Replica B
+    Tabs->>A: Tab 1 marks a row read over HTTP
+    A->>DB: Commit readAt and inbox-change intent
+    DB-->>A: Transaction committed
+    par HTTP response
+        A-->>Tabs: Updated row and unreadCount
+    and Asynchronous delivery
+        Note over A,B: Any relay publishes the committed intent
+        B-->>Tabs: INBOX_CHANGED to Tab 2's socket
+    end
+    Tabs->>B: Tab 2 reloads its inbox over HTTP
+    B->>DB: Read caller's rows and count
+    DB-->>B: Current inbox state
+    B-->>Tabs: Inbox page and unreadCount
+```
+
+`INBOX_CHANGED` carries no row or count. If Tab 2 misses that hint, Tab 1's committed `readAt` still exists; a later REST reconciliation recovers it. If a delayed new-notification intent arrives after the read, the subscriber rereads the row and skips its `NOTIFICATION` frame, while still sending the inbox-change hint. The [store](../../../services/notification-service/src/notifications/store.ts), [subscriber delivery](../../../services/notification-service/src/notifications/realtime.ts) and [hub](../../../services/notification-service/src/ws/hub.ts) implement these separate steps.
 
 Live signals can repeat or be missed; neither the bounded subscriber cache nor broker confirmation means every browser received them. REST inbox state is the recovery source. The linked Order/Credit endpoint always checks current permissions and state again when the student acts on an item.
 

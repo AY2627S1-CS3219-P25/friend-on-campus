@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Correct dispute limits and list defaults; explain late reservation compensation and practical event-chain diagnosis.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate Order contracts, Saga, runtime and tests into one developer guide with concrete examples and focused diagrams.
 Author review: <to be completed by Reallyeasy1>
 
@@ -39,6 +43,7 @@ Submission has three durable milestones:
 This sequence shows the successful path. “CDC and RabbitMQ” represents the transport, not another business transaction.
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     autonumber
     participant UI as Student app
@@ -79,11 +84,36 @@ When a reservation result arrives, the [repository](../../../services/order-serv
 
 **There is no general timeout worker for `PENDING` orders and no requester/admin cancellation route for that state.** The expiry worker only processes overdue `OPEN` orders, in batches of 50. A pending request must be diagnosed through the event chain rather than assumed to expire automatically. The configured duration limits the publication/acceptance window; it is not an automatically enforced delivery deadline once an errand is accepted.
 
+### Follow a reservation that arrives too late
+
+Suppose Mei's order has `expiresAt = 12:30`. Credit commits the 10-credit hold at 12:29, but Order does not process the success result until 12:31. Order compares its current time with the stored deadline, so the errand becomes `EXPIRED` without entering the open feed. Returning the credits still requires another event and another Credit transaction:
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+sequenceDiagram
+    participant Order as Order Service
+    participant Bus as CDC and RabbitMQ
+    participant Credit as Credit Service
+    Note over Order: PENDING, deadline 12:30
+    Note over Credit: 12:29, commit 10-credit hold and result
+    Credit-->>Bus: credit.reservation.succeeded
+    Note over Bus: Result delivery is delayed
+    Bus->>Order: Success result processed at 12:31
+    Note over Order: Lock row, commit EXPIRED and expiry outbox
+    Order-->>Bus: order.expired
+    Bus->>Credit: Refund trigger
+    Note over Credit: Commit REFUNDED, wallet, ledger and receipt
+    Credit-->>Bus: credit.escrow.refunded
+```
+
+If Mei started with 100 available credits and has no other credit activity, she can still see 90 available and 10 held during the gap between `EXPIRED` and the Credit refund. To verify completion, match this order ID to its Credit escrow, `ESCROW_REFUND` ledger row and refund receipt. If it is still `PENDING`, first find whether the hold exists: no hold directs attention to the reservation-request path; an existing hold directs attention to Credit's success-result outbox and the Order consumer. The deadline alone does not identify which side stalled.
+
 ## Order lifecycle
 
 The main path and reservation outcomes are below. Cancellation and dispute permissions are described beneath the diagram so the primary flow stays readable.
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 stateDiagram-v2
     direction TB
     [*] --> PENDING: Valid submission
@@ -112,13 +142,15 @@ Routes are under `/api/orders` and require authentication. The user ID comes fro
 
 | Route | Behavior |
 |---|---|
-| `GET /` | Filter by status, campus zone, text search, requester or courier; returns an array and `total`. Page/limit must be positive integers; limit is capped at 100 |
+| `GET /` | Filter by status, campus zone, text search, requester or courier; returns an array and `total`. Defaults to page 1, limit 50 and unexpired `OPEN` orders; requester/courier filters instead default status to `ALL`. Invalid page/limit or `limit > 100` returns `400` |
 | `GET /user/activity` | Current caller's requested, delivering and historical orders |
 | `GET /:id` | Find an order by UUID or public order code |
 | `POST /` | Submit a new request; returns `202`, the `PENDING` order and its `Location` |
 | `POST /assistant/draft` | Extract editable fields from a nonblank `prompt`; does not create an order |
 
 Non-admin requester/courier filters must identify the caller. `PENDING` and `REJECTED` details are restricted to the requester or admin; published order details are readable by other authenticated users. Services implementing participant-private features must enforce their own participant checks.
+
+For an administrative investigation, `GET /api/orders?status=ALL&page=1&limit=100` includes all statuses permitted to the caller. Continue through subsequent pages until all `total` matches have been inspected; `total` is the count before pagination. A bare `GET /api/orders` is the open feed, so it cannot establish that a completed or rejected order is missing. For one known order, use its ID or code directly.
 
 An illustrative creation body is below; replace the supplier placeholder with an existing active supplier ID. The requester is taken from authentication, not from the body.
 
@@ -173,7 +205,7 @@ Errors distinguish bad input (`400`), authentication (`401`), authorization (`40
 
 ## Disputes and admin actions
 
-Either the requester or assigned courier can initiate a dispute on a `DELIVERED` order. Each can submit their own trimmed `details` once, between 1 and 2,000 characters. The order stays `DELIVERED`; the repository sets `dispute = true`, stores each party's details and increments the version.
+Either the requester or assigned courier can initiate a dispute on a `DELIVERED` order. Each can submit their own trimmed `details` once, between 1 and 1,000 characters as measured by JavaScript `.length` (some emoji count as two). The order stays `DELIVERED`; the repository sets `dispute = true`, stores each party's details and increments the version. Both handlers apply the same limit in [Order validation](../../../services/order-service/src/orders/order.service.ts); a length of 1,001 returns `400` before the repository is called.
 
 Requester completion is blocked while disputed. An admin can settle the business outcome by completing or cancelling; either action clears the dispute flag while retaining the recorded detail fields. Admin commands require a trimmed reason of 1–500 characters and accept an optional `expectedVersion` to reject work based on a stale view.
 

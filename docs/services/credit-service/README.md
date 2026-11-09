@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Document registration email validation mismatch and lazy initialization; explain savepoint outcomes and financial debugging with concrete examples.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate Credit contracts, transactions, recovery and tests into one developer guide with an explained wallet/escrow example.
 Author review: <to be completed by Reallyeasy1>
 
@@ -40,11 +44,15 @@ A settled escrow cannot later be refunded, and a refunded escrow cannot later be
 
 ## Wallet initialization
 
-`user.registered` provides the initial grant. Credit creates a wallet, a `CreditGrant` marker and a `WELCOME_GRANT` ledger row in one transaction. Reservation and settlement can also initialize missing wallets lazily, using the default grant of 100.
+An accepted `user.registered` event provides the initial grant. Credit creates a wallet, a `CreditGrant` marker and a `WELCOME_GRANT` ledger row in one transaction. A successful reservation can also initialize a missing requester wallet, and settlement can initialize a missing courier wallet, using the default grant of 100. If that surrounding transaction fails, its initialization does not commit either.
 
 The marker records that the welcome grant has already happened. It is not inferred from today's balance, because a user may already have spent or earned credits. A wallet without its marker, a marker without its wallet, or a different grant amount for an existing marker is a consistency error. The service does not silently repair these cases or issue a second grant.
 
 This also explains a temporary wallet `404` immediately after registration: User may have committed the account before Credit has consumed the registration event. A wallet read does not initialize it. Check event delivery before assuming the account needs another seed or registration.
+
+**Some registration events are rejected rather than delayed.** User accepts email addresses up to 320 characters, while [Credit's event parser](../../../services/credit-service/src/credits/events.ts) rejects addresses longer than 254. For an otherwise accepted 255–320-character address, account creation can succeed and Credit can dead-letter the registration event as `invalid_event`. Replaying that unchanged event will fail again. Inspect the parser failure and DLQ alongside CDC progress; see the [User registration boundary](../user-service/README.md#when-waiting-for-the-wallet-is-not-enough).
+
+The account may still gain a wallet later through the reservation or settlement paths above. For example, a successful first 10-credit reservation can atomically create the default 100-credit grant and leave 90 available plus 10 in escrow. That explains how a wallet can appear despite the rejected registration event; it does not resolve the differing email validation rules.
 
 ## HTTP and event contracts
 
@@ -54,7 +62,7 @@ Both routes require a verified access token. The user ID is taken from that toke
 
 | Route | Response |
 |---|---|
-| `GET /api/credits/wallet` | Caller wallet: `userId`, `availableCredits`, `escrowCredits`, `totalEarnedCredits`; `404` if absent |
+| `GET /api/credits/wallet` | Caller wallet: `userId`, `availableCredits`, `escrowCredits`, `totalEarnedCredits`, `updatedAt`; `404` if absent |
 | `GET /api/credits/ledger` | Caller transactions as sender or recipient; sorted by `createdAt` descending, then ID descending; currently unpaginated |
 
 Successful responses use `{ "success": true, "data": ... }`. Known Credit failures use `{ "success": false, "error": "..." }`. There are no HTTP reserve, settle, refund or administrative ledger-repair endpoints. The exact behavior is in [routes.ts](../../../services/credit-service/src/credits/routes.ts) and [store.ts](../../../services/credit-service/src/credits/store.ts).
@@ -68,7 +76,8 @@ After Mei's 10-credit reservation, the wallet portion of the response would be:
     "userId": "<requester-uuid>",
     "availableCredits": 90,
     "escrowCredits": 10,
-    "totalEarnedCredits": 0
+    "totalEarnedCredits": 0,
+    "updatedAt": "2026-11-09T12:00:00.000Z"
   }
 }
 ```
@@ -115,9 +124,21 @@ These controls run inside a PostgreSQL **serializable transaction**: the databas
 
 Reservation processing creates a database savepoint before attempting the hold. A savepoint lets it undo the attempted financial changes while keeping the surrounding transaction alive.
 
-- With insufficient funds or another recognized business error, it rolls back the attempted hold, then commits the processed-event marker and `credit.reservation.failed`. Order can resolve the request to `REJECTED`.
-- With an infrastructure failure, the error escapes and the entire transaction rolls back. The event must be retried; it must not be turned into a false insufficient-credit result.
-- On success, the hold, ledger row, processed marker and success outbox commit together.
+For a new, validated reservation event, the three outcomes differ in what can be committed. Matching event replays have already returned before reaching this diagram:
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    Start["Begin transaction and stage event marker"] --> Savepoint["Create savepoint; attempt hold"]
+    Savepoint --> Outcome{"Hold outcome"}
+    Outcome -->|Success| Success["Commit hold, ledger, marker and success outbox"]
+    Outcome -->|Business error| Undo["Roll back to savepoint"]
+    Undo --> Reject["Commit marker and failure outbox"]
+    Outcome -->|Infrastructure failure| Abort["Roll back entire transaction"]
+    Abort --> Retry["Retry event after dependency recovery"]
+```
+
+For example, if Mei has only 5 available credits and offers 10, the attempted hold is rolled back and `credit.reservation.failed` commits with the event marker. Her balance remains 5 and Order can move to `REJECTED`. An unavailable database produces no committed failure result: the event must be retried, and Order may remain `PENDING`. This distinction prevents a dependency failure from being reported as insufficient funds.
 
 The [financial service](../../../services/credit-service/src/credits/service.ts) defines this sequence; the [transaction adapter](../../../services/credit-service/src/credits/store.ts) implements savepoints, conditional balance changes and conflict retries. This gives idempotent financial effects over at-least-once message delivery. It is not exactly-once transport.
 
@@ -137,6 +158,8 @@ The [Prisma schema](../../../services/credit-service/prisma/schema.prisma) and [
 Available and escrow balances must remain nonnegative, and financial amounts must be positive. Conditional updates require sufficient balance when moving a hold or releasing escrow. User/order IDs are cross-service scalar references; there are no foreign keys into User or Order databases.
 
 The ledger is the operation record, whereas the wallet is the current balance. Use both when investigating a discrepancy. Outbox `status`/`retryCount` fields are not consumer acknowledgements: Debezium publishes committed inserts, and no application polling worker marks every downstream delivery complete.
+
+For Mei and Arun's example, first inspect the escrow by order ID, then the ledger rows for that order. `SETTLED` with its 10-credit `ESCROW_RELEASE` and receipt means the payout committed; a late notification is a separate delivery problem. `RESERVED` means the completion has not yet produced a committed settlement. Check the Order completion outbox, Credit queue and processing failure before attempting recovery. Arun's current wallet alone is insufficient evidence: later rewards or spending can change it after this payout.
 
 ## Running and testing
 
@@ -186,7 +209,7 @@ Run them with `npm run <script> -w @campus-errand/credit-service` after preparin
 
 | Symptom | Inspect first | Meaning / next step |
 |---|---|---|
-| Wallet `404` after successful registration | User registration outbox, User CDC, Credit consumer | Account creation and wallet creation are asynchronous; the GET route will not initialize a wallet |
+| Wallet `404` after successful registration | User registration outbox, User CDC, Credit consumer and invalid-event DLQ entries | Distinguish delivery lag from the [320/254 email-limit mismatch](#wallet-initialization); the GET route does not initialize a wallet |
 | Order is `PENDING`, no hold exists | Reservation event reaching Credit, parser failures and DLQ | Determine whether processing has started; do not replay an unrelated or reconstructed financial command |
 | Hold exists but order remains `PENDING` | Credit result outbox, Credit CDC, Order result consumer | The money can be reserved before Order observes the result |
 | Completion/cancellation succeeded, balance appears stale | Order lifecycle event, escrow state, corresponding ledger row and receipt | Separate delayed processing from committed payment with delayed UI delivery |

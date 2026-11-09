@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Separate foreground host startup from verification and point aggregate-test users to target-isolation prerequisites.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Keep the root README focused on quick start and canonical human-readable guides; move detailed workflows into docs without changing runtime instructions.
 Author review: <to be completed by Reallyeasy1>
 
@@ -139,19 +143,24 @@ For host-based development, port conflicts, migrated data or startup failures, f
 
 ## Develop and test
 
-For an installed host workspace, the usual commands are:
+Follow the [host development setup](docs/development/local-development.md#option-b-edit-applications-on-the-host), which ends by starting the applications in one terminal:
 
 ```bash
 # AI-generated (edited by Reallyeasy1)
-npm ci
 npm run dev
+```
+
+Keep that terminal running while you use the application. In a second terminal at the repository root, check types and run unit tests:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
 npm run typecheck
 npm run test:unit
 ```
 
-`npm run dev` requires the database/broker/CDC setup described in the development guide. `npm ci` generates the six Prisma clients through its postinstall script.
+The development guide covers `npm ci`, environment keys, database migrations, seeding and the database/broker/CDC startup sequence. `npm ci` generates the six Prisma clients; it does not create database tables.
 
-The [testing guide](docs/development/testing-strategy.md) explains integration, messaging, browser, concurrency and k6 coverage, prerequisites and interpretation. `npm test` provisions an isolated Compose project and runs its configured aggregate; realtime browser checks and k6 campaigns have separate scope. Do not run seeded/admin UAT drivers unchanged against a live shared site.
+The [testing guide](docs/development/testing-strategy.md) explains integration, messaging, browser, concurrency and k6 coverage, prerequisites and interpretation. Before using `npm test`, follow its [aggregate setup](docs/development/testing-strategy.md#let-the-aggregate-runner-provision-an-isolated-stack): Compose 2.24.4+ is required, and inherited target overrides must be cleared. Realtime browser checks and k6 campaigns have separate scope. Do not run seeded/admin UAT drivers unchanged against a live shared site.
 
 ## Find the implementation
 

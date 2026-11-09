@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Explain browser state and pending-submission recovery with a focused diagram and debugging walkthrough; clarify the bounded toast cache and supplier presentation.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate both frontend references into one developer guide with concrete journeys, session/recovery explanations, operational limits and troubleshooting.
 Author review: <to be completed by Reallyeasy1>
 
@@ -17,7 +21,7 @@ Author review: <to be completed by Reallyeasy1>
 
 The student app is the everyday interface for finding pickup spots, posting and delivering errands, checking credits, receiving alerts and chatting. The admin portal manages suppliers, users and order disputes. Both are React/Vite applications; the backend services enforce permissions and own the saved data.
 
-This guide follows the implementation at [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), inspected on 9 November 2026. Start with [local development](../development/local-development.md) to bring up the dependencies. This page explains how the browser pieces fit together and where to investigate an incorrect screen.
+This guide follows the implementation at documentation head [`bc0efa4`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/bc0efa46e9385ddb482cd3b56dbeea86badedce2), rechecked on 9 November 2026; its application baseline is `b989758`. Start with [local development](../development/local-development.md) to bring up the dependencies. This page explains how the browser pieces fit together and where to investigate an incorrect screen.
 
 ## Run the frontends
 
@@ -82,6 +86,7 @@ The access token lives in React memory. A refresh-token cookie is HttpOnly, so t
 The student flow below shows why loading data and opening a socket are separate operations:
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant App as Student app
     participant User as User Service
@@ -108,6 +113,16 @@ sequenceDiagram
     end
 ```
 
+A useful way to debug a refresh is to separate three places where state lives:
+
+| State | Where it lives | What a reload means |
+|---|---|---|
+| Access token and displayed rows | Memory in this app instance | Rebuild the session, then fetch the rows again |
+| Refresh credential | Browser-managed HttpOnly cookie | User Service can issue a new access token if the session is still valid |
+| Pending order ID | `sessionStorage`, keyed by user ID | The same tab can resume polling after session recovery, if browser storage is available |
+
+The cookie does not contain the current wallet or order state. Likewise, a remembered order ID is a receipt to query, not proof that posting succeeded. Two tabs can share cookie storage while keeping different in-memory tokens and displayed rows; test their behavior separately when investigating logout or stale UI.
+
 The refresh hook shares one in-flight refresh within that app instance. This avoids concurrent requests independently refreshing the same session. The student startup refresh has an eight-second timeout; a failure returns to the sign-in path rather than keeping startup waiting indefinitely.
 
 The student request wrapper also has a bounded read-retry policy:
@@ -131,6 +146,23 @@ Suppose a student posts “Buy a sandwich” with a valid pickup spot, delivery 
 2. It saves that identifier in `sessionStorage`, scoped to the signed-in user. Refreshing the same tab can resume checking it; this is not cross-device persistence.
 3. It reads `/api/orders/:id` again about one second after each completed poll, with a ten-second deadline per read. Errors keep the receipt and continue checking. A 403/404 clears the stored receipt and tells the user to inspect Tasks before resubmitting.
 4. An observed non-PENDING result ends the poll. On `OPEN`, the app reloads orders and credits, resets the posting fields and displays the posted result. `REJECTED`, `CANCELLED` and `EXPIRED` have different feedback.
+
+The diagram describes the **browser's knowledge**, not a second backend order lifecycle. The important fork is whether the browser learned an order ID before the connection failed.
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    Submit["Submit once"] --> Reply{"Create response"}
+    Reply -->|"202 and PENDING ID"| Poll["Save ID and poll status"]
+    Reply -->|"Explicit API error"| Invalid["Show error and retain form"]
+    Reply -->|"Lost or unusable response"| Unknown["Unconfirmed: inspect Tasks"]
+    Poll --> Result{"Status read"}
+    Result -->|"PENDING or temporary error"| Poll
+    Result -->|"Non-PENDING result"| Settled["Clear stored pending ID; refresh views"]
+    Result -->|"403 or 404"| Missing["Clear receipt; inspect Tasks"]
+```
+
+While a known receipt remains PENDING, the hook blocks another submission from that instance. A reload can restore the receipt and continue checking; if storage is unavailable, that recovery aid is lost even though the order may still exist. There is no browser deadline that automatically cancels a PENDING order. Keep the order ID when reporting a stuck submission so the backend can be inspected without creating another one.
 
 Behind those screens, Order and Credit coordinate asynchronously. The browser observes the Order result and separately refreshes the wallet; it does not perform the reservation itself. The [Order guide](../services/order-service/README.md) explains the full Saga.
 
@@ -158,7 +190,7 @@ The page combines HTTP reads, WebSocket signals and polling. These serve differe
 | Chat | Merges messages by ID and orders them by sequence. A contiguous history cursor prevents a later live message from hiding a gap; reconnect/focus/visible-panel checks fetch missed history |
 | Pending Chat send | Waits for an echo or rejection. A missing echo triggers history reconciliation before an unconfirmed-delivery result; matching by sender/text/time is not server-side idempotency |
 
-The inbox offers All, Action needed and Important views with load-more pagination. Opening an order notification reloads the current order before deciding which action is available; wallet notifications open the wallet. Repeated notification IDs suppress duplicate toast callbacks within that logged-in session, but UI deduplication is not a permanent delivery guarantee.
+The inbox offers All, Action needed and Important views with load-more pagination. Opening an order notification reloads the current order before deciding which action is available; wallet notifications open the wallet. The socket hook remembers the 1,000 most recent notification IDs in a session-local [cache](../../apps/student-app/src/hooks/recentIds.ts) to suppress repeated toast callbacks. An ID can produce another toast after eviction or after that cache is recreated; this bounded display cache is separate from merging inbox rows by ID.
 
 Chat's translation toggle changes displayed text, not stored messages. The panel requests translations for messages in the selected language, shows a translation error separately and ignores responses for a language that is no longer selected. A failed translation is not automatically retried until the toggle is reset. Moderation rejections belong to the send result and must not appear as successfully delivered messages.
 
@@ -199,6 +231,14 @@ A successful typecheck exits without TypeScript errors. The Node test runner pri
 For a UI change, use an isolated development/test stack and check the affected journey at desktop and mobile widths. A useful posting check is: submit once, observe PENDING then OPEN, inspect wallet reservation, refresh the same tab, open the new errand through Tasks, and cancel only that test errand while checking the eventual refund. Require a separately authorized courier account for the full delivery/Chat journey.
 
 The [testing guide](../development/testing-strategy.md) describes API, browser and realtime scripts and their account/infrastructure prerequisites. Read them before running: some create accounts, mutate records or optionally restart a container. A helper-test pass does not replace these journeys.
+
+## Trace one incorrect screen
+
+Use the browser Network panel on a local/test stack and follow one operation through its response and subsequent reads. For example, after posting an errand, inspect the `POST /api/orders` status and returned ID, then the `GET /api/orders/:id` results, then the wallet refresh. If Order returns OPEN but the wallet request fails, investigate the wallet read or presentation; do not assume that the original creation failed.
+
+For a missing live update, compare the REST response with the WebSocket frames. A row present in REST but absent from the screen points toward browser reconciliation or rendering. A row missing from REST requires checking its owning service and upstream processing. A connected socket alone proves neither that a particular event arrived nor that the durable state is current.
+
+Record the page, action, record ID, HTTP status and observed state. Remove authorization headers, cookies and personal message content before sharing evidence. Start with the feature's API module or hook in the ownership table above, then follow its caller in `App.tsx`; this keeps a rendering problem distinct from a failed business operation.
 
 ## Troubleshooting by symptom
 

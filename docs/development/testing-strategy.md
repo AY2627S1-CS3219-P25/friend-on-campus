@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Document aggregate target overrides and Compose minimum, explain direct API E2E database/fixture behavior, and diagram test provisioning boundaries.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate testing and CI into an explanatory developer guide with scoped commands, test-resource boundaries, evidence interpretation and retained performance/recovery limitations.
 Author review: <to be completed by Reallyeasy1>
 
@@ -45,7 +49,7 @@ All commands run from the repository root after `npm ci` has generated the six P
 | Migration behavior | `npm run test:migration` | Dedicated Credit and Supplier test databases |
 | Credit development seeding | `npm run test:seed` | A dedicated Credit test database |
 | API, notification and CDC acceptance | `npm run test:acceptance` | Running seeded stack and direct broker access |
-| User/Supplier API journey | `npm run test:e2e:api` | Prepared PostgreSQL and free selected service ports; starts its own app processes |
+| User/Supplier API journey | `npm run test:e2e:api` | Seeded `user_db`/`supplier_db` on localhost with fixed development credentials and free selected service ports; [details below](#run-user-and-supplier-api-e2e-directly) |
 | Main browser journeys | `npm run test:e2e:ui` | Running seeded stack, Playwright Chromium and direct broker access |
 | Multiple browser clients and live updates | `npm run test:e2e:ui:realtime` | Running seeded stack and Chromium; registers a temporary courier |
 | Unit coverage report | `npm run coverage` | Service unit suites; produces local coverage output, not a CI gate |
@@ -62,20 +66,39 @@ Read the test output, including skipped and cancelled counts. A command that exi
 
 ## Let the aggregate runner provision an isolated stack
 
-For broad local verification, the existing runner is safer than manually pointing every suite at your development database:
+For broad local verification, the existing runner provisions a separate stack and prepares its test databases. It requires a functioning Docker daemon and **Compose 2.24.4+**: [`docker-compose.test.yml`](../../docker-compose.test.yml) uses the [`!override` feature](https://docs.docker.com/reference/compose-file/merge/#replace-value). Check `docker compose version` before starting.
+
+First clear `BASE_URL` and `CREDIT_AMQP_URL` from the environment passed to the runner. It inherits shell variables and does not replace these two target overrides: CDC acceptance gives `BASE_URL` priority over the generated `GW`, and Notification acceptance uses an explicit `CREDIT_AMQP_URL` instead of the generated local broker. Leaving either set can send test mutations outside the new stack; its cleanup cannot remove those external fixtures.
+
+On a POSIX shell, clear them for this invocation only:
 
 ```bash
 # AI-generated (edited by Reallyeasy1)
-npm test
+env -u BASE_URL -u CREDIT_AMQP_URL npm test
 ```
 
-[`run-all-tests.mjs`](../../scripts/ci/run-all-tests.mjs) creates a uniquely named Compose project, selects free loopback ports, generates temporary JWT keys and prepares test databases. It runs unit/database categories, acceptance, API E2E and Chromium UAT, checks Chat/Notification socket shutdown, then removes **its own** containers and volumes. It needs a functioning Docker daemon and may download Chromium.
+In PowerShell, use `Remove-Item Env:BASE_URL, Env:CREDIT_AMQP_URL -ErrorAction SilentlyContinue` before `npm test`; that removes the overrides from the current shell. If you need them for later standalone tests, set them again explicitly for that target.
+
+[`run-all-tests.mjs`](../../scripts/ci/run-all-tests.mjs) creates a uniquely named Compose project, selects free loopback ports, generates temporary JWT keys and prepares test databases. It runs unit/database categories, acceptance, API E2E and Chromium UAT, checks Chat/Notification socket shutdown, then removes **its own** containers and volumes. It may download Chromium; a browser binary download does not install missing Linux system libraries. On a Linux host that lacks them, install Playwright's Chromium system dependencies before the run, as the [CI browser job](../../.github/workflows/ci.yml) does with `npx playwright install --with-deps chromium`.
+
+The provisioned resources and the destinations used by each test are separate concerns. The full aggregate's acceptance drivers can reach these targets before the two inherited overrides are cleared:
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+  Shell["Shell environment"] --> Runner["Aggregate runner"]
+  Runner -->|provisions| Stack["Isolated Compose project"]
+  Runner -->|starts| Suites["Test subprocesses"]
+  Suites -->|generated target settings| Stack
+  Suites -->|inherited BASE_URL| HTTP["Other HTTP target"]
+  Suites -->|inherited CREDIT_AMQP_URL| Broker["Other RabbitMQ target"]
+```
 
 For just the runner's system portion:
 
 ```bash
 # AI-generated (edited by Reallyeasy1)
-npm run test:e2e
+env -u BASE_URL -u CREDIT_AMQP_URL npm run test:e2e
 ```
 
 This uses `--system-only`: API E2E, main browser UAT and socket shutdown, omitting the unit/database categories and the acceptance chain.
@@ -83,6 +106,39 @@ This uses `--system-only`: API E2E, main browser UAT and socket shutdown, omitti
 Neither aggregate currently invokes `test:e2e:ui:realtime`. CI runs that command separately. k6 load campaigns, coverage generation and deployment-wrapper tests are also separate entry points. A passing `npm test` therefore does not mean every available check ran.
 
 If a run fails, capture the first failing suite and its diagnostics before retrying. The runner prints its project name and selected ports; use those when distinguishing its resources from your normal Compose stack. Its cleanup is scoped to that project, not a reason to delete your development volumes.
+
+## Run User and Supplier API E2E directly
+
+The standalone `npm run test:e2e:api` command starts User and Supplier processes but **does not provision, migrate or seed PostgreSQL**. It also does not use `DATABASE_URL`, `USER_DATABASE_URL`, `SUPPLIER_DATABASE_URL` or service test-database URL overrides to select their databases. The [driver](../../scripts/test-d2-e2e.ts) constructs these connections itself:
+
+| Setting | Actual target or requirement |
+|---|---|
+| PostgreSQL host / port | `localhost`; `TEST_POSTGRES_PORT`, default `5432` |
+| Database identity | `postgres` / `postgres` development credentials |
+| Database names | `user_db` and `supplier_db` |
+| Existing data | Committed migrations, User seed accounts (including `admin@nus.edu.sg` with `Password123!`) and Supplier seed data; one assertion expects at least twenty suppliers |
+| App listeners | `TEST_USER_PORT` / `TEST_SUPPLIER_PORT`, defaults `8001` / `8002`; both must be free |
+
+Use this command only when that exact PostgreSQL instance is disposable and already prepared. For a fresh disposable default Compose project, follow [local setup](local-development.md#prepare-the-checkout), start PostgreSQL, wait for it to become healthy, then prepare just these services:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+docker compose up -d postgres
+docker compose ps
+```
+
+After PostgreSQL is healthy, confirm that the root `.env` contains the default localhost User/Supplier URLs and that no exported `DATABASE_URL` overrides them. Then run:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+npm run db:deploy -w @campus-errand/user-service -w @campus-errand/supplier-service
+npm run db:seed -w @campus-errand/user-service -w @campus-errand/supplier-service
+npm run test:e2e:api
+```
+
+The expected result is the driver's passed/failed scenario summary; failures produce a nonzero exit. A connection/authentication failure points to the fixed PostgreSQL target above, while failed admin login or supplier-count assertions can indicate missing seeds. If User/Supplier are already running on the default ports, stop only those app processes first or give the driver unused `TEST_USER_PORT` and `TEST_SUPPLIER_PORT` values.
+
+The driver registers a new user, changes that user's profile/status/role and creates/edits/deletes a test supplier. Its cleanup stops the spawned processes; it does not delete the registered user or reset the databases. Do not assume its fixtures disappear when the command ends. Use `npm test` or `npm run test:e2e` with the aggregate prerequisites above when you want automatic database provisioning and teardown.
 
 ## Run database or messaging suites directly
 
@@ -133,7 +189,7 @@ Each driver reads its own settings. Setting `GW` does not retarget broker connec
 | [CDC acceptance](../../scripts/uat/uat-cdc.mjs) | `BASE_URL`, `GW`, `CDC_TIMEOUT_MS`, `UAT_OUT` | `BASE_URL` wins over `GW`, then localhost; default observation window 60 seconds |
 | [Realtime browser](../../scripts/uat/uat-realtime.mjs) | `GW`, `UAT_OUT` | Local gateway; JSON and screenshots in `test-results/uat-realtime/` |
 | Realtime browser | `UAT_RESTART_CHAT`, `UAT_CHAT_CONTAINER` | Restart is opt-in; default container is `campuserrand-chat-service` |
-| [API E2E](../../scripts/test-d2-e2e.ts) | `TEST_USER_PORT`, `TEST_SUPPLIER_PORT`, `TEST_POSTGRES_PORT` | Defaults 8001, 8002 and 5432; starts User/Supplier itself |
+| [API E2E](../../scripts/test-d2-e2e.ts) | `TEST_USER_PORT`, `TEST_SUPPLIER_PORT`, `TEST_POSTGRES_PORT` | Defaults 8001, 8002 and 5432; starts User/Supplier itself against fixed `user_db` / `supplier_db` databases with `postgres:postgres` credentials |
 
 Notification UAT reports to stdout and has no `UAT_OUT` or `SHOTS` setting. Browser socket addresses derive from the page origin; the standalone Notification driver's `WS_URL` does not change browser routing.
 

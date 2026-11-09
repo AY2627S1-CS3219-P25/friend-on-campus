@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Explain service ownership, asynchronous evidence checkpoints and concrete debugging journeys for new developers; preserve verified implementation boundaries.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate system boundaries, data, security and shared contracts into one source-checked developer explanation with a concrete errand journey.
 Author review: <to be completed by Reallyeasy1>
 
@@ -30,6 +34,8 @@ Author review: <to be completed by the author>
 Friend on Campus lets a student post an errand, reserve a reward, work with a courier and confirm completion. The interesting part is that these steps do not happen in one database transaction: Order decides the errand state, Credit controls the money, and Chat and Notification maintain their own views.
 
 Start here to understand those boundaries. For a runnable environment, use [local development](../development/local-development.md); for deployment topology, use the [AWS guide](../new-cloud-architecture-guide.md). The [documentation index](../README.md#baseline-and-verification) records the inspected revisions and verification limits for these guides.
+
+Think about a feature in three parts: **who accepts the action, who stores the authoritative result, and who displays a copy**. For example, the requester confirms delivery through Order, Credit later records the payment, and Notification tells the courier about the financial receipt. These are connected operations, but each service can be at a different point in that flow.
 
 ## The service map
 
@@ -66,6 +72,20 @@ Notification consumes Order lifecycle and Credit receipt events; Chat consumes i
 
 The local gateway serves the student app at `/` and the admin app at `/admin/`. Direct frontend development uses ports 5173 and 5174. These are local addresses, not a list of publicly exposed AWS ports.
 
+The map describes responsibility, not one machine for each box. Two Order replicas run the same code and share `order_db`; Credit has a different schema and responsibility even if its container happens to share an EC2 host with Order. Adding an Order replica does not create a second copy of its database or move Credit's transaction into Order.
+
+Several terms recur throughout the guides:
+
+| Term | Meaning in this application | Concrete example |
+|---|---|---|
+| Command | A request to perform an action, which can still fail validation or business rules | Submit an errand or confirm delivery |
+| Event | A published fact or workflow message consumed asynchronously | `order.completed` or a credit-reservation request |
+| Projection | A service's stored view of facts owned elsewhere | Chat's stored requester/courier IDs and closed state |
+| Replica | Another running copy of the same service | Two Chat processes, each holding its own browser sockets |
+| Idempotent effect | Reprocessing identified work does not repeat the business change | Credit records a processed event with its financial transaction |
+
+A projection can be behind its source, and some missing or unsupported events are not repaired merely by waiting. Idempotency also applies to specific processing paths, not every API retry: sending identical Chat text again can create another message.
+
 ## Follow one errand through the system
 
 Suppose a student posts an errand offering 10 credits.
@@ -80,6 +100,20 @@ Suppose a student posts an errand offering 10 credits.
 This is the **Saga**: several local transactions connected by events, with compensating actions such as refunding a reservation. It is not a distributed SQL transaction. See the [Order guide](../services/order-service/README.md) for the full state machine and the [Credit guide](../services/credit-service/README.md) for the money example and replay rules.
 
 For troubleshooting, ask which commit has actually happened. An order stuck at `PENDING`, an `OPEN` order missing from a stale screen, and a cancelled order awaiting its refund are different conditions and need different checks.
+
+### What does each success signal prove?
+
+Use the same order ID when comparing these observations. A browser toast describes what that screen observed; it is not a transaction across all six services.
+
+| Observation | What it establishes | What to check next |
+|---|---|---|
+| POST returns `202` with an order ID | Order accepted the submission into its asynchronous workflow | Read that order as its requester; it can still be `PENDING` or become `REJECTED` |
+| A fresh Order read returns `OPEN` | Order has applied a successful reservation outcome | If the feed disagrees, inspect its filters and refresh path before resubmitting |
+| A fresh Order read returns `COMPLETED` | The order lifecycle has committed completion | Check Credit's settlement/ledger before concluding that the courier has been paid |
+| A Credit ledger read contains the settlement | The financial change committed in Credit | A missing receipt in the inbox is a separate publication/consumption problem |
+| A notification or Chat frame arrives | That connection received a live update | Use the persisted inbox/history for recovery and consistency checks |
+
+For example, if creation times out after a request was sent, inspect whether the order already exists before submitting again. If it is `PENDING`, another POST starts another business operation rather than retrying the first operation's event. The [Order router](../../services/order-service/src/orders/order.routes.ts) and [repository](../../services/order-service/src/repositories/order.repository.ts) show the request and persistence boundaries; the service guide explains how to follow the matching reservation outcome.
 
 ## Data ownership and consistency
 
@@ -96,7 +130,7 @@ Each backend owns a logical PostgreSQL database, Prisma schema, migration histor
 
 An **outbox** is a database table recording work that should be published after the business transaction commits. It closes the gap between saving a change and asking another component to act. It does not, by itself, make consumers run exactly once.
 
-Cross-service IDs are scalar references, not cross-database foreign keys. Deleting a User does not cascade into another service's committed orders or ledger. Orders retain supplier snapshots, so editing a supplier does not rewrite earlier errands. A newly registered student can temporarily lack a wallet while the registration event is still being processed.
+Cross-service IDs are scalar references, not cross-database foreign keys. Deleting a User does not cascade into another service's committed orders or ledger. Orders retain supplier snapshots, so editing a supplier does not rewrite earlier errands. A newly registered student can lack a wallet while the registration event is still being processed; the [Credit guide](../services/credit-service/README.md#wallet-initialization) also describes a registration-email validation mismatch that waiting alone does not resolve.
 
 Schema changes belong to each service's Prisma migrations. The [initialisation SQL](../../docker/postgres-init/01-init-databases.sql) creates databases and roles, not application tables. Read SQL migrations alongside Prisma schemas: SQL checks and expression indexes are not all represented in the schema declarations. Use the [development guide](../development/local-development.md) for migration and seed commands rather than manually patching tables.
 
@@ -160,5 +194,7 @@ Follow the feature in this order instead of searching every directory:
 5. Read the tests next to that boundary, including their required databases and broker identities.
 
 Useful entry points are [gateway routes](../../gateway/nginx.conf), [Order persistence](../../services/order-service/src/repositories/order.repository.ts), [shared verification](../../packages/auth/src/index.ts) and [service schemas](../../services). Each service guide links the narrower files needed for its flow. Start troubleshooting from a concrete symptom and record ID; a healthy gateway alone does not prove that every downstream service or asynchronous effect is healthy.
+
+For a missing refund, record the order ID, its latest persisted status, the relevant Credit ledger entries and the observed time. Follow Order's cancellation/expiry event into Credit before inspecting Notification. This separates money that has not moved from money that moved but has not been displayed. For a missing Chat update, begin with persisted message history instead: that tells you whether to investigate the send path or only its live delivery.
 
 [Documentation index](../README.md)

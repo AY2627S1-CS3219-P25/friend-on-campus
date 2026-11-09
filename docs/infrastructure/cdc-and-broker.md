@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Clarify realtime message expiry and add concrete persisted-data, delivery-intent and crash-recovery examples.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Combine CDC and shared messaging into a human-readable transport/recovery guide with business-event and realtime diagrams, failure semantics and safe diagnosis.
 Author review: <to be completed by Reallyeasy1>
 
@@ -45,6 +49,7 @@ A missing wallet reservation is a business-processing problem. A message visible
 The producer's database transaction finishes before another service handles the event. In this example, “consumer transaction” means work in the receiving service's own database.
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant App as Producer
     participant DB as Producer database
@@ -94,6 +99,7 @@ The main queues explicitly request quorum type. The DLQ declaration is durable b
 The service handler classifies a failure before the shared consumer decides what to do:
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Delivery["Business event delivered"] --> Handler["Run service handler"]
     Handler -->|"Success or safe duplicate"| Ack["ACK"]
@@ -134,6 +140,7 @@ Business queues divide work between service replicas. Realtime delivery has a di
 For example, a message may be written through Chat replica A while its recipient is connected to replica B. Chat stores the message and a realtime intent in one transaction. A relay publishes the intent to a fanout exchange; both replicas receive a hint, reread the persisted message and deliver to eligible local sockets.
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     subgraph Tx["One service database transaction"]
         Data["Message or inbox state"]
@@ -153,6 +160,16 @@ flowchart TD
 
 Chat owns `realtime_outbox`; Notification owns `notification_realtime_outbox`. Their default exchanges are `chat-service.events.realtime` and `notification-service.events.realtime`, configurable with `RABBITMQ_REALTIME_EXCHANGE`. These outboxes are published by application relays, **not** by the three business Debezium connectors.
 
+The durable record and the hint contain different information:
+
+| Example | Persisted service state | Realtime intent / signal | What a reconnect reads |
+|---|---|---|---|
+| A student sends “Meet me at the library entrance” | Chat stores the original text, sender, message ID and conversation sequence | Message ID and original recipient IDs tell each replica which stored message to reread; the sender's optional `clientId` accompanies this intent | Authenticated history returns the original message and sequence; it does not return `clientId` |
+| Credit settles a 12-credit errand | Notification stores a receipt inbox row for the courier after consuming the Credit event | Created notification IDs, recipient IDs and a stale flag guide live delivery | The receipt remains in the inbox even if no socket was connected |
+| A student marks that receipt read | Notification stores its `readAt` with an inbox-change intent | A user-scoped `INBOX_CHANGED` hint carries no unread count | REST returns the current read state and unread count |
+
+The payload builders and reread checks are in [Chat delivery](../../services/chat-service/src/realtime/delivery.ts) and [Notification delivery](../../services/notification-service/src/notifications/realtime.ts). Deleting a successfully published outbox intent does not delete its message or inbox row.
+
 ### Claim, publish and complete
 
 The [SQL store](../../packages/messaging/src/outbox-sql.ts) claims due intents using `FOR UPDATE SKIP LOCKED` and a lease. The database lock is held for the claim statement, not during network publication. Multiple replicas can therefore relay work from the same service table.
@@ -160,6 +177,17 @@ The [SQL store](../../packages/messaging/src/outbox-sql.ts) claims due intents u
 The [relay](../../packages/messaging/src/realtime.ts) publishes the hint and deletes the intent only while it still owns the lease. Failed publication reschedules the row and increments its attempts. A dead relay's lease eventually expires so another replica can claim the work. There is no outbox attempt cap or realtime dead-letter table.
 
 A crash after publish but before deletion can publish the same intent again. Lease ownership prevents an old worker from deleting a newly claimed intent; it does not make publication exactly once or make a client's repeated SEND operation idempotent.
+
+For the chat message above, the failure point determines what recovery can do:
+
+| Failure point | State left behind | Recovery behavior |
+|---|---|---|
+| The append transaction rolls back | Neither the message nor its intent commits | That attempt contributes no message to history |
+| Commit succeeds, but publication has not succeeded | The message and pending or leased intent remain | History can already return the message; the relay retries publication, or another relay claims an expired lease |
+| Publication succeeds, then the relay dies before deleting the intent | The message remains and the intent may be claimed again | A duplicate hint is possible; subscriber caching and client merging suppress duplicates within their respective limits |
+| Publication completes, but the recipient's browser is offline | The message remains; the intent can already be deleted | The browser recovers the message from history after reconnecting |
+
+The last row is why a missing realtime outbox row does not prove a browser saw the message. Conversely, an uncertain client response does not establish that the first row's rollback occurred: inspect history before sending the same text again.
 
 ### Why a live hint can still be missed
 
@@ -169,7 +197,7 @@ The exchange is durable, but each subscriber queue is classic, exclusive to a re
 |---|---|
 | Relay polls every 250 ms; claims up to 20 intents; lease 30 seconds | Publication is asynchronous; another relay can recover expired work |
 | Failed publication rescheduled after 1 second | Unpublished SQL intents remain retryable |
-| Subscriber queue TTL 60 seconds; maximum 10,000 hints; drop oldest on overflow | Slow or disconnected replicas can miss hints |
+| Subscriber message TTL 60 seconds; maximum 10,000 hints; drop oldest on overflow | Waiting hints expire; the queue itself has no configured 60-second expiry |
 | Subscriber prefetch 20; handler concurrency 1 | A replica processes hints serially with a bounded backlog |
 | Three handler attempts, each bounded to 5 seconds | Exhaustion logs and ACKs the dropped hint; no requeue or DLQ |
 | Cache of 10,000 successful event IDs in process memory | Recent duplicates are suppressed, but the cache is neither permanent nor shared |

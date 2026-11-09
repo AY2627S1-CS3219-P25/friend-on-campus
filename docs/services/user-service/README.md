@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Correct registration-to-Credit failure guidance and explain refresh replay and revocation with source-checked examples.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate User Service identity, API, session behavior, operations and tests into one practical guide with an explained authentication sequence.
 Author review: <to be completed by Reallyeasy1>
 
@@ -23,9 +27,15 @@ This guide describes code at `b989758` (inspected 9 November 2026), carried by d
 
 Suppose a student registers and then opens their wallet. Registration first validates the username, email and password, hashes the password with scrypt, and writes two records in **one database transaction**: the account and a `user.registered` outbox event. If either write fails, neither commits.
 
-The `201` response means the account exists. It does not log the student in, and it does not mean Credit has created the wallet. The browser logs in separately. Debezium later reads the committed outbox row and publishes the event through RabbitMQ; Credit consumes it to initialize the wallet and grant 100 credits. A successful login with a temporarily missing wallet therefore points to the asynchronous registration-to-Credit path, not necessarily failed registration.
+The `201` response means the account exists. It does not log the student in, and it does not mean Credit has created the wallet. The browser logs in separately. Debezium later reads the committed outbox row and publishes the event through RabbitMQ. When Credit accepts that event, it initializes the wallet and grants 100 credits. A successful login followed by a wallet `404` therefore needs investigation along the registration-to-Credit path; it does not prove that registration failed.
 
 The [registration module](../../../services/user-service/src/auth/auth-module.ts) creates the event with `eventId`, `eventType`, `timestamp`, `userId`, `email` and `initialGrant`. The [auth repository](../../../services/user-service/src/persistence/auth-repository.ts) owns the transaction. User Service has no runtime RabbitMQ publisher; see [messaging and recovery](../../infrastructure/cdc-and-broker.md) when an event is not reaching Credit.
+
+### When waiting for the wallet is not enough
+
+There is an unresolved validation mismatch: [User accepts email addresses up to 320 characters](../../../services/user-service/src/utils/validation.ts), but [Credit's registration-event parser accepts at most 254](../../../services/credit-service/src/credits/events.ts). An otherwise accepted address of 255–320 characters can therefore create an account and session while its registration event is rejected as a permanent `invalid_event` failure. A healthy broker and repeated wallet reads will not make that event valid.
+
+For that case, inspect the Credit dead-letter queue and event-validation reason using the registration `eventId`; do not treat it as ordinary delivery delay or repeatedly replay the unchanged event. A later successful reservation can initialize the requester's missing wallet, and settlement can initialize a courier's missing wallet, so the absence is not necessarily permanent. Those are separate business paths, not repairs to the rejected registration event. The [Credit guide](../credit-service/README.md#wallet-initialization) explains their grant checks. Resolving the differing email rules remains a separate implementation decision.
 
 ## Understand the two tokens
 
@@ -51,6 +61,11 @@ sequenceDiagram
     User->>DB: Conditionally replace old token hash
     DB-->>User: Rotation succeeds once
     User-->>Browser: New JWT and rotated cookie
+    Browser->>User: Replay old refresh token
+    User->>DB: Look up old token hash
+    DB-->>User: No matching session
+    User-->>Browser: 401 INVALID_SESSION
+    Note over User,DB: Replacement session remains valid
 ```
 
 The browser receives the refresh token in `refresh_token`, an `HttpOnly`, `SameSite=Lax` cookie scoped to `/api/auth`. Production enables `Secure`, so the browser must use HTTPS to send it. The access token is returned in JSON. Browser handling is described in the [frontend guide](../../frontend/README.md); the shared verifier's public API is in [packages/auth](../../../packages/auth/README.md).
@@ -68,6 +83,8 @@ Refresh looks up the supplied token hash, rejects an expired or disabled session
 | Delete account | Removes the local account and cascades its refresh sessions | Other services' records and already-issued JWTs are not centrally revoked |
 
 These are implementation limits, not promises of immediate authorization revocation. There is no user-deleted event or cross-database cascade that removes the account's orders, wallets, notifications or chat history.
+
+For example, with the default 15-minute access lifetime, an ADMIN token issued at 12:00 can still pass a downstream role check after the account is demoted at 12:05, until that token expires. A successful refresh after the change issues the current STUDENT role. When debugging an apparently ignored admin action, compare the stored role with the token's role and expiry before concluding that the account update failed.
 
 ## Use the HTTP API
 
@@ -114,7 +131,7 @@ Malformed UUID path IDs return `400 INVALID_INPUT`. Missing, invalid or expired 
 
 ### Input rules and concurrent changes
 
-Usernames are trimmed, nonblank and at most 50 JavaScript string units. Emails are trimmed, lowercased, at most 320 characters and checked by a simple address regex. The backend does **not** enforce an NUS-only email domain. Passwords are not trimmed: they accept 8–24 Unicode code points and have no additional complexity rule.
+Usernames are trimmed, nonblank and at most 50 JavaScript string units. Emails are trimmed, lowercased, at most 320 characters and checked by a simple address regex; Credit's lower event-parser limit is described [above](#when-waiting-for-the-wallet-is-not-enough). The backend does **not** enforce an NUS-only email domain. Passwords are not trimmed: they accept 8–24 Unicode code points and have no additional complexity rule.
 
 The database enforces case-insensitive uniqueness for usernames and emails with `LOWER(...)` expression indexes. These SQL indexes intentionally do not appear as Prisma `@unique` annotations. A successful application-side lookup is not a guarantee that a concurrent registration will not collide; the database constraint is the final guard.
 
@@ -157,7 +174,7 @@ Start by separating the process, database and asynchronous dependencies. `GET /h
 |---|---|---|
 | Service fails before listening | Missing JWT keys, invalid duration/port, selected database URL | Compare names with [config](../../../services/user-service/src/config.ts); keep real values out of logs and commits |
 | `/health` succeeds but `/ready` fails | Database access and committed User/Session migrations | Apply the intended migrations to the intended database; do not reset needed data |
-| Registration succeeds but no wallet appears | Registration outbox, Debezium, broker and Credit consumer | Trace `userId` / `eventId` through [messaging](../../infrastructure/cdc-and-broker.md); do not repeatedly register the same person |
+| Registration succeeds but no wallet appears | Registration outbox, Debezium, Credit consumer and DLQ validation failures | Trace `userId` / `eventId` through [messaging](../../infrastructure/cdc-and-broker.md); check the [email-limit mismatch](#when-waiting-for-the-wallet-is-not-enough) before assuming temporary lag |
 | Refresh returns `INVALID_SESSION` | Cookie path/Secure behavior, expiry, disabled account, duplicate refresh requests | Inspect browser request metadata; retry through the normal login flow rather than replaying an old token |
 | Admin change does not immediately affect another service | JWT role/expiry versus stored account | Obtain a fresh token; existing JWTs are not checked against the account on each request |
 | A profile update returns `409` | Another account's username, ignoring case | Choose a distinct username; the SQL uniqueness check is intentional |

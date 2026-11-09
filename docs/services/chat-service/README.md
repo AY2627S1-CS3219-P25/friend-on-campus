@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Clarify missing-conversation event handling and send-recovery tolerance; add concrete access/history examples and an uncertain-send recovery diagram.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate Chat behavior, contracts, operations and unresolved historical decisions into one source-checked guide with a focused authorization/persistence diagram.
 Author review: <to be completed by Reallyeasy1>
 
@@ -39,13 +43,18 @@ For an existing conversation, access is decided from Chat's stored participant I
 | Administrator who is not a participant | Yes | No |
 | Any other user | No | No |
 
-The fallback treats `ACCEPTED`, `IN_TRANSIT` and `DELIVERED` as open. The event projection consumes `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled` and `order.expired`. The last three close a conversation; accepted events update its courier only when newer than `courierSince`.
+For example, if Mira requested the errand and Jun is its stored courier, both can load its history. A third student's valid token still gets 403. Once Chat records completion, Mira and Jun can read the earlier messages but cannot send another one. For an open conversation, if a newer acceptance replaces Jun with another courier, that courier can read the same earlier history; Jun no longer passes the stored participant check.
+
+The fallback treats `ACCEPTED`, `IN_TRANSIT` and `DELIVERED` as open. The event projection consumes `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled` and `order.expired`. The last three close an **existing** conversation; accepted events update its courier only when newer than `courierSince`.
+
+The other valid subscribed events are acknowledged and ignored when the conversation is missing. For example, if `order.completed` is handled before `order.accepted` creates the row, the later accepted event can create an open conversation without the earlier closure. Draining the queue does not restore the discarded event, and opening that existing row does not rerun the Order fallback. This behavior is explicit in the [projection](../../../services/chat-service/src/conversations/events.ts) and its [missing-row tests](../../../services/chat-service/test/events.test.ts).
 
 **Current limitation:** `order.unassigned` is not consumed. A removed courier can still read and send while the old local row remains open; a newer accepted event replaces that courier. Existing-row checks can also lag an Order completion. The Order client drops `version`; assignment replay checks use `courierSince`, not the Order version. The append lock below protects against concurrent changes **inside Chat**, not against an Order change that has not reached Chat.
 
 This diagram shows why the two boundaries differ:
 
 ```mermaid
+%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant UI as Browser
     participant Chat as Chat Service
@@ -124,7 +133,21 @@ The browser does not treat the largest live sequence as proof that all earlier m
 
 This matters when history contains messages 1–100 and live message 105 arrives: the next history request must still recover 101–104. Deduplicating by message ID makes an overlapping history page and live frame safe to display together.
 
-If a send loses its echo, the client rereads history before reporting the outcome. It looks for the same sender/text at or after the attempted send time. That is a recovery heuristic, not a durable server receipt or exactly-once guarantee. If the UI reports `UNCONFIRMED`, inspect the conversation before retrying; a manual retry can duplicate a message that committed before disconnection.
+If a send loses its echo, the client attempts to catch up from history before reporting the outcome. It looks in the loaded messages for the same sender/text at or after the attempted send time, allowing **one second before that time** for clock skew. An earlier identical message inside that tolerance can satisfy the match. This is a recovery heuristic, not a durable server receipt or exactly-once guarantee.
+
+For example, “Meet me at the library entrance” may commit just before the sender loses Wi-Fi. A history catch-up can find the stored copy and settle the pending send successfully even though its socket echo never arrived. Without a matching loaded copy, the UI reports `UNCONFIRMED`; this can also happen when the catch-up request fails. The client does not automatically resend the text.
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    Missing["No echo or rejection for pending SEND"] --> Catchup["Attempt history catch-up"]
+    Catchup --> Match{"Matching loaded message?"}
+    Match -->|Yes| Settled["Settle send as successful"]
+    Match -->|No| Unknown["Show UNCONFIRMED"]
+    Unknown --> Inspect["Inspect conversation before retrying"]
+```
+
+The match uses sender, text and the time tolerance above; `clientId` is unavailable in stored history. If the UI reports `UNCONFIRMED`, inspect the conversation before retrying: a manual retry can duplicate a message that committed before disconnection. The [client implementation](../../../apps/student-app/src/chat/useChat.ts) defines the catch-up and pending-send checks.
 
 ## Translation and moderation
 
@@ -190,6 +213,7 @@ Unit tests cover service/access rules, routes, sockets, moderation and translati
 | A stored message appears after reload but not live | Inspect Chat realtime health and the pending delivery intent, then the receiving replica; do not resend merely to test sockets |
 | `UNCONFIRMED` after send | Reload history and inspect persisted messages before retrying |
 | Former courier can still access Chat | Check for an unassigned-but-not-reaccepted errand; this is the known local-projection limitation, not evidence of token impersonation |
+| Completed errand still allows sending after the queue drains | Compare local `closedAt` with Order and the event order; a terminal event processed before the conversation existed was ignored, and the existing-row history path does not refresh it |
 | Translation returns 503 but chat works | Check provider configuration/connectivity separately from message persistence |
 | Socket repeatedly reconnects | Inspect close code, token expiry, `/ready` and realtime subscriber health |
 

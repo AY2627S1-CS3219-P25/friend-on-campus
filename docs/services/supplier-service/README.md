@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Explain directory, map and order availability boundaries; add a decision diagram, read-only query examples and concrete seed/update guidance.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Consolidate Supplier directory behavior, APIs, safe coordinate upgrades, operations and tests into one practical guide with an explained uniqueness sequence.
 Author review: <to be completed by Reallyeasy1>
 
@@ -35,7 +39,7 @@ Supplier Service owns places students can choose as pickup points: their names, 
 
 Order Service looks up a supplier synchronously before accepting a new errand and copies its name and zone into the order. Supplier edits do not rewrite old orders. This service has no RabbitMQ producer or consumer, so disabling a supplier does not itself send clients a broker notification.
 
-This guide describes code at `b989758` (inspected 9 November 2026), carried by documentation PR #255. It combines API behavior, local operation and the coordinate-upgrade procedure. Use [local development](../../development/local-development.md) for the shared setup.
+This guide was rechecked against documentation head `bc0efa4` on 9 November 2026, whose application baseline is `b989758`, in PR #255. It combines API behavior, local operation and the coordinate-upgrade procedure. Use [local development](../../development/local-development.md) for the shared setup.
 
 ## Follow a directory request
 
@@ -76,6 +80,43 @@ The distinction between database filtering and in-process pagination matters whe
 | `page`, `limit` | Either enables pagination; defaults 1/10, page minimum 1 and limit clamped to 1–100 |
 
 Text sorting ignores case and breaks equal-sort-key ties by ID. Query numbers use `parseInt`, not strict finite-number validation: do not rely on malformed numeric inputs being rejected cleanly.
+
+### Directory presence, map position and availability are different
+
+A supplier record can exist without being usable for every screen. The student app [loads the directory](../../../apps/student-app/src/api/suppliers.ts) without API filters, then searches names, zones, categories and exact locations in memory. Its category shortcuts populate that search string; they are not the API's exact `category` filter. This explains why a browser search and a hand-written API query can return different matches.
+
+The pickup dropdown and map receive only active suppliers. The [map grouping helper](../../../apps/student-app/src/map/supplierLocations.ts) includes only finite numeric latitude/longitude pairs and combines suppliers at identical coordinates into one location. Two stalls at the same coordinates therefore need not produce two markers. A missing marker does not by itself mean the database row is missing.
+
+This diagram follows the separate checks applied to a directory row:
+
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    Row["Supplier directory row"] --> Active{"Currently active?"}
+    Active -->|"Yes"| Choice["Available pickup choice"]
+    Active -->|"No"| Disabled["Unavailable for new orders"]
+    Choice --> Position{"Both coordinates usable?"}
+    Position -->|"Yes"| Marker["Group at map position"]
+    Position -->|"No"| List["Dropdown choice without marker"]
+    Choice --> Lookup["Order rechecks Supplier on submission"]
+    Lookup --> Result{"Lookup result"}
+    Result -->|"Active"| Snapshot["Copy name and zone into new order"]
+    Result -->|"Missing, inactive or unavailable"| Reject["Reject this create request"]
+```
+
+Order's second lookup matters when an administrator disables a place after the browser loaded it. A stale enabled button cannot bypass that check. Supplier unavailability produces a `503`, while a missing or inactive selection produces a validation error. Once created, an order retains the copied name and zone even if the supplier is renamed later; see [the creation handler](../../../services/order-service/src/orders/order.service.ts).
+
+Opening hours are another separate concept. The frontend [hours helper](../../../apps/student-app/src/suppliers/operatingHours.ts) interprets readable starting/closing times using Singapore time, including overnight opening. Unreadable hours produce an unknown result. An “active” database flag is not a guarantee that the shop is open at this moment, and Order's supplier check does not enforce those hours.
+
+To inspect the distinction on a running local gateway, these reads make no changes:
+
+```sh
+# AI-generated (edited by Reallyeasy1)
+curl --fail-with-body 'http://localhost/api/suppliers?isActive=true&page=1&limit=10'
+curl --fail-with-body 'http://localhost/api/suppliers?category=Food&sortBy=name&sortOrder=asc&page=1&limit=10'
+```
+
+Expect a successful JSON envelope even when no suppliers match. Check `total` and `totalPages` before treating a single page as the entire directory. To query the service directly instead, use its configured port, normally `http://localhost:8002`.
 
 ## Add, update or disable a place
 
@@ -158,6 +199,26 @@ The generated client is service-local, migrations apply the canonical `prisma/mi
 `npm run db:seed -w @campus-errand/supplier-service` reads a command-line CSV path, then `SEED_CSV_PATH`, then `data/csv/supplier-seed-data.csv`. CSV parsing validates the headers and row shape; each row then validates its required location fields and coordinates before its upsert. Rows use `SUP-NNN` codes.
 
 For an existing matching code, seeding preserves the row ID, active state and each already-recorded coordinate. It updates descriptive fields and fills a coordinate only when it is missing. An administrator's corrected coordinates therefore survive reseeding. Writes happen sequentially rather than as one atomic batch: if a later row fails validation or its write fails, earlier rows may already be updated.
+
+Choose the update path according to what you are changing:
+
+| Task | Path | What it changes |
+|---|---|---|
+| Correct one place's description or coordinates | Admin edit form / authenticated `PUT` | Only submitted fields; omitted coordinates remain as recorded |
+| Temporarily stop new pickups | Admin availability toggle | `isActive`; existing orders retain their saved details |
+| Populate a prepared development database from CSV | `db:seed` script | Upserts seed rows and can overwrite descriptive fields of existing matching codes |
+| Repair legacy null coordinates | Admin edit with verified coordinates | Preserve row identity and existing orders; migrations do not supply missing map positions |
+
+The CSV path is a seed-script input, not an upload endpoint in the REST contract above. It expects the [checked-in CSV header order](../../../services/supplier-service/src/database/seed.ts), including Name, Type, Building, Floor and coordinates. It assigns `SUP-001`, `SUP-002` and so on **from row position**, then upserts by that generated code. Reordering or inserting rows into an existing seed file can therefore apply descriptions to a different stored supplier. Treat this as controlled fixture preparation, not a general-purpose import/synchronization tool.
+
+For a disposable development database with migrations already applied, run the default seed from the repository root:
+
+```sh
+# AI-generated (edited by Reallyeasy1)
+npm run db:seed -w @campus-errand/supplier-service
+```
+
+The script reports each created/updated code and finishes with `created=... updated=...`. Verify the intended rows through the read API afterward. A completed seed does not check that locations are geographically correct; a failed run may have already changed earlier rows, so inspect the last successful code before retrying.
 
 Local Compose explicitly runs migrations and this development seed before listening. The application image itself starts only the app; [cloud deployment](../../new-cloud-architecture-guide.md) uses separate migration/seed tasks. Reseeding is not an automatic production recovery procedure.
 

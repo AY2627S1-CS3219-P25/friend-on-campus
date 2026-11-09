@@ -1,5 +1,17 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-10
+Scope: Record authorized publication of the expanded developer guides and updated PR #255 description.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-10
+Scope: Expand the existing developer guides with source-checked explanations and eight additional diagrams; correct documentation review findings and record verification.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Review the consolidated documentation against source and provide a reusable review prompt; record findings and verification without changing or publishing guides.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Record author-approved commit and publication of the consolidated documentation to the existing PR #255, with an updated description.
 Author review: <to be completed by Reallyeasy1>
@@ -8493,3 +8505,62 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 
 **Files changed:**
 - `ai/usage-log.md` — publication entry and consolidated disclosure. The previously prepared 73 other Markdown changes are included unchanged in the authorized commit.
+
+## 2026-11-09 23:51 SGT — Review the consolidated developer documentation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Write a prompt to review the documentation and apply it to identify improvements.
+
+**Usage scenario:** Documentation review and debugging assistance. Reviewed PR #255 at `bc0efa46e9385ddb482cd3b56dbeea86badedce2`, with main/base `b989758e766cb593c3b8c94102eb6dfb5c7d8491` and read-only wiki revision `0571db5d4ad8c89679131c8707aae105402c7618`. Confirmed the PR remains draft/open with no existing review threads. Independent source reviews covered onboarding/testing, business services, realtime/messaging, cloud and frontend guides. Findings concern inherited aggregate-test targets, direct API E2E database assumptions, the Compose minimum, dispute length, User/Credit email validation disagreement, and missing-conversation terminal events; smaller precision corrections concern message TTL, Chat reconciliation time tolerance and bounded notification toast deduplication. No new requirements, architecture, historical rationale or deployment claims were invented.
+
+**Verification:** The thirteen retained Markdown documents passed 310 local link occurrences (154 unique targets), four local fragments and twelve Mermaid syntax checks. Five pinned repository links, two wiki links, eight commit links and one related fragment resolved against the inspected local Git/wiki histories; seven issue/PR/action links were outside that availability check. Read-only handler/parser probes confirmed dispute boundaries and User/Credit validation mismatch. A VM evaluation of the actual environment construction and consumer target expressions confirmed inherited BASE_URL/CREDIT_AMQP_URL survive aggregate configuration; no network calls or mutations were made by that probe. Checked Docker's official Compose merge documentation for the 2.24.4 minimum required by !override. No Docker/system suites, browser rendering, live UAT, cloud commands or load tests ran for this review. Semantic diagram checks were source-based; Mermaid syntax success is not a visual layout review.
+
+**Files changed:**
+- `ai/usage-log.md` — this required review entry and consolidated disclosure only. No guide, application or infrastructure changes; no commit, push, GitHub review publication, issue creation or wiki mutation.
+
+## 2026-11-10 00:01 SGT — Expand the consolidated guides for human readers
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Improve the documentation with more detail that humans can understand and more diagrams.
+
+**Usage scenario:** Authorized documentation improvements and learning support, describing the existing implementation rather than changing architecture or requirements. Rechecked PR #255 remains draft/open at local baseline `bc0efa46e9385ddb482cd3b56dbeea86badedce2`, with application/base revision `b989758e766cb593c3b8c94102eb6dfb5c7d8491`. Preserved the prior uncommitted usage entry. Kept twelve substantial guides plus the index, with no new archive/forwarding/overview files. Expanded service ownership and evidence checkpoints, local test targeting, ECS routing/scaling/recovery, Saga compensation, wallet transaction outcomes, uncertain Chat sends, Notification read-state synchronization, browser pending state and Supplier location/availability behavior. Increased Mermaid diagrams from twelve to twenty. Corrected all six substantive and three smaller findings from the previous review. Independent final source review also corrected the distinction between coordinate repair and migration recovery, and between React receipt state and the stored pending ID. Read-only wiki context remains revision `0571db5d4ad8c89679131c8707aae105402c7618`; no wiki edits or new design decisions.
+
+**Verification:** Across the thirteen docs and root README: 361 local links, 18 local fragments, twenty Mermaid 12.3.0 diagrams, 45 shell-block syntax checks, 24 literal npm script names, direct index reachability and consolidated disclosures pass. Five pinned repository links, three wiki occurrences, nine commit references and one associated fragment resolve against inspected Git/wiki history; issue/PR/action and general external availability were not exhaustively checked. Typechecking passes all twelve workspaces; CI matrix validation passes twenty workspace suites and four system commands. Focused User/Order/Credit unit suites pass 115/74/22 tests with no skips. Whitespace and documentation-only scope checks pass. Headless Chromium installation returned invalid/truncated archives, so visual diagram rendering remains unverified. No Docker/database/broker system tests, live UAT, load tests, deployments or failover drills ran. No application/configuration/schema/dependency changes, commit, push, issue creation or external publication.
+
+**Files changed:**
+- `README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `ai/usage-log.md` — record this task and preserve the preceding uncommitted review entry.
+- `docs/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/architecture/system-overview.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/development/local-development.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/development/testing-strategy.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/frontend/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/infrastructure/cdc-and-broker.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/new-cloud-architecture-guide.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/chat-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/credit-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/notification-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/order-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/supplier-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/user-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+
+## 2026-11-10 00:08 SGT — Publish expanded documentation to PR #255
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Update the existing pull request with the improved documentation.
+
+**Usage scenario:** Explicitly authorized commit and branch publication. Rechecked PR #255 remains draft/open at `bc0efa46e9385ddb482cd3b56dbeea86badedce2`, matching local HEAD. Independent pre-publication inspection found exactly fifteen Markdown changes: thirteen guides/index, root README and required usage bookkeeping, with no unrelated files or unresolved verification placeholders. Preserve the prior review and expansion entries. Publish one child commit with an expected-head guard and verify the remote tree against the staged tree. Update the PR title/body to describe the final thirteen-file structure, twenty diagrams, worked examples, corrected operational instructions and actual validation limits. Preserve draft status and the matching-issue gap; no issue creation, wiki changes, merge or forced update.
+
+**Verification:** Reused the unchanged expansion checks: 361 local links, 18 fragments, twenty Mermaid parses, 45 shell-block syntax checks, 24 script names, twelve-workspace typechecking, CI matrix validation and 211 focused unit tests. Final documentation-only and whitespace checks pass; no new runtime-test run is claimed. Visual rendering and live/infrastructure testing remain unavailable or unperformed as recorded in the preceding entry.
+
+**Files changed:**
+- `ai/usage-log.md` — publication entry and consolidated disclosure. The prepared fourteen other Markdown files are included unchanged in the authorized commit.
