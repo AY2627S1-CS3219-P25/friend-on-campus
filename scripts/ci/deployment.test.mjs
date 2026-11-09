@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-09
+// Scope: Verify runtime generation keeps database and broker secrets random without generating demo passwords.
+// Author review: <to be completed by the author>
+//
+// Tool: Codex (model: GPT-6), date: 2026-11-09
 // Scope: Verify manual delivery gates, migration failures, and preservation of live images during infrastructure rollout.
 // Author review: <to be completed by the author>
 
@@ -20,6 +24,23 @@ const application = yaml.load(readFileSync(path.join(root, '.github/workflows/de
 const infrastructure = yaml.load(readFileSync(path.join(root, '.github/workflows/deploy-infra.yml'), 'utf8'));
 const sourceScript = application.jobs.prepare.steps.find(step => step.id === 'source').with.script;
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+test('runtime generation keeps infrastructure secrets random and leaves demo passwords to the seed', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'foc-runtime-test-'));
+  try {
+    const output = path.join(directory, 'runtime.json');
+    const result = spawnSync(process.execPath, [path.join(root, 'infra/terraform/ecs/generate-runtime-secrets.cjs'), output], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    const runtime = JSON.parse(readFileSync(output, 'utf8'));
+    assert.ok(!Object.keys(runtime).some(key => key.startsWith('seed_password_')));
+    const passwords = Object.entries(runtime).filter(([key]) => key.startsWith('db_') || key.startsWith('rabbit_') || key === 'broker_cookie');
+    assert.equal(passwords.length, 14);
+    assert.equal(new Set(passwords.map(([, value]) => value)).size, passwords.length);
+    for (const [, value] of passwords) assert.match(value, /^[a-f0-9]{64}$/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 async function selectSource({ sha = 'main-sha', latestSha = sha, checkAccess = false, conclusion = 'success' } = {}) {
   const outputs = {};

@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Document the fixed demo seed password and updating existing accounts.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Document manual GitHub delivery, release migrations, OIDC diagnosis and migration of existing state to S3.
 Author review: <to be completed by the author>
 
@@ -24,7 +28,9 @@ For an existing deployment, follow the GitHub delivery setup below and migrate i
 
 The three single-instance Auto Scaling groups give each broker a fixed disk and node name. Their combined ceiling is three hosts. Verify the trial task sizes under load and after a host replacement. Scaling all services to their ceilings exceeds the fleet's trial CPU budget. This root includes the broker infrastructure for existing consumers. Cross-replica Chat and Notification delivery remains application work.
 
-The generated runtime JSON contains the private demo login passwords in `seed_password_alice`, `seed_password_bob` and `seed_password_admin`. The User seed task requires them and applies them to the existing demo accounts. Rerunning that seed resets their passwords to the values in Secrets Manager. If you already generated a runtime file, preserve its existing values and add these three distinct fields. Each value must be 12 random bytes encoded as lowercase hex.
+The User seed sets `alice@u.nus.edu`, `bob@u.nus.edu` and `admin@nus.edu.sg` to `Password123!` in every environment, including production. Each account receives a separately salted scrypt hash in the database. The runtime generator creates the database and RabbitMQ secrets. Existing runtime files may retain older `seed_password_*` fields, but the updated seed takes its password directly from the seed code. Preserve the current database and RabbitMQ credentials when updating an existing deployment.
+
+To reset existing demo accounts through seeding, deploy the updated User Service image, then run the latest `foc-ecs-migrate-user` task on EC2 with the `migrate` container command overridden to `seed`. Confirm exit code zero. Routine delivery runs migrations, so resetting demo passwords requires this explicit seed task. The application also exposes authenticated `PUT /api/users/me/password` with `currentPassword` and `newPassword` for individual password changes.
 
 ## Manual application deployment
 

@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Remove obsolete per-account password injection from the demo seed task.
+# Author review: <to be completed by the author>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Register one-off database jobs, inject private User seed credentials and run three persistent Debezium connectors.
 # Author review: <to be completed by the author>
@@ -159,13 +163,7 @@ resource "aws_ecs_task_definition" "migration" {
       [{ name = "SEED_SAMPLE_ORDERS", value = "true" }],
       each.key == "user-service" ? [{ name = "NODE_ENV", value = "production" }] : []
     )
-    secrets = concat(
-      [{ name = "DB_PASSWORD", valueFrom = local.backend_secrets[each.key].DB_PASSWORD }],
-      [for user in ["alice", "bob", "admin"] : {
-        name      = "SEED_PASSWORD_${upper(user)}"
-        valueFrom = "${local.secret_arn}:seed_password_${user}::"
-      } if each.key == "user-service"]
-    )
+    secrets = [{ name = "DB_PASSWORD", valueFrom = local.backend_secrets[each.key].DB_PASSWORD }]
   }])
 }
 
