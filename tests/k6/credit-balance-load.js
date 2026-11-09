@@ -24,7 +24,7 @@ import {
   summaryHandler,
 } from './lib/perf.js';
 
-const scenario = buildScenario('walletRead', 100);
+const scenario = buildScenario('walletRead', 'credit');
 const maxVus = scenarioMaxVus(scenario);
 
 export const options = baseOptions({ credit_balance: scenario }, operationThresholds('credit', maxVus));

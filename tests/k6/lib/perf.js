@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-09
+ * Scope: PR #252 review fixes: buildScenario resolves baselineVus from requirements.json when given a workload name,
+ *        and smoke profile gracefulStop is raised from 10s to 30s so in-flight order lifecycle iterations complete.
+ * Author review: Validated by Yee Yan Hwee (yanhwee)
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
  * Scope: Shared k6 helpers for the performance workloads (issue #236): bounded smoke/load/stress scenarios,
  *        run-owned account sessions with token renewal, measurement tags, response-correctness Rate,
@@ -44,12 +49,15 @@ export function requestedVus(baselineVus) {
 }
 
 /** Scenario for the selected PROFILE. VU counts and durations are clamped to the hard limits in requirements.json. */
-export function buildScenario(execName, baselineVus) {
+export function buildScenario(execName, workloadOrBaselineVus) {
+  const baselineVus = typeof workloadOrBaselineVus === 'string'
+    ? REQUIREMENTS.workloads[workloadOrBaselineVus].baselineVus
+    : workloadOrBaselineVus;
   if (PROFILE === 'smoke') {
     const { minVus, maxVus, maxDurationSeconds, defaultVus } = LIMITS.smoke;
     const vus = clamp(intEnv('VUS', defaultVus), minVus, maxVus);
     const duration = clamp(intEnv('DURATION_SECONDS', maxDurationSeconds), 5, maxDurationSeconds);
-    return { executor: 'constant-vus', exec: execName, vus, duration: `${duration}s`, gracefulStop: '10s' };
+    return { executor: 'constant-vus', exec: execName, vus, duration: `${duration}s`, gracefulStop: '30s' };
   }
   if (PROFILE === 'load') {
     const { warmupSeconds, measureSeconds, drainSeconds } = LIMITS.load;

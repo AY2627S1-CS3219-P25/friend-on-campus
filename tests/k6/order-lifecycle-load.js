@@ -30,7 +30,7 @@ import {
   summaryHandler,
 } from './lib/perf.js';
 
-const scenario = buildScenario('lifecycle', 50);
+const scenario = buildScenario('lifecycle', 'lifecycle');
 const maxVus = scenarioMaxVus(scenario);
 const OPEN_TIMEOUT_MS = Math.min(Number(__ENV.PERF_OPEN_TIMEOUT_MS) || 30000, 120000);
 

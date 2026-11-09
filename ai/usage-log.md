@@ -8207,3 +8207,25 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 - `apps/student-app/src/orders/feedZones.ts`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/test/feed-zones.test.ts`, `apps/student-app/package.json` — committed as described in the previous entry; no further change
 - `services/order-service/src/database/seed.ts`, `services/order-service/prisma/migrations/20261109190000_sample_errand_zone_fass/migration.sql` — committed as described in the previous entry; no further change
 - `ai/usage-log.md` — this entry, and the 19:33 and 20:02 entries committed with it
+
+## 2026-11-09 20:32 SGT — Review PR #252, file Supplier Service DB sorting/pagination issue (#253), and apply k6 harness review fixes
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** Review PR #252, create a GitHub issue for pushing supplier-service sorting/pagination to PostgreSQL so #29 (50 VUs) and #33 (100 VUs) can be tested at their stated concurrency, reference it in the PR, post review feedback on PR #252, apply the k6 harness review fixes directly to the branch, and update the PR title/description to document commit `0fd675e`.
+
+**Usage scenario:** Code review, issue creation (#253), and targeted review fixes on the k6 performance harness:
+- `tests/k6/lib/perf.js`, `tests/k6/discovery-load.js`, `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js`: `buildScenario` resolves `baselineVus` directly from `tests/k6/requirements.json` when given a workload name instead of duplicating hardcoded numbers in each script, and increases the smoke profile's `gracefulStop` from `10s` to `30s` so in-flight order-lifecycle iterations can complete cleanly.
+- `tests/k6/requirements.json`, `scripts/perf/lib/report.mjs`, `scripts/perf/test/harness.test.mjs`: added per-tier `requiredVus` (`20` for #29, `30` for #33) and updated `performanceFromSummary` to check `limit.requiredVus ?? op.concurrency.required`, with a new unit test covering multi-tier concurrency checks; referenced #253 in `requirements.json` and `tests/k6/README.md`.
+- `.github/workflows/ci.yml`: added `node --test scripts/perf/test/harness.test.mjs` to the `test-config` job so wrapper self-tests run on every PR.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — run `scripts/perf/test/harness.test.mjs` in `test-config`
+- `scripts/perf/lib/report.mjs` — per-tier `requiredVus` concurrency check in `performanceFromSummary`
+- `scripts/perf/test/harness.test.mjs` — unit test for multi-tier `requiredVus` (#29 vs #33)
+- `tests/k6/lib/perf.js` — resolve `baselineVus` from `requirements.json` by workload name; smoke `gracefulStop: '30s'`
+- `tests/k6/discovery-load.js`, `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js` — pass workload name to `buildScenario`
+- `tests/k6/requirements.json`, `tests/k6/README.md` — per-tier `requiredVus`, reference #253, fix table threshold note
+- `ai/usage-log.md` — this entry

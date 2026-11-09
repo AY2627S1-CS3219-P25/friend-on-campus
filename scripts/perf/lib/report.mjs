@@ -1,4 +1,10 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-11-09
+// Scope: PR #252 review fix: performanceFromSummary resolves per-tier requiredVus from the matched limit entry
+//        before falling back to op.concurrency.required so multi-tier operations (e.g. supplier #29 vs #33)
+//        check concurrency against the selected tier.
+// Author review: Validated by Yee Yan Hwee (yanhwee)
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
 // Scope: Evidence builders for the k6 performance harness (issue #237): a bounded 10-second time-series
 //        derived from k6's JSON output, and per-operation verdicts (thresholds, sample minimums, VUs versus
@@ -144,14 +150,15 @@ export function performanceFromSummary(summary, workloadSpec, context) {
     if (count < minSteadySamples) problems.push(`only ${count} steady samples (minimum ${minSteadySamples})`);
     for (const row of thresholds) if (!row.ok) problems.push(`${row.metric} ${row.expression} failed`);
 
+    const requiredConcurrency = limit.requiredVus ?? op.concurrency.required;
     let concurrencyStatus;
     if (profile === 'smoke') {
       // Smoke proves accounts, data, routes and checks; it never claims the issue's concurrency.
       concurrencyStatus = 'NOT_ASSESSED';
     } else if (op.concurrency.mode === 'sustained') {
-      concurrencyStatus = estimatedInFlight >= op.concurrency.required * concurrencyTolerance ? 'MET' : 'INCOMPLETE';
+      concurrencyStatus = estimatedInFlight >= requiredConcurrency * concurrencyTolerance ? 'MET' : 'INCOMPLETE';
     } else {
-      concurrencyStatus = maxVus >= op.concurrency.required ? 'MET' : 'INCOMPLETE';
+      concurrencyStatus = maxVus >= requiredConcurrency ? 'MET' : 'INCOMPLETE';
     }
 
     const verdict = problems.length > 0 ? 'FAIL' : concurrencyStatus === 'INCOMPLETE' ? 'INCOMPLETE' : 'PASS';
@@ -178,7 +185,7 @@ export function performanceFromSummary(summary, workloadSpec, context) {
       } : { count: 0, steadySeconds },
       concurrency: {
         configuredVus: maxVus,
-        required: op.concurrency.required,
+        required: requiredConcurrency,
         mode: op.concurrency.mode,
         estimatedInFlight,
         tolerance: concurrencyTolerance,

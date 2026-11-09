@@ -34,7 +34,7 @@ if (WORKLOAD !== 'discovery' && WORKLOAD !== 'supplier') {
 }
 
 const SCENARIO_NAME = WORKLOAD === 'discovery' ? 'order_feed' : 'supplier_search';
-const scenario = buildScenario(WORKLOAD === 'discovery' ? 'orderFeed' : 'supplierSearch', WORKLOAD === 'discovery' ? 100 : 50);
+const scenario = buildScenario(WORKLOAD === 'discovery' ? 'orderFeed' : 'supplierSearch', WORKLOAD);
 const maxVus = scenarioMaxVus(scenario);
 
 export const options = baseOptions({ [SCENARIO_NAME]: scenario }, operationThresholds(WORKLOAD, maxVus));

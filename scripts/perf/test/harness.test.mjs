@@ -9,11 +9,16 @@
 //
 //   node --test scripts/perf/test/harness.test.mjs
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import http from 'node:http';
+import path from 'node:path';
 import { after, before, test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { cleanup, findRunOwned, FixtureError } from '../lib/fixtures.mjs';
 import { createGateway, GatewayError } from '../lib/gateway.mjs';
-import { compareRuns, overallVerdict, renderComparison, stageStatus } from '../lib/report.mjs';
+import { compareRuns, overallVerdict, performanceFromSummary, renderComparison, stageStatus } from '../lib/report.mjs';
+
+const REQUIREMENTS = JSON.parse(readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../tests/k6/requirements.json'), 'utf8'));
 
 const TTL_SECONDS = 900;
 const MINUTE = 60_000;
@@ -177,4 +182,30 @@ test('compareRuns reports the change per operation and marks runs at different l
   assert.match(markdown, /\| discovery \| order_feed \| 100 \| 1000 -> 500 \| -50% \| 2000 -> 1000 \| -50% \| 50\.0 -> 100\.0 \| \+100% \|/);
   assert.match(markdown, /50 -> 100 \*/);
   assert.match(markdown, /not a like-for-like comparison/);
+});
+
+test('performanceFromSummary enforces per-tier requiredVus for multi-tier workloads (#29 vs #33)', () => {
+  const summary = {
+    state: { testRunDurationMs: 360_000 },
+    metrics: {
+      'http_req_duration{operation:supplier_search,phase:steady}': { values: { 'p(50)': 1000, 'p(95)': 2000, 'p(99)': 2500, avg: 1100, max: 3000 }, thresholds: { 'p(95)<=9300': { ok: true } } },
+      'http_reqs{operation:supplier_search,phase:steady}': { values: { count: 200 }, thresholds: { 'count>0': { ok: true } } },
+      'http_req_failed{operation:supplier_search,phase:steady}': { values: { rate: 0 }, thresholds: { 'rate<0.01': { ok: true } } },
+      'response_ok{operation:supplier_search,phase:steady}': { values: { rate: 1 }, thresholds: { 'rate>0.99': { ok: true } } },
+    },
+  };
+  const baseContext = { profile: 'load', limits: REQUIREMENTS.limits, minSteadySamples: 100, concurrencyTolerance: 0.95, k6ExitCode: 0 };
+
+  // At 25 VUs: above #29's upToVus=20 tier (so selects #33), but below #33's requiredVus=30 -> INCOMPLETE.
+  const underSecondTier = performanceFromSummary(summary, REQUIREMENTS.workloads.supplier, { ...baseContext, maxVus: 25 });
+  assert.equal(underSecondTier.operations[0].issue, '#33');
+  assert.equal(underSecondTier.operations[0].concurrency.required, 30);
+  assert.equal(underSecondTier.operations[0].concurrency.status, 'INCOMPLETE');
+  assert.equal(underSecondTier.verdict, 'INCOMPLETE');
+
+  // At 30 VUs: meets #33's requiredVus=30 -> PASS.
+  const atSecondTier = performanceFromSummary(summary, REQUIREMENTS.workloads.supplier, { ...baseContext, maxVus: 30 });
+  assert.equal(atSecondTier.operations[0].concurrency.required, 30);
+  assert.equal(atSecondTier.operations[0].concurrency.status, 'MET');
+  assert.equal(atSecondTier.verdict, 'PASS');
 });

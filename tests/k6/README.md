@@ -120,14 +120,14 @@ the next 100 ms.
 
 Supplier search also runs at a **lowered load**: 20 virtual users and a second population of 30, where #29 and #33
 state 50 and 100. At 50 and 100 back-to-back users the Supplier Service ran out of database connections and returned
-HTTP 500 in three of four local runs; at 20 and 30 it returned no errors (p95 4,318 ms and 6,186 ms). Its limits are
+HTTP 500 in three of four local runs (tracked in #253); at 20 and 30 it returned no errors (p95 4,318 ms and 6,186 ms). Its limits are
 those measurements plus 50%. The dataset stays at 500 records. The figure the issue states is kept beside it (`requirementP95Ms`) and printed in every summary.
 A PASS against a raised limit does not show that the issue's requirement is met.
 
 | Script | Workload | Population | Limit |
 |---|---|---|---|
 | `discovery-load.js` (`WORKLOAD=discovery`) | order feed and query variants (status, page/limit, campusZone, search) | `order_feed` | p95 < 3200 ms at 100 VUs (raised; #74 states 1000 ms) |
-| `discovery-load.js` (`WORKLOAD=supplier`) | supplier listing, search, filters, pagination over >= 500 run-owned active records | `supplier_search` | p95 <= 6500 ms at 20 VUs (raised and lowered load; #29 states 2000 ms at 50 VUs); <= 9300 ms at 30 VUs (#33 states 4000 ms at 100 VUs) above 50 VUs (#33) |
+| `discovery-load.js` (`WORKLOAD=supplier`) | supplier listing, search, filters, pagination over >= 500 run-owned active records | `supplier_search` | p95 <= 6500 ms at 20 VUs (raised and lowered load; #29 states 2000 ms at 50 VUs); <= 9300 ms at 30 VUs (#33 states 4000 ms at 100 VUs) above 20 VUs (#33) |
 | `credit-balance-load.js` | wallet read of the VU's own account, compared with the fixture snapshot | `credit_wallet` | p95 <= 1900 ms at 100 VUs (raised; #43 states 500 ms), errors < 1% (#45) |
 | `order-lifecycle-load.js` | requester/courier pair per VU: create -> poll OPEN -> accept -> pickup -> deliver -> complete | `order_create`, `order_accept`, `order_pickup`, `order_deliver`, `order_complete` | each p95 <= 4000 ms at 50 VUs (raised; #36 states 500 ms); `lifecycle_incomplete == 0` |
 
