@@ -3,130 +3,69 @@ AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconciled this guide with current service code, schemas, configuration and tests; consolidated duplicated reference material.
+Author review: <to be completed by Reallyeasy1>
 -->
 
 # Credit contracts and data
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Source baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), inspected 2026-11-09 (SGT). This describes repository behavior, not a verified deployment.
 
 ## HTTP and event interfaces
 
-| Interface | Access/input | Result |
-|---|---|---|
-| GET /api/credits/wallet | Token user; no arbitrary owner parameter | Wallet DTO; missing wallet 404 without creation |
-| GET /api/credits/ledger | Token user; query parameters ignored | success:true,data:CreditTransactionDTO[]; all caller-visible rows, createdAt DESC then id DESC |
-| GET /health | Public | Process liveness |
-| GET /ready | Public | Database and consumer readiness, 200/503 |
+Both HTTP routes require a verified access token and derive the user ID from that token. Query/body parameters do not select another user's wallet.
 
-Reserve/settle/refund are internal operations, not HTTP endpoints. Gateway returns 403 for the escrow prefix; direct service calls have no corresponding route. Protected reads return shared-auth 401 on invalid/missing token. Domain errors preserve their status; unexpected errors do not become a successful financial result.
-
-| Consumed event | Required business identifiers/effect |
+| Route | Result |
 |---|---|
-| user.registered | userId, email, initialGrant; record welcome grant and wallet/ledger |
-| order.reservation.requested | orderId, requesterId, rewardCredits, correlationId; reserve or failure result |
-| order.completed | orderId, requesterId, courierId, rewardCredits; settle RESERVED escrow |
-| order.cancelled | orderId, requesterId, rewardCredits; refund matching reserved escrow |
-| order.expired | orderId, requesterId, rewardCredits; refund matching reserved escrow |
+| `GET /api/credits/wallet` | Caller wallet; `404` if absent; does not create it |
+| `GET /api/credits/ledger` | Transactions where caller is sender or recipient, newest first by `createdAt`, then ID; currently unpaginated |
 
-Every event requires `eventId`, matching `eventType` and a UTC `timestamp`, in addition to the fields above. Parsers check event/routing-key agreement, identifiers, timestamps and required amounts/participants. Normalized payload is hashed for processed-event identity. Exact replay is a no-op; reusing identity with different content is a conflict. This is scoped idempotent business processing, not a promise of exactly-once transport.
+Responses use `{ success: true, data }`; known credit failures use `{ success: false, error }`. There are no HTTP reserve, settle, refund or administrative ledger-repair routes. See [routes](../../../services/credit-service/src/credits/routes.ts) and [store queries](../../../services/credit-service/src/credits/store.ts).
 
-Only reservation results are written to the Credit outbox at this baseline: credit.reservation.succeeded/failed. No post-settlement/refund receipt event exists on main.
+The consumer accepts these routing keys:
+
+| Incoming event | Credit operation |
+|---|---|
+| `user.registered` | Initialize wallet and one welcome grant |
+| `order.reservation.requested` | Reserve reward and publish success/failure result |
+| `order.completed` | Settle escrow to the assigned courier |
+| `order.cancelled` | Refund reserved reward to requester |
+| `order.expired` | Refund reserved reward to requester |
+
+The [parser](../../../services/credit-service/src/credits/events.ts) checks event/routing-key agreement, UUID identities, UTC timestamps and positive integer amounts within PostgreSQL integer range. It normalizes UUID case and builds a SHA-256 fingerprint from the normalized event. Optional `orderCode` is excluded from that fingerprint so older otherwise-identical replays still match; it is not financial identity. Extra envelope fields are ignored.
+
+### Outgoing events
+
+| Event | Meaning |
+|---|---|
+| `credit.reservation.succeeded` | Reservation and associated financial writes committed |
+| `credit.reservation.failed` | Business reservation failure recorded; attempted reservation writes rolled back |
+| `credit.escrow.settled` | Escrow settlement, courier credit and ledger transaction committed |
+| `credit.escrow.refunded` | Escrow refund, requester credit and ledger transaction committed |
+
+Reservation results retain the request correlation ID and carry order, requester and reward; failure adds a reason. Settlement/refund receipts include schema version `2`, producer `credit-service`, order/correlation IDs, amount, beneficiary, ledger transaction ID and transaction code. Optional order code is display metadata; event-driven receipts also identify the causative Order event. A receipt is inserted in the same transaction as its financial changes; downstream delivery still depends on CDC and the broker.
 
 ## Persistence and invariants
 
-Wallet uses user UUID as primary key and separates available, escrow and total-earned balances. Escrow uses order UUID as primary key and transitions from RESERVED to SETTLED or REFUNDED. Grant identity prevents duplicate welcome allocation. Processed events persist event type and fingerprint. Ledger has unique transaction code, amount/type, optional participant/order IDs and timestamp.
-
-Migrations check available/escrow balances ≥0, ledger/grant/escrow amounts >0, allowed escrow states, and SETTLED iff courier is non-null. There is no SQL transaction-type CHECK or total-earned nonnegative CHECK; transaction-type validation occurs during DTO conversion. Conditional balance updates and escrow-state predicates enforce mutation preconditions. Cross-service IDs are scalar; database ownership does not provide cross-database foreign keys. All financial updates must be interpreted with their enclosing transaction in service/store, not as isolated helper calls.
-
-
-## Schema field inventory
-
-This inventory is extracted from the baseline Prisma schema. SQL-only checks and expression indexes are discussed above; a Prisma annotation is not an exhaustive database constraint inventory.
-
-### CreditWallet
-
-| Field | Prisma declaration |
+| Model | Purpose and key identity |
 |---|---|
-| `userId` | `String    @id @map("user_id") @db.Uuid` |
-| `availableCredits` | `Int       @default(100) @map("available_credits")` |
-| `escrowCredits` | `Int       @default(0) @map("escrow_credits")` |
-| `totalEarnedCredits` | `Int       @default(0) @map("total_earned_credits")` |
-| `createdAt` | `DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| `updatedAt` | `DateTime? @default(now()) @map("updated_at") @db.Timestamptz(6)` |
-| Model constraint | `@@map("credit_wallets")` |
+| `CreditWallet` | Per-user available, escrow and earned balances; user ID is the primary key |
+| `CreditTransaction` | Immutable operation record with unique transaction code and participant/order references |
+| `CreditGrant` | One welcome grant marker per user |
+| `CreditEscrow` | One reservation per order; state `RESERVED`, `SETTLED` or `REFUNDED` |
+| `ProcessedCreditEvent` | Event ID, type and normalized fingerprint for transactional deduplication |
+| `CreditOutboxEvent` | Result/receipt payload inserted with the business transaction for CDC delivery |
 
-### CreditTransaction
+Available and escrow balances cannot go negative; amounts must be positive. Escrow stores its original requester and amount, and settlement records its courier. The service rejects conflicting replay identities, attempts to settle refunded escrow, and attempts to refund settled escrow. User/order IDs are scalar cross-service references, not database foreign keys to User or Order.
 
-| Field | Prisma declaration |
-|---|---|
-| `id` | `String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid` |
-| `transactionCode` | `String    @unique @map("transaction_code") @db.VarChar(30)` |
-| `fromUserId` | `String?   @map("from_user_id") @db.Uuid` |
-| `toUserId` | `String?   @map("to_user_id") @db.Uuid` |
-| `orderId` | `String?   @map("order_id") @db.Uuid` |
-| `amount` | `Int` |
-| `transactionType` | `String    @map("transaction_type") @db.VarChar(30)` |
-| `description` | `String?` |
-| `createdAt` | `DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| Model constraint | `@@map("credit_transactions")` |
+Credit uses serializable transactions and conditional balance/escrow updates. The processed-event marker, balance mutations, ledger records and applicable outbox event commit together. This provides idempotent financial processing over at-least-once message delivery, not exactly-once transport.
 
-### CreditGrant
-
-| Field | Prisma declaration |
-|---|---|
-| `userId` | `String   @id @map("user_id") @db.Uuid` |
-| `amount` | `Int` |
-| `createdAt` | `DateTime @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| Model constraint | `@@map("credit_grants")` |
-
-### CreditEscrow
-
-| Field | Prisma declaration |
-|---|---|
-| `orderId` | `String   @id @map("order_id") @db.Uuid` |
-| `requesterId` | `String   @map("requester_id") @db.Uuid` |
-| `courierId` | `String?  @map("courier_id") @db.Uuid` |
-| `amount` | `Int` |
-| `state` | `String   @db.VarChar(16)` |
-| `createdAt` | `DateTime @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| `updatedAt` | `DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)` |
-| Model constraint | `@@map("credit_escrows")` |
-
-### ProcessedCreditEvent
-
-| Field | Prisma declaration |
-|---|---|
-| `eventId` | `String   @id @map("event_id") @db.Uuid` |
-| `eventType` | `String   @map("event_type") @db.VarChar(64)` |
-| `fingerprint` | `String   @db.VarChar(64)` |
-| `processedAt` | `DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)` |
-| Model constraint | `@@map("processed_credit_events")` |
-
-### CreditOutboxEvent
-
-| Field | Prisma declaration |
-|---|---|
-| `id` | `String   @id @db.Uuid` |
-| `aggregateType` | `String   @default("credit") @map("aggregate_type") @db.VarChar(64)` |
-| `aggregateId` | `String   @default("") @map("aggregate_id") @db.VarChar(64)` |
-| `eventType` | `String   @map("event_type") @db.VarChar(64)` |
-| `payload` | `String   @db.Text` |
-| `status` | `String   @default("PENDING") @db.VarChar(20)` |
-| `retryCount` | `Int      @default(0) @map("retry_count")` |
-| `createdAt` | `DateTime @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| `updatedAt` | `DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)` |
-| Model constraint | `@@index([status, createdAt], map: "credit_outbox_status_created_at_idx")` |
-| Model constraint | `@@map("credit_outbox_events")` |
+Use the [Prisma schema](../../../services/credit-service/prisma/schema.prisma) and [SQL migrations](../../../services/credit-service/prisma/migrations) for exact columns, indexes and database checks. A copied field inventory would duplicate those canonical definitions. Outbox status/retry columns are not confirmation that a consumer received an event.
 
 ## Source evidence and related reading
 
-- [`services/credit-service/src/credits/routes.ts`](../../../services/credit-service/src/credits/routes.ts)
-- [`services/credit-service/src/credits/events.ts`](../../../services/credit-service/src/credits/events.ts)
-- [`services/credit-service/src/credits/types.ts`](../../../services/credit-service/src/credits/types.ts)
-- [`services/credit-service/src/credits/errors.ts`](../../../services/credit-service/src/credits/errors.ts)
-- [`services/credit-service/prisma/schema.prisma`](../../../services/credit-service/prisma/schema.prisma)
-- [`services/credit-service/prisma/migrations/20260924050000_init/migration.sql`](../../../services/credit-service/prisma/migrations/20260924050000_init/migration.sql)
-- [`services/credit-service/prisma/migrations/20261018150000_reservation_outbox/migration.sql`](../../../services/credit-service/prisma/migrations/20261018150000_reservation_outbox/migration.sql)
-- [`services/credit-service/prisma/migrations/20261019120000_cdc_outbox_columns/migration.sql`](../../../services/credit-service/prisma/migrations/20261019120000_cdc_outbox_columns/migration.sql)
-- [Wiki: Credit Service](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Credit-Service)
-- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md) · [Verification record](../../audits/review-findings.md)
+- [Financial operations and receipt construction](../../../services/credit-service/src/credits/service.ts)
+- [Event validation](../../../services/credit-service/src/credits/events.ts) · [Transaction adapter](../../../services/credit-service/src/credits/store.ts)
+- [Runtime and testing](runtime-and-testing.md) · [Credit overview](README.md) · [Documentation index](../../README.md)

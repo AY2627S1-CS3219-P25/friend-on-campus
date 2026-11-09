@@ -2,55 +2,73 @@
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
+Prior diagram attribution: AI-generated (edited by Reallyeasy1).
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconciled this guide with current service code, schemas, configuration and tests; consolidated duplicated reference material.
 Author review: <to be completed by Reallyeasy1>
 -->
 
 # Order runtime, consistency and tests
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Source baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), inspected 2026-11-09 (SGT). This describes repository behavior, not a verified deployment.
 
 ## Submission and reservation
 
-`handleCreateOrder` validates before calling Supplier (4-second timeout). A missing/inactive supplier yields 400; network/unexpected upstream failure yields 503. It allocates order UUID, code and expiry, then `createOrderWithOutbox` commits PENDING plus reservation request. request eventId/correlationId/orderId share that UUID. The HTTP response is 202, not publication success.
+Posting first validates the input and fetches Supplier with a four-second timeout. A missing/inactive supplier returns `400`; unavailable or unexpected upstream responses return `503`. The repository then commits `PENDING` and `order.reservation.requested` together. The initial request's event ID, correlation ID and order ID share the new order UUID. HTTP `202` means accepted for processing, not published or funded.
 
-`applyReservationResult` locks the Order row with SELECT FOR UPDATE, checks requester and amount, and ignores results once the row is no longer PENDING. Failed result commits REJECTED. Successful result commits OPEN with order.created, or EXPIRED with order.expired if too late; Credit later refunds the reserved amount. No pending-order cancel endpoint is available. The sweeper processes expired OPEN orders in batches of 50; it is not a general PENDING timeout mechanism.
+Credit reserves the reward and publishes a reservation result through its own outbox. Order locks the order row (`SELECT FOR UPDATE`), verifies requester and amount, then applies the first result while the order is still `PENDING`. Replayed results after resolution do not transition it again.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
-  Pending["Committed PENDING order"] --> Result["Validated Credit result; lock row"]
-  Result -->|Already resolved| Noop["No-op"]
-  Result -->|Business failure| Rejected["REJECTED"]
-  Result -->|Success before expiry| Open["OPEN and order.created"]
-  Result -->|Success after expiry| Expired["EXPIRED and order.expired"]
+  Pending["PENDING order"] --> Result["Credit result; lock order"]
+  Result -->|Already resolved| Noop["No change"]
+  Result -->|Reservation failed| Rejected["REJECTED and order.rejected"]
+  Result -->|Funded before expiry| Open["OPEN and order.created"]
+  Result -->|Funded after expiry| Expired["EXPIRED and order.expired"]
   Expired --> Refund["Credit refunds asynchronously"]
 ```
 
+There is no requester cancellation endpoint for `PENDING`. The expiry sweeper processes overdue `OPEN` orders in batches of `50`; it is not a timeout mechanism for orders stuck awaiting reservation. Investigate the Order outbox, CDC connectors, Credit consumer/result outbox and Order result consumer before treating a pending order as lost or retrying submission.
+
 ## Concurrent transitions and failure boundaries
 
-Repository transitions use transactions and conditional updateMany predicates for status/version/ownership. Event insertion is part of applicable transition transactions. An unsuccessful conditional update does not publish the successful transition's event. Application prechecks alone are not the concurrency guard; the database predicate is essential.
+Repository transactions use conditional status, version and ownership predicates. Losing a concurrent update does not publish the winning action's event. Completion and cancellation commit Order state before Credit settles or refunds; current response messages correctly describe that asynchronous boundary. Confirm the wallet/ledger or Credit receipt before claiming the financial operation finished.
 
-Unassignment reopens the order without an event at this baseline. Completion/cancellation commits Order state and outbox before Credit applies settlement/refund. Existing response messages overstate financial completion; the drift register records this, and PR #184 changes the wording. Neither message text nor HTTP 200 proves the downstream ledger has converged.
+Dispute submission changes the flag/details/version without an outbox event. Requester completion is blocked while disputed; an admin can resolve via completion or cancellation. Unassignment does publish `order.unassigned`, including the prior courier, and reopens the order.
 
-Permanent reservation input/mismatch failures dead-letter. Infrastructure failures retry through shared messaging; transient unexpected failures use the configured bound. Consumer failures and DB readiness are distinct from process liveness. Broker fatal callbacks can exit and rely on Compose restart. There is no automatic DLQ resolution.
+Malformed or mismatched reservation results are permanent failures. Identified infrastructure failures retry without the transient retry limit; unknown processing failures use the configured bound. Dead-lettered messages need diagnosis and deliberate recovery, not automatic replay. See [shared messaging](../../packages/messaging.md) for transport guarantees and failure handling.
+
+`/ready` checks the database and consumer, whereas `/health` only establishes process liveness. A healthy HTTP process does not establish that CDC is publishing or that the Saga has converged. Fatal broker failures stop the process for supervisor restart; check connector state and queue/DLQ backlog separately.
+
+## Assistant degradation
+
+The assistant returns a draft for user review; it never bypasses ordinary order creation validation. It caches a nonempty active-supplier list for 60 seconds and can reuse an older cached list if refresh fails. Missing/unavailable model output or invalid JSON falls back to local extraction with warnings. This keeps manual posting independent of model availability, but does not establish that every generated draft is correct or that a supplier remains available at submission.
 
 ## Testing
 
-`test/app.test.ts` and `test/order.service.test.ts` run through workspace `test:unit`, covering routes/domain behavior with fake repositories. A fake single-winner test does not itself establish real PostgreSQL concurrency. `test/reservation.messaging.test.ts` runs through `test:messaging` with isolated Order/Credit test databases and RabbitMQ.
+After repository dependencies and generated clients are prepared, run from the repository root:
 
-The saga harness manually relays Order outbox rows but uses an actual dedicated Credit Debezium connector for first result delivery; later manual publications inject replay/fault cases. Aggregate runner/CI provision that connector and await streaming. This is hybrid evidence; `uat-cdc.mjs` separately covers end-to-end registration/reservation/refund.
+```sh
+npm run test:unit -w @campus-errand/order-service
+```
 
-Use `npm run test:unit -w @campus-errand/order-service`; messaging prerequisites and exact variables come from the test and runner. It is unsafe to point these suites at application databases. Local execution/blocked infrastructure is recorded centrally; inspected tests are not reported as newly passed.
+| Suite | Evidence and prerequisites |
+|---|---|
+| [`app.test.ts`](../../../services/order-service/test/app.test.ts) | HTTP validation/authorization and response behavior with test doubles |
+| [`order.service.test.ts`](../../../services/order-service/test/order.service.test.ts) | Domain transitions and concurrent commands with fake repositories |
+| [`assistant.service.test.ts`](../../../services/order-service/test/assistant.service.test.ts) | Draft extraction and fallback behavior |
+| [`reservation.messaging.test.ts`](../../../services/order-service/test/reservation.messaging.test.ts) | `test:messaging`; isolated Order/Credit databases, RabbitMQ and a dedicated Credit CDC connector |
+
+The messaging harness manually relays Order outbox rows, uses the real Credit connector for initial results, then injects replay/failure cases. It is hybrid evidence. The separate [`uat-cdc.mjs`](../../../scripts/uat/uat-cdc.mjs) covers registration/reservation/refund through CDC. A fake-repository concurrency test does not prove PostgreSQL concurrency, and neither suite proves the deployed environment passed.
+
+Use the current [test runner](../../../scripts/ci/run-all-tests.mjs) and [package scripts](../../../services/order-service/package.json) for infrastructure setup and exact variables. Integration/UAT suites write test data and must target disposable databases, not a deployed application database. No live Saga or infrastructure suite was run to refresh this document.
 
 ## Source evidence and related reading
 
-- [`services/order-service/src/orders/order.service.ts`](../../../services/order-service/src/orders/order.service.ts)
-- [`services/order-service/src/repositories/order.repository.ts`](../../../services/order-service/src/repositories/order.repository.ts)
-- [`services/order-service/src/messaging/reservation.consumer.ts`](../../../services/order-service/src/messaging/reservation.consumer.ts)
-- [`services/order-service/src/orders/expiry.sweeper.ts`](../../../services/order-service/src/orders/expiry.sweeper.ts)
-- [`services/order-service/test/order.service.test.ts`](../../../services/order-service/test/order.service.test.ts)
-- [`services/order-service/test/reservation.messaging.test.ts`](../../../services/order-service/test/reservation.messaging.test.ts)
-- [`scripts/ci/run-all-tests.mjs`](../../../scripts/ci/run-all-tests.mjs)
-- [`scripts/uat/uat-cdc.mjs`](../../../scripts/uat/uat-cdc.mjs)
-- [Wiki: Order Service](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Order-Service)
-- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md) · [Verification record](../../audits/review-findings.md)
+- [Order domain](../../../services/order-service/src/orders/order.service.ts) · [Repository](../../../services/order-service/src/repositories/order.repository.ts)
+- [Reservation consumer](../../../services/order-service/src/messaging/reservation.consumer.ts) · [Expiry sweeper](../../../services/order-service/src/orders/expiry.sweeper.ts)
+- [Assistant](../../../services/order-service/src/assistant/assistant.service.ts)
+- [Contracts and data](contracts-and-data.md) · [Credit runtime](../credit-service/runtime-and-testing.md)
+- [Documentation index](../../README.md) · [Verification record](../../audits/review-findings.md)

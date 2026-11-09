@@ -1,6 +1,14 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record author-approved publication of the documentation branch as a draft PR, including the unmatched linked-issue requirement.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconciled the documentation with current main and the read-only wiki, archived historical records, repaired navigation and recorded validation.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Recorded author-approved merge of PR #252 after checking the latest changes and CI.
 Author review: <to be completed by Reallyeasy1>
 
@@ -8282,3 +8290,97 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Files changed:**
 - `ai/usage-log.md` — preserves the two prior local review/publication entries and adds this merge record in the consolidated disclosure block.
+
+## 2026-11-09 22:43 SGT — Tidy current documentation against main b989758
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Tidy and update docs against latest main and the wiki; preserve history, verify current behavior and navigation, perform documentation-only edits in an isolated branch, leave wiki read-only and all changes uncommitted.
+
+**Usage scenario:** Documentation and source verification. Read repository instructions and documentation rules, inspected main `b989758e766cb593c3b8c94102eb6dfb5c7d8491` and wiki `0571db5d4ad8c89679131c8707aae105402c7618`, and rechecked main unchanged before handoff. Inventoried 60 resulting docs files, six relevant external READMEs and 42 wiki files. Independent reviewers reconciled service/frontend/shared-package behavior, Saga/receipt semantics, realtime fanout, ECS configuration, test commands and CI. Preserved eleven historical snapshots, six forwarding pages, original attribution and incomplete human review. Current docs distinguish original performance requirements from relaxed harness limits and retain unresolved PR #252 findings. Human requirements, policy, design decisions and approval remain unchanged.
+
+Validation passed: 938 local links, 96 fragments, all 29 Mermaid blocks (Mermaid 12.3.0), 66 repository URL occurrences and 132 wiki URL occurrences; all 60 docs reachable and 25 literal npm script names found. Typecheck passed twelve workspaces; unit suites passed 469/469 with none skipped; lint, static CI matrix (20 workspace suites/four system commands), nine wrapper self-tests, hook tests and git diff whitespace checks passed. Docker/k6 unavailable, so no full isolated integration/messaging/migration/seed/UAT/load run. Chromium unavailable, so diagram visual rendering was not verified. No live AWS, deployment, restore or alert evidence claimed. Source inventory, drift and verification records detail limitations. Existing uncommitted work in other worktrees preserved; no code/infrastructure/schema/dependency/requirement changes, commit, push, merge, wiki edit, issue or PR creation.
+
+**Files changed:**
+- `README.md` — quick-start counts, commands, coverage and documentation navigation.
+- `ai/usage-log.md` — this task record and consolidated disclosure.
+- `docs/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/authentication-and-security.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/communication-and-events.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/data-ownership.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/service-boundaries.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/system-overview.md` — source-verified reference, navigation or forwarding page.
+- `docs/archive/README.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-documentation-coverage.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-documentation-drift.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-pr-184-review.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-review-findings.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-source-inventory.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/infrastructure/2026-11-09-cloud-architecture-guide.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/plans/2026-10-22-notification-inbox.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/plans/2026-10-26-errand-details-page.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/services/chat-service/d4-implementation-specification.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/services/notification-service/structure-review.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/audits/documentation-coverage.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/documentation-drift.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/pr-184-review.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/review-findings.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/source-inventory.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/cloud-deployment-and-devops-guide.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/claude-code-workflow.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/local-development.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/repository-conventions.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/testing-strategy.md` — source-verified reference, navigation or forwarding page.
+- `docs/frontend/admin-portal.md` — source-verified reference, navigation or forwarding page.
+- `docs/frontend/student-app.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/api-gateway.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/cdc-and-broker.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/ci-cd.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/docker-and-deployment.md` — source-verified reference, navigation or forwarding page.
+- `docs/new-cloud-architecture-guide.md` — source-verified reference, navigation or forwarding page.
+- `docs/packages/auth.md` — source-verified reference, navigation or forwarding page.
+- `docs/packages/common-dtos.md` — source-verified reference, navigation or forwarding page.
+- `docs/packages/messaging.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/chat-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/chat-service/d4-implementation-specification.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/credit-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/credit-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/credit-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/implementation.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/reliability-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/structure-review.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/order-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/order-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/order-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/coordinate-upgrades.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/user-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/user-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/user-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/superpowers/plans/2026-10-22-notification-inbox.md` — source-verified reference, navigation or forwarding page.
+- `docs/superpowers/plans/2026-10-26-errand-details-page.md` — source-verified reference, navigation or forwarding page.
+- `infra/terraform/ecs/README.md` — current realtime implementation status and canonical reference.
+- `tests/k6/README.md` — configured harness limits, credential handling and implementation/recovery boundaries.
+
+## 2026-11-09 22:49 SGT — Publish documentation cleanup as a draft pull request
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Create a pull request in the GitHub repository for the completed documentation cleanup.
+
+**Usage scenario:** Author-approved commit, branch publication and pull-request creation. Rechecked main remains `b989758e766cb593c3b8c94102eb6dfb5c7d8491`, the prepared changes are documentation-only, and `git diff --check` passes. Include the prior cleanup entry and its existing validation evidence in the commit. Final staging exposed inherited trailing whitespace in the newly added K3s archive; normalized it, preserving intentional Markdown line breaks, and updated the archive/verification notes. No application changes or newly claimed runtime test results. Independent issue search found no existing open issue fully resolved by this cleanup; related #232 includes superseded K3s criteria and a cloud-access skill not implemented here. Create a draft PR with the tracking gap explicit and the linked-issue checkbox unchecked; do not falsely close #232 or create an issue without the separately required authorization. Preserve pending human-review fields. No merge or wiki changes. Verify the published branch tree and PR head against the prepared content.
+
+**Files changed:**
+- `ai/usage-log.md` — publication bookkeeping and consolidated disclosure.
+- `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — normalize inherited whitespace without changing historical technical content.
+- `docs/archive/README.md`, `docs/audits/review-findings.md` — record the formatting and complete staged verification.
+- Earlier prepared documentation changes — included in the approved commit.

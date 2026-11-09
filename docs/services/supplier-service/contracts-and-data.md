@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,7 +11,7 @@ Author review: <to be completed by Reallyeasy1>
 
 # Supplier contracts and data
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); source inspected 2026-11-09 (SGT). This describes the repository, not a verified live deployment.
 
 ## Routes
 
@@ -15,7 +19,7 @@ Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/frie
 |---|---|---|
 | GET /api/suppliers | Public query | 200 data:{suppliers,total,page,limit,totalPages} |
 | GET /api/suppliers/:id | Public; exact ID then supplierCode | 200 data:supplier; 404 absent |
-| POST /api/suppliers | ADMIN; required name,campusZone,exactLocation,category,building,floor | 201 data:supplier; 400 required field; 409 duplicate |
+| POST /api/suppliers | ADMIN; required name,campusZone,exactLocation,category,building,floor,latitude,longitude | 201 data:supplier; 400 required field; 409 duplicate |
 | PUT /api/suppliers/:id | ADMIN; partial mutable fields | 200 data:supplier; 400 blank required identity field; 404; 409 |
 | PATCH /api/suppliers/:id/toggle | ADMIN | 200 data:supplier; 404 |
 | DELETE /api/suppliers/:id | ADMIN; permanent only when query is literal true | 200 success/message; soft delete default; 404 |
@@ -30,7 +34,7 @@ campusZone/category are case-insensitive equality filters. Trimmed search checks
 
 Supplying page or limit enables pagination (defaults 1/10, lower page bound 1, limit clamp 1–100). With neither, all matches are returned. parseInt handling is not strict finite numeric validation; do not advertise stronger rejection behavior than implemented.
 
-Create optionally accepts supplierCode,description,latitude,longitude,startingTime,closingTime,imageUrl. Update accepts mutable fields and isActive, but not supplierCode. The category union is compile-time only; service runtime does not enforce the whole enum. Prisma objects are returned directly, including nullable fields and timestamp serialization.
+Create requires finite numeric latitude and longitude; missing, null and string coordinates are rejected. The API does not enforce geographic ranges. Optional create fields are supplierCode,description,startingTime,closingTime,imageUrl. Update accepts mutable fields and isActive, but not supplierCode. Omitted coordinates preserve existing values, including legacy nulls; explicitly supplied coordinates must be finite numbers. See [coordinate upgrades](coordinate-upgrades.md) for repair and migration behavior. The category union is compile-time only; service runtime does not enforce the whole enum. Prisma objects are returned directly, including nullable fields and timestamp serialization.
 
 ## Data constraints
 
@@ -39,32 +43,9 @@ ID is SQL TEXT with a Prisma-generated UUID string. supplierCode is unique. The 
 
 Generic caught failures return HTTP 500 with `err.message`, falling back to `"Internal server error"`; unlike User Service, this handler does not consistently suppress internal error messages.
 
-## Schema field inventory
+## Persistence reference
 
-This inventory is extracted from the baseline Prisma schema. SQL-only checks and expression indexes are discussed above; a Prisma annotation is not an exhaustive database constraint inventory.
-
-### Supplier
-
-| Field | Prisma declaration |
-|---|---|
-| `id` | `String   @id @default(uuid())` |
-| `supplierCode` | `String   @unique @map("supplier_code")` |
-| `name` | `String` |
-| `campusZone` | `String   @map("campus_zone")` |
-| `exactLocation` | `String   @map("exact_location")` |
-| `category` | `String` |
-| `description` | `String?` |
-| `building` | `String` |
-| `floor` | `String` |
-| `latitude` | `Float?` |
-| `longitude` | `Float?` |
-| `startingTime` | `String?  @map("starting_time")` |
-| `closingTime` | `String?  @map("closing_time")` |
-| `imageUrl` | `String?  @map("image_url")` |
-| `isActive` | `Boolean  @default(true) @map("is_active")` |
-| `createdAt` | `DateTime @default(now()) @map("created_at")` |
-| `updatedAt` | `DateTime @default(now()) @updatedAt @map("updated_at")` |
-| Model constraint | `@@map("suppliers")` |
+The [Prisma schema](../../../services/supplier-service/prisma/schema.prisma) is the field reference: one `Supplier` row holds directory identity, location, opening hours, image, active status and timestamps. Latitude/longitude remain nullable for legacy records even though create validation now requires them. The [coordinate migrations](coordinate-upgrades.md) explain that difference.
 
 ## Source evidence and related reading
 

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile the active documentation with main b989758 and simplify navigation; preserve historical attribution.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,37 +11,29 @@ Author review: <to be completed by Reallyeasy1>
 
 # Service boundaries
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation inspected at [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026 (SGT). This is a code/configuration reference, not verification of the live deployment.
 
-Use this ownership map when tracing a request or reviewing a change. It describes existing boundaries, not proposed module reorganizations.
+Use this map to find the owner of a change. Shared contracts describe messages and API shapes; they do not transfer business-data ownership.
 
-| Owner | Responsibilities | Public entry points | Does not own |
+| Owner | Responsibilities | Entry points | Boundary |
 |---|---|---|---|
-| User | Accounts, password hashes, token issuance, refresh sessions, user administration | /api/auth, /api/users | Wallet balances and financial settlement |
-| Supplier | Campus pickup-directory records, availability and admin CRUD | /api/suppliers | Order acceptance or credit reservation |
-| Order | Errand state, assignee, supplier snapshot, reservation outcome application, expiry | /api/orders; credit.reservation.* consumer | Credit balance/ledger mutation |
-| Credit | Wallets, grants, escrow, ledger and processed-event identities | /api/credits/wallet and /ledger; event consumer | Order lifecycle state |
-| Notification | Requester notification persistence, read state, authenticated real-time delivery | /api/notifications and WebSocket; order event consumer | Order/wallet mutation or saga decisions |
+| [User](../services/user-service/README.md) | Accounts, login, refresh sessions, profile and administration | `/api/auth`, `/api/users` | Does not own wallets or financial settlement |
+| [Supplier](../services/supplier-service/README.md) | Directory, location data and admin CRUD | `/api/suppliers` | Does not reserve credits or claim errands |
+| [Order](../services/order-service/README.md) | Errand lifecycle, assignment, supplier snapshots, disputes and assistant drafts | `/api/orders`, Credit reservation-result consumer | Commits lifecycle state; Credit commits money effects separately |
+| [Credit](../services/credit-service/README.md) | Welcome grants, wallet/ledger, escrow and financial receipts | `/api/credits/wallet`, `/api/credits/ledger`, domain-event consumer | Does not decide Order lifecycle transitions |
+| [Notification](../services/notification-service/README.md) | Recipient inbox, read state, lifecycle projection and realtime delivery | `/api/notifications`, `/ws/`, Order/Credit events | Reads facts; does not complete or refund orders |
+| [Chat](../services/chat-service/README.md) | Conversation projection, messages, translation/moderation and realtime delivery | `/api/chat`, `/ws/chat/`, Order events | Its participant/status projection has documented freshness limits |
 
-All services expose health/readiness routes, with different dependency checks. Client applications coordinate API calls but cannot authorize their own privileges. Admin UI role checks are user experience gates; backend middleware is the enforcement point.
+The [auth package](../packages/auth.md) verifies access tokens offline. [Common DTOs](../packages/common-dtos.md) supply TypeScript contracts; each service still validates input at runtime. [Messaging](../packages/messaging.md) supplies broker and realtime infrastructure. The [LLM package](../../packages/llm/src/index.ts) is a shared external-API helper, not another backend service.
 
-Shared packages have narrower roles: `auth` verifies tokens offline; `common-dtos` declares compile-time contracts; `messaging` owns broker connection/topology/retry utilities. Runtime validation remains in service code. None is a shared business-data repository.
+## Consistency boundaries
 
-Cross-service IDs are scalar references. A User deletion does not cascade through other databases. Supplier name/zone are copied into orders; a later supplier edit does not rewrite those snapshots. Eventual credit initialization means an immediate wallet read after registration can return 404 while CDC processing is pending.
+- Cross-service IDs are scalar references, not cross-database foreign keys. Deleting a User does not cascade into Order, Credit, Chat or Notification databases.
+- Orders retain supplier snapshots; directory edits do not rewrite existing orders.
+- A wallet may be unavailable immediately after registration while `user.registered` is still being processed.
+- An Order success response and a later Credit receipt represent different commits. Follow the [Saga and event flow](communication-and-events.md).
+- UI role checks improve navigation; backend authorization is the enforcement point. Gateway routing is not authorization.
 
-## Tracing a feature
+Trace a feature from browser API wrapper through gateway/Vite routing, service router, transaction/outbox and consumer to its persisted UI result. Current detail lives in the service references above; older proposals and reviewed PR snapshots live in the [archive](../archive/README.md).
 
-Trace browser action → API wrapper → gateway/Vite route → service router → business module → repository/transaction → outbox/consumer → user-visible response. Consult [communication and events](communication-and-events.md) before attributing a financial effect to an HTTP response. Follow [component navigation](../README.md) for file-level maps.
-
-## Open boundaries
-
-The shared OrderStatus type declares DISPUTED, but no inspected current Order transition produces it. Pending chat and inbox PRs do not establish current interfaces. Requirements, issue criteria and implementation disagreements belong in the drift register and remain human decisions.
-
-## Source evidence and related reading
-
-- [`packages/auth/src/index.ts`](../../packages/auth/src/index.ts)
-- [`packages/common-dtos/src/index.ts`](../../packages/common-dtos/src/index.ts)
-- [`packages/messaging/src/index.ts`](../../packages/messaging/src/index.ts)
-- [`services/order-service/src/repositories/order.repository.ts`](../../services/order-service/src/repositories/order.repository.ts)
-- [Wiki: Services](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Services)
-- [Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)
+[Documentation index](../README.md) · [Data ownership](data-ownership.md) · [Open discrepancies](../audits/documentation-drift.md)

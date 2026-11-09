@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile the active documentation with main b989758 and simplify navigation; preserve historical attribution.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Added the Chat (pending PR #148) coverage row; other rows unchanged and not reverified.
 Author review: <to be completed by Reallyeasy1>
@@ -9,35 +13,24 @@ Scope: Source-linked implementation documentation and evidence review requested 
 Author review: <to be completed by Reallyeasy1>
 -->
 
-# Documentation coverage matrix
+# Documentation coverage
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation inspected at [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026 (SGT). This is a code/configuration reference, not verification of the live deployment.
 
-Coverage means implemented behavior is described with source links; it is not an assertion that every feature is correct or every test ran. The central index is the complete file inventory.
+Coverage here means source inspection and documentation reconciliation. Runtime verification is recorded separately in [review findings](review-findings.md).
 
-| Component | Documents | Covered evidence | Remaining limits |
-|---|---|---|---|
-| User | README, contracts/data, runtime/testing | All auth/user routes, sessions, migrations, administration, outbox, probes/tests | Offline revocation and admin semantics; live DB checks unavailable |
-| Supplier | Same three | Public reads, admin CRUD, filters, uniqueness, seed, probes/tests | Mocked repository tests; runtime CORS/config discrepancy |
-| Order | Same three | All routes, states, supplier lookup, reservation outcomes, concurrency/outbox, expiry/tests | No rejection/unassign event on main; financial copy mismatch |
-| Credit | Same three | Read HTTP, ledger/escrow/grants, transactional processing, retry/idempotency, migrations/tests | No main receipt events; live DB/broker checks unavailable |
-| Notification | Five files | Modules, all REST/socket/event paths, persistence, retries, structure review and tests | Process-local sockets, missing recovery coverage, bounded DB retry |
-| Frontends | Student/admin guides | Page/module maps, auth, orders, notifications, admin probes and proxy modes | No main app unit suites; PR184 state races recorded separately |
-| Shared packages | auth, common-dtos, messaging | Exports, runtime limits, event inventory and broker semantics | No package-local runtime suites |
-| Infrastructure | Gateway, Docker/deployment, CDC/broker, CI | Routing, startup, persistence, connectors, matrix and review workflow | Local Compose documented; cloud proposals not deployed claims |
-| Development | Local, testing, conventions, Claude workflow | Actual commands, #174 variables, evidence/disclosure workflow | Live Claude plugin/rule loading unverified |
-| Audits | Source inventory, drift, review findings, PR184 review | Baselines, discrepancies, actual verification and pending-change separation | Human approval fields remain pending |
-| Chat (pending PR #148 head `f39ab1f`; not on `main`) | README, D4 specification (proposal) | Module map, configuration/wiring, two migrations, test inventory, reconciliation of the seven review findings, remaining limitations, decision register, conditional D4 contracts and verification map | Policy decisions D1-D7 unapproved; no frontend unit harness or browser scenario; Order-authority, idempotency and bounds remain proposals |
+| Area | Current reference | Evidence inspected |
+|---|---|---|
+| Components, ownership, events and security | [Architecture](../architecture/system-overview.md) | Service composition, Prisma schemas, event producers/consumers, JWT and gateway boundaries |
+| User / Supplier | [User](../services/user-service/README.md), [Supplier](../services/supplier-service/README.md) | Routes, validation, persistence, migrations, seeds and test contracts |
+| Order / Credit Saga | [Order](../services/order-service/README.md), [Credit](../services/credit-service/README.md) | Lifecycle predicates, v2 domain events, escrow transactions/receipts, idempotency and failure paths |
+| Notification / Chat | [Notification](../services/notification-service/README.md), [Chat](../services/chat-service/README.md) | Recipient mapping, inbox projection, local authorization, history and realtime outboxes/relays |
+| Frontends | [Student](../frontend/student-app.md), [admin](../frontend/admin-portal.md) | Modular pages, API wrappers, refresh/reconnect behavior, role gates and tests |
+| Shared packages | [Auth](../packages/auth.md), [DTOs](../packages/common-dtos.md), [messaging](../packages/messaging.md) | Public exports, validation boundaries, consumer retry paths and realtime transport |
+| Local development and testing | [Development](../development/local-development.md), [testing](../development/testing-strategy.md) | Package scripts, dev/test runners, fixture/target requirements, CI matrix and k6 limitations |
+| Cloud and operations | [Cloud](../new-cloud-architecture-guide.md), [gateway](../infrastructure/api-gateway.md), [CDC](../infrastructure/cdc-and-broker.md), [CI/CD](../infrastructure/ci-cd.md) | ECS Terraform, gateway entrypoint, Compose, Dockerfiles, Debezium, broker and workflows |
+| History and wiki | [Archive](../archive/README.md), [inventory](source-inventory.md), [drift](documentation-drift.md) | Preserved dated plans/audits, wiki navigation and selected conflicting pages |
 
-## Maintenance
+The full file inventory is maintained in one place: [source inventory](source-inventory.md). Old October coverage counts are preserved in the [historical coverage record](../archive/audits/2026-10-25-documentation-coverage.md), not reused as current verification.
 
-When a source change lands, update its service reference and shared catalogue together. When PR184 merges, revisit Notification, Credit receipts, Order v2 facts, frontend inbox and migration compatibility. Do not replace baseline facts with pending code before merge.
-
-Inspect migrations as well as Prisma, route bodies as well as DTOs, and both producer/consumer implementations. Mark test results as executed, source-inspected, skipped or blocked. Link human decisions; do not author missing rationales to make coverage appear complete.
-
-## Source evidence and related reading
-
-- [`package.json`](../../package.json)
-- [`CLAUDE.md`](../../CLAUDE.md)
-- [Wiki: Home](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Home)
-- [Documentation index](../README.md) · [Drift register](documentation-drift.md) · [Verification record](review-findings.md)
+[Documentation index](../README.md)

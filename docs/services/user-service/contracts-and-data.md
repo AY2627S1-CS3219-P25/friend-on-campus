@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,7 +11,7 @@ Author review: <to be completed by Reallyeasy1>
 
 # User contracts and data
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); source inspected 2026-11-09 (SGT). This describes the repository, not a verified live deployment.
 
 This is the implemented API at the pinned baseline. `UserDTO` contains userId, username, email, userRole and status; credential/session internals are not returned.
 
@@ -40,53 +44,15 @@ Registration writes user and JSON-text outbox row together. The payload is `even
 There are no cross-database foreign keys or automatic Order/Credit/Notification cleanup on account deletion. A stored token hash is not a recoverable refresh token.
 
 
-## Schema field inventory
+## Persistence reference
 
-This inventory is extracted from the baseline Prisma schema. SQL-only checks and expression indexes are discussed above; a Prisma annotation is not an exhaustive database constraint inventory.
-
-### User
-
-| Field | Prisma declaration |
+| Model | Stored responsibility |
 |---|---|
-| `id` | `String    @id @default(uuid()) @db.Uuid` |
-| `username` | `String    @db.VarChar(50)` |
-| `email` | `String    @db.VarChar(320)` |
-| `passwordHash` | `String    @map("password_hash")` |
-| `role` | `String    @default("STUDENT") @db.VarChar(20)` |
-| `status` | `Boolean   @default(true)` |
-| `createdAt` | `DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| `updatedAt` | `DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)` |
-| `sessions` | `Session[]` |
-| Model constraint | `@@map("users")` |
+| `User` | Identity, password hash, role/status and timestamps |
+| `Session` | User reference, unique refresh-token hash, persistence flag and idle expiry |
+| `OutboxEvent` | Registration event payload and timestamps; retained polling-era fields are not CDC delivery acknowledgements |
 
-### Session
-
-| Field | Prisma declaration |
-|---|---|
-| `id` | `String   @id @default(uuid()) @db.Uuid` |
-| `userId` | `String   @map("user_id") @db.Uuid` |
-| `refreshTokenHash` | `String   @unique @map("refresh_token_hash")` |
-| `persistent` | `Boolean  @default(false)` |
-| `createdAt` | `DateTime @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| `lastUsedAt` | `DateTime @default(now()) @map("last_used_at") @db.Timestamptz(6)` |
-| `idleExpiresAt` | `DateTime @map("idle_expires_at") @db.Timestamptz(6)` |
-| `user` | `User     @relation(fields: [userId], references: [id], onDelete: Cascade)` |
-| Model constraint | `@@index([userId, idleExpiresAt], map: "sessions_user_expiry_idx")` |
-| Model constraint | `@@map("sessions")` |
-
-### OutboxEvent
-
-| Field | Prisma declaration |
-|---|---|
-| `id` | `String   @id @default(uuid()) @db.Uuid` |
-| `eventType` | `String   @map("event_type") @db.VarChar(50)` |
-| `payload` | `String   @db.Text` |
-| `status` | `String   @default("PENDING") @db.VarChar(20)` |
-| `retryCount` | `Int      @default(0) @map("retry_count")` |
-| `createdAt` | `DateTime @default(now()) @map("created_at") @db.Timestamptz(6)` |
-| `updatedAt` | `DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)` |
-| Model constraint | `@@index([status, createdAt], map: "outbox_events_status_created_at_idx")` |
-| Model constraint | `@@map("outbox_events")` |
+Use the [Prisma schema](../../../services/user-service/prisma/schema.prisma) for exact fields and the migration links below for SQL-only constraints. This guide does not maintain a second schema copy.
 
 ## Source evidence and related reading
 

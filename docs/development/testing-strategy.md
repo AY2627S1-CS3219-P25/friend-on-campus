@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Refresh test categories, isolation boundaries, driver variables, failure exits and k6 evidence limitations.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 Scope: Driver environment matrix rows for scripts/uat/uat-realtime.mjs (issue #197).
 Author review: <to be completed by Reallyeasy1>
@@ -9,91 +13,93 @@ Scope: Source-linked implementation documentation and evidence review requested 
 Author review: <to be completed by Reallyeasy1>
 -->
 
-# Testing strategy and UAT configuration
+# Testing and evidence
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Source baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); inspected 9 November 2026 (SGT). These are source-verified instructions, not evidence of a new runtime test or a live AWS deployment.
 
-This reference maps commands to actual tests, dependencies and outputs. It resolves issue #174's documentation gap: standalone UAT drivers can connect to the wrong local RabbitMQ unless AMQP_URL is set explicitly.
+Choose a suite by the behavior being changed. [CI](../infrastructure/ci-cd.md) defines required jobs; [service references](../README.md) explain individual cases. Test drivers can register accounts, modify supplier data, spend credits and publish events. Run them against explicitly selected test environments, not an arbitrary deployed site.
 
-## Existing commands
+## Choose a command
 
-| Root command | Scope/dependency |
+| Root command | Coverage and prerequisites |
 |---|---|
-| npm run typecheck | All ten workspaces; backend test tsconfigs included |
-| npm run lint | ESLint; warnings and errors reported separately |
-| npm run test:unit | User, Supplier, Order and Notification on main; Node/tsx |
-| npm run test:integration | PostgreSQL-backed service suites |
-| npm run test:messaging | PostgreSQL/RabbitMQ; Order suite requires dedicated Credit CDC |
-| npm run test:migration / test:seed | Credit migration/seed suites |
-| npm run test:acceptance | API UAT → Notification UAT → CDC UAT |
-| npm run test:e2e:api | D2 API E2E; starts User/Supplier on 8001/8002 |
-| npm run test:e2e:ui | Playwright Chromium browser UAT |
-| npm run ci:validate-tests | Static CI matrix/workspace scripts consistency |
-| npm test | Isolated aggregate Compose orchestration; includes browser setup and cleanup |
+| `npm run typecheck` | All 12 workspaces; service and messaging test sources are included through their test tsconfigs |
+| `npm run lint` / `npm run build` | ESLint / all workspace builds; install dependencies and generate clients first |
+| `npm run test:unit` | Nine suites: six services, both apps and shared messaging; Node's test runner through `tsx` |
+| `npm run test:integration` | Four PostgreSQL suites: User admin guards, Credit, Notification, Chat |
+| `npm run test:messaging` | Four PostgreSQL/RabbitMQ suites: Credit, Order, Notification, Chat; Order also needs Credit CDC |
+| `npm run test:migration` | Credit and Supplier migration suites against isolated databases |
+| `npm run test:seed` | Credit seed suite against an isolated database |
+| `npm run test:acceptance` | API UAT → Notification UAT → CDC UAT against an already-running seeded stack |
+| `npm run test:e2e:api` | Starts User/Supplier processes itself; needs prepared local PostgreSQL and available selected ports |
+| `npm run test:e2e:ui` | Playwright Chromium browser UAT against a healthy seeded stack |
+| `npm run test:e2e:ui:realtime` | Four browser clients exercising notification/chat consistency; creates a temporary courier |
+| `npm run ci:validate-tests` | Validates the static CI test matrices and package script selection |
+| `node --test scripts/perf/test/harness.test.mjs` | Nine wrapper self-tests at this baseline; no k6, database or broker needed |
+| `node --test scripts/ci/deployment.test.mjs` | Release-script and workflow regression checks; does not deploy |
+| `npm run coverage` | Per-service unit coverage reports; not a CI gate |
 
-The aggregate runner assigns a unique project, free loopback ports, test-only JWT keys, isolated databases and the required CDC connector. It overrides driver network settings. It can install Chromium; it is not a lightweight Markdown check. Do not reuse its teardown command against a development project.
+## Isolated aggregate runner
+
+`npm test` invokes [run-all-tests.mjs](../../scripts/ci/run-all-tests.mjs). It creates a uniquely named Compose project, chooses free loopback ports, generates temporary signing keys, creates test databases, runs the category and system suites, then removes its own stack and volumes. It also checks Chat/Notification socket shutdown. It can install Chromium and takes substantially longer than static checks.
+
+`npm run test:e2e` uses the same isolation with `--system-only`: API E2E, browser UAT and socket shutdown; it omits unit/database categories and the acceptance chain.
+
+**Neither aggregate command invokes `test:e2e:ui:realtime` at this baseline.** The CI browser job runs that script separately. Do not describe `npm test` as covering every available root command. k6, coverage and deployment-wrapper tests also have separate entry points.
+
+## Direct database suites
+
+Prefer the aggregate runner when you need its infrastructure setup. For direct category runs, inspect the relevant test and supply dedicated test resources; some suites skip when an opt-in variable is absent, while others fail their safety guard.
+
+| Suite | Required settings / isolation |
+|---|---|
+| User integration | `ADMIN_GUARD_TEST_DATABASE_URL`; creates and drops a random schema. `USER_TEST_DATABASE_URL` is not its opt-in variable |
+| Credit integration, messaging, migration, seed | `CREDIT_TEST_DATABASE_URL` naming a `_test` database; messaging also uses `CREDIT_TEST_RABBITMQ_URL` |
+| Notification integration / messaging | `NOTIFICATION_TEST_DATABASE_URL`; messaging additionally needs `NOTIFICATION_TEST_RABBITMQ_URL`; suites skip without the required settings |
+| Chat integration / messaging | `CHAT_TEST_DATABASE_URL`; messaging additionally needs `CHAT_TEST_RABBITMQ_URL`; suites skip without the required settings |
+| Order messaging | `ORDER_TEST_DATABASE_URL` and `CREDIT_TEST_DATABASE_URL` ending in `_test`, `CREDIT_TEST_RABBITMQ_URL`, and a dedicated Credit CDC connector/exchange (`SAGA_TEST_EXCHANGE`) |
+| Supplier migration | `DATABASE_URL` naming a `_test` database; creates temporary schemas and exercises migration history |
+
+The [CI workflow](../../.github/workflows/ci.yml) and aggregate runner show the current database creation/migration sequence. Order messaging manually relays Order outbox rows while exercising real Credit CDC; [CDC UAT](../../scripts/uat/uat-cdc.mjs) exercises the deployed User/Order/Credit publication chain. Neither is a complete simulation of every failure interleaving.
 
 ## Driver environment matrix
 
-Set variables for the specific driver. A variable not listed for that driver has no documented effect.
+These standalone drivers do not inherit each other's configuration. Settings below come from their source, not from a global UAT configuration file.
 
-| Driver | Variable | Default and meaning |
+| Driver | Settings | Defaults / effect |
 |---|---|---|
-| uat-d2-ui.mjs | GW | http://localhost; browser ingress |
-| uat-d2-ui.mjs | ADMIN_URL | GW + /admin/ |
-| uat-d2-ui.mjs | AMQP_URL | Development Order publisher identity, localhost:5672, vhost campus; use configured credentials |
-| uat-d2-ui.mjs | SHOTS | test-results/screenshots under repository root |
-| uat-d2-ui.mjs | UAT_OUT | test-results/uat-d2-ui-results.json |
-| uat-notifications.mjs | GW | http://localhost; REST ingress |
-| uat-notifications.mjs | WS_URL | GW with http→ws, plus /ws/ |
-| uat-notifications.mjs | AMQP_URL | Same development broker host/port/vhost convention as UI driver |
-| uat-d2-api.mjs | GW | http://localhost |
-| uat-d2-api.mjs | SUP_DIRECT / USER_DIRECT | http://localhost:8002 / http://localhost:8001 |
-| uat-d2-api.mjs | UAT_OUT | test-results/uat-d2-api-results.json |
-| uat-cdc.mjs | BASE_URL / GW | BASE_URL wins, then GW, then http://localhost |
-| uat-cdc.mjs | CDC_TIMEOUT_MS | 60000 |
-| uat-cdc.mjs | UAT_OUT | test-results/uat-cdc-results.json |
-| uat-realtime.mjs | GW | http://localhost; browser ingress for all four clients |
-| uat-realtime.mjs | UAT_RESTART_CHAT | unset; `1` enables the Chat Service restart check, which runs `docker restart` on the host |
-| uat-realtime.mjs | UAT_CHAT_CONTAINER | campuserrand-chat-service; the container that check restarts |
-| uat-realtime.mjs | UAT_OUT | test-results/uat-realtime/uat-realtime-results.json; screenshots beside it |
+| [Browser UAT](../../scripts/uat/uat-d2-ui.mjs) | `GW`, `ADMIN_URL` | `http://localhost`; admin defaults to `GW` + `/admin/` |
+| Browser UAT | `AMQP_URL`, `SHOTS`, `UAT_OUT` | Order publisher on localhost:5672/campus; screenshots under `test-results/screenshots`; JSON at `test-results/uat-d2-ui-results.json` |
+| [Notification UAT](../../scripts/uat/uat-notifications.mjs) | `GW`, `WS_URL` | `http://localhost`; socket defaults to the equivalent `/ws/` URL |
+| Notification UAT | `AMQP_URL`, `CREDIT_AMQP_URL` | Order publisher and Credit publisher; Credit URL defaults to a credential substitution in `AMQP_URL`, so set both explicitly for a custom broker identity |
+| [API UAT](../../scripts/uat/uat-d2-api.mjs) | `GW`, `SUP_DIRECT`, `USER_DIRECT`, `UAT_OUT` | Gateway localhost; direct Supplier/User ports 8002/8001; JSON at `test-results/uat-d2-api-results.json` |
+| [CDC UAT](../../scripts/uat/uat-cdc.mjs) | `BASE_URL`, `GW`, `CDC_TIMEOUT_MS`, `UAT_OUT` | `BASE_URL` takes priority over `GW`, then localhost; observation timeout defaults to 60000 ms |
+| [Realtime browser UAT](../../scripts/uat/uat-realtime.mjs) | `GW`, `UAT_OUT` | localhost; JSON and screenshots under `test-results/uat-realtime/` |
+| Realtime browser UAT | `UAT_RESTART_CHAT`, `UAT_CHAT_CONTAINER` | Restart check is skipped unless `UAT_RESTART_CHAT=1`; then executes `docker restart` against the named container (default `campuserrand-chat-service`) |
+| [API E2E](../../scripts/test-d2-e2e.ts) | `TEST_USER_PORT`, `TEST_SUPPLIER_PORT`, `TEST_POSTGRES_PORT` | Defaults 8001, 8002, 5432; starts the two services itself |
 
-Notification UAT supports neither UAT_OUT nor SHOTS: it reports to stdout. WS_URL configures that standalone driver, not the browser's notification hook; browser sockets derive from page origin. Driver authentication/publisher defaults are local-development settings, not production credentials.
+Notification UAT reports to stdout; it has no `UAT_OUT` or `SHOTS` option. Browser socket URLs derive from page origin; `WS_URL` only changes the standalone Notification driver. The browser/API scripts assume documented seed accounts and administrative actions, so they are not a general single-account live-site UAT runner.
 
-## Running against a broker exposed on 5673
+### Broker targeting
 
-First inspect the chosen Compose mapping and set AMQP_URL to its configured broker identity, **localhost:5673** and vhost campus. Set GW to the reachable gateway. Do not assume changing GW also changes AMQP_URL.
+If the selected test stack exposes AMQP on 5673, configure `AMQP_URL` with the correct identity, localhost:5673 and vhost `campus`. Set `CREDIT_AMQP_URL` independently for Notification UAT when using custom credentials. Set `GW` to the gateway address separately. Keep credential-bearing values in local environment configuration, not reports or committed commands.
 
-| Check | Command after setting variables |
-|---|---|
-| Browser | npm run test:e2e:ui |
-| Notification | node scripts/uat/uat-notifications.mjs |
-| Whole acceptance chain | npm run test:acceptance |
+An `ACCESS_REFUSED` response can mean the driver reached a different native broker on 5672. Check listeners and Compose port mappings before changing broker permissions or resetting volumes.
 
-For a single invocation, the shape is `AMQP_URL='<configured AMQP URL on port 5673>' GW='http://localhost' npm run test:e2e:ui`; substitute the configured URL locally. The same AMQP_URL override belongs beside `node scripts/uat/uat-notifications.mjs`. Keep credential-bearing values out of committed files and shared logs.
+## Load testing with k6
 
-If authentication reports ACCESS_REFUSED while Compose is healthy, verify which process owns 5672 and which host port Compose exposes. A native RabbitMQ on 5672 can accept the connection but reject the Compose publisher identity. This is not evidence that Notification parsing or storage failed. Do not change broker permissions or reset volumes to hide a wrong target.
+The canonical workload commands and profile details are in [tests/k6/README.md](../../tests/k6/README.md); [`requirements.json`](../../tests/k6/requirements.json) defines the enforced values. `npm ci` does not install k6. The manual [performance workflow](../../.github/workflows/performance.yml) pins k6 1.5.0 and runs the wrapper, which creates run-owned accounts/suppliers/orders and reconciles credit effects.
 
-## Test evidence boundaries
+`npm run perf:k6:load` targets the local gateway and runs all configured load populations. Remote targets require administrator environment credentials; non-loopback load/stress additionally requires `--acknowledge-remote-load`. Obtain authorization and agree bounds before generating shared-environment load.
 
-The browser driver catches individual step failures into its results, then prints/writes the totals without setting a nonzero exit code for failed checks. Inspect the JSON/log pass/fail counts: a zero exit or green CI job alone does not establish 40/40 success. This behavior is recorded, not fixed, by this documentation change.
+The author raised latency thresholds and lowered Supplier load to 20/30 VUs. Original issue figures remain in `requirementP95Ms` / `requirementVus`. **A PASS establishes only the configured harness criteria, not the original NFRs**, cloud capacity, autoscaling or service-boundary Credit mutation latency (#44).
 
-User integration uses ADMIN_GUARD_TEST_DATABASE_URL and creates/applies/drops its own random schema. Notification integration/messaging skip when required variables are absent. Credit suites require safe isolated test URLs and fail their guard when missing/unsafe; inspect each script rather than treating all suites as optional. Supplier unit tests mock Prisma; its real database behavior is covered through selected acceptance paths.
+PR #252 is merged, but its [four P2 review findings](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/252#pullrequestreview-5825829477) remain present at this baseline: workflow argument handling can bypass target selection; fixture workers can outlive cleanup; skipped pending orders can lose recovery accounts; empty discovery lists can pass correctness checks. Account for these limits when interpreting results or using cleanup. Generated test-account credentials are temporarily written under the run's `.secrets` directory and removed during normal cleanup; administrator credentials are supplied through environment variables.
 
-Order saga messaging uses real Credit CDC but manually relays Order outbox records. Full CDC UAT covers registration, welcome grant, reservation and cancellation/refund. Browser UAT's 40 checks include notifications and order actions; its older D2 label is not a complete coverage description. Postman collections provide calls/assertions but do not prove all failure/recovery interleavings.
+## Interpret the evidence
 
-The current local run record is [review findings](../audits/review-findings.md). Historical Wiki screenshots/counts apply to their recorded commit, not this run. Tests can create users/orders/financial test data; run against explicit isolated environments, not production.
+The API, Notification, CDC, main browser and realtime drivers propagate failed checks through a nonzero exit status. The old claim that Browser UAT always exits successfully is no longer true: see its [final verdict](../../scripts/uat/uat-d2-ui.mjs). Still inspect skipped cases, JSON reports and screenshots; passing CI proves only the scenarios actually executed.
 
-## Source evidence and related reading
+Record the target, source revision, command, fixture scope, timing and artifact paths with every run. An HTTP `202`, success toast or test script's early step does not prove the asynchronous credit effect completed. Historical wiki results remain tied to their original revision. This documentation refresh does not execute runtime, load, recovery or live-AWS tests.
 
-- [`package.json`](../../package.json)
-- [`scripts/ci/run-all-tests.mjs`](../../scripts/ci/run-all-tests.mjs)
-- [`scripts/ci/validate-test-matrix.mjs`](../../scripts/ci/validate-test-matrix.mjs)
-- [`scripts/uat/uat-d2-ui.mjs`](../../scripts/uat/uat-d2-ui.mjs)
-- [`scripts/uat/uat-notifications.mjs`](../../scripts/uat/uat-notifications.mjs)
-- [`scripts/uat/uat-d2-api.mjs`](../../scripts/uat/uat-d2-api.mjs)
-- [`scripts/uat/uat-cdc.mjs`](../../scripts/uat/uat-cdc.mjs)
-- [`scripts/test-d2-e2e.ts`](../../scripts/test-d2-e2e.ts)
-- [`tests/postman/order_credit_README.md`](../../tests/postman/order_credit_README.md)
-- [Wiki: Testing and Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Testing-and-Evidence)
-- [Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)
+[Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Verify gateway routes and distinguish Compose DNS, Vite proxying and ECS Service Connect at the current baseline.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
 Scope: Issues #173/#169/#206: upstreams resolved per request through Docker DNS (variables, 10 s TTL), 3 s connect timeout, Chat health routes; diagnostics paragraph updated accordingly.
 Author review: <to be completed by Reallyeasy1>
@@ -15,44 +19,64 @@ Author review: <to be completed by Reallyeasy1>
 
 # Gateway and proxy routing
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation checked against [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026 (SGT). This is a source review, not a verification of the running AWS deployment.
 
-The gateway is routing infrastructure. Service middleware performs authentication/authorization. A direct host service port, a host Vite proxy and a container NGINX proxy are different paths and should be named in test evidence.
+The gateway forwards requests. Service middleware enforces authentication and authorization. Name the tested path in evidence: host Vite, local Compose, direct service ports and AWS ingress are different configurations.
 
-| Incoming path | Destination/behavior |
+## Route table
+
+The table follows [gateway/nginx.conf](../../gateway/nginx.conf). Normal API paths retain their URI.
+
+| Incoming path | Destination or result |
 |---|---|
-| /api/auth/ and /api/users[/] | User 8001; API path retained |
-| /api/suppliers[/] | Supplier 8002 |
-| /api/orders[/] | Order 8003 |
-| /api/credits/escrow prefix | Gateway 403; there is no current Credit HTTP escrow mutation route |
-| /api/credits[/] | Credit 8004 |
-| /api/notifications[/] | Notification 8005 |
-| /api/chat[/] | Chat 8006 |
-| /api/health/{user,supplier,order,credit,notification,chat}/{health,ready} | Rewrite to target service probe |
-| /ws/ | Notification root path, HTTP/1.1 WebSocket upgrade |
-| /ws/chat/ | Chat root path, HTTP/1.1 WebSocket upgrade (86400 s read/send timeout) |
-| /admin | Redirect to /admin/ |
-| /admin/ | Admin static frontend |
-| /images/ | Mounted supplier image files |
-| Other /api paths | Gateway 404 |
-| / | Student static frontend |
+| `/health` | NGINX liveness response; does not probe dependencies |
+| `/api/auth/`, `/api/users` and `/api/users/` | User, port 8001 |
+| `/api/suppliers`, `/api/suppliers/` | Supplier, port 8002 |
+| `/api/orders`, `/api/orders/` | Order, port 8003 |
+| `/api/credits/escrow` prefix | 403 at the gateway; Credit has no public HTTP escrow mutation endpoint |
+| `/api/credits`, `/api/credits/` | Credit, port 8004 |
+| `/api/notifications`, `/api/notifications/` | Notification, port 8005 |
+| `/api/chat`, `/api/chat/` | Chat, port 8006 |
+| `/api/health/{user,supplier,order,credit,notification,chat}/{health,ready}` | Corresponding service probe |
+| `/ws/chat/` | Chat root, WebSocket upgrade |
+| `/ws/` | Notification root, WebSocket upgrade |
+| `/admin` | Redirect to `/admin/` |
+| `/admin/` | Admin static frontend, port 5174 |
+| `/images/` | Supplier image files |
+| Other `/api` paths | 404 |
+| `/` | Student static frontend, port 5173 |
 
-API proxy locations forward normal authorization headers. The socket is authenticated after upgrade by an AUTH frame. Gateway socket timeouts are 86400 seconds; socket token expiry is independently enforced by Notification.
+Both WebSocket routes use HTTP/1.1 upgrades and 86400-second NGINX read/send timeouts. Authentication occurs inside the socket protocol; gateway timeouts do not override service token expiry or upstream idle timeouts. Cross-replica delivery belongs to [Chat](../services/chat-service/README.md) and [Notification](../services/notification-service/README.md), not to the gateway.
 
-Host Vite configs default to individual backend services; `GATEWAY_URL` can route host development through the gateway. Container applications are built static assets with their own NGINX proxy configuration, not running Vite dev servers. Admin's base path is `/admin/`.
+## Local and AWS name resolution
 
-## Failure diagnostics
+| Path | How upstreams are reached |
+|---|---|
+| Host Vite development | Both app Vite configs use individual service targets by default; `GATEWAY_URL` selects a gateway |
+| Docker Compose | Mounted NGINX configuration uses service-name variables and Docker DNS at `127.0.0.11`, cached for 10 seconds |
+| ECS | [gateway-start.sh](../../infra/terraform/ecs/gateway-start.sh) reads IPv4 Service Connect aliases from `/etc/hosts`, substitutes addresses in NGINX configuration and starts NGINX |
 
-Compare service `/ready` directly with gateway probes when diagnosing 502. Upstream names are held in variables and resolved through Docker's embedded DNS (`resolver 127.0.0.11 valid=10s`), so a replaced container's address is picked up within the TTL without a gateway restart (issue #173; the earlier static `upstream` blocks cached the address for the life of the process). `proxy_connect_timeout` is 3 s, so a stopped backend yields 502 quickly instead of after the 60 s default (issue #169); the two SPAs bound their mount-time refresh call to 8 s for the same reason. A process health response does not establish database or consumer readiness.
+The ECS task overrides the image entry point, so the image's generic [DNS hook](../../gateway/entrypoint.sh) is not the ECS routing mechanism. Container frontends serve built assets through NGINX; they do not run Vite development servers. Admin uses the `/admin/` base path.
 
-No production route changes are included. Verify path tables against gateway plus both app NGINX/Vite files when deployments change. Browser UAT tests one configured ingress and does not prove every direct-port path has identical behavior.
+## AWS ingress
 
-## Source evidence and related reading
+[edge.tf](../../infra/terraform/ecs/edge.tf) configures CloudFront → HTTP ALB → gateway tasks. ECS registers dynamically assigned **host** ports in the ALB instance target group. The ALB does not address Kubernetes pods; the current stack contains no Kubernetes ingress controller. The gateway reaches frontend and backend services through Service Connect.
 
-- [`gateway/nginx.conf`](../../gateway/nginx.conf)
-- [`apps/student-app/nginx.conf`](../../apps/student-app/nginx.conf)
-- [`apps/admin-portal/nginx.conf`](../../apps/admin-portal/nginx.conf)
-- [`apps/student-app/vite.config.ts`](../../apps/student-app/vite.config.ts)
-- [`apps/admin-portal/vite.config.ts`](../../apps/admin-portal/vite.config.ts)
-- [Wiki: Deployment and Configuration](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Deployment-and-Configuration)
-- [Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)
+CloudFront uses HTTPS/WSS toward the browser and HTTP/WS toward the origin. All-path caching is disabled. The ALB accepts the CloudFront origin-facing prefix list and requires the private origin header. See the [cloud overview](../new-cloud-architecture-guide.md) for the network boundaries.
+
+## Failure diagnosis
+
+1. Compare gateway `/health` with the relevant proxied service `/ready`. A healthy gateway can still route to an unavailable backend.
+2. For local 502s after container replacement, inspect the service's health and Docker DNS; upstream resolution is cached for 10 seconds.
+3. For ECS 502s, inspect ALB target health, gateway task logs and the Service Connect alias/task configuration. Do not apply Compose DNS fixes to ECS.
+4. Inspect the service and its database/broker dependencies. NGINX uses a three-second connect timeout and 60-second default read/send timeouts; it does not retry a failed business operation or prove whether a write committed.
+5. For dropped sockets, inspect all hops and service readiness. The ALB idle timeout is 120 seconds; an 86400-second NGINX setting alone does not keep a connection alive.
+
+## Source evidence
+
+- [Gateway configuration](../../gateway/nginx.conf), [image](../../gateway/Dockerfile) and [ECS startup](../../infra/terraform/ecs/gateway-start.sh)
+- [Student NGINX](../../apps/student-app/nginx.conf) and [Vite](../../apps/student-app/vite.config.ts)
+- [Admin NGINX](../../apps/admin-portal/nginx.conf) and [Vite](../../apps/admin-portal/vite.config.ts)
+- [ECS application/Service Connect configuration](../../infra/terraform/ecs/applications.tf)
+
+[Documentation index](../README.md) · [Known discrepancies](../audits/documentation-drift.md)

@@ -3,43 +3,57 @@ AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconciled this guide with current service code, schemas, configuration and tests; consolidated duplicated reference material.
+Author review: <to be completed by Reallyeasy1>
 -->
 
-# Order Service implementation
+# Order Service
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Source baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), inspected 2026-11-09 (SGT). This describes repository behavior, not a verified deployment.
 
-Order Service owns errand lifecycle and assignment in order_db. It validates suppliers synchronously and coordinates reservation outcomes asynchronously. Credit owns financial mutation; Notification owns persisted alerts.
+Order Service owns errand state, assignment, disputes and expiry. Credit Service owns the money: posting requests a reservation asynchronously; completion, cancellation and expiry trigger later settlement or refund. An Order HTTP response does not prove that a wallet has changed.
 
-| Module | Responsibility |
+Start with [contracts and data](contracts-and-data.md) for routes and state transitions, then [runtime and testing](runtime-and-testing.md) for the reservation flow, recovery and checks.
+
+## Implementation map
+
+| Source | Responsibility |
 |---|---|
-| src/index.ts; app.ts | Compose config, Prisma, auth, supplier client, repository/service/router, reservation consumer, sweeper and probes |
-| orders/order.routes.ts | Authenticated APIs, principal extraction, admin checks and domain-error mapping |
-| orders/order.service.ts | Input/state/ownership checks and event construction |
-| repositories/order.repository.ts | Reads, conditional transitions, row locks, atomic outbox writes |
-| clients/supplier.client.ts | Timed supplier HTTP lookup and availability result |
-| messaging/reservation.consumer.ts | Validate and apply Credit result events; classify failures |
-| orders/expiry.sweeper.ts | Periodic OPEN expiry batches |
-| orders/order.types.ts | Domain errors, DTO conversion and order-code generation |
+| [`index.ts`](../../../services/order-service/src/index.ts), [`app.ts`](../../../services/order-service/src/app.ts) | Startup, authentication, probes and shutdown |
+| [`order.routes.ts`](../../../services/order-service/src/orders/order.routes.ts) | Authenticated HTTP endpoints and response envelopes |
+| [`order.service.ts`](../../../services/order-service/src/orders/order.service.ts) | Input validation, ownership checks and transition commands |
+| [`order.repository.ts`](../../../services/order-service/src/repositories/order.repository.ts) | Transactional state changes, version checks and outbox writes |
+| [`reservation.consumer.ts`](../../../services/order-service/src/messaging/reservation.consumer.ts) | Credit reservation result handling |
+| [`expiry.sweeper.ts`](../../../services/order-service/src/orders/expiry.sweeper.ts) | Expire overdue `OPEN` orders |
+| [`assistant.service.ts`](../../../services/order-service/src/assistant/assistant.service.ts) | Natural-language draft extraction with Supplier grounding and an offline fallback |
 
-Config defaults: port 8003; supplier URL http://localhost:8002; events exchange campus.events; queue order-service.events; retry delay 5000 ms and threshold 5; connection timeout 5000 ms; expiry interval 30000 ms (minimum 5000). Database selection uses DATABASE_URL then ORDER_DATABASE_URL; JWT_PUBLIC_KEY/issuer/audience configure offline auth. The queue's DLX and DLQ both use the name order-service.events.dlq, distinct broker objects.
+## Configuration and startup
 
-User-visible supplier names/zones are snapshots on the order. Source-generated order codes are `ORD-` plus eight uppercase hexadecimal characters. Startup installs shutdown handling, consumer readiness and expiry scheduling; it does not run an outbox polling worker. Compose probes /health, although /ready checks database/consumer dependencies separately.
+Use the repository [quick start](../../../README.md) for the full local stack. For an individually configured service, the workspace command is `npm run dev -w @campus-errand/order-service`. It needs a migrated Order database, RabbitMQ and a valid JWT public key; posting also needs Supplier Service. The complete Saga needs Credit and the CDC connectors.
 
-`SEED_SAMPLE_ORDERS` controls development sample orders. Applying committed migrations and seeding are separate operations from generating Prisma clients. Workspace dev/db/test scripts are documented in [local development](../../development/local-development.md).
+Key settings in [`config.ts`](../../../services/order-service/src/config.ts):
 
-Read [contracts/data](contracts-and-data.md), [runtime/tests](runtime-and-testing.md) and the shared [event catalogue](../../architecture/communication-and-events.md). The v2 envelope, rejected/unassigned events and credit receipts in PR #184 remain pending and are covered only in its audit.
+| Setting | Behavior/default |
+|---|---|
+| `PORT` / `ORDER_SERVICE_PORT` | HTTP port; default `8003` |
+| `DATABASE_URL` / `ORDER_DATABASE_URL` | `DATABASE_URL` takes precedence |
+| `JWT_PUBLIC_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE` | Access-token verification |
+| `SUPPLIER_SERVICE_URL` | Supplier API; default `http://localhost:8002` |
+| `RABBITMQ_URL`, `EVENTS_EXCHANGE` | Broker connection and exchange; exchange defaults to `campus.events` |
+| `ORDER_RETRY_DELAY_MS`, `ORDER_RETRY_LIMIT` | Delayed retry: `5000` ms; unknown transient failure limit: `5` |
+| `EXPIRY_SWEEPER_INTERVAL_MS` | Default `30000`; minimum `5000` |
+| `SOCLAAS_BASE_URL`, `SOCLAAS_API_KEY`, `SOCLAAS_MODEL` | Optional assistant model configuration |
 
-When no public key is configured, only explicit `ORDER_DEV_AUTH=1` or `true` enables development header identity (`x-user-id`, `x-user-role`); otherwise startup fails. See the contract page for this implemented authentication exception.
+The consumer queue is `order-service.events`. Its dead-letter exchange and queue are separate broker objects both named `order-service.events.dlq`. These are fixed in this service's configuration.
 
-## Source evidence and related reading
+Missing JWT configuration fails startup unless `ORDER_DEV_AUTH=1` or `true` explicitly enables development header authentication. That development mode trusts `x-user-id` / `x-user-role`; production must use verified tokens.
 
-- [`services/order-service/src/index.ts`](../../../services/order-service/src/index.ts)
-- [`services/order-service/src/app.ts`](../../../services/order-service/src/app.ts)
-- [`services/order-service/src/config.ts`](../../../services/order-service/src/config.ts)
-- [`services/order-service/src/orders/order.service.ts`](../../../services/order-service/src/orders/order.service.ts)
-- [`services/order-service/src/repositories/order.repository.ts`](../../../services/order-service/src/repositories/order.repository.ts)
-- [`services/order-service/src/orders/expiry.sweeper.ts`](../../../services/order-service/src/orders/expiry.sweeper.ts)
-- [`services/order-service/package.json`](../../../services/order-service/package.json)
-- [Wiki: Order Service](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Order-Service)
-- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md) · [Verification record](../../audits/review-findings.md)
+`/health` is liveness; `/ready` checks the database, consumer and shutdown state. The process starts the reservation consumer and expiry sweeper, and stops them during shutdown. Fatal broker failure exits for the deployment supervisor to restart the process. No application outbox polling worker runs: Debezium publishes committed outbox records.
+
+## Related reading
+
+- [Credit Service](../credit-service/README.md) · [Shared messaging](../../packages/messaging.md)
+- [Wiki: Order Service](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Order-Service) — design context; source behavior above takes precedence for implementation details.
+- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md)

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,7 +11,7 @@ Author review: <to be completed by Reallyeasy1>
 
 # User runtime, failure behavior and tests
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); source inspected 2026-11-09 (SGT). This describes the repository, not a verified live deployment.
 
 ## Registration and credit initialization
 
@@ -51,7 +55,7 @@ Database failures propagate to centralized error handling. Request IDs/error IDs
 | user-module.test.ts; validation.test.ts | Profile/admin rules and normalization |
 | admin-guard.integration.test.ts | Real PostgreSQL atomic registration/outbox rollback, concurrent administration, disabled refresh and deletion |
 
-Unit command: `npm run test:unit -w @campus-errand/user-service`. Integration command: `npm run test:integration -w @campus-errand/user-service`, with **ADMIN_GUARD_TEST_DATABASE_URL**. The integration suite creates a random schema, applies committed migrations, uses two Prisma/app instances and drops its schema afterward; its connection requires those permissions. It skips without the variable. README's USER_TEST_DATABASE_URL wording is stale.
+Unit command: `npm run test:unit -w @campus-errand/user-service`. Integration command: `npm run test:integration -w @campus-errand/user-service`, with **ADMIN_GUARD_TEST_DATABASE_URL**. The integration suite creates a random schema, applies committed migrations, uses two Prisma/app instances and drops its schema afterward; its connection requires those permissions. It skips without the variable. Do not count a skipped integration run as database verification.
 
 D2 API/browser drivers add cross-service evidence. They do not prove every security requirement or production deployment property. Current runs are recorded in the central verification record; source inspection alone is not a test pass.
 

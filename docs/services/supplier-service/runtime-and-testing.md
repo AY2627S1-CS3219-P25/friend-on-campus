@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,7 +11,7 @@ Author review: <to be completed by Reallyeasy1>
 
 # Supplier runtime, failures and tests
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); source inspected 2026-11-09 (SGT). This describes the repository, not a verified live deployment.
 
 For reads, route query extraction feeds repository filtering, JavaScript sorting and optional slicing. There is no requirement for a token on current collection/detail GET routes. The frontend may still gate its screens behind login; that is a different layer.
 
@@ -46,7 +50,9 @@ Validation/duplicate/missing records map to 400/409/404. Authentication errors p
 
 `npm run test:unit -w @campus-errand/supplier-service` uses Node/tsx and module mocks. `supplierRoutes.test.ts` combines HTTP/shared auth with a mocked repository; `supplierRepository.test.ts` mocks Prisma. Cases cover public reads, every mutation's authorization, validation, duplicates, sorting, pagination, delete semantics and probes.
 
-There is no dedicated Supplier database-integration script. Mock tests do not prove actual SQL concurrency or expression-index behavior; D2 API acceptance uses real seeded PostgreSQL. Seed validation and committed migration SQL should be inspected when schema/seed behavior changes. Current verification results are in the central record.
+`npm run test:migration -w @campus-errand/supplier-service` runs `test/coordinates.migration.ts` against `DATABASE_URL`, which must name a dedicated `_test` database. It creates/drops isolated schemas and checks fresh migration, preservation of legacy nulls, reconciliation of earlier constraints, and recovery through Prisma CLI. See [coordinate upgrades](coordinate-upgrades.md).
+
+There is no Supplier `test:integration` script. The migration suite is real PostgreSQL coverage, but mocked unit tests and migration tests do not establish arbitrary concurrent CRUD behavior or production performance. D2 API acceptance adds real seeded database coverage. Current executions belong in the [verification record](../../audits/review-findings.md).
 
 ## Source evidence and related reading
 

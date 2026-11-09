@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile the active documentation with main b989758 and simplify navigation; preserve historical attribution.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Added the Chat Service (F8, PR #148) row to the runtime table while merging main into that PR.
 Author review: <to be completed by Reallyeasy1>
@@ -11,63 +15,43 @@ Author review: <to be completed by Reallyeasy1>
 
 # System overview
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation inspected at [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026 (SGT). This is a code/configuration reference, not verification of the live deployment.
 
-This document maps the deployed local Compose implementation to its owning code. It describes behavior; architectural choices and their rationales remain human-owned in the Wiki and approved specifications.
+Friend on Campus has **six backend services**, two React frontends and an NGINX gateway. Each backend owns a logical PostgreSQL database. Database-per-service does not mean one physical PostgreSQL host per service.
 
-The monorepo has ten npm workspaces: five Express/TypeScript services, two React/Vite applications and three shared packages. PostgreSQL 16 runs as one instance with five service-owned logical databases. This is logical data ownership, not five independent database servers. RabbitMQ 3.13 transports domain events; three Debezium Server connectors publish committed User, Order and Credit outbox records.
+## Runtime map
 
-```mermaid
-%% AI-generated (edited by Reallyeasy1)
-flowchart TD
-  Browser["Student and admin browsers"] --> Gateway["NGINX gateway"]
-  Gateway --> User["User: identity and sessions"]
-  Gateway --> Supplier["Supplier: directory"]
-  Gateway --> Order["Order: lifecycle"]
-  Gateway --> Credit["Credit: wallet and ledger reads"]
-  Gateway --> Notification["Notification: REST and WebSocket"]
-  Order -->|supplier HTTP lookup| Supplier
-  User --> Outboxes["Owned PostgreSQL outboxes"]
-  Order --> Outboxes
-  Credit --> Outboxes
-  Outboxes --> CDC["Three Debezium connectors"]
-  CDC --> Broker["RabbitMQ campus.events"]
-  Broker --> Order
-  Broker --> Credit
-  Broker --> Notification
-```
-
-The shared outbox node groups three separate databases and connectors for readability; it is not one shared table. Solid diagram edges indicate dependency/flow, not exclusively HTTP.
-
-| Runtime | Port | Persistence | Composition entry |
+| Component | Local port | Owned data | Reference |
 |---|---:|---|---|
-| User | 8001 | user_db | services/user-service/src/index.ts |
-| Supplier | 8002 | supplier_db | services/supplier-service/src/index.ts |
-| Order | 8003 | order_db | services/order-service/src/index.ts |
-| Credit | 8004 | credit_db | services/credit-service/src/index.ts |
-| Notification | 8005 | notification_db | services/notification-service/src/index.ts |
-| Chat | 8006 | chat_db | services/chat-service/src/index.ts |
-| Student / Admin | 5173 / 5174 | Browser state; no service database | apps/*/src/main.tsx |
-| Gateway | 80 | None | gateway/nginx.conf |
+| User | 8001 | Accounts, sessions, registration outbox (`user_db`) | [User](../services/user-service/README.md) |
+| Supplier | 8002 | Campus directory (`supplier_db`) | [Supplier](../services/supplier-service/README.md) |
+| Order | 8003 | Errands, lifecycle and domain outbox (`order_db`) | [Order](../services/order-service/README.md) |
+| Credit | 8004 | Wallets, ledger, escrow and domain outbox (`credit_db`) | [Credit](../services/credit-service/README.md) |
+| Notification | 8005 | Inbox, read state, event projection and realtime outbox (`notification_db`) | [Notification](../services/notification-service/README.md) |
+| Chat | 8006 | Conversations, messages and realtime outbox (`chat_db`) | [Chat](../services/chat-service/README.md) |
+| Student / admin apps | 5173 / 5174 | Browser UI state | [Student](../frontend/student-app.md), [admin](../frontend/admin-portal.md) |
+| NGINX gateway | 80 | No business data | [Routing](../infrastructure/api-gateway.md) |
 
-The gateway routes requests; services enforce authentication and authorization. Order's supplier lookup is the runtime synchronous service-to-service HTTP dependency. The Credit development seed also calls User login/logout, which is a startup operation rather than an order transaction.
+Ports above describe local development. ECS uses its own service discovery and target-port configuration; they are not a list of public cloud ports.
 
-No application polling outbox publisher runs at this baseline. Shared publisher utilities exist for tests and other callers; their existence does not imply that production services use them.
+## How work moves through the system
 
-Start with [service boundaries](service-boundaries.md), [events](communication-and-events.md), [data](data-ownership.md), and [security](authentication-and-security.md). Local Compose is implemented. AWS and Chat Wiki plans are proposals; Chat is not a sixth service on this baseline. PR #184 is reviewed separately in [the pending-change audit](../audits/pr-184-review.md).
+1. Browsers call HTTP APIs and authenticated WebSockets through the gateway. Services enforce identity, role and ownership checks.
+2. Order validates the selected supplier over HTTP, then starts a reservation Saga by committing `PENDING` and an outbox event. Credit reserves funds asynchronously; Order applies the result. A `202` is not proof that an errand is `OPEN`.
+3. Three Debezium connectors publish committed User, Order and Credit domain outboxes to RabbitMQ. Durable business consumers apply their own transactional effects.
+4. Chat and Notification also run SQL-backed realtime relays. They publish small fanout signals so every replica can reread persisted changes and notify its own connected clients. Missed signals are recovered through persisted history, not replayed socket frames.
 
-## Verification limits
+The [event guide](communication-and-events.md) explains those two separate messaging paths. [Data ownership](data-ownership.md) explains which transaction commits each effect.
 
-The topology is established from composition/configuration and cross-checked with the Wiki. This documentation change does not establish production availability, cloud deployment, or measured NFR compliance. Runtime checks and unavailable infrastructure are recorded in the verification record.
+## Local and cloud environments
 
-## Source evidence and related reading
+[Docker Compose](../../docker-compose.yml) runs the local PostgreSQL, RabbitMQ, CDC, applications and gateway. [ECS Terraform](../../infra/terraform/ecs/README.md) is the current cloud rollout reference; the [cloud overview](../new-cloud-architecture-guide.md) explains its configured CloudFront, ALB, shared EC2 capacity, RDS and EFS boundaries. K3s material is [historical](../archive/README.md).
 
-- [`package.json`](../../package.json)
-- [`docker-compose.yml`](../../docker-compose.yml)
-- [`gateway/nginx.conf`](../../gateway/nginx.conf)
-- [`services/user-service/src/index.ts`](../../services/user-service/src/index.ts)
-- [`services/order-service/src/index.ts`](../../services/order-service/src/index.ts)
-- [`services/credit-service/src/index.ts`](../../services/credit-service/src/index.ts)
-- [`services/notification-service/src/index.ts`](../../services/notification-service/src/index.ts)
-- [Wiki: Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)
-- [Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)
+Repository configuration and passing local tests do not establish live AWS state, failover success or NFR compliance. See [verification](../audits/review-findings.md) and [known discrepancies](../audits/documentation-drift.md).
+
+## Source navigation
+
+- [`services/`](../../services), [`apps/`](../../apps), [`packages/`](../../packages)
+- [`docker-compose.yml`](../../docker-compose.yml), [`gateway/nginx.conf`](../../gateway/nginx.conf)
+- [Service boundaries](service-boundaries.md), [authentication](authentication-and-security.md)
+- [Documentation index](../README.md)

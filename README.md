@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Refresh six-service quick-start facts, test scope and documentation navigation; remove stale duplicated topology and routine volume-reset advice.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
 Scope: Documented the k6 performance harness command (npm run perf:k6, tests/k6/README.md, performance.yml) in the test table and the D4 cheat sheet; removed the unbounded discovery/claim-race commands (issues #236, #237).
 Author review: <to be completed by Reallyeasy1>
@@ -92,9 +96,6 @@ Scope: Updated the local RabbitMQ dashboard login for separate service identitie
 Author review: <to be completed by huangjiaxi1111>
 -->
 
-
-
-
 # Friend on Campus (FoC) 🏃‍♂️💨
 
 > **CS3219 Software Design and Architecture (AY26/27 S1) — Project Group 25**  
@@ -106,67 +107,28 @@ Author review: <to be completed by huangjiaxi1111>
 
 ## 🏛️ Architecture & System Design
 
-The platform uses a **Database-per-Service Microservices Architecture** organized in an **npm workspaces monorepo**:
+The current implementation has six backend services (User, Supplier, Order, Credit, Notification and Chat), two React apps and an NGINX gateway. Each service owns a logical PostgreSQL database. User/Order/Credit domain events flow through transactional outboxes, Debezium and RabbitMQ; Chat/Notification use separate realtime outboxes and fanout signals between replicas.
 
-```mermaid
-flowchart TB
-    subgraph Clients["Frontend Clients (Vite + React + Tailwind)"]
-        StudentApp["Student App<br/>(Port 5173 / Mobile Web)"]
-        AdminApp["Admin Portal<br/>(Port 5174 / Desktop & Mobile)"]
-    end
+Start with the [system overview](docs/architecture/system-overview.md), [service boundaries](docs/architecture/service-boundaries.md) and [event flow](docs/architecture/communication-and-events.md). Local development uses Docker Compose; cloud rollout uses [ECS Terraform](infra/terraform/ecs/README.md).
 
-    subgraph Gateway["Ingress & Gateway (Port 80)"]
-        Nginx["Nginx Reverse Proxy / Gateway"]
-    end
-
-    subgraph Services["Backend Microservices (Node.js + Express + TypeScript)"]
-        UserSvc["User Service (M2)<br/>:8001 (Auth, Profiles, RBAC)"]
-        SupplierSvc["Supplier Service (M3)<br/>:8002 (Campus Directory CRUD)"]
-        OrderSvc["Order Service (M1)<br/>:8003 (State Machine, AI Assistant)"]
-        CreditSvc["Credit Service (M4)<br/>:8004 (Escrow & Ledger)"]
-        NotifSvc["Notification Service (M5)<br/>:8005 (WebSockets)"]
-    end
-
-    subgraph Storage["Backing Infrastructure"]
-        Postgres[("PostgreSQL 16<br/>(user_db, supplier_db, order_db,<br/>credit_db, notification_db)")]
-        RabbitMQ[("RabbitMQ 3.13<br/>(Event Bus)")]
-    end
-
-    Clients --> Nginx
-    Nginx --> Services
-    UserSvc --> Postgres
-    SupplierSvc --> Postgres
-    OrderSvc --> Postgres
-    CreditSvc --> Postgres
-    NotifSvc --> Postgres
-    OrderSvc -->|"supplier lookup (HTTP)"| SupplierSvc
-    UserSvc -.->|"publish user.registered"| RabbitMQ
-    OrderSvc -.->|"publish order.*"| RabbitMQ
-    CreditSvc -.->|"publish credit.reservation.*"| RabbitMQ
-    RabbitMQ -.->|"consume credit.reservation.*"| OrderSvc
-    RabbitMQ -.->|"consume user.registered, order.*"| CreditSvc
-    RabbitMQ -.->|"consume order.*"| NotifSvc
-```
-
-### Key Design Highlight: Multi-Service Prisma Isolation
-To avoid client collisions in the root `node_modules/@prisma/client`, each microservice maintains its schema at `prisma/schema.prisma` and generates its client to an isolated internal path (`output = "../src/generated/prisma"`), re-exported through `src/database/client.ts`. This guarantees compile-time type safety and prevents engine dylib conflicts across services.
+Each service generates its own Prisma client from `prisma/schema.prisma` and imports it through `src/database/client.ts`. Schemas and migrations are service-owned.
 
 ---
 
-## 🎯 Milestone Status
+## 🎯 Milestone Records
 
 | Milestone | Scope & Deliverables | Status |
 | :--- | :--- | :---: |
 | **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
 | **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
-| **D3** | **Order Service (M1), Credit Service (M4) & Notification Service (M5)**<br/>• All five services real (Prisma + PostgreSQL 16, one database each)<br/>• Errand lifecycle with transactional outbox, optimistic locking and single-winner accept<br/>• Credit wallets, ledger, escrow reserve/settle/refund and welcome grant over RabbitMQ<br/>• Notification consumer, store, REST and authenticated WebSocket; student-app bell, toasts and Alerts board<br/>• Admin order management (cancel, complete, unassign) and user management<br/>• CI with isolated test orchestration | 📋 **Prepared** (demo script and evidence: wiki [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3); Week 10) |
+| **D3 (historical scope)** | **Order Service (M1), Credit Service (M4) & Notification Service (M5)**<br/>• All five services real (Prisma + PostgreSQL 16, one database each)<br/>• Errand lifecycle with transactional outbox, optimistic locking and single-winner accept<br/>• Credit wallets, ledger, escrow reserve/settle/refund and welcome grant over RabbitMQ<br/>• Notification consumer, store, REST and authenticated WebSocket; student-app bell, toasts and Alerts board<br/>• Admin order management (cancel, complete, unassign) and user management<br/>• CI with isolated test orchestration | 📋 **Prepared** (demo script and evidence: wiki [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3); Week 10) |
 | **D4** | **AWS ECS Deployment & Distributed Concurrency Testing**<br/>• Terraform for ECS, CloudFront, RDS, RabbitMQ and EFS<br/>• k6 concurrency and load tests | Infrastructure code ready for deployment testing |
 
 ---
 
 ## 🚀 Quick Start with Docker (Recommended)
 
-To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway (each service automatically runs `prisma migrate deploy` and seeds its database on container startup):
+Start the local services, frontends, PostgreSQL, RabbitMQ, Debezium CDC and NGINX gateway. Compose runs the configured service migrations and User/Supplier/Order/Credit seeds; application images themselves start the app only:
 
 ```bash
 # 1. One-time environment setup (if .env does not exist yet):
@@ -177,11 +139,7 @@ npm run generate:jwt-keys   # paste the printed JWT_PRIVATE_KEY and JWT_PUBLIC_K
 docker compose up --build
 ```
 
-> **Upgrading or resetting an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC volumes), reset the volumes and remove orphaned containers before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
-> ```bash
-> docker compose down -v --remove-orphans
-> docker compose up --build
-> ```
+> **Existing data:** follow the [local upgrade and troubleshooting guide](docs/development/local-development.md) before changing database or broker state. `docker compose down -v` deletes local volumes; it is a deliberate disposable-stack reset, not a routine upgrade step.
 
 ### Accessing the Platform
 | Component | Local Access URL | Description |
@@ -194,6 +152,7 @@ docker compose up --build
 | **Order Service Health** | [http://localhost:8003/health](http://localhost:8003/health) | M1 Health Probe (`/api/orders` for errands) |
 | **Credit Service Health** | [http://localhost:8004/health](http://localhost:8004/health) | M4 Health Probe (`/api/credits/wallet`, `/api/credits/ledger`) |
 | **Notification Service Health** | [http://localhost:8005/health](http://localhost:8005/health) | M5 Health Probe (`/api/notifications`; WebSocket through the gateway at `ws://localhost/ws/`) |
+| **Chat Service Health** | [http://localhost:8006/health](http://localhost:8006/health) | `/api/chat`; WebSocket through `ws://localhost/ws/chat/` |
 | **RabbitMQ Web Dashboard** | [http://localhost:15672](http://localhost:15672) | Development login: `campus_admin` / `campus-admin-dev` (vhost `campus`; AMQP on port 5672) |
 | **PostgreSQL Shell** | `docker exec -it campuserrand-postgres psql -U postgres` | Database shell |
 
@@ -205,7 +164,7 @@ When developing individual features directly on your machine with instant TypeSc
 
 ### 1. Install dependencies & generate Prisma clients
 ```bash
-npm install
+npm ci
 ```
 *(Runs root `postinstall` hook which automatically executes `prisma generate` across all services).*
 
@@ -231,15 +190,15 @@ docker compose up postgres rabbitmq -d
 ```
 
 ### 4. Apply Database Migrations
-`docker/postgres-init/` only provisions the five empty databases and least-privilege service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`). Apply all committed Prisma migrations across every service before seeding or starting Debezium CDC:
+`docker/postgres-init/` only provisions the six empty databases and least-privilege service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`, `chat_svc`). Apply all committed Prisma migrations across every service before seeding or starting Debezium CDC:
 ```bash
-# Apply committed migrations across all 5 services (prisma migrate deploy)
+# Apply committed migrations across all 6 services (prisma migrate deploy)
 npm run db:deploy
 
 # Or apply migrations for an individual service:
 npm run db:deploy -w @campus-errand/user-service
 ```
-*(Note: Use `db:deploy` to apply existing migrations—the least-privilege service roles do not have `CREATEDB` permissions for Prisma's shadow database. When authoring a new schema change with `npm run db:migrate -w @campus-errand/<service>`, supply a superuser `DATABASE_URL` or `SHADOW_DATABASE_URL`.)*
+*(Note: Use `db:deploy` to apply existing migrations—the least-privilege service roles do not have `CREATEDB` permissions for Prisma's shadow database. When authoring a new schema change with `npm run db:migrate -w @campus-errand/<service>`, use a disposable development database and a `DATABASE_URL` role with the permissions needed to create the shadow database. `SHADOW_DATABASE_URL` is not wired into the current schemas.)*
 
 Transactional outbox events from User, Order, and Credit are published to RabbitMQ by Debezium (`debezium-user`, `debezium-order`, `debezium-credit`). Once migrations are applied, start the CDC connectors so outbox events flow during host-based development:
 ```bash
@@ -261,11 +220,11 @@ npm run db:seed -w @campus-errand/credit-service   # 100-credit wallets for the 
 
 ### 6. Run Development Servers
 ```bash
-# Run everything in parallel (5 backend services + 2 frontend apps)
+# Run everything in parallel (6 backend services + 2 frontend apps)
 npm run dev
 
 # Or run only backend services or only frontend apps in parallel
-npm run dev:services    # Ports 8001–8005
+npm run dev:services    # Ports 8001–8006
 npm run dev:apps        # Ports 5173–5174
 
 # Or run individual workspaces (via scripts/dev.mjs filter or native npm -w)
@@ -275,6 +234,7 @@ npm run dev -w services/supplier-service     # Port 8002 (Supplier Directory Ser
 npm run dev -w services/order-service        # Port 8003 (Order Service)
 npm run dev -w services/credit-service       # Port 8004 (Credit Service)
 npm run dev -w services/notification-service # Port 8005 (Notification Service)
+npm run dev -w services/chat-service         # Port 8006 (Chat Service)
 npm run dev -w apps/student-app              # Port 5173 (Student Web App)
 npm run dev -w apps/admin-portal             # Port 5174 (Admin Web Portal)
 ```
@@ -284,18 +244,20 @@ npm run dev -w apps/admin-portal             # Port 5174 (Admin Web Portal)
 ## 🧪 Testing & Verification
 
 ### Full Isolated Suite
-Creates a uniquely named Compose project on free loopback ports, runs every category below (installing Chromium if needed), and removes only that project's containers and volumes:
+Creates a uniquely named Compose project on free loopback ports, runs its configured workspace and system suites (installing Chromium if needed), and removes only that project's containers and volumes:
 ```bash
 npm test
 ```
 
+The separate `test:e2e:ui:realtime` command and k6 campaigns are not part of this aggregate. CI explicitly runs the realtime browser command. See the [testing guide](docs/development/testing-strategy.md) for exact scope and prerequisites.
+
 ### Test Categories
 | Command | Scope |
 | :--- | :--- |
-| `npm run test:unit` | Unit suites (Node's built-in `node --test` via `tsx`, no framework): user, supplier, order and notification services |
-| `npm run test:integration` | PostgreSQL-backed suites: user-service admin guard, notification store and routes, credit-service |
-| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service (`npm test` provisions isolated `credit_messaging_test` and `order_messaging_test` databases automatically; direct runs require migrated `_test` databases and the `*_TEST_*` env vars below) |
-| `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation (`test:migration` and `test:seed` run on `credit-service`) |
+| `npm run test:unit` | Nine unit suites across six backends, both frontends and shared messaging |
+| `npm run test:integration` | PostgreSQL-backed suites: User admin guard, Credit, Notification and Chat |
+| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: Credit, Notification, Order and Chat (`npm test` provisions isolated `credit_messaging_test` and `order_messaging_test` databases automatically; direct runs require migrated `_test` databases and the `*_TEST_*` env vars below) |
+| `npm run test:migration` / `npm run test:seed` | Migration checks for Credit and Supplier; seed validation for Credit |
 | `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, `scripts/uat/uat-notifications.mjs`, and `scripts/uat/uat-cdc.mjs` |
 | `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
 | `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
@@ -303,12 +265,12 @@ npm test
 | `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
 | `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
-| `npm run perf:k6 -- --target <gateway url> --profile smoke|load|stress --workload all|discovery|supplier|credit|lifecycle` | k6 API load harness (manual, not a CI gate): run-owned fixtures, per-operation thresholds from issues #74/#29/#33/#43/#45/#36, reconciliation and an evidence bundle under `test-results/<runId>/`; needs the `k6` binary; remote targets also need `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD` (loopback defaults to the seeded admin). `npm run perf:k6:load` runs every requirement-load population against the local stack. See [`tests/k6/README.md`](tests/k6/README.md) and the manual `performance.yml` workflow |
+| `npm run perf:k6 -- --target http://localhost --profile smoke --workload all` | k6 API load harness (manual, not a CI gate): run-owned fixtures, per-operation thresholds linked to issues #74/#29/#33/#43/#45/#36, with author-raised latency limits and lowered supplier VUs, reconciliation and an evidence bundle under `test-results/<runId>/`; needs the `k6` binary; remote targets also need `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD` (loopback defaults to the seeded admin). `npm run perf:k6:load` runs every configured load population against the local stack; PASS does not establish the original NFRs. See [`tests/k6/README.md`](tests/k6/README.md) and the manual `performance.yml` workflow |
 
 ### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
 - **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
 - **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
-- **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`POSTGRES_ADMIN_URL=... TEST_DATABASE_NAME=... node scripts/ci/create-test-database.mjs`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
+- **Direct category environment variables:** `npm test` injects isolated test URLs. Direct suite runs require the migrated test databases and suite-specific variables in the [testing guide](docs/development/testing-strategy.md); User uses `ADMIN_GUARD_TEST_DATABASE_URL`, not `USER_TEST_DATABASE_URL`. Never point mutation/seed suites at shared production data.
 - **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`, `test-results/uat-realtime/`) and uploaded as CI workflow artifacts.
 
 ### Automated Milestone D2 End-to-End Suite
@@ -323,7 +285,7 @@ npm run test:e2e:api
 ```
 
 ### Lint, Build & Universal Typecheck
-Typechecks all 10 workspaces (2 apps, 5 services, 3 packages); each service's `typecheck` covers its tests too:
+Typechecks all 12 workspaces (2 apps, 6 services, 4 packages); each service's `typecheck` covers its tests too:
 ```bash
 npm run lint
 npm run build
@@ -365,47 +327,20 @@ For local development, testing, and mentor demonstrations, the following account
 
 ## 📦 Monorepo Structure
 
-```
-friend-on-campus/
-├── apps/
-│   ├── student-app/             # Student Mobile PWA (Port 5173)
-│   └── admin-portal/            # Staff Admin Web Portal (Port 5174)
-├── services/
-│   ├── user-service/            # Port 8001: Auth, Profiles, RBAC (M2)
-│   ├── supplier-service/        # Port 8002: Campus Locations CRUD (M3)
-│   ├── order-service/           # Port 8003: Lifecycle State Machine (M1) & NLP Assistant (F6)
-│   ├── credit-service/          # Port 8004: Closed Economy Ledger & Escrow (M4)
-│   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
-├── packages/
-│   ├── auth/                    # @campus-errand/auth: offline Ed25519 access-token verification middleware
-│   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
-│   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
-├── infra/
-│   └── terraform/ecs/           # AWS ECS Terraform and rollout instructions
-├── gateway/
-│   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
-├── docker/
-│   ├── debezium/                # Debezium Server CDC configs for User, Order and Credit outboxes
-│   ├── postgres-init/           # Creates the five logical databases and least-privilege roles
-│   └── rabbitmq/                # Broker config and definitions: vhost, exchanges, service accounts, permissions
-├── scripts/
-│   ├── ci/                      # Isolated aggregate test runner, test-matrix validator, test-database helper
-│   ├── uat/                     # Acceptance drivers: API, notifications, Chromium UI
-│   ├── dev.mjs                  # Parallel cross-platform workspace dev runner
-│   ├── generate-jwt-keys.mjs    # Ed25519 key pair for .env
-│   ├── prisma-migrate.mjs       # Shared Prisma migration runner with .env loading
-│   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
-├── tests/
-│   ├── k6/                      # Distributed load & concurrency tests (race conditions & HPA)
-│   └── postman/                 # Postman collection and environment
-├── data/
-│   ├── csv/                     # NUS campus supplier seed datasets
-│   └── images/                  # Supplier images
-├── ai/
-│   └── usage-log.md             # AI assistance usage disclosures per course policy
-├── docker-compose.yml           # Full stack
-└── docker-compose.test.yml      # Port and container-name overrides for the isolated test stacks
-```
+| Directory | Purpose |
+|---|---|
+| `apps/` | Student and admin frontends |
+| `services/` | Six backend services, schemas, migrations and tests |
+| `packages/` | Shared auth, DTOs, messaging and LLM helpers |
+| `gateway/`, `docker/` | Local ingress, PostgreSQL initialization, RabbitMQ and CDC |
+| `infra/terraform/ecs/` | AWS configuration and canonical rollout runbook |
+| `scripts/`, `tests/` | Development tools, CI/UAT drivers, k6 harness and Postman examples |
+| `docs/` | Implementation, operations, testing and historical references |
+| `data/` | Supplier seed datasets and images |
+| `ai/` | Required AI usage record |
+
+[`docker-compose.yml`](docker-compose.yml) runs the local stack; [`docker-compose.test.yml`](docker-compose.test.yml) supplies isolated-test overrides.
+
 
 ---
 
@@ -413,16 +348,16 @@ friend-on-campus/
 
 - **[Confirmed CloudFront and ECS cloud architecture](docs/new-cloud-architecture-guide.md)**: Viewer HTTPS, HTTP origin, bridge networking, three-host ceiling, accepted trial resources, costs and deferred team decisions.
 - **[ECS Terraform rollout](infra/terraform/ecs/README.md)**: Provisioning, secrets, database setup and startup order.
-- **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
+- **[Technical reference and complete documentation index](docs/README.md)**: Six services, frontends, packages, operations and source verification.
 - **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
 - **[Documentation verification and pending questions](docs/audits/review-findings.md)**: Actual check results, source boundaries and human review items.
 
-Full architectural documentation, domain specifications, and milestone presentation guides are maintained in the **[Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**:
+Design context, domain proposals and milestone history are retained in the **[Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**. Some pages retain older baselines; use the [current reference](docs/README.md) and [drift register](docs/audits/documentation-drift.md) for implementation facts:
 
 - **[Wiki Home](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**: Project overview & milestone navigation
 - **[System Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)**: Microservice topology, Debezium CDC outbox connectors, RabbitMQ quorum queues, and reservation saga choreography
 - **[Authentication & Roles](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Authentication-and-Roles)**: Ed25519 access tokens, rotating opaque refresh cookies, RBAC matrix, and least-privilege database/broker identities
 - **[Services & Domain Lifecycle](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Services)**: Order state machine (`PENDING` → `OPEN` → `ACCEPTED` → `IN_TRANSIT` → `DELIVERED` → `COMPLETED`), closed credit economy & escrow ledger, and real-time notifications
-- **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`)
+- **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`, `chat_db`)
 - **[Testing & Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Testing-and-Evidence)** & **[Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)**: Automated test matrix, acceptance evidence, and Milestone D3 presentation runbook
 - **Claude Code Set-up**: [`.claude/README.md`](./.claude/README.md) & [`CLAUDE.md`](./CLAUDE.md)

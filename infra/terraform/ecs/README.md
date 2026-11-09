@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Correct the stale cross-replica implementation status and link the current messaging reference.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Document native ARM64 GitHub image builds following the emulation crash.
 Author review: <to be completed by the author>
 
@@ -38,7 +42,7 @@ New registrations receive their credit wallets through `user.registered` events 
 
 The Debezium 2.7 image runs as UID `185`, GID `0`, and its checkpoint directory is owned by `185:0`. The EFS access points use those same IDs so Docker can initialize the checkpoint mount. A group mismatch can prevent container creation with `failed to chown ... operation not permitted`, before any connector logs appear. Access-point replacements retain the connector paths on the existing EFS file system.
 
-The three single-instance Auto Scaling groups give each broker a fixed disk and node name. Their combined ceiling is three hosts. Verify the trial task sizes under load and after a host replacement. Scaling all services to their ceilings exceeds the fleet's trial CPU budget. This root includes the broker infrastructure for existing consumers. Cross-replica Chat and Notification delivery remains application work.
+The three single-instance Auto Scaling groups give each broker a fixed disk and node name. Their combined ceiling is three hosts. Verify the trial task sizes under load and after a host replacement. Scaling all services to their ceilings exceeds the fleet's trial CPU budget. This root includes the broker infrastructure for existing consumers. Cross-replica Chat and Notification delivery is implemented in the application through RabbitMQ fanout and SQL realtime outboxes; see the [messaging reference](../../../docs/packages/messaging.md). Verify the deployed image revisions and multi-client recovery before claiming the live deployment provides that behavior.
 
 The User seed sets `alice@u.nus.edu`, `bob@u.nus.edu` and `admin@nus.edu.sg` to `Password123!` in every environment, including production. Each account receives a separately salted scrypt hash in the database. The runtime generator creates the database and RabbitMQ secrets. Existing runtime files may retain older `seed_password_*` fields, but the updated seed takes its password directly from the seed code. Preserve the current database and RabbitMQ credentials when updating an existing deployment.
 

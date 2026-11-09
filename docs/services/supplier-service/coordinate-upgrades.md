@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
+Author review: <to be completed by the author>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
 Scope: PR #222 review: recovery commands now show how to set DATABASE_URL (the bare Prisma CLI bypasses the repository wrapper's SUPPLIER_DATABASE_URL mapping); documented that reseeding keeps recorded coordinates and that the migration suite exercises the recovery path through the Prisma CLI.
 Author review: <to be completed by Reallyeasy1>
@@ -11,7 +15,11 @@ Author review: <to be completed by Reallyeasy1>
 
 # Supplier coordinate upgrades
 
-New supplier creation requires numeric latitude and longitude. Existing suppliers may have missing coordinates because earlier versions allowed them. Those records remain readable and editable; the map excludes records without both coordinates. Administrators can enter verified coordinates in **Edit Supplier**; other fields of such a record can be edited while its coordinates stay blank. The migration does not invent positions or delete records. Container startup reruns the CSV seed on every boot: it fills only coordinates that are still missing and keeps values an administrator has recorded, so a correction survives a restart.
+Implementation baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); source inspected 2026-11-09 (SGT). This describes the repository, not a verified live deployment.
+
+This is an active upgrade/recovery runbook for retained migrations, not a proposal to enforce database constraints.
+
+New supplier creation requires numeric latitude and longitude. Existing suppliers may have missing coordinates because earlier versions allowed them. Those records remain readable and editable; the map excludes records without both coordinates. Administrators can enter verified coordinates in **Edit Supplier**; other fields of such a record can be edited while its coordinates stay blank. The migration does not invent positions or delete records. Local Compose reruns the CSV seed before starting this service. The image itself only starts the application; cloud migration/seed tasks are separate. When the seed runs, it fills only missing coordinates and preserves recorded ones, so reseeding does not replace an administrator's correction.
 
 Database columns remain nullable during this repair period. API validation enforces coordinates on new suppliers and rejects explicit null coordinate updates. Database-level `NOT NULL` enforcement is deferred until all historical records have verified coordinates.
 
@@ -41,6 +49,12 @@ npx prisma migrate deploy --schema prisma/schema.prisma   # or: npm run db:deplo
 
 Only mark this migration rolled back when its original single `ALTER TABLE` statement failed on null coordinates. That statement is atomic; it does not partially set one column's constraint. Investigate other errors or manual database changes before resolving them. Do not mark a successful migration rolled back, edit Prisma's history table, or delete volumes to repair this upgrade.
 
-The supplier migration test exercises fresh schemas, legacy rows with missing coordinates, databases with the original constraints already applied, and the recovery path above: it applies the original failing migration to a legacy row through the Prisma CLI, then runs `migrate resolve --rolled-back` and `migrate deploy` against the corrected history and checks the legacy row survives. API tests verify required coordinates for new records and repair of old records. Run `npm run test:migration -w @campus-errand/supplier-service` against a dedicated database whose name contains `_test`.
+The supplier migration test exercises fresh schemas, legacy rows with missing coordinates, databases with the original constraints already applied, and the recovery path above: it applies the original failing migration to a legacy row through the Prisma CLI, then runs `migrate resolve --rolled-back` and `migrate deploy` against the corrected history and checks the legacy row survives. API tests verify required coordinates for new records and repair of old records. Run `npm run test:migration -w @campus-errand/supplier-service` with `DATABASE_URL` pointing to a dedicated database whose name contains `_test`. The test creates and drops schemas; do not point it at application data.
 
 References: [Prisma v6 failed migration recovery](https://www.prisma.io/docs/orm/v6/prisma-migrate/workflows/patching-and-hotfixing#failed-migration), [deployment versus development migration behaviour](https://www.prisma.io/docs/orm/v6/prisma-migrate/workflows/development-and-production).
+
+## Source and related reading
+
+- [Canonical migrations](../../../services/supplier-service/prisma/migrations) and [coordinate migration test](../../../services/supplier-service/test/coordinates.migration.ts)
+- [Coordinate validation](../../../services/supplier-service/src/suppliers/supplierService.ts) and [seed preservation](../../../services/supplier-service/src/database/seed.ts)
+- [Supplier overview](README.md) · [ECS runbook](../../../infra/terraform/ecs/README.md) · [Documentation index](../../README.md)

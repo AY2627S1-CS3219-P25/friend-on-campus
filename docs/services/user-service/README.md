@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,7 +11,7 @@ Author review: <to be completed by Reallyeasy1>
 
 # User Service implementation
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); source inspected 2026-11-09 (SGT). This describes the repository, not a verified live deployment.
 
 User Service owns account identity, credentials, refresh sessions and user administration in `user_db`. It issues tokens and registration events; it does not create Credit wallets synchronously.
 
@@ -42,13 +46,13 @@ Routes receive injected modules; modules depend on repository/token abstractions
 
 Durations accept a positive integer and s/m/h/d suffix. Refresh cookie name is `refresh_token`, path `/api/auth`, HttpOnly, SameSite=Lax. Both ordinary and persistent sessions have expiry; keepLoggedIn changes lifetime.
 
-The development seed creates deterministic Alice/Bob/Admin identities. Existing accounts found by case-insensitive email retain ID/status but may have username/role/password overwritten. It bypasses registration/outbox, so Credit is seeded separately. Containers run migrations and seed on each start. These are development semantics, not production account administration.
+The development seed creates deterministic Alice/Bob/Admin identities. Existing accounts found by case-insensitive email retain ID/status but may have username/role/password overwritten. It bypasses registration/outbox, so Credit is seeded separately. The image starts only `node dist/index.js`; local Compose explicitly runs migrations and development seeding before starting it. Cloud migration/seed tasks are separate; use the [ECS runbook](../../../infra/terraform/ecs/README.md). The seed is development data, not a production account administration mechanism.
 
 ## Operations and navigation
 
 Use workspace `dev`, `db:generate`, `db:deploy` and `db:seed` scripts. `/health` reports process liveness; `/ready` checks expected User/Session columns, not the outbox schema or CDC. Shutdown disconnects the database and closes the server. Request logging uses a generated X-Request-Id; unexpected errors expose a correlation ID, not internal details.
 
-Read [contracts and data](contracts-and-data.md) for every route and model, [runtime and testing](runtime-and-testing.md) for transaction/authorization behavior, and [shared auth](../../packages/auth.md) for downstream verification. Unresolved behavioral differences belong in the drift register.
+Read [contracts and data](contracts-and-data.md) for routes and persistence constraints, [runtime and testing](runtime-and-testing.md) for transaction/authorization behavior, and [shared auth](../../packages/auth.md) for downstream verification. Unresolved behavioral differences belong in the drift register.
 
 ## Source evidence and related reading
 

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile current implementation, contracts, realtime delivery and verification limits; preserve historical records.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Update runtime composition, shared quorum messaging, shutdown behavior and migration guidance for cloud preparation.
 Author review: <to be completed by the author>
@@ -9,66 +13,98 @@ Scope: Source-linked description of the Chat Service as implemented at PR #148 h
 Author review: <to be completed by Reallyeasy1>
 -->
 
-# Chat Service implementation (PR #148, pending)
+# Chat Service
 
-Inspected baseline: PR #148 head [`f39ab1f`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/f39ab1f252414bca5c5ef7d08f3d45b9e16007a0) on branch `feature/chat-service`; `main` at [`9a36146`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/9a361461de0e8b3e5d237ebaa64f5b8197c97171); wiki revision `a463e3bd77dd0327414543dba62cd2feb9c9c2a9`; inspected 2026-10-25 (SGT). **The Chat Service is not on `main`.** Everything below describes the pending branch; the rest of this reference still documents the five-service `main` baseline.
+Implementation checked against [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), 2026-11-09 (SGT). This describes repository behavior, not verified deployment state.
 
-Chat Service owns one private text conversation per accepted errand (F8, [issue #56](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/56)): a `conversations` row keyed by order id, append-only `messages` with a per-conversation sequence, an authenticated REST history route, a WebSocket hub for live delivery, and a RabbitMQ consumer that projects Order lifecycle events onto the row. It reads the Order Service over HTTP; it never reads another service's database. The remaining D4 work is specified in [the D4 implementation specification](d4-implementation-specification.md); that document is a proposal and does not describe shipped behavior.
+Chat owns one conversation per accepted errand, persisted messages, authenticated history and live delivery. It is part of `main`. Order owns errand state; Chat maintains a local conversation projection and calls Order when opening a conversation that is not yet stored.
 
-## Composition
+Start with [local setup](../../development/local-development.md). For deployment use the [infrastructure documentation](../../new-cloud-architecture-guide.md). The [D4 specification](d4-implementation-specification.md) is a historical proposal, not a current implementation checklist.
 
-Runtime update (2026-11-08): [`index.ts`](../../../services/chat-service/src/index.ts) builds the Prisma store, the conversation service with the Order client, the Express app and the socket hub on the same HTTP server, listens, then starts the broker consumer. Signals and consumer failure stop readiness, drain socket/request/consumer work, and disconnect Prisma before exit. The image starts only Node; Compose applies migrations before Node. See [container startup](../../infrastructure/docker-and-deployment.md) and [existing classic-queue handover](../../infrastructure/cdc-and-broker.md#topology-ownership).
+## Code map
 
-| Module | Responsibility |
+| Source | Responsibility |
 |---|---|
-| [`config.ts`](../../../services/chat-service/src/config.ts) | Port 8006, `chat_db`, broker account `chat_service`, quorum queue `chat-service.events` with `.dlx`/`.dlq`, handler retry 2000 ms x 30; infrastructure failures retry without that limit |
-| [`database/client.ts`](../../../services/chat-service/src/database/client.ts) | Service-specific Prisma client facade |
-| [`app.ts`](../../../services/chat-service/src/app.ts) | `/health`, `/ready` (consumer ready and `SELECT 1`), `/api/chat` mount, JSON/500 error handler |
-| [`clients/order.client.ts`](../../../services/chat-service/src/clients/order.client.ts) | `GET /api/orders/:id` with the caller's token, 4 s timeout; keeps `id`, `requesterId`, `courierId`, `status`, `acceptedAt`, `completedAt` (drops `version`) |
-| [`conversations/store.ts`](../../../services/chat-service/src/conversations/store.ts) | `upsertAccepted` with the `courierSince` replay guard, set-once lifecycle marks, `append` with the locked participant/closure recheck, paging, ping |
-| [`conversations/service.ts`](../../../services/chat-service/src/conversations/service.ts) | `open` (local row, else Order fallback), `send` pre-checks then store verdict, `history`, read/send rules (`canRead`, `canSend`, `OPEN_STATUSES`) |
-| [`conversations/events.ts`](../../../services/chat-service/src/conversations/events.ts) | Six `order.*` routing keys, strict parser, projection (`created_or_recouriered`, `picked_up`, `delivered`, `closed`, `ignored`), failure classifier |
-| [`@campus-errand/messaging`](../../../packages/messaging/src/index.ts) | Shared quorum consumer: exchange/queue/binding declarations, prefetch 1, native redelivery, dead-lettering, readiness and close |
-| [`chat/routes.ts`](../../../services/chat-service/src/chat/routes.ts) | `GET /api/chat/:orderId` with `afterSequence` (0..2147483647) and `limit` (1..100, default 50) |
-| [`ws/hub.ts`](../../../services/chat-service/src/ws/hub.ts) | AUTH-first handshake (5 s), sockets filed by user, close 4401 at token expiry, 30 s ping eviction, `SEND` to `MESSAGE`/`ERROR`, sender echo carries `clientId` |
+| [`index.ts`](../../../services/chat-service/src/index.ts), [`app.ts`](../../../services/chat-service/src/app.ts) | Compose HTTP, sockets, consumer, realtime subscriber/relay, readiness and shutdown |
+| [`conversations/service.ts`](../../../services/chat-service/src/conversations/service.ts), [`clients/order.client.ts`](../../../services/chat-service/src/clients/order.client.ts) | Open/history/send rules and Order fallback |
+| [`conversations/store.ts`](../../../services/chat-service/src/conversations/store.ts) | Conversation projection, serialized message appends and delivery intents |
+| [`conversations/events.ts`](../../../services/chat-service/src/conversations/events.ts) | Order event parsing and lifecycle projection |
+| [`ws/hub.ts`](../../../services/chat-service/src/ws/hub.ts), [`realtime/delivery.ts`](../../../services/chat-service/src/realtime/delivery.ts) | Authenticate sockets; reread committed state and deliver to local participants |
+| [`moderation/moderate.ts`](../../../services/chat-service/src/moderation/moderate.ts), [`translation/translate.ts`](../../../services/chat-service/src/translation/translate.ts) | Optional LLM moderation and requested translation |
 
-Student app: [`apps/student-app/src/chat/useChat.ts`](../../../apps/student-app/src/chat/useChat.ts) (socket, paged history, settle-by-`clientId`, reconnect catch-up) and [`ChatPanel.tsx`](../../../apps/student-app/src/chat/ChatPanel.tsx), opened from each accepted-or-later card in [`pages/TasksPage.tsx`](../../../apps/student-app/src/pages/TasksPage.tsx). Shared contract: `ConversationDTO`, `ChatMessageDTO`, `ChatClientFrame`, `ChatServerFrame`, `ChatHistoryResponse` in [`packages/common-dtos/src/index.ts`](../../../packages/common-dtos/src/index.ts).
+The student client is [`useChat.ts`](../../../apps/student-app/src/chat/useChat.ts) and [`ChatPanel.tsx`](../../../apps/student-app/src/chat/ChatPanel.tsx). Wire types live in [`common-dtos`](../../../packages/common-dtos/src/index.ts); shared broker mechanics live in [messaging](../../packages/messaging.md).
 
-## Configuration and wiring
+## API and access
 
-| Variable | Default/behavior |
+All REST requests require the shared access token. The gateway exposes `/api/chat` and upgrades `/ws/chat/`; see [`gateway/nginx.conf`](../../../gateway/nginx.conf).
+
+| Operation | Current behavior |
 |---|---|
-| PORT | 8006 |
-| DATABASE_URL / CHAT_DATABASE_URL | Role `chat_svc`, database `chat_db`; safe reference in [`.env.example`](../../../.env.example) |
-| ORDER_SERVICE_URL | `http://localhost:8003`; `http://order-service:8003` in Compose |
-| JWT_PUBLIC_KEY / JWT_ISSUER / JWT_AUDIENCE | Shared offline verification ([auth package](../../packages/auth.md)) |
-| RABBITMQ_URL, CHAT_EXCHANGE, CHAT_QUEUE, CHAT_DLX / CHAT_DLQ | `campus.events`, `chat-service.events` and derived names; the former separate retry exchange/queue is retired |
-| CHAT_RETRY_DELAY_MS / CHAT_RETRY_LIMIT | 2000 / 30 |
+| `GET /api/chat/:orderId` | Returns `{conversation,messages}`. UUID order ID; `afterSequence` clamped to 0–2147483647; `limit` clamped to 1–100, default 50. Pages are in ascending sequence order. |
+| `POST /api/chat/:orderId/translate` | Takes `language` and up to 200 UUID `messageIds`; returns translations for found messages. It does not change stored originals. |
+| Socket `AUTH` | First frame within 5 seconds. Token checks match HTTP; invalid/expired token closes with 4401. Heartbeat every 30 seconds evicts unresponsive sockets. |
+| Socket `SEND` | Takes `orderId`, text and optional `clientId`. Successful delivery uses `MESSAGE`; validation, authorization and moderation failures use `ERROR`. Sender tabs receive the correlation ID; peers do not. |
 
-Gateway: `/api/chat`, `/api/chat/` and the `/ws/chat/` upgrade in [`gateway/nginx.conf`](../../../gateway/nginx.conf) (longest-prefix match keeps it apart from Notification's `/ws/`). Compose service `chat-service` with `init: true`, `/ready` healthcheck, and the gateway depending on it ([`docker-compose.yml`](../../../docker-compose.yml)); role and database in [`docker/postgres-init/01-init-databases.sql`](../../../docker/postgres-init/01-init-databases.sql) (fresh volumes only). Broker account and vhost permissions in [`docker/rabbitmq/definitions.json`](../../../docker/rabbitmq/definitions.json); the queue and its six bindings are asserted by the consumer at startup, and no `topic_permissions` entry exists for `chat_service`. CI matrix entries for unit, integration and messaging suites in [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml); isolated databases in [`scripts/ci/run-all-tests.mjs`](../../../scripts/ci/run-all-tests.mjs); dev target `chat` in [`scripts/dev.mjs`](../../../scripts/dev.mjs).
+[`routes.ts`](../../../services/chat-service/src/chat/routes.ts) defines validation and response envelopes. Invalid order IDs return 400; missing conversations/orders, forbidden access and unavailable dependencies return 404, 403 and 503 respectively where mapped. Cursor parsing is permissive clamping, not strict numeric validation.
 
-## Data
+For a stored conversation, reads and translation permit the local requester, courier or an administrator. Sending permits only the local requester/courier and requires an open conversation, nonempty trimmed text and a username claim. The append transaction locks the conversation and checks membership/closure again before writing. This prevents a concurrent **local** membership or closure update from being bypassed.
 
-Two migrations: [`20261020000000_init`](../../../services/chat-service/prisma/migrations/20261020000000_init/migration.sql) (both tables, unique `order_id`, unique `(conversation_id, sequence)`) and [`20261025000000_courier_since`](../../../services/chat-service/prisma/migrations/20261025000000_courier_since/migration.sql) (`courier_since`, backfilled from `created_at`, then `NOT NULL`). Schema in [`prisma/schema.prisma`](../../../services/chat-service/prisma/schema.prisma). There is no Order version, no persisted client id and no text length limit in the schema.
+Order is consulted only when the conversation is absent, with the caller's token and a 4-second timeout. Open Order statuses are `ACCEPTED`, `IN_TRANSIT` and `DELIVERED`. The stored projection consumes `order.accepted`, `order.in_transit`, `order.delivered`, `order.completed`, `order.cancelled` and `order.expired`; terminal events set `closedAt`.
+
+## Persistence and live delivery
+
+The [Prisma schema](../../../services/chat-service/prisma/schema.prisma) and [migrations](../../../services/chat-service/prisma/migrations) define:
+
+| Table | Invariant |
+|---|---|
+| `conversations` | One row per unique `order_id`; participant IDs, `courier_since` and lifecycle timestamps |
+| `messages` | Append-only text, sender identity copied from the token, receive time and unique `(conversation_id, sequence)` |
+| `realtime_outbox` | Unique event ID, payload, retry schedule and lease ownership; indexed by availability/creation time |
+
+A message and its realtime intent commit together. Relays in all Chat replicas claim intents, publish to `chat-service.events.realtime`, then delete successfully published intents. Each replica has its own temporary fanout queue and rereads the message/current conversation before sending to its local sockets. Eligible recipients must be both an original intended recipient and a current local participant. There is no direct success push from `SEND` in parallel with this subscriber path.
+
+Broker hints can repeat or be missed. The shared [realtime contract](../../packages/messaging.md#realtime-delivery) defines leases, bounded queues and retries. REST history is the recovery source. The student client deduplicates by message ID, tracks contiguous history coverage separately from a high live sequence, and catches up on `AUTH_OK`, including the first connection. These controls do not provide exactly-once sends: `clientId` is correlation metadata, not a persisted idempotency key.
+
+Moderation checks text before append. A positive result stores no message, returns `MODERATED` to the sender, and attempts a transient `MODERATED_PEER` notice to the peer. Moderation errors/timeouts fail open. Translation requires configured credentials, batches at most 30 messages per LLM call, and can fail with 503; neither feature changes the original text. See the source and [LLM package](../../../packages/llm/src/index.ts) for provider behavior.
+
+## Configuration and operations
+
+[`config.ts`](../../../services/chat-service/src/config.ts) and [`.env.example`](../../../.env.example) are the configuration references. Do not copy credentials into documentation.
+
+| Variable | Default / role |
+|---|---|
+| `PORT` / `CHAT_SERVICE_PORT` | 8006; `PORT` takes priority |
+| `DATABASE_URL` / `CHAT_DATABASE_URL` | Service-owned Chat database; direct URL takes priority |
+| `ORDER_SERVICE_URL` | `http://localhost:8003` outside Compose |
+| `JWT_PUBLIC_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE` | Shared offline token verification |
+| `RABBITMQ_URL`, `CHAT_EXCHANGE`, `CHAT_QUEUE` | Broker connection; `campus.events`; `chat-service.events` |
+| `CHAT_DLX`, `CHAT_DLQ` | Default `<queue>.dlx`, `<queue>.dlq` |
+| `CHAT_RETRY_DELAY_MS`, `CHAT_RETRY_LIMIT` | 2000 ms / 30 for transient business-event failures |
+| `RABBITMQ_REALTIME_EXCHANGE` | `chat-service.events.realtime`; separate from the business exchange |
+| `SOCLAAS_BASE_URL`, `SOCLAAS_API_KEY`, `SOCLAAS_MODEL` | Moderation/translation provider configuration |
+
+`/health` reports socket count and business/realtime connection status. `/ready` requires the business consumer, realtime subscriber, a database ping and no shutdown in progress. Lost realtime subscriptions close existing sockets so clients reconnect/catch up; new sockets receive 1013 until the subscriber is ready. Signals and fatal errors stop readiness and drain HTTP, sockets, in-flight sends, relay and consumer, then close Prisma. A 10-second deadline bounds shutdown.
+
+Container migrations/startup are documented in [Docker and deployment](../../infrastructure/docker-and-deployment.md). Queue declarations must agree with [broker topology](../../infrastructure/cdc-and-broker.md); switching an existing classic queue to quorum needs an explicit handover.
+
+## Known limits
+
+- Existing-row authorization uses the local projection. `order.unassigned` is not consumed, so a removed courier can retain access until another accepted event changes the row. The Order client also drops `version`; reassignment replay protection uses `courierSince`, not Order versions.
+- Administrator reads and retained membership after unassignment are existing behavior, not new policy decisions made by this document. The archived D4 record preserves conflicting requirements and pending decisions.
+- Retrying an uncertain send can create a second message. The client reconciles persisted history before retry decisions, but the server does not deduplicate by `clientId`.
+- No application-level text-length, send-rate or outgoing-buffer limit is configured. The WebSocket server uses the library's default payload limit.
+- A ready process and passing source tests do not prove live deployment health, cross-replica routing or a latency requirement.
 
 ## Tests
 
-Source-inspected at `f39ab1f`: [`app.test.ts`](../../../services/chat-service/test/app.test.ts), [`events.test.ts`](../../../services/chat-service/test/events.test.ts), [`service.test.ts`](../../../services/chat-service/test/service.test.ts), [`routes.test.ts`](../../../services/chat-service/test/routes.test.ts), [`hub.test.ts`](../../../services/chat-service/test/hub.test.ts) (unit, in-memory store from [`helpers.ts`](../../../services/chat-service/test/helpers.ts)); [`store.integration.test.ts`](../../../services/chat-service/test/store.integration.test.ts) (PostgreSQL, opt-in `CHAT_TEST_DATABASE_URL`); [`messaging.integration.test.ts`](../../../services/chat-service/test/messaging.integration.test.ts) (PostgreSQL and RabbitMQ). Executed results for this document are in the [verification record](../../audits/review-findings.md). There is no browser scenario for Chat in `scripts/uat/`.
+From the repository root after [test prerequisites](../../development/testing-strategy.md):
 
-## Known limits at this head
+```bash
+npm run test:unit -w @campus-errand/chat-service
+npm run test:integration -w @campus-errand/chat-service
+npm run test:messaging -w @campus-errand/chat-service
+```
 
-- Authorization for an existing row is local: `open`, `history` and `send` call the Order Service only when no row exists ([`service.ts`](../../../services/chat-service/src/conversations/service.ts), `open`). The consumer does not subscribe to `order.unassigned`, which `main` now publishes, so an unassigned courier keeps access until the next `order.accepted`.
-- The replay guard is timestamp-based (`courierSince`), not Order-version-based; the backfill sets every pre-existing row's `courier_since` to its `created_at`.
-- `clientId` is correlated on the socket only; it is not persisted, so a retry after an uncertain outcome can store a second message.
-- History pages are complete only up to the last short page the client fetched; a live frame can advance the displayed sequence past REST coverage.
-- Text length, socket payload (`ws` default `maxPayload`), send rate and outgoing buffer are unbounded. The 2026-11-08 runtime update adds bounded graceful shutdown, including in-flight SEND draining.
-- Admin reads are allowed (`canRead`), which issue #56 F8.1.2 does not grant; see the decision register in the specification.
+Integration uses `CHAT_TEST_DATABASE_URL`; broker suites also require `CHAT_TEST_RABBITMQ_URL`. Suites skip when prerequisites are absent. Use isolated test infrastructure, never production URLs.
 
-## Source evidence and related reading
-
-- [D4 implementation specification (proposal)](d4-implementation-specification.md)
-- [Wiki: Chat Service design and reliability plan](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Chat-Service-Design-and-Reliability-Plan) (proposal, revision `a463e3b`)
-- [Wiki: AWS Deployment and D4 Delivery Plan](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/AWS-Deployment-and-D4-Delivery-Plan)
-- [PR #148](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/148) · [issue #56](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/56)
-- [Order Service contracts](../order-service/contracts-and-data.md) · [Shared DTOs](../../packages/common-dtos.md) · [Messaging](../../packages/messaging.md) · [Gateway](../../infrastructure/api-gateway.md)
-- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md) · [Verification record](../../audits/review-findings.md)
+[Unit tests](../../../services/chat-service/test) cover access, routing, lifecycle projection, socket correlation, translation and moderation. [`realtime.integration.test.ts`](../../../services/chat-service/test/realtime.integration.test.ts) exercises two replicas, delivery after a committed intent survives process loss, duplicates, membership rereads, leases and reconnect behavior. Browser coverage exists in [`scripts/uat/uat-realtime.mjs`](../../../scripts/uat/uat-realtime.mjs); inspect its account/infrastructure assumptions before use. Tests were source-inspected, not executed for this documentation refresh. See [testing](../../development/testing-strategy.md) for execution and evidence limits.

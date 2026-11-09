@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile current implementation, contracts, realtime delivery and verification limits; preserve historical records.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -7,83 +11,59 @@ Author review: <to be completed by Reallyeasy1>
 
 # Notification contracts and data
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation checked against [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), 2026-11-09 (SGT). This describes repository behavior, not verified deployment state.
 
-## REST
+[Service overview](README.md) · [Execution paths](implementation.md) · [Reliability and tests](reliability-and-testing.md)
 
-All routes under /api/notifications use shared authentication and derive owner from res.locals.auth.userId. Callers cannot select another recipient.
+## REST and sockets
 
-| Method/path | Input | Response |
+All `/api/notifications` routes use the authenticated caller's user ID. There is no recipient selector or administrator bypass. [`routes.ts`](../../../services/notification-service/src/notifications/routes.ts) defines envelopes; [`common-dtos`](../../../packages/common-dtos/src/index.ts) defines DTO fields.
+
+| Route | Input | Success result |
 |---|---|---|
-| GET /api/notifications | unread=true, page, limit | 200 success/data:{items,total,page,limit,totalPages,unreadCount} |
-| PATCH /api/notifications/:id/read | UUID path | 200 success/data:NotificationDTO; first read timestamp preserved |
-| POST /api/notifications/read-all | No owner/body required | 200 success/data:{updated} |
+| `GET /api/notifications` | `view=all\|action_needed\|important`, `unread=true`, `page`, `limit` | `data: {items,total,page,limit,totalPages,unreadCount}` |
+| `PATCH /api/notifications/:id/read` | UUID notification ID | `data: NotificationDTO`, `meta: {unreadCount}` |
+| `POST /api/notifications/read-all` | No recipient/body needed | `data: {updated,unreadCount}` |
 
-page defaults 1 and is lower-bounded at 1; limit defaults 20 and clamps to 1–100. Parsing uses parseInt/fallback rather than a strict numeric schema. Invalid/missing/other-user IDs all return 404 NOTIFICATION_NOT_FOUND for mark-read. Protected routes can return shared-auth 401. Malformed JSON returns 400 `{success:false,error:"Invalid JSON request body"}`; other request failures return 500 `{success:false,error:"Notification operation failed"}` without a code. List unreadCount always counts the owner's complete unread set, independent of filtered total.
+Page defaults to 1 and is lower-bounded at 1. Limit defaults to 20 and clamps to 1–100; parsing uses integer conversion/fallback. Invalid views return 400 `INVALID_VIEW`. Invalid, missing and other-user notification IDs all return 404 `NOTIFICATION_NOT_FOUND`. Shared authentication can return 401. Unread count covers the caller's complete unread inbox, independently of the current filter.
 
-`NotificationDTO` includes id, kind, orderId, orderCode, courierId, title, body, readAt and createdAt. The shared type permits optional orderCode/courierId/readAt; this store always serializes all three, using null where absent/unread. The three kinds are ORDER_ACCEPTED, ORDER_PICKED_UP and ORDER_DELIVERED. There is no current view=important/action_needed contract or INBOX_CHANGED frame on main.
+`action_needed` selects delivery-review actions whose projected order state is absent or still `DELIVERED`; it is not simply the unread filter. `important` selects category `IMPORTANT`. Rows order by insertion time (`storedAt DESC, id DESC`), while `createdAt` retains the source event's occurrence time. Offset pagination is not a stable snapshot across requests when new rows arrive.
 
-## WebSocket
+The [socket hub](../../../services/notification-service/src/ws/hub.ts) accepts `AUTH` as the first frame within 5 seconds, verifies the access token, closes with 4401 on invalid/expired credentials and pings every 30 seconds. Later client messages are ignored; read changes use HTTP.
 
-| Input/condition | Result |
+| Server frame | Meaning |
 |---|---|
-| First frame within 5 seconds: type AUTH, token | Verify Ed25519 claims; query unread count |
-| Valid auth/count | AUTH_OK with unreadCount, then register user socket |
-| New stored notification | NOTIFICATION with data:NotificationDTO to that user's open sockets |
-| Missing/invalid auth or token expiry | Close 4401 |
-| Unread-count query failure | Close 1011 |
-| Later client frames | Ignored |
-| Missed heartbeat pong | Terminate socket; default interval 30 seconds |
+| `AUTH_OK` with `unreadCount` | Authentication completed; refetch REST to cover the connection window |
+| `NOTIFICATION` with `data: NotificationDTO` | A currently eligible unread item; a live hint, not the complete inbox |
+| `INBOX_CHANGED` | Refetch the inbox/count; no count arithmetic or mutation should be inferred from the frame |
 
-Gateway /ws/ proxies to the service root. Upgrade does not authenticate. The hub does not provide replay cursors, delivery acknowledgments, cross-process fan-out or read-state broadcasts.
+## Event and recipient policy
 
-## Events and persistence
+[`events.ts`](../../../services/notification-service/src/notifications/events.ts) validates routing key/envelope consistency. [`policy.ts`](../../../services/notification-service/src/notifications/policy.ts) is the canonical mapping and wording, currently policy version 1. Order V1 compatibility retains only the original accepted/picked-up/delivered requester alerts. V2 carries producer, committed version, actor, status and reason data for the expanded policy below.
 
-Subscribed keys are order.created, accepted, in_transit, delivered, completed, cancelled, expired. Only accepted/in_transit/delivered produce requester notifications. Parser validates object/JSON, routing-key type, UUIDs and UTC timestamp, optional orderCode/courierUsername, and courierId where the lifecycle event requires it. Valid ignored events are ACKed.
-
-| Event field | Requirement |
+| Committed fact | Recipients and purpose |
 |---|---|
-| eventId, orderId, requesterId | Required UUIDs, normalized to lowercase |
-| eventType | Required; exactly equals the routing key |
-| timestamp | Required UTC timestamp |
-| courierId | Required UUID for accepted/in_transit/delivered/completed |
-| orderCode | Optional; 1–32 characters |
-| courierUsername | Optional; 1–50 characters |
+| `order.created` | Requester: publication confirmation |
+| `order.accepted`, `order.in_transit` | Requester: accepted/picked-up progress |
+| `order.delivered` | Requester: high-priority delivery review action |
+| `order.completed` | Courier for requester completion; requester and courier for administrator completion |
+| `order.cancelled` | Assigned courier for requester cancellation; requester and any courier for administrator cancellation |
+| `order.expired`, `order.rejected` | Requester: expiry/publication failure and the relevant next action |
+| `order.unassigned` | Requester; also prior courier for administrator removal |
+| `credit.escrow.settled` | Validated courier beneficiary: credits received receipt |
+| `credit.escrow.refunded` | Validated requester beneficiary: credits returned receipt |
 
-The notifications table has globally unique event_id. `INSERT ... ON CONFLICT(event_id) DO NOTHING RETURNING` returns a row only for a first insert; a duplicate is not pushed again. created_at is event timestamp. Listing sorts created_at descending then id descending. SQL/index behavior and tests, not an event name alone, establish deduplication.
+Order recipients are deduplicated and the acting user is excluded when `actorId` is present. No-draft events are still recorded as processed. Credit receipts come from Credit's committed financial outcome, not an inference from Order completion/cancellation. They use category `RECEIPT` and a wallet action; student toast policy suppresses receipts and publication confirmations. An inbox item is not itself proof that its linked command remains authorized: the destination service checks current state and permissions.
 
+## Stored data
 
-## Schema field inventory
+The [Prisma schema](../../../services/notification-service/prisma/schema.prisma) and [migrations](../../../services/notification-service/prisma/migrations) are authoritative.
 
-This inventory is extracted from the baseline Prisma schema. The initial migration defines the unique event index and user/created-time index; it does not define additional expression indexes or CHECK constraints.
-
-### Notification
-
-| Field | Prisma declaration |
+| Table | Purpose and constraint |
 |---|---|
-| `id` | `String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid` |
-| `userId` | `String    @map("user_id") @db.Uuid` |
-| `eventId` | `String    @unique @map("event_id") @db.Uuid` |
-| `kind` | `String` |
-| `orderId` | `String    @map("order_id") @db.Uuid` |
-| `orderCode` | `String?   @map("order_code")` |
-| `courierId` | `String?   @map("courier_id") @db.Uuid` |
-| `title` | `String` |
-| `body` | `String` |
-| `readAt` | `DateTime? @map("read_at") @db.Timestamptz(6)` |
-| `createdAt` | `DateTime  @map("created_at") @db.Timestamptz(6)` |
-| Model constraint | `@@index([userId, createdAt(sort: Desc)])` |
-| Model constraint | `@@map("notifications")` |
+| `notifications` | Recipient content, category/priority/action, source version and read timestamps. Unique `(producer,event_id,user_id,kind)`; inbox index `(user_id,stored_at DESC,id DESC)` and unread index `(user_id,read_at)`. |
+| `processed_notification_events` | Primary key `(producer,event_id)`; normalized payload fingerprint, schema/policy version and created/suppressed/legacy outcome. Legacy fingerprints can be null. |
+| `order_notification_state` | Primary key `order_id`; highest seen Order version, status and participants. A display projection, never command authorization. |
+| `notification_realtime_outbox` | Unique event ID with delivery intent, retry schedule and lease metadata. Index `(available_at,created_at)`. |
 
-Related contracts: [event catalogue](../../architecture/communication-and-events.md), [shared DTOs](../../packages/common-dtos.md), and [messaging semantics](../../packages/messaging.md).
-
-## Source evidence and related reading
-
-- [`services/notification-service/src/notifications/routes.ts`](../../../services/notification-service/src/notifications/routes.ts)
-- [`services/notification-service/src/notifications/events.ts`](../../../services/notification-service/src/notifications/events.ts)
-- [`services/notification-service/src/notifications/store.ts`](../../../services/notification-service/src/notifications/store.ts)
-- [`services/notification-service/src/ws/hub.ts`](../../../services/notification-service/src/ws/hub.ts)
-- [`services/notification-service/prisma/schema.prisma`](../../../services/notification-service/prisma/schema.prisma)
-- [`services/notification-service/prisma/migrations/20261005000000_init/migration.sql`](../../../services/notification-service/prisma/migrations/20261005000000_init/migration.sql)
-- [Wiki: Notification Service](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Notification-Service)
-- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md) · [Verification record](../../audits/review-findings.md)
+`readAt = null` means unread. Mark-one preserves its first read timestamp. Mark-all updates only the caller's unread rows stored by the transaction's time boundary; later arrivals remain unread. The store commits read changes and the corresponding realtime intent together. There is no service API for deleting inbox history.

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record executed documentation/local checks, independent corrections and unavailable runtime evidence for the November cleanup.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
 Scope: Added the dated "Chat documentation checks" block (executed chat-service unit run, link/anchor/Mermaid validation, inventory check); earlier checks not rerun.
 Author review: <to be completed by Reallyeasy1>
@@ -9,79 +13,57 @@ Scope: Source-linked implementation documentation and evidence review requested 
 Author review: <to be completed by Reallyeasy1>
 -->
 
-# Independent review and verification record
+# Documentation verification record
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT).
+Implementation inspected at [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026 (SGT). This is a code/configuration reference, not verification of the live deployment.
 
-This record separates checks executed locally from source review and unavailable integration evidence. Root wrote the documentation/configuration; the six research agents independently checked their assigned source areas. Their review findings were returned to root for corrections. No production changes were made to satisfy a test.
+This record covers the local documentation cleanup on `codex/docs-refresh-20261109`. It replaces the active October audit; the [original review record](../archive/audits/2026-10-25-review-findings.md) retains earlier results and provenance. It does not establish that this commit is deployed or that historical findings were fixed.
 
-## Executed checks
+## Cleanup and independent review
 
-Environment: Node 24.19.0, npm 11.9.0. Existing lockfile dependencies were installed with `npm ci --ignore-scripts --no-audit --no-fund`; all five Prisma clients were generated using existing workspace scripts. No dependencies or manifests were added/changed.
+The [index](../README.md) now starts with developer tasks. Active references cover six services, current Saga/receipt semantics, realtime outboxes and fanout, ECS boundaries and actual test coverage. The [archive map](../archive/README.md) preserves eleven snapshots and old entry paths. [Source inventory](source-inventory.md) lists all sixty `docs/` files, six related external READMEs and all forty-two wiki files.
 
-| Check | Actual outcome |
+Separate reviewers checked service behavior, infrastructure, development/test commands, navigation and diagrams. Review caught and corrected remaining five-service/typecheck counts, an unwired `SHADOW_DATABASE_URL` instruction, broken Markdown table pipes, a claim that the proposed C20/W100 harness exists, overpromised k6 cleanup/target isolation, and broken anchors after moves. Four semicolons in historical Chat diagrams were changed to commas solely to repair Mermaid parsing.
+
+The wiki was inspected read-only at `0571db5d4ad8c89679131c8707aae105402c7618`; its required corrections are recorded in the [drift register](documentation-drift.md#wiki-corrections-needed-not-published). Existing human-review placeholders and prior authorship were retained.
+
+## Checks executed
+
+Environment: Node `24.22.1`, npm `11.9.0`; dependencies installed from the unchanged lockfile using `npm ci --ignore-scripts --offline`. Source/configuration inspection was performed before running repository commands. No live target was used.
+
+| Check | Outcome |
 |---|---|
-| npm run typecheck | PASS; all ten workspaces |
-| npm run lint | PASS; 0 errors, 35 existing warnings |
-| npm run test:unit | PASS; 245 tests: Notification 32, Order 51, Supplier 49, User 113; 0 failed/skipped |
-| npm run ci:validate-tests | PASS; 12 workspace suites and 3 system commands match matrix |
-| node .claude/hooks/hooks.test.js | PASS; hooks ok |
-| Local Markdown paths/fragments and index inventory | PASS; 490 relative links/fragments, complete inventory of 41 docs |
-| Claude JSON/frontmatter, path-rule examples, permission preservation | PASS; four agents, two skills, one scoped rule; three matching/four excluded paths; settings/hooks and root policy sections unchanged |
-| git diff --check and changed-file scope | PASS; 52 files within documentation/instruction/log allowlist; one consolidated disclosure each |
-| Mermaid diagrams | PASS static checks for 10 diagrams: fences, declared type, sequence block balance and participant count; independently source-reviewed. No renderer was installed/available, so visual rendering was not verified |
-| PR184 actual-hook/component harness at a5e1f5b | PASS: reproduced all four documented frontend defects with controlled fetch/React SSR; not browser UAT |
+| `npm run typecheck` | PASS across twelve workspaces: six backends, two frontends, four shared packages |
+| `npm run test:unit` | PASS: 469 tests across nine workspace suites, zero failed/skipped/cancelled |
+| `npm run lint` | PASS |
+| `npm run ci:validate-tests` | PASS: twenty workspace suites and four system-test commands match the static CI configuration |
+| `node --test scripts/perf/test/harness.test.mjs` | PASS: nine wrapper self-tests; no HTTP load or real fixture creation |
+| `node .claude/hooks/hooks.test.js` | PASS (`hooks ok`); no live Claude session |
+| Local Markdown links, anchors, images and navigation | PASS: 63 Markdown files, 938 local link occurrences, 259 targets and 96 fragments |
+| Inventory, attribution and command names | PASS: all 60 documents reachable from the index, original disclosure attribution retained, and 25 literal npm script names resolve to package definitions |
+| Mermaid syntax | PASS: all 29 diagrams, including 22 historical and 7 active diagrams |
+| `git diff --check` / `git diff --cached --check` | PASS; final staged check includes new archives after normalizing inherited whitespace |
 
-The independent PR reviewer also executed the PR's nine inbox-helper tests (9/9), compared all five main event-family Credit fingerprints against the PR (equal), and checked Order event enrichment uses committed state/version and prior assignee. These are narrowly scoped source-execution checks, not a complete PR build or integration run. The root independently reran the four-defect harness and observed all four assertions pass.
+The unit total comprises Admin 4, Student 61, Chat 52, Credit 22, Notification 74, Order 74, Supplier 55, User 115 and Messaging 12. These checks establish the documented local commands work in this environment; they do not establish database, broker or production behavior.
 
-### Chat documentation checks, 2026-10-25 (PR #148 head `f39ab1f`, `main` `9a36146`)
+## Static validation scope
 
-Scope: the [Chat README](../services/chat-service/README.md) and [D4 specification](../services/chat-service/d4-implementation-specification.md) only. Earlier rows above were not rerun. Environment: Node 24, npm 11, existing workspace install; Docker PostgreSQL/RabbitMQ were running locally but no database-backed suite was executed for this documentation task.
+The ad hoc documentation checker uses Marked `16.4.2`, Mermaid `12.3.0` and jsdom `31.0.0`. It inspects Markdown links/images, local targets and fragments, and parses every Mermaid block, including historical snapshots. Navigation is checked from `docs/README.md` through the task/topic indexes and complete inventory. The supplemental check resolves 66 repository file/directory URL occurrences (44 unique targets) and 132 wiki URL occurrences (42 unique pages), including Unicode page names and ten fragments. Five historical documentation URLs pinned to commits predating those documents were corrected to the pre-cleanup baseline; code-source pins were retained. Commit links refer to recorded provenance; third-party websites are not exhaustively availability-tested.
 
-| Check | Actual outcome |
-|---|---|
-| `npm run test:unit -w services/chat-service` at `f39ab1f` | PASS; 31 tests, 0 failed/skipped (executed) |
-| Relative links, anchors and Mermaid block types across the two new and four edited docs (ad-hoc script) | PASS; 186 links/fragments, 3 diagrams (`sequenceDiagram`/`flowchart`); no renderer, visual rendering not verified |
-| Inventory completeness (`docs/**/*.md` vs index) | Both new files listed; pre-existing omission of `docs/superpowers/plans/2026-10-22-notification-inbox.md` noted, not changed |
-| `git diff --check` | PASS |
-| Source-inspected, not executed | `store.integration.test.ts`, `messaging.integration.test.ts`, `hub.test.ts`, `routes.test.ts` beyond the unit run; no browser scenario exists for Chat |
+Package scripts, workflow names, environment-variable names and source paths were compared with their definitions. Commands requiring databases, message brokers, AWS accounts, destructive resets or live load were inspected rather than executed. Historical commands remain labelled historical and are not presented as verified current commands.
 
-Human decisions D1-D7 and D-F in the specification's register remain pending; nothing in these documents is approved behavior.
+## Material limitations
 
-## Review findings and resolution
+- Docker and k6 executables are unavailable. Full isolated `npm test`, PostgreSQL/RabbitMQ/CDC integration, migration/seed suites, API/browser UAT, fault recovery and load/stress campaigns were not run.
+- Browser rendering of the seven active diagrams was attempted, but the cached Playwright installation has no Chromium executable. Mermaid syntax is checked; browser visual rendering and GitHub's exact renderer version were not verified.
+- No AWS apply, deployment, resource inspection, billing check, restore drill, delivered-alert test or cross-replica runtime test was performed. Infrastructure documentation describes the checked-in configuration.
+- No new performance result was produced. The original requirements remain distinct from relaxed harness thresholds/populations. The four existing P2 review threads on merged PR #252 remain unresolved.
+- Live Claude plugin loading and external D1/D2 document requirements were not revalidated. Human review and any unresolved authorization/architecture decisions remain pending.
 
-| Finding | Severity | File | Evidence | Resolution |
-|---|---|---|---|---|
-| Supplier shutdown/initialization and sequence ownership misstated | Medium | Supplier README/runtime | index.ts SIGINT/SIGTERM; createNewSupplier; P2002 mapping in service | Corrected module wording and sequence return path |
-| Credit ledger pagination and SQL checks overstated | Medium | Credit contracts/data | routes.ts/store.ts; initial migration | Removed pagination; enumerated actual constraints |
-| Credit test guards, migration scope and seed fallback too broad | Medium | Credit README/runtime | Four test guards; initial-only migration suite; seed transport vs login failure | Corrected prerequisites/coverage/fallback distinctions |
-| Order development auth and admin concurrency input missing | Medium | Order README/contracts; security | index.ts; admin handlers/repository predicates | Documented explicit flag exception, reasons/version/status guards |
-| Notification parser/delivery ownership conflated | Medium | Notification implementation | createNotificationEventHandler versus createDeliver | Corrected prose and sequence participant |
-| Event fields and error/DTO shapes incomplete | Low | User/Supplier/Notification/Credit contracts | Routes, parsers, common DTO and store serialization | Added probes, mandatory fields, nullability and failure distinctions |
-| Student password UI invented; Admin fallback omitted | Medium | Frontend guides | ProfileWalletPage; Admin App fetch handlers | Corrected implemented controls and static fallback behavior |
-| Browser UAT success exit can conceal failed checks | Medium | Testing/CI guides | step() and final totals in uat-d2-ui.mjs | Recorded actual behavior; JSON/log counts required; production fix deferred |
-| Independent config review caught wrong container Node version and dropped backend route/client safeguards | Medium | Infrastructure/backend agents; Docker guide | All pinned service Dockerfiles; existing backend rule | Corrected Node 20.20.2; restored both safeguards |
-| Active Claude instructions contain retired paths/repository/skill and proxy/runtime facts | Medium | .claude guides/agents/skill | Current tree, scripts, Dockerfiles and plugin manifests | Corrected active guidance, retained attribution and tool boundaries |
-| Wiki contains stale retry/persistence/demo commands and mixed historical evidence | Medium | Drift/source inventory | All 32 Wiki pages vs pinned source | Recorded disagreements; Wiki unchanged |
-| PR184 frontend/session and snapshot issues | P1/P2 | Separate PR audit | Pinned source; four controlled reproductions; PostgreSQL/Prisma semantics | Open; documented only, outside production-change scope |
-| Human Author review remains pending | Human gate | All changed disclosure headers | Repository policy and requested draft workflow | Author must inspect/fill; no approval fabricated |
+## Remaining discrepancies and scope
 
-## Unavailable checks and remaining decisions
+The [drift register](documentation-drift.md) records current Chat authorization/membership and send-idempotency limitations, asynchronous recovery gaps, proposed monitoring and concurrency testing, stale wiki/setup prose, performance acceptance gaps and the unresolved PR #252 findings. This cleanup documents these boundaries without changing application behavior or deciding new policy.
 
-Docker is unavailable in this execution environment. PostgreSQL/RabbitMQ/CDC integration, migration/seed runs, full isolated `npm test`, API/Postman and browser UAT were not run. Do not infer them from unit success, historical Wiki evidence or a future green browser job without result counts. No production deployment, multi-replica behavior, migration rehearsal or rollback was exercised.
+Only documentation, necessary documentation-link repairs and required AI usage bookkeeping changed. No application code, infrastructure behavior, schemas, dependencies or requirements changed. No commit, push, merge, wiki write or GitHub issue was performed for this task.
 
-There is no live Claude Code session/plugin connection here. The rule/frontmatter and configured paths can be validated statically; the author should check `/memory`, `/agents`, `/hooks`, `/plugin` and the two skills in their installed client. Existing plugins are unchanged and this PR introduces no new installation requirement. Runtime LSP/browser MCP/authentication was not verified.
-
-Human decisions remain for approved Notification target structure, historical inbox reconciliation and rollout compatibility, AWS/Chat proposals, database-choice rationale, enabled-admin semantics and unresolved NFR acceptance evidence. No new target architecture, schema, interface, design pattern, prioritization or rationale is proposed.
-
-The automatic Claude PR-review workflow skips drafts. This document records the independent local review; human review and normal required CI are still needed before merge. Scope includes documentation, Claude instruction text and AI logging only; settings/hooks/production source/contracts/schemas/Wiki are unchanged.
-
-## Related evidence
-
-- [Complete file inventory](../README.md)
-- [Coverage matrix](documentation-coverage.md)
-- [Source/Wiki inventory](source-inventory.md)
-- [Drift and open questions](documentation-drift.md)
-- [PR184 inspection](pr-184-review.md)
-- [Claude configuration audit](../development/claude-code-workflow.md)
-- [Testing/UAT configuration](../development/testing-strategy.md)
+[Documentation index](../README.md) · [Inventory](source-inventory.md) · [Coverage](documentation-coverage.md) · [Archive](../archive/README.md)

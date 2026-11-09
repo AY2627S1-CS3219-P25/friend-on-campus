@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Refresh container startup, local/cloud probe differences and current realtime shutdown; preserve the actual runtime-version and gateway-user distinctions.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Document application-only image startup, preserved Compose bootstrap, and graceful socket-service shutdown.
 Author review: <to be completed by the author>
@@ -11,49 +15,64 @@ Author review: <to be completed by Reallyeasy1>
 
 # Containers and local deployment
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Implementation checked against [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026 (SGT). This is a source review, not a verification of the running AWS deployment.
 
-This document describes current Compose/Docker implementation. The AWS Wiki page is a proposal; no cloud deployment is asserted here.
+Use [local development](../development/local-development.md) for setup commands and the [ECS Terraform runbook](../../infra/terraform/ecs/README.md) for AWS. This page explains what container startup and health checks establish.
 
 ## Startup and persistence
 
-PostgreSQL starts with logical replication enabled. Provisioning SQL creates six databases and roles. Backend images start only `node dist/index.js`. The Compose `command` overrides run `prisma migrate deploy` before the service; User/Supplier/Order/Credit also seed development data, while Chat and Notification do not. Order/Credit seed failures are logged without necessarily stopping startup. Each backend uses `init: true`; application runtime stages use the base image's non-root user.
+[Docker Compose](../../docker-compose.yml) starts six backend services, two static frontend containers, the NGINX gateway, PostgreSQL, RabbitMQ and three Debezium connectors. [PostgreSQL provisioning SQL](../../docker/postgres-init/01-init-databases.sql) creates six logical databases and per-service roles; service-owned Prisma migrations create their schemas.
 
-For cloud deployments, run the existing Prisma migration executable (`/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma`) from each service image's working directory as an initialization task before starting its application replicas. Seed a fresh demo environment explicitly using the compiled `node dist/database/seed.js` entrypoints for User, Supplier, Order and Credit; ordinary image startup performs neither migrations nor seeds. `docker compose up --build` keeps its existing local bootstrap behavior and requires no AWS credentials.
+| Runtime path | Migrations and seeds |
+|---|---|
+| Backend image default | Starts `node dist/index.js`; no automatic migration or seed |
+| Compose command override | Applies that service's migrations before startup; User/Supplier/Order/Credit also run development seeds |
+| ECS initial rollout | Separate role/publication setup and migration jobs; seeds are explicit fresh-environment jobs |
+| ECS application release | Selected backend migration jobs run before application updates; no automatic seeding |
 
-User and Supplier depend on PostgreSQL. Order/Credit/Chat/Notification additionally depend on RabbitMQ. Credit seed startup waits for User. Each Debezium connector waits for the corresponding service so its outbox table exists. Gateway waits for all six services and both frontends, but not CDC readiness. A healthy gateway does not prove an event has traversed the connectors.
+Order and Credit Compose commands log seed failure and can continue without sample data. User and Supplier seed failures stop their startup chain. Existing-volume data is not recreated merely because an image is rebuilt. Never reuse a fresh-environment seed or volume-reset procedure as a routine deployment repair.
 
-| Component | Compose check | Meaning |
+All six backend services use `init: true` in Compose. Backend images run as `node`, and frontend runtime images run as `nginx`. The gateway image uses the base NGINX image's entry point; it has no explicit non-root `USER` override. Preserve these distinctions when reviewing container security.
+
+## Dependencies and health
+
+User and Supplier require PostgreSQL. Order, Credit, Chat and Notification also require RabbitMQ; Credit's initial seed waits for User. Each Debezium connector starts after the matching service so its outbox table exists. Gateway startup waits for the services and frontends, but not for CDC progress.
+
+| Component | Compose check | What it establishes |
 |---|---|---|
-| User/Supplier/Chat/Notification | /ready | Service-defined dependency check |
-| Order/Credit | /health | Process liveness; /ready exists separately |
-| Apps | Local HTTP request to static NGINX | Assets can be served |
-| PostgreSQL | pg_isready | Server accepts connections |
-| RabbitMQ | check_port_connectivity as rabbitmq user | Broker probe, not end-to-end message processing |
-| Debezium | No Compose healthcheck | Inspect connector logs and actual event progress |
+| User, Supplier, Chat, Notification | `/ready` | The service's configured readiness conditions |
+| Order, Credit | `/health` | Process liveness; readiness is available separately |
+| Frontends | HTTP fetch from local static NGINX | The static site responds |
+| PostgreSQL | `pg_isready` | Server connection readiness |
+| RabbitMQ | `check_port_connectivity` as `rabbitmq` user | Broker port connectivity |
+| Debezium | No Compose health check | Inspect logs and actual event progress |
+| Gateway | No Compose health check; exposes `/health` | The endpoint only reports NGINX liveness |
 
-The RabbitMQ health command uses `su-exec rabbitmq`; changing its effective user can affect cookie ownership during cold boot. Retain this and backend `init: true` per repository instructions. Order/Credit/Chat/Notification and CDC containers have restart policies. Chat and Notification stop advertising readiness, close sockets with code 1001, drain requests/consumer work, and disconnect Prisma on SIGINT/SIGTERM or broker failure. Chat also drains in-flight SEND handlers. Shutdown has a 10-second deadline; Compose gives these services a 30-second stop grace period.
+ECS uses backend `/ready` checks and ALB gateway `/health`; see [applications.tf](../../infra/terraform/ecs/applications.tf). These differences matter when comparing Compose and cloud test evidence.
+
+Chat and Notification readiness includes both their business consumer and realtime subscriber. They stop accepting normal traffic during shutdown, close sockets, drain work and disconnect Prisma. Their shutdown deadline is ten seconds; Compose allows a 30-second stop grace period. A lost realtime subscription disconnects clients so they can reconnect and reload persisted data.
 
 ## Build and environment
 
-Backend containers run compiled Node JavaScript. Frontend containers serve Vite-built static files through NGINX. Root requires Node >=22.3 and CI uses Node 22; all backend Docker stages and frontend build images use Node 20.20.2 at this baseline. This is recorded drift, not normalized by this documentation change.
+Backend images execute compiled Node JavaScript. Frontends serve Vite-built assets through NGINX. The root package requires Node >=22.3 and CI uses Node 22, while backend Docker stages and frontend build stages are pinned to Node 20.20.2. This version difference is existing configuration, not evidence of runtime equivalence.
 
-Use `.env.example` as the safe variable reference. Runtime examples in this documentation omit passwords and keys. Existing public development defaults must not be reused as a production security claim. Compose currently publishes host service, database and broker ports in addition to the gateway.
+Use [.env.example](../../.env.example) as the safe variable reference. Do not inspect, print or publish private `.env` files. Compose exposes local service/database/broker ports as well as the gateway and includes development defaults; it is not the cloud network security policy. Current AWS tasks receive secrets via Secrets Manager and use service-specific connection settings.
 
-## Operations and limitations
+## Troubleshooting without losing state
 
-Use [local development](../development/local-development.md) for commands and [CDC/broker](cdc-and-broker.md) for replication state. Persistent volumes survive ordinary restart. Deleting volumes destroys local data and offsets; do not use it as a routine troubleshooting step. Isolated tests create separate projects/databases and remove only their own resources.
+- Start at [gateway routing](api-gateway.md) for HTTP/502 failures and [CDC/broker operations](cdc-and-broker.md) for delayed credits or order publication.
+- Inspect the service's logs and readiness, then the relevant database, consumer and connector. A green `/health` does not prove the Saga completed.
+- Named volumes preserve PostgreSQL data, RabbitMQ state and connector offsets across ordinary restarts. Deleting volumes removes that state.
+- Use the isolated test runner for disposable test infrastructure; do not point its cleanup at development or cloud resources.
 
-No production restart, database migration, volume reset or deployment was performed for this documentation change. Actual validation is recorded separately.
+No containers, migrations, destructive commands or AWS operations were executed for this documentation cleanup. See [verification](../audits/review-findings.md) for the actual checks.
 
-## Source evidence and related reading
+## Source evidence
 
-- [`docker-compose.yml`](../../docker-compose.yml)
-- [`docker-compose.test.yml`](../../docker-compose.test.yml)
-- [`docker/postgres-init/01-init-databases.sql`](../../docker/postgres-init/01-init-databases.sql)
-- [`services/notification-service/Dockerfile`](../../services/notification-service/Dockerfile)
-- [`services/order-service/Dockerfile`](../../services/order-service/Dockerfile)
-- [`apps/student-app/Dockerfile`](../../apps/student-app/Dockerfile)
-- [`apps/admin-portal/Dockerfile`](../../apps/admin-portal/Dockerfile)
-- [Wiki: Deployment and Configuration](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Deployment-and-Configuration)
-- [Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)
+- [Compose](../../docker-compose.yml) and [test overrides](../../docker-compose.test.yml)
+- [Backend Dockerfile example](../../services/order-service/Dockerfile)
+- [Student Dockerfile](../../apps/student-app/Dockerfile), [admin Dockerfile](../../apps/admin-portal/Dockerfile), [gateway Dockerfile](../../gateway/Dockerfile)
+- [Chat startup/shutdown](../../services/chat-service/src/index.ts), [Notification startup/shutdown](../../services/notification-service/src/index.ts)
+- [ECS database and CDC jobs](../../infra/terraform/ecs/data-tasks.tf)
+
+[Documentation index](../README.md) · [Known discrepancies](../audits/documentation-drift.md)
