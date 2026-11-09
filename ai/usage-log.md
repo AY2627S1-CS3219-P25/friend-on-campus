@@ -1,6 +1,14 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record author-approved commit and publication of the consolidated documentation to the existing PR #255, with an updated description.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Consolidate the documentation into twelve detailed guides and one index; retain history through pinned Git references and repair dependent documentation links.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Record author-approved publication of the documentation branch as a draft PR, including the unmatched linked-issue requirement.
 Author review: <to be completed by Reallyeasy1>
 
@@ -8384,3 +8392,104 @@ Validation passed: 938 local links, 96 fragments, all 29 Mermaid blocks (Mermaid
 - `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — normalize inherited whitespace without changing historical technical content.
 - `docs/archive/README.md`, `docs/audits/review-findings.md` — record the formatting and complete staged verification.
 - Earlier prepared documentation changes — included in the approved commit.
+
+## 2026-11-09 23:23 SGT — Consolidate documentation into thirteen human-readable guides and index files
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Reduce excessive documentation to roughly 8–12 substantive guides plus an index, expand useful human explanations/diagrams, consolidate service references, preserve important history/limitations, verify links and commands, and leave the local changes uncommitted without publishing.
+
+**Usage scenario:** Documentation improvements and source verification. Rechecked PR #255 remains draft/open at `c45f9ed0eb46a54ac68937393e0355da34dd9f9d`, main remains `b989758e766cb593c3b8c94102eb6dfb5c7d8491`, and the read-only wiki remains `0571db5d4ad8c89679131c8707aae105402c7618`. Fetched the existing published PR commit and aligned the local branch only after its tree exactly matched the staged prior cleanup; no new commit was created and unrelated worktrees were left intact. Consolidated 60 docs files (41 active/reference documents, one main index, twelve archive files including their index, six forwarders) into twelve substantive guides plus one index. No archive/forwarding files remain: the wiki's Chat specification link already pins an immutable commit. Forty-eight old paths were removed, one combined frontend guide added, and original attribution from merged active guides retained; unique historical reviews/decisions/evidence remain accessible through pinned Git history. Six service guides now combine explanation, contracts, data, tests and troubleshooting. Added source-checked diagrams and concrete login/errand/credit/event/reconnect examples. Corrected Vite environment loading, default direct-mode Chat health routing notes, partial Supplier seed failure and seeded-versus-new-account wallet initialization. Retained async completion/recovery, Chat access/idempotency, original-versus-relaxed performance limits and unresolved #252 findings. Repaired necessary Markdown references, including instruction-file pointers, without changing authorization policy.
+
+Validation: all thirteen retained docs reachable; 332 local links, ten fragments and all twelve Mermaid diagrams pass across 25 current/changed Markdown files. Five pinned repository URLs, six wiki URLs and eight commit links validate; no unknown refs. Twenty-four literal npm script names resolve. Consolidated attribution checked against39original active source pages; historical attribution preserved through pinned history. `npm run typecheck` passes twelve workspaces; `npm run ci:validate-tests` passes20workspace suites/four system commands; `git diff --check` passes. No new unit/integration/load/runtime evidence claimed; application source unchanged. Chromium installation was attempted using existing Playwright but the download was an invalid/truncated archive, so diagram visual rendering remains unverified. No AWS, database/broker mutation, deployment, live UAT or load test performed. Wiki and PR unchanged; no commit, push, merge or issue creation. Human approvals and unresolved requirements remain with the author.
+
+**Files changed:**
+- `.claude/PLUGINS.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/README.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/backend.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/frontend.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/infrastructure.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/reviewer.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/rules/documentation.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/skills/issue-start/SKILL.md` — repair documentation references and factual setup/count wording after consolidation.
+- `CLAUDE.md` — repair documentation references and factual setup/count wording after consolidation.
+- `README.md` — short quick start and navigation to detailed guides.
+- `ai/usage-log.md` — this task record and consolidated disclosure.
+- `docs/README.md` — task index, compact baseline/verification and historical-context pointers.
+- `docs/architecture/authentication-and-security.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/communication-and-events.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/data-ownership.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/service-boundaries.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/system-overview.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/archive/README.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-documentation-coverage.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-documentation-drift.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-pr-184-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-review-findings.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-source-inventory.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/infrastructure/2026-11-09-cloud-architecture-guide.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/plans/2026-10-22-notification-inbox.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/plans/2026-10-26-errand-details-page.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/services/chat-service/d4-implementation-specification.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/services/notification-service/structure-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/documentation-coverage.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/documentation-drift.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/pr-184-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/review-findings.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/source-inventory.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/cloud-deployment-and-devops-guide.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/development/claude-code-workflow.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/development/local-development.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/development/repository-conventions.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/development/testing-strategy.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/frontend/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/frontend/admin-portal.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/frontend/student-app.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/infrastructure/api-gateway.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/infrastructure/cdc-and-broker.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/infrastructure/ci-cd.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/infrastructure/docker-and-deployment.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/new-cloud-architecture-guide.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/packages/auth.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/packages/common-dtos.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/packages/messaging.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/chat-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/chat-service/d4-implementation-specification.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/credit-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/credit-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/credit-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/notification-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/implementation.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/reliability-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/structure-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/order-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/order-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/order-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/supplier-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/supplier-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/supplier-service/coordinate-upgrades.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/supplier-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/user-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/user-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/user-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/superpowers/plans/2026-10-22-notification-inbox.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/superpowers/plans/2026-10-26-errand-details-page.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `infra/terraform/ecs/README.md` — repair documentation references and factual setup/count wording after consolidation.
+- `tests/k6/README.md` — repair documentation references and factual setup/count wording after consolidation.
+
+## 2026-11-09 23:34 SGT — Publish the thirteen-file documentation consolidation to PR #255
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Commit the consolidated documentation to the existing pull request.
+
+**Usage scenario:** Explicitly authorized commit and branch publication. Rechecked PR #255 is draft/open at `c45f9ed0eb46a54ac68937393e0355da34dd9f9d`, matching local HEAD. Independent pre-publication review confirmed 74 Markdown paths: 25 modified,48 deleted,one new; twelve substantive guides plus one index remain. No application/configuration behavior changes or unresolved verification placeholders. Existing consolidation validation is preserved without claiming newly executed runtime tests; final whitespace/staged-tree checks precede publication. Publish one child commit using an expected-head guard and verify its tree against the local index. Update the PR title/body around the final thirteen-file structure and actual verification limits. Keep the PR draft because no matching tracking issue was authorized; no issue creation, wiki edits, merge or forced branch update.
+
+**Files changed:**
+- `ai/usage-log.md` — publication entry and consolidated disclosure. The previously prepared 73 other Markdown changes are included unchanged in the authorized commit.

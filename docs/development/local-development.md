@@ -1,75 +1,208 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Consolidate local setup and contribution guidance into one developer walkthrough, with source-checked commands, outcomes and troubleshooting.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Refresh six-service local commands, migration ownership, host/container routing and troubleshooting against main.
 Author review: <to be completed by Reallyeasy1>
 
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Replace task-specific stale permissions and dated file-layout notes with current documentation maintenance guidance.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Replace a dated tooling audit with current checked-in configuration, authorization boundaries and verification pointers.
+Author review: <to be completed by Reallyeasy1>
 -->
 
-# Local development
+# Run and develop the application locally
 
-Source baseline: [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491); inspected 9 November 2026 (SGT). These are source-verified instructions, not evidence of a new runtime test or a live AWS deployment.
+This guide takes you from a checkout to a working student and administrator interface. You can run everything in Docker, or keep the infrastructure in Docker while editing TypeScript with hot reload. Both modes use the same six services and database schemas; they differ in how processes start and how browser requests reach them.
 
-Use the [root quick start](../../README.md) for initial environment setup and seed accounts. This page explains which command to use and how host development differs from the container stack. Commands below run from the repository root.
+All commands below run from the repository root. The [documentation index](../README.md) records the inspected source revision; [the system guide](../architecture/system-overview.md) explains the components you are starting.
 
-## Choose a runtime
+## Choose the mode that fits your work
 
-| Mode | Application processes | Dependencies and routing |
+| | Full Docker Compose | Host development |
 |---|---|---|
-| Full Compose | Six backend services, two static NGINX frontends and the API gateway | Compose PostgreSQL, RabbitMQ and three Debezium connectors; use the gateway at `http://localhost` |
-| Host development | `tsx watch` backends on 8001–8006 and Vite apps on 5173/5174 | Start PostgreSQL/RabbitMQ and CDC separately; Vite proxies API/socket requests to local services unless an override is supplied |
+| Use it for | Trying the application and checking the container stack | Editing backend or frontend code with hot reload |
+| Application processes | Built backend JavaScript and static NGINX frontends | `tsx watch` backends and Vite frontends |
+| Infrastructure | PostgreSQL, RabbitMQ and Debezium in Compose | The same infrastructure in Compose |
+| Browser entry | `http://localhost` and `/admin/` | `http://localhost:5173` and `http://localhost:5174/admin/` |
+| Schema/data setup | Compose startup commands migrate and seed | You run migrations and seed commands explicitly |
 
-Host tooling requires Node **>=22.3** and npm. CI uses Node 22. The checked-in application Dockerfiles use Node 20 build/backend images and NGINX frontend runtime images; those are separate environments, not evidence that every supported host version was tested.
+Install Docker with Compose v2. For host commands, use Node **22.3 or newer** and npm; CI uses Node 22. The application Dockerfiles use their own pinned Node 20/NGINX images, so changing your host Node version does not change the container runtime. Ports 80, 5432, 5672, 15672, 8001–8006 and 5173–5174 must be available for the default full stack.
 
-## Command reference
+Do not run both application modes on their default ports simultaneously. Starting a Vite app while its container already occupies 5173, for example, can leave you looking at a different process from the one you are editing.
 
-| Task | Command | Prerequisite or effect |
-|---|---|---|
-| Install locked dependencies | `npm ci` | Uses the lockfile; root postinstall generates all **six** isolated Prisma clients |
-| Regenerate Prisma clients | `npm run db:generate --workspaces --if-present` | Does not apply migrations or seed data |
-| Start local dependencies | `docker compose up -d postgres rabbitmq` | Configure local environment first; wait for health before migrations |
-| Apply committed migrations | `npm run db:deploy` | Applies all six service schemas to the configured databases |
-| Start outbox transport | `docker compose up --no-deps -d debezium-user debezium-order debezium-credit` | Start after the relevant migrations; `--no-deps` does not start application services |
-| Seed development data | `npm run db:seed` | User, Supplier, Order and Credit seeders; run only against intended development data |
-| All host applications | `npm run dev` | Six backends and two frontends |
-| Only backends / frontends | `npm run dev:services` / `npm run dev:apps` | Uses the same parallel workspace runner |
-| Select processes | `npm run dev -- user supplier chat` | Other aliases: `order`, `credit`, `notif`, `student`, `admin` |
-| One workspace | `npm run dev -w @campus-errand/chat-service` | Runs that package's dev script |
-| Full container stack | `docker compose up --build` | Builds images and starts the configured stack |
+## Prepare the checkout
 
-Seeders are mutations, not health checks. In particular, sample errands require `SEED_SAMPLE_ORDERS=true`, and running seeders can update seeded accounts or wallets. Keep secrets out of command logs and documentation. `.env.example` is the committed configuration reference; key generation is an explicit setup step, not a documentation verification check.
+Install the lockfile's dependencies:
 
-## Migrations and connection settings
+```bash
+npm ci
+```
 
-Each service owns its schema and migrations under `services/<service>/prisma/`. PostgreSQL init scripts create databases and roles, not service tables. `db:deploy` applies committed migrations; `db:migrate` authors a new migration and can require a shadow-database-capable identity.
+The root postinstall generates a separate Prisma client for each of the six services. Prisma is the database-access library; generating its client creates TypeScript/JavaScript bindings, **not database tables**. If generated imports later disappear, regenerate them without modifying the database:
 
-User, Supplier, Order, Credit and Notification invoke the [shared migration helper](../../scripts/prisma-migrate.mjs). Chat has the equivalent command in its [package scripts](../../services/chat-service/package.json). These select an existing `DATABASE_URL` first, then the service-specific URL (`USER_DATABASE_URL`, `CHAT_DATABASE_URL`, and so on), then a development fallback. An exported `DATABASE_URL` therefore overrides the per-service values when running the root migration command: verify the target before applying migrations.
+```bash
+npm run db:generate --workspaces --if-present
+```
 
-## Host and container routes
+On a fresh checkout, copy [`.env.example`](../../.env.example) to `.env` once, then generate the local signing keys:
 
-The [Student Vite configuration](../../apps/student-app/vite.config.ts) uses `GATEWAY_URL` when supplied; otherwise each API/socket route selects its service URL or localhost fallback. It forwards `/admin` to the separate Admin Vite process. Admin uses `/admin/` as its base path and has its own [proxy configuration](../../apps/admin-portal/vite.config.ts).
+```bash
+cp .env.example .env
+npm run generate:jwt-keys
+```
 
-Compose frontends serve built assets through NGINX, not Vite. Their proxy behavior is controlled by [gateway configuration](../infrastructure/api-gateway.md), including `/ws/` for Notification and `/ws/chat/` for Chat. Changing a Vite variable does not reconfigure a deployed static frontend or the ECS gateway.
+The key command prints `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY`; paste the values into your local `.env`. It does not edit the file for you. Do not overwrite an existing `.env` or regenerate an established environment's keys as a routine restart: previously issued tokens would no longer verify. Keep private keys and credentials out of commits, screenshots and shared logs.
 
-## Troubleshooting
+User Service signs access tokens with the private key. The other services need the corresponding public key, issuer and audience. A successful login followed by `401` responses from another service often means these values disagree.
 
-| Symptom | Check first |
+The template contains local per-service database URLs and default ports. An empty `SOCLAAS_API_KEY` is sufficient to start local development: the Order assistant has an offline parsing fallback. That does not test live model-backed features such as translation; see the [Chat guide](../services/chat-service/README.md).
+
+## Option A: start the full container stack
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+docker compose up --build -d
+docker compose ps
+```
+
+Wait for the backend dependencies to become healthy before opening `http://localhost`. RabbitMQ has a deliberately long startup allowance, so an initially starting broker is not by itself a failure. Inspect progress rather than repeatedly restarting it:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+docker compose logs --tail=80 postgres rabbitmq
+docker compose logs --tail=80 user-service credit-service
+```
+
+The gateway serves the student interface at `/` and the administrator interface at `/admin/`. Use this shared entry point for the container stack; the frontends make relative API and WebSocket requests that the gateway routes.
+
+Compose explicitly overrides each backend's startup command to run committed migrations. It seeds User, Supplier, Order and Credit before starting their apps; Notification and Chat have no startup seeder. The images themselves start the application only, which is why [cloud rollout](../new-cloud-architecture-guide.md) uses separate migration jobs.
+
+User/Supplier seed failure prevents their container startup. Order/Credit startup logs seed failure and continues, so a running container does not prove that demonstration errands or wallets were created. Use the seeded accounts described in the [root README](../../README.md), then inspect their actual data in the UI.
+
+For a simple stop that preserves local data:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+docker compose down
+```
+
+## Option B: edit applications on the host
+
+Start the databases and broker, then check their health:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+docker compose up -d postgres rabbitmq
+docker compose ps
+```
+
+After they are ready, apply the service schemas, start the three outbox connectors, seed development data and start the applications:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+npm run db:deploy
+docker compose up --no-deps -d debezium-user debezium-order debezium-credit
+npm run db:seed
+npm run dev
+```
+
+`--no-deps` is intentional here: the connectors need PostgreSQL/RabbitMQ and migrated outbox tables, but Compose must not also start the application containers whose ports the host processes will use. Debezium reads committed database changes and forwards business events to RabbitMQ. Without it, account creation can succeed while the welcome wallet or a later order reservation remains unprocessed.
+
+`npm run dev` starts six backends and both frontends with prefixed logs. The student app is at `http://localhost:5173`; the admin app is at `http://localhost:5174/admin/`. Ctrl+C stops the child application processes. The infrastructure containers continue running until you stop them separately.
+
+For a smaller editing session, select only the processes you need:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+npm run dev -- user supplier student
+npm run dev:services
+npm run dev:apps
+npm run dev -w @campus-errand/chat-service
+```
+
+These are alternatives, not commands to run simultaneously. Supported short names are `user`, `supplier`, `order`, `credit`, `notif`, `chat`, `student` and `admin`. A partial session supports only the features whose dependencies are running: selecting Chat alone does not create the accepted-order conversation it needs.
+
+### How host requests find their service
+
+Vite proxies the browser's `/api/...` and WebSocket paths to the host service ports. The Student proxy also forwards `/admin` to the Admin Vite process. `/ws/` is Notification; `/ws/chat/` is Chat.
+
+Both [Student](../../apps/student-app/vite.config.ts) and [Admin](../../apps/admin-portal/vite.config.ts) read proxy overrides from `process.env`. To route host frontends through an already-running local gateway, set the variable in the shell launching them:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+GATEWAY_URL=http://localhost npm run dev:apps
+```
+
+This example uses POSIX shell syntax; in PowerShell, set `$env:GATEWAY_URL` before starting npm. The current Vite configs do not load the repository root `.env` into `process.env`, so adding this override only to that file is insufficient. Backend dotenv loading and frontend proxy configuration are different mechanisms.
+
+A Vite override also cannot change a built frontend or the cloud gateway. Those use the checked-in NGINX/ECS configuration described in the [cloud guide](../new-cloud-architecture-guide.md).
+
+## Manage schemas and development data deliberately
+
+Each service owns its `prisma/schema.prisma`, migrations and generated client. The PostgreSQL initialization scripts create six logical databases and service roles; they do not create application tables. Initialization scripts run when the PostgreSQL volume is first created, so editing them does not automatically update an existing volume.
+
+| Task | Command / behavior |
 |---|---|
-| Imports or generated Prisma types are missing | Run `npm ci` or regenerate clients; do not substitute a shared root Prisma client |
-| A column is missing | Inspect the affected service's migration state and database target; do not delete volumes as routine repair |
-| Wallet is missing immediately after signup | Trace User outbox → CDC → Credit welcome grant; account creation and wallet initialization are asynchronous |
-| An order stays `PENDING` | Trace reservation request/result and Order consumer readiness before retrying the POST |
-| Gateway works but socket connections fail | Check the selected host/container mode and both websocket paths |
-| Broker returns `ACCESS_REFUSED` during UAT | Check the driver-specific AMQP identity, port and vhost; changing `GW` does not change `AMQP_URL` |
-| API E2E cannot bind User/Supplier ports | The driver starts those services itself; stop conflicting listeners or use its `TEST_USER_PORT` / `TEST_SUPPLIER_PORT` settings |
+| Apply existing migrations across services | `npm run db:deploy` |
+| Apply one service's migrations | `npm run db:deploy -w @campus-errand/user-service` |
+| Author a new migration after an approved schema change | `npm run db:migrate -w @campus-errand/user-service` |
+| Refresh generated code after schema changes | `npm run db:generate --workspaces --if-present` |
+| Seed all development data | `npm run db:seed` |
+| Seed one service | `npm run db:seed -w @campus-errand/supplier-service` |
 
-See [testing and UAT configuration](testing-strategy.md) before running scripts that create or cancel records. For cloud operations use the [ECS rollout runbook](../../infra/terraform/ecs/README.md).
+The migration helpers select an existing `DATABASE_URL` before the service-specific `USER_DATABASE_URL`, `CREDIT_DATABASE_URL`, and equivalent settings. A global exported `DATABASE_URL` can therefore send every root migration command to the same database. Verify the selected target before running it. The shared [migration helper](../../scripts/prisma-migrate.mjs) and [Chat package scripts](../../services/chat-service/package.json) contain the exact precedence.
 
-## Sources
+`db:migrate` creates a migration and may need permission to create a shadow database. The least-privilege development service roles do not have that permission. Use a suitable identity against a disposable development database when authoring migrations; `SHADOW_DATABASE_URL` alone is not wired into the current schemas. Use `db:deploy` when you simply need migrations already in Git.
 
-[Root scripts](../../package.json), [dev runner](../../scripts/dev.mjs), [Compose](../../docker-compose.yml), [configuration template](../../.env.example), [User Dockerfile](../../services/user-service/Dockerfile), [Student Dockerfile](../../apps/student-app/Dockerfile).
+Seeding is a data mutation, not a health check. User seeding restores the defined demonstration accounts' usernames, roles and password hashes. Credit seeding initializes missing wallets without resetting existing balances, and can reserve credits for sample errands. `SEED_SAMPLE_ORDERS=true` enables the sample Order/Credit fixtures. Credit can use deterministic seed identities when User Service is unreachable; an explicit failed login is not treated as that offline case.
 
-[Documentation index](../README.md) · [Drift register](../audits/documentation-drift.md) · [Verification record](../audits/review-findings.md)
+For older Supplier rows without coordinates, follow the targeted upgrade procedure in the [Supplier guide](../services/supplier-service/README.md). Do not reset the entire stack to repair a missing coordinate or a pending migration.
+
+### Reset only a disposable stack
+
+The following removes this Compose project's named volumes, including database, broker and CDC checkpoint data. Use it only when you deliberately want a fresh local environment and have no data to retain:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
+docker compose down -v
+docker compose up --build -d
+```
+
+A normal restart or upgrade should preserve volumes. If an existing environment fails to migrate, first inspect the failing migration and its database target rather than deleting the evidence.
+
+## Troubleshoot the first failing boundary
+
+| Symptom | Check | What it tells you |
+|---|---|---|
+| Generated Prisma import missing | Regenerate clients after installing dependencies | Generated code is separate from applying database migrations |
+| Port already in use / edits not visible | Compare running host processes with `docker compose ps` | Another copy of the app may own the URL you opened |
+| Missing column or relation | Check the affected service's migration output and target database | A healthy PostgreSQL server does not prove that service schema is current |
+| Login works but another API returns `401` | Compare public key, issuer and audience across processes | Services verify tokens independently |
+| Wallet absent after signup | Inspect User outbox, `debezium-user` and Credit consumer logs | Wallet initialization is asynchronous |
+| Errand remains `PENDING` | Trace reservation request/result through Order, Credit and CDC | Repeating the POST can create more work without fixing the original transition |
+| Chat/alerts work only after refresh | Check both WebSocket routes, then the realtime relay/subscriber | REST history and live delivery are separate paths |
+| UAT gets broker `ACCESS_REFUSED` | Check AMQP port, identity and `/campus` vhost | `GW` changes HTTP routing, not the broker used by a test driver |
+| API E2E cannot bind 8001/8002 | Stop existing User/Supplier listeners or use the driver's port overrides | That driver starts its own service processes |
+
+For event, queue and retry diagnosis continue with [messaging and recovery](../infrastructure/cdc-and-broker.md). For a failing test, use the [testing guide](testing-strategy.md) rather than changing live infrastructure to satisfy a local test.
+
+## Make a change and keep the next developer oriented
+
+Start with the affected service guide, then follow its links to routes, validation, persistence and tests. Shared DTOs live in `packages/common-dtos`; Prisma imports go through each service's `database/client` facade. After an approved implementation change, update the guide that owns that behavior instead of adding another overview.
+
+Run the focused tests and workspace typecheck described in the [testing guide](testing-strategy.md). If a `test:*` script is added, renamed or removed, update the static CI matrix and run `npm run ci:validate-tests`. Keep the root README a quick start, `docs/` an implementation/operations reference, and the wiki a source of design and milestone context.
+
+[AGENTS.md](../../AGENTS.md) and [CLAUDE.md](../../CLAUDE.md) govern AI-assisted work, attribution, usage logging and publication approval. Preserve human-review placeholders rather than completing them yourself. The checked-in [Claude setup](../../.claude/README.md), [settings](../../.claude/settings.json), [plugins](../../.claude/PLUGINS.md), [agents](../../.claude/agents) and [hooks](../../.claude/hooks) describe tooling; a tool permission or warning-only hook is not authorization to publish. Setup prose claiming Git writes are denied is stale relative to the current settings, while the explicit-approval policy still applies.
+
+The source for these commands is the [root package](../../package.json), [dev runner](../../scripts/dev.mjs), [Compose configuration](../../docker-compose.yml) and service package scripts. Verify changed commands there before refreshing this guide's claims.

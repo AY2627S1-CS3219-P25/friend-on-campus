@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Correct credential persistence, configured performance limits, proposed harness status and cleanup/target-safety limitations.
 Author review: <to be completed by Reallyeasy1>
 
@@ -76,7 +80,7 @@ A load run takes longer than one access token lives (15 minutes), so the wrapper
 renew themselves, as the k6 sessions do. Cleanup is best effort: inspect `cleanup.json` for errors and skipped
 orders. Tag-based cleanup can recover records owned by surviving test accounts, but the current cleanup can
 delete an account while skipping its PENDING orders, making those orders undiscoverable by tag. Outstanding
-fixture workers can also finish after cleanup. See the [open PR #252 findings](../../docs/audits/documentation-drift.md#pr-252-findings-still-open).
+fixture workers can also finish after cleanup. See the [open PR #252 findings](../../docs/development/testing-strategy.md#existing-harness-limitations).
 
 ```bash
 npm run perf:k6 -- --target http://127.0.0.1 --cleanup-tag 746e82
@@ -157,7 +161,7 @@ profile reports concurrency as `NOT_ASSESSED`: it proves plumbing, never a requi
 buckets per metric/scenario/operation/phase/step), `performance.json` and `k6.log`. Metric tags hold route
 templates only; raw URLs, query strings, IDs and tokens are never tagged or logged.
 
-The manual GitHub Actions workflow `.github/workflows/performance.yml` runs the same wrapper and uploads the bundle even when the run fails. Its target allowlist has a known VU-argument bypass; see the [open PR #252 findings](../../docs/audits/documentation-drift.md#pr-252-findings-still-open) before using it with credentials.
+The manual GitHub Actions workflow `.github/workflows/performance.yml` runs the same wrapper and uploads the bundle even when the run fails. Its target allowlist has a known VU-argument bypass; see the [open PR #252 findings](../../docs/development/testing-strategy.md#existing-harness-limitations) before using it with credentials.
 
 ## `order-claim-race.js`
 

@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
 Author review: <to be completed by Reallyeasy1>
@@ -32,7 +36,7 @@ Your prompt does not include the conversation, so build context from the repo fi
 2. `README.md` — system architecture, ports, and local development workflow.
 3. `packages/common-dtos` — shared contracts and types (read-only for you).
 
-Technical reference: `docs/README.md`, `docs/frontend/student-app.md`, `docs/frontend/admin-portal.md` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+Technical reference: `docs/README.md`, `docs/frontend/README.md` and `docs/README.md#known-limits-and-design-context`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
 
 Directory, from your seat:
 

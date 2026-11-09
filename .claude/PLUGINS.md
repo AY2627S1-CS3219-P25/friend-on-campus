@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
 Author review: <to be completed by Reallyeasy1>
@@ -36,7 +40,7 @@ Marketplaces: `claude-plugins-official` is built in. `claude-code-plugins` needs
 | `playwright` | `/plugin install playwright@claude-plugins-official` | Desktop (~1280px) and phone (~390px) browser checks and screenshots | First use downloads a browser |
 | `pr-review-toolkit` | `/plugin install pr-review-toolkit@claude-plugins-official` | `silent-failure-hunter` (swallowed errors in credit/order code), `pr-test-analyzer`, `code-reviewer`, `comment-analyzer` | none — see the caution on `type-design-analyzer` below |
 
-The five core identifiers and prerequisites were checked against [the official marketplace at 58267944](https://github.com/anthropics/claude-plugins-official/tree/58267944f92187b7d6a1c822165c96c81c864806). No plugins were installed or enabled by this documentation change. Personal optional/situational entries below remain suggestions, not proof of local installation or current compatibility; verify their manifests before use. See [configuration verification and limits](../docs/development/claude-code-workflow.md).
+The five core identifiers and prerequisites were checked against [the official marketplace at 58267944](https://github.com/anthropics/claude-plugins-official/tree/58267944f92187b7d6a1c822165c96c81c864806). No plugins were installed or enabled by this documentation change. Personal optional/situational entries below remain suggestions, not proof of local installation or current compatibility; verify their manifests before use. See [configuration verification and limits](../docs/development/local-development.md).
 
 ## 2. Recommended — personal choice, not forced on teammates
 

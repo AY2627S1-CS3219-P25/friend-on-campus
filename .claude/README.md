@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
 Author review: <to be completed by Reallyeasy1>
@@ -50,7 +54,7 @@ About 15 minutes. Do it once per machine. Everything here is about the AI toolin
 # AI-generated (edited by Reallyeasy1)
 git clone https://github.com/AY2627S1-CS3219-P25/friend-on-campus
 cd friend-on-campus
-npm install                      # also generates all five Prisma clients; needed for typecheck and the language server
+npm ci                           # also generates six Prisma clients; needed for typecheck and the language server
 gh repo set-default AY2627S1-CS3219-P25/friend-on-campus
 ```
 
@@ -115,7 +119,7 @@ Restart Claude Code from the repo root, then:
 | `agents/` | Four subagents; when and when not to use them is in `CLAUDE.md` §8 |
 | `PLUGINS.md` | The team's plugin list |
 
-Technical navigation: [documentation index](../docs/README.md), [Claude workflow audit](../docs/development/claude-code-workflow.md), and [verification record](../docs/audits/review-findings.md). Check `/memory` for the scoped documentation rule when working on a docs file; static path checks do not establish runtime loading.
+Technical navigation: [documentation index](../docs/README.md), [local development](../docs/development/local-development.md), and [verification notes](../docs/README.md#baseline-and-verification). Check `/memory` for the scoped documentation rule when working on a docs file; static path checks do not establish runtime loading.
 
 ## 7. Working day to day
 
@@ -123,7 +127,7 @@ Technical navigation: [documentation index](../docs/README.md), [Claude workflow
 2. `/issue-start <n>` for the facts and the checklist.
 3. Ask for the implementation, stating your decided design in the prompt. Most tasks need no subagent; Claude picks `backend` / `frontend` / `infrastructure` only for independent or context-heavy pieces.
 4. Ask the `reviewer` agent for tests, an acceptance-evidence table, or the AI-policy check before you commit.
-5. Read the diff, fill in every `Author review:` line yourself, check `ai/usage-log.md` has the entry, then **commit yourself** (`! git commit …` runs it from inside the session). Claude is denied commit and push.
+5. Read the diff, fill in every `Author review:` line yourself, check `ai/usage-log.md` has the entry, then **commit yourself** (`! git commit …` runs it from inside the session). Repository policy requires explicit authorization for commits and pushes even where tool settings permit them.
 
 ## 8. Troubleshooting
 

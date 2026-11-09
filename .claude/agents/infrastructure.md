@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-07
 Scope: Added a pointer to the confirmed cloud deployment constraints for infrastructure work.
 Author review: <to be completed by the author>
@@ -49,7 +53,7 @@ Your prompt does not include the conversation, so build context from the repo fi
 1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and rules (§4), verification (§5), agent team (§8).
 2. `README.md` — container topology, ports, and CI test categories.
 
-Technical reference: `docs/README.md`, `docs/infrastructure/docker-and-deployment.md` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+Technical reference: `docs/README.md`, `docs/new-cloud-architecture-guide.md` and `docs/README.md#known-limits-and-design-context`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
 
 Cloud deployment or evaluation: apply [the confirmed constraints in CLAUDE.md §3](../../CLAUDE.md#cloud-deployment-and-evaluation-constraints). Check the deployment configuration for current behavior. Treat architecture drafts under team review as proposals.
 
