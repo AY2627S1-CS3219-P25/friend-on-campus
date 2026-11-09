@@ -7,54 +7,40 @@ Author review: <to be completed by Reallyeasy1>
 
 # Supplier runtime, failures and tests
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
+Baseline: branch `order_dispute`, HEAD `d49e883`, inspected 2026-11-08 (SGT).
 
-For reads, route query extraction feeds repository filtering, JavaScript sorting and optional slicing. There is no requirement for a token on current collection/detail GET routes. The frontend may still gate its screens behind login; that is a different layer.
+The request flows are in the [README diagrams](README.md#diagrams).
 
-```mermaid
-%% AI-generated (edited by Reallyeasy1)
-sequenceDiagram
-  participant Admin
-  participant Router
-  participant Service
-  participant Repo as Repository and supplier_db
-  Admin->>Router: POST /api/suppliers
-  Router->>Router: Verify token and ADMIN role
-  Router->>Service: createNewSupplier(body)
-  Service->>Service: Check required fields
-  Service->>Repo: Find duplicate location
-  alt Duplicate
-    Service-->>Router: Conflict
-    Router-->>Admin: 409
-  else No precheck match
-    Service->>Repo: Insert with unique constraints
-    Repo-->>Service: Row or P2002
-    Service-->>Router: Row or SupplierConflictError
-    Router-->>Admin: 201 or 409
-  end
-```
+## Behaviour to know
 
-Updates validate the effective combination of existing and changed values before duplicate checking. SQL uniqueness handles concurrent races missed by the precheck. Supplier-code generation uses count-based numbering with a timestamp fallback; it is not a demonstrated collision-free concurrent allocation guarantee.
+- **Deletes:** default is a soft delete (`isActive=false`) so existing orders keep their supplier details; `?permanent=true` removes the row.
+- **Toggle:** reads the current state, then writes the opposite (two statements, not atomic).
+- **Codes:** supplier-code generation counts rows and falls back to a timestamp suffix; it is not collision-proof under concurrency, but the unique column catches a clash.
+- **Orders:** an existing order keeps its copied supplier name and zone. Order Service checks the supplier again for each new order.
+- **No events:** availability changes are not published, so nothing notifies clients.
+- **Seed:** upserts are sequential, not one transaction. Existing ids, active state and recorded coordinates are kept.
 
-Default deletion sets isActive=false; permanent=true removes the row. Toggle reads the current state then writes its inverse, not a single atomic database toggle. There is no automatic retry. Existing orders retain copied supplier details; new order creation independently checks current supplier availability.
+## Failures
 
-## Failure boundaries
-
-Validation/duplicate/missing records map to 400/409/404. Authentication errors precede mutations. Unexpected database errors become 500; no local compensation workflow runs. SELECT 1 readiness can succeed despite a missing table. The service has no event publication, so changing availability does not itself send a broker notification to clients.
+| Case | Result |
+|---|---|
+| Missing or invalid token / not ADMIN | 401 / 403, before any validation |
+| Bad input | 400 |
+| Unknown id | 404 |
+| Duplicate location (precheck or unique index) | 409 |
+| Database or other error | 500; no retry or compensation |
+| Table missing | `/ready` still returns READY (`SELECT 1` only) |
 
 ## Tests
 
-`npm run test:unit -w @campus-errand/supplier-service` uses Node/tsx and module mocks. `supplierRoutes.test.ts` combines HTTP/shared auth with a mocked repository; `supplierRepository.test.ts` mocks Prisma. Cases cover public reads, every mutation's authorization, validation, duplicates, sorting, pagination, delete semantics and probes.
+`npm run test:unit -w @campus-errand/supplier-service` (Node test runner with tsx and module mocks):
 
-There is no dedicated Supplier database-integration script. Mock tests do not prove actual SQL concurrency or expression-index behavior; D2 API acceptance uses real seeded PostgreSQL. Seed validation and committed migration SQL should be inspected when schema/seed behavior changes. Current verification results are in the central record.
+- `supplierRoutes.test.ts`: HTTP and shared auth against a mocked repository: public reads, each mutation's authorization, validation, duplicates, sorting, paging, delete, probes.
+- `supplierRepository.test.ts`: filtering, sorting and paging against a mocked Prisma client.
+- `seed.test.ts`: a reseed keeps coordinates an administrator has recorded.
 
-## Source evidence and related reading
+`npm run test:migration -w @campus-errand/supplier-service` runs `coordinates.migration.ts` against a dedicated database whose name contains `_test`. There is no database test for the case-insensitive unique index or real concurrency; the D2 API acceptance run covers real PostgreSQL.
 
-- [`services/supplier-service/src/suppliers/supplierRoutes.ts`](../../../services/supplier-service/src/suppliers/supplierRoutes.ts)
-- [`services/supplier-service/src/suppliers/supplierService.ts`](../../../services/supplier-service/src/suppliers/supplierService.ts)
-- [`services/supplier-service/src/suppliers/supplierRepository.ts`](../../../services/supplier-service/src/suppliers/supplierRepository.ts)
-- [`services/supplier-service/test/supplierRoutes.test.ts`](../../../services/supplier-service/test/supplierRoutes.test.ts)
-- [`services/supplier-service/test/supplierRepository.test.ts`](../../../services/supplier-service/test/supplierRepository.test.ts)
-- [`services/supplier-service/package.json`](../../../services/supplier-service/package.json)
-- [Wiki: Supplier Service](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Supplier-Service)
-- [Documentation index](../../README.md) · [Drift register](../../audits/documentation-drift.md) · [Verification record](../../audits/review-findings.md)
+## Source
+
+[`supplierRoutes.test.ts`](../../../services/supplier-service/test/supplierRoutes.test.ts) · [`supplierRepository.test.ts`](../../../services/supplier-service/test/supplierRepository.test.ts) · [`seed.test.ts`](../../../services/supplier-service/test/seed.test.ts) · [`package.json`](../../../services/supplier-service/package.json) · [Docs index](../../README.md) · [Verification record](../../audits/review-findings.md)
