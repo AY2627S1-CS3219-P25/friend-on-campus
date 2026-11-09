@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Link the manual main-branch application and infrastructure delivery workflows.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Retire K3s deployment references and link the ECS Terraform rollout and manual deployment workflow.
 Author review: <to be completed by the author>
@@ -325,7 +329,7 @@ npm run typecheck
 
 ## ☁️ Cloud Deployment & DevOps (Milestone D4)
 
-Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) to deploy in AWS Singapore. The stack runs on three shared ARM64 hosts behind CloudFront and an Application Load Balancer. The [cloud architecture guide](docs/new-cloud-architecture-guide.md) covers sizing, costs and verification. Use the manually triggered **Deploy applications to ECS** workflow for ARM64 image preparation and updates to running application services.
+Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) to deploy in AWS Singapore. The stack runs on three shared ARM64 hosts behind CloudFront and an Application Load Balancer. The [cloud architecture guide](docs/new-cloud-architecture-guide.md) covers sizing, costs and verification. From `main`, use **Deploy applications to ECS** for tested ARM64 application releases and migrations, or **Deploy ECS infrastructure** to preview and apply infrastructure updates. Both workflows are manually triggered. Complete the linked OIDC and shared-state setup before using GitHub delivery.
 
 After deployment, use the CloudFront URL from Terraform's `public_url` output for k6 tests. Run from the repository root.
 

@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Allow GitHub delivery to run and inspect migration tasks in foc-ecs.
+# Author review: <to be completed by the author>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Grant the retained GitHub deployment role ECR push and ECS application rollout permissions.
 # Author review: <to be completed by the author>
@@ -27,6 +31,17 @@ resource "aws_iam_role_policy" "github_deploy" {
         Effect   = "Allow"
         Action   = ["ecs:DescribeServices", "ecs:UpdateService"]
         Resource = [for service in keys(local.apps) : "arn:aws:ecs:ap-southeast-1:${var.account_id}:service/${aws_ecs_cluster.main.name}/${service}"]
+      },
+      {
+        Effect    = "Allow"
+        Action    = "ecs:RunTask"
+        Resource  = [for backend in local.backends : "arn:aws:ecs:ap-southeast-1:${var.account_id}:task-definition/${local.name}-migrate-${backend.name}:*"]
+        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.main.arn } }
+      },
+      {
+        Effect   = "Allow"
+        Action   = "ecs:DescribeTasks"
+        Resource = "arn:aws:ecs:ap-southeast-1:${var.account_id}:task/${aws_ecs_cluster.main.name}/*"
       },
       {
         Effect    = "Allow"

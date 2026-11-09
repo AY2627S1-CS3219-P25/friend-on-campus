@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record manually triggered main-branch delivery and shared Terraform state requirements.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Retire K3s deployment references and record the manually triggered ECS deployment workflow.
 Author review: <to be completed by the author>
@@ -33,7 +37,7 @@ Author review: <to be completed by the author>
 
 This guide explains how the selected cloud components work together, how the listed alternatives behave, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
 
-**Target architecture confirmed by the author on 8 November 2026, including CloudFront.** The [ECS Terraform root](../infra/terraform/ecs/README.md) implements this infrastructure. The manually triggered **Deploy applications to ECS** workflow builds ARM64 images and deploys application service revisions. Automatic deployment triggers and live deployment testing are pending. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
+**Target architecture confirmed by the author on 8 November 2026, including CloudFront.** The [ECS Terraform root](../infra/terraform/ecs/README.md) implements this infrastructure. The author selected manual GitHub delivery from `main` on 9 November 2026. **Deploy applications to ECS** requires successful CI, builds ARM64 images, applies release migrations and deploys application revisions. **Deploy ECS infrastructure** previews or applies Terraform changes using shared S3 state, then rolls application configuration with the deployed images. GitHub OIDC setup, state migration and live workflow verification remain deployment prerequisites. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
 
 ## Contents
 
@@ -148,7 +152,7 @@ Chat and Notification need a separate correctness check when scaled. A live sock
 
 At the baseline of two tasks for each backend, student frontend and gateway, one admin task, and three connectors/brokers, the calculated budget is **10.125 vCPU and 22.875 GiB RAM**, including host allowances. All documented application maxima together would require **13.5 vCPU** including host allowances and do not fit the 12-vCPU fleet. Full baseline capacity also does not fit two surviving hosts under this trial budget. Placement, actual consumption, rolling deployments and recovery after a failed host must be tested and tuned; this budget does not establish the recovery target.
 
-**Deferred application decision:** the team will choose and implement RabbitMQ versus PostgreSQL signalling for Chat/Notification cross-replica live delivery. Redis is excluded. This is primarily application code and does not block the core infrastructure definitions; broker permissions/configuration may need adjustment after selection. The existing competing-consumer queues alone do not provide replica broadcast. GitHub deployment branch/environment configuration is also deferred.
+**Deferred application decision:** the team will choose and implement RabbitMQ versus PostgreSQL signalling for Chat/Notification cross-replica live delivery. Redis is excluded. This is primarily application code and does not block the core infrastructure definitions; broker permissions/configuration may need adjustment after selection. The existing competing-consumer queues alone do not provide replica broadcast. GitHub delivery is manually triggered from `main`, with setup documented in the ECS Terraform rollout.
 
 **Confirmed deployment inputs:** CloudFront pay-as-you-go, fresh existing seed data, bridge networking with host public-IP egress, HTTP origin connection, three-host ceiling and the trial resource budget. Creation permissions, applicable free allowances and acceptance of global CloudFront under course/sandbox restrictions still need verification. The author has revoked the requirement to retain the old deployment until replacement verification and does not require old data. Retain only identified reusable resources and reconcile their Terraform ownership before applying the replacement configuration.
 

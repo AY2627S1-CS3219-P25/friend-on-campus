@@ -1,11 +1,15 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Require Terraform 1.10 for shared S3 state locking.
+# Author review: <to be completed by the author>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Define the Singapore ECS foundation, rollout inputs and private storage.
 # Author review: <to be completed by the author>
 
 # AI-generated (edited by ngkhengyang)
 terraform {
-  required_version = ">= 1.5"
+  required_version = ">= 1.10"
   required_providers {
     aws = {
       source  = "hashicorp/aws"

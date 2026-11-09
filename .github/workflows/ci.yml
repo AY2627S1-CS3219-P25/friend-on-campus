@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Run delivery workflow and migration rollout regression checks in the configuration job.
+# Author review: <to be completed by the author>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
 # Scope: Added the admin-portal test:unit entry to the unit matrix (supplier form validation test, PR #222 review).
 # Author review: <to be completed by Reallyeasy1>
@@ -144,6 +148,8 @@ jobs:
         run: npm ci
       - name: Validate package scripts against static CI matrices
         run: npm run ci:validate-tests
+      - name: Verify deployment workflows and release failure handling
+        run: node --test scripts/ci/deployment.test.mjs
 
   unit-tests:
     name: Unit | ${{ matrix.name }}
