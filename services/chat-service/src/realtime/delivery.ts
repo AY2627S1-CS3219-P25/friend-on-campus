@@ -5,7 +5,8 @@
  *        re-reads the stored message and the current conversation and pushes MESSAGE only to users who are both in the
  *        original recipient set and current participants (clientId only on the sender's sockets); a transient
  *        `moderated` signal pushes MODERATED_PEER to the current peer. The outbox payload builder lives here too so the
- *        store and the subscriber agree on one shape.
+ *        store and the subscriber agree on one shape. PR #246 review: the sender's clientId is echoed whatever its
+ *        length (author's decision), since the hub accepts any length.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -82,7 +83,8 @@ export function createChatDelivery(deps: { store: Pick<ConversationStore, 'findM
     if (signal.kind === 'message') {
       const messageId = typeof payload.messageId === 'string' && UUID.test(payload.messageId) ? payload.messageId : null;
       const recipientIds = ids(payload.recipientIds);
-      const clientId = typeof payload.clientId === 'string' && payload.clientId.length <= 64 ? payload.clientId : undefined;
+      // Echoed exactly as the hub accepted it: a length check here would drop an id the SEND was allowed to carry.
+      const clientId = typeof payload.clientId === 'string' ? payload.clientId : undefined;
       if (!messageId || !recipientIds) throw new InvalidRealtimeSignal('message signal is missing identifiers');
       const found = await deps.store.findMessage(messageId);
       if (abort.aborted) return;

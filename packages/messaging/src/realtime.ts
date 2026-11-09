@@ -4,7 +4,9 @@
  * Scope: Realtime fanout primitives for cross-replica WebSocket delivery (issue #239, wiki "RabbitMQ Cross-Replica
  *        Chat and Notification Delivery"): confirmed fanout publisher, per-replica exclusive-queue subscriber with
  *        bounded handler attempts and a recent-event cache, leased outbox relay with owner-checked completion, and a
- *        loopback implementation for unit tests.
+ *        loopback implementation for unit tests. PR #246 review: a handler attempt is raced against its deadline and
+ *        cancellation, and an attempt that finishes after its abort is not counted as handled; a subscriber closed
+ *        while its reconnect is in flight tears that connection down.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -66,9 +68,16 @@ function isSignal(value: unknown): value is RealtimeSignal {
     && !!candidate.payload && typeof candidate.payload === 'object' && !Array.isArray(candidate.payload);
 }
 
+/** An attempt reached its deadline or was cancelled before its handler finished. */
+export class RealtimeAttemptAborted extends Error {
+  override name = 'RealtimeAttemptAborted';
+}
+
 /**
- * Runs `handle` up to `attempts` times, each bounded by `attemptTimeoutMs` through the AbortSignal it receives.
- * Resolves true when an attempt succeeded, false when every attempt failed or `parent` was aborted.
+ * Runs `handle` up to `attempts` times, each bounded by `attemptTimeoutMs`. The bound holds even when the handler
+ * cannot be interrupted (a stalled database read): the attempt is raced against its AbortSignal and abandoned, and
+ * the handler is expected to stop pushing once the signal it received is aborted.
+ * Resolves true when an attempt finished before its deadline, false when every attempt failed or `parent` was aborted.
  */
 export async function runWithAttempts(
   handle: (signal: AbortSignal) => Promise<void>,
@@ -80,8 +89,17 @@ export async function runWithAttempts(
     const onParentAbort = () => controller.abort();
     options.parent?.addEventListener('abort', onParentAbort, { once: true });
     const timer = setTimeout(() => controller.abort(), options.attemptTimeoutMs);
+    const aborted = new Promise<never>((_resolve, reject) => {
+      controller.signal.addEventListener('abort', () => reject(new RealtimeAttemptAborted('realtime handler attempt aborted')), { once: true });
+    });
+    aborted.catch(() => {});
     try {
-      await handle(controller.signal);
+      const running = handle(controller.signal);
+      // An abandoned attempt may still reject later; that must not surface as an unhandled rejection.
+      running.catch(() => {});
+      await Promise.race([running, aborted]);
+      // A handler that returned after the abort skipped its delivery: that is not a handled signal.
+      if (controller.signal.aborted) throw new RealtimeAttemptAborted('realtime handler attempt finished after its deadline');
       return true;
     } catch (error) {
       options.onFailure?.(attempt, error);
@@ -296,6 +314,8 @@ export async function startRealtimeSubscriber(options: RealtimeSubscriberOptions
       if (closing) break;
       try {
         await connectOnce();
+        // close() may have run while this attempt was in flight; it found no pair to tear down, so this one is ours.
+        if (closing) { await teardown(); break; }
         log('realtime_subscription_restored', { exchange: options.exchange, queue: current?.queue });
         break;
       } catch (retryError) {

@@ -157,6 +157,32 @@ describe('bounded handler attempts', () => {
     assert.deepEqual([ok, calls], [true, 2]);
   });
 
+  // PR #246 review: the deadline must hold even when the handler cannot be interrupted (a stalled database read).
+  it('abandons an attempt that ignores the abort signal and never settles, then tries again', { timeout: 5_000 }, async () => {
+    let calls = 0;
+    const failures: string[] = [];
+    const ok = await runWithAttempts(async () => {
+      calls += 1;
+      if (calls === 1) await new Promise<void>(() => {});
+    }, { attempts: 2, attemptTimeoutMs: 30, onFailure: (_attempt, error) => failures.push((error as Error).name) });
+    assert.deepEqual([ok, calls, failures], [true, 2, ['RealtimeAttemptAborted']]);
+  });
+
+  it('does not count an attempt that returns after its deadline as handled', async () => {
+    // What the delivery handlers do: the read comes back late, they see the abort and return without pushing.
+    const ok = await runWithAttempts(async (signal) => { await delay(80); if (signal.aborted) return; }, { attempts: 1, attemptTimeoutMs: 20 });
+    assert.equal(ok, false);
+  });
+
+  it('stops waiting as soon as the parent aborts during a stalled attempt', { timeout: 5_000 }, async () => {
+    const parent = new AbortController();
+    setTimeout(() => parent.abort(), 20);
+    const started = Date.now();
+    const ok = await runWithAttempts(() => new Promise<void>(() => {}), { attempts: 3, attemptTimeoutMs: 60_000, parent: parent.signal });
+    assert.equal(ok, false);
+    assert.ok(Date.now() - started < 2_000, 'returned at the abort, not at the attempt deadline');
+  });
+
   it('does not start another attempt once the parent is aborted', async () => {
     const parent = new AbortController();
     let calls = 0;

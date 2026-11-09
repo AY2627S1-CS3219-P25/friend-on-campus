@@ -4,7 +4,8 @@
  * Scope: Cross-replica delivery wiring (issue #241): fanout publisher, SQL outbox relay, per-replica realtime
  *        subscriber feeding createNotificationDelivery; readiness includes the subscriber; subscription loss
  *        disconnects sockets and new sockets are refused (1013) until the subscriber is ready; shutdown stops the
- *        relay and subscriber before the consumer.
+ *        relay and subscriber before the consumer. PR #246 review: every socket gets an error listener on
+ *        connection, so a malformed frame on a refused socket cannot end the process.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-08
@@ -73,7 +74,13 @@ const server = http.createServer(app);
 const sockets = new WebSocketServer({ server });
 // A replica without its realtime queue cannot push: refuse the socket (1013, try again later) so the client backs off
 // and retries instead of sitting on a connection that misses signals (issue #241).
-sockets.on('connection', (ws) => (subscriber?.isReady() ? hub.handleConnection(ws) : ws.close(1013)));
+sockets.on('connection', (ws) => {
+  // Before anything else: a socket with no 'error' listener turns one malformed frame into an uncaught exception that
+  // ends the process. That includes a socket refused here and one the hub closes at once during shutdown.
+  ws.on('error', () => {});
+  if (subscriber?.isReady()) hub.handleConnection(ws);
+  else ws.close(1013);
+});
 server.listen(config.port, () => {
   console.log(`[Notification Service] listening on ${config.port}`);
 });

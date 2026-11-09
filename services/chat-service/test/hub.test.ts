@@ -2,6 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: Hub tests deliver through the loopback realtime and createChatDelivery, as production does through RabbitMQ (issue #240).
+ *        PR #246 review: a clientId longer than 64 characters is echoed unchanged.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-08
@@ -107,6 +108,18 @@ describe('chat hub', () => {
     assert.equal(carol.frames.filter((f) => f.type === 'MESSAGE').length, 0, 'a third user hears nothing');
 
     for (const c of [alice, aliceTab, bob, carol]) c.ws.close();
+    await until(() => hub.connectionCount() === 0, 'sockets evicted');
+  });
+
+  // PR #246 review: the hub accepts a clientId of any length, so the echo must carry it back unchanged.
+  it('echoes a long clientId unchanged to the sender and never to the other participant', async () => {
+    const alice = await connect(ALICE, { username: 'alice' });
+    const bob = await connect(BOB, { username: 'bob' });
+    const clientId = 'x'.repeat(200);
+    alice.send({ type: 'SEND', orderId: ORDER, text: 'long id', clientId });
+    const [a, b] = await Promise.all([alice.frame('MESSAGE'), bob.frame('MESSAGE')]);
+    assert.deepEqual([a.clientId, b.clientId], [clientId, undefined]);
+    for (const c of [alice, bob]) c.ws.close();
     await until(() => hub.connectionCount() === 0, 'sockets evicted');
   });
 

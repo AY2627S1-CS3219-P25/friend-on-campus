@@ -14,6 +14,11 @@
 // Scope: The notifications table from the author's Notification Service Design (data model section), in the
 // layout credit-service uses.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+// Scope: NotificationRealtimeOutbox (notification_realtime_outbox), the delivery-intent table for cross-replica
+// notification and read-state delivery (issue #241).
+// Author review: <to be completed by Reallyeasy1>
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by Reallyeasy1)
 

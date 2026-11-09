@@ -4,7 +4,8 @@
  * Scope: Cross-replica chat delivery with a real broker and database (issue #240 RT2.1 to RT2.5): two independent
  *        replicas (hub, subscriber, relay each), Alice on A reaching Bob on B, exclusion of outsiders and a replaced
  *        courier, duplicate-signal suppression, lost-lease recovery, a TCP-level broker interruption with queue
- *        recreation and outbox drain, and REST history as the recovery source.
+ *        recreation and outbox drain, and REST history as the recovery source. PR #246 review: a subscriber closed
+ *        while its reconnect is in flight leaves nothing behind (the proxy can now hold a connection attempt).
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -40,13 +41,23 @@ const quiet = () => {};
 async function startProxy(target: URL) {
   const sockets = new Set<net.Socket>();
   let cut = false;
+  let holdMs = 0;
+  let accepted = 0;
   const server = net.createServer((client) => {
     if (cut) { client.destroy(); return; }
-    const upstream = net.connect(Number(target.port || 5672), target.hostname);
-    sockets.add(client); sockets.add(upstream);
-    client.pipe(upstream); upstream.pipe(client);
-    const drop = () => { client.destroy(); upstream.destroy(); sockets.delete(client); sockets.delete(upstream); };
-    client.on('error', drop); upstream.on('error', drop); client.on('close', drop); upstream.on('close', drop);
+    accepted += 1;
+    const forward = () => {
+      const upstream = net.connect(Number(target.port || 5672), target.hostname);
+      sockets.add(client); sockets.add(upstream);
+      client.pipe(upstream); upstream.pipe(client);
+      const drop = () => { client.destroy(); upstream.destroy(); sockets.delete(client); sockets.delete(upstream); };
+      client.on('error', drop); upstream.on('error', drop); client.on('close', drop); upstream.on('close', drop);
+    };
+    if (holdMs === 0) { forward(); return; }
+    // Keep the new connection away from the broker for a while, so a connection attempt is observably in flight.
+    client.pause();
+    client.on('error', () => {});
+    setTimeout(() => { if (!client.destroyed) { forward(); client.resume(); } }, holdMs);
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = new URL(target.toString());
@@ -56,6 +67,10 @@ async function startProxy(target: URL) {
     url: url.toString(),
     interrupt() { cut = true; for (const socket of sockets) socket.destroy(); sockets.clear(); },
     restore() { cut = false; },
+    /** Delay every later connection by `ms` before it reaches the broker. */
+    hold(ms: number) { holdMs = ms; },
+    accepted: () => accepted,
+    open: () => sockets.size,
     async stop() { this.interrupt(); await new Promise<void>((resolve) => server.close(() => resolve())); },
   };
 }
@@ -293,5 +308,31 @@ describe('cross-replica chat delivery (RabbitMQ + PostgreSQL)', { skip: !databas
     b.relay.start();
     aliceB.ws.close(); bobAgain.ws.close();
     await until(() => a.hub.connectionCount() + b.hub.connectionCount() === 0, 'sockets evicted');
+  });
+
+  // PR #246 review: close() during a reconnect found nothing to tear down, and the reconnect then installed a new
+  // connection and queue that nothing closed, keeping a stopping process alive.
+  it('a subscriber closed while its reconnect is in flight leaves no queue or broker connection behind', { timeout: 30_000 }, async () => {
+    const own = await startProxy(new URL(brokerUrl!));
+    const events: string[] = [];
+    const subscriber = await startRealtimeSubscriber({
+      url: own.url, exchange, handle: async () => {}, maxReconnectDelayMs: 500, log: (event) => { events.push(event); },
+    });
+    try {
+      own.interrupt();
+      await until(() => events.includes('realtime_subscription_lost'), 'subscription lost');
+      const before = own.accepted();
+      own.hold(800);
+      own.restore();
+      await until(() => own.accepted() > before, 'the reconnect attempt reached the proxy');
+      await subscriber.close();
+      await delay(2_000);
+      assert.deepEqual(
+        { queue: subscriber.queueName(), brokerSockets: own.open(), restored: events.includes('realtime_subscription_restored') },
+        { queue: undefined, brokerSockets: 0, restored: false },
+      );
+    } finally {
+      await own.stop();
+    }
   });
 });

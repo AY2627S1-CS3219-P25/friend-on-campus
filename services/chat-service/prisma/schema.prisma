@@ -11,6 +11,11 @@
 // Scope: Review fix (PR #148 P1): courierSince records when the current courier was assigned, so an older or replayed
 // order.accepted cannot move the assignment backwards.
 // Author review: <to be completed by Reallyeasy1>
+//
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+// Scope: RealtimeOutbox (realtime_outbox), the delivery-intent table for cross-replica chat delivery (issue #240).
+// Author review: <to be completed by Reallyeasy1>
+// AI-generated (edited by Reallyeasy1)
 
 generator client {
   provider = "prisma-client-js"

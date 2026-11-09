@@ -7752,3 +7752,61 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Files changed:**
 - `ai/usage-log.md` — this entry; entries from `main` kept during the merge
+
+## 2026-11-09 13:21 SGT — Publish the wiki update for the cross-replica delivery work
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "try and update the wiki again" (the push had been denied by the session permission gate in the earlier prompt).
+
+**Usage scenario:** Documentation, on the author's explicit request: pushed the prepared update of the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery" (wiki commit 3acb9c5). Before publishing, the page's status table was brought up to date with facts checked at that moment: pull request #246 open, CI run 42565190325 on head a7a2201 succeeded (28 checks passed, the optional Claude Code review check skipped). No repository file other than this log changed; this entry is left uncommitted in the working tree for the author.
+
+**Files changed:**
+- none in the repository besides this entry (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 13:35 SGT — Look for review feedback on pull request #246 and start an independent review
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "attend to the code reviews for the pull request" (#246). This entry was written during the next prompt; none was written at the time.
+
+**Usage scenario:** Debugging and review assistance. Found no review feedback on the pull request (no reviews, threads, comments or requested reviewers; the CI annotations are GitHub's runner-image notice; the automated review workflow is switched off by the repository variable CLAUDE_PR_REVIEW_ENABLED, which was not changed). Started the repository's `reviewer` agent for an independent, report-only review of the diff. No file changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 14:23 SGT — Address the review findings on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** The author pasted a review of #246 (head a7a2201) with three findings and asked for them to be worked on: (1) delivery-handler deadlines are not enforced, (2) notification freshness is not rechecked before pushing, (3) a clientId longer than 64 characters loses its echo.
+
+**Usage scenario:** Debugging and implementation of fixes whose direction the review or the author stated, each with a test that failed before the fix. The independent `reviewer` agent's report arrived during this prompt; two further defects it confirmed in this pull request's own code were fixed as well. The author decided finding 3 when asked (echo any accepted id, rather than reject ids over 64 characters) and approved the commit and push. Left to the author: the Author review lines, the reviewer's remaining minor findings and three questions (listed in the reply, not acted on), and the pull request description, whose test counts predate this commit.
+- Finding 1: `runWithAttempts` races each attempt against its deadline and cancellation, and an attempt that finishes after its abort is not counted as handled (so its event id is not cached as done).
+- Finding 2: the subscriber's re-read reports whether a newer order version has superseded the row; such a row is not pushed, its recipient still gets the inbox hint.
+- Finding 3: the 64-character check at delivery is removed, so the echo carries whatever clientId the hub accepted.
+- Reviewer A1: every WebSocket gets an `error` listener on connection in both entry points. Without it one unmasked frame sent to a starting replica ended the process (reproduced on the real Notification entry point: exit code 1; with the fix both entry points stay up and become ready).
+- Reviewer A3: a subscriber closed while its reconnect is in flight now tears that connection down (before: a live queue and broker connection stayed behind and the process could not exit).
+- Reviewer policy item: disclosure records for the new outbox models in both `schema.prisma` files.
+- Verified locally with PostgreSQL 16.14 and RabbitMQ 3.13.7: typecheck, lint and ci:validate-tests pass; unit 196/196 (messaging 12, chat 52, notification 74, student app 58); PostgreSQL integration 25/25 (chat 7, notification 18); RabbitMQ and PostgreSQL messaging 22/22 (chat 10, notification 12); builds of messaging, chat and notification. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed:**
+- `packages/messaging/src/realtime.ts` — attempt deadline enforced by racing; late attempts not counted as handled; close during reconnect tears the new connection down
+- `packages/messaging/test/realtime.test.ts` — three tests for uninterruptible, late and parent-aborted attempts
+- `services/notification-service/src/notifications/store.ts` — findForUser returns the row and whether it is superseded
+- `services/notification-service/src/notifications/realtime.ts` — a superseded row is not pushed
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.integration.test.ts` — unit, database and two-replica tests for the superseded case; the two-replica file gains a relay restart helper
+- `services/chat-service/src/realtime/delivery.ts` — clientId echoed at any length
+- `services/chat-service/test/hub.test.ts` — a 200-character clientId is echoed unchanged to the sender only
+- `services/chat-service/test/realtime.integration.test.ts` — close-during-reconnect test; the test proxy can hold a connection attempt
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — error listener on every socket at connection
+- `services/chat-service/prisma/schema.prisma`, `services/notification-service/prisma/schema.prisma` — disclosure records only
+- File that cannot hold a disclosure header, missing from the earlier list: `packages/messaging/tsconfig.test.json`
+
+**External / temporary artifacts:** Reviewer and manual-check scripts in the session scratchpad (not in the repository): `attempts-check.ts`, `claim-check.ts`, `close-during-reconnect.ts`, `refused-socket-error.ts`, `malformed-frame-check.mjs`.

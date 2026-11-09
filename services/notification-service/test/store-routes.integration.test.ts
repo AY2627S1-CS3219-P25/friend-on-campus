@@ -2,6 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: Read routes are checked through the committed INBOX_CHANGED outbox intents instead of a local callback (issue #241).
+ *        PR #246 review: findForUser reports whether a newer order version has superseded the row.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
@@ -173,6 +174,20 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       assert.deepEqual([state.highestOrderVersion, state.status], [7, 'COMPLETED']);
       assert.equal((await list(ALICE, 'action_needed')).total, 0, 'completion already resolved the delivery review');
       assert.equal((await list(ALICE, 'all')).total, 1, 'the delivery notice stays as history');
+    });
+
+    // PR #246 review: what the realtime subscriber re-reads before pushing.
+    it('findForUser reports a row superseded once its order moved to a newer version; an unversioned row never is', async () => {
+      const orderId = randomUUID();
+      const delivered = await store.applyEvent(processed({ orderId, projection: projection(5, 'DELIVERED') }), [draft(ALICE, 'ORDER_DELIVERED', 'REVIEW_DELIVERY')]);
+      const id = delivered.created[0].notification.id;
+      assert.equal((await store.findForUser(ALICE, id))?.superseded, false, 'the newest version of its order');
+      await store.applyEvent(processed({ orderId, projection: projection(6, 'COMPLETED') }), [draft(BOB, 'ORDER_COMPLETED')]);
+      const after = await store.findForUser(ALICE, id);
+      assert.deepEqual([after?.superseded, after?.notification.orderStatus, after?.notification.sourceVersion], [true, 'COMPLETED', 5]);
+      const legacy = await store.applyEvent(processed({ schemaVersion: 1 }), [draft(ALICE)]);
+      assert.equal((await store.findForUser(ALICE, legacy.created[0].notification.id))?.superseded, false, 'no version to compare');
+      assert.equal(await store.findForUser(BOB, id), null, 'another user\'s row is not returned');
     });
 
     it('view=action_needed keeps a delivered notice while the order is DELIVERED or unknown; view=important lists IMPORTANT only', async () => {

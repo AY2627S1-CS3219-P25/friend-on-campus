@@ -2,6 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: applyEvent, markRead and markAllRead commit realtime delivery intents in their transactions; findForUser for the subscriber (issue #241).
+ *        PR #246 review: findForUser also reports whether a newer order version has superseded the row.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
@@ -81,8 +82,11 @@ export interface NotificationStore {
    * intent (notification_realtime_outbox) that tells every replica which rows to push (issue #241).
    */
   applyEvent(event: ProcessedEventInput, drafts: NotificationDraft[]): Promise<AppliedEvent>;
-  /** The row as stored now, only when it belongs to the user; what the realtime subscriber pushes. */
-  findForUser(userId: string, id: string): Promise<NotificationDTO | null>;
+  /**
+   * The row as stored now, only when it belongs to the user; what the realtime subscriber pushes. `superseded` is true
+   * when the order's projection has since moved past the row's source version, so the row is history, not news.
+   */
+  findForUser(userId: string, id: string): Promise<{ notification: NotificationDTO; superseded: boolean } | null>;
   list(
     userId: string,
     options: { view: NotificationView; unreadOnly: boolean; page: number; limit: number },
@@ -261,9 +265,12 @@ export function createNotificationStore(prisma: PrismaClient): NotificationStore
     },
 
     async findForUser(userId, id) {
-      const rows = await prisma.$queryRaw<Row[]>`
-        SELECT ${COLUMNS}, ${PROJECTED_STATUS} FROM notifications n WHERE n.id = ${id}::uuid AND n.user_id = ${userId}::uuid`;
-      return rows[0] ? toDTO(rows[0]) : null;
+      // A row without a source version (version-1 events, receipts) has nothing to compare and is never superseded.
+      const rows = await prisma.$queryRaw<(Row & { superseded: boolean })[]>`
+        SELECT ${COLUMNS}, ${PROJECTED_STATUS},
+               COALESCE((SELECT s.highest_order_version > n.source_version FROM order_notification_state s WHERE s.order_id = n.order_id), false) AS superseded
+        FROM notifications n WHERE n.id = ${id}::uuid AND n.user_id = ${userId}::uuid`;
+      return rows[0] ? { notification: toDTO(rows[0]), superseded: rows[0].superseded } : null;
     },
 
     async markRead(userId, id) {

@@ -126,6 +126,13 @@ describe('cross-replica notification delivery (RabbitMQ + PostgreSQL)', { skip: 
 
   let a: Replica;
   let b: Replica;
+  /** Fresh relays for both replicas, after a test stopped them to hold intents back. */
+  const startRelays = () => {
+    for (const replica of [a, b]) {
+      replica.relay = createOutboxRelay({ store: outbox, publish: replica.publisher.publish, pollMs: 25, failureDelayMs: 100, owner: `relay-${replica.name}`, log: quiet });
+      replica.relay.start();
+    }
+  };
 
   before(async () => {
     database = await makeTestDatabase(databaseUrl!);
@@ -205,6 +212,32 @@ describe('cross-replica notification delivery (RabbitMQ + PostgreSQL)', { skip: 
     await until(() => a.hub.connectionCount() + b.hub.connectionCount() === 0, 'sockets evicted');
   });
 
+  // PR #246 review: the stale flag is decided when the intent commits; the order can move on before it is published.
+  it('RT3.3: a delivery notice overtaken by completion while its intent waited is kept as history but not pushed', async () => {
+    for (const replica of [a, b]) await replica.relay.stop();
+    const orderId = randomUUID();
+    const aliceB = await connect(b, ALICE);
+    const bobB = await connect(b, BOB);
+    try {
+      await publishEvent(v2(orderId, 5, 'order.delivered', 'DELIVERED', { previousStatus: 'IN_TRANSIT' }));
+      await until(async () => (await database.db.notification.count({ where: { orderId } })) === 1, 'delivery notice stored');
+      await publishEvent(v2(orderId, 6, 'order.completed', 'COMPLETED', { previousStatus: 'DELIVERED', actorId: ALICE, reasonCode: 'REQUESTER_CONFIRMED' }));
+      await until(async () => (await database.db.notification.count({ where: { orderId } })) === 2, 'completion stored');
+      assert.equal(await pendingRows(), 2, 'both intents wait for a relay');
+    } finally {
+      // Later tests need the relays whatever happened above.
+      startRelays();
+    }
+    await until(() => notificationsOf(bobB).some((f) => f.data.orderId === orderId), 'the completion reaches the courier');
+    await until(async () => (await pendingRows()) === 0, 'outbox drained');
+    await until(() => inboxHints(aliceB) >= 1, 'the requester still gets an inbox refresh hint');
+    await settled();
+    assert.deepEqual(notificationsOf(aliceB).filter((f) => f.data.orderId === orderId), [], 'the obsolete "review the delivery" alert was not pushed');
+    assert.equal(await database.db.notification.count({ where: { orderId, userId: ALICE } }), 1, 'it stays in the requester\'s history');
+    aliceB.ws.close(); bobB.ws.close();
+    await until(() => a.hub.connectionCount() + b.hub.connectionCount() === 0, 'sockets evicted');
+  });
+
   it('RT3.4: read and read-all on replica A refresh the user\'s sockets on replica B and nobody else', async () => {
     const aliceB = await connect(b, ALICE);
     const aliceA = await connect(a, ALICE);
@@ -252,10 +285,7 @@ describe('cross-replica notification delivery (RabbitMQ + PostgreSQL)', { skip: 
     assert.ok(inbox.body.data.items.some((n: { orderId: string }) => n.orderId === event.orderId), 'the missed notification is in history');
     assert.equal(notificationsOf(aliceA).length, 0, 'no live frame was needed for recovery');
     aliceA.ws.close();
-    for (const replica of [a, b]) {
-      replica.relay = createOutboxRelay({ store: outbox, publish: replica.publisher.publish, pollMs: 25, failureDelayMs: 100, owner: `relay-${replica.name}`, log: quiet });
-      replica.relay.start();
-    }
+    startRelays();
     await until(() => a.hub.connectionCount() + b.hub.connectionCount() === 0, 'sockets evicted');
   });
 });
