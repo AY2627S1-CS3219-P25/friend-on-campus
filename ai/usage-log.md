@@ -7810,3 +7810,37 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 - File that cannot hold a disclosure header, missing from the earlier list: `packages/messaging/tsconfig.test.json`
 
 **External / temporary artifacts:** Reviewer and manual-check scripts in the session scratchpad (not in the repository): `attempts-check.ts`, `claim-check.ts`, `close-during-reconnect.ts`, `refused-socket-error.ts`, `malformed-frame-check.mjs`.
+
+## 2026-11-09 14:35 SGT — ECS only, a dead-letter queue question, the design document and the usage log (interrupted)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "there isnt any kubernetes anymore, its just ecs. If possible, do you think having a dead letter queue is good as well for this? Maybe write in the design doc, also help to write the usage log as well". The author interrupted the work to ask for the CI fix below; this entry was written during that prompt.
+
+**Usage scenario:** Documentation and learning support. Whether to add dead-letter handling is a design decision reserved for the author (CLAUDE.md section 1), so no recommendation was given: the reply explains what a dead-letter queue is and lists the facts from the code for the three paths involved. The wiki page is updated accordingly (ECS only; the facts and the decision marked as open for the author) and published after the CI rerun of the next entry. No repository file changed for this prompt.
+
+**Files changed:**
+- none in the repository (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 14:54 SGT — Fix the CI failure on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "i would like you to fix the CI" (the acceptance check failed on commit 2477153).
+
+**Usage scenario:** Debugging assistance for a regression introduced by the previous AI-written commit. The acceptance driver `scripts/uat/uat-notifications.mjs` publishes created, accepted, picked up and delivered for one errand back to back and requires every notice to be pushed in order (N3 to N6, F5.1 to F5.3); N8 failed as a consequence. The fix for review finding 2 had treated a notification as obsolete whenever any newer order version existed by the time its signal was handled, so in a burst only the last notice was pushed. The check now uses the rule the store already applies for view=action_needed: a delivery review is not pushed once the order is no longer DELIVERED; a newer version alone holds nothing back. Both requirements are covered by tests in the same suite. Commit and push follow from the author's request to fix the pull request's CI. Left to the author: confirming that this rule is the behaviour wanted for review finding 2 (the alternative is to remove the delivery-time check altogether), and the pull request description.
+- Reproduced before the fix in two ways: a new two-replica test (only ORDER_DELIVERED pushed) and a replay of the driver's event burst against the real Notification entry point (N3, N5 and N6 failed with the same output as the CI log); both pass with the fix.
+- Verified locally: typecheck, lint and ci:validate-tests pass; unit 196/196; Notification PostgreSQL integration 18/18 and RabbitMQ messaging 13/13. The Compose acceptance stack could not be built locally (npm download errors inside the image build), so the acceptance job itself is verified by the CI rerun, not locally.
+- Process note: the previous commit was pushed without running the acceptance driver, which is why CI caught this and the local checks did not.
+
+**Files changed:**
+- `services/notification-service/src/notifications/store.ts` — findForUser reports actionResolved (delivery review while the order is no longer DELIVERED) instead of superseded
+- `services/notification-service/src/notifications/realtime.ts` — pushes unless the row's action is already resolved
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts` — adapted to the narrower rule; the database test adds a progress notice that must stay current
+- `services/notification-service/test/realtime.integration.test.ts` — new test: three progress notices committed before any signal is published are all pushed
+
+**External / temporary artifacts:** `n3-entrypoint-check.ts`, `ci-acceptance.log` and `acceptance-local.log` in the session scratchpad (not in the repository).

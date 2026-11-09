@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: Read routes are checked through the committed INBOX_CHANGED outbox intents instead of a local callback (issue #241).
- *        PR #246 review: findForUser reports whether a newer order version has superseded the row.
+ *        PR #246 review: findForUser reports whether the order's current state already resolved the row's action.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
@@ -177,16 +177,20 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
     });
 
     // PR #246 review: what the realtime subscriber re-reads before pushing.
-    it('findForUser reports a row superseded once its order moved to a newer version; an unversioned row never is', async () => {
+    it('findForUser reports a delivery review resolved once the order leaves DELIVERED; a newer version alone resolves nothing', async () => {
       const orderId = randomUUID();
+      const accepted = await store.applyEvent(processed({ orderId, projection: projection(3, 'ACCEPTED') }), [draft(ALICE, 'ORDER_ACCEPTED')]);
       const delivered = await store.applyEvent(processed({ orderId, projection: projection(5, 'DELIVERED') }), [draft(ALICE, 'ORDER_DELIVERED', 'REVIEW_DELIVERY')]);
       const id = delivered.created[0].notification.id;
-      assert.equal((await store.findForUser(ALICE, id))?.superseded, false, 'the newest version of its order');
+      const progress = accepted.created[0].notification.id;
+      assert.equal((await store.findForUser(ALICE, id))?.actionResolved, false, 'the review is open while the order is DELIVERED');
+      assert.equal((await store.findForUser(ALICE, progress))?.actionResolved, false, 'an earlier progress notice is still news (F5.1 to F5.3)');
       await store.applyEvent(processed({ orderId, projection: projection(6, 'COMPLETED') }), [draft(BOB, 'ORDER_COMPLETED')]);
       const after = await store.findForUser(ALICE, id);
-      assert.deepEqual([after?.superseded, after?.notification.orderStatus, after?.notification.sourceVersion], [true, 'COMPLETED', 5]);
-      const legacy = await store.applyEvent(processed({ schemaVersion: 1 }), [draft(ALICE)]);
-      assert.equal((await store.findForUser(ALICE, legacy.created[0].notification.id))?.superseded, false, 'no version to compare');
+      assert.deepEqual([after?.actionResolved, after?.notification.orderStatus, after?.notification.sourceVersion], [true, 'COMPLETED', 5]);
+      assert.equal((await store.findForUser(ALICE, progress))?.actionResolved, false, 'a progress notice has no action to resolve');
+      const legacy = await store.applyEvent(processed({ schemaVersion: 1 }), [draft(ALICE, 'ORDER_DELIVERED', 'REVIEW_DELIVERY')]);
+      assert.equal((await store.findForUser(ALICE, legacy.created[0].notification.id))?.actionResolved, false, 'no projected state: the review stays open');
       assert.equal(await store.findForUser(BOB, id), null, 'another user\'s row is not returned');
     });
 

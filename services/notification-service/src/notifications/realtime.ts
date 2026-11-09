@@ -5,8 +5,9 @@
  *        `notifications` signal re-reads each created row for its owner and pushes NOTIFICATION only when the event
  *        was not stale and the row is still unread, then INBOX_CHANGED to every recipient; an `inbox_changed` signal
  *        pushes INBOX_CHANGED to the user's local sockets. The signal builders live here so the store and the
- *        subscriber agree on one shape. PR #246 review: a row superseded by a newer order version by the time its
- *        signal is handled is not pushed; its recipient still gets the inbox hint.
+ *        subscriber agree on one shape. PR #246 review: a row whose action the order's current state has already
+ *        resolved by the time its signal is handled (a delivery review after completion) is not pushed; its recipient
+ *        still gets the inbox hint. Progress notices are pushed however quickly later ones follow (F5.1 to F5.3).
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -48,8 +49,8 @@ export interface NotificationDeliveryHub {
 }
 
 export interface NotificationReader {
-  /** The row as stored now, only when it belongs to `userId`, and whether a newer order version has superseded it. */
-  findForUser(userId: string, id: string): Promise<{ notification: NotificationDTO; superseded: boolean } | null>;
+  /** The row as stored now, only when it belongs to `userId`, and whether the order's current state already resolved its action. */
+  findForUser(userId: string, id: string): Promise<{ notification: NotificationDTO; actionResolved: boolean } | null>;
 }
 
 export function createNotificationDelivery(deps: { store: NotificationReader; hub: NotificationDeliveryHub }) {
@@ -67,10 +68,12 @@ export function createNotificationDelivery(deps: { store: NotificationReader; hu
             throw new InvalidRealtimeSignal('notifications signal names an invalid row');
           }
           // Re-read for the owner: a row read, deleted or re-owned since the event was handled is never toasted. Nor is
-          // one whose order moved on while the intent waited: `stale` was decided at commit time and cannot know that.
+          // one asking for an action the order has since resolved while the intent waited: `stale` was decided at
+          // commit time and cannot know that. A newer version alone is not enough: progress notices that arrive in a
+          // burst must each be pushed (F5.1 to F5.3).
           const found = await deps.store.findForUser(entry.userId.toLowerCase(), entry.notificationId.toLowerCase());
           if (abort.aborted) return;
-          if (found && !found.superseded && found.notification.readAt === null) deps.hub.push(entry.userId.toLowerCase(), found.notification);
+          if (found && !found.actionResolved && found.notification.readAt === null) deps.hub.push(entry.userId.toLowerCase(), found.notification);
         }
       }
       for (const userId of new Set(recipientIds as unknown[])) {

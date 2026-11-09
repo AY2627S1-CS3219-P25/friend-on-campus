@@ -238,6 +238,31 @@ describe('cross-replica notification delivery (RabbitMQ + PostgreSQL)', { skip: 
     await until(() => a.hub.connectionCount() + b.hub.connectionCount() === 0, 'sockets evicted');
   });
 
+  // CI acceptance N3 (F5.1 to F5.3) failed on PR #246: progress events that arrive faster than the relay publishes
+  // must each still be pushed. A newer order version alone does not make an earlier progress notice obsolete.
+  it('F5.1 to F5.3: accepted, picked up and delivered committed before any signal is published are all pushed', async () => {
+    for (const replica of [a, b]) await replica.relay.stop();
+    const orderId = randomUUID();
+    const aliceB = await connect(b, ALICE);
+    try {
+      await publishEvent(v2(orderId, 2, 'order.accepted', 'ACCEPTED', { previousStatus: 'OPEN', courierUsername: 'bob' }));
+      await publishEvent(v2(orderId, 3, 'order.in_transit', 'IN_TRANSIT', { previousStatus: 'ACCEPTED' }));
+      await publishEvent(v2(orderId, 4, 'order.delivered', 'DELIVERED', { previousStatus: 'IN_TRANSIT' }));
+      await until(async () => (await database.db.notification.count({ where: { orderId, userId: ALICE } })) === 3, 'three progress notices stored');
+    } finally {
+      startRelays();
+    }
+    await until(async () => (await pendingRows()) === 0, 'outbox drained');
+    await settled();
+    // Two relays may publish out of order; the client orders by the stored rows. What matters here is that none is dropped.
+    assert.deepEqual(
+      notificationsOf(aliceB).filter((f) => f.data.orderId === orderId).map((f) => f.data.kind).sort(),
+      ['ORDER_ACCEPTED', 'ORDER_DELIVERED', 'ORDER_PICKED_UP'],
+    );
+    aliceB.ws.close();
+    await until(() => a.hub.connectionCount() + b.hub.connectionCount() === 0, 'sockets evicted');
+  });
+
   it('RT3.4: read and read-all on replica A refresh the user\'s sockets on replica B and nobody else', async () => {
     const aliceB = await connect(b, ALICE);
     const aliceA = await connect(a, ALICE);

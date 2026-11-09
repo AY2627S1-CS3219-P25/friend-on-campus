@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: applyEvent, markRead and markAllRead commit realtime delivery intents in their transactions; findForUser for the subscriber (issue #241).
- *        PR #246 review: findForUser also reports whether a newer order version has superseded the row.
+ *        PR #246 review: findForUser also reports whether the order's current state already resolved the row's action.
  * Author review: <to be completed by Reallyeasy1>
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
@@ -83,10 +83,11 @@ export interface NotificationStore {
    */
   applyEvent(event: ProcessedEventInput, drafts: NotificationDraft[]): Promise<AppliedEvent>;
   /**
-   * The row as stored now, only when it belongs to the user; what the realtime subscriber pushes. `superseded` is true
-   * when the order's projection has since moved past the row's source version, so the row is history, not news.
+   * The row as stored now, only when it belongs to the user; what the realtime subscriber pushes. `actionResolved` is
+   * true when the row asks for a delivery review and the order's projected state is no longer DELIVERED: the same rule
+   * as view=action_needed. A newer order version alone does not resolve anything.
    */
-  findForUser(userId: string, id: string): Promise<{ notification: NotificationDTO; superseded: boolean } | null>;
+  findForUser(userId: string, id: string): Promise<{ notification: NotificationDTO; actionResolved: boolean } | null>;
   list(
     userId: string,
     options: { view: NotificationView; unreadOnly: boolean; page: number; limit: number },
@@ -265,12 +266,14 @@ export function createNotificationStore(prisma: PrismaClient): NotificationStore
     },
 
     async findForUser(userId, id) {
-      // A row without a source version (version-1 events, receipts) has nothing to compare and is never superseded.
-      const rows = await prisma.$queryRaw<(Row & { superseded: boolean })[]>`
+      // The complement of view=action_needed: a delivery review stays open while the projected status is DELIVERED or
+      // unknown (no projection row: the comparison is NULL and COALESCE keeps it open).
+      const rows = await prisma.$queryRaw<(Row & { actionResolved: boolean })[]>`
         SELECT ${COLUMNS}, ${PROJECTED_STATUS},
-               COALESCE((SELECT s.highest_order_version > n.source_version FROM order_notification_state s WHERE s.order_id = n.order_id), false) AS superseded
+               COALESCE(n.action_type = 'REVIEW_DELIVERY'
+                 AND (SELECT s.status FROM order_notification_state s WHERE s.order_id = n.order_id) <> 'DELIVERED', false) AS "actionResolved"
         FROM notifications n WHERE n.id = ${id}::uuid AND n.user_id = ${userId}::uuid`;
-      return rows[0] ? { notification: toDTO(rows[0]), superseded: rows[0].superseded } : null;
+      return rows[0] ? { notification: toDTO(rows[0]), actionResolved: rows[0].actionResolved } : null;
     },
 
     async markRead(userId, id) {

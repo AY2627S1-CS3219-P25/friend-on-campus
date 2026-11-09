@@ -3,7 +3,7 @@
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: Unit tests for the subscriber-side notification delivery (issue #241 RT3.2, RT3.3): current-row re-read,
  *        stale and already-read suppression, inbox hints for every recipient, read-state signals, malformed signals.
- *        PR #246 review: a row superseded by a newer order version at delivery time is not pushed.
+ *        PR #246 review: a row whose action the order already resolved at delivery time is not pushed.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
@@ -17,14 +17,14 @@ const EVENT = '40000000-0000-4000-8000-000000000001';
 const ROW_A = '50000000-0000-4000-8000-000000000001';
 const ROW_B = '50000000-0000-4000-8000-000000000002';
 
-function fixture(rows: Record<string, { userId: string; readAt: string | null; superseded?: boolean }>) {
+function fixture(rows: Record<string, { userId: string; readAt: string | null; actionResolved?: boolean }>) {
   const steps: string[] = [];
   const delivery = createNotificationDelivery({
     store: {
       async findForUser(userId, id) {
         const row = rows[id];
         if (!row || row.userId !== userId) return null;
-        return { notification: { id, kind: 'ORDER_ACCEPTED', readAt: row.readAt } as unknown as NotificationDTO, superseded: row.superseded === true };
+        return { notification: { id, kind: 'ORDER_ACCEPTED', readAt: row.readAt } as unknown as NotificationDTO, actionResolved: row.actionResolved === true };
       },
     },
     hub: {
@@ -64,9 +64,9 @@ test('a row already read, missing or owned by someone else is not pushed; the hi
   assert.deepEqual(steps, [`inbox ${ALICE}`]);
 });
 
-// PR #246 review: the intent's stale flag is fixed at commit time; a newer order version may commit before it is handled.
-test('a row whose order moved to a newer version while the intent waited is not pushed; the hint still goes out', async () => {
-  const { steps, handle } = fixture({ [ROW_A]: { userId: ALICE, readAt: null, superseded: true }, [ROW_B]: { userId: BOB, readAt: null } });
+// PR #246 review: the intent's stale flag is fixed at commit time; the order may resolve the action before it is handled.
+test('a row whose action the order already resolved while the intent waited is not pushed; the hint still goes out', async () => {
+  const { steps, handle } = fixture({ [ROW_A]: { userId: ALICE, readAt: null, actionResolved: true }, [ROW_B]: { userId: BOB, readAt: null } });
   await handle(notificationsSignal(EVENT, {
     producer: 'order-service',
     created: [{ userId: ALICE, notificationId: ROW_A }, { userId: BOB, notificationId: ROW_B }],
