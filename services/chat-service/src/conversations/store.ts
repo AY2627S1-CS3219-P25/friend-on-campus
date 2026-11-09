@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: append() writes the realtime delivery intent in its transaction; findById and findMessage for the subscriber (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Persistence for conversations and messages as the author specified (F8 brief S1 to S3): upsert on
  * order.accepted keyed by order id, set-once timestamps for pickup, delivery and close, and an append with a
@@ -21,6 +25,7 @@
  */
 // AI-generated (edited by Reallyeasy1)
 import type { PrismaClient } from '../database/client';
+import { messageSignal } from '../realtime/delivery';
 
 export interface ConversationRow {
   id: string;
@@ -62,6 +67,8 @@ export interface NewMessage {
   senderRole: string;
   text: string;
   sentAt: string;
+  /** The sender's correlation value, carried in the delivery intent so their echo settles the right send; never stored on the message. */
+  clientId?: string;
 }
 
 export type UpsertResult = {
@@ -78,6 +85,9 @@ export type AppendResult =
 
 export interface ConversationStore {
   findByOrderId(orderId: string): Promise<ConversationRow | null>;
+  findById(conversationId: string): Promise<ConversationRow | null>;
+  /** A stored message with its conversation as it is now (issue #240: the subscriber re-reads before pushing). */
+  findMessage(messageId: string): Promise<{ message: MessageRow; conversation: ConversationRow } | null>;
   /**
    * Creates the row, or on a later accept replaces the courier (S1 answer 2). An accept whose timestamp is not after
    * courierSince is ignored, so a redelivered or older event cannot restore a former courier. A supplied closedAt
@@ -90,7 +100,8 @@ export interface ConversationStore {
   close(orderId: string, at: string): Promise<boolean>;
   /**
    * Appends with the next sequence number of the conversation, after re-checking under the row lock that the sender
-   * is still a participant and the conversation is still open; the recipients come from that locked row.
+   * is still a participant and the conversation is still open; the recipients come from that locked row. The realtime
+   * delivery intent (realtime_outbox) commits in the same transaction (issue #240).
    */
   append(message: NewMessage): Promise<AppendResult>;
   /** Messages in sequence order, from `afterSequence` exclusive, at most `limit`. */
@@ -143,6 +154,18 @@ export function createConversationStore(prisma: PrismaClient): ConversationStore
     async findByOrderId(orderId) {
       const row = await prisma.conversation.findUnique({ where: { orderId } });
       return row ? toConversationRow(row) : null;
+    },
+
+    async findById(conversationId) {
+      const row = await prisma.conversation.findUnique({ where: { id: conversationId } });
+      return row ? toConversationRow(row) : null;
+    },
+
+    async findMessage(messageId) {
+      const row = await prisma.message.findUnique({ where: { id: messageId }, include: { conversation: true } });
+      if (!row) return null;
+      const { conversation, ...message } = row;
+      return { message: toMessageRow(message), conversation: toConversationRow(conversation) };
     },
 
     async upsertAccepted(conversation) {
@@ -213,9 +236,14 @@ export function createConversationStore(prisma: PrismaClient): ConversationStore
         const check = checkAppend(row, message.senderId);
         if (check.kind !== 'ok') return check;
         const last = await tx.message.aggregate({ where: { conversationId: message.conversationId }, _max: { sequence: true } });
+        const { clientId, ...columns } = message;
         const created = await tx.message.create({
-          data: { ...message, sequence: (last._max.sequence ?? 0) + 1, sentAt: new Date(message.sentAt) },
+          data: { ...columns, sequence: (last._max.sequence ?? 0) + 1, sentAt: new Date(message.sentAt) },
         });
+        // The delivery intent commits with the message: if either write fails, neither is visible (issue #240).
+        const conversation = await tx.conversation.findUniqueOrThrow({ where: { id: message.conversationId } });
+        const signal = messageSignal(toMessageRow(created), toConversationRow(conversation), clientId);
+        await tx.realtimeOutbox.create({ data: { eventId: signal.eventId, kind: signal.kind, payload: signal.payload as object } });
         return { kind: 'appended', message: toMessageRow(created), recipientIds: check.recipientIds };
       });
     },

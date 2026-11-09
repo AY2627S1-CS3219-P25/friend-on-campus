@@ -1,5 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Cross-replica delivery wiring (issue #241): fanout publisher, SQL outbox relay, per-replica realtime
+ *        subscriber feeding createNotificationDelivery; readiness includes the subscriber; subscription loss
+ *        disconnects sockets and new sockets are refused (1013) until the subscriber is ready; shutdown stops the
+ *        relay and subscriber before the consumer.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-08
  * Scope: Gracefully drain HTTP, WebSockets, the consumer and Prisma on signals or broker failure, including startup races.
  * Author review: <to be completed by the author>
@@ -26,16 +33,25 @@
 import http from 'http';
 import { WebSocketServer } from 'ws';
 import { authMiddleware } from '@campus-errand/auth';
+import { createFanoutPublisher, createOutboxRelay, createSqlOutboxStore, startRealtimeSubscriber, type RealtimeSubscriber } from '@campus-errand/messaging';
 import { createApp } from './app';
 import { config } from './config';
 import { prisma } from './database/client';
 import { createDeliver, startNotificationConsumer } from './notifications/events';
+import { createNotificationDelivery } from './notifications/realtime';
 import { createNotificationStore } from './notifications/store';
 import { createHub, createSocketAuthenticator } from './ws/hub';
 
 const store = createNotificationStore(prisma);
 const hub = createHub({ authenticate: createSocketAuthenticator(config.auth), unreadCount: store.unreadCount });
+// Cross-replica delivery (issue #241): the consumer commits inbox rows with a notification_realtime_outbox intent; this
+// replica's relay publishes intents to the fanout exchange and this replica's subscriber pushes every replica's
+// signals (new rows, read-state changes) to the sockets it holds.
+const publisher = createFanoutPublisher({ url: config.rabbitmq.url, exchange: config.realtime.exchange });
+const delivery = createNotificationDelivery({ store, hub });
+const relay = createOutboxRelay({ store: createSqlOutboxStore(prisma, 'notification_realtime_outbox'), publish: publisher.publish });
 let consumerReady = () => false;
+let subscriber: RealtimeSubscriber | undefined;
 // AI-generated (edited by ngkhengyang)
 let stopping = false;
 let shutdownPromise: Promise<void> | undefined;
@@ -44,15 +60,20 @@ const app = createApp({
   store,
   authenticate: authMiddleware(config.auth),
   port: config.port,
-  isReady: async () => !stopping && consumerReady() && (await store.ping()),
-  status: () => ({ activeWsClients: hub.connectionCount(), rabbitmq: consumerReady() ? 'UP' : 'DOWN' }),
-  onInboxChanged: hub.inboxChanged,
+  isReady: async () => !stopping && consumerReady() && subscriber?.isReady() === true && (await store.ping()),
+  status: () => ({
+    activeWsClients: hub.connectionCount(),
+    rabbitmq: consumerReady() ? 'UP' : 'DOWN',
+    realtime: subscriber?.isReady() ? 'UP' : 'DOWN',
+  }),
 });
 
 // REST and WebSocket share one HTTP server; the gateway forwards /ws/ to its root path.
 const server = http.createServer(app);
 const sockets = new WebSocketServer({ server });
-sockets.on('connection', hub.handleConnection);
+// A replica without its realtime queue cannot push: refuse the socket (1013, try again later) so the client backs off
+// and retries instead of sitting on a connection that misses signals (issue #241).
+sockets.on('connection', (ws) => (subscriber?.isReady() ? hub.handleConnection(ws) : ws.close(1013)));
 server.listen(config.port, () => {
   console.log(`[Notification Service] listening on ${config.port}`);
 });
@@ -60,12 +81,24 @@ server.listen(config.port, () => {
 // AI-generated (edited by ngkhengyang)
 const consumerPromise = startNotificationConsumer(
   config.rabbitmq,
-  createDeliver(store, hub),
+  createDeliver(store),
   () => { void shutdown(true); },
 );
 consumerPromise.then(
   (consumer) => { consumerReady = consumer.isReady; },
   (error: Error) => { console.error(error.message); void shutdown(true); },
+);
+
+const subscriberPromise = startRealtimeSubscriber({
+  url: config.rabbitmq.url,
+  exchange: config.realtime.exchange,
+  handle: delivery.handle,
+  // The replica queue may have dropped signals: clients reconnect and refresh their inbox from REST.
+  onSubscriptionLost: () => hub.disconnectAll(),
+});
+subscriberPromise.then(
+  (started) => { subscriber = started; relay.start(); },
+  (error: Error) => { console.error('[Notification Service] Realtime subscriber failed:', error.message); void shutdown(true); },
 );
 
 function shutdown(failed = false): Promise<void> {
@@ -79,9 +112,14 @@ function shutdown(failed = false): Promise<void> {
   const socketsClosed = new Promise<void>((resolve) => sockets.close(() => resolve()));
   hub.close();
   shutdownPromise = (async () => {
+    // Stop claiming new intents first; a row this relay has leased is reclaimed by another replica after the lease.
+    await relay.stop();
+    const started = await subscriberPromise.catch(() => undefined);
+    await started?.close();
     const consumer = await consumerPromise.catch(() => undefined);
     await consumer?.close();
     await Promise.all([requestsClosed, socketsClosed]);
+    await publisher.close();
     await prisma.$disconnect();
   })().catch((error: unknown) => {
     console.error('[Notification Service] Shutdown failed:', error instanceof Error ? error.name : 'Unknown error');

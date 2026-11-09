@@ -7687,3 +7687,50 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 **Second browser-run follow-up:** Run 42456996099 confirms the mobile Places fix (US5-US7 and logout passed), with 25 other CI jobs green. Browser failures were now obsolete STUDENT metadata in US8 and an ambiguous Post Errand submit selector in UO1/UO6 (navigation and submit both matched), cascading into subsequent lifecycle timeouts. Scoped both browser drivers' submit action to `form` and exact button name. Updated US8 to verify actual read-only email and nonempty username, matching the approved metadata removal; renamed its description to match what it checks. The full production-app fixture reproduced the two-match submit ambiguity, then passed form-specific submission through a 202 PENDING receipt followed by OPEN, plus both live profile-field assertions. Script lint, syntax, and whitespace checks passed. Preparing a driver-only follow-up commit/push; no new application behavior or backend changes. The tagline source edit remains uncommitted.
 
 **Third browser-run follow-up:** Run 42457550527 passed 39/41 browser checks plus the other 25 CI jobs. All mobile, profile, Post, acceptance, pickup, and delivery checks now passed. Remaining UO5 failure was a strict match against both desktop/mobile status spans; UO6 reached its final history assertion but expected pre-redesign cancellation copy. Scoped requester/courier history checks to visible status spans and updated courier-reward/cancellation wording to the implemented copy. Verified visible completed/cancelled requester/courier assertions in the actual rendered TasksPage fixture, along with prior responsive, reorder and dispute checks; passed. Reviewed remaining realtime selectors against current source. Targeted lint, JS syntax, and whitespace checks passed. Preparing the history-assertion-only follow-up commit/push; tagline source remains uncommitted.
+
+## 2026-11-09 04:44 SGT — Continue the RabbitMQ cross-replica delivery work (issues #239 to #242)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "recall what was happening for the previous session and continue working on it". The previous session (prompt of 2026-11-09 00:35 SGT: complete the RabbitMQ cross-replica Chat and Notification delivery described in the wiki) ended while debugging the Notification cross-replica tests and before its usage-log entry was written, so its files are listed below as well.
+
+**Usage scenario:** Debugging assistance, implementation of a design the author documented in the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery", tests and documentation. Nothing was committed or pushed. Left to the author: review of every file, the Author review lines, the commit, the pull request (Closes #239, #240, #241, #242) and publishing the wiki update, whose push was denied by the session permission gate (patch handed over instead).
+- Debugging: the Notification cross-replica test file never exited. Root cause: its replica close() stopped the relay captured at creation while RT3.5 replaces `replica.relay`, so the replacement relay polled forever. Fixed in the test, as the Chat test already does.
+- Debugging: the Chat store test "numbers concurrent appends 1..n" fails locally with "Unable to start a transaction in the given time". Reproduced 3/3 on an unmodified checkout and 0/3 with `127.0.0.1` in place of `localhost` in the test URL: an IPv6-first environment artifact on Windows, no code change.
+- Implementation of issue #242 (RT4.1 to RT4.3) and of the wiki's "new sockets are rejected while unavailable" behaviour (close code 1013 until the realtime subscriber is ready), plus the `.env.example` entry.
+- Finding reported to the author, not changed: in the entry points a broker outage ends the business consumer, so the process drains and exits with code 1 and is restarted by Compose or the orchestrator (behaviour already on main); the wiki patch describes this.
+- Verified on the final code with PostgreSQL 16.14 and RabbitMQ 3.13.7 in throwaway containers: typecheck, lint and ci:validate-tests pass; unit 191/191 (messaging 9, chat 51, notification 73, student app 58); PostgreSQL integration 24/24 (chat 7, notification 17); RabbitMQ and PostgreSQL messaging 20/20 (chat 9, notification 11); builds of messaging, chat, notification and student app. Manual check of the Notification entry point: socket refused with 1013 during startup then accepted; `rabbitmqctl stop_app` exits the process with code 1; after `start_app` and a restart it serves again. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed (this prompt):**
+- `services/notification-service/test/realtime.integration.test.ts` — close() stops the replica's current relay
+- `apps/student-app/src/hooks/recentIds.ts` — new bounded recent-id cache (1,000 ids)
+- `apps/student-app/src/notifications/useNotifications.ts` — one toast per notification id per session (RT4.1)
+- `apps/student-app/src/chat/useChat.ts` — countsAsRemoval: one removed-message line per MODERATED_PEER eventId (RT4.2)
+- `apps/student-app/test/chat.test.ts` — three tests for RT4.1 to RT4.3
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — refuse a new socket with 1013 while the realtime subscriber is not ready
+- `.env.example` — optional per-service RABBITMQ_REALTIME_EXCHANGE, commented out
+
+**Files changed by the interrupted 00:35 prompt (no entry was written then):**
+- `packages/messaging/src/realtime.ts`, `src/outbox-sql.ts`, `src/index.ts`, `test/realtime.test.ts`, `tsconfig.test.json` — fanout publisher, per-replica subscriber, leased outbox relay, SQL outbox store and their unit tests (#239)
+- `packages/common-dtos/src/index.ts` — optional eventId on the chat ERROR frame (#242); a shared-contract change for the author to confirm
+- `services/chat-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/config.ts`, `src/conversations/service.ts`, `src/conversations/store.ts`, `src/index.ts`, `src/ws/hub.ts`, `src/realtime/delivery.ts`, `test/helpers.ts`, `test/hub.test.ts`, `test/service.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica chat delivery (#240)
+- `services/notification-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/app.ts`, `src/config.ts`, `src/index.ts`, `src/notifications/events.ts`, `src/notifications/routes.ts`, `src/notifications/store.ts`, `src/notifications/realtime.ts`, `src/ws/hub.ts`, `test/events.test.ts`, `test/messaging.integration.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica notification and read-state delivery (#241)
+- `.github/workflows/ci.yml` — messaging test:unit added to the unit matrix
+- Files that cannot hold a disclosure header: `package-lock.json`, `packages/messaging/package.json` (test:unit script, tsx devDependency, typecheck over tests), `services/chat-service/package.json` and `services/notification-service/package.json` (test scripts include the new test files)
+
+**External / temporary artifacts:** GitHub issues #239 to #242 (created by the 00:35 prompt, as that prompt authorised). Wiki patch, not published: `wiki-rabbitmq-realtime-update.patch` in the session scratchpad. Throwaway containers `foc-rt-test-pg` and `foc-rt-test-mq` are still running.
+
+## 2026-11-09 04:58 SGT — Commit the cross-replica delivery work and open its pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok please commit and create a pull request".
+
+**Usage scenario:** Author-approved commit, push and pull request for the work described in the previous entry (issues #239 to #242). `main` had moved six commits since the branch base (ECS infrastructure, sign-in tagline); the only file both sides changed is this log, so `origin/main` is merged into the branch with both sets of entries kept, then typecheck, lint, the test-matrix validation and the affected unit suites are rerun before pushing. No application code changed in this prompt. Left to the author: review, the Author review lines, the merge of the pull request, and publishing the wiki patch (its text about the absence of ECS definitions predates the merged `main` and needs a second look).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry; entries from `main` kept during the merge

@@ -91,3 +91,21 @@ model OrderNotificationState {
 
   @@map("order_notification_state")
 }
+
+// Issue #241: a realtime delivery intent committed in the same transaction as the row it announces. Relays in every
+// replica lease rows (lease_owner, lease_expires_at), publish them to the fanout exchange and delete them with an
+// owner check; a failed publish moves available_at forward. Replay after a lost lease is expected and deduplicated.
+model NotificationRealtimeOutbox {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId        String    @unique @map("event_id") @db.Uuid
+  kind           String
+  payload        Json
+  attempts       Int       @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  availableAt    DateTime  @default(now()) @map("available_at") @db.Timestamptz(6)
+  leaseOwner     String?   @map("lease_owner")
+  leaseExpiresAt DateTime? @map("lease_expires_at") @db.Timestamptz(6)
+
+  @@index([availableAt, createdAt])
+  @@map("notification_realtime_outbox")
+}

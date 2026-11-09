@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: The router no longer takes an onInboxChanged hint (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Optional onInboxChanged dependency, handed to the notification router (Notification Redesign §7).
  * Author review: <to be completed by Reallyeasy1>
@@ -23,8 +27,6 @@ export function createApp(dependencies: {
   isReady: () => Promise<boolean>;
   /** Extra fields for /health, such as the socket count. */
   status?: () => Record<string, unknown>;
-  /** Called after a read-state change so the user's open sockets refetch. */
-  onInboxChanged?: (userId: string) => unknown;
 }) {
   const app = express();
   app.use(cors());
@@ -44,7 +46,7 @@ export function createApp(dependencies: {
     try { ready = await dependencies.isReady(); } catch { /* Dependency unavailable. */ }
     res.status(ready ? 200 : 503).json({ service: 'notification-service', status: ready ? 'READY' : 'NOT_READY' });
   });
-  app.use('/api/notifications', createNotificationRouter(dependencies.store, dependencies.authenticate, dependencies.onInboxChanged));
+  app.use('/api/notifications', createNotificationRouter(dependencies.store, dependencies.authenticate));
 
   const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     if (error?.type === 'entity.parse.failed') {

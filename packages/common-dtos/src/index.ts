@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Optional eventId on the chat ERROR frame for the transient MODERATED_PEER notice (issue #242).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Optional drop-off coordinates and estimated credit (dropoffLatitude, dropoffLongitude,
  * estimatedRewardCredits) on OrderDTO and CreateOrderRequest, per the author's drop-off estimator decisions.
@@ -717,7 +721,8 @@ export type ChatServerFrame =
   | { type: 'AUTH_OK' }
   /** clientId is present only on the sender's own echo, so the client can settle exactly the SEND it answers. */
   | { type: 'MESSAGE'; orderId: string; clientId?: string; message: ChatMessageDTO }
-  | { type: 'ERROR'; orderId?: string; clientId?: string; code: ChatErrorCode; message: string };
+  /** eventId is set on the transient MODERATED_PEER notice so a replayed realtime signal is counted once (issue #242). */
+  | { type: 'ERROR'; orderId?: string; clientId?: string; eventId?: string; code: ChatErrorCode; message: string };
 
 export interface ChatHistoryResponse {
   conversation: ConversationDTO;
