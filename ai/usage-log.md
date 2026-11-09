@@ -1,5 +1,17 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Recorded author-approved merge of PR #252 after checking the latest changes and CI.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Published the four approved inline review comments on PR #252 and verified their locations.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reviewed PR #252 against its actual base, verified four findings locally, and recorded focused checks.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Direction B (Crisp Modern Canvas) theme across the tompang student application. Updated FriendPinLogo.tsx and public/favicon.svg with crisp white squircle canvas with subtle border, featuring the modern vibrant sunset gradient 't.' with cheerful curved smile tail and campus location pin dot. Updated HeaderNav.tsx and AuthGatePage.tsx logo containers to crisp floating canvas styling with subtle border and sleek hover states.
 Author review: <to be completed by yanhwee>
@@ -8229,3 +8241,44 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 - `tests/k6/discovery-load.js`, `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js` — pass workload name to `buildScenario`
 - `tests/k6/requirements.json`, `tests/k6/README.md` — per-tier `requiredVus`, reference #253, fix table threshold note
 - `ai/usage-log.md` — this entry
+
+## 2026-11-09 20:26 SGT — Review PR #252
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** detached review worktree at 0fd675e3e8608cbed6339fbbf129667a0fdd8b1f (feat/t4-k6-load-profiles)
+
+**Prompt (summarised):** Review pull request #252.
+
+**Usage scenario:** Debugging and code review. Read AGENTS.md, CLAUDE.md, PR description, linked issues #236/#237 and comments, existing reviews, and all 26 changed files against main at 6e37c598f51eed76301534631377f364aa33d859. Followed the affected API contracts and tests. Confirmed four P2 findings using local mocks, source-function probes and argument parsing: workflow VU argument injection bypassing the target allowlist; fixture workers continuing after failure and cleanup; skipped pending orders losing the accounts needed for recovery cleanup; empty discovery result pages accepted as correct despite seeded matches. Author-approved threshold changes were treated as stated decisions. Tests passed: wrapper 8/8, student-app unit 61/61, order-service unit 74/74, full workspace typecheck, lint and CI matrix validation. GitHub test gate is green; head was rechecked unchanged. No k6 or Docker executable is available, so no full load run, migration execution, GitHub workflow dispatch or live-target testing was performed. No review was posted, and no application code was changed, committed, pushed or merged.
+
+**Files changed:**
+- `ai/usage-log.md` — this review entry and consolidated disclosure record only.
+
+## 2026-11-09 20:28 SGT — Publish PR #252 review comments
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** detached review worktree at 0fd675e3e8608cbed6339fbbf129667a0fdd8b1f
+
+**Prompt (summarised):** Add the four previously reviewed findings directly to PR #252.
+
+**Usage scenario:** Author-approved publication of code-review comments. Rechecked that the PR head and base were unchanged and no existing review threads duplicated the findings. Submitted one COMMENT review (5825829477) with four P2 inline comments, then verified all four appeared at the intended changed lines and were not outdated. Included checks and verification limitations in the review body. No application code changed, committed, pushed or merged.
+
+**Files changed:**
+- `ai/usage-log.md` — publication record and consolidated disclosure.
+
+**External changes:** GitHub PR #252 review 5825829477; inline comment IDs 4512703205, 4512703216, 4512703219 and 4512703231.
+
+## 2026-11-09 20:36 SGT — Merge PR #252 once CI is green
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles (isolated merge checkout)
+
+**Prompt (summarised):** Merge PR #252.
+
+**Usage scenario:** Author-approved merge, including this required bookkeeping commit on the feature branch before merging once CI is green. Rechecked PR head 80792936688dc1368daa2b2d9331ef2b434b66f0 and reviewed its incremental changes since the earlier review. Wrapper self-tests pass 9/9. The four previously published P2 findings remain unresolved; informed the author and proceed under the explicit merge request without marking those threads resolved. No application fixes are included. Merge only the checked head using GitHub's expected-head guard and verify the result.
+
+**Files changed:**
+- `ai/usage-log.md` — preserves the two prior local review/publication entries and adds this merge record in the consolidated disclosure block.
