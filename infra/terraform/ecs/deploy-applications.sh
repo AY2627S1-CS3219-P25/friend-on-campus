@@ -1,6 +1,10 @@
 #!/bin/bash
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wait for the expected ECS rollout to complete after task counts stabilize.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Run release migrations before rollout and preserve deployed images during infrastructure updates.
 # Author review: <to be completed by the author>
 #
@@ -75,11 +79,24 @@ for service in "${services[@]}"; do
     revision=$(aws ecs register-task-definition --cli-input-json "file://$work/$service-register.json" --query 'taskDefinition.taskDefinitionArn' --output text)
     aws ecs update-service --cluster "$cluster" --service "$service" --task-definition "$revision" --query 'service.serviceName' --output text
     aws ecs wait services-stable --cluster "$cluster" --services "$service"
-    aws ecs describe-services --cluster "$cluster" --services "$service" > "$work/service.json"
-    jq -e --arg revision "$revision" '
-      (.failures | length == 0) and
-      (.services[0] | .taskDefinition == $revision and .desiredCount > 0 and .runningCount == .desiredCount and
-        (.deployments | length == 1 and .[0].rolloutState == "COMPLETED"))
-    ' "$work/service.json" >/dev/null
+    # The ECS stability waiter can return before rolloutState becomes COMPLETED.
+    for ((attempt = 1; ; attempt++)); do
+        aws ecs describe-services --cluster "$cluster" --services "$service" > "$work/service.json"
+        if jq -e --arg revision "$revision" '
+          (.failures | length == 0) and
+          (.services[0] | .taskDefinition == $revision and .desiredCount > 0 and .runningCount == .desiredCount and
+            (.deployments | length == 1 and .[0].rolloutState == "COMPLETED"))
+        ' "$work/service.json" >/dev/null; then
+            break
+        fi
+        if ((attempt >= 9)) || ! jq -e --arg revision "$revision" '
+          .services[0] | .taskDefinition == $revision and any(.deployments[]; .rolloutState == "IN_PROGRESS")
+        ' "$work/service.json" >/dev/null; then
+            echo "ECS did not complete $service at $revision." >&2
+            jq -c '.services[0] | {taskDefinition, runningCount, desiredCount, deployments: [.deployments[]? | {rolloutState, rolloutStateReason}]}' "$work/service.json" >&2
+            exit 1
+        fi
+        sleep 15
+    done
     printf '%s deployed as %s\n' "$service" "$revision" >> "$GITHUB_STEP_SUMMARY"
 done

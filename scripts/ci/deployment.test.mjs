@@ -1,5 +1,9 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-09
+// Scope: Test rollout completion lag and reject a failed rollout.
+// Author review: <to be completed by the author>
+//
+// Tool: Codex (model: GPT-6), date: 2026-11-09
 // Scope: Match the GitHub Script REST client shape in source-selection tests.
 // Author review: <to be completed by the author>
 //
@@ -133,9 +137,14 @@ switch (operation) {
   case 'sts get-caller-identity': response = '891498120071'; break;
   case 'ecs describe-services': {
     const name = option('--services');
+    const updated = Boolean(state.services[name]);
+    const firstCheck = state.events.filter(event => event.operation === operation && event.args.includes(name)).length === 2;
+    let rolloutState = 'COMPLETED';
+    if (updated && process.env.MOCK_SCENARIO === 'rollout-failure') rolloutState = 'FAILED';
+    if (updated && firstCheck && process.env.MOCK_SCENARIO === 'rollout-lag') rolloutState = 'IN_PROGRESS';
     response = { failures: [], services: [{ status: 'ACTIVE', desiredCount: 1, runningCount: 1,
       taskDefinition: state.services[name] || 'active/' + name,
-      deployments: [{ rolloutState: 'COMPLETED' }] }] };
+      deployments: [{ rolloutState }] }] };
     break;
   }
   case 'ecs describe-task-definition': {
@@ -176,6 +185,7 @@ function runDeployment(scenario, imageTag = 'release-tag') {
     const bin = path.join(directory, 'bin');
     mkdirSync(bin);
     writeFileSync(path.join(bin, 'aws'), mockAws, { mode: 0o700 });
+    writeFileSync(path.join(bin, 'sleep'), '#!/bin/sh\nexit 0\n', { mode: 0o700 });
     const script = readFileSync(path.join(root, 'infra/terraform/ecs/deploy-applications.sh'), 'utf8').replace(/\r\n/g, '\n');
     const result = spawnSync('bash', ['-c', script], {
       encoding: 'utf8',
@@ -220,4 +230,15 @@ test('infrastructure rollout uses new task configuration with the deployed image
     assert.equal(definition.containerDefinitions[0].image, 'live@sha256:' + 'b'.repeat(64));
     assert.deepEqual(definition.containerDefinitions[0].command, ['latest-template']);
   }
+});
+
+test('rollout waits for ECS completion after tasks stabilize and stops on failure', () => {
+  const delayed = runDeployment('rollout-lag');
+  assert.equal(delayed.status, 0, delayed.stderr);
+  assert.equal(delayed.state.events.filter(event => event.operation === 'ecs describe-services').length, 9);
+
+  const failed = runDeployment('rollout-failure');
+  assert.notEqual(failed.status, 0);
+  assert.match(failed.stderr, /ECS did not complete user-service/);
+  assert.deepEqual(Object.keys(failed.state.services), ['user-service']);
 });
