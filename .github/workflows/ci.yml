@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-11-09
+# Scope: Run k6 performance harness wrapper self-tests (scripts/perf/test/harness.test.mjs) in test-config job (PR #252 review).
+# Author review: Validated by Yee Yan Hwee (yanhwee)
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Resolved the merge conflict by retaining both CI disclosure entries.
 # Author review: <to be completed by the author>
@@ -158,6 +162,8 @@ jobs:
         run: npm run ci:validate-tests
       - name: Verify deployment workflows and release failure handling
         run: node --test scripts/ci/deployment.test.mjs
+      - name: Verify k6 performance harness wrapper self-tests
+        run: node --test scripts/perf/test/harness.test.mjs
 
   unit-tests:
     name: Unit | ${{ matrix.name }}

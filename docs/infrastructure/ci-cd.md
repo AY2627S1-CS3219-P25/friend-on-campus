@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
+Scope: Added the manual k6 performance workflow section (performance.yml, npm run perf:k6; issues #236, #237).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -33,9 +37,16 @@ Review `ai/usage-log.md` and consolidated per-file disclosure blocks with the di
 
 Current check results, skipped infrastructure checks and the source baseline are recorded in [review findings](../audits/review-findings.md).
 
+## Manual performance workflow (k6)
+
+`performance.yml` is `workflow_dispatch` only and is not a PR gate. Inputs are allowlisted: `target` (`isolated-compose`, built on the runner like the acceptance job, or `aws-gateway`, whose URL comes from the repository variable `PERF_AWS_GATEWAY_URL` and whose admin login comes from the `PERF_AWS_ADMIN_EMAIL`/`PERF_AWS_ADMIN_PASSWORD` secrets under the `performance-aws` environment), `profile` (`smoke`, `load`, `stress`), `workload` and an optional bounded `vus` override. k6 is pinned to v1.5.0, one run per target is enforced with a non-cancelling `concurrency` group, and the job has a 75-minute timeout.
+
+The job runs `npm run perf:k6` (`scripts/perf/run-perf.mjs`): preflight, run-owned fixtures, k6 per workload, reconciliation and report, cleanup. A failed fixture, an empty workload, a missing required metric, a response-correctness failure, a threshold breach or a reconciliation violation leaves the job red; the evidence bundle under `test-results/<runId>/` is uploaded with `if: always()` (excluding the deleted `.secrets` folder) without changing that verdict. Thresholds and workloads are defined in `tests/k6/requirements.json`; see [`tests/k6/README.md`](../../tests/k6/README.md). The root `perf:k6` script is not a `test:*` script, so the static matrix validator does not classify it.
+
 ## Source evidence and related reading
 
 - [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
+- [`.github/workflows/performance.yml`](../../.github/workflows/performance.yml)
 - [`.github/workflows/claude-pr-review.yml`](../../.github/workflows/claude-pr-review.yml)
 - [`.github/pull_request_template.md`](../../.github/pull_request_template.md)
 - [`scripts/ci/validate-test-matrix.mjs`](../../scripts/ci/validate-test-matrix.mjs)

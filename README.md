@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
+Scope: Documented the k6 performance harness command (npm run perf:k6, tests/k6/README.md, performance.yml) in the test table and the D4 cheat sheet; removed the unbounded discovery/claim-race commands (issues #236, #237).
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Link the manual main-branch application and infrastructure delivery workflows.
 Author review: <to be completed by the author>
@@ -299,6 +303,7 @@ npm test
 | `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
 | `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
 | `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
+| `npm run perf:k6 -- --target <gateway url> --profile smoke|load|stress --workload all|discovery|supplier|credit|lifecycle` | k6 API load harness (manual, not a CI gate): run-owned fixtures, per-operation thresholds from issues #74/#29/#33/#43/#45/#36, reconciliation and an evidence bundle under `test-results/<runId>/`; needs the `k6` binary; remote targets also need `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD` (loopback defaults to the seeded admin). `npm run perf:k6:load` runs every requirement-load population against the local stack. See [`tests/k6/README.md`](tests/k6/README.md) and the manual `performance.yml` workflow |
 
 ### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
 - **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
@@ -336,10 +341,12 @@ After deployment, use the CloudFront URL from Terraform's `public_url` output fo
 ```bash
 # AI-generated (edited by ngkhengyang)
 export TARGET_HOST="$(terraform -chdir=infra/terraform/ecs output -raw public_url)"
-k6 run tests/k6/order-claim-race.js
-k6 run tests/k6/discovery-load.js
-# Docker alternative for the concurrency test
-docker run --rm -i -e TARGET_HOST -v "$PWD/tests/k6:/scripts" grafana/k6 run /scripts/order-claim-race.js
+# Bounded k6 API load against the deployed gateway. Agree the target and limits first; the manual
+# "Performance (k6, manual)" GitHub Actions workflow runs the same command. The k6 scripts need the fixtures
+# this wrapper creates, so they are not run directly (tests/k6/README.md).
+PERF_ADMIN_EMAIL=<admin email> PERF_ADMIN_PASSWORD=<admin password> \
+  npm run perf:k6 -- --target "$TARGET_HOST" --profile smoke --workload all
+# Load and stress profiles against a deployed target also need --acknowledge-remote-load.
 ```
 
 ---

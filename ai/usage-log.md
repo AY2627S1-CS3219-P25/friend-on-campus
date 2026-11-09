@@ -1,5 +1,17 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Recorded author-approved merge of PR #252 after checking the latest changes and CI.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Published the four approved inline review comments on PR #252 and verified their locations.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reviewed PR #252 against its actual base, verified four findings locally, and recorded focused checks.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Direction B (Crisp Modern Canvas) theme across the tompang student application. Updated FriendPinLogo.tsx and public/favicon.svg with crisp white squircle canvas with subtle border, featuring the modern vibrant sunset gradient 't.' with cheerful curved smile tail and campus location pin dot. Updated HeaderNav.tsx and AuthGatePage.tsx logo containers to crisp floating canvas styling with subtle border and sleek hover states.
 Author review: <to be completed by yanhwee>
@@ -7857,3 +7869,416 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-11-08 18:50 SGT — "pull" on feat/n4-student-app-request-resilience
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/n4-student-app-request-resilience
+
+**Prompt (summarised):** "pull".
+
+**Usage scenario:** Debugging assistance / git status report. Fetched origin; the branch's upstream ref no longer exists on the remote (deleted after PR #225 merged), so `git pull` had nothing to do. `origin/main` has advanced (PRs #226–#231). No merge or checkout performed because `ai/usage-log.md` is dirty and would conflict; the author decides how to take main's changes.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:14 SGT — k6 load-testing implementation (wiki design sections 6-8, task T4)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** Implement the k6 portion of the wiki "Automated System Testing and Evidence Design": create GitHub tasks first, repair the existing `tests/k6` scripts, add credit-balance and order-lifecycle HTTP workloads, bounded smoke/load/stress profiles, run-owned fixtures, per-operation issue thresholds with response-correctness checks, reconciliation, a manual `workflow_dispatch` performance workflow and an evidence bundle; validate locally and leave uncommitted.
+
+**Usage scenario:** Implementation code and boilerplate for a design the author selected in the wiki (k6 chosen; profiles, thresholds and evidence contract specified there and in issues #43/#44/#45/#74/#36/#29/#33). Task issues #236 and #237 were created because the prompt explicitly requested them; their acceptance criteria restate the wiki/issue text rather than new requirements. Measurement-method knobs (concurrency tolerance 0.95, sample minimum 100 for load/stress, smoke not assessing concurrency, cleanup deleting run accounts but leaving their orphan wallets) are harness defaults recorded in `tests/k6/requirements.json` and `summary.md` for the author to confirm. Not done: no commit/push, no AWS or shared-demo load, no autoscaling claim. Finding for the author (not fixed): Supplier Service derives `supplierCode` from `count + 1`, so parallel creates collide and surface as HTTP 409; the harness supplies explicit codes.
+
+**Checks run:** `npm run typecheck` (exit 0), `npx eslint tests/k6 scripts/perf eslint.config.mjs` (clean), `npm run ci:validate-tests` (passed), `k6 inspect` for 12 script/profile combinations, isolated Compose smoke run of all four workloads (`test-results/smoke-local-2`, PASS, 8 reconciliation invariants PASS), forced failures: wrong admin password -> BLOCKED exit 1; temporarily lowered threshold -> FAIL exit 1 with artifacts; tampered fixture -> correctness checks fail, k6 exit 99.
+
+**Files changed:**
+- `tests/k6/requirements.json` — new: workloads, issue-derived limits, hard profile bounds (JSON, no header)
+- `tests/k6/lib/perf.js` — new shared k6 helpers (profiles, sessions with token renewal, tags, response_ok rate, thresholds, summary)
+- `tests/k6/discovery-load.js` — rewritten: order-feed and supplier scenarios with correctness checks
+- `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js` — new workloads
+- `tests/k6/order-claim-race.js` — env credentials, run-owned order, abort on failed prerequisites
+- `tests/k6/README.md` — rewritten for the wrapper, thresholds and evidence bundle
+- `scripts/perf/run-perf.mjs`, `scripts/perf/lib/gateway.mjs`, `scripts/perf/lib/fixtures.mjs`, `scripts/perf/lib/report.mjs` — new orchestrator, HTTP client, fixtures/reconciliation/cleanup, timeline and verdict builders
+- `.github/workflows/performance.yml` — new manual workflow
+- `package.json` — `perf:k6` script (JSON, no header)
+- `eslint.config.mjs` — k6 `open` global
+- `README.md` — test table row and D4 cheat sheet replaced the unbounded k6 commands
+- `docs/infrastructure/ci-cd.md` — manual performance workflow section (file already had unrelated uncommitted edits by the author; preserved)
+
+## 2026-11-08 21:20 SGT — How to run the performance test
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok how do i run the performance test itself".
+
+**Usage scenario:** Learning support / explanation: described the local smoke and requirement-load commands (`npm run perf:k6`), where the evidence lands, and the GitHub Actions dispatch path with the required variable/secrets. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:33 SGT — npm command that runs all load tests
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "maybe it would be good to have an npm command that runs all load testing".
+
+**Usage scenario:** Implementation/boilerplate on the author's suggestion: added `npm run perf:k6:load` (load profile, all workloads, local gateway; extra flags override) and made `--workload all` under the load profile run the supplier population twice (50 and 100 VUs, directory `supplier-100vus`) so #29 and #33 are both measured. An unreachable gateway is now a BLOCKED preflight instead of FAIL. Verified with `node --check`, ESLint and a dry run without a stack (runs listed as discovery@100, supplier@50, supplier-100vus@100, credit@100, lifecycle@50; preflight BLOCKED). Not re-run against a live stack.
+
+**Files changed:**
+- `scripts/perf/run-perf.mjs` — per-run list (label, workload, VUs); supplier at 100 VUs in all-load mode; preflight BLOCKED on unreachable gateway
+- `package.json` — `perf:k6:load` script (JSON, no header)
+- `tests/k6/README.md`, `README.md` — documented the new command
+
+## 2026-11-08 21:40 SGT — Explain the PERF_ADMIN_* requirement
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** Pasted `npm run perf:k6:load` output ("PERF_ADMIN_EMAIL and PERF_ADMIN_PASSWORD must be set") and asked what it is about.
+
+**Usage scenario:** Learning support / explanation: the harness needs an admin login for fixtures and cleanup and takes it from the environment; showed the Git Bash command with the seeded local admin. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:43 SGT — Loopback default for the admin login
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "is it possible not to have PERF_ADMIN_EMAIL and admin_password".
+
+**Usage scenario:** Implementation on the author's request, following the existing `scripts/uat/uat-d2-api.mjs` convention: for a loopback target the wrapper defaults to the seeded local administrator; any other target still requires `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD`. The manifest records which source was used. The workflow no longer passes the seed credentials for the Compose target. Verified with ESLint, a dry run without env (loopback default recorded, BLOCKED on unreachable gateway) and a remote-target run without env (usage error).
+
+**Files changed:**
+- `scripts/perf/run-perf.mjs` — admin credential resolution (environment, else seeded admin on loopback), passed into fixtures
+- `scripts/perf/lib/fixtures.mjs` — takes the admin credentials as an option instead of reading the environment
+- `.github/workflows/performance.yml` — only the AWS target sets the admin secrets
+- `tests/k6/README.md`, `README.md` — documented the default
+
+## 2026-11-08 21:46 SGT — Is Docker running?
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "is the docker run right now?"
+
+**Usage scenario:** Status check: listed Compose projects and containers and probed the gateway; nothing running. Gave the start command. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 21:48 SGT — Start the Docker stack
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "can you start the docker containers as well".
+
+**Usage scenario:** Operational assistance: ran `docker compose up --build -d --wait` on the default compose file so `npm run perf:k6:load` can reach the gateway on port 80. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 22:05 SGT — Cross-replica Chat/Notification signalling: explanation, decision deferred
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "Decide and implement RabbitMQ or PostgreSQL signalling for cross-replica Chat/Notification delivery ... explain what this is most likely about".
+
+**Usage scenario:** Learning support and fact gathering. Explained the problem (per-process in-memory socket maps versus `replicas: 2` in `infra/k8s/04-stateless-services.yaml`, contradicting the wiki chat design's single-instance assumption) and listed code facts for each transport (existing `amqplib` and broker permission regexes; `pg` only in credit-service; client dedupe by id and duplicate-safe notification storage). Declined to choose the transport: that is an architecture decision reserved for the author (CLAUDE.md section 1). No code changed; implementation offered once the author decides transport, payload shape and whether Chat stays at one replica.
+
+**Files changed:**
+- none
+
+## 2026-11-08 22:12 SGT — Commit and push the k6 work to feat/t4-k6-load-profiles
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok push to a branch first".
+
+**Usage scenario:** Author-approved commit and push. Staged only the k6/performance files; for `ai/usage-log.md` and `docs/infrastructure/ci-cd.md` only this session's hunks were staged so the author's earlier uncommitted documentation edits stay in the working tree. No pull request opened.
+
+**Files changed:**
+- none beyond the commit itself
+
+## 2026-11-09 15:45 SGT — Start the local stack on merged main and open a chat between the two seed students
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles (this checkout; the stack was built from the merged `main` tree in the worktree `C:/Users/Lenovo/foc-realtime-wt`)
+
+**Prompt (summarised):** "what is the local host for this, can you like set up the chat accounts such that we can have 2 chat accounts talking to each other".
+
+**Usage scenario:** Operational and debugging assistance; no repository file changed. Rebuilt the Compose images from merged `main` (8f30e7e) and started the stack under the existing `friend-on-campus` project with this checkout's env file passed by path (not opened). Two start-up problems were diagnosed on the way: the web-app images kept failing because a cached `npm ci` layer lacked rollup's Linux binary (an optional package skipped during an earlier flaky download; fixed with a no-cache build of those two images), and PostgreSQL needed about 28 seconds of crash recovery after the earlier Docker restart, longer than its health-check budget (a second `up` succeeded). The containers were removed and recreated once; the data volumes were kept. Then, through the gateway API with the documented seed accounts: Alice posted errand ORD-34182EAD, Bob accepted it, and each sent one chat message over the chat socket; both arrived live and are in the history.
+
+**Files changed:**
+- none
+
+**External / temporary artifacts:** Local Docker images and containers of the `friend-on-campus` Compose project; errand ORD-34182EAD and two chat messages in the local databases; scripts `setup-chat.mjs` and logs in the session scratchpad.
+
+## 2026-11-09 15:45 SGT — How to open the local sites
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok how can i access this sites".
+
+**Usage scenario:** Learning support. Confirmed the local Compose stack was still healthy (all services up; the student app, the admin portal and the login API answered 200 through the gateway) and explained how to open the sites in a browser and log in as the two seed students. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 16:13 SGT — Review the latest k6 run and fix the wrapper defects it exposed
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "look at the k6 testing and see the most recent run and improve on it".
+
+**Usage scenario:** Debugging assistance and implementation, with tests. The most recent run is the local load run `perf-20261108T135152Z-b09772` (FAIL at every stage). Its artifacts were read to separate defects of the wrapper from measurements of the application. Three wrapper defects were fixed; the application's latency results were analysed and reported as facts only, because how to respond to them (load model, paging, capacity) is a performance and design decision reserved for the author (CLAUDE.md section 1). Nothing was committed.
+- Defect 1: the wrapper logged in as administrator once and reused that token for reconciliation and cleanup 26 minutes later (tokens live 15 minutes): reconciliation got HTTP 401 and cleanup removed nothing. The administrator and the account logins are now self-renewing sessions, mirroring the k6 `Session`.
+- Defect 2: a stage that threw a gateway error took the HTTP code as its status ("401"), which the run verdict did not count as a failure; with all k6 stages green such a run would have ended PASS. Stage statuses are now always verdicts and the run passes only when every required stage passed.
+- Defect 3: a run whose cleanup failed left its fixtures with no way to remove them (ids and credentials are deleted with the run). `--cleanup-tag <tag>` finds one run's suppliers and accounts by their naming pattern and removes them; the summary names the command when cleanup had errors.
+- Verified: new self-tests `scripts/perf/test/harness.test.mjs` (7 tests, fake gateway with an injected clock; they failed before the fix), ESLint, `ci:validate-tests`; `--cleanup-tag 746e82` against the local stack removed the failed run's 500 suppliers and 100 accounts with 0 errors (22 suppliers remain); a full smoke-profile run `smoke-after-fix` passed every stage including reconciliation and cleanup and left nothing behind. Not run: a full load run after the fix (about 26 minutes of heavy local load); the token-expiry path is covered by the self-test, not by a long real run.
+- Reported, not changed: the latency findings (throughput ceilings per endpoint, the unpaginated supplier listing, the lifecycle script's own polling being about three quarters of that stage's requests, health-check CPU spikes).
+
+**Files changed:**
+- `scripts/perf/lib/gateway.mjs` — `session()` (self-renewing login), login reports the token expiry, injectable clock
+- `scripts/perf/lib/fixtures.mjs` — administrator and account sessions in fixtures, reconciliation and cleanup; `findRunOwned`; cleanup cancels through the administrator when no account password is known
+- `scripts/perf/lib/report.mjs` — `stageStatus`, `overallVerdict`
+- `scripts/perf/run-perf.mjs` — one administrator session per run, `--cleanup-tag`, verdict functions, recovery hint in the summary
+- `scripts/perf/test/harness.test.mjs` — new self-tests
+- `tests/k6/README.md` — `--cleanup-tag`, login renewal, self-test command
+- `.github/workflows/performance.yml` — runs the self-tests before generating load
+
+**External / temporary artifacts:** `test-results/smoke-after-fix/` and `test-results/perf-20261109T080503Z-6ab863/` (git-ignored evidence of the smoke run and the cleanup); the failed run's 500 suppliers and 100 accounts were deleted from the local database.
+
+## 2026-11-09 16:53 SGT — Local k6 load run as the benchmark baseline, and a run-comparison tool
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "dont edit the existing code anymore for this (other than k6), but more of try and do the testing locally first and then do benchmarking from there"; during the run the author also asked where the benchmark results can be found.
+
+**Usage scenario:** Test execution and implementation on the k6 side only; no application code was changed, as the author instructed. Ran the full load profile locally (`baseline-local-20261109`, 32 minutes, all workloads) against the Compose stack built from merged `main` (8f30e7e). Added a comparison tool so later runs can be read against this baseline. Nothing was committed. Left to the author: deciding what to do about the latency results, whether to repeat the run to measure run-to-run variation, and committing the k6 changes.
+- Result of the run: preflight, fixtures, reconciliation (8 invariants over 1,901 orders and 100 wallets) and cleanup passed, which is the first long run in which the wrapper's renewed logins were exercised for real (the 2026-11-08 run failed both stages with HTTP 401). The wallet workload met its limit (p95 448 ms against 500 ms); the feed, supplier search (50 and 100 virtual users) and order lifecycle workloads exceeded theirs. The database was left clean (22 suppliers, no run accounts).
+- Comparison with the 2026-11-08 run written to `test-results/baseline-local-20261109/comparison-vs-20261108.md`. The two runs differ in application code, database state and machine state, so the differences are observations, not attributed to any cause.
+- Verified: self-tests 8/8 (one new, for the comparison), ESLint clean. Lint and tests were run after the load run, not during it.
+
+**Files changed:**
+- `scripts/perf/compare-runs.mjs` — new: prints a per-operation comparison of two run directories
+- `scripts/perf/lib/report.mjs` — `compareRuns`, `renderComparison`
+- `scripts/perf/test/harness.test.mjs` — test for the comparison
+- `tests/k6/README.md` — "Benchmarking: compare two runs"
+
+**External / temporary artifacts:** `test-results/baseline-local-20261109/` (git-ignored evidence bundle and the comparison file).
+
+## 2026-11-09 16:55 SGT — How to run the k6 scripts
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "how do i run the k6 script".
+
+**Usage scenario:** Learning support. Explained the wrapper commands for the smoke and load profiles, a single workload, comparing two runs and removing a failed run's fixtures, after confirming the local gateway answered and k6 is installed. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 18:31 SGT — Raise the k6 limits and lower the supplier load until the local load run passes
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "if it does not meet limit, maybe try and increase the limit". Asked how, the author chose to raise the limits in `tests/k6/requirements.json` "until it is able to make all the test cases pass", and, once supplier search turned out to fail on service errors that no latency limit covers, to lower the load of the k6 supplier workload.
+
+**Usage scenario:** Implementation of decisions the author made, on the k6 side only; no application code was changed. The limits are requirement figures from issues #74, #29, #33, #36 and #43, so changing them is the author's decision; the AI stated that, asked, and applied the answers. The figure each issue states is kept beside every changed value (`requirementP95Ms`, `requirementVus`) and printed in every run summary with the remark that a PASS against a raised limit does not show the requirement is met. Nothing was committed. Left to the author: the issues and the requirements document still state the original figures; whether these limits should also apply to CI and the deployed target; committing.
+- Limits (rule applied: highest p95 seen in three local load runs plus 50%, rounded up to the next 100 ms): errand feed 1000 -> 3200 ms, wallet 500 -> 1900 ms, order lifecycle operations 500 -> 4000 ms.
+- Supplier search: at 50 and 100 back-to-back users the Supplier Service exhausted its database connection pool (Prisma P2024, limit 21, 10 s wait) and returned HTTP 500 in three of four runs. By the author's choice the workload now runs at 20 users with a second population of 30 (issues: 50 and 100); both levels were measured first (p95 4318 ms and 6186 ms, no errors) and the limits set to those plus 50% (6500 and 9300 ms). The dataset stays at 500 records. The second population is read from `requirements.json` instead of being hard-coded as 100 in the wrapper.
+- Finding recorded in the README: runs must start on a settled stack. After a load run the Notification Service still had about 2,000 queued events (drained at roughly 1,000 a minute); the wallet workload measured p95 946 ms straight after an overloaded run and 391 ms on a settled stack with identical code.
+- Verified: full load run `all-pass-check-20261109` PASS at every stage (feed p95 2436 ms, supplier 4310 and 4830 ms, wallet 350 ms, lifecycle about 1270 ms; reconciliation 8 checks over 1,823 orders; cleanup 0 errors); self-tests 8/8; ESLint clean; `ci:validate-tests` passes. Earlier runs in this prompt: `limits-raised-20261109` (failed on supplier errors and the wallet), `wallet-check-20261109` (PASS), `supplier-try-20vus`, `supplier-try-30vus`.
+
+**Files changed:**
+- `scripts/perf/run-perf.mjs` — second load population from `secondLoadVus`; summary shows the issue's figure beside a raised limit or lowered load
+- `scripts/perf/lib/report.mjs` — carries `requirementP95Ms` and `requirementVus` into the results
+- `tests/k6/README.md` — threshold table and wording for the raised limits and the lowered supplier load; note on letting the stack settle
+- `.github/workflows/performance.yml` — wording of the virtual-user input hint
+- File that cannot hold a disclosure header: `tests/k6/requirements.json` (limits, supplier load, explanatory notes)
+
+**External / temporary artifacts:** run folders under the git-ignored `test-results/`: `baseline-local-20261109`, `limits-raised-20261109`, `wallet-check-20261109`, `supplier-try-20vus`, `supplier-try-30vus`, `all-pass-check-20261109`.
+
+## 2026-11-09 18:33 SGT — Will all the k6 tests pass now?
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok so will all of the tests pas".
+
+**Usage scenario:** Learning support. Answered from the evidence already gathered: one full local load run (`all-pass-check-20261109`) passed every stage with the raised limits and the lowered supplier load; a pass on every future run is not guaranteed because identical runs on this laptop have differed by up to a factor of two. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 18:34 SGT — How to run the full load test
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok how do i run the full load test".
+
+**Usage scenario:** Learning support. Gave the command for the full local load run, the pre-run check that the stack is settled, and where the results appear, after confirming the gateway answered and no broker messages were queued. No code changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 19:10 SGT — Commit the k6 harness changes and open the pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** The author pasted the end of their own full load run (`perf-20261109T103517Z-e04b10`, PASS at every stage) and asked: "commit and create a PR accordingly for this".
+
+**Usage scenario:** Author-approved commit, push and pull request for the k6 work of the entries above (issues #236 and #237). Staged only the k6 files and this session's block of this log; the author's earlier uncommitted documentation work and earlier log entries stay in the working tree. The branch was 95 commits behind `main`, so `origin/main` is merged into it in a separate temporary worktree (the dirty working tree here is not touched) and pushed, then the checks are rerun before the pull request is opened. No application code changed in this prompt. Left to the author: review, the Author review lines, merging the pull request, and updating this checkout to the pushed branch (it is one merge commit behind the remote).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
+
+## 2026-11-09 19:33 SGT — Bring the local branch up to date and record the k6 work in the testing design page
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "resolve the parts in the things to know and then also may be consider updating the design docs in wiki page" (Automated System Testing and Evidence Design).
+
+**Usage scenario:** Operational assistance and documentation; no repository file was committed. (1) The local branch was one merge commit behind the remote: the author's uncommitted edits to `ai/usage-log.md` and `docs/README.md` were backed up and stashed, the branch fast-forwarded to b47e7dc, and the edits re-applied; both re-applies conflicted and were resolved so that the added lines are identical to before (218 and 24 lines, verified). (2) The performance workflow can only be dispatched once it is on the default branch, so it stays unrun until pull request #252 is merged; that merge was not requested and was put to the author. (3) The wiki page was updated and pushed (wiki commit acff8a6): an implementation-status note, a subsection with the commands, the limits and supplier load the author changed beside the figures the issues state, the two passing local load runs, observations and what is not done, plus corrections of statements that predate the implementation and the move from K3s to ECS. The observations are recorded as facts; no decision or rationale was written for the author.
+
+**Files changed:**
+- none committed (`ai/usage-log.md` and `docs/README.md` in the working tree were re-based onto the pulled branch with the author's own edits unchanged; wiki page `Automated-System-Testing-and-Evidence-Design.md` in the wiki repository)
+
+**External / temporary artifacts:** stash entry "claude: your edits to usage-log and docs/README, set aside for the pull (2026-11-09)" kept as a backup; copies in the session scratchpad under `backup-before-pull`.
+
+## 2026-11-09 20:02 SGT — Fix the feed's FASS tab and the zone tab numbers, with a browser check
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** fix/student-app-feed-zone-filter
+
+**Prompt (summarised):** Investigate and fix the report "FASS filter hides a relevant errand" (Browse → All showed an errand labelled Arts & Social Sciences from The Deck; FASS showed zero), then run a browser acceptance check that the zone tabs and their numbers stay correct when switching tabs, because the numbers sometimes read 0 while errands exist.
+
+**Usage scenario:** Debugging assistance, implementation code and tests. Two causes were found and fixed. (1) The Order Service sample seed gave the two Deck errands the zone name `Arts & Social Sciences`, while the supplier seed, the admin zone list and the feed tabs all use `FASS`; the seed only inserts missing rows, so a data-only migration corrects the two sample order codes on databases seeded earlier. (2) The feed page counted each tab from the list that was already narrowed to the selected tab, so every other tab read 0 and ALL showed the selected tab's number; the counts now come from the whole feed. Checks run: student-app unit tests 61/61, order-service unit tests 74/74, typecheck, lint and `ci:validate-tests` clean; the migration applied to a throwaway PostgreSQL (only the two sample codes change); a Playwright check against the local stack on the fixed build passed 28/28 (two students, desktop and mobile, every tab and back, the 15 s background refresh, the empty-tab button, search); the same check against the old counting line passed only 11/28, which shows it detects the fault. Nothing was committed or pushed. Left to the author: reviewing the change, whether to keep the data migration (it alters existing rows on deploy), creating an issue before any pull request (none exists for this report), the Author review lines, and the decisions noted in the reply (zones that have no tab, such as Central Lib, appear only under ALL; the zone names are listed separately in four places; the sample seed's supplier names differ from the supplier data).
+
+**Files changed:**
+- `apps/student-app/src/orders/feedZones.ts` — new: the tab list, the feed selection, the zone match and the per-tab counts as pure functions
+- `apps/student-app/src/pages/FeedPage.tsx` — tab numbers computed from the whole feed (new `feedOrders` prop) instead of the already-narrowed list
+- `apps/student-app/src/App.tsx` — builds the feed once and passes both the feed and the narrowed list to the page
+- `apps/student-app/test/feed-zones.test.ts` — new: 3 tests for the zone match and the counts
+- `apps/student-app/package.json` — `test:unit` runs the new test file (JSON, no disclosure header; the script name is unchanged, so the CI matrix needs no edit)
+- `services/order-service/src/database/seed.ts` — the two Deck sample errands use zone `FASS`
+- `services/order-service/prisma/migrations/20261109190000_sample_errand_zone_fass/migration.sql` — new: data-only correction of the two sample order codes
+- `ai/usage-log.md` — this entry
+
+**External / temporary artifacts:** `uat-zone-tabs.mjs`, the screenshot folders `uat-zone-tabs/` (fixed build) and `uat-zone-tabs-old-behaviour/` (control run), and `FeedPage.fixed.tsx` in the session scratchpad (not in the repository). The check posted three errands as alice and cancelled them afterwards.
+
+## 2026-11-09 20:05 SGT — Commit the feed zone fix and push it to the k6 pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** "ok now i would like you to commit and push to the same pr as the k6" (the feed zone fix from the previous entry, onto pull request #252).
+
+**Usage scenario:** Author-approved commit and push. The fix was written on a side branch cut from `main`; it was carried unchanged onto the head of `feat/t4-k6-load-profiles` (b47e7dc), where none of the touched files differ from `main`, and committed as one commit. Checks repeated on the combined tree before pushing: typecheck clean across the workspaces, student-app unit tests 61/61, order-service unit tests 74/74, lint clean, `ci:validate-tests` passed. This commit also carries the two earlier entries of today that were still uncommitted (19:33 and 20:02). The author's own uncommitted work in the main checkout (the 7 November log entries and the documentation files) is not part of the commit and was kept in place when the local branch was moved forward. Left to the author: pull request #252 now holds a fix that its title and description do not mention and that has no issue to close; the Author review lines; whether to keep the data migration.
+
+**Files changed:**
+- `apps/student-app/src/orders/feedZones.ts`, `apps/student-app/src/pages/FeedPage.tsx`, `apps/student-app/src/App.tsx`, `apps/student-app/test/feed-zones.test.ts`, `apps/student-app/package.json` — committed as described in the previous entry; no further change
+- `services/order-service/src/database/seed.ts`, `services/order-service/prisma/migrations/20261109190000_sample_errand_zone_fass/migration.sql` — committed as described in the previous entry; no further change
+- `ai/usage-log.md` — this entry, and the 19:33 and 20:02 entries committed with it
+
+## 2026-11-09 20:32 SGT — Review PR #252, file Supplier Service DB sorting/pagination issue (#253), and apply k6 harness review fixes
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** feat/t4-k6-load-profiles
+
+**Prompt (summarised):** Review PR #252, create a GitHub issue for pushing supplier-service sorting/pagination to PostgreSQL so #29 (50 VUs) and #33 (100 VUs) can be tested at their stated concurrency, reference it in the PR, post review feedback on PR #252, apply the k6 harness review fixes directly to the branch, and update the PR title/description to document commit `0fd675e`.
+
+**Usage scenario:** Code review, issue creation (#253), and targeted review fixes on the k6 performance harness:
+- `tests/k6/lib/perf.js`, `tests/k6/discovery-load.js`, `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js`: `buildScenario` resolves `baselineVus` directly from `tests/k6/requirements.json` when given a workload name instead of duplicating hardcoded numbers in each script, and increases the smoke profile's `gracefulStop` from `10s` to `30s` so in-flight order-lifecycle iterations can complete cleanly.
+- `tests/k6/requirements.json`, `scripts/perf/lib/report.mjs`, `scripts/perf/test/harness.test.mjs`: added per-tier `requiredVus` (`20` for #29, `30` for #33) and updated `performanceFromSummary` to check `limit.requiredVus ?? op.concurrency.required`, with a new unit test covering multi-tier concurrency checks; referenced #253 in `requirements.json` and `tests/k6/README.md`.
+- `.github/workflows/ci.yml`: added `node --test scripts/perf/test/harness.test.mjs` to the `test-config` job so wrapper self-tests run on every PR.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — run `scripts/perf/test/harness.test.mjs` in `test-config`
+- `scripts/perf/lib/report.mjs` — per-tier `requiredVus` concurrency check in `performanceFromSummary`
+- `scripts/perf/test/harness.test.mjs` — unit test for multi-tier `requiredVus` (#29 vs #33)
+- `tests/k6/lib/perf.js` — resolve `baselineVus` from `requirements.json` by workload name; smoke `gracefulStop: '30s'`
+- `tests/k6/discovery-load.js`, `tests/k6/credit-balance-load.js`, `tests/k6/order-lifecycle-load.js` — pass workload name to `buildScenario`
+- `tests/k6/requirements.json`, `tests/k6/README.md` — per-tier `requiredVus`, reference #253, fix table threshold note
+- `ai/usage-log.md` — this entry
+
+## 2026-11-09 20:26 SGT — Review PR #252
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** detached review worktree at 0fd675e3e8608cbed6339fbbf129667a0fdd8b1f (feat/t4-k6-load-profiles)
+
+**Prompt (summarised):** Review pull request #252.
+
+**Usage scenario:** Debugging and code review. Read AGENTS.md, CLAUDE.md, PR description, linked issues #236/#237 and comments, existing reviews, and all 26 changed files against main at 6e37c598f51eed76301534631377f364aa33d859. Followed the affected API contracts and tests. Confirmed four P2 findings using local mocks, source-function probes and argument parsing: workflow VU argument injection bypassing the target allowlist; fixture workers continuing after failure and cleanup; skipped pending orders losing the accounts needed for recovery cleanup; empty discovery result pages accepted as correct despite seeded matches. Author-approved threshold changes were treated as stated decisions. Tests passed: wrapper 8/8, student-app unit 61/61, order-service unit 74/74, full workspace typecheck, lint and CI matrix validation. GitHub test gate is green; head was rechecked unchanged. No k6 or Docker executable is available, so no full load run, migration execution, GitHub workflow dispatch or live-target testing was performed. No review was posted, and no application code was changed, committed, pushed or merged.
+
+**Files changed:**
+- `ai/usage-log.md` — this review entry and consolidated disclosure record only.
+
+## 2026-11-09 20:28 SGT — Publish PR #252 review comments
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** detached review worktree at 0fd675e3e8608cbed6339fbbf129667a0fdd8b1f
+
+**Prompt (summarised):** Add the four previously reviewed findings directly to PR #252.
+
+**Usage scenario:** Author-approved publication of code-review comments. Rechecked that the PR head and base were unchanged and no existing review threads duplicated the findings. Submitted one COMMENT review (5825829477) with four P2 inline comments, then verified all four appeared at the intended changed lines and were not outdated. Included checks and verification limitations in the review body. No application code changed, committed, pushed or merged.
+
+**Files changed:**
+- `ai/usage-log.md` — publication record and consolidated disclosure.
+
+**External changes:** GitHub PR #252 review 5825829477; inline comment IDs 4512703205, 4512703216, 4512703219 and 4512703231.
+
+## 2026-11-09 20:36 SGT — Merge PR #252 once CI is green
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** feat/t4-k6-load-profiles (isolated merge checkout)
+
+**Prompt (summarised):** Merge PR #252.
+
+**Usage scenario:** Author-approved merge, including this required bookkeeping commit on the feature branch before merging once CI is green. Rechecked PR head 80792936688dc1368daa2b2d9331ef2b434b66f0 and reviewed its incremental changes since the earlier review. Wrapper self-tests pass 9/9. The four previously published P2 findings remain unresolved; informed the author and proceed under the explicit merge request without marking those threads resolved. No application fixes are included. Merge only the checked head using GitHub's expected-head guard and verify the result.
+
+**Files changed:**
+- `ai/usage-log.md` — preserves the two prior local review/publication entries and adds this merge record in the consolidated disclosure block.
