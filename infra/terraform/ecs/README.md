@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Document the verified Debezium EFS ownership and registration-to-wallet dependency on the live phase.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Document the fixed demo seed password and updating existing accounts.
 Author review: <to be completed by the author>
 
@@ -25,6 +29,10 @@ For an existing deployment, follow the GitHub delivery setup below and migrate i
 6. Set `phase = "brokers"`, review and apply. Confirm the three nodes report one cluster with three running members before starting the application services. On a broker host via Systems Manager, run `docker exec <rabbit-container> su-exec rabbitmq rabbitmq-diagnostics cluster_status`. The first broker starts the cluster. The other two join it. On replacement, each slot attaches its retained EBS volume and publishes its new private address.
 7. Set `phase = "applications"`, review and apply. Verify the app services are healthy and RabbitMQ consumers have declared their queues with three quorum members where applicable. Set `phase = "live"`, review and apply, then verify the three connectors are processing outbox events. The browser URL is the `public_url` output.
 8. To stop after the demo, apply the phases in reverse through `foundation` so workloads drain before hosts stop. Then set `hosts_running = false`. The broker disks, RDS data and EFS checkpoints remain. Stop RDS separately if required. To resume, start RDS, set `hosts_running = true` in foundation and advance through brokers, applications and live without rerunning the fresh seed jobs.
+
+New registrations receive their credit wallets through `user.registered` events delivered by `cdc-user` and RabbitMQ. The `applications` phase leaves all three CDC services at zero tasks. Complete the `live` phase before testing registration credits, order processing or event-driven notifications. Existing committed outbox events are captured when the connectors start.
+
+The Debezium 2.7 image runs as UID `185`, GID `0`, and its checkpoint directory is owned by `185:0`. The EFS access points use those same IDs so Docker can initialize the checkpoint mount. A group mismatch can prevent container creation with `failed to chown ... operation not permitted`, before any connector logs appear. Access-point replacements retain the connector paths on the existing EFS file system.
 
 The three single-instance Auto Scaling groups give each broker a fixed disk and node name. Their combined ceiling is three hosts. Verify the trial task sizes under load and after a host replacement. Scaling all services to their ceilings exceeds the fleet's trial CPU budget. This root includes the broker infrastructure for existing consumers. Cross-replica Chat and Notification delivery remains application work.
 
