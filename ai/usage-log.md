@@ -6474,6 +6474,342 @@ Frontend visual polish and light elegant aesthetic refinement for student applic
 - `services/chat-service/Dockerfile` — consolidated disclosure entry into the top header block
 - `ai/usage-log.md` — recorded this session
 
+## 2026-11-07 14:55 SGT — Explain EC2 families and ECS sizing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unverified (GitHub CLI unavailable)
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain AWS EC2 instance families and sizes for ECS on EC2 and recommend instance types for each project service.
+
+**Usage scenario:** Learning support. Checked AWS documentation and repository resource declarations. Left deployment and instance selection to the author under the course architecture policy.
+
+**Files changed:**
+- none
+
+## 2026-11-07 15:02 SGT — Explain EC2 family fit by workload
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unverified (GitHub CLI unavailable)
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Include the reason for each service's EC2 instance recommendation.
+
+**Usage scenario:** Learning support. Explained AWS family characteristics and the workload conditions that make each relevant. Left project-specific selections and decision rationales to the author under the course policy.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:02 SGT — Explain ALB and Kubernetes pod load balancing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Refer to the cloud deployment and DevOps guide to explain load balancing after the API gateway and whether ALB can handle a node without a healthy User Service pod.
+
+**Usage scenario:** Learning support. Checked the guide, Terraform target registration and health checks, Kubernetes Service and readiness configuration, and gateway routing against official AWS and Kubernetes documentation. Explained existing behavior; left architecture decisions to the author.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:05 SGT — Explain cross-node Service packet forwarding
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how K3s forwards API gateway traffic from a node without User Service to a pod on another worker, including whether packets are intercepted.
+
+**Usage scenario:** Learning support. Explained CoreDNS, Service ClusterIP, EndpointSlice updates, kube-proxy kernel rules, and Flannel cross-node delivery using the existing guide and official documentation. No architecture changes or decisions made.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:07 SGT — Explain K3s server operations and maintenance responsibilities
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how to manage, maintain, and configure the K3s server compared with ECS.
+
+**Usage scenario:** Learning support. Read existing Terraform bootstrap, Kubernetes manifests, deployment workflow, and operations guide; checked official K3s and AWS documentation. Explained configuration layers, maintenance ownership, and existing automation without selecting or changing architecture.
+
+**Files changed:**
+- none
+
+## 2026-11-08 14:12 SGT — Compare K3s deployment and ECS architecture proposal
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Compare the existing cloud deployment guide with new-cloud-architecture-guide.md, including advantages and a preferred architecture, using the raised S$250 budget.
+
+**Usage scenario:** Learning support and factual document review. Compared both guides, the linked cost write-up, existing Terraform/Kubernetes/deployment files, and official AWS, Kubernetes, and RabbitMQ documentation. Flagged recovery, capacity, cost-assumption, and implementation gaps. Left architecture preference and decision rationale to the human author under CLAUDE.md section 1. No live infrastructure tests or complete current-price recalculation performed.
+
+**Files changed:**
+- none
+
+## 2026-11-08 17:41 SGT — Prepare application runtime for redesigned cloud deployment
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Implement application changes that can proceed before AWS setup, preserving all business rules and local Docker Compose operation.
+
+**Usage scenario:** Implementation of the author's selected deployment direction, runtime refactoring, supporting container configuration, regression testing, and documentation updates. Reused the existing messaging workspace for Chat quorum delivery and infrastructure-failure retries; added bounded graceful Chat/Notification shutdown with in-flight SEND draining. Preserved schemas, DTOs, authorization, event projections, order transitions and credit rules. Kept the original six migration/seed commands in Compose while images start the application directly. Cross-replica live delivery remains for an author-selected design; no AWS resources were changed. Removed cloud-guide references to the private decision file as requested earlier. Restored locked local dependencies. The first aggregate test exposed shared Credit/Order CDC fixtures; isolated their test databases and corrected profiled-container cleanup. A subsequent build encountered an npm network reset; system checks and the final complete suite passed after retry. Validation: all-workspace typecheck, changed-code ESLint, git diff whitespace check, exact local-startup command comparison against HEAD, and npm test (unit, integration, messaging, migration, seed, acceptance, API E2E and Chromium UI). Acceptance: 62/62 API checks, 22/22 notification checks, 7/7 CDC checks; API E2E 56/56 and UI 41/41. Both socket services closed clients with 1001 and exited 0 on SIGTERM. The final isolated project was removed. No commits or pushes.
+
+**Files changed:**
+- `docker-compose.yml` — preserve original local migration/seeding commands and allow socket-service shutdown grace.
+- `services/user-service/Dockerfile` — start the application without implicit database initialization.
+- `services/supplier-service/Dockerfile` — start the application without implicit database initialization.
+- `services/order-service/Dockerfile` — start the application without implicit database initialization.
+- `services/credit-service/Dockerfile` — start the application without implicit database initialization.
+- `services/notification-service/Dockerfile` — start the application without implicit database initialization.
+- `services/chat-service/Dockerfile` — include the existing messaging workspace and start the application directly.
+- `services/chat-service/package.json` — reuse the messaging workspace and keep amqplib for tests.
+- `package-lock.json` — synchronize the existing workspace dependency and development-only dependency flags.
+- `services/chat-service/src/config.ts` — retire the separate retry exchange/queue settings.
+- `services/chat-service/src/conversations/events.ts` — reuse the quorum consumer and infrastructure-failure classifier; projection rules unchanged.
+- `services/chat-service/src/messaging/rabbitmq.ts` — remove the replaced service-local consumer copy.
+- `services/chat-service/src/index.ts` — drain HTTP, WebSockets, consumer and database resources on shutdown.
+- `services/notification-service/src/index.ts` — drain HTTP, WebSockets, consumer and database resources on shutdown.
+- `services/chat-service/src/ws/hub.ts` — stop accepting new work and await in-flight sends during shutdown.
+- `services/chat-service/test/events.test.ts` — cover dependency-outage classification.
+- `services/chat-service/test/hub.test.ts` — cover socket closure and in-flight SEND draining.
+- `services/chat-service/test/messaging.integration.test.ts` — cover quorum declarations, native DLQ metadata, infrastructure recovery and bounded unexpected failures.
+- `scripts/ci/run-all-tests.mjs` — isolate Order/Credit CDC fixtures, clean profiled test resources, and check real container SIGTERM behavior.
+- `docs/infrastructure/docker-and-deployment.md` — document image/Compose startup and shutdown behavior.
+- `docs/infrastructure/cdc-and-broker.md` — document Chat runtime delivery and the required existing-queue handover.
+- `docs/services/chat-service/README.md` — update Chat runtime references.
+- `docs/new-cloud-architecture-guide.md` — remove links and reading dependencies on the private decision reference.
+
+## 2026-11-08 18:50 SGT — Explain permanent Terraform folder and Windows PATH setup
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Give a permanent folder for Terraform and explain how to add it to PATH.
+
+**Usage scenario:** Learning and setup support. Provided a user-owned Terraform folder, Windows user PATH steps and a version verification command. No installation or environment setting was changed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 19:04 SGT — Diagnose Terraform PATH and clarify NUS AWS SSO login
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Suggest a commit title, check why Terraform is not found, and explain AWS console/CLI login from the open NUS access portal.
+
+**Usage scenario:** Setup support and debugging using the diagnosing-bugs skill. Reproduced failed command lookup under normal Windows access. Verified Terraform 1.17.1 by full path; found a custom Terraform environment variable pointing to the executable rather than a PATH entry. Appended its existing containing folder to Windows user PATH, preserved existing variables, and verified persisted registration plus successful terraform version command lookup. Read the open NUS portal and existing Singapore console session without revealing access keys; confirmed Identity Center role access. The foc CLI identity check still reports NoCredentials. Corrected earlier generic aws login guidance to aws configure sso / aws sso login for this NUS account, using official AWS documentation. Suggested a commit title only; did not commit or change AWS settings.
+
+**Files changed:**
+- none (usage bookkeeping only; Windows user PATH updated)
+
+## 2026-11-08 19:22 SGT — Recheck cloud preparation and remaining implementation scope
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Double-check pre-implementation setup and list the implementation work still outstanding.
+
+**Usage scenario:** Read-only setup verification and source-based implementation inventory using the AWS sign-in, container and IAM skills. Verified Terraform 1.17.1 in user PATH, Node/npm, a working Linux Docker engine, Compose/Buildx ARM64 capability, complete workspace dependencies, and successful foc SSO identity in the expected account/region. Confirmed nine ECR repositories, three running old K3s EC2 hosts (6 vCPUs), and no regional ECS clusters, RDS instances, EFS filesystems, ACM certificates or Secrets Manager secrets. EC2 standard vCPU quota lookup is explicitly denied by an organization service control policy; actual quota remains unknown. Read the existing GitHub deployment-role trust (repo:* wildcard) and inline ECR/SSM actions; reported the required trust restriction and ECS deployment permission updates without altering them. Reviewed commit ea399ff and existing passing test evidence; did not rerun unchanged application tests. Listed remaining cross-replica Chat/Notification delivery, cloud gateway/configuration, infrastructure/CI conversion and cloud verification. Left delivery mechanism and task-networking choices to the author; business rules, schemas and public contracts remain unchanged. No resource provisioning, permission changes or login switching performed. Terraform provider initialization/authentication and budget/DNS ownership were not validated.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 19:49 SGT — Explain remaining cloud preparation steps
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain how to complete the remaining preparation items.
+
+**Usage scenario:** Learning and setup support based on the previous live preflight, current repository configuration, NUS sandbox announcement, and official AWS, GitHub and HashiCorp documentation. Explained administrator quota confirmation, DNS validation for an ACM certificate, secret preparation, coordination of repository-scoped OIDC trust with Terraform, retrieval of existing Terraform state, and the team leader's ISB budget tracker. Flagged GitHub's documented immutable OIDC subject format so a name-only condition is not assumed. Left deployment branch/environment, network mode, fanout mechanism and architecture decisions to the author. No AWS settings or application/infrastructure code changed; no messages sent and no tests needed for this explanation. Actual quota, remaining allowance, DNS ownership, Terraform provider access and the repository's emitted OIDC subject remain unverified.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:56 SGT — Clarify quota, CPU allocation, demo HTTPS and secret injection
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain why quota checking is needed versus attempting deployment, the vCPU distribution and budget distinction, certificate/DNS purpose and issuance timing for Thursday's demo, and whether secrets use Secrets Manager.
+
+**Usage scenario:** Learning support using AWS compute and container guidance plus official EC2, ACM and ECS documentation. Corrected the earlier implication that quota lookup is mandatory; explained independent regional capacity quotas, planned 14-18 EC2 vCPUs and up to 24 with existing K3s overlap. Distinguished shared task CPU sizing and separate RDS capacity. Explained domain ownership and provider access, ACM DNS validation timing and no-charge non-exportable certificates for ALB. Checked User Service production Secure refresh-cookie configuration to explain the functional effect of plain HTTP. Explained Secrets Manager storage and ECS startup injection while retaining local Compose environment configuration. No architecture/security decision, resource launch, AWS setting, application code or infrastructure code changed. No new bill calculation or account/DNS verification, and no tests needed for this explanation.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:58 SGT — Reconcile shared versus dedicated RabbitMQ hosts
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Clarify whether the three RabbitMQ nodes share the EC2 hosts that run backend, infrastructure and frontend tasks.
+
+**Usage scenario:** Learning support and document comparison. Read the checked-in cloud guide and private decision reference. Both currently describe separate broker hosts; the decision reference also records that the earlier S estimate assumed three shared application/broker hosts. Explained the user's shared-host interpretation, conditional 12-vCPU total for three m7g.xlarge hosts and 18 with the previously observed K3s overlap, and that broker task CPU is part of that shared capacity. Flagged the mismatch without selecting or changing architecture. No documentation, application/infrastructure code or AWS resources changed; no new cost calculation or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 19:59 SGT — Request explicit architecture confirmation before document edits
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Reconfirm the architecture with the author and update documents only after an explicit yes.
+
+**Usage scenario:** Clarification of the author's intended shared-host arrangement against the current guide. Presented three shared application/broker hosts and the remaining documented components for confirmation. Kept task networking, cross-replica live delivery, host scaling ceiling and hostname unresolved rather than selecting them. Flagged that CPU sizing and cost estimates need revision for shared hosts. No architecture documents, code or AWS settings changed; waiting for the author's explicit approval before document updates. No tests needed for this clarification.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:08 SGT — Reverify shared-host deployment cost breakdown
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Reverify the existing cost breakdown and clarify whether the three broker tasks run on the same m7g.xlarge application hosts.
+
+**Usage scenario:** Learning and cost verification using AWS billing guidance, the checked-in guide and private reference. Confirmed that the intended shared layout means three total m7g.xlarge hosts, each also hosting one RabbitMQ node, rather than three additional broker hosts. The account Pricing GetProducts call was denied by an organization SCP, so read public AWS EC2, RDS and ELB catalogues without credentials plus public IPv4 pricing. Verified m7g.xlarge USD0.204/hour, db.t4g.small PostgreSQL Multi-AZ USD0.102/hour, RDS Multi-AZ gp3 USD0.276/GB-month, EC2 gp3 USD0.096/GB-month, ALB/NLB USD0.0252/hour each, and IPv4 USD0.005/address-hour. Found the dedicated t4g.large rate is USD0.0848/hour rather than the documented USD0.0874/hour. Recomputed with Python Decimal, retaining 144 active hours, 504 retained hours, 730-hour storage approximation, assumed SGD1.28/USD and assumed 9 percent GST. Shared layout: USD157.97, SGD220.40; using a 720-hour storage month gives SGD220.63. Existing dedicated layout at verified rates: SGD238.09. Retained USD0.79 light LCU and USD10 other usage allowances as unmeasured assumptions. Flagged unpriced network decisions, retained old resources and unknown prior spending. No architecture document, infrastructure/application code or AWS setting changed; explicit architecture approval remains pending. No tests needed for this explanation.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 20:08 SGT — Account for stopped K3s instances during cost review
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Ignore running K3s compute because the author has stopped those instances and will terminate them only after the replacement infrastructure works.
+
+**Usage scenario:** Incorporated the author's environment update into the active cost review. Excluded old K3s running compute and noted that retained disks, snapshots and allocated Elastic IPs can still be charged separately. Did not stop, terminate, inspect or alter those resources. Distinguished the intended shared m7g.xlarge fleet from the previously observed K3s hosts.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:16 SGT — Update confirmed shared-host cloud architecture documentation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Update the docs after the architecture and shared-host costs were reconfirmed.
+
+**Usage scenario:** Documentation improvements implementing the author's confirmed architecture. Updated the cloud guide to three shared m7g.xlarge hosts with one RabbitMQ broker on each, added a Mermaid placement/flow diagram, corrected host-failure verification and CPU-sizing boundaries, recorded Secrets Manager startup injection and local Compose support, and replaced dedicated-broker estimates with the verified shared-host cost breakdown. Recorded pending host maximum, network/egress, cross-replica live delivery and hostname decisions. Root README and docs index now link the confirmed target separately from implemented K3s configuration. No private decision-file reference was introduced or private reference file modified. Validation: Python Decimal assertions for each cost row and total, Markdown fence and disclosure counts, guide relative-link existence, diagram host-node counts, stale topology search and git diff --check. No application tests or rendered Mermaid check; code, AWS resources and infrastructure configuration unchanged. No commit or push.
+
+**Files changed:**
+- `docs/new-cloud-architecture-guide.md` — shared topology, diagram, sizing boundaries, secret injection, cost breakdown, pending decisions and verification steps.
+- `docs/README.md` — target-architecture navigation and inventory entry.
+- `README.md` — distinguish the confirmed ECS migration target from existing K3s deployment configuration and link the guide.
+## 2026-11-08 20:18 SGT — Explain outstanding implementation options and certificate domain ownership
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain outstanding team implementation decisions, options and recommendations, and whether a domain purchase is necessary for a certificate.
+
+**Usage scenario:** Learning support and source-based explanation of implementation choices. Explained that the repository course policy reserves architecture proposals and performance/security trade-offs for human authors, so provided factual options rather than project architecture recommendations. Read the current Chat/Notification socket hubs, notification delivery and shared RabbitMQ consumer. Explained shared-queue delivery versus per-replica live broadcast, RabbitMQ/Redis/PostgreSQL signalling options, bridge versus awsvpc networking and outbound connectivity, host ceiling and shared resource reservations, and hostname/DNS input. Verified facts using official AWS, RabbitMQ, Redis and PostgreSQL documentation. Explained that ACM requires control of the requested hostname rather than buying a new domain, that a teammate-owned subdomain may be used with validation access, and that Amazon-owned ALB hostnames cannot be certified by the team. No further architecture decisions, document edits, code changes or AWS actions. No tests needed for this explanation; existing documentation checks from the preceding update remain the verification evidence.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:22 SGT — Suggest documentation commit title
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Provide a one-line commit name.
+
+**Usage scenario:** Writing support. Suggested a title for the confirmed shared-host ECS architecture and revised cost documentation. No commit, push, implementation change or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:25 SGT — Explain generated deployment links and ACM benefits
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain whether the demo can be accessed through a generated link without requesting an ACM certificate for a custom hostname, and the advantages of ACM.
+
+**Usage scenario:** Learning support using official ALB, ACM and CloudFront documentation plus AWS networking guidance. Confirmed an internet-facing ALB's generated DNS name can serve HTTP with a suitable listener and healthy targets; ACM cannot issue the team's certificate for Amazon-owned names. Rechecked the User Service production Secure refresh-cookie configuration and frontend ws/wss selection to explain the functional limitation of plain HTTP without changing it. Explained ACM certificate issuance/storage/renewal and integration, and no additional charge for standard non-exportable public certificates on ALB. Identified CloudFront's AWS-provided HTTPS hostname/certificate as a factual alternative that adds a global component, requires dynamic API/cookie/WebSocket configuration, and does not automatically encrypt the origin connection. CloudFront-specific bundled skill was unavailable, so used primary AWS service documentation. No project architecture recommendation or selection, resource provisioning, setting, document or code changes. No tests needed; actual endpoint availability, CloudFront account access, costs and compatibility remain unverified.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:28 SGT — Clarify whether ACM requires buying a domain
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Clarify whether purchasing an owned domain is mandatory for ACM.
+
+**Usage scenario:** Learning support based on official ACM ownership-validation documentation verified earlier in this conversation. Explained that an existing controlled domain or a teammate-provided subdomain with validation access is sufficient; a new purchase is not mandatory. No domain ownership check, AWS action, configuration, code or documentation changes, and no tests needed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:31 SGT — Explain ALB HTTPS requirements and HTTP implementation scope
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain why the generated ALB-link option lacks HTTPS and what code changes an HTTP deployment would need.
+
+**Usage scenario:** Learning and source-based implementation analysis. Verified AWS HTTPS listener certificate requirements and ACM restrictions on Amazon-owned names. Traced User Service secureCookies from configuration through login/refresh/logout/account-deletion routes and inspected existing cookie assertions. Confirmed both frontends use relative API requests and Student Chat/Notification select ws or wss from page protocol. Explained that public HTTP requires refresh cookies without Secure, while HttpOnly/SameSite and business logic can remain. Distinguished the existing non-production NODE_ENV configuration path from a future explicit override that preserves production mode, with example/environment/deployment wiring and relevant test scope. Identified HTTP listener/security-group and public-origin configuration as infrastructure work. Searched inspected frontend source for secure-context APIs without finding additional direct usages. No HTTP security decision, source/configuration edit, AWS operation or tests performed; only analysis requested. Noted that HTTP transmits credentials/tokens without TLS.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:45 SGT — Explain HTTP demo preparation and cloud credential provisioning
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Accept public HTTP for this demo, explain why HTTPS uses certificates and certificate options without an owned domain, reiterate remaining preparation after JWT/SoCLaaS credentials are ready, and explain the source of database/RabbitMQ credentials and possible reuse of local environment values.
+
+**Usage scenario:** Learning and setup support for the author's HTTP demo choice. Reviewed the committed PostgreSQL role/database bootstrap, RabbitMQ account names/vhost definitions, Debezium database configuration, existing Terraform variables/trust configuration and prior setup evidence without reading local .env files. Used AWS database guidance and official RDS, Secrets Manager, RabbitMQ, TLS and certificate-authority documentation; unavailable RDS-specific skill was handled using its documented official-source fallback. Explained server identity validation in browser TLS, self-signed certificates, Let's Encrypt IP certificates and provider-managed HTTPS hostnames without selecting a new architecture. Removed domain/DNS/ACM work from the current HTTP preparation checklist. Distinguished RDS administrator credentials, bootstrap-created service/CDC users, self-hosted RabbitMQ users and the shared Erlang cookie; secret storage alone does not create these accounts. Explained that local usernames/passwords work only if cloud accounts match, local endpoint URLs must change, and committed development defaults are public. Identified remaining secret storage, state recovery, GitHub deployment/trust coordination, team decisions and optional quota confirmation. RDS/broker provisioning and HTTP cookie configuration remain implementation work. No credential generation, local .env access, AWS resource/settings change, architecture-document edit, code edit or tests performed.
+
+**Files changed:**
+- none (usage bookkeeping only)
+
+## 2026-11-08 20:45 SGT — Incorporate reported remaining sandbox allowance
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** The sandbox tracker reports 249 remaining.
+
+**Usage scenario:** Incorporated the author's reported balance as SGD249 under the project's SGD budget. Used Python Decimal to calculate SGD28.60 conditional headroom against the earlier SGD220.40 estimate. Retained the distinction between an estimated new deployment and unpriced/retained resources; no billing API or portal access, resource changes or tests.
+
+**Files changed:**
+- none (usage bookkeeping only)
+## 2026-11-08 20:55 SGT — Assess CloudFront integration work and demo pricing
+
+**Tool:** Codex (model: GPT-6)
+**Author:** ngkhengyang
+**Branch:** cloud-deployment-update
+
+**Prompt (summarised):** Explain whether adding CloudFront to the selected architecture is easy and what it would cost.
+
+**Usage scenario:** Source-based feasibility, implementation-scope and pricing explanation for the author's named CloudFront option. Verified official CloudFront origin, managed HTTPS hostname, WebSocket, caching and pricing documentation. Explained a distribution using the existing public ALB as an HTTP origin, with browser HTTPS allowing the existing production Secure cookie setting to remain, subject to correct cookie/header forwarding and no authenticated-response caching. Identified infrastructure/configuration and verification work without selecting a new architecture or changing business rules. Distinguished pay-as-you-go's published monthly free allowances from unverified account eligibility and flat-rate plan restrictions. Used Python Decimal for an illustrative 10 GB plus 100,000 billable HTTPS request example: USD1.32, SGD1.84 at prior FX/GST assumptions, conditional stack total SGD222.24, excluding additional costs. A bounded read-only CloudFront list-distributions call succeeded with no access denial; creation permissions and billing eligibility remain unverified. No distribution, AWS setting, application/infrastructure code or architecture document changed; no tests or deployment performed.
+
+**Files changed:**
+- none (usage bookkeeping only)
 ## 2026-11-06 22:15 SGT — Student App Frontend Complete Redesign
 
 **Tool:** Google Antigravity Agent
@@ -7351,3 +7687,173 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 **Second browser-run follow-up:** Run 42456996099 confirms the mobile Places fix (US5-US7 and logout passed), with 25 other CI jobs green. Browser failures were now obsolete STUDENT metadata in US8 and an ambiguous Post Errand submit selector in UO1/UO6 (navigation and submit both matched), cascading into subsequent lifecycle timeouts. Scoped both browser drivers' submit action to `form` and exact button name. Updated US8 to verify actual read-only email and nonempty username, matching the approved metadata removal; renamed its description to match what it checks. The full production-app fixture reproduced the two-match submit ambiguity, then passed form-specific submission through a 202 PENDING receipt followed by OPEN, plus both live profile-field assertions. Script lint, syntax, and whitespace checks passed. Preparing a driver-only follow-up commit/push; no new application behavior or backend changes. The tagline source edit remains uncommitted.
 
 **Third browser-run follow-up:** Run 42457550527 passed 39/41 browser checks plus the other 25 CI jobs. All mobile, profile, Post, acceptance, pickup, and delivery checks now passed. Remaining UO5 failure was a strict match against both desktop/mobile status spans; UO6 reached its final history assertion but expected pre-redesign cancellation copy. Scoped requester/courier history checks to visible status spans and updated courier-reward/cancellation wording to the implemented copy. Verified visible completed/cancelled requester/courier assertions in the actual rendered TasksPage fixture, along with prior responsive, reorder and dispute checks; passed. Reviewed remaining realtime selectors against current source. Targeted lint, JS syntax, and whitespace checks passed. Preparing the history-assertion-only follow-up commit/push; tagline source remains uncommitted.
+
+**Final integration result:** Pushed 194222e to existing PR #230. GitHub run 42457984002 completed SUCCESS: all CI jobs/test gate green; browser UI 41/41; real-time notification/chat suite reports 14/14 with one optional check skipped. Verified GitHub `MERGEABLE` / `CLEAN`, same branch and PR, draft state retained, origin/main is an ancestor. Updated PR body with final verification link and outcomes; its dedicated tracking-issue gap remains visible, and bug issues #234/#235 remain separate/open. No merge performed. Newly requested tagline “Campus errands, made easier.” remains uncommitted in AuthGatePage.tsx; this final result note is also left uncommitted with it rather than creating another code/CI revision.
+
+## 2026-11-09 12:39 SGT — Commit remaining tagline changes in a new PR
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/clarify-campus-tagline
+
+**Prompt (summarised):** PR #230 is merged; commit the remaining changes and create a new PR.
+
+**Usage scenario:** Authorized Git bookkeeping for the previously approved copy change. Verified PR #230 is merged, fetched origin/main at 22f4216, and moved the two remaining edits onto a fresh branch based on that revision. Created tracking issue #244 to satisfy the repository's linked-issue requirement. Committing and pushing the tagline change and remaining verification note, then opening a follow-up PR against main.
+
+**Validation:** All-workspace typecheck, all 55 student unit tests, targeted AuthGatePage ESLint, and whitespace checks passed. Only the tagline/disclosure and usage log differ from latest main.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Commit the existing “Campus errands, made easier.” copy and disclosure.
+- `ai/usage-log.md` — Commit the prior final integration note and record this authorized follow-up.
+
+## 2026-11-09 12:44 SGT — Continue the RabbitMQ cross-replica delivery work (issues #239 to #242)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "recall what was happening for the previous session and continue working on it". The previous session (prompt of 2026-11-09 00:35 SGT: complete the RabbitMQ cross-replica Chat and Notification delivery described in the wiki) ended while debugging the Notification cross-replica tests and before its usage-log entry was written, so its files are listed below as well.
+
+**Usage scenario:** Debugging assistance, implementation of a design the author documented in the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery", tests and documentation. Nothing was committed or pushed. Left to the author: review of every file, the Author review lines, the commit, the pull request (Closes #239, #240, #241, #242) and publishing the wiki update, whose push was denied by the session permission gate (patch handed over instead).
+- Debugging: the Notification cross-replica test file never exited. Root cause: its replica close() stopped the relay captured at creation while RT3.5 replaces `replica.relay`, so the replacement relay polled forever. Fixed in the test, as the Chat test already does.
+- Debugging: the Chat store test "numbers concurrent appends 1..n" fails locally with "Unable to start a transaction in the given time". Reproduced 3/3 on an unmodified checkout and 0/3 with `127.0.0.1` in place of `localhost` in the test URL: an IPv6-first environment artifact on Windows, no code change.
+- Implementation of issue #242 (RT4.1 to RT4.3) and of the wiki's "new sockets are rejected while unavailable" behaviour (close code 1013 until the realtime subscriber is ready), plus the `.env.example` entry.
+- Finding reported to the author, not changed: in the entry points a broker outage ends the business consumer, so the process drains and exits with code 1 and is restarted by Compose or the orchestrator (behaviour already on main); the wiki patch describes this.
+- Verified on the final code with PostgreSQL 16.14 and RabbitMQ 3.13.7 in throwaway containers: typecheck, lint and ci:validate-tests pass; unit 191/191 (messaging 9, chat 51, notification 73, student app 58); PostgreSQL integration 24/24 (chat 7, notification 17); RabbitMQ and PostgreSQL messaging 20/20 (chat 9, notification 11); builds of messaging, chat, notification and student app. Manual check of the Notification entry point: socket refused with 1013 during startup then accepted; `rabbitmqctl stop_app` exits the process with code 1; after `start_app` and a restart it serves again. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed (this prompt):**
+- `services/notification-service/test/realtime.integration.test.ts` — close() stops the replica's current relay
+- `apps/student-app/src/hooks/recentIds.ts` — new bounded recent-id cache (1,000 ids)
+- `apps/student-app/src/notifications/useNotifications.ts` — one toast per notification id per session (RT4.1)
+- `apps/student-app/src/chat/useChat.ts` — countsAsRemoval: one removed-message line per MODERATED_PEER eventId (RT4.2)
+- `apps/student-app/test/chat.test.ts` — three tests for RT4.1 to RT4.3
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — refuse a new socket with 1013 while the realtime subscriber is not ready
+- `.env.example` — optional per-service RABBITMQ_REALTIME_EXCHANGE, commented out
+
+**Files changed by the interrupted 00:35 prompt (no entry was written then):**
+- `packages/messaging/src/realtime.ts`, `src/outbox-sql.ts`, `src/index.ts`, `test/realtime.test.ts`, `tsconfig.test.json` — fanout publisher, per-replica subscriber, leased outbox relay, SQL outbox store and their unit tests (#239)
+- `packages/common-dtos/src/index.ts` — optional eventId on the chat ERROR frame (#242); a shared-contract change for the author to confirm
+- `services/chat-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/config.ts`, `src/conversations/service.ts`, `src/conversations/store.ts`, `src/index.ts`, `src/ws/hub.ts`, `src/realtime/delivery.ts`, `test/helpers.ts`, `test/hub.test.ts`, `test/service.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica chat delivery (#240)
+- `services/notification-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/app.ts`, `src/config.ts`, `src/index.ts`, `src/notifications/events.ts`, `src/notifications/routes.ts`, `src/notifications/store.ts`, `src/notifications/realtime.ts`, `src/ws/hub.ts`, `test/events.test.ts`, `test/messaging.integration.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica notification and read-state delivery (#241)
+- `.github/workflows/ci.yml` — messaging test:unit added to the unit matrix
+- Files that cannot hold a disclosure header: `package-lock.json`, `packages/messaging/package.json` (test:unit script, tsx devDependency, typecheck over tests), `services/chat-service/package.json` and `services/notification-service/package.json` (test scripts include the new test files)
+
+**External / temporary artifacts:** GitHub issues #239 to #242 (created by the 00:35 prompt, as that prompt authorised). Wiki patch, not published: `wiki-rabbitmq-realtime-update.patch` in the session scratchpad. Throwaway containers `foc-rt-test-pg` and `foc-rt-test-mq` are still running.
+
+## 2026-11-09 12:58 SGT — Commit the cross-replica delivery work and open its pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok please commit and create a pull request".
+
+**Usage scenario:** Author-approved commit, push and pull request for the work described in the previous entry (issues #239 to #242). `main` had moved six commits since the branch base (ECS infrastructure, sign-in tagline); the only file both sides changed is this log, so `origin/main` is merged into the branch with both sets of entries kept, then typecheck, lint, the test-matrix validation and the affected unit suites are rerun before pushing. No application code changed in this prompt. Left to the author: review, the Author review lines, the merge of the pull request, and publishing the wiki patch (its text about the absence of ECS definitions predates the merged `main` and needs a second look).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry; entries from `main` kept during the merge
+
+## 2026-11-09 13:21 SGT — Publish the wiki update for the cross-replica delivery work
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "try and update the wiki again" (the push had been denied by the session permission gate in the earlier prompt).
+
+**Usage scenario:** Documentation, on the author's explicit request: pushed the prepared update of the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery" (wiki commit 3acb9c5). Before publishing, the page's status table was brought up to date with facts checked at that moment: pull request #246 open, CI run 42565190325 on head a7a2201 succeeded (28 checks passed, the optional Claude Code review check skipped). No repository file other than this log changed; this entry is left uncommitted in the working tree for the author.
+
+**Files changed:**
+- none in the repository besides this entry (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 13:35 SGT — Look for review feedback on pull request #246 and start an independent review
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "attend to the code reviews for the pull request" (#246). This entry was written during the next prompt; none was written at the time.
+
+**Usage scenario:** Debugging and review assistance. Found no review feedback on the pull request (no reviews, threads, comments or requested reviewers; the CI annotations are GitHub's runner-image notice; the automated review workflow is switched off by the repository variable CLAUDE_PR_REVIEW_ENABLED, which was not changed). Started the repository's `reviewer` agent for an independent, report-only review of the diff. No file changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 14:23 SGT — Address the review findings on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** The author pasted a review of #246 (head a7a2201) with three findings and asked for them to be worked on: (1) delivery-handler deadlines are not enforced, (2) notification freshness is not rechecked before pushing, (3) a clientId longer than 64 characters loses its echo.
+
+**Usage scenario:** Debugging and implementation of fixes whose direction the review or the author stated, each with a test that failed before the fix. The independent `reviewer` agent's report arrived during this prompt; two further defects it confirmed in this pull request's own code were fixed as well. The author decided finding 3 when asked (echo any accepted id, rather than reject ids over 64 characters) and approved the commit and push. Left to the author: the Author review lines, the reviewer's remaining minor findings and three questions (listed in the reply, not acted on), and the pull request description, whose test counts predate this commit.
+- Finding 1: `runWithAttempts` races each attempt against its deadline and cancellation, and an attempt that finishes after its abort is not counted as handled (so its event id is not cached as done).
+- Finding 2: the subscriber's re-read reports whether a newer order version has superseded the row; such a row is not pushed, its recipient still gets the inbox hint.
+- Finding 3: the 64-character check at delivery is removed, so the echo carries whatever clientId the hub accepted.
+- Reviewer A1: every WebSocket gets an `error` listener on connection in both entry points. Without it one unmasked frame sent to a starting replica ended the process (reproduced on the real Notification entry point: exit code 1; with the fix both entry points stay up and become ready).
+- Reviewer A3: a subscriber closed while its reconnect is in flight now tears that connection down (before: a live queue and broker connection stayed behind and the process could not exit).
+- Reviewer policy item: disclosure records for the new outbox models in both `schema.prisma` files.
+- Verified locally with PostgreSQL 16.14 and RabbitMQ 3.13.7: typecheck, lint and ci:validate-tests pass; unit 196/196 (messaging 12, chat 52, notification 74, student app 58); PostgreSQL integration 25/25 (chat 7, notification 18); RabbitMQ and PostgreSQL messaging 22/22 (chat 10, notification 12); builds of messaging, chat and notification. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed:**
+- `packages/messaging/src/realtime.ts` — attempt deadline enforced by racing; late attempts not counted as handled; close during reconnect tears the new connection down
+- `packages/messaging/test/realtime.test.ts` — three tests for uninterruptible, late and parent-aborted attempts
+- `services/notification-service/src/notifications/store.ts` — findForUser returns the row and whether it is superseded
+- `services/notification-service/src/notifications/realtime.ts` — a superseded row is not pushed
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.integration.test.ts` — unit, database and two-replica tests for the superseded case; the two-replica file gains a relay restart helper
+- `services/chat-service/src/realtime/delivery.ts` — clientId echoed at any length
+- `services/chat-service/test/hub.test.ts` — a 200-character clientId is echoed unchanged to the sender only
+- `services/chat-service/test/realtime.integration.test.ts` — close-during-reconnect test; the test proxy can hold a connection attempt
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — error listener on every socket at connection
+- `services/chat-service/prisma/schema.prisma`, `services/notification-service/prisma/schema.prisma` — disclosure records only
+- File that cannot hold a disclosure header, missing from the earlier list: `packages/messaging/tsconfig.test.json`
+
+**External / temporary artifacts:** Reviewer and manual-check scripts in the session scratchpad (not in the repository): `attempts-check.ts`, `claim-check.ts`, `close-during-reconnect.ts`, `refused-socket-error.ts`, `malformed-frame-check.mjs`.
+
+## 2026-11-09 14:35 SGT — ECS only, a dead-letter queue question, the design document and the usage log (interrupted)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "there isnt any kubernetes anymore, its just ecs. If possible, do you think having a dead letter queue is good as well for this? Maybe write in the design doc, also help to write the usage log as well". The author interrupted the work to ask for the CI fix below; this entry was written during that prompt.
+
+**Usage scenario:** Documentation and learning support. Whether to add dead-letter handling is a design decision reserved for the author (CLAUDE.md section 1), so no recommendation was given: the reply explains what a dead-letter queue is and lists the facts from the code for the three paths involved. The wiki page is updated accordingly (ECS only; the facts and the decision marked as open for the author) and published after the CI rerun of the next entry. No repository file changed for this prompt.
+
+**Files changed:**
+- none in the repository (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 14:54 SGT — Fix the CI failure on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "i would like you to fix the CI" (the acceptance check failed on commit 2477153).
+
+**Usage scenario:** Debugging assistance for a regression introduced by the previous AI-written commit. The acceptance driver `scripts/uat/uat-notifications.mjs` publishes created, accepted, picked up and delivered for one errand back to back and requires every notice to be pushed in order (N3 to N6, F5.1 to F5.3); N8 failed as a consequence. The fix for review finding 2 had treated a notification as obsolete whenever any newer order version existed by the time its signal was handled, so in a burst only the last notice was pushed. The check now uses the rule the store already applies for view=action_needed: a delivery review is not pushed once the order is no longer DELIVERED; a newer version alone holds nothing back. Both requirements are covered by tests in the same suite. Commit and push follow from the author's request to fix the pull request's CI. Left to the author: confirming that this rule is the behaviour wanted for review finding 2 (the alternative is to remove the delivery-time check altogether), and the pull request description.
+- Reproduced before the fix in two ways: a new two-replica test (only ORDER_DELIVERED pushed) and a replay of the driver's event burst against the real Notification entry point (N3, N5 and N6 failed with the same output as the CI log); both pass with the fix.
+- Verified locally: typecheck, lint and ci:validate-tests pass; unit 196/196; Notification PostgreSQL integration 18/18 and RabbitMQ messaging 13/13. The Compose acceptance stack could not be built locally (npm download errors inside the image build), so the acceptance job itself is verified by the CI rerun, not locally.
+- Process note: the previous commit was pushed without running the acceptance driver, which is why CI caught this and the local checks did not.
+
+**Files changed:**
+- `services/notification-service/src/notifications/store.ts` — findForUser reports actionResolved (delivery review while the order is no longer DELIVERED) instead of superseded
+- `services/notification-service/src/notifications/realtime.ts` — pushes unless the row's action is already resolved
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts` — adapted to the narrower rule; the database test adds a progress notice that must stay current
+- `services/notification-service/test/realtime.integration.test.ts` — new test: three progress notices committed before any signal is published are all pushed
+
+**External / temporary artifacts:** `n3-entrypoint-check.ts`, `ci-acceptance.log` and `acceptance-local.log` in the session scratchpad (not in the repository).
+
+## 2026-11-09 15:04 SGT — Merge pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok feel free to merge the pr" (#246, cross-replica chat and notification delivery).
+
+**Usage scenario:** Author-approved merge. At the time of this entry the pull request was open, mergeable and up to date with `main`, and CI run 42576009363 on head da3b89c had passed (28 checks; the Claude Code review check is switched off and was skipped). This entry is committed on the feature branch first; merging once CI is green on the commit that carries it. The pull request description is brought up to date before the merge (test counts, the review and CI fixes, the published wiki page). No application code changed in this prompt. Left to the author after the merge: the Author review lines, the open decision on dead-letter handling, and applying the two outbox migrations wherever the services are deployed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry

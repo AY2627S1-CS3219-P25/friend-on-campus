@@ -1,3 +1,8 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Exclude nested environment files from Docker build contexts.
+# Author review: <to be completed by the author>
+
 node_modules
 **/node_modules
 dist
@@ -8,8 +13,8 @@ build
 **/generated
 .git
 .gitignore
-.env
-.env.*
+**/.env
+**/.env.*
 !.env.example
 *.md
 .DS_Store

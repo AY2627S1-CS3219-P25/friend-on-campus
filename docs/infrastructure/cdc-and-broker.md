@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Document Chat's shared quorum consumer and the non-destructive handover required for an existing classic Chat queue.
+Author review: <to be completed by the author>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -21,7 +25,11 @@ Connectors use separate slots/publications and persisted offset storage. Their c
 
 ## Topology ownership
 
-Broker definitions import the vhost, identities/permissions, exchanges, Order/Credit quorum queues and bindings. Application `startRabbitConsumer` declarations complete service topology, including Notification's queue/DLX/DLQ. The consumer's queue arguments determine dead-letter destinations. A wildcard DTO type does not grant broker read/write permission.
+Broker definitions import the vhost, identities/permissions, exchanges, Order/Credit quorum queues and bindings. Application `startRabbitConsumer` declarations complete service topology, including Chat's and Notification's queue/DLX/DLQ. Order, Credit, Chat and Notification use the shared quorum consumer. The consumer's queue arguments determine dead-letter destinations. A wildcard DTO type does not grant broker read/write permission.
+
+Chat now retries infrastructure failures without the normal handler-failure limit, using native quorum redelivery. Unexpected handler errors still exhaust `CHAT_RETRY_LIMIT`; malformed events are rejected immediately. Broker dead-letter metadata (`x-death` and `x-first-death-*`) replaces the old `x-chat-*` retry headers. The separate `CHAT_RETRY_EXCHANGE`/`CHAT_RETRY_QUEUE` path is retired; existing retry queues are not deleted automatically.
+
+A fresh Compose project creates the Chat quorum queue automatically. RabbitMQ cannot redeclare an existing classic queue as quorum. An existing environment needs an operator-approved drain-and-recreate or queue handover before starting the new Chat consumer. Retain queued messages and any DLQ contents for that procedure; this change does not delete or migrate existing queues. Do not reset broker volumes or discard queued messages as an upgrade shortcut.
 
 See the [event catalogue](../architecture/communication-and-events.md) for producer/consumer relationships and [messaging](../packages/messaging.md) for ACK, REQUEUE and DROP behavior. User has no runtime broker connection. Order/Credit consume while their separate connectors publish.
 

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: The flagged send result now carries the conversation; the assertion checks kind and recipients (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Unit checks for the conversation rules: open uses the local row, else the Order Service fallback (S4) and
  * fails closed on 404 or outage; read for participants and admins, not others (F8.1.2, D8); send only for
@@ -238,7 +242,9 @@ test('send: a flagged message is not stored; a clean one is; an absent moderator
   const checked: string[] = [];
   const service = createConversationService({ store, orders, moderate: async (text) => { checked.push(text); return text.includes('badword'); } });
   const flagged = await service.send(ORDER, principal(ALICE, { username: 'alice' }), '  badword  ');
-  assert.deepEqual(flagged, { kind: 'flagged', recipientIds: [ALICE, BOB] });
+  // The flagged result also carries the conversation so the hub can address the transient peer notice (issue #240).
+  assert.equal(flagged.kind, 'flagged');
+  assert.deepEqual(flagged.kind === 'flagged' && flagged.recipientIds, [ALICE, BOB]);
   assert.equal(messages.length, 0);
   assert.equal((await service.send(ORDER, principal(ALICE, { username: 'alice' }), 'hello')).kind, 'sent');
   assert.equal(messages.length, 1);

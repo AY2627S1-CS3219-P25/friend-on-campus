@@ -1,0 +1,135 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-08
+# Scope: Manually build ARM64 release images and deploy ECS application services through AWS OIDC.
+# Author review: <to be completed by the author>
+
+# AI-generated (edited by ngkhengyang)
+name: Deploy applications to ECS
+
+on:
+  workflow_dispatch:
+    inputs:
+      role_arn:
+        description: AWS deployment role ARN with GitHub OIDC trust
+        required: true
+        type: string
+      service:
+        description: Application service to build and deploy
+        type: choice
+        default: all
+        options:
+          - all
+          - user-service
+          - supplier-service
+          - order-service
+          - credit-service
+          - notification-service
+          - chat-service
+          - student-app
+          - admin-portal
+          - gateway
+      deploy:
+        description: Deploy after building (disable for initial image preparation)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foc-ecs-release
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_PAGER: ""
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.release.outputs.services }}
+      image_tag: ${{ steps.release.outputs.image_tag }}
+    steps:
+      - name: Select services and release tag
+        id: release
+        env:
+          SERVICE: ${{ inputs.service }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          services='["user-service","supplier-service","order-service","credit-service","notification-service","chat-service","student-app","admin-portal","gateway"]'
+          if [ "$SERVICE" != all ]; then
+            services=$(jq -ce --arg service "$SERVICE" 'map(select(. == $service)) | select(length == 1)' <<< "$services")
+          fi
+          echo "services=$services" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        service: ${{ fromJSON(needs.prepare.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.role_arn }}
+          role-session-name: foc-build-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Select Dockerfile
+        id: dockerfile
+        env:
+          SERVICE: ${{ matrix.service }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$SERVICE" in
+            gateway) file=gateway/Dockerfile ;;
+            student-app|admin-portal) file="apps/$SERVICE/Dockerfile" ;;
+            *) file="services/$SERVICE/Dockerfile" ;;
+          esac
+          echo "path=$file" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.dockerfile.outputs.path }}
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/foc/${{ matrix.service }}:${{ needs.prepare.outputs.image_tag }}
+      - name: Report image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/foc/${{ matrix.service }}:${{ needs.prepare.outputs.image_tag }}
+        run: echo "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    if: ${{ inputs.deploy }}
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.role_arn }}
+          role-session-name: foc-deploy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy application revisions
+        env:
+          SERVICES: ${{ needs.prepare.outputs.services }}
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+        run: bash infra/terraform/ecs/deploy-applications.sh

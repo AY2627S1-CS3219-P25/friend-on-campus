@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Verify socket-service shutdown and isolate Order CDC fixtures from the standalone Credit messaging suite.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Isolated the Supplier Service migration suite in its own test database.
  * Author review: <to be completed by Reallyeasy1>
@@ -27,6 +31,9 @@
 // AI-generated (edited by huangjiaxi1111)
 // AI-generated (edited by ngkhengyang)
 import { spawn, spawnSync } from 'node:child_process';
+// AI-generated (edited by ngkhengyang)
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
 import { generateKeyPairSync } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -96,6 +103,8 @@ const composeEnvironment = {
   JWT_PUBLIC_KEY: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
   JWT_ISSUER: 'friend-on-campus-user-service',
   JWT_AUDIENCE: 'friend-on-campus-services',
+  // AI-generated (edited by ngkhengyang): the standalone Credit suite also writes outbox rows.
+  CREDIT_CDC_TEST_DATABASE: 'order_credit_messaging_test',
 };
 const gatewayUrl = `http://127.0.0.1:${selectedPorts.gateway}`;
 const rabbitmqUrl = (username, password) =>
@@ -192,7 +201,7 @@ async function showComposeDiagnostics() {
   if (!composeWasStarted) return;
   console.error(`\nCompose diagnostics for isolated project ${projectName}:`);
   await compose(['ps', '-a'], { allowFailure: true, timeoutMinutes: 2 });
-  await compose(['logs', '--no-color'], { allowFailure: true, timeoutMinutes: 3 });
+  await compose(['--profile', 'messaging', 'logs', '--no-color'], { allowFailure: true, timeoutMinutes: 3 });
 }
 
 async function cleanup() {
@@ -200,7 +209,7 @@ async function cleanup() {
   cleanupPromise = (async () => {
     if (!composeWasStarted) return;
     console.log(`\nCleaning isolated Compose project ${projectName}...`);
-    await compose(['down', '-v', '--remove-orphans'], { allowFailure: true, timeoutMinutes: 5 });
+    await compose(['--profile', 'messaging', 'down', '-v', '--remove-orphans'], { allowFailure: true, timeoutMinutes: 5 });
   })();
   return cleanupPromise;
 }
@@ -221,6 +230,7 @@ async function runDatabaseSuites() {
     notificationIntegration: 'notification_integration_test',
     userIntegration: 'user_integration_test',
     creditMessaging: 'credit_messaging_test',
+    orderCreditMessaging: composeEnvironment.CREDIT_CDC_TEST_DATABASE,
     orderMessaging: 'order_messaging_test',
     notificationMessaging: 'notification_messaging_test',
     chatIntegration: 'chat_integration_test',
@@ -246,12 +256,8 @@ async function runDatabaseSuites() {
   await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.creditMessaging));
   await deployDatabase('@campus-errand/notification-service', databaseUrl(databases.notificationMessaging));
   await deployDatabase('@campus-errand/chat-service', databaseUrl(databases.chatMessaging));
-  await compose(['up', '-d', 'debezium-credit-messaging']);
-  await run(process.execPath, ['scripts/ci/wait-for-cdc.mjs'], {
-    env: { ...testEnvironment, CREDIT_TEST_DATABASE_URL: databaseUrl(databases.creditMessaging) },
-    timeoutMinutes: 2,
-  });
-  await runNpm('test:messaging', {
+  // AI-generated (edited by ngkhengyang)
+  const messagingEnvironment = {
     ...testEnvironment,
     ORDER_TEST_DATABASE_URL: databaseUrl(databases.orderMessaging),
     SAGA_TEST_EXCHANGE: 'credit-test.saga-cdc.events',
@@ -261,7 +267,15 @@ async function runDatabaseSuites() {
     NOTIFICATION_TEST_RABBITMQ_URL: rabbitmqUrl('notification_service', 'notification-service-dev'),
     CHAT_TEST_DATABASE_URL: databaseUrl(databases.chatMessaging),
     CHAT_TEST_RABBITMQ_URL: rabbitmqUrl('chat_service', 'chat-service-dev'),
-  }, 25);
+  };
+  for (const workspace of ['chat-service', 'credit-service', 'notification-service']) {
+    await runWorkspace('test:messaging', `@campus-errand/${workspace}`, messagingEnvironment, 25);
+  }
+  await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.orderCreditMessaging));
+  const sagaEnvironment = { ...messagingEnvironment, CREDIT_TEST_DATABASE_URL: databaseUrl(databases.orderCreditMessaging) };
+  await compose(['up', '-d', 'debezium-credit-messaging']);
+  await run(process.execPath, ['scripts/ci/wait-for-cdc.mjs'], { env: sagaEnvironment, timeoutMinutes: 2 });
+  await runWorkspace('test:messaging', '@campus-errand/order-service', sagaEnvironment, 25);
   await compose(['stop', 'debezium-credit-messaging']);
 
   await runNpm('test:migration', {
@@ -289,6 +303,36 @@ async function runSystemSuites({ includeAcceptance = true } = {}) {
   await compose(['up', '-d', '--force-recreate', '--wait', '--wait-timeout', '300', 'api-gateway']);
   await run(npmCommand, npmArguments('exec', '--no', '--', 'playwright', 'install', 'chromium'), { timeoutMinutes: 15 });
   await runNpm('test:e2e:ui', testEnvironment, 20);
+  await checkSocketShutdown();
+}
+
+// AI-generated (edited by ngkhengyang)
+async function checkSocketShutdown() {
+  const sockets = ['/ws/chat/', '/ws/'].map((route) => new WebSocket(`${gatewayUrl.replace(/^http/, 'ws')}${route}`));
+  try {
+    await Promise.all(sockets.map((socket) => once(socket, 'open', { signal: AbortSignal.timeout(10_000) })));
+    const closed = Promise.all(sockets.map(async (socket) => {
+      const [event] = await once(socket, 'close', { signal: AbortSignal.timeout(20_000) });
+      assert.equal(event.code, 1001, 'service asks its connected clients to reconnect during shutdown');
+    }));
+    closed.catch(() => {});
+    await compose(['stop', '--timeout', '15', 'chat-service', 'notification-service']);
+    await closed;
+    for (const service of ['chat-service', 'notification-service']) {
+      const container = spawnSync(dockerCommand, [...composePrefix, 'ps', '--all', '--quiet', service], {
+        env: composeEnvironment, encoding: 'utf8', windowsHide: true,
+      });
+      assert.equal(container.status, 0, `locate ${service}`);
+      const state = spawnSync(dockerCommand, ['inspect', '--format', '{{.State.ExitCode}}', container.stdout.trim()], {
+        encoding: 'utf8', windowsHide: true,
+      });
+      assert.equal(state.status, 0, `inspect ${service}`);
+      assert.equal(state.stdout.trim(), '0', `${service} exits gracefully instead of being killed`);
+    }
+    console.log('Chat and Notification SIGTERM checks passed: WebSocket close 1001, container exit 0.');
+  } finally {
+    for (const socket of sockets) socket.close();
+  }
 }
 
 async function main() {

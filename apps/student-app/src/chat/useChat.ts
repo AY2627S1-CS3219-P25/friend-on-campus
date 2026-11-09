@@ -46,10 +46,16 @@
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
  * Scope: A MODERATED_PEER ERROR frame adds a removed-message notice to the thread (in memory only).
  * Author review: <to be completed by the author>
+ *
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Issue #242 (RT4.2): a MODERATED_PEER frame whose eventId was already seen in this logged-in session is not
+ * counted again (countsAsRemoval); a frame without an eventId keeps the previous behaviour.
+ * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatErrorCode, ChatHistoryResponse, ChatMessageDTO, ChatServerFrame, ConversationDTO } from '@campus-errand/common-dtos';
+import { createFirstSeen } from '../hooks/recentIds';
 
 export type ChatSocketStatus = 'connecting' | 'connected' | 'disconnected';
 
@@ -100,6 +106,12 @@ const TRANSLATE_MAX_IDS = 200;
 const TRANSLATE_DEADLINE_MS = 25_000;
 
 const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null, removedNotices: 0 };
+
+// AI-generated (edited by Reallyeasy1)
+/** Whether a MODERATED_PEER notice adds a removed-message line: once per eventId; always when it carries none (issue #242). */
+export function countsAsRemoval(eventId: string | undefined, firstSeen: (id: string) => boolean): boolean {
+  return !eventId || firstSeen(eventId);
+}
 
 export function mergeMessage(list: ChatMessageDTO[], message: ChatMessageDTO): ChatMessageDTO[] {
   if (list.some((m) => m.id === message.id)) return list;
@@ -285,6 +297,8 @@ export function useChat(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    // AI-generated (edited by Reallyeasy1): one cache per logged-in session, discarded with this effect (issue #242).
+    const firstSeen = createFirstSeen();
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/chat/`;
 
@@ -324,6 +338,7 @@ export function useChat(options: {
         } else if (frame.type === 'ERROR') {
           if (frame.code === 'MODERATED_PEER' && frame.orderId) {
             const { orderId } = frame;
+            if (!countsAsRemoval(frame.eventId, firstSeen)) return;
             updateThreads((current) => {
               const thread = current[orderId] ?? EMPTY;
               return { ...current, [orderId]: { ...thread, removedNotices: thread.removedNotices + 1 } };

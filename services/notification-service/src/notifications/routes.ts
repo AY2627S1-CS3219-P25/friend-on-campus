@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Read routes no longer call a local inbox hint; the store commits the INBOX_CHANGED intent for every replica (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Per the author's Notification Redesign (§7): GET takes view=all|action_needed|important, PATCH /:id/read adds
  * meta.unreadCount next to the unchanged DTO, POST /read-all returns the count and the authoritative unreadCount, and
@@ -30,11 +34,7 @@ function clamp(value: unknown, fallback: number, minimum: number, maximum: numbe
   return Math.min(maximum, Math.max(minimum, Number.isNaN(parsed) ? fallback : parsed));
 }
 
-export function createNotificationRouter(
-  store: NotificationStore,
-  authenticate: RequestHandler,
-  onInboxChanged: (userId: string) => unknown = () => undefined,
-) {
+export function createNotificationRouter(store: NotificationStore, authenticate: RequestHandler) {
   const router = Router();
   router.use(authenticate);
   const caller = (res: Response) => (res.locals.auth as AuthenticatedPrincipal).userId;
@@ -61,13 +61,12 @@ export function createNotificationRouter(
       res.status(404).json({ success: false, error: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
       return;
     }
-    onInboxChanged(caller(res));
+    // The store committed an INBOX_CHANGED intent with the change; every replica pushes it to the caller's other tabs.
     res.json({ success: true, data: result.notification, meta: { unreadCount: result.unreadCount } });
   }));
 
   router.post('/read-all', asyncRoute(async (_req, res) => {
     const result = await store.markAllRead(caller(res));
-    if (result.updated > 0) onInboxChanged(caller(res));
     res.json({ success: true, data: result });
   }));
 

@@ -1,5 +1,13 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Successful sends are no longer pushed locally (the realtime subscriber delivers them on every replica); the moderation peer notice is broadcast; disconnectAll() for subscription loss (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-08
+ * Scope: Drain in-flight SEND handlers during shutdown and reject new socket work while closing.
+ * Author review: <to be completed by the author>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: The chat socket hub, copied from notification-service/src/ws/hub.ts (the author's Notification Service
  * socket design: AUTH first within a time limit, sockets filed by user, close at token expiry, ping eviction) and
@@ -20,8 +28,10 @@
 import { WebSocket } from 'ws';
 import { readPublicKey, verifyAccessToken, type AuthMiddlewareOptions, type AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { ChatErrorCode, ChatMessageDTO, ChatServerFrame, UserRole } from '@campus-errand/common-dtos';
+import type { RealtimeSignal } from '@campus-errand/messaging';
 import type { SendResult } from '../conversations/service';
 import type { MessageRow } from '../conversations/store';
+import { moderatedSignal } from '../realtime/delivery';
 
 /** Close code for a missing or bad AUTH frame and for a token that has expired. */
 export const UNAUTHORIZED = 4401;
@@ -62,13 +72,18 @@ const ERROR_TEXT: Record<ChatErrorCode, string> = {
 
 export function createChatHub(options: {
   authenticate: (token: string) => SocketIdentity;
-  send: (orderId: string, principal: AuthenticatedPrincipal, text: string) => Promise<SendResult>;
+  send: (orderId: string, principal: AuthenticatedPrincipal, text: string, clientId?: string) => Promise<SendResult>;
+  /** Publishes a transient signal to every replica (the moderation peer notice); the fanout publisher in production. */
+  broadcast: (signal: RealtimeSignal) => Promise<void>;
   authTimeoutMs?: number;
   pingIntervalMs?: number;
 }) {
   const byUser = new Map<string, Set<WebSocket>>();
   const all = new Set<WebSocket>();
   const answeredPing = new WeakSet<WebSocket>();
+  // AI-generated (edited by ngkhengyang)
+  const pending = new Set<Promise<void>>();
+  let closing = false;
 
   // A socket that did not answer the previous ping is gone; terminating it fires its close handler.
   const pinger = setInterval(() => {
@@ -100,13 +115,12 @@ export function createChatHub(options: {
       sendFrame(ws, { type: 'ERROR', clientId, code: 'BAD_FRAME', message: ERROR_TEXT.BAD_FRAME });
       return;
     }
-    const result = await options.send(orderId, principal, frame.text);
+    const result = await options.send(orderId, principal, frame.text, clientId);
     if (result.kind === 'flagged') {
       sendFrame(ws, { type: 'ERROR', orderId, clientId, code: 'MODERATED', message: ERROR_TEXT.MODERATED });
-      // The sender's other tabs hear nothing; the other participant is told a message was removed.
-      for (const userId of new Set(result.recipientIds)) {
-        if (userId !== principal.userId) push(userId, { type: 'ERROR', orderId, code: 'MODERATED_PEER', message: ERROR_TEXT.MODERATED_PEER });
-      }
+      // The sender's other tabs hear nothing; the other participant, whichever replica holds them, is told a message
+      // was removed. Nothing is stored, so the notice is a best-effort transient signal (issue #240).
+      await options.broadcast(moderatedSignal(result.conversation, principal.userId)).catch(() => {});
       return;
     }
     if (result.kind !== 'sent') {
@@ -114,16 +128,13 @@ export function createChatHub(options: {
       sendFrame(ws, { type: 'ERROR', orderId, clientId, code, message: ERROR_TEXT[code] });
       return;
     }
-    const message = toMessageDTO(result.message);
-    // The sender's own sockets (every tab) get the echo with the client id, so the client settles exactly the send it
-    // belongs to; the other participant's sockets get the plain frame.
-    push(principal.userId, { type: 'MESSAGE', orderId, clientId, message });
-    for (const userId of new Set(result.recipientIds)) {
-      if (userId !== principal.userId) push(userId, { type: 'MESSAGE', orderId, message });
-    }
+    // A stored message is pushed by the realtime subscriber on every replica (this one included), from the delivery
+    // intent committed with it; pushing here as well would deliver it twice to local sockets (issue #240).
   }
 
   function handleConnection(ws: WebSocket) {
+    // AI-generated (edited by ngkhengyang)
+    if (closing) { ws.close(1001); return; }
     let principal: AuthenticatedPrincipal | undefined;
     let expiryTimer: NodeJS.Timeout | undefined;
     const reject = () => ws.close(UNAUTHORIZED);
@@ -143,6 +154,7 @@ export function createChatHub(options: {
     });
 
     ws.on('message', (data) => {
+      if (closing) return;
       let frame: Record<string, unknown>;
       try {
         const parsed: unknown = JSON.parse(data.toString());
@@ -175,7 +187,9 @@ export function createChatHub(options: {
       }
 
       if (frame.type === 'SEND') {
-        void handleSend(ws, principal, frame).catch(() => ws.close(1011));
+        // AI-generated (edited by ngkhengyang)
+        const work = handleSend(ws, principal, frame).catch(() => { ws.close(1011); }).finally(() => pending.delete(work));
+        pending.add(work);
         return;
       }
       sendFrame(ws, { type: 'ERROR', code: 'BAD_FRAME', message: ERROR_TEXT.BAD_FRAME });
@@ -189,9 +203,16 @@ export function createChatHub(options: {
     connectionCount(userId?: string): number {
       return userId ? byUser.get(userId)?.size ?? 0 : all.size;
     },
-    close() {
+    /** The replica queue was lost: close every socket so clients reconnect and catch up over REST (issue #240). */
+    disconnectAll(code = 1012) {
+      for (const ws of all) ws.close(code);
+    },
+    // AI-generated (edited by ngkhengyang)
+    async close() {
+      closing = true;
       clearInterval(pinger);
       for (const ws of all) ws.close(1001);
+      await Promise.allSettled(pending);
     },
   };
 }

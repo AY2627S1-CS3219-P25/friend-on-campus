@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: applyEvent, markRead and markAllRead commit realtime delivery intents in their transactions; findForUser for the subscriber (issue #241).
+ *        PR #246 review: findForUser also reports whether the order's current state already resolved the row's action.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Rewritten for the author's Notification Redesign (§5, §7, §8): applyEvent() claims (producer, event_id),
  * checks the payload fingerprint, advances the per-order attention projection only on a newer version and inserts
@@ -29,6 +34,7 @@ import type {
   OrderStatus,
 } from '@campus-errand/common-dtos';
 import { Prisma, type PrismaClient } from '../database/client';
+import { inboxChangedSignal, notificationsSignal, type NotificationsSignalPayload } from './realtime';
 
 /** One intended recipient of one event, as the policy decided it. */
 export interface NotificationDraft {
@@ -71,16 +77,25 @@ export type AppliedEvent =
 export class ContractMismatch extends Error {}
 
 export interface NotificationStore {
-  /** One transaction: claim the event, advance the projection, insert every recipient row. */
+  /**
+   * One transaction: claim the event, advance the projection, insert every recipient row and the realtime delivery
+   * intent (notification_realtime_outbox) that tells every replica which rows to push (issue #241).
+   */
   applyEvent(event: ProcessedEventInput, drafts: NotificationDraft[]): Promise<AppliedEvent>;
+  /**
+   * The row as stored now, only when it belongs to the user; what the realtime subscriber pushes. `actionResolved` is
+   * true when the row asks for a delivery review and the order's projected state is no longer DELIVERED: the same rule
+   * as view=action_needed. A newer order version alone does not resolve anything.
+   */
+  findForUser(userId: string, id: string): Promise<{ notification: NotificationDTO; actionResolved: boolean } | null>;
   list(
     userId: string,
     options: { view: NotificationView; unreadOnly: boolean; page: number; limit: number },
   ): Promise<NotificationPageDTO>;
   unreadCount(userId: string): Promise<number>;
-  /** Returns null when the notification does not exist or belongs to someone else. */
+  /** Returns null when the notification does not exist or belongs to someone else. Commits an INBOX_CHANGED intent with the change. */
   markRead(userId: string, id: string): Promise<{ notification: NotificationDTO; unreadCount: number } | null>;
-  /** Marks the rows stored so far; a row that arrives afterwards stays unread. */
+  /** Marks the rows stored so far; a row that arrives afterwards stays unread. Commits an INBOX_CHANGED intent when anything changed. */
   markAllRead(userId: string): Promise<{ updated: number; unreadCount: number }>;
   ping(): Promise<boolean>;
 }
@@ -199,6 +214,29 @@ export function createNotificationStore(prisma: PrismaClient): NotificationStore
         await tx.$executeRaw`
           UPDATE processed_notification_events SET outcome = ${outcome}
           WHERE producer = ${event.producer} AND event_id = ${event.eventId}::uuid`;
+        // 4. The delivery intent commits with the rows (issue #241): every replica re-reads these ids and pushes to the
+        //    sockets it holds. A stale event still refreshes inboxes but is marked so no replica toasts it.
+        if (drafts.length > 0) {
+          const signal = notificationsSignal(event.eventId, {
+            producer: event.producer,
+            created: created.map((c) => ({ userId: c.userId, notificationId: c.notification.id })),
+            recipientIds: [...new Set(drafts.map((d) => d.userId))],
+            stale,
+          });
+          // A redo after a partial first attempt finds the earlier, still-pending intent: merge rather than duplicate.
+          const pending = await tx.notificationRealtimeOutbox.findUnique({ where: { eventId: signal.eventId } });
+          if (pending) {
+            const earlier = pending.payload as unknown as NotificationsSignalPayload;
+            const merged: NotificationsSignalPayload = {
+              ...earlier,
+              created: [...earlier.created, ...(signal.payload.created as NotificationsSignalPayload['created'])],
+              recipientIds: [...new Set([...earlier.recipientIds, ...(signal.payload.recipientIds as string[])])],
+            };
+            await tx.notificationRealtimeOutbox.update({ where: { eventId: signal.eventId }, data: { payload: merged as unknown as object } });
+          } else {
+            await tx.notificationRealtimeOutbox.create({ data: { eventId: signal.eventId, kind: signal.kind, payload: signal.payload as object } });
+          }
+        }
         return { outcome, created, stale };
       });
     },
@@ -227,26 +265,45 @@ export function createNotificationStore(prisma: PrismaClient): NotificationStore
       return unread;
     },
 
+    async findForUser(userId, id) {
+      // The complement of view=action_needed: a delivery review stays open while the projected status is DELIVERED or
+      // unknown (no projection row: the comparison is NULL and COALESCE keeps it open).
+      const rows = await prisma.$queryRaw<(Row & { actionResolved: boolean })[]>`
+        SELECT ${COLUMNS}, ${PROJECTED_STATUS},
+               COALESCE(n.action_type = 'REVIEW_DELIVERY'
+                 AND (SELECT s.status FROM order_notification_state s WHERE s.order_id = n.order_id) <> 'DELIVERED', false) AS "actionResolved"
+        FROM notifications n WHERE n.id = ${id}::uuid AND n.user_id = ${userId}::uuid`;
+      return rows[0] ? { notification: toDTO(rows[0]), actionResolved: rows[0].actionResolved } : null;
+    },
+
     async markRead(userId, id) {
-      // Only an unread row is stamped, so reading twice keeps the first read time.
-      const [rows, [{ unread }]] = await prisma.$transaction([
-        prisma.$queryRaw<Row[]>`
+      // Only an unread row is stamped, so reading twice keeps the first read time. The INBOX_CHANGED intent commits
+      // with the change so the user's other devices refresh whichever replica holds them (issue #241).
+      return prisma.$transaction(async (tx) => {
+        const rows = await tx.$queryRaw<Row[]>`
           UPDATE notifications AS n SET read_at = COALESCE(n.read_at, now())
           WHERE n.id = ${id}::uuid AND n.user_id = ${userId}::uuid
-          RETURNING ${COLUMNS}, ${PROJECTED_STATUS}`,
-        unreadSql(userId),
-      ]);
-      return rows[0] ? { notification: toDTO(rows[0]), unreadCount: unread } : null;
+          RETURNING ${COLUMNS}, ${PROJECTED_STATUS}`;
+        const [{ unread }] = await tx.$queryRaw<{ unread: number }[]>`SELECT count(*)::int AS unread FROM notifications WHERE user_id = ${userId}::uuid AND read_at IS NULL`;
+        if (!rows[0]) return null;
+        const signal = inboxChangedSignal(userId);
+        await tx.notificationRealtimeOutbox.create({ data: { eventId: signal.eventId, kind: signal.kind, payload: signal.payload as object } });
+        return { notification: toDTO(rows[0]), unreadCount: unread };
+      });
     },
 
     async markAllRead(userId) {
-      const [updated, [{ unread }]] = await prisma.$transaction([
-        prisma.$executeRaw`
+      return prisma.$transaction(async (tx) => {
+        const updated = await tx.$executeRaw`
           UPDATE notifications SET read_at = now()
-          WHERE user_id = ${userId}::uuid AND read_at IS NULL AND stored_at <= now()`,
-        unreadSql(userId),
-      ]);
-      return { updated, unreadCount: unread };
+          WHERE user_id = ${userId}::uuid AND read_at IS NULL AND stored_at <= now()`;
+        const [{ unread }] = await tx.$queryRaw<{ unread: number }[]>`SELECT count(*)::int AS unread FROM notifications WHERE user_id = ${userId}::uuid AND read_at IS NULL`;
+        if (updated > 0) {
+          const signal = inboxChangedSignal(userId);
+          await tx.notificationRealtimeOutbox.create({ data: { eventId: signal.eventId, kind: signal.kind, payload: signal.payload as object } });
+        }
+        return { updated, unreadCount: unread };
+      });
     },
 
     async ping() {

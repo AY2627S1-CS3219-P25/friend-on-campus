@@ -1,5 +1,11 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Issue #242 (RT4.1 to RT4.3): the bounded recent-id cache (first sight, repeat, eviction of the oldest id at
+ * capacity) and its two uses: one toast per notification id and one removed-message line per MODERATED_PEER eventId,
+ * with a frame that carries no eventId counted every time.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
  * Scope: Issue #202: findDeliveredCopy settles an unconfirmed send from history only on this user's copy of the same
  * text stored at or after the send started; an older identical message or the peer's text does not count.
@@ -15,7 +21,36 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ChatMessageDTO } from '@campus-errand/common-dtos';
-import { coveredThrough, findDeliveredCopy, mergeMessage } from '../src/chat/useChat';
+import { coveredThrough, countsAsRemoval, findDeliveredCopy, mergeMessage } from '../src/chat/useChat';
+import { RECENT_IDS, createFirstSeen } from '../src/hooks/recentIds';
+
+// AI-generated (edited by Reallyeasy1): issue #242.
+test('RT4.3: the recent-id cache reports a repeat and forgets only the oldest id past its capacity', () => {
+  const firstSeen = createFirstSeen(3);
+  assert.deepEqual(['a', 'b', 'c', 'a'].map(firstSeen), [true, true, true, false], 'a repeat inside the window is not new');
+  assert.equal(firstSeen('d'), true, 'a fourth id evicts the oldest (a)');
+  assert.deepEqual(['b', 'c', 'd'].map(firstSeen), [false, false, false], 'the three newest are still remembered');
+  assert.equal(firstSeen('a'), true, 'the evicted id counts as new again');
+  assert.equal(RECENT_IDS, 1000);
+  const session = createFirstSeen();
+  for (let i = 0; i < RECENT_IDS; i += 1) session(`n${i}`);
+  assert.equal(session('n0'), false, 'the default capacity holds 1,000 ids');
+  assert.equal(createFirstSeen()('n0'), true, 'a new session (logout, reload) starts empty');
+});
+
+test('RT4.1: a replayed NOTIFICATION id reaches the toast callback once', () => {
+  const firstSeen = createFirstSeen();
+  const toasts: string[] = [];
+  // The hook's rule for each NOTIFICATION frame: if (firstSeen(id)) onNotification(row).
+  for (const id of ['n1', 'n1', 'n2', 'n1']) if (firstSeen(id)) toasts.push(id);
+  assert.deepEqual(toasts, ['n1', 'n2']);
+});
+
+test('RT4.2: a MODERATED_PEER notice counts once per eventId, and every time when it has none', () => {
+  const firstSeen = createFirstSeen();
+  assert.deepEqual(['e1', 'e1', 'e2'].map((id) => countsAsRemoval(id, firstSeen)), [true, false, true]);
+  assert.deepEqual([undefined, undefined].map((id) => countsAsRemoval(id, firstSeen)), [true, true], 'no id: previous behaviour');
+});
 
 const msg = (sequence: number): ChatMessageDTO => ({
   id: `m${sequence}`, sequence, senderId: 'u1', senderUsername: 'alice', senderRole: 'STUDENT', text: `t${sequence}`, sentAt: '2026-10-26T00:00:00.000Z',
