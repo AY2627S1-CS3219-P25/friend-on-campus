@@ -7844,3 +7844,16 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 - `services/notification-service/test/realtime.integration.test.ts` — new test: three progress notices committed before any signal is published are all pushed
 
 **External / temporary artifacts:** `n3-entrypoint-check.ts`, `ci-acceptance.log` and `acceptance-local.log` in the session scratchpad (not in the repository).
+
+## 2026-11-09 15:04 SGT — Merge pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok feel free to merge the pr" (#246, cross-replica chat and notification delivery).
+
+**Usage scenario:** Author-approved merge. At the time of this entry the pull request was open, mergeable and up to date with `main`, and CI run 42576009363 on head da3b89c had passed (28 checks; the Claude Code review check is switched off and was skipped). This entry is committed on the feature branch first; merging once CI is green on the commit that carries it. The pull request description is brought up to date before the merge (test counts, the review and CI fixes, the published wiki page). No application code changed in this prompt. Left to the author after the merge: the Author review lines, the open decision on dead-letter handling, and applying the two outbox migrations wherever the services are deployed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry
