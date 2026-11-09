@@ -7687,3 +7687,21 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 **Second browser-run follow-up:** Run 42456996099 confirms the mobile Places fix (US5-US7 and logout passed), with 25 other CI jobs green. Browser failures were now obsolete STUDENT metadata in US8 and an ambiguous Post Errand submit selector in UO1/UO6 (navigation and submit both matched), cascading into subsequent lifecycle timeouts. Scoped both browser drivers' submit action to `form` and exact button name. Updated US8 to verify actual read-only email and nonempty username, matching the approved metadata removal; renamed its description to match what it checks. The full production-app fixture reproduced the two-match submit ambiguity, then passed form-specific submission through a 202 PENDING receipt followed by OPEN, plus both live profile-field assertions. Script lint, syntax, and whitespace checks passed. Preparing a driver-only follow-up commit/push; no new application behavior or backend changes. The tagline source edit remains uncommitted.
 
 **Third browser-run follow-up:** Run 42457550527 passed 39/41 browser checks plus the other 25 CI jobs. All mobile, profile, Post, acceptance, pickup, and delivery checks now passed. Remaining UO5 failure was a strict match against both desktop/mobile status spans; UO6 reached its final history assertion but expected pre-redesign cancellation copy. Scoped requester/courier history checks to visible status spans and updated courier-reward/cancellation wording to the implemented copy. Verified visible completed/cancelled requester/courier assertions in the actual rendered TasksPage fixture, along with prior responsive, reorder and dispute checks; passed. Reviewed remaining realtime selectors against current source. Targeted lint, JS syntax, and whitespace checks passed. Preparing the history-assertion-only follow-up commit/push; tagline source remains uncommitted.
+
+**Final integration result:** Pushed 194222e to existing PR #230. GitHub run 42457984002 completed SUCCESS: all CI jobs/test gate green; browser UI 41/41; real-time notification/chat suite reports 14/14 with one optional check skipped. Verified GitHub `MERGEABLE` / `CLEAN`, same branch and PR, draft state retained, origin/main is an ancestor. Updated PR body with final verification link and outcomes; its dedicated tracking-issue gap remains visible, and bug issues #234/#235 remain separate/open. No merge performed. Newly requested tagline “Campus errands, made easier.” remains uncommitted in AuthGatePage.tsx; this final result note is also left uncommitted with it rather than creating another code/CI revision.
+
+## 2026-11-09 12:39 SGT — Commit remaining tagline changes in a new PR
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/clarify-campus-tagline
+
+**Prompt (summarised):** PR #230 is merged; commit the remaining changes and create a new PR.
+
+**Usage scenario:** Authorized Git bookkeeping for the previously approved copy change. Verified PR #230 is merged, fetched origin/main at 22f4216, and moved the two remaining edits onto a fresh branch based on that revision. Created tracking issue #244 to satisfy the repository's linked-issue requirement. Committing and pushing the tagline change and remaining verification note, then opening a follow-up PR against main.
+
+**Validation:** All-workspace typecheck, all 55 student unit tests, targeted AuthGatePage ESLint, and whitespace checks passed. Only the tagline/disclosure and usage log differ from latest main.
+
+**Files changed:**
+- `apps/student-app/src/pages/AuthGatePage.tsx` — Commit the existing “Campus errands, made easier.” copy and disclosure.
+- `ai/usage-log.md` — Commit the prior final integration note and record this authorized follow-up.
