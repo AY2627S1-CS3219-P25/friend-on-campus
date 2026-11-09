@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Added realtime.exchange (RABBITMQ_REALTIME_EXCHANGE, default notification-service.events.realtime) for cross-replica delivery (issue #241).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Retry limit default lowered to 5: database and broker outages are now classified as infrastructure failures
  * and retry without limit, so the budget only covers unexpected handler errors (Notification Redesign §10).
@@ -63,5 +67,9 @@ export const config = Object.freeze({
     // budget is for unexpected handler errors only, after which the message is dead-lettered for an operator.
     retryDelayMs: integer('NOTIFICATION_RETRY_DELAY_MS', 2000, 1),
     retryLimit: integer('NOTIFICATION_RETRY_LIMIT', 5, 0),
+  },
+  // Cross-replica live delivery (issue #241): a fanout exchange inside the notification_service account's permissions.
+  realtime: {
+    exchange: process.env.RABBITMQ_REALTIME_EXCHANGE || 'notification-service.events.realtime',
   },
 });

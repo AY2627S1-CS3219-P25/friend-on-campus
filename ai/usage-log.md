@@ -7705,3 +7705,155 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 **Files changed:**
 - `apps/student-app/src/pages/AuthGatePage.tsx` — Commit the existing “Campus errands, made easier.” copy and disclosure.
 - `ai/usage-log.md` — Commit the prior final integration note and record this authorized follow-up.
+
+## 2026-11-09 12:44 SGT — Continue the RabbitMQ cross-replica delivery work (issues #239 to #242)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "recall what was happening for the previous session and continue working on it". The previous session (prompt of 2026-11-09 00:35 SGT: complete the RabbitMQ cross-replica Chat and Notification delivery described in the wiki) ended while debugging the Notification cross-replica tests and before its usage-log entry was written, so its files are listed below as well.
+
+**Usage scenario:** Debugging assistance, implementation of a design the author documented in the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery", tests and documentation. Nothing was committed or pushed. Left to the author: review of every file, the Author review lines, the commit, the pull request (Closes #239, #240, #241, #242) and publishing the wiki update, whose push was denied by the session permission gate (patch handed over instead).
+- Debugging: the Notification cross-replica test file never exited. Root cause: its replica close() stopped the relay captured at creation while RT3.5 replaces `replica.relay`, so the replacement relay polled forever. Fixed in the test, as the Chat test already does.
+- Debugging: the Chat store test "numbers concurrent appends 1..n" fails locally with "Unable to start a transaction in the given time". Reproduced 3/3 on an unmodified checkout and 0/3 with `127.0.0.1` in place of `localhost` in the test URL: an IPv6-first environment artifact on Windows, no code change.
+- Implementation of issue #242 (RT4.1 to RT4.3) and of the wiki's "new sockets are rejected while unavailable" behaviour (close code 1013 until the realtime subscriber is ready), plus the `.env.example` entry.
+- Finding reported to the author, not changed: in the entry points a broker outage ends the business consumer, so the process drains and exits with code 1 and is restarted by Compose or the orchestrator (behaviour already on main); the wiki patch describes this.
+- Verified on the final code with PostgreSQL 16.14 and RabbitMQ 3.13.7 in throwaway containers: typecheck, lint and ci:validate-tests pass; unit 191/191 (messaging 9, chat 51, notification 73, student app 58); PostgreSQL integration 24/24 (chat 7, notification 17); RabbitMQ and PostgreSQL messaging 20/20 (chat 9, notification 11); builds of messaging, chat, notification and student app. Manual check of the Notification entry point: socket refused with 1013 during startup then accepted; `rabbitmqctl stop_app` exits the process with code 1; after `start_app` and a restart it serves again. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed (this prompt):**
+- `services/notification-service/test/realtime.integration.test.ts` — close() stops the replica's current relay
+- `apps/student-app/src/hooks/recentIds.ts` — new bounded recent-id cache (1,000 ids)
+- `apps/student-app/src/notifications/useNotifications.ts` — one toast per notification id per session (RT4.1)
+- `apps/student-app/src/chat/useChat.ts` — countsAsRemoval: one removed-message line per MODERATED_PEER eventId (RT4.2)
+- `apps/student-app/test/chat.test.ts` — three tests for RT4.1 to RT4.3
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — refuse a new socket with 1013 while the realtime subscriber is not ready
+- `.env.example` — optional per-service RABBITMQ_REALTIME_EXCHANGE, commented out
+
+**Files changed by the interrupted 00:35 prompt (no entry was written then):**
+- `packages/messaging/src/realtime.ts`, `src/outbox-sql.ts`, `src/index.ts`, `test/realtime.test.ts`, `tsconfig.test.json` — fanout publisher, per-replica subscriber, leased outbox relay, SQL outbox store and their unit tests (#239)
+- `packages/common-dtos/src/index.ts` — optional eventId on the chat ERROR frame (#242); a shared-contract change for the author to confirm
+- `services/chat-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/config.ts`, `src/conversations/service.ts`, `src/conversations/store.ts`, `src/index.ts`, `src/ws/hub.ts`, `src/realtime/delivery.ts`, `test/helpers.ts`, `test/hub.test.ts`, `test/service.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica chat delivery (#240)
+- `services/notification-service/prisma/schema.prisma`, `prisma/migrations/20261109000000_realtime_outbox/`, `src/app.ts`, `src/config.ts`, `src/index.ts`, `src/notifications/events.ts`, `src/notifications/routes.ts`, `src/notifications/store.ts`, `src/notifications/realtime.ts`, `src/ws/hub.ts`, `test/events.test.ts`, `test/messaging.integration.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.test.ts`, `test/realtime.integration.test.ts` — transactional outbox and cross-replica notification and read-state delivery (#241)
+- `.github/workflows/ci.yml` — messaging test:unit added to the unit matrix
+- Files that cannot hold a disclosure header: `package-lock.json`, `packages/messaging/package.json` (test:unit script, tsx devDependency, typecheck over tests), `services/chat-service/package.json` and `services/notification-service/package.json` (test scripts include the new test files)
+
+**External / temporary artifacts:** GitHub issues #239 to #242 (created by the 00:35 prompt, as that prompt authorised). Wiki patch, not published: `wiki-rabbitmq-realtime-update.patch` in the session scratchpad. Throwaway containers `foc-rt-test-pg` and `foc-rt-test-mq` are still running.
+
+## 2026-11-09 12:58 SGT — Commit the cross-replica delivery work and open its pull request
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok please commit and create a pull request".
+
+**Usage scenario:** Author-approved commit, push and pull request for the work described in the previous entry (issues #239 to #242). `main` had moved six commits since the branch base (ECS infrastructure, sign-in tagline); the only file both sides changed is this log, so `origin/main` is merged into the branch with both sets of entries kept, then typecheck, lint, the test-matrix validation and the affected unit suites are rerun before pushing. No application code changed in this prompt. Left to the author: review, the Author review lines, the merge of the pull request, and publishing the wiki patch (its text about the absence of ECS definitions predates the merged `main` and needs a second look).
+
+**Files changed:**
+- `ai/usage-log.md` — this entry; entries from `main` kept during the merge
+
+## 2026-11-09 13:21 SGT — Publish the wiki update for the cross-replica delivery work
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "try and update the wiki again" (the push had been denied by the session permission gate in the earlier prompt).
+
+**Usage scenario:** Documentation, on the author's explicit request: pushed the prepared update of the wiki page "RabbitMQ Cross-Replica Chat and Notification Delivery" (wiki commit 3acb9c5). Before publishing, the page's status table was brought up to date with facts checked at that moment: pull request #246 open, CI run 42565190325 on head a7a2201 succeeded (28 checks passed, the optional Claude Code review check skipped). No repository file other than this log changed; this entry is left uncommitted in the working tree for the author.
+
+**Files changed:**
+- none in the repository besides this entry (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 13:35 SGT — Look for review feedback on pull request #246 and start an independent review
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "attend to the code reviews for the pull request" (#246). This entry was written during the next prompt; none was written at the time.
+
+**Usage scenario:** Debugging and review assistance. Found no review feedback on the pull request (no reviews, threads, comments or requested reviewers; the CI annotations are GitHub's runner-image notice; the automated review workflow is switched off by the repository variable CLAUDE_PR_REVIEW_ENABLED, which was not changed). Started the repository's `reviewer` agent for an independent, report-only review of the diff. No file changed.
+
+**Files changed:**
+- none
+
+## 2026-11-09 14:23 SGT — Address the review findings on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** The author pasted a review of #246 (head a7a2201) with three findings and asked for them to be worked on: (1) delivery-handler deadlines are not enforced, (2) notification freshness is not rechecked before pushing, (3) a clientId longer than 64 characters loses its echo.
+
+**Usage scenario:** Debugging and implementation of fixes whose direction the review or the author stated, each with a test that failed before the fix. The independent `reviewer` agent's report arrived during this prompt; two further defects it confirmed in this pull request's own code were fixed as well. The author decided finding 3 when asked (echo any accepted id, rather than reject ids over 64 characters) and approved the commit and push. Left to the author: the Author review lines, the reviewer's remaining minor findings and three questions (listed in the reply, not acted on), and the pull request description, whose test counts predate this commit.
+- Finding 1: `runWithAttempts` races each attempt against its deadline and cancellation, and an attempt that finishes after its abort is not counted as handled (so its event id is not cached as done).
+- Finding 2: the subscriber's re-read reports whether a newer order version has superseded the row; such a row is not pushed, its recipient still gets the inbox hint.
+- Finding 3: the 64-character check at delivery is removed, so the echo carries whatever clientId the hub accepted.
+- Reviewer A1: every WebSocket gets an `error` listener on connection in both entry points. Without it one unmasked frame sent to a starting replica ended the process (reproduced on the real Notification entry point: exit code 1; with the fix both entry points stay up and become ready).
+- Reviewer A3: a subscriber closed while its reconnect is in flight now tears that connection down (before: a live queue and broker connection stayed behind and the process could not exit).
+- Reviewer policy item: disclosure records for the new outbox models in both `schema.prisma` files.
+- Verified locally with PostgreSQL 16.14 and RabbitMQ 3.13.7: typecheck, lint and ci:validate-tests pass; unit 196/196 (messaging 12, chat 52, notification 74, student app 58); PostgreSQL integration 25/25 (chat 7, notification 18); RabbitMQ and PostgreSQL messaging 22/22 (chat 10, notification 12); builds of messaging, chat and notification. Not run: full `npm test`, untouched services' suites, Docker image builds, browser UAT, any deployment.
+
+**Files changed:**
+- `packages/messaging/src/realtime.ts` — attempt deadline enforced by racing; late attempts not counted as handled; close during reconnect tears the new connection down
+- `packages/messaging/test/realtime.test.ts` — three tests for uninterruptible, late and parent-aborted attempts
+- `services/notification-service/src/notifications/store.ts` — findForUser returns the row and whether it is superseded
+- `services/notification-service/src/notifications/realtime.ts` — a superseded row is not pushed
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts`, `test/realtime.integration.test.ts` — unit, database and two-replica tests for the superseded case; the two-replica file gains a relay restart helper
+- `services/chat-service/src/realtime/delivery.ts` — clientId echoed at any length
+- `services/chat-service/test/hub.test.ts` — a 200-character clientId is echoed unchanged to the sender only
+- `services/chat-service/test/realtime.integration.test.ts` — close-during-reconnect test; the test proxy can hold a connection attempt
+- `services/chat-service/src/index.ts`, `services/notification-service/src/index.ts` — error listener on every socket at connection
+- `services/chat-service/prisma/schema.prisma`, `services/notification-service/prisma/schema.prisma` — disclosure records only
+- File that cannot hold a disclosure header, missing from the earlier list: `packages/messaging/tsconfig.test.json`
+
+**External / temporary artifacts:** Reviewer and manual-check scripts in the session scratchpad (not in the repository): `attempts-check.ts`, `claim-check.ts`, `close-during-reconnect.ts`, `refused-socket-error.ts`, `malformed-frame-check.mjs`.
+
+## 2026-11-09 14:35 SGT — ECS only, a dead-letter queue question, the design document and the usage log (interrupted)
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "there isnt any kubernetes anymore, its just ecs. If possible, do you think having a dead letter queue is good as well for this? Maybe write in the design doc, also help to write the usage log as well". The author interrupted the work to ask for the CI fix below; this entry was written during that prompt.
+
+**Usage scenario:** Documentation and learning support. Whether to add dead-letter handling is a design decision reserved for the author (CLAUDE.md section 1), so no recommendation was given: the reply explains what a dead-letter queue is and lists the facts from the code for the three paths involved. The wiki page is updated accordingly (ECS only; the facts and the decision marked as open for the author) and published after the CI rerun of the next entry. No repository file changed for this prompt.
+
+**Files changed:**
+- none in the repository (wiki page `RabbitMQ-Cross‐Replica-Chat-and-Notification-Delivery.md` in the wiki repository)
+
+## 2026-11-09 14:54 SGT — Fix the CI failure on pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "i would like you to fix the CI" (the acceptance check failed on commit 2477153).
+
+**Usage scenario:** Debugging assistance for a regression introduced by the previous AI-written commit. The acceptance driver `scripts/uat/uat-notifications.mjs` publishes created, accepted, picked up and delivered for one errand back to back and requires every notice to be pushed in order (N3 to N6, F5.1 to F5.3); N8 failed as a consequence. The fix for review finding 2 had treated a notification as obsolete whenever any newer order version existed by the time its signal was handled, so in a burst only the last notice was pushed. The check now uses the rule the store already applies for view=action_needed: a delivery review is not pushed once the order is no longer DELIVERED; a newer version alone holds nothing back. Both requirements are covered by tests in the same suite. Commit and push follow from the author's request to fix the pull request's CI. Left to the author: confirming that this rule is the behaviour wanted for review finding 2 (the alternative is to remove the delivery-time check altogether), and the pull request description.
+- Reproduced before the fix in two ways: a new two-replica test (only ORDER_DELIVERED pushed) and a replay of the driver's event burst against the real Notification entry point (N3, N5 and N6 failed with the same output as the CI log); both pass with the fix.
+- Verified locally: typecheck, lint and ci:validate-tests pass; unit 196/196; Notification PostgreSQL integration 18/18 and RabbitMQ messaging 13/13. The Compose acceptance stack could not be built locally (npm download errors inside the image build), so the acceptance job itself is verified by the CI rerun, not locally.
+- Process note: the previous commit was pushed without running the acceptance driver, which is why CI caught this and the local checks did not.
+
+**Files changed:**
+- `services/notification-service/src/notifications/store.ts` — findForUser reports actionResolved (delivery review while the order is no longer DELIVERED) instead of superseded
+- `services/notification-service/src/notifications/realtime.ts` — pushes unless the row's action is already resolved
+- `services/notification-service/test/realtime.test.ts`, `test/store-routes.integration.test.ts` — adapted to the narrower rule; the database test adds a progress notice that must stay current
+- `services/notification-service/test/realtime.integration.test.ts` — new test: three progress notices committed before any signal is published are all pushed
+
+**External / temporary artifacts:** `n3-entrypoint-check.ts`, `ci-acceptance.log` and `acceptance-local.log` in the session scratchpad (not in the repository).
+
+## 2026-11-09 15:04 SGT — Merge pull request #246
+
+**Tool:** Claude Code (model: Claude Fable 5.1)
+**Author:** Reallyeasy1
+**Branch:** feat/rabbitmq-realtime-delivery
+
+**Prompt (summarised):** "ok feel free to merge the pr" (#246, cross-replica chat and notification delivery).
+
+**Usage scenario:** Author-approved merge. At the time of this entry the pull request was open, mergeable and up to date with `main`, and CI run 42576009363 on head da3b89c had passed (28 checks; the Claude Code review check is switched off and was skipped). This entry is committed on the feature branch first; merging once CI is green on the commit that carries it. The pull request description is brought up to date before the merge (test counts, the review and CI fixes, the published wiki page). No application code changed in this prompt. Left to the author after the merge: the Author review lines, the open decision on dead-letter handling, and applying the two outbox migrations wherever the services are deployed.
+
+**Files changed:**
+- `ai/usage-log.md` — this entry

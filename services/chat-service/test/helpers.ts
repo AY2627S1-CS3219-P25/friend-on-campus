@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: memoryStore gains findById, findMessage and an onAppended hook that emits the delivery intent (issue #240).
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Unit-test helpers: an in-memory ConversationStore with the same contract as the Prisma one, a principal
  * factory, fixed ids, and (copied from notification-service/test/helpers.ts) an Ed25519 token signer in the format
@@ -25,7 +29,9 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { WebSocket } from 'ws';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import { PrismaClient } from '../src/database/client';
+import type { RealtimeSignal } from '@campus-errand/messaging';
 import { checkAppend, type ConversationRow, type ConversationStore, type MessageRow } from '../src/conversations/store';
+import { messageSignal } from '../src/realtime/delivery';
 
 export const ISSUER = 'chat-test-issuer';
 export const AUDIENCE = 'chat-test-audience';
@@ -88,7 +94,11 @@ export async function openSocket(url: string) {
   };
 }
 
-export function memoryStore() {
+/**
+ * `onAppended` receives the same delivery intent the Prisma store commits to realtime_outbox, so hub tests can hand
+ * it to a delivery without a broker (issue #240).
+ */
+export function memoryStore(options: { onAppended?: (signal: RealtimeSignal) => Promise<void> | void } = {}) {
   const conversations = new Map<string, ConversationRow>();
   const messages: MessageRow[] = [];
   const setOnce = (orderId: string, field: 'pickedUpAt' | 'deliveredAt' | 'closedAt', at: string) => {
@@ -99,6 +109,12 @@ export function memoryStore() {
   };
   const store: ConversationStore = {
     async findByOrderId(orderId) { return conversations.get(orderId) ?? null; },
+    async findById(conversationId) { return [...conversations.values()].find((c) => c.id === conversationId) ?? null; },
+    async findMessage(messageId) {
+      const message = messages.find((m) => m.id === messageId);
+      const conversation = message ? [...conversations.values()].find((c) => c.id === message.conversationId) : undefined;
+      return message && conversation ? { message, conversation } : null;
+    },
     async upsertAccepted(c) {
       const existing = conversations.get(c.orderId);
       if (existing) {
@@ -126,8 +142,10 @@ export function memoryStore() {
       const check = checkAppend(row, m.senderId);
       if (check.kind !== 'ok') return check;
       const sequence = messages.filter((x) => x.conversationId === m.conversationId).length + 1;
-      const message: MessageRow = { id: randomUUID(), sequence, ...m };
+      const { clientId, ...columns } = m;
+      const message: MessageRow = { id: randomUUID(), sequence, ...columns };
       messages.push(message);
+      await options.onAppended?.(messageSignal(message, row!, clientId));
       return { kind: 'appended', message, recipientIds: check.recipientIds };
     },
     async listMessages(conversationId, { afterSequence, limit }) {

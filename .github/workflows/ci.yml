@@ -1,7 +1,15 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Resolved the merge conflict by retaining both CI disclosure entries.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Run delivery workflow and migration rollout regression checks in the configuration job.
 # Author review: <to be completed by the author>
+#
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+# Scope: Added the @campus-errand/messaging test:unit entry to the unit matrix (realtime primitives, issue #239).
+# Author review: <to be completed by Reallyeasy1>
 #
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
 # Scope: Added the admin-portal test:unit entry to the unit matrix (supplier form validation test, PR #222 review).
@@ -166,6 +174,11 @@ jobs:
             rabbitmq: false
           - name: credit-service
             workspace: '@campus-errand/credit-service'
+            script: test:unit
+            database: none
+            rabbitmq: false
+          - name: messaging
+            workspace: '@campus-errand/messaging'
             script: test:unit
             database: none
             rabbitmq: false

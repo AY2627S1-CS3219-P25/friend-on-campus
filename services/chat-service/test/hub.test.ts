@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+ * Scope: Hub tests deliver through the loopback realtime and createChatDelivery, as production does through RabbitMQ (issue #240).
+ *        PR #246 review: a clientId longer than 64 characters is echoed unchanged.
+ * Author review: <to be completed by Reallyeasy1>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-08
  * Scope: Resolve the merge by preserving shutdown draining and moderation socket tests together.
  * Author review: <to be completed by the author>
@@ -27,19 +32,26 @@ import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer } from 'ws';
+import { createLoopbackRealtime } from '@campus-errand/messaging';
 import { createConversationService } from '../src/conversations/service';
+import { createChatDelivery } from '../src/realtime/delivery';
 import { createChatHub, createSocketAuthenticator } from '../src/ws/hub';
 import { ALICE, AUDIENCE, BOB, CAROL, ISSUER, ORDER, makeKeys, memoryStore, openSocket, signToken, until } from './helpers';
 
 describe('chat hub', () => {
   const keys = makeKeys();
-  const { store } = memoryStore();
+  // Production delivers stored messages through the realtime subscriber on every replica; here the loopback plays the
+  // broker and hands the store's delivery intent straight to this hub's delivery (issue #240).
+  const realtime = createLoopbackRealtime();
+  const { store } = memoryStore({ onAppended: (signal) => realtime.publish(signal) });
   const service = createConversationService({ store, orders: { async getOrder() { return { kind: 'not_found' }; } } });
   const hub = createChatHub({
     authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
     send: service.send,
+    broadcast: realtime.publish,
     authTimeoutMs: 300,
   });
+  realtime.subscribe(createChatDelivery({ store, hub }).handle);
   let wss: WebSocketServer;
   let url: string;
 
@@ -99,6 +111,18 @@ describe('chat hub', () => {
     await until(() => hub.connectionCount() === 0, 'sockets evicted');
   });
 
+  // PR #246 review: the hub accepts a clientId of any length, so the echo must carry it back unchanged.
+  it('echoes a long clientId unchanged to the sender and never to the other participant', async () => {
+    const alice = await connect(ALICE, { username: 'alice' });
+    const bob = await connect(BOB, { username: 'bob' });
+    const clientId = 'x'.repeat(200);
+    alice.send({ type: 'SEND', orderId: ORDER, text: 'long id', clientId });
+    const [a, b] = await Promise.all([alice.frame('MESSAGE'), bob.frame('MESSAGE')]);
+    assert.deepEqual([a.clientId, b.clientId], [clientId, undefined]);
+    for (const c of [alice, bob]) c.ws.close();
+    await until(() => hub.connectionCount() === 0, 'sockets evicted');
+  });
+
   it('answers a rejected SEND with ERROR carrying the client id and the reason', async () => {
     const alice = await connect(ALICE, { username: 'alice' });
     const carol = await connect(CAROL);
@@ -139,6 +163,7 @@ it('drains an in-flight SEND before shutdown finishes', { timeout: 5000 }, async
   const hub = createChatHub({
     authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
     async send() { started(); await finish; return { kind: 'not_found' }; },
+    broadcast: async () => {},
   });
   const wss = new WebSocketServer({ port: 0 });
   wss.on('connection', hub.handleConnection);
@@ -166,7 +191,8 @@ it('drains an in-flight SEND before shutdown finishes', { timeout: 5000 }, async
 
 describe('chat hub moderation', () => {
   const keys = makeKeys();
-  const { store, messages } = memoryStore();
+  const realtime = createLoopbackRealtime();
+  const { store, messages } = memoryStore({ onAppended: (signal) => realtime.publish(signal) });
   const service = createConversationService({
     store,
     orders: { async getOrder() { return { kind: 'not_found' }; } },
@@ -175,7 +201,9 @@ describe('chat hub moderation', () => {
   const hub = createChatHub({
     authenticate: createSocketAuthenticator({ publicKey: keys.publicKey, issuer: ISSUER, audience: AUDIENCE }),
     send: service.send,
+    broadcast: realtime.publish,
   });
+  realtime.subscribe(createChatDelivery({ store, hub }).handle);
   let wss: WebSocketServer;
   let url: string;
 
