@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Optional drop-off coordinates and estimated credit (dropoffLatitude, dropoffLongitude,
  * estimatedRewardCredits) on OrderDTO and CreateOrderRequest, per the author's drop-off estimator decisions.
@@ -423,6 +427,8 @@ export interface EscrowRefundRequest {
 // 5. RabbitMQ Event Contracts (M6)
 // ==========================================
 export interface BaseEvent {
+  /** Optional W3C context; absent on legacy events. Not part of business identity. */
+  traceContext?: { traceparent?: string; tracestate?: string };
   eventId: string;
   timestamp: string;
 }

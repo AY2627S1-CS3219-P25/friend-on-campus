@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Provision the three ARM64 ECS slots with stable broker storage and names.
 # Author review: <to be completed by the author>
@@ -41,6 +45,7 @@ resource "aws_iam_role_policy" "broker_storage" {
     Statement = [
       { Effect = "Allow", Action = "ec2:AttachVolume", Resource = concat(
         [for volume in aws_ebs_volume.broker : volume.arn],
+        [for volume in aws_ebs_volume.observability : volume.arn],
         ["arn:aws:ec2:ap-southeast-1:${var.account_id}:instance/*"]
       ) },
       { Effect = "Allow", Action = "ec2:DescribeVolumes", Resource = "*" },
@@ -149,11 +154,12 @@ resource "aws_launch_template" "slot" {
   }
 
   user_data = base64encode(replace(templatefile("${path.module}/host-bootstrap.sh.tftpl", {
-    volume  = aws_ebs_volume.broker[each.key].id
-    slot    = each.key
-    cluster = aws_ecs_cluster.main.name
-    zone_id = aws_route53_zone.broker.zone_id
-    name    = "broker-${each.key}.${local.broker_zone}"
+    observability_volume = var.observability_enabled && each.key == "1" ? aws_ebs_volume.observability[0].id : ""
+    volume               = aws_ebs_volume.broker[each.key].id
+    slot                 = each.key
+    cluster              = aws_ecs_cluster.main.name
+    zone_id              = aws_route53_zone.broker.zone_id
+    name                 = "broker-${each.key}.${local.broker_zone}"
   }), "\r\n", "\n"))
 }
 

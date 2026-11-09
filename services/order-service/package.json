@@ -25,7 +25,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
-    "prisma": "^6.7.0"
+    "prisma": "^6.7.0",
+    "@campus-errand/observability": "*"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.5",

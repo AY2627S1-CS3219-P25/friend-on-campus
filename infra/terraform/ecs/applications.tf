@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Define staged ARM64 application services, Service Connect routes, task inputs and scaling, with workflow ownership of deployed application revisions.
 # Author review: <to be completed by the author>
@@ -39,7 +43,7 @@ locals {
       SUPPLIER_SERVICE_URL = "http://supplier-service:8002"
       } : {}, key == "chat-service" ? {
       ORDER_SERVICE_URL = "http://order-service:8003"
-    } : {})
+    } : {}, local.obs_environment, var.observability_enabled ? { OTEL_SERVICE_NAME = key } : {})
   }
 
   backend_secrets = {
@@ -80,7 +84,7 @@ resource "aws_ecs_task_definition" "app" {
     cpu               = 128
     memoryReservation = each.value.memory - 64
     stopTimeout       = 30
-    logConfiguration  = local.log_config
+    logConfiguration  = var.observability_enabled ? local.obs_logs : local.log_config
     portMappings      = [{ name = "http", containerPort = each.value.port, hostPort = 0 }]
     healthCheck = {
       command     = ["CMD-SHELL", contains(keys(local.backends), each.key) ? "node -e \"fetch('http://127.0.0.1:${each.value.port}/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"" : "wget -q -O /dev/null http://127.0.0.1:${each.value.port}/${each.key == "gateway" ? "health" : ""}"]
@@ -91,7 +95,7 @@ resource "aws_ecs_task_definition" "app" {
     }
     entryPoint  = contains(keys(local.frontends), each.key) ? null : ["/bin/sh", "-ec"]
     command     = contains(keys(local.frontends), each.key) ? null : [each.key == "gateway" ? local.gateway_start : "${local.backend_start}\nexec node dist/index.js"]
-    environment = [for key, value in lookup(local.backend_env, each.key, {}) : { name = key, value = value }]
+    environment = [for key, value in merge(lookup(local.backend_env, each.key, {}), each.key == "gateway" && var.observability_enabled ? { OBSERVABILITY_ENABLED = "true", OBS_BACKEND_HOST = local.obs_host } : {}) : { name = key, value = value }]
     secrets     = [for key, value in lookup(local.backend_secrets, each.key, {}) : { name = key, valueFrom = value }]
   } : name => value if value != null }])
 }

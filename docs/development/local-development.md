@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Update the author-approved Node 22 runtime and SDK minimum requirement.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -9,7 +13,7 @@ Author review: <to be completed by Reallyeasy1>
 
 Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT). Pending work is explicitly labelled.
 
-README remains the quick-start entrypoint. This page explains command ownership and host/container differences for debugging. Run commands from the repository root unless a workspace flag is shown. Use the pinned lockfile and Node >=22.3.
+README remains the quick-start entrypoint. This page explains command ownership and host/container differences for debugging. Run commands from the repository root unless a workspace flag is shown. Use the pinned lockfile and Node >=22.15.0. The six backend container images use Node 22.23.4; see the [observability runbook](../observability/runbook.md) for SDK startup requirements.
 
 | Task | Existing command | What it does |
 |---|---|---|

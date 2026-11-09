@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Run one persistent RabbitMQ task on each ECS slot and expose AMQP privately.
 # Author review: <to be completed by the author>
@@ -37,11 +41,12 @@ resource "aws_ecs_task_definition" "broker" {
     entryPoint       = ["/bin/sh", "-ec"]
     command          = [replace(file("${path.module}/rabbitmq-start.sh"), "\r\n", "\n")]
     stopTimeout      = 90
-    logConfiguration = local.log_config
+    logConfiguration = var.observability_enabled ? local.obs_logs : local.log_config
     environment = [
       { name = "RABBITMQ_NODENAME", value = "rabbit@broker-${each.key}.${local.broker_zone}" },
       { name = "RABBITMQ_USE_LONGNAME", value = "true" },
       { name = "BROKER_SLOT", value = each.key },
+      { name = "OBSERVABILITY_ENABLED", value = tostring(var.observability_enabled) },
       { name = "BROKER_ZONE", value = local.broker_zone },
     ]
     secrets = [
@@ -49,7 +54,7 @@ resource "aws_ecs_task_definition" "broker" {
       { name = "BROKER_DEFINITIONS", valueFrom = "${aws_secretsmanager_secret.runtime["runtime"].arn}:broker_definitions::" },
     ]
     extraHosts   = [{ hostname = "broker-${each.key}.${local.broker_zone}", ipAddress = "127.0.0.1" }]
-    portMappings = [for port in [4369, 5672, 25672] : { containerPort = port, hostPort = port }]
+    portMappings = [for port in concat([4369, 5672, 25672], var.observability_enabled ? [15692] : []) : { containerPort = port, hostPort = port }]
     mountPoints  = [{ sourceVolume = "broker", containerPath = "/var/lib/rabbitmq" }]
     healthCheck = {
       command     = ["CMD-SHELL", "su-exec rabbitmq rabbitmq-diagnostics -q check_running"]

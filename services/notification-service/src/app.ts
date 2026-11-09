@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Optional onInboxChanged dependency, handed to the notification router (Notification Redesign §7).
  * Author review: <to be completed by Reallyeasy1>
@@ -10,6 +14,7 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
+import { requestTelemetry } from '@campus-errand/observability';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import { createNotificationRouter } from './notifications/routes';
@@ -27,6 +32,7 @@ export function createApp(dependencies: {
   onInboxChanged?: (userId: string) => unknown;
 }) {
   const app = express();
+  app.use(requestTelemetry);
   app.use(cors());
   app.use(express.json());
 

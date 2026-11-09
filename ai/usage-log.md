@@ -7705,3 +7705,117 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 **Files changed:**
 - `apps/student-app/src/pages/AuthGatePage.tsx` — Commit the existing “Campus errands, made easier.” copy and disclosure.
 - `ai/usage-log.md` — Commit the prior final integration note and record this authorized follow-up.
+
+
+## 2026-11-09 14:23 SGT — Implement self hosted observability in an isolated worktree
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee (confirmed with `gh api user --jq .login`)
+**Branch:** codex/self-hosted-observability
+
+**Prompt (summarised):** Assess and implement the discussed full self-hosted observability scope in a separate worktree, explain implementation difficulties, and write a general plan and documentation so another session can continue. During implementation the author explicitly approved optional trace metadata in stored event payloads and preparing one persistent backend stack plus one collection agent per existing ECS host, without deployment.
+
+**Usage scenario:** Implementation and boilerplate within the author-selected OpenTelemetry/Prometheus/Loki/Tempo/Grafana stack, debugging, verification and operational documentation. Created `/Users/yanhwee/Downloads/CS3219 Student Project/friend-on-campus-observability` from bdc1d19 on the named branch. Preserved the original checkout's uncommitted usage-log entries and existing named/stopped containers. No agents, commits, pushes, issues, PRs, image publishing, real AWS reads/deployment or external notifications.
+
+Implemented opt-in SDK bootstrap before service imports, HTTP/fetch/Express/runtime telemetry, bounded-label metrics, per-process resource identity, useful latency buckets, structured request/consumer logs, Prisma operation spans without SQL/arguments, WebSocket counters and manual rabbitmq-client processing/publication/retry/ack/DLQ telemetry. Added optional W3C context to all three services' outbox serialization without changing business fields or transaction boundaries; consumers extract context before handlers and old events remain supported. Added optional generic browser runtime/network/WebSocket diagnostics without error text, user content or session replay. Docker runtime stages preserve nested workspace production dependencies and compiled package exports.
+
+Added optional Compose stack with pinned image manifests, persistence/retention/resource limits, provisioned Grafana sources/dashboard, 12 Prometheus alert rules and rule fixtures. Native RabbitMQ metrics, checksum-verified JMX agent on all three Debezium 2.7 connectors, a least-privilege PostgreSQL monitoring role and workflow/WAL queries, Linux host metrics, container resource/restart metrics through a read API proxy, readiness probes, gateway JSON logs and private/rate-limited browser ingestion. Existing stdout collection is explicit; the collector drops unlabelled container records and filters sensitive resource/trace attributes. No notification destination was supplied; alert evaluation and dashboard visibility are implemented without outbound messages.
+
+Prepared disabled-by-default ECS configuration on the approved existing three-host fleet: slot-1 persistent encrypted monitoring disk and singleton backend; host collection daemon; read-only discovery task role and bridge-port target discovery; private metric/ingestion security-group rules; monitoring role setup; broker/CDC/service wiring; optional browser deployment build flag. Storage-ready placement prevents backend scheduling before the disk is mounted. Slot-1 bootstrap enables host-network task-role credentials. Both bootstrap modes render as valid shell/JSON within the EC2 size limit. Grafana remains loopback/SSM accessible. No plan/apply or capacity/cost/recovery claims for a running AWS deployment.
+
+The initial compatible SDK 0.208 / 2.2 had published advisories. Asked about Node 22, then found patched maintenance SDK 0.223 / 2.12 releases supporting the existing runtime; explicitly corrected the earlier question and removed that blocker without changing Node images. API remains at its required 1.9 peer version. Updated existing Express/body-parser/qs within their compatible declared ranges. Final production dependency audit reports zero known advisories. No runtime upgrade was performed.
+
+**Validation:** Final root typecheck, lint, static CI matrix check, five new telemetry unit tests and whitespace checks passed. Final `npm test` passed all unit/integration/messaging/migration/seed/acceptance/API-E2E/Chromium UI suites on the patched dependencies. Full root build and production Docker builds passed through the suites. A clean `observability:verify -- --browser` passed SDK metrics/logs/traces, actual order saga context through PostgreSQL/Debezium/RabbitMQ/Credit/Order/Notification, 16 scrape targets, three connector connectivity metrics, actual PostgreSQL workflow metrics and browser ingestion without private error text; trace 479d8844e1084f5a51ecf15014350c3c. Verified RabbitMQ/CDC/gateway logs and actual container/nginx metrics. Controlled consumer outage detected readiness failure, backlog and pending workflow; restarting recovered OPEN and drained the queue. Prometheus alert fixtures passed. Cloud bundle rendering, collector/Prometheus validation and fake-AWS discovery fixtures passed. Terraform fmt/validate passed; disabled/enabled bootstrap shell checks passed (2456/3568 bytes). Workflow and overlay YAML parsed. Remote CI was prepared but not triggered. All task-owned disposable containers and volumes were removed; original application resources were not reset.
+
+**Files changed:**
+- `packages/observability/**` — Shared opt-in SDK, safe instrumentation, context serialization and meaningful trace/legacy/failure tests; package and TypeScript configuration.
+- `packages/browser-observability/**` — Portable opt-in browser diagnostics package.
+- `packages/common-dtos/src/index.ts` — Author-approved optional trace metadata in BaseEvent.
+- `packages/messaging/{package.json,src/index.ts}` — Manual native client instrumentation and acknowledgement/retry/DLQ decisions.
+- `services/*/{package.json,Dockerfile,src/index.ts,src/app.ts,src/database/client.ts}` — Six-service startup, middleware, Prisma and compiled-container wiring; socket metrics where applicable.
+- `services/order-service/src/repositories/order.repository.ts`, `services/credit-service/src/credits/store.ts`, `services/user-service/src/auth/auth-module.ts` — Persist optional context with outbox JSON in existing transactions.
+- `apps/{student-app,admin-portal}/{package.json,Dockerfile,src/main.tsx}`, `apps/admin-portal/src/vite-env.d.ts` — Optional browser build/runtime wiring.
+- `compose.observability.yml`, `docker/observability/**` — Telemetry containers, native exporters, database provisioning, private gateway includes, alert fixtures, dashboard, immutable cloud bundle and renderer/discovery code. Downloaded JMX JAR is ignored and checksum-verified, not a tracked source artifact.
+- `gateway/{Dockerfile,nginx.conf}` — Optional local includes and packaged cloud telemetry configuration.
+- `infra/terraform/ecs/{observability.tf,applications.tf,brokers.tf,data-tasks.tf,db-setup.sh,gateway-start.sh,generate-runtime-secrets.cjs,host-bootstrap.sh.tftpl,hosts.tf,main.tf,rabbitmq-start.sh,terraform.tfvars.example}` — Approved optional ECS preparation and monitoring bootstrap/secret wiring.
+- `infra/terraform/ecs/.terraform.lock.hcl` — Generated local-platform checksum for the existing pinned provider, with no provider version change.
+- `scripts/observability/**` — Preparation, SDK smoke, isolated end-to-end verification, controlled failure and cloud fixture validation commands.
+- `.github/workflows/{ci.yml,deploy-ecs.yml}` — Telemetry unit/integration/configuration checks in the required gate and optional browser build flag.
+- `package.json`, `package-lock.json`, `.env.example`, `.gitignore` — Commands, reproducible compatible dependency patches, documented settings and fetched-binary exclusion. JSON artifacts cannot contain disclosure comments.
+- `README.md`, `docs/README.md`, `docs/observability/{implementation-plan.md,runbook.md}` — Navigation, full operating instructions, authorization record, check evidence and concrete continuation steps/remaining operational work.
+- `ai/usage-log.md` — This required final bookkeeping entry, written last.
+
+
+## 2026-11-09 15:00 SGT — Upgrade the six backends to approved Node 22 and current telemetry SDKs
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/self-hosted-observability
+
+**Prompt (summarised):** Explicitly approve upgrading the six backend Docker images to Node 22 and using the current patched OpenTelemetry packages.
+
+**Usage scenario:** Authorized runtime/dependency implementation and compatibility debugging in the existing observability worktree. Updated every build, production-dependency and runtime stage in all six backend Dockerfiles to Node 22.23.4 on the existing Alpine 3.23 version, pinned to verified manifest digest 2cfe8c19bd3df0192ad5dfd2e13e86567743ffa1eb614e750a706891f19606af. Updated SDK/exporters/HTTP instrumentation to 0.301.0, SDK logs/metrics/tracing to 3.1.0, stable API to 1.10.0 and current compatible Express/undici/runtime instrumentation. Removed legacy api-logs and sdk-trace-node/sdk-trace-base dependencies, imported logging from the stable API, used plural metricReaders and migrated trace tests to the unified tracing package. Isolated unit tests disable asynchronous host resource detection to avoid racing exporter assertions. Declared Node >=22.15.0 in root and telemetry package manifests. Frontend build images and the independent configuration bundle remain outside this six-backend upgrade. Updated current operating and continuation documentation; prior implementation/usage history remains intact. No deployment, image publishing, commits or pushes.
+
+**Validation:** All-workspace typecheck, root lint, static CI matrix check, five telemetry unit tests and whitespace checks passed. Complete `npm test` passed unit/integration/messaging/migration/seed/acceptance/API-E2E/Chromium UI checks with the upgraded Dockerfiles. Fresh `observability:verify -- --browser` passed all three signals, actual CDC order saga continuity, 16 scrape targets, PostgreSQL and connector metrics and browser ingestion; trace dde1941c3eecb8e3bc61961ad7287616. Verified Node v22.23.4 and SDK 0.301.0 directly inside every built backend image using workspace-aware module resolution. Production dependency audit: zero known advisories. Detailed local logs: /tmp/foc-observability-node22-regression.log and /tmp/foc-observability-node22-verify.log. All disposable containers and volumes were removed; no running Docker containers remain from these checks. Remote CI was not triggered.
+
+**Files changed:**
+- `services/{user,supplier,order,credit,notification,chat}-service/Dockerfile` — Approved pinned Node 22 image across all 18 stages; updated consolidated disclosure scopes.
+- `packages/observability/package.json`, `package.json`, `package-lock.json` — Current exact SDK versions, unified tracing dependency, removal of legacy packages and minimum supported host Node version; JSON cannot contain disclosure comments.
+- `packages/observability/src/{bootstrap,index}.ts` — Current metric-reader and stable logging API integration.
+- `packages/observability/test/context.test.ts` — Current tracing SDK test setup and deterministic resource behavior.
+- `docs/observability/{runbook,implementation-plan}.md` — Runtime approval, SDK requirements, final Node 22 evidence and continuation state.
+- `docs/development/local-development.md`, `docs/infrastructure/docker-and-deployment.md` — Current host/backend runtime requirements, retaining the frontend distinction.
+- `ai/usage-log.md` — This required entry, written last.
+
+
+## 2026-11-09 15:44 SGT — Write comprehensive student guide to observability changes
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/self-hosted-observability
+
+**Prompt (summarised):** Comprehensively summarize all observability changes and explain their purpose for a motivated student in a new Markdown file.
+
+**Usage scenario:** Requested documentation and learning support. Read the current diff, new-file inventory, shared instrumentation, browser helper, exporter/collector/alert/database configuration and recorded verification evidence. Wrote a student-oriented walkthrough explaining the technical purpose and behavior of the implemented changes and the author's existing stack/layout/runtime approvals. No new architecture selections, decision-rationale documents, application changes or deployments. Explicitly distinguished component health from workflow progress, trace context from business identifiers, handler timing from queue waiting, local verification from prepared AWS configuration, and alert evaluation from external delivery.
+
+**Validation:** Checked all local file links and section anchors, paired Markdown fences, the single disclosure block and whitespace. Cross-checked the current Node 22 / SDK 0.301 and 3.1 versions, actual alert conditions, existing verification results and undeployed AWS status. This prompt changes documentation only; application tests were not rerun. Prior test outcomes are reported as recorded implementation evidence, with their limits.
+
+**Files changed:**
+- `docs/observability/student-change-guide.md` — New comprehensive guide with glossary-style explanations, a complete errand flow, data-flow diagram, backend/outbox/native infrastructure/browser changes, dashboards/alerts, container/runtime/dependency changes, AWS preparation, verification boundaries, file map and learning exercises.
+- `ai/usage-log.md` — This required entry, written last.
+
+
+## 2026-11-09 16:49 SGT — Link student guide explanations to concrete code
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/self-hosted-observability
+
+**Prompt (summarised):** Add clickable code-file references to the student guide so its explanations are more concrete.
+
+**Usage scenario:** Requested documentation refinement. Added nearby code pointers naming the relevant helpers, configuration and wiring for backend startup, HTTP/database/socket measurements, outbox propagation, RabbitMQ/CDC/database exporters, browser/gateway collection, dashboards, alerts, packaging, AWS resources and verification. Replaced every file-map row's plain paths/globs with verified relative links, expanding grouped service references to all six actual service files. Linked the guided reading sequence directly to its source files. Relative links preserve portability when the worktree moves or the document is committed. Preserved the explanatory content and made no application or infrastructure changes.
+
+**Validation:** Validated all 195 Markdown links (103 unique relative repository targets), local file existence, section anchors, all file-map rows, paired fences and the single disclosure block. Whitespace checks passed. Documentation-only change; application tests were not rerun.
+
+**Files changed:**
+- `docs/observability/student-change-guide.md` — Clickable code pointers throughout the explanations, complete linked file map and linked reading sequence; updated consolidated disclosure scope.
+- `ai/usage-log.md` — This required entry, written last.
+
+
+## 2026-11-09 19:28 SGT — Commit and publish the observability branch
+
+**Tool:** Codex (model: GPT-6)
+**Author:** yanhwee
+**Branch:** codex/self-hosted-observability
+
+**Prompt (summarised):** Commit the completed changes and push them as a remote branch.
+
+**Usage scenario:** Explicitly authorized Git publication of the self-hosted observability implementation, approved Node 22/current SDK update, operational/continuation documentation and linked student guide in the isolated worktree. Reviewed the worktree and origin identity, preserved the original checkout's unrelated usage-log changes, checked whitespace and confirmed the downloaded JMX binary remains ignored. Updated documentation's current publication wording to reflect this new authorization. Preparing one implementation commit including all task-owned files and this entry, then pushing the named branch normally with upstream tracking. No force-push, merge, PR creation or deployment is requested or performed by this instruction.
+
+**Validation:** Existing final implementation evidence remains unchanged: full regression suite and fresh observability/browser/CDC integration passed on Node 22/current SDK; production dependency audit reported zero advisories. Subsequent changes were documentation/link edits only. Reviewed file inventory and whitespace for this publication; did not repeat application tests without source changes.
+
+**Files changed:**
+- All task-owned implementation and documentation files described by the preceding observability entries — Include in the authorized commit and remote branch.
+- `docs/observability/implementation-plan.md` — Record explicit branch-publication authorization and retain outstanding review/deployment boundaries.
+- `docs/observability/student-change-guide.md` — Remove the now-stale uncommitted-state wording.
+- `ai/usage-log.md` — Include this publication entry in the commit; written last.

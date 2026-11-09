@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Wired database readiness check (SELECT 1) into createApp() for /ready probe.
@@ -25,6 +29,7 @@
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by jagdeepsh)
 // AI-generated (edited by ngkhengyang)
+import '@campus-errand/observability/bootstrap';
 import { createApp } from './app';
 import { config } from './config';
 import { prisma } from './database/client';

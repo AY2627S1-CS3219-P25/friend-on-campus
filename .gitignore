@@ -1,3 +1,8 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Exclude downloaded observability binaries from version control.
+# Author review: <to be completed by yanhwee>
+
 # Dependencies
 node_modules/
 .pnp
@@ -66,3 +71,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+
+# AI-generated (edited by yanhwee): fetched, checksum-verified observability binaries
+docker/observability/vendor/

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: addTransaction returns the ledger row's id and code so settlement/refund receipts can reference it
  * (Notification Redesign increment 6).
@@ -14,6 +18,7 @@
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
+import { serializeOutboxEvent } from '@campus-errand/observability';
 import type { Prisma, PrismaClient, CreditWallet, CreditTransaction } from '../database/client';
 import type { CreditTransactionDTO, CreditWalletDTO } from './types';
 
@@ -55,7 +60,7 @@ function queries(db: Prisma.TransactionClient) {
         aggregateType: 'credit',
         aggregateId: event.orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: serializeOutboxEvent(event),
       },
     }),
     findGrant: (userId: string) => db.creditGrant.findUnique({ where: { userId } }),

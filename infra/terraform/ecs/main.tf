@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Define the Singapore ECS foundation, rollout inputs and private storage.
 # Author review: <to be completed by the author>
@@ -162,6 +166,16 @@ resource "aws_security_group" "hosts" {
     from_port       = 5672
     to_port         = 5672
     security_groups = [aws_security_group.broker_nlb.id]
+  }
+
+  dynamic "ingress" {
+    for_each = var.observability_enabled ? toset([4318, 8888, 8889, 9100, 15692, 3100, 14319]) : toset([])
+    content {
+      protocol  = "tcp"
+      from_port = ingress.value
+      to_port   = ingress.value
+      self      = true
+    }
   }
 
   egress {

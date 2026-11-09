@@ -1,0 +1,206 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Configure the author-approved opt-in self-hosted observability stack.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+
+x-observed: &observed
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+      labels: com.docker.compose.service
+x-otel-env: &otel-env
+  OTEL_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
+services:
+  user-service:
+    <<: *observed
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: user-service
+  supplier-service:
+    <<: *observed
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: supplier-service
+  order-service:
+    <<: *observed
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: order-service
+  credit-service:
+    <<: *observed
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: credit-service
+  notification-service:
+    <<: *observed
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: notification-service
+  chat-service:
+    <<: *observed
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: chat-service
+  student-app:
+    <<: *observed
+    build:
+      args:
+        VITE_OBSERVABILITY_ENABLED: "true"
+  admin-portal:
+    <<: *observed
+    build:
+      args:
+        VITE_OBSERVABILITY_ENABLED: "true"
+  api-gateway:
+    <<: *observed
+    volumes:
+      - ./docker/observability/nginx:/etc/nginx/observability:ro
+  postgres:
+    <<: *observed
+  rabbitmq:
+    <<: *observed
+    volumes:
+      - ./docker/observability/rabbitmq-enabled-plugins:/etc/rabbitmq/enabled_plugins:ro
+  debezium-order:
+    <<: *observed
+    environment:
+      JAVA_TOOL_OPTIONS: -javaagent:/observability/jmx-agent.jar=9404:/observability/debezium-jmx.yaml
+    volumes:
+      - ./docker/observability/debezium-jmx.yaml:/observability/debezium-jmx.yaml:ro
+      - ./docker/observability/vendor/jmx-agent.jar:/observability/jmx-agent.jar:ro
+  debezium-user:
+    <<: *observed
+    environment:
+      JAVA_TOOL_OPTIONS: -javaagent:/observability/jmx-agent.jar=9404:/observability/debezium-jmx.yaml
+    volumes:
+      - ./docker/observability/debezium-jmx.yaml:/observability/debezium-jmx.yaml:ro
+      - ./docker/observability/vendor/jmx-agent.jar:/observability/jmx-agent.jar:ro
+  debezium-credit:
+    <<: *observed
+    environment:
+      JAVA_TOOL_OPTIONS: -javaagent:/observability/jmx-agent.jar=9404:/observability/debezium-jmx.yaml
+    volumes:
+      - ./docker/observability/debezium-jmx.yaml:/observability/debezium-jmx.yaml:ro
+      - ./docker/observability/vendor/jmx-agent.jar:/observability/jmx-agent.jar:ro
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.140.0@sha256:ffc818ee108d0b934fd14207fd87ff247c9b64f344ed349d0b66c166c18a2312
+    user: "0:0"
+    command: [--config=/etc/otelcol/config.yaml]
+    mem_limit: 256m
+    restart: unless-stopped
+    volumes:
+      - ./docker/observability/collector.yaml:/etc/otelcol/config.yaml:ro
+      - /var/lib/docker/containers:/host-logs:ro
+      - otel_data:/var/lib/otelcol
+    networks: [default, docker-monitoring]
+    ports:
+      - "127.0.0.1:${OBS_OTLP_PORT:-14318}:4318"
+    depends_on: [loki, tempo, docker-api]
+  prometheus:
+    image: prom/prometheus:v3.8.0@sha256:d936808bdea528155c0154a922cd42fd75716b8bb7ba302641350f9f3eaeba09
+    command: [--config.file=/etc/prometheus/prometheus.yaml, --storage.tsdb.retention.time=72h, --storage.tsdb.retention.size=512MB]
+    mem_limit: 384m
+    restart: unless-stopped
+    volumes:
+      - ./docker/observability/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./docker/observability/alerts.yaml:/etc/prometheus/alerts.yaml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:${OBS_PROMETHEUS_PORT:-19090}:9090"
+  loki:
+    image: grafana/loki:3.6.3@sha256:cd6e176883a90c21755f0315688668991634143423f75bdedfef41441b0fdc3c
+    command: [-config.file=/etc/loki/config.yaml]
+    mem_limit: 384m
+    restart: unless-stopped
+    volumes:
+      - ./docker/observability/loki.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+  tempo:
+    image: grafana/tempo:2.9.0@sha256:65a5789759435f1ef696f1953258b9bbdb18eb571d5ce711ff812d2e128288a4
+    user: "0:0"
+    command: [-config.file=/etc/tempo/config.yaml]
+    mem_limit: 384m
+    restart: unless-stopped
+    volumes:
+      - ./docker/observability/tempo.yaml:/etc/tempo/config.yaml:ro
+      - tempo_data:/var/tempo
+  grafana:
+    image: grafana/grafana:12.3.1@sha256:2175aaa91c96733d86d31cf270d5310b278654b03f5718c59de12a865380a31f
+    mem_limit: 256m
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "127.0.0.1:${OBS_GRAFANA_PORT:-13000}:3000"
+    volumes:
+      - ./docker/observability/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/default.yaml:ro
+      - ./docker/observability/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/default.yaml:ro
+      - ./docker/observability/grafana/overview.json:/var/lib/grafana/dashboards/overview.json:ro
+      - grafana_data:/var/lib/grafana
+  postgres-monitor-init:
+    image: postgres:16.15-alpine3.24@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    command: [psql, -h, postgres, -U, postgres, -v, ON_ERROR_STOP=1, -f, /observability/monitor.sql]
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+      - ./docker/observability/postgres-monitor.sql:/observability/monitor.sql:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      order-service: {condition: service_healthy}
+  postgres-exporter:
+    depends_on:
+      postgres-monitor-init: {condition: service_completed_successfully}
+    image: prometheuscommunity/postgres-exporter:v0.18.1@sha256:fb96c4413985d4b23ab02b19022b3d70a86c8e0a62f41ab15ebb6f4673781a5d
+    mem_limit: 96m
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: postgresql://observability:observability-local-only@postgres:5432/order_db?sslmode=disable
+      PG_EXPORTER_EXTEND_QUERY_PATH: /etc/postgres-exporter/queries.yaml
+    volumes:
+      - ./docker/observability/postgres-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+  node-exporter:
+    image: prom/node-exporter:v1.10.2@sha256:3ac34ce007accad95afed72149e0d2b927b7e42fd1c866149b945b84737c62c3
+    command: [--path.procfs=/host/proc, --path.sysfs=/host/sys, --path.rootfs=/host/root]
+    mem_limit: 64m
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0@sha256:a50c4c0eda297baa1678cd4dc4712a67fdea713b832d43ce7fcc5f9bea05094d
+    command: [--config.file=/etc/blackbox/config.yaml]
+    mem_limit: 64m
+    restart: unless-stopped
+    volumes:
+      - ./docker/observability/blackbox.yaml:/etc/blackbox/config.yaml:ro
+  docker-api:
+    image: tecnativa/docker-socket-proxy:v0.4.1@sha256:3400c429c5f9e1b21d62130fb93b16e2e772d4fb7695bd52fc2b743800b9fe9e
+    mem_limit: 64m
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      INFO: "1"
+      VERSION: "1"
+      POST: "0"
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-monitoring]
+networks:
+  docker-monitoring:
+    internal: true
+volumes:
+  otel_data:
+  prometheus_data:
+  loki_data:
+  tempo_data:
+  grafana_data:

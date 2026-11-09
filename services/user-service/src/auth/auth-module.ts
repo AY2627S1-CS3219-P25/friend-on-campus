@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Complete registration after committing the account and outbox event; Debezium owns publication.
  * Author review: <to be completed by huangjiaxi1111>
@@ -42,6 +46,7 @@
 // AI-generated (edited by ngkhengyang)
 
 // AI-generated (edited by ngkhengyang)
+import { serializeOutboxEvent } from '@campus-errand/observability';
 import type {
   AuthResponse,
   LoginUserRequest,
@@ -221,7 +226,7 @@ export function createAuthModule(options: AuthModuleOptions): AuthModule {
           outboxEvent: {
             id: eventId,
             eventType: 'user.registered',
-            payload: JSON.stringify(event),
+            payload: serializeOutboxEvent(event),
           },
         });
 

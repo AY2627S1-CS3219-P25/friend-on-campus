@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: CreateOrderParams and the create write carry the optional drop-off coordinates and estimated credit.
  * Author review: <to be completed by huangjiaxi1111>
@@ -52,6 +56,7 @@
  * Author review: <to be completed by the author>
  */
 // AI-generated (edited by yanhwee)
+import { serializeOutboxEvent } from '@campus-errand/observability';
 import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { Order, Prisma, PrismaClient } from '../database/client';
@@ -159,7 +164,7 @@ async function handleCreateOrderWithOutbox(
         aggregateType: 'order',
         aggregateId: order.id,
         eventType: event.eventType,
-        payload: JSON.stringify(event),
+        payload: serializeOutboxEvent(event),
         status: 'PENDING',
       },
     });
@@ -214,7 +219,7 @@ async function handleApplyReservationResult(
           aggregateType: 'order',
           aggregateId: order.id,
           eventType: outboxEvent.eventType,
-          payload: JSON.stringify(outboxEvent),
+          payload: serializeOutboxEvent(outboxEvent),
           status: 'PENDING',
         },
       });
@@ -446,7 +451,7 @@ async function handleAcceptOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -499,7 +504,7 @@ async function handlePickupOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -552,7 +557,7 @@ async function handleDeliverOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -609,7 +614,7 @@ async function handleCompleteOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -745,7 +750,7 @@ async function handleCancelOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -804,7 +809,7 @@ async function handleUnassignOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -859,7 +864,7 @@ async function handleExpireDueOrders(
               aggregateType: 'order',
               aggregateId: candidate.id,
               eventType: event.eventType,
-              payload: JSON.stringify(event),
+              payload: serializeOutboxEvent(event),
               status: 'PENDING',
             },
           });
@@ -930,7 +935,7 @@ async function handleAdminCancelOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -993,7 +998,7 @@ async function handleAdminCompleteOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });
@@ -1058,7 +1063,7 @@ async function handleAdminUnassignOrder(
         aggregateType: 'order',
         aggregateId: orderId,
         eventType: event.eventType,
-        payload: JSON.stringify(completeEvent(event, order, refreshed)),
+        payload: serializeOutboxEvent(completeEvent(event, order, refreshed)),
         status: 'PENDING',
       },
     });

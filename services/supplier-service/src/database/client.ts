@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Standardized Prisma client module to import from ../generated/prisma, use centralized config.databaseUrl with globalForPrisma singleton guard, and re-export Prisma types.
  * Author review: <to be completed by author after review>
@@ -11,6 +15,7 @@
  */
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by jagdeepsh)
+import { instrumentDatabase } from '@campus-errand/observability';
 import { config } from '../config';
 import { PrismaClient } from '../generated/prisma';
 
@@ -23,13 +28,13 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  instrumentDatabase(new PrismaClient({
     datasources: {
       db: {
         url: config.databaseUrl,
       },
     },
-  });
+  }));
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;

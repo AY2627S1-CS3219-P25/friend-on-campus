@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Updated generated Prisma client import path to ../generated/prisma.
  * Author review: <to be completed by author after review>
@@ -10,10 +14,11 @@
  */
 // AI-generated (edited by yanhwee)
 // AI-generated (edited by huangjiaxi1111)
+import { instrumentDatabase } from '@campus-errand/observability';
 import { config } from '../config';
 import { PrismaClient } from '../generated/prisma';
 
 export { Prisma, PrismaClient } from '../generated/prisma';
 export type { CreditWallet, CreditTransaction, CreditGrant, CreditEscrow, ProcessedCreditEvent, CreditOutboxEvent } from '../generated/prisma';
 
-export const prisma = new PrismaClient({ datasources: { db: { url: config.databaseUrl } } });
+export const prisma = instrumentDatabase(new PrismaClient({ datasources: { db: { url: config.databaseUrl } } }));

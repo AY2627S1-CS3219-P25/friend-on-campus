@@ -1,0 +1,82 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Configure the author-approved opt-in self-hosted observability stack.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+
+groups:
+  - name: availability
+    rules:
+      - alert: TelemetryTargetDown
+        expr: up == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Telemetry target {{ $labels.instance }} is unavailable'
+          description: 'Check its container, logs and metrics listener. A failed scrape does not by itself establish application failure.'
+      - alert: ServiceNotReady
+        expr: probe_success{job="readiness"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: 'Readiness failed for {{ $labels.instance }}'
+      - alert: HighServerErrorRate
+        expr: sum by (service_name) (rate(app_http_requests_total{http_response_status_code=~"5.."}[5m])) / clamp_min(sum by (service_name) (rate(app_http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Server error rate exceeds 5 percent for {{ $labels.service_name }}'
+      - alert: DeadLetterMessages
+        expr: rabbitmq_queue_messages_ready{queue=~".*[.]dlq"} > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Messages in dead-letter queue {{ $labels.queue }}'
+      - alert: QueueWithoutConsumers
+        expr: (rabbitmq_queue_messages_ready{queue!~".*[.]dlq"} > 0) and on(instance, vhost, queue) (rabbitmq_queue_consumers == 0)
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Queued messages without consumers in {{ $labels.queue }}'
+      - alert: DebeziumDisconnected
+        expr: debezium_streaming_connected == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: 'Debezium disconnected at {{ $labels.instance }}'
+      - alert: RetainedReplicationWal
+        expr: pg_replication_slots_retained_wal_bytes > 268435456
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Replication slot {{ $labels.slot_name }} retains over 256 MiB WAL'
+      - alert: CollectorRefusingTelemetry
+        expr: sum(rate(otelcol_receiver_refused_spans_total[5m])) > 0 or sum(rate(otelcol_receiver_refused_log_records_total[5m])) > 0 or sum(rate(otelcol_receiver_refused_metric_points_total[5m])) > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Collector is refusing telemetry; inspect resource limits and exporters'
+      - alert: HostDiskNearlyFull
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes < 0.1
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Less than 10 percent disk space at {{ $labels.mountpoint }}'
+      - alert: PostgreSQLUnavailable
+        expr: pg_up == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: 'PostgreSQL exporter cannot query its database'
+      - alert: OrderReservationStalled
+        expr: pg_order_workflow_oldest_pending_seconds{status="PENDING"} > 120
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: 'An order has remained pending for more than two minutes'
+      - alert: CollectorExportFailures
+        expr: sum(rate(otelcol_exporter_send_failed_spans_total[5m])) > 0 or sum(rate(otelcol_exporter_send_failed_log_records_total[5m])) > 0 or sum(rate(otelcol_exporter_send_failed_metric_points_total[5m])) > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: 'Collector cannot export some telemetry'

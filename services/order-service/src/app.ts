@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Injected AssistantService into Express application factory for F6 NLP Errand Assistant.
  * Author review: <to be completed by yanhwee>
@@ -9,6 +13,7 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
+import { requestTelemetry } from '@campus-errand/observability';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import cors from 'cors';
 import type { AssistantService } from './assistant/assistant.service';
@@ -42,6 +47,7 @@ const jsonParseErrorHandler: ErrorRequestHandler = (error, _req, res, _next) => 
 
 export function createApp(deps: AppDependencies) {
   const app = express();
+  app.use(requestTelemetry);
 
   app.use(cors());
   app.use(express.json());

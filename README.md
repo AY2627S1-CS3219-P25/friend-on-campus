@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Link the self-hosted observability runbook and continuation plan.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Retire K3s deployment references and link the ECS Terraform rollout and manual deployment workflow.
 Author review: <to be completed by the author>
@@ -314,7 +318,7 @@ npm run test:e2e:api
 ```
 
 ### Lint, Build & Universal Typecheck
-Typechecks all 10 workspaces (2 apps, 5 services, 3 packages); each service's `typecheck` covers its tests too:
+Typechecks every workspace, including the shared observability packages; each service's `typecheck` covers its tests too:
 ```bash
 npm run lint
 npm run build
@@ -415,3 +419,7 @@ Full architectural documentation, domain specifications, and milestone presentat
 - **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`)
 - **[Testing & Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Testing-and-Evidence)** & **[Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)**: Automated test matrix, acceptance evidence, and Milestone D3 presentation runbook
 - **Claude Code Set-up**: [`.claude/README.md`](./.claude/README.md) & [`CLAUDE.md`](./CLAUDE.md)
+
+## Self hosted observability
+
+See [the observability runbook](docs/observability/runbook.md) for the optional local stack, metrics/logs/traces, failure exercises and prepared ECS configuration. The [implementation plan](docs/observability/implementation-plan.md) records continuation status and remaining validation.

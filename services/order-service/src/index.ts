@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Wired AssistantService with SoCLaaS gateway and supplier client into Order Service startup.
  * Author review: <to be completed by yanhwee>
@@ -13,6 +17,7 @@
  * Author review: (to be completed by author after review)
  */
 // AI-generated (edited by yanhwee)
+import '@campus-errand/observability/bootstrap';
 import { authMiddleware } from '@campus-errand/auth';
 import type { NextFunction, Request, Response } from 'express';
 import type { Server } from 'node:http';

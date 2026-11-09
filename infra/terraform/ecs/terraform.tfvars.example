@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: List the inputs for a fresh Singapore ECS Terraform state.
 # Author review: <to be completed by the author>
@@ -10,3 +14,7 @@ debezium_image = "quay.io/debezium/server:2.7"
 phase          = "foundation"
 hosts_running  = true
 # Set TF_VAR_origin_header in your shell. Keep the generated value stable between runs.
+
+# Optional: first build and push the ARM64 configuration bundle, then supply its digest.
+observability_enabled = false
+observability_bundle_image = ""

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Publish Credit result outbox events through Debezium instead of an application polling worker.
  * Author review: <to be completed by huangjiaxi1111>
@@ -13,6 +17,7 @@
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
+import '@campus-errand/observability/bootstrap';
 import type { Server } from 'node:http';
 import { authMiddleware } from '@campus-errand/auth';
 import { createApp } from './app';

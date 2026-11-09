@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Create service databases and grant the CDC role access to the existing outbox tables.
 # Author review: <to be completed by the author>
@@ -38,6 +42,20 @@ SELECT format('CREATE PUBLICATION %I FOR TABLE public.%I', :'publication', :'out
   WHERE NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = :'publication') \gexec
 SQL
     done
+    ;;
+  monitoring)
+    export ROLE_PASSWORD="$DB_OBSERVABILITY"
+    psql -X -v ON_ERROR_STOP=1 -d postgres <<'SQL'
+\getenv role_password ROLE_PASSWORD
+SELECT 'CREATE ROLE observability LOGIN' WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'observability') \gexec
+ALTER ROLE observability PASSWORD :'role_password';
+GRANT pg_monitor TO observability;
+SQL
+    psql -X -v ON_ERROR_STOP=1 -d order_db <<'SQL'
+GRANT CONNECT ON DATABASE order_db TO observability;
+GRANT USAGE ON SCHEMA public TO observability;
+GRANT SELECT (status, created_at) ON orders TO observability;
+SQL
     ;;
   *) exit 2 ;;
 esac

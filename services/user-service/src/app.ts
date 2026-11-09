@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-30
  * Scope: Pass secure-cookie settings into account-deletion routes.
  * Author review: <to be completed by huangjiaxi1111>
@@ -9,6 +13,7 @@
  * Author review: <to be completed by ngkhengyang>
  */
 // AI-generated (edited by ngkhengyang)
+import { requestTelemetry } from '@campus-errand/observability';
 import cors from 'cors';
 import express, { Request, RequestHandler, Response } from 'express';
 import { AuthModule } from './auth/auth-module';
@@ -31,6 +36,7 @@ export interface AppDependencies {
 
 export function createApp(dependencies: AppDependencies) {
   const app = express();
+  app.use(requestTelemetry);
 
   app.use(requestLogger);
   app.use(

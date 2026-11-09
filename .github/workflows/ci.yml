@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Include the approved shared observability workspace.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
 # Scope: Added the admin-portal test:unit entry to the unit matrix (supplier form validation test, PR #222 review).
 # Author review: <to be completed by Reallyeasy1>
@@ -153,6 +157,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: observability
+            workspace: '@campus-errand/observability'
+            script: test:unit
+            database: none
+            rabbitmq: false
           - name: admin-portal
             workspace: '@campus-errand/admin-portal'
             script: test:unit
@@ -701,6 +710,46 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.test.yml down -v --remove-orphans
 
+  observability:
+    name: Self hosted observability
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Prepare JMX exporter
+        run: npm run observability:prepare
+      - name: Validate Collector and alert rules
+        run: |
+          docker run --rm -v "$PWD/docker/observability:/config:ro" otel/opentelemetry-collector-contrib:0.140.0@sha256:ffc818ee108d0b934fd14207fd87ff247c9b64f344ed349d0b66c166c18a2312 validate --config=/config/collector.yaml
+          docker run --rm --entrypoint /bin/promtool -w /config -v "$PWD/docker/observability:/config:ro" prom/prometheus:v3.8.0@sha256:d936808bdea528155c0154a922cd42fd75716b8bb7ba302641350f9f3eaeba09 test rules /config/alerts.test.yaml
+      - name: Validate cloud rendering and discovery without AWS access
+        run: npm run observability:validate-cloud
+      - name: Verify production containers and all telemetry signals
+        run: npm run observability:verify -- --browser
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+      - name: Validate prepared ECS configuration without deploying
+        run: |
+          terraform -chdir=infra/terraform/ecs fmt -check
+          terraform -chdir=infra/terraform/ecs init -backend=false -input=false
+          terraform -chdir=infra/terraform/ecs validate
+      - name: Upload verification outcome
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: observability-results
+          path: test-results/observability/**
+          if-no-files-found: ignore
+
   test-gate:
     name: Test gate
     if: ${{ always() }}
@@ -709,6 +758,7 @@ jobs:
       - build
       - typecheck
       - test-config
+      - observability
       - unit-tests
       - integration-tests
       - messaging-tests
@@ -726,6 +776,7 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
           TYPECHECK_RESULT: ${{ needs.typecheck.result }}
           CONFIG_RESULT: ${{ needs.test-config.result }}
+          OBSERVABILITY_RESULT: ${{ needs.observability.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
           INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
           MESSAGING_RESULT: ${{ needs.messaging-tests.result }}
@@ -741,6 +792,7 @@ jobs:
             "build=$BUILD_RESULT" \
             "typecheck=$TYPECHECK_RESULT" \
             "test-config=$CONFIG_RESULT" \
+            "observability=$OBSERVABILITY_RESULT" \
             "unit=$UNIT_RESULT" \
             "integration=$INTEGRATION_RESULT" \
             "messaging=$MESSAGING_RESULT" \

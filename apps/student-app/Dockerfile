@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Include optional browser telemetry workspace and build flag.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-5), date: 2026-10-15
 # Scope: Pinned the Node build and NGINX runtime images to exact Alpine release tags and verified registry digests.
 # Author review: <to be completed by ngkhengyang>
@@ -20,16 +24,21 @@ FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632
 WORKDIR /app
 
 COPY package.json package-lock.json tsconfig.base.json ./
+COPY packages/browser-observability/package.json ./packages/browser-observability/
 COPY packages/common-dtos/package.json ./packages/common-dtos/
 COPY apps/student-app/package.json ./apps/student-app/
 
 RUN npm ci --workspace=@campus-errand/student-app --include-workspace-root=false
 
+COPY packages/browser-observability ./packages/browser-observability
 COPY packages/common-dtos ./packages/common-dtos
 COPY apps/student-app ./apps/student-app
 
 ARG VITE_SHOW_WS_STATUS=true
 ENV VITE_SHOW_WS_STATUS=${VITE_SHOW_WS_STATUS}
+
+ARG VITE_OBSERVABILITY_ENABLED=false
+ENV VITE_OBSERVABILITY_ENABLED=${VITE_OBSERVABILITY_ENABLED}
 
 RUN npm run build --workspace=@campus-errand/student-app
 

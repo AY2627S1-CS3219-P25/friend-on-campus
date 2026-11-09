@@ -1,0 +1,25 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Configure the author-approved opt-in self-hosted observability stack.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+
+pg_replication_slots:
+  query: >-
+    SELECT slot_name, active::int AS active,
+      pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)::float8 AS retained_wal_bytes
+    FROM pg_replication_slots WHERE restart_lsn IS NOT NULL
+  metrics:
+    - slot_name: {usage: LABEL, description: Replication slot name}
+    - active: {usage: GAUGE, description: Whether a replication slot is active}
+    - retained_wal_bytes: {usage: GAUGE, description: WAL bytes retained by this slot}
+pg_order_workflow:
+  query: >-
+    SELECT status, count(*) AS orders,
+      COALESCE(max(extract(epoch FROM (now() - created_at))) FILTER (WHERE status = 'PENDING'), 0) AS oldest_pending_seconds
+    FROM orders GROUP BY status
+  master: true
+  metrics:
+    - status: {usage: LABEL, description: Order lifecycle state}
+    - orders: {usage: GAUGE, description: Current number of orders by state}
+    - oldest_pending_seconds: {usage: GAUGE, description: Age of oldest pending order}

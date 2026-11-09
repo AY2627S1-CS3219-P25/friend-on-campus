@@ -1,11 +1,16 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Express app for the Chat Service in the shape of notification-service/src/app.ts: /health, /ready, the chat
  * history route under /api/chat (S6) and the generic error handler.
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
+import { requestTelemetry } from '@campus-errand/observability';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import { createChatRouter } from './chat/routes';
@@ -21,6 +26,7 @@ export function createApp(dependencies: {
   chat?: { service: ConversationService; authenticate: RequestHandler };
 }) {
   const app = express();
+  app.use(requestTelemetry);
   app.use(cors());
   app.use(express.json());
 

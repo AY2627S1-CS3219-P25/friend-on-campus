@@ -1,0 +1,53 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Configure the author-approved opt-in self-hosted observability stack.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files: [/etc/prometheus/alerts.yaml]
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+  - job_name: collector
+    static_configs:
+      - targets: [otel-collector:8888]
+  - job_name: application
+    static_configs:
+      - targets: [otel-collector:8889]
+  - job_name: rabbitmq
+    metrics_path: /metrics/per-object
+    static_configs:
+      - targets: [rabbitmq:15692]
+  - job_name: debezium
+    static_configs:
+      - targets: [debezium-order:9404, debezium-user:9404, debezium-credit:9404]
+  - job_name: postgres
+    static_configs:
+      - targets: [postgres-exporter:9187]
+  - job_name: host
+    static_configs:
+      - targets: [node-exporter:9100]
+  - job_name: readiness
+    metrics_path: /probe
+    params:
+      module: [http_success]
+    static_configs:
+      - targets:
+          - http://user-service:8001/ready
+          - http://supplier-service:8002/ready
+          - http://order-service:8003/ready
+          - http://credit-service:8004/ready
+          - http://notification-service:8005/ready
+          - http://chat-service:8006/ready
+          - http://api-gateway/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115

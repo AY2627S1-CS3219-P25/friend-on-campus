@@ -1,0 +1,497 @@
+{
+  "uid": "campus-observability",
+  "title": "CampusErrand observability",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requests per second",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (service_name) (rate(app_http_requests_total[5m]))",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "HTTP p95 seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(app_http_duration_seconds_bucket[5m])))",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "HTTP 5xx per second",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (service_name) (rate(app_http_requests_total{http_response_status_code=~\"5..\"}[5m]))",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Readiness",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "probe_success{job=\"readiness\"}",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "RabbitMQ ready messages",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "rabbitmq_queue_messages_ready",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "RabbitMQ consumers",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "rabbitmq_queue_consumers",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Message outcomes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (queue, outcome) (rate(app_messaging_deliveries_total[5m]))",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Message processing p95 seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, queue) (rate(app_messaging_duration_seconds_bucket[5m])))",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Debezium lag milliseconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "debezium_streaming_lag_milliseconds",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Debezium connected",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "debezium_streaming_connected",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Retained replication WAL bytes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "pg_replication_slots_retained_wal_bytes",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Pending order age seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "pg_order_workflow_oldest_pending_seconds{status=\"PENDING\"}",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "WebSocket connections",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "app_websocket_connections",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Database operation p95 seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(app_db_duration_seconds_bucket[5m])))",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Host available memory bytes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "node_memory_MemAvailable_bytes",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Telemetry targets",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "up",
+          "refId": "A",
+          "legendFormat": "{{service_name}}{{queue}}{{instance}}{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 99,
+      "title": "Application and infrastructure logs",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "expr": "{service_name=~\".+\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "title": "Firing alerts",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 76,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "title": "Container CPU utilization",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 84,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "container_cpu_utilization_ratio",
+          "refId": "A",
+          "legendFormat": "{{container_name}}{{queue}} {{action}}"
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "title": "Container memory bytes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 84,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "container_memory_usage_total_bytes",
+          "refId": "A",
+          "legendFormat": "{{container_name}}{{queue}} {{action}}"
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "title": "Container restarts",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 92,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "container_restarts_total",
+          "refId": "A",
+          "legendFormat": "{{container_name}}{{queue}} {{action}}"
+        }
+      ]
+    },
+    {
+      "id": 113,
+      "title": "Consumer acknowledgements and retry decisions",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 92,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (queue, action) (rate(app_messaging_actions_total[5m]))",
+          "refId": "A",
+          "legendFormat": "{{container_name}}{{queue}} {{action}}"
+        }
+      ]
+    }
+  ]
+}

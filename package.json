@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=22.3"
+    "node": ">=22.15.0"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -35,7 +35,12 @@
     "db:deploy": "npm run db:deploy --workspaces --if-present",
     "db:seed": "npm run db:seed -w @campus-errand/user-service -w @campus-errand/supplier-service -w @campus-errand/order-service -w @campus-errand/credit-service",
     "generate:jwt-keys": "node scripts/generate-jwt-keys.mjs",
-    "postinstall": "npm run db:generate --workspaces --if-present"
+    "postinstall": "npm run db:generate --workspaces --if-present",
+    "observability:prepare": "node scripts/observability/prepare.mjs",
+    "observability:smoke": "node scripts/observability/smoke.mjs",
+    "observability:verify": "node scripts/observability/verify.mjs",
+    "observability:failure-exercise": "node scripts/observability/failure-exercise.mjs",
+    "observability:validate-cloud": "node scripts/observability/validate-cloud.mjs"
   },
   "overrides": {
     "qs": "^6.16.0"

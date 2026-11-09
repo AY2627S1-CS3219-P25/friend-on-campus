@@ -1,0 +1,12 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Configure the author-approved opt-in self-hosted observability stack.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+
+modules:
+  http_success:
+    prober: http
+    timeout: 5s
+    http:
+      preferred_ip_protocol: ip4

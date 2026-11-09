@@ -1,5 +1,9 @@
 #!/bin/sh
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Configure cluster discovery and import generated RabbitMQ credentials.
 # Author review: <to be completed by the author>
@@ -33,4 +37,7 @@ definitions.skip_if_unchanged = true
 vm_memory_high_watermark.absolute = 1200MiB
 EOF
 chmod 644 /etc/rabbitmq/rabbitmq.conf
+if [ "${OBSERVABILITY_ENABLED:-false}" = true ]; then
+    rabbitmq-plugins enable --offline rabbitmq_prometheus
+fi
 exec /usr/local/bin/docker-entrypoint.sh rabbitmq-server

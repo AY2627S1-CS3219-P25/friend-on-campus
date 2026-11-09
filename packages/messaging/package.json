@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "rabbitmq-client": "^5.1.0"
+    "rabbitmq-client": "^5.1.0",
+    "@campus-errand/observability": "*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

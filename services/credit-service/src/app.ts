@@ -1,10 +1,15 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Injected HTTP authentication while retaining health, readiness and JSON error translation.
  * Author review: <to be completed by huangjiaxi1111>
  */
 // AI-generated (edited by huangjiaxi1111)
+import { requestTelemetry } from '@campus-errand/observability';
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import { createCreditRouter } from './credits/routes';
@@ -17,6 +22,7 @@ export function createApp(dependencies: {
   isReady?: () => Promise<boolean>;
 }) {
   const app = express();
+  app.use(requestTelemetry);
   app.use(cors());
   app.use(express.json());
 

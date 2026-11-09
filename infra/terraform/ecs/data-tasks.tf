@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Wire optional self-hosted observability for the approved ECS layout.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Register one-off database jobs, inject private User seed credentials and run three persistent Debezium connectors.
 # Author review: <to be completed by the author>
@@ -33,8 +37,8 @@ resource "aws_ecs_task_definition" "cdc" {
   family                   = "${local.name}-cdc-${each.key}"
   network_mode             = "bridge"
   requires_compatibilities = ["EC2"]
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = var.observability_enabled ? "576" : "512"
+  memory                   = var.observability_enabled ? "1088" : "1024"
   execution_role_arn       = aws_iam_role.execution.arn
 
   runtime_platform {
@@ -54,26 +58,43 @@ resource "aws_ecs_task_definition" "cdc" {
     }
   }
 
-  container_definitions = jsonencode([{
+  dynamic "volume" {
+    for_each = var.observability_enabled ? [1] : []
+    content { name = "observability" }
+  }
+
+  container_definitions = jsonencode(concat(var.observability_enabled ? [{
+    name             = "configure-observability"
+    image            = var.observability_bundle_image
+    essential        = false
+    cpu              = 32
+    memory           = 64
+    command          = ["cdc"]
+    environment      = [{ name = "OBS_BACKEND_HOST", value = local.obs_host }]
+    mountPoints      = [{ sourceVolume = "observability", containerPath = "/config" }]
+    logConfiguration = local.log_config
+    }] : [], [{
     name             = "debezium"
     image            = var.debezium_image
     essential        = true
     cpu              = 512
     memory           = 1024
     stopTimeout      = 60
-    logConfiguration = local.log_config
+    logConfiguration = var.observability_enabled ? local.obs_logs : local.log_config
+    dependsOn        = var.observability_enabled ? [{ containerName = "configure-observability", condition = "SUCCESS" }] : []
+    portMappings     = var.observability_enabled ? [{ containerPort = 9404, hostPort = 0 }] : []
     entryPoint       = ["/bin/bash", "-ec"]
     command          = ["printf '%s\\n' \"$CDC_CONFIG\" > /debezium/conf/application.properties; exec /debezium/run.sh"]
-    environment = [
+    environment = concat(var.observability_enabled ? [{ name = "JAVA_TOOL_OPTIONS", value = "-javaagent:/observability/jmx-agent.jar=9404:/observability/debezium-jmx.yaml" }] : [], [
       { name = "CDC_CONFIG", value = local.cdc_config[each.key] },
       { name = "JAVA_OPTS", value = "-Xms128m -Xmx640m" },
-    ]
+    ])
     secrets = [
       { name = "DEBEZIUM_SOURCE_DATABASE_PASSWORD", valueFrom = "${local.secret_arn}:db_cdc::" },
       { name = "DEBEZIUM_SINK_RABBITMQ_CONNECTION_PASSWORD", valueFrom = "${local.secret_arn}:rabbit_${each.key}::" },
     ]
-    mountPoints = [{ sourceVolume = "offsets", containerPath = "/debezium/data" }]
-  }])
+    mountPoints = concat([{ sourceVolume = "offsets", containerPath = "/debezium/data" }], var.observability_enabled ? [{ sourceVolume = "observability", containerPath = "/observability", readOnly = true }] : [])
+  }]))
 }
 
 resource "aws_ecs_service" "cdc" {
@@ -124,7 +145,7 @@ resource "aws_ecs_task_definition" "db_setup" {
     ]
     secrets = concat(
       [{ name = "PGPASSWORD", valueFrom = "${aws_db_instance.main.master_user_secret[0].secret_arn}:password::" }],
-      [for name in concat([for backend in local.backends : backend.name], ["cdc"]) : {
+      [for name in concat([for backend in local.backends : backend.name], concat(["cdc"], var.observability_enabled ? ["observability"] : [])) : {
         name = "DB_${upper(name)}", valueFrom = "${local.secret_arn}:db_${name}::"
       }]
     )

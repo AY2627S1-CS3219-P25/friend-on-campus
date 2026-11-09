@@ -1,0 +1,38 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Verify database and workflow alerts trigger and stay quiet on healthy inputs.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+rule_files: [alerts.yaml]
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'pg_up{job="postgres", instance="database"}'
+        values: '0x5'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: PostgreSQLUnavailable
+        exp_alerts:
+          - exp_labels: {job: postgres, instance: database, severity: critical}
+            exp_annotations:
+              summary: PostgreSQL exporter cannot query its database
+  - interval: 1m
+    input_series:
+      - series: 'pg_up{job="postgres", instance="database"}'
+        values: '1x5'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: PostgreSQLUnavailable
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'pg_order_workflow_oldest_pending_seconds{status="PENDING"}'
+        values: '180x5'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: OrderReservationStalled
+        exp_alerts:
+          - exp_labels: {status: PENDING, severity: warning}
+            exp_annotations:
+              summary: An order has remained pending for more than two minutes

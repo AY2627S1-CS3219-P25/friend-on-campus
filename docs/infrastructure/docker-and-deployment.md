@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record the approved six-backend Node 22 upgrade and current SDK requirement.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Document application-only image startup, preserved Compose bootstrap, and graceful socket-service shutdown.
 Author review: <to be completed by the author>
@@ -36,7 +40,7 @@ The RabbitMQ health command uses `su-exec rabbitmq`; changing its effective user
 
 ## Build and environment
 
-Backend containers run compiled Node JavaScript. Frontend containers serve Vite-built static files through NGINX. Root requires Node >=22.3 and CI uses Node 22; all backend Docker stages and frontend build images use Node 20.20.2 at this baseline. This is recorded drift, not normalized by this documentation change.
+Backend containers run compiled Node JavaScript. Frontend containers serve Vite-built static files through NGINX. Root requires Node >=22.15.0 and CI uses Node 22. Following the author-approved observability update on 9 November 2026, all six backend Dockerfiles pin Node 22.23.4 for build, production dependencies and runtime. Frontend build images remain Node 20.20.2. See the [observability runbook](../observability/runbook.md) for current SDK requirements.
 
 Use `.env.example` as the safe variable reference. Runtime examples in this documentation omit passwords and keys. Existing public development defaults must not be reused as a production security claim. Compose currently publishes host service, database and broker ports in addition to the gateway.
 

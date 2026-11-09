@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Expose the optional browser diagnostics build flag.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Manually build ARM64 release images and deploy ECS application services through AWS OIDC.
 # Author review: <to be completed by the author>
@@ -28,6 +32,10 @@ on:
           - student-app
           - admin-portal
           - gateway
+      browser_observability:
+        description: Enable browser diagnostics (requires the telemetry gateway route)
+        type: boolean
+        default: false
       deploy:
         description: Deploy after building (disable for initial image preparation)
         type: boolean
@@ -105,6 +113,8 @@ jobs:
         with:
           context: .
           file: ${{ steps.dockerfile.outputs.path }}
+          build-args: |
+            VITE_OBSERVABILITY_ENABLED=${{ inputs.browser_observability }}
           platforms: linux/arm64
           push: true
           tags: ${{ steps.ecr.outputs.registry }}/foc/${{ matrix.service }}:${{ needs.prepare.outputs.image_tag }}

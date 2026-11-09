@@ -1,10 +1,15 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client.
  * Author review: <to be completed by yanhwee>
  */
 // AI-generated (edited by yanhwee)
+import { observeDelivery, recordDeliveryAction, observePublish } from '@campus-errand/observability';
 import { once } from 'node:events';
 import { setImmediate as immediate, setTimeout as delay } from 'node:timers/promises';
 import { Connection, ConsumerStatus } from 'rabbitmq-client';
@@ -113,7 +118,7 @@ export function createRabbitPublisher(config: { url: string; connectionTimeoutMs
       publisher.once('basic.return', onReturn);
       try {
         await Promise.race([
-          publisher.send({ exchange, routingKey, mandatory: true, durable: true, ...options }, body),
+          observePublish(exchange, routingKey, body, (payload) => publisher!.send({ exchange, routingKey, mandatory: true, durable: true, ...options }, payload)),
           confirmTimeout,
         ]);
         await immediate();
@@ -183,7 +188,8 @@ export async function startRabbitConsumer(
       async (msg) => {
         const deliveryCount = Number(msg.headers?.['x-delivery-count'] ?? 0);
         try {
-          await handlers.handle(msg.rawBody, msg.routingKey);
+          await observeDelivery(msg.rawBody, msg.routingKey, config.queue, () => handlers.handle(msg.rawBody, msg.routingKey));
+          recordDeliveryAction(config.queue, msg.routingKey, 'ack');
           return ConsumerStatus.ACK;
         } catch (error) {
           if (closing || failed) return ConsumerStatus.REQUEUE;
@@ -203,6 +209,7 @@ export async function startRabbitConsumer(
               action: retrying ? 'retry' : 'dlq',
             }),
           );
+          recordDeliveryAction(config.queue, msg.routingKey, retrying ? 'retry' : 'dlq');
           if (!retrying) return ConsumerStatus.DROP;
           await delay(config.retryDelayMs, undefined, { signal: abort.signal }).catch(() => {});
           return ConsumerStatus.REQUEUE;

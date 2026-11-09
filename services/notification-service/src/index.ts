@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-08
  * Scope: Gracefully drain HTTP, WebSockets, the consumer and Prisma on signals or broker failure, including startup races.
  * Author review: <to be completed by the author>
@@ -23,6 +27,8 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by huangjiaxi1111, Reallyeasy1)
+import { observeSocket } from '@campus-errand/observability';
+import '@campus-errand/observability/bootstrap';
 import http from 'http';
 import { WebSocketServer } from 'ws';
 import { authMiddleware } from '@campus-errand/auth';
@@ -52,7 +58,7 @@ const app = createApp({
 // REST and WebSocket share one HTTP server; the gateway forwards /ws/ to its root path.
 const server = http.createServer(app);
 const sockets = new WebSocketServer({ server });
-sockets.on('connection', hub.handleConnection);
+sockets.on('connection', (socket) => { observeSocket(socket, 'notification'); hub.handleConnection(socket); });
 server.listen(config.port, () => {
   console.log(`[Notification Service] listening on ${config.port}`);
 });

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Link the self-hosted observability runbook and continuation plan.
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Link the ECS rollout after retirement of the K3s deployment files.
 Author review: <to be completed by the author>
@@ -121,3 +125,7 @@ The table lists every Markdown file in `docs/`, including this index. Each servi
 ## Maintenance and pending work
 
 Follow [CLAUDE.md](../CLAUDE.md) and the docs-scoped rule. Update the service reference and shared contract catalogue together after a source change. Recheck pending-head facts after merge; retain dated test evidence as dated evidence. Do not silently reconcile source disagreements or complete human review fields. The source inventory records all 32 Wiki pages and relevant issues; the verification record lists manual runtime checks and decisions still required.
+
+## Self hosted observability
+
+See [the observability runbook](observability/runbook.md) for the optional local stack, metrics/logs/traces, failure exercises and prepared ECS configuration. The [implementation plan](observability/implementation-plan.md) records continuation status and remaining validation.

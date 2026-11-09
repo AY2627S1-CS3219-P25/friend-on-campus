@@ -1,0 +1,25 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Configure the author-approved opt-in self-hosted observability stack.
+# Author review: <to be completed by yanhwee>
+# AI-generated (edited by yanhwee)
+
+startDelaySeconds: 10
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  - pattern: 'debezium.postgres<type=connector-metrics, context=streaming, server=([^>]+)><>Connected'
+    name: debezium_streaming_connected
+    type: GAUGE
+  - pattern: 'debezium.postgres<type=connector-metrics, context=streaming, server=([^>]+)><>MilliSecondsBehindSource'
+    name: debezium_streaming_lag_milliseconds
+    type: GAUGE
+  - pattern: 'debezium.postgres<type=connector-metrics, context=streaming, server=([^>]+)><>TotalNumberOfEventsSeen'
+    name: debezium_streaming_events_seen_total
+    type: COUNTER
+  - pattern: 'debezium.postgres<type=connector-metrics, context=streaming, server=([^>]+)><>QueueRemainingCapacity'
+    name: debezium_streaming_queue_remaining_capacity
+    type: GAUGE
+  - pattern: 'debezium.postgres<type=connector-metrics, context=snapshot, server=([^>]+)><>SnapshotCompleted'
+    name: debezium_snapshot_completed
+    type: GAUGE

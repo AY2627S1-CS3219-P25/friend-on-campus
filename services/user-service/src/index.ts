@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Delegate registration outbox publication to Debezium instead of starting a polling worker.
  * Author review: <to be completed by huangjiaxi1111>
@@ -18,6 +22,7 @@
  */
 
 // AI-generated (edited by ngkhengyang)
+import '@campus-errand/observability/bootstrap';
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import { createApp } from './app';
 import { createAuthModule } from './auth/auth-module';

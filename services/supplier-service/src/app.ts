@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Wire opt-in observability without changing business behavior.
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added /ready readiness probe endpoint to Supplier Service createApp() to match other microservices.
  * Author review: <to be completed by yanhwee>
@@ -9,6 +13,7 @@
  * Author review: (to be completed by yanhwee)
  */
 // AI-generated (edited by yanhwee)
+import { requestTelemetry } from '@campus-errand/observability';
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import cors from 'cors';
 import express, { Express, Request, RequestHandler, Response } from 'express';
@@ -35,6 +40,7 @@ function defaultAuthMiddleware(): RequestHandler {
 
 export function createApp(options: SupplierAppOptions = {}): Express {
   const app = express();
+  app.use(requestTelemetry);
   const port = options.port ?? config.port;
   const authenticateToken =
     options.requireAuthentication ?? defaultAuthMiddleware();
