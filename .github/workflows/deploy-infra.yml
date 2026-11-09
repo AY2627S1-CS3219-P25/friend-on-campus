@@ -1,0 +1,95 @@
+# AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Manually plan or apply the existing ECS stack using shared Terraform state.
+# Author review: <to be completed by the author>
+
+# AI-generated (edited by ngkhengyang)
+name: Deploy ECS infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply the plan and roll application task configuration (leave off to preview)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: foc-ecs-release
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-1
+  AWS_PAGER: ""
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_VAR_origin_header: ${{ secrets.TF_VAR_ORIGIN_HEADER }}
+
+jobs:
+  terraform:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: infra/terraform/ecs
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - name: Show the exact GitHub identity for AWS trust
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+            core.info(`AWS trust subject: ${claims.sub}`);
+            await core.summary.addHeading('AWS OIDC identity').addCodeBlock(claims.sub).write();
+      - name: Check infrastructure configuration
+        env:
+          ROLE_ARN: ${{ vars.AWS_INFRA_ROLE_ARN }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          TFVARS: ${{ secrets.TERRAFORM_TFVARS }}
+        run: |
+          set -euo pipefail
+          test -n "$ROLE_ARN" || { echo 'Set AWS_INFRA_ROLE_ARN.' >&2; exit 1; }
+          test -n "$STATE_BUCKET" || { echo 'Set TF_STATE_BUCKET.' >&2; exit 1; }
+          test -n "$TFVARS" || { echo 'Set TERRAFORM_TFVARS to the existing deployment inputs.' >&2; exit 1; }
+          test -n "$TF_VAR_origin_header" || { echo 'Set TF_VAR_ORIGIN_HEADER to the existing origin header.' >&2; exit 1; }
+          umask 077
+          printf '%s\n' "$TFVARS" > terraform.tfvars
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_ROLE_ARN }}
+          role-session-name: foc-infra-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Initialize shared state
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          set -euo pipefail
+          aws s3api head-object --bucket "$STATE_BUCKET" --key ecs/terraform.tfstate >/dev/null
+          terraform init -lockfile=readonly "-backend-config=bucket=$STATE_BUCKET"
+          terraform state list | grep -Fx 'aws_ecs_cluster.main'
+      - name: Validate Terraform
+        run: terraform validate
+      - name: Plan infrastructure changes
+        run: terraform plan -lock-timeout=5m -out=release.tfplan
+      - name: Apply the saved plan
+        if: inputs.apply
+        run: terraform apply -lock-timeout=5m release.tfplan
+      - name: Roll application configuration with the currently deployed images
+        if: inputs.apply
+        env:
+          SERVICES: '["user-service","supplier-service","order-service","credit-service","notification-service","chat-service","student-app","admin-portal","gateway"]'
+        run: bash deploy-applications.sh
+      - name: Remove runner copies of private Terraform files
+        if: always()
+        run: rm -f -- terraform.tfvars release.tfplan

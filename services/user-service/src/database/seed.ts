@@ -1,6 +1,10 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-09
+ * Scope: Seed all demo accounts with Password123! in every environment using the existing password hasher.
+ * Author review: <to be completed by the author>
+ *
+ * Tool: Codex (model: GPT-6), date: 2026-11-09
  * Scope: Require distinct private credentials for the production demo seed.
  * Author review: <to be completed by the author>
  *
@@ -45,19 +49,8 @@ const seedUsers: SeedUser[] = [
 
 async function main() {
   // AI-generated (edited by ngkhengyang)
-  const production = process.env.NODE_ENV === 'production';
-  const passwords = seedUsers.map(({ username }) =>
-    production ? process.env[`SEED_PASSWORD_${username.toUpperCase()}`] ?? '' : 'Password123!',
-  );
-  if (production && (
-    passwords.some((password) => !/^[a-f0-9]{24}$/.test(password)) ||
-    new Set(passwords).size !== passwords.length
-  )) {
-    throw new Error('Production seed requires a distinct generated password for each demo account.');
-  }
-
-  for (const [index, user] of seedUsers.entries()) {
-    const passwordHash = await hashPassword(passwords[index]);
+  for (const user of seedUsers) {
+    const passwordHash = await hashPassword('Password123!');
     const existingUsers = await prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id
       FROM users

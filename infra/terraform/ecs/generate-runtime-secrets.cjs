@@ -1,4 +1,8 @@
 // AI Assistance Disclosure:
+// Tool: Codex (model: GPT-6), date: 2026-11-09
+// Scope: Keep runtime generation limited to database and RabbitMQ secrets while demo passwords come from the seed.
+// Author review: <to be completed by the author>
+//
 // Tool: Codex (model: GPT-6), date: 2026-11-08
 // Scope: Generate fresh database, RabbitMQ and demo sign-in credentials while preserving broker permissions.
 // Author review: <to be completed by the author>
@@ -14,9 +18,6 @@ if (!output) throw new Error('Supply a new private JSON file path outside the re
 
 const password = () => randomBytes(32).toString('hex');
 const runtime = { broker_cookie: password() };
-for (const user of ['alice', 'bob', 'admin']) {
-  runtime['seed_password_' + user] = randomBytes(12).toString('hex');
-}
 for (const name of ['user', 'supplier', 'order', 'credit', 'notification', 'chat', 'cdc']) {
   runtime['db_' + name] = password();
 }

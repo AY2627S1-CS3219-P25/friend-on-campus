@@ -1,11 +1,19 @@
 # AI Assistance Disclosure:
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Match CDC access-point groups to the Debezium image for Docker volume initialization.
+# Author review: <to be completed by the author>
+#
+# Tool: Codex (model: GPT-6), date: 2026-11-09
+# Scope: Require Terraform 1.10 for shared S3 state locking.
+# Author review: <to be completed by the author>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Define the Singapore ECS foundation, rollout inputs and private storage.
 # Author review: <to be completed by the author>
 
 # AI-generated (edited by ngkhengyang)
 terraform {
-  required_version = ">= 1.5"
+  required_version = ">= 1.10"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -239,7 +247,7 @@ resource "aws_efs_access_point" "cdc" {
 
   posix_user {
     uid = 185
-    gid = 185
+    gid = 0
   }
 
   root_directory {
@@ -247,7 +255,7 @@ resource "aws_efs_access_point" "cdc" {
 
     creation_info {
       owner_uid   = 185
-      owner_gid   = 185
+      owner_gid   = 0
       permissions = "750"
     }
   }
