@@ -7857,3 +7857,17 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Files changed:**
 - `ai/usage-log.md` — this entry
+
+## 2026-11-09 19:10 SGT — Fix feed zone chip counts
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** docs_update
+
+**Prompt (summarised):** On the student app Browse page the zone chips show correct counts under ALL (for example 2), but after selecting a zone such as PGPR every chip, including ALL, shows 0; selecting ALL again shows 2. Find and fix the bug.
+
+**Usage scenario:** Debugging assistance and a small fix. Cause: `FeedPage` computed each chip count from `filteredOrders`, which `App.tsx` had already narrowed to the selected zone, so every other chip counted zero. `App.tsx` now derives `openOrders` (all open errands not posted by the user) and passes it to `FeedPage`, which counts from it; the list shown still follows the selected zone. No design decision left open. Verification: student-app typecheck and lint pass, student-app unit tests 58/58. Root `npm run typecheck` fails in chat-service (`realtimeOutbox` missing from the generated Prisma client), which this change does not touch and which looks like a stale generated client after pulling main. No new test: the counting is inline in the component and the app's tests cover pure helpers only.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — adds `openOrders`, derives `filteredOrders` from it, passes `openOrders` to FeedPage; disclosure record
+- `apps/student-app/src/pages/FeedPage.tsx` — new `openOrders` prop; chip counts use it; disclosure record

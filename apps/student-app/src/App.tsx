@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-09
+ * Scope: Feed zone chip counts: derive openOrders (all open errands) and pass it to FeedPage so counts no longer follow the selected zone.
+ * Author review: <to be completed by jagdeepsh>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the soft blue-white campus canvas behind the existing app layout.
  * Author review: <to be completed by yanhwee>
@@ -771,11 +775,9 @@ export default function App() {
     }
   };
 
-  const filteredOrders = orders.filter((o) => {
-    if (o.status !== 'OPEN' || o.requesterId === currentUserId) return false;
-    if (selectedZone === 'ALL') return true;
-    return o.campusZone === selectedZone;
-  });
+  // AI-generated (edited by jagdeepsh): zone counts on the feed chips come from every open errand, not the zone-filtered list.
+  const openOrders = orders.filter((o) => o.status === 'OPEN' && o.requesterId !== currentUserId);
+  const filteredOrders = openOrders.filter((o) => selectedZone === 'ALL' || o.campusZone === selectedZone);
 
   const activeSuppliers = suppliers.filter((s) => s.isActive);
 
@@ -925,6 +927,7 @@ export default function App() {
         {page === 'feed' && (
           <FeedPage
             filteredOrders={filteredOrders}
+            openOrders={openOrders}
             selectedZone={selectedZone}
             onSelectZone={setSelectedZone}
             ordersLoading={ordersLoading}

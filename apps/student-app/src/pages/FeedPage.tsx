@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-09
+ * Scope: Zone chip counts now come from the new openOrders prop (all open errands) instead of the zone-filtered list, which showed 0 on every other chip once a zone was selected.
+ * Author review: <to be completed by jagdeepsh>
+ *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align browsing filters with the royal-blue navigation identity.
  * Author review: <to be completed by yanhwee>
@@ -80,6 +84,8 @@ const FEED_ZONES = ['ALL', 'COM3', 'UTown', 'PGPR', 'FASS', 'Science', 'Engineer
 
 interface FeedPageProps {
   filteredOrders: OrderDTO[];
+  /** Every open errand regardless of the selected zone, so each chip can show its own count. */
+  openOrders: OrderDTO[];
   selectedZone: string;
   onSelectZone: (zone: string) => void;
   ordersLoading: boolean;
@@ -91,6 +97,7 @@ interface FeedPageProps {
 
 export function FeedPage({
   filteredOrders,
+  openOrders,
   selectedZone,
   onSelectZone,
   ordersLoading,
@@ -155,10 +162,11 @@ export function FeedPage({
         <div className="flex items-center gap-2 overflow-x-auto py-1 px-0.5 md:flex-wrap no-scrollbar">
           {FEED_ZONES.map((zone) => {
             const isSelected = selectedZone === zone;
+            // AI-generated (edited by jagdeepsh)
             const countInZone =
               zone === 'ALL'
-                ? filteredOrders.length
-                : filteredOrders.filter((o) => o.campusZone === zone).length;
+                ? openOrders.length
+                : openOrders.filter((o) => o.campusZone === zone).length;
 
             return (
               <button
