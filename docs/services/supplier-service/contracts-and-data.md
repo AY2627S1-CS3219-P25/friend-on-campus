@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Updated query and pagination rules to describe PostgreSQL case-insensitive LOWER() sorting, id tie-breaking, and 100-row unpaginated cap (#110, #253).
+Author review: <to be completed by yanhwee>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
@@ -26,9 +30,9 @@ Mutation middleware supplies shared 401 and 403 codes. Business errors usually c
 
 ## Query and payload rules
 
-campusZone/category are case-insensitive equality filters. Trimmed search checks name, exactLocation, building, description and supplierCode. isActive filters only for literal true/false; absent/invalid values include both states. sortBy supports name,campusZone,category,createdAt,supplierCode; otherwise name. sortOrder is descending only for `desc`. Sorting occurs in JavaScript after fetching matches, with ID tie-breaker; pagination slices afterward.
+campusZone/category are case-insensitive equality filters. Trimmed search checks name, exactLocation, building, description and supplierCode. isActive filters only for literal true/false; absent/invalid values include both states. sortBy supports name,campusZone,category,createdAt,supplierCode; otherwise name. sortOrder is descending only for `desc`. Sorting and pagination occur in PostgreSQL (`ORDER BY LOWER(column) ASC|DESC, id ASC` for text columns, `created_at` for timestamps, with `LIMIT`/`OFFSET` and `COUNT(*) OVER()`).
 
-Supplying page or limit enables pagination (defaults 1/10, lower page bound 1, limit clamp 1–100). With neither, all matches are returned. parseInt handling is not strict finite numeric validation; do not advertise stronger rejection behavior than implemented.
+Supplying page or limit enables pagination (defaults 1/10, lower page bound 1, limit clamp 1–100). With neither, up to 100 matching rows are returned on page 1 (`limit` equals `suppliers.length`). parseInt handling clamps non-finite values to the default bounds; do not advertise stronger rejection behavior than implemented.
 
 Create optionally accepts supplierCode,description,latitude,longitude,startingTime,closingTime,imageUrl. Update accepts mutable fields and isActive, but not supplierCode. The category union is compile-time only; service runtime does not enforce the whole enum. Prisma objects are returned directly, including nullable fields and timestamp serialization.
 

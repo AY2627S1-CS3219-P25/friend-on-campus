@@ -1,4 +1,9 @@
 // AI Assistance Disclosure:
+// Tool: Google Antigravity Agent, date: 2026-11-09
+// Scope: Issue #253: Updated multi-tier supplier concurrency assertions to match restored 50 VUs (#29) and
+//        100 VUs (#33) load populations in tests/k6/requirements.json.
+// Author review: <to be completed by yanhwee>
+//
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
 // Scope: Self-tests for the k6 performance wrapper, written from the defects of run perf-20261108T135152Z-b09772:
 //        admin and account logins that renew themselves (that run's reconciliation and cleanup got HTTP 401 after
@@ -188,7 +193,7 @@ test('performanceFromSummary enforces per-tier requiredVus for multi-tier worklo
   const summary = {
     state: { testRunDurationMs: 360_000 },
     metrics: {
-      'http_req_duration{operation:supplier_search,phase:steady}': { values: { 'p(50)': 1000, 'p(95)': 2000, 'p(99)': 2500, avg: 1100, max: 3000 }, thresholds: { 'p(95)<=9300': { ok: true } } },
+      'http_req_duration{operation:supplier_search,phase:steady}': { values: { 'p(50)': 1000, 'p(95)': 2000, 'p(99)': 2500, avg: 1100, max: 3000 }, thresholds: { 'p(95)<=4000': { ok: true } } },
       'http_reqs{operation:supplier_search,phase:steady}': { values: { count: 200 }, thresholds: { 'count>0': { ok: true } } },
       'http_req_failed{operation:supplier_search,phase:steady}': { values: { rate: 0 }, thresholds: { 'rate<0.01': { ok: true } } },
       'response_ok{operation:supplier_search,phase:steady}': { values: { rate: 1 }, thresholds: { 'rate>0.99': { ok: true } } },
@@ -196,16 +201,16 @@ test('performanceFromSummary enforces per-tier requiredVus for multi-tier worklo
   };
   const baseContext = { profile: 'load', limits: REQUIREMENTS.limits, minSteadySamples: 100, concurrencyTolerance: 0.95, k6ExitCode: 0 };
 
-  // At 25 VUs: above #29's upToVus=20 tier (so selects #33), but below #33's requiredVus=30 -> INCOMPLETE.
-  const underSecondTier = performanceFromSummary(summary, REQUIREMENTS.workloads.supplier, { ...baseContext, maxVus: 25 });
+  // At 75 VUs: above #29's upToVus=50 tier (so selects #33), but below #33's requiredVus=100 -> INCOMPLETE.
+  const underSecondTier = performanceFromSummary(summary, REQUIREMENTS.workloads.supplier, { ...baseContext, maxVus: 75 });
   assert.equal(underSecondTier.operations[0].issue, '#33');
-  assert.equal(underSecondTier.operations[0].concurrency.required, 30);
+  assert.equal(underSecondTier.operations[0].concurrency.required, 100);
   assert.equal(underSecondTier.operations[0].concurrency.status, 'INCOMPLETE');
   assert.equal(underSecondTier.verdict, 'INCOMPLETE');
 
-  // At 30 VUs: meets #33's requiredVus=30 -> PASS.
-  const atSecondTier = performanceFromSummary(summary, REQUIREMENTS.workloads.supplier, { ...baseContext, maxVus: 30 });
-  assert.equal(atSecondTier.operations[0].concurrency.required, 30);
+  // At 100 VUs: meets #33's requiredVus=100 -> PASS.
+  const atSecondTier = performanceFromSummary(summary, REQUIREMENTS.workloads.supplier, { ...baseContext, maxVus: 100 });
+  assert.equal(atSecondTier.operations[0].concurrency.required, 100);
   assert.equal(atSecondTier.operations[0].concurrency.status, 'MET');
   assert.equal(atSecondTier.verdict, 'PASS');
 });
