@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Merged origin/main (PR #254) and origin/docs_update (PR #250) into codex/docs-refresh-20261109 (PR #255), reconciled Supplier Service and k6 documentation with #254, integrated the OpenStreetMap coordinate flow diagram from #250 into docs/frontend/README.md, added the Project-Level AI Use Summary to README.md, and recorded the PR #255 merge.
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-10
 Scope: Record authorized publication of the expanded developer guides and updated PR #255 description.
 Author review: <to be completed by Reallyeasy1>
@@ -8600,3 +8604,38 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 
 **Files changed:**
 - `ai/usage-log.md` — publication entry and consolidated disclosure. The prepared fourteen other Markdown files are included unchanged in the authorized commit.
+
+## 2026-11-09 19:10 SGT — Fix feed zone chip counts
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** docs_update
+
+**Prompt (summarised):** On the student app Browse page the zone chips show correct counts under ALL (for example 2), but after selecting a zone such as PGPR every chip, including ALL, shows 0; selecting ALL again shows 2. Find and fix the bug.
+
+**Usage scenario:** Debugging assistance and a small fix. Cause: `FeedPage` computed each chip count from `filteredOrders`, which `App.tsx` had already narrowed to the selected zone, so every other chip counted zero. `App.tsx` now derives `openOrders` (all open errands not posted by the user) and passes it to `FeedPage`, which counts from it; the list shown still follows the selected zone. No design decision left open. Verification: student-app typecheck and lint pass, student-app unit tests 58/58.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — adds `openOrders`, derives `filteredOrders` from it, passes `openOrders` to FeedPage; disclosure record (superseded on `main` by `0fd675e`)
+- `apps/student-app/src/pages/FeedPage.tsx` — new `openOrders` prop; chip counts use it; disclosure record (superseded on `main` by `0fd675e`)
+
+## 2026-11-10 10:49 SGT — Reconcile PR #255 with PR #254 and PR #250, add Project-Level AI Use Summary to README.md, and merge once CI is green
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Review and merge open PRs (#254, #255, #250) and close superseded PR #233 and resolved issues; merge `main` (#254) and `docs_update` (#250) into PR #255, add the CS3219 Project-Level AI Use Summary to `README.md`, link #232, and merge PR #255 once CI is green.
+
+**Usage scenario:** Documentation reconciliation, conflict resolution, and author-approved PR merge:
+- Merged `origin/main` (including PR #254, `c6aa823`) into `codex/docs-refresh-20261109`, updating `docs/services/supplier-service/README.md`, `tests/k6/README.md`, `docs/development/testing-strategy.md`, and `docs/new-cloud-architecture-guide.md` to reflect PostgreSQL supplier sorting/pagination (`#110`, `#253`), NGINX upstream HTTP/1.1 keepalive pooling, and restored 50/100 VU k6 supplier load profiles (`#29`, `#33`).
+- Merged `origin/docs_update` (PR #250) into `codex/docs-refresh-20261109`, keeping `main`'s unit-tested `feedZones.ts` implementation (`0fd675e`) and integrating the OpenStreetMap coordinate flow diagram from PR #250 into `docs/frontend/README.md`.
+- Added the required Project-Level `## AI Use Summary` section as the final section of `README.md` per CS3219 Appendix 2.
+
+**Files changed:**
+- `README.md` — added `## AI Use Summary` section and updated disclosure block
+- `docs/frontend/README.md` — integrated OpenStreetMap coordinate flow diagram from PR #250
+- `docs/services/supplier-service/README.md` — updated sorting/pagination description for PR #254
+- `docs/development/testing-strategy.md`, `tests/k6/README.md` — updated supplier k6 load tiers to 50/100 VUs
+- `docs/new-cloud-architecture-guide.md` — documented NGINX upstream keepalive pooling and `gateway-start.sh` substitution
+- `ai/usage-log.md` — this entry

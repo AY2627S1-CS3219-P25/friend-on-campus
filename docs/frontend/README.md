@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Integrated the Supplier coordinates and OpenStreetMap tile/route flow diagram from PR #250 (`docs_update`) into the consolidated frontend developer guide.
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Explain browser state and pending-submission recovery with a focused diagram and debugging walkthrough; clarify the bounded toast cache and supplier presentation.
 Author review: <to be completed by Reallyeasy1>
@@ -175,6 +179,36 @@ The same distinction matters later. Confirming delivery initiates the courier pa
 The natural-language assistant fills a draft for review; it does not bypass the form or post an errand. Its frontend request uses a twenty-second deadline so the backend's supplier lookup and AI timeout/fallback can finish. Report a failed draft separately from a failed order submission.
 
 Pickup markers come from live Supplier records with usable coordinates. A legacy supplier can appear in the directory but have no map marker if its coordinates are missing. Drop-off selection, route display and reward estimates assist the student; they do not override service validation. [Supplier Service](../services/supplier-service/README.md) covers safe coordinate upgrades.
+
+```mermaid
+%% AI-generated (edited by jagdeepsh)
+flowchart LR
+  AD["Admin: Add / Edit Supplier<br/>latitude, longitude"]
+  SS["Supplier Service<br/>validate and store"]
+  DB[("supplier_db")]
+  SA["Student app<br/>GET /api/suppliers"]
+  PM["Pickup map<br/>pins grouped by exact coordinates"]
+  DP["Drop-off picker<br/>NUS building list or clicked point"]
+  EST["Reward suggestion in the browser<br/>straight-line distance, pickup to drop-off"]
+  OS["Order Service<br/>stores dropoffLatitude, dropoffLongitude, estimatedRewardCredits"]
+  RM["Errand route map<br/>pickup and drop-off pins"]
+  OSM["OpenStreetMap tile server<br/>tile.openstreetmap.org"]
+
+  AD -->|"data: POST / PUT with coordinates"| SS
+  SS -->|"data: row"| DB
+  DB -->|"data: supplier list with coordinates"| SA
+  SA -->|"data: pickup coordinates"| PM
+  SA -->|"data: pickup coordinates"| EST
+  DP -->|"data: drop-off point"| EST
+  EST -->|"data: suggested reward and drop-off point"| OS
+  OS -->|"data: dropoff coordinates in the order"| RM
+  PM -.->|"control: browser requests tiles z/x/y"| OSM
+  DP -.->|"control: browser requests tiles z/x/y"| OSM
+  RM -.->|"control: browser requests tiles z/x/y"| OSM
+  OSM -->|"data: PNG map tiles"| PM
+```
+
+Each Leaflet map (pickup map, drop-off picker and errand route map in `apps/student-app/src/map/`) loads `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` directly from the browser without an API key and outside the gateway.
 
 “Order again” creates a new posting flow from a completed errand. It is not a retry of the old order and should be tested with current supplier availability, reward and wallet state.
 

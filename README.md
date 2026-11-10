@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Added the required Project-Level AI Use Summary section at the end of README.md in compliance with the CS3219 AI Usage Policy (Appendix 2).
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Separate foreground host startup from verification and point aggregate-test users to target-isolation prerequisites.
 Author review: <to be completed by Reallyeasy1>
@@ -175,3 +179,21 @@ The [testing guide](docs/development/testing-strategy.md) explains integration, 
 | `docs/` | Twelve implementation/operational guides and their index |
 
 For AWS, read the [cloud explanation](docs/new-cloud-architecture-guide.md), then use the [ECS Terraform runbook](infra/terraform/ecs/README.md). For code contributions and AI bookkeeping, read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Historical milestone records remain in the wiki and Git history.
+
+## AI Use Summary
+
+**Tools:** Claude Code (Claude Sonnet 5.5, Claude Fable 5.1, Claude Opus 5.5), Codex (GPT-5, GPT-5.6 Terra, GPT-6), Google Antigravity Agent, ChatGPT (GPT-5.6 Sol)
+
+**Prohibited phases avoided:** Wholesale requirements elicitation, backlog prioritization, sprint planning, proposing/changing system architecture or component boundaries, selecting design patterns, deciding data schemas, defining interfaces, and drafting architectural decision rationales or trade-off analyses.
+
+**Used for:**
+- Refining requirement phrasing and checking for edge-case contradictions in human-defined functional and non-functional specifications.
+- Generating Express, React, Prisma, Docker, NGINX, and Terraform implementation code and boilerplate against human-approved schemas, contracts, and architectural boundaries.
+- Writing and maintaining automated unit, integration, messaging, migration, browser UAT, and k6 load/concurrency test suites.
+- Debugging assistance, code review, refactoring, and source-linked developer documentation.
+
+**Verification & Disclosure:**
+- All AI outputs were reviewed, edited, and verified against automated tests by the human authors.
+- File-level attributions are recorded at the top of each AI-influenced file.
+- Agent configuration and policy enforcement files are tracked in [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md), and [`.claude/`](.claude/).
+- Timestamped prompts, usage scenarios, and affected files are archived in [`ai/usage-log.md`](ai/usage-log.md).
