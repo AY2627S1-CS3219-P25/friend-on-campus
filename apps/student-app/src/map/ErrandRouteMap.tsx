@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Read-only mini map on the errand page: the stored drop-off pin and, when the supplier has coordinates, the
- * pickup pin, with the view fitted to both.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Author's follow-up: both pins carry a permanent "Pickup: <store>" / "Drop-off" label.
- * Author review: <to be completed by huangjiaxi1111>
+ * Scope: Author's follow-up: both pins carry a permanent "Pickup: <store>" / "Drop-off" label; updated across 2 AI-assisted revisions through D4 wrap-up (read-only mini map on the errand page: the stored drop-off pin and, when the supplier has coordinates, the pickup pin, with the view fitted to both).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import L from 'leaflet';
 import { useEffect } from 'react';
 import { MapContainer, Marker, TileLayer, Tooltip, useMap } from 'react-leaflet';

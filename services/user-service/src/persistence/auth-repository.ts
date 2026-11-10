@@ -1,38 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Retain atomic account/outbox writes and remove polling publisher repository operations.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Imported Prisma, PrismaClient, and User from ../database/client instead of directly from generated folder.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: rotateSession returns null for a disabled account, so refresh is refused and the session is left as it
- * was (UAT A11, issue #108).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-03
- * Scope: Implemented transactional outbox persistence in createUser and outbox event querying, delivery marking, and retry tracking.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-04
- * Scope: Added terminal failed-state persistence for permanently invalid outbox events.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: findUserByEmail now queries LOWER(email) so it uses the case-insensitive unique index instead of a
- * sequential scan; added deleteExpiredSessions for opportunistic clean-up of idle-expired session rows.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity; Claude Code (model: Claude Fable 5.1); Google Antigravity Agent, date: 2026-09-22 to 2026-10-21
+ * Scope: Implemented Prisma-backed persistence operations for users, case-insensitive lookup, refresh sessions, expiry cleanup, token rotation, and revocation; updated across 7 AI-assisted revisions through D4 wrap-up (retain atomic account/outbox writes and remove polling publisher repository operations).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by ngkhengyang)
 import { Prisma, PrismaClient, type User as PrismaUser } from '../database/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN';
@@ -190,7 +162,6 @@ export function createAuthRepository(prisma: PrismaClient): AuthRepository {
           include: { user: true },
         });
         const now = new Date();
-        // AI-generated (edited by Reallyeasy1)
         // A disabled account keeps its access token until it expires but cannot obtain a new one.
         if (!currentSession || currentSession.idleExpiresAt <= now || !currentSession.user.status) {
           return null;

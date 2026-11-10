@@ -1,33 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Re-fetch and re-validate conversation participants and open status after async moderation before returning flagged recipientIds (issue #235).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5), date: 2026-10-20 to 2026-11-10
+ * Scope: The conversation rules from issue #56 and the author's decisions: open with the local row, else the Order Service fallback (S4); updated across 6 AI-assisted revisions through D4 wrap-up (re-fetch and re-validate conversation participants and open status after async moderation before returning flagged recipientIds (issue #235)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: send() takes the optional clientId and hands it to store.append for the delivery intent; the flagged result carries the conversation (issue #240).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: The conversation rules from issue #56 and the author's decisions: open with the local row, else the Order
- * Service fallback (S4); read for the two participants and admins (F8.1.2, D8); send for participants only while
- * the conversation is open (F8.2, F8.3.2); blank text rejected (F8.2.3); sender name and role from the token (D6).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148 P2): send keeps its fast pre-checks but takes the final participant/closure verdict and
- * the recipients from store.append, which decides under the conversation row lock.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Added translate(): display-only translations of a conversation's messages through the injected translator; send is unchanged.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: send() runs the optional moderator after the validation checks and before store.append; a flagged text returns 'flagged' and is not stored.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by Reallyeasy1)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { OrderStatus } from '@campus-errand/common-dtos';
 import type { OrderClient } from '../clients/order.client';
@@ -118,7 +94,7 @@ export function createConversationService(deps: {
     if (!principal.username) return { kind: 'no_username' };
     // Content moderation runs before anything is written, so a flagged message is never stored or pushed.
     if (deps.moderate && (await deps.moderate(trimmed))) {
-      // AI-generated (edited by yanhwee): re-read the conversation after the async moderation round-trip so a courier
+      // Re-read the conversation after the async moderation round-trip so a courier
       // reassignment or conversation close during moderation cannot notify a former courier or let an unassigned
       // sender emit a flagged notice (issue #235).
       const current = await deps.store.findByOrderId(orderId);

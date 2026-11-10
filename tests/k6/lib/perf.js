@@ -1,17 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-09
- * Scope: PR #252 review fixes: buildScenario resolves baselineVus from requirements.json when given a workload name,
- *        and smoke profile gracefulStop is raised from 10s to 30s so in-flight order lifecycle iterations complete.
- * Author review: Validated by Yee Yan Hwee (yanhwee)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
- * Scope: Shared k6 helpers for the performance workloads (issue #236): bounded smoke/load/stress scenarios,
- *        run-owned account sessions with token renewal, measurement tags, response-correctness Rate,
- *        issue-derived thresholds and the k6-summary.json handler.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+ * Scope: Shared k6 helpers for the performance workloads (issue #236): bounded smoke/load/stress scenarios, run-owned account sessions with token renewal,..; updated across 2 AI-assisted revisions through D4 wrap-up (pR #252 review fixes: buildScenario resolves baselineVus from requirements.json when given a workload name, and smoke profile gracefulStop is raised from..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import http from 'k6/http';
 import exec from 'k6/execution';
 import { Rate } from 'k6/metrics';

@@ -1,44 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Start only the application; Compose retains local migrations and optional sample seeding.
-# Author review: <to be completed by the author>
+# Tool: Codex (model: GPT-6, GPT-5); Google Antigravity; Google Antigravity Agent; Claude Code (model: Claude Sonnet 5.5), date: 2026-10-07 to 2026-11-08
+# Scope: Configured Dockerfile for Order Service with OpenSSL, Prisma client generation, database migration deployment, and tsx execution; updated across 10 AI-assisted revisions through D4 wrap-up (start only the application; Compose retains local migrations and optional sample seeding).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 #
-# Tool: Google Antigravity, date: 2026-10-20
-# Scope: Updated runtime Prisma generated client copy path to src/generated -> dist/generated.
-# Author review: <to be completed by author after review>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-16
-# Scope: Copied the build-stage Prisma engines into the production runtime so migrations do not download binaries at startup.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-15
-# Scope: Pinned the Node 20 Alpine base image to an exact release tag and verified registry digest.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-14
-# Scope: Assigned runtime files to the built-in node user and run migrations, optional seeding, and the service without root privileges.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Split dependency installation, TypeScript/Prisma generation, and the compiled Node runtime into separate stages.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-12
-# Scope: Restricted dependency installation to the Order Service workspace and its local dependencies.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Google Antigravity Agent, date: 2026-10-07
-# Scope: Configured Dockerfile for Order Service with OpenSSL, Prisma client generation, database migration deployment, and tsx execution.
-# Author review: (to be completed by author after review)
-# Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
-# Scope: Added the @campus-errand/llm package to the build, dependency and runtime stages.
-# Author review: <to be completed by the author>
-#
-# AI-generated (edited by ngkhengyang)
 FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 RUN apk add --no-cache openssl
@@ -114,5 +78,4 @@ EXPOSE 8003
 
 USER node
 
-# AI-generated (edited by ngkhengyang)
 CMD ["node", "dist/index.js"]

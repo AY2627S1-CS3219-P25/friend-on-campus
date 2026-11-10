@@ -1,76 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Use blue for errand links and amber for credit rewards, matching the refreshed brand roles.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Opus 5.5, Claude Fable 5.1, Sonnet 5), date: 2026-10-19 to 2026-11-07
+ * Scope: Extracted errand card component from student-app App.tsx into components/ErrandCard.tsx; updated across 15 AI-assisted revisions through D4 wrap-up (use blue for errand links and amber for credit rewards, matching the refreshed brand roles).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized ErrandCard hover interactions with Direction A Warm Campus Mango theme (warm orange border and title color on hover).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed visual recommended credit estimate from feed card to eliminate clutter and number redundancy, focusing solely on the locked escrow reward (+Credits) while preserving sr-only testid contract.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Cleaned up confusing 'No estimate' label when estimatedRewardCredits is not present, showing clean reward pill while preserving test contract when an estimate is present.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Compact high-density feed cards: streamlined single-line connected route snippet, tightened card padding, and aligned visual rhythm with Tasks cards.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned ErrandCard with visual connected route timeline, glowing credit reward pills, and tactile hover feedback.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Drop-off estimator (author's decision A9): "Est. M" when the poster used the estimator and "No estimate"
- * when they did not, on a small line under the reward badge (author's follow-up: inside the badge it widened the
- * badge and truncated the zone).
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Removed zone badge ellipsis truncation and elevated View & Accept CTA to light interactive pill button.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Modernized errand feed card with elevated card styling, visual route connection (pickup -> dropoff), relative urgency countdown, and accessible touch targets.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Errand details page (issues #188, #189; author's design of 2026-10-26): the feed card is now a summary that
- * links to the errand's page (/?tab=feed&orderId=), where Accept with its confirm step and contact note now lives.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added inline two-step confirmation (Confirm / Cancel) with optional courierContactNote input (F3.3.6) when clicking Accept Errand to prevent accidental single-click claims.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted errand card component from student-app App.tsx into components/ErrandCard.tsx.
- * Author review: Verified by yanhwee
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
- * Scope: Fixed the zone badge and expiry badge overflowing past the card's edge on narrow widths — both sat in
- * a `justify-between` flex row next to a `shrink-0` sibling (the credits badge / the View & accept button) with
- * `whitespace-nowrap` on everything, so neither row could actually shrink to fit. Gave the zone/expiry badges
- * `min-w-0` and made their label text truncate instead, matching the `truncate` pattern already used for
- * supplierName/dropoffLocation below — the credits badge and the accept button stay fully protected (shrink-0)
- * and never clip.
- * Author review: (to be completed by author after review)
  */
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by Reallyeasy1)
 
 import { OrderDTO } from '@campus-errand/common-dtos';
 import { ArrowRight, Clock, Coins, MapPin } from 'lucide-react';
@@ -107,7 +41,6 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
       <div>
         {/* Header: Zone Badge + Reward Badge */}
         <div className="flex items-center justify-between gap-2">
-          {/* AI-generated (edited by jagdeepsh) */}
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 min-w-0">
             <span className="truncate">{order.campusZone}</span>
           </span>
@@ -157,7 +90,6 @@ export function ErrandCard({ order, currentUserId, onOpenErrand }: ErrandCardPro
 
       {/* Footer: Expiration & Action CTA */}
       <div className="mt-4 flex items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs">
-        {/* AI-generated (edited by jagdeepsh) */}
         <span
           className={`inline-flex items-center gap-1.5 py-1 rounded-lg font-medium transition min-w-0 ${
             expiry.critical

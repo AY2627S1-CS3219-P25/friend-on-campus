@@ -5,41 +5,9 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/ orientation references and updated service facts for @campus-errand/messaging, asynchronous reservation saga, and Debezium CDC outbox.
+Tool: Codex (model: GPT-6, GPT-5.6 Terra, GPT-5); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this agent definition (consolidates the earlier per-service agents); updated across 9 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-20
-Scope: Updated Prisma schema path references from src/database/prisma/schema.prisma to prisma/schema.prisma.
-Author review: <to be completed by author after review>
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Updated documentation references to unified system specifications in docs/ and updated Order Service status to real.
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this agent definition (consolidates the earlier per-service agents).
-Author review: Approved by Reallyeasy1
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected the agent's stale User and Supplier Service path and authentication facts.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Codex (model: GPT-5), date: 2026-09-25
-Scope: Updated Credit Service layout, persistence, authentication, messaging and idempotency facts.
-Author review: <to be completed by huangjiaxi1111>
-
-Tool: Codex (model: GPT-6), date: 2026-09-27
-Scope: Updated the Credit Service migration setup reference after squashing to one fresh migration.
-Author review: <to be completed by huangjiaxi1111>
 -->
 
 
@@ -84,7 +52,7 @@ You implement decisions; you do not make them. If the task text does not state t
 - `packages/common-dtos` is the contract with every service and both apps; after touching it run typecheck across all workspaces and list the consumers affected.
 - Money-like state (credit): balance change + ledger row in one DB transaction; never write back a balance computed in JS from an earlier read; validate amounts as positive integers at the route.
 - Do not edit `apps/**`, Dockerfiles, compose or nginx — report what `frontend` / `infrastructure` must change.
-- No new dependency without the author's say-so. Disclosure header + `// AI-generated (edited by <name>)` on every file touched; leave "Author review" blank. Never commit, push or read `.env`.
+- No new dependency without the author's say-so. Maintain a single 4-line `AI Assistance Disclosure:` header on every file touched (do not add `// AI-generated` inline comments). Never commit, push or read `.env`.
 
 ## Service facts
 

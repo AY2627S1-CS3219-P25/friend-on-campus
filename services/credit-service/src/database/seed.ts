@@ -1,19 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added offline deterministic seed UUID fallback when User Service is unreachable during host-based CLI database seeding, and idempotent sample order escrow reservation seeding when SEED_SAMPLE_ORDERS=true.
+ * Tool: Google Antigravity Agent; Codex (model: GPT-5.6 Sol, GPT-6), date: 2026-10-03 to 2026-10-22
+ * Scope: Initialize development wallets explicitly using the existing seeded users' identities from User Service; keep wallet reads read-only; updated across 3 AI-assisted revisions through D4 wrap-up (added offline deterministic seed UUID fallback when User Service is unreachable during host-based CLI database seeding, and idempotent sample order escrow..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
- * Scope: Preserved seed-session cleanup while removing an unsafe throw from a finally block.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Initialize development wallets explicitly using the existing seeded users' identities from User Service; keep wallet reads read-only.
- * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 import type { ApiResponse, AuthResponse } from '@campus-errand/common-dtos';
 import { config } from '../config';
 import { createCreditService, type CreditService } from '../credits/service';

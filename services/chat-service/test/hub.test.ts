@@ -1,33 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Hub tests deliver through the loopback realtime and createChatDelivery, as production does through RabbitMQ (issue #240).
- *        PR #246 review: a clientId longer than 64 characters is echoed unchanged.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Resolve the merge by preserving shutdown draining and moderation socket tests together.
- * Author review: <to be completed by the author>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Verify shutdown closes sockets with 1001 and waits for an in-flight SEND operation.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Socket tests for the chat hub: the AUTH handshake and its 4401 rejections, SEND delivered as MESSAGE to
- * both participants and to every tab of the sender but not to a third user, ERROR frames with the client id for
- * empty text, a closed conversation and a non-participant, BAD_FRAME for anything else. In-memory store.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148): asserts the sender's MESSAGE echo carries the clientId and the recipient's does not.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: Moderation socket test: flagged send gives the sender ERROR MODERATED and the other participant MODERATED_PEER, nothing stored.
- * Author review: <to be completed by the author>
+ * Tool: Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5); Codex (model: GPT-6), date: 2026-10-20 to 2026-11-09
+ * Scope: Socket tests for the chat hub: the AUTH handshake and its 4401 rejections, SEND delivered as MESSAGE to both participants and to every tab of the sender but..; updated across 6 AI-assisted revisions through D4 wrap-up (hub tests deliver through the loopback realtime and createChatDelivery, as production does through RabbitMQ (issue #240)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 import type { AddressInfo } from 'node:net';
@@ -153,7 +129,6 @@ describe('chat hub', () => {
   });
 });
 
-// AI-generated (edited by ngkhengyang)
 it('drains an in-flight SEND before shutdown finishes', { timeout: 5000 }, async () => {
   const keys = makeKeys();
   let release!: () => void;

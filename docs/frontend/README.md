@@ -1,24 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Google Antigravity Agent, date: 2026-11-10
-Scope: Integrated the Supplier coordinates and OpenStreetMap tile/route flow diagram from PR #250 (`docs_update`) into the consolidated frontend developer guide, and updated Admin Supplier fetch failure behavior after removing FALLBACK_SUPPLIERS (#201).
+Tool: Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-25 to 2026-11-10
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 5 AI-assisted revisions through D4 wrap-up (integrated the Supplier coordinates and OpenStreetMap tile/route flow diagram from PR #250 (`docs_update`) into the consolidated frontend developer guide,..).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Explain browser state and pending-submission recovery with a focused diagram and debugging walkthrough; clarify the bounded toast cache and supplier presentation.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate both frontend references into one developer guide with concrete journeys, session/recovery explanations, operational limits and troubleshooting.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
 -->
 
 # Frontend developer guide
@@ -90,7 +74,6 @@ The access token lives in React memory. A refresh-token cookie is HttpOnly, so t
 The student flow below shows why loading data and opening a socket are separate operations:
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant App as Student app
     participant User as User Service
@@ -154,7 +137,6 @@ Suppose a student posts “Buy a sandwich” with a valid pickup spot, delivery 
 The diagram describes the **browser's knowledge**, not a second backend order lifecycle. The important fork is whether the browser learned an order ID before the connection failed.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Submit["Submit once"] --> Reply{"Create response"}
     Reply -->|"202 and PENDING ID"| Poll["Save ID and poll status"]
@@ -181,7 +163,6 @@ The natural-language assistant fills a draft for review; it does not bypass the 
 Pickup markers come from live Supplier records with usable coordinates. A legacy supplier can appear in the directory but have no map marker if its coordinates are missing. Drop-off selection, route display and reward estimates assist the student; they do not override service validation. [Supplier Service](../services/supplier-service/README.md) covers safe coordinate upgrades.
 
 ```mermaid
-%% AI-generated (edited by jagdeepsh)
 flowchart LR
   AD["Admin: Add / Edit Supplier<br/>latitude, longitude"]
   SS["Supplier Service<br/>validate and store"]

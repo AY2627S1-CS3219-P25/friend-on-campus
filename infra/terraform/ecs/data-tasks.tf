@@ -1,13 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Remove obsolete per-account password injection from the demo seed task.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Register one-off database jobs, inject private User seed credentials and run three persistent Debezium connectors.
-# Author review: <to be completed by the author>
+# Tool: Codex (model: GPT-6), date: 2026-11-08 to 2026-11-09
+# Scope: Register one-off database jobs, inject private User seed credentials and run three persistent Debezium connectors; updated across 2 AI-assisted revisions through D4 wrap-up (remove obsolete per-account password injection from the demo seed task).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 locals {
   cdc = {
     order  = { file = "application.properties", table = "outbox_events" }

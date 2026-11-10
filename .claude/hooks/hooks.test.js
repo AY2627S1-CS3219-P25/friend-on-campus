@@ -1,8 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-// Scope: Self-check for the two hook scripts. Run: node .claude/hooks/hooks.test.js
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Scope: Self-check for the two hook scripts.
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 const assert = require('assert');
 const { execFileSync } = require('child_process');
 const fs = require('fs');

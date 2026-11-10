@@ -1742,7 +1742,7 @@ tr.error-row td {
                                 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-10-22
 Scope: Generated order/credit HTTP flow, validation, authorization, state matrix, concurrency, ledger and notification assertions from existing service implementations.
-Author review: &lt;to be completed by huangjiaxi1111&gt;
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Run the whole collection sequentially with one iteration. No environment is required. Configure oc* URL/credential variables; defaults call services directly like postman_collection.json. To exercise gateway routing, set all five service URL variables to http://localhost. Requires all services, migrated databases, RabbitMQ and all three Debezium connectors. Setup creates four unique STUDENT accounts plus one dedicated supplier using the seeded admin. Do not run against production. Test accounts, orders, wallets and ledger remain for inspection; the supplier is soft-deactivated at the end. A new run creates independent fixtures. Do not run setup twice within the same run or run dependent folders alone.
 

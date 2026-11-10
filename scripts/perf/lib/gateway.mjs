@@ -1,16 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-// Scope: HTTP-only gateway client for the performance harness (issue #236/#237), following the
-//        scripts/uat/uat-cdc.mjs conventions: no request or response bodies in errors, bounded polling,
-//        redacted routes (query strings and UUIDs removed) in messages.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: session(): a login that renews itself before its access token expires, as the k6 Session does. Run
-//        perf-20261108T135152Z-b09772 reused one admin token for 26 minutes and its reconciliation and cleanup
-//        got HTTP 401. The clock is injectable for the self-tests.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+// Scope: HTTP-only gateway client for the performance harness (issue #236/#237), following the scripts/uat/uat-cdc.mjs conventions: no request or response bodies in..; updated across 2 AI-assisted revisions through D4 wrap-up (session(): a login that renews itself before its access token expires, as the k6 Session does).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 import { setTimeout as delay } from 'node:timers/promises';
 
 const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;

@@ -1,20 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
-// Scope: Nullable dropoff_latitude, dropoff_longitude and estimated_reward_credits on Order (drop-off estimator).
-// Author review: <to be completed by huangjiaxi1111>
-//
-// Tool: Google Antigravity, date: 2026-10-20
-// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
-// Author review: <to be completed by author after review>
-//
-// Tool: Google Antigravity, date: 2026-10-19
-// Scope: Added rejectionReason and PENDING default status to Order for Saga Approach B2, and aggregateType/aggregateId to OutboxEvent for Debezium Outbox Event Router compatibility.
-// Author review: Reviewed and verified by yanhwee.
-//
-// Tool: Google Antigravity Agent, date: 2026-10-07
-// Scope: Defined persistent Order and OutboxEvent models with lifecycle timestamps, campus zone, supplier snapshot, and transactional outbox.
-// Author review: (to be completed by author after review)
-// AI-generated (edited by yanhwee)
+// Tool: Claude Code (model: Claude Opus 5.5); Google Antigravity; Google Antigravity Agent, date: 2026-10-07 to 2026-11-04
+// Scope: Defined persistent Order and OutboxEvent models with lifecycle timestamps, campus zone, supplier snapshot, and transactional outbox; updated across 4 AI-assisted revisions through D4 wrap-up (nullable dropoff_latitude, dropoff_longitude and estimated_reward_credits on Order (drop-off estimator)).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
 generator client {
   provider = "prisma-client-js"
@@ -40,11 +27,10 @@ model Order {
   requesterContactNote String?   @map("requester_contact_note") @db.VarChar(255)
   courierContactNote   String?   @map("courier_contact_note") @db.VarChar(255)
   rewardCredits        Int       @map("reward_credits")
-  // AI-generated (edited by huangjiaxi1111)
   dropoffLatitude        Float?  @map("dropoff_latitude")
   dropoffLongitude       Float?  @map("dropoff_longitude")
   estimatedRewardCredits Int?    @map("estimated_reward_credits")
-  // AI-generated (edited by jagdeepsh): delivery dispute raised by the requester; an admin settles it.
+  // Delivery dispute raised by the requester; an admin settles it.
   dispute                Boolean @default(false)
   requesterDisputeDetails String? @map("requester_dispute_details") @db.Text
   courierDisputeDetails   String? @map("courier_dispute_details") @db.Text

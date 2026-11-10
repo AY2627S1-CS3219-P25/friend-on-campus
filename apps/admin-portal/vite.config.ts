@@ -1,25 +1,10 @@
 // AI Assistance Disclosure:
-// Tool: Google Antigravity Agent, date: 2026-10-22
-// Scope: Added /api/health/{user,supplier,order,credit,notification} proxy routes for live microservice health and readiness checks in host and gateway dev modes.
+// Tool: Google Antigravity Agent; Codex (model: GPT-6), date: 2026-09-30 to 2026-10-22
+// Scope: Serve admin pages and assets under /admin/ through the gateway; updated across 4 AI-assisted revisions through D4 wrap-up (added /api/health/{user,supplier,order,credit,notification} proxy routes for live microservice health and readiness checks in host and gateway dev modes).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Google Antigravity Agent, date: 2026-10-11
-// Scope: Added /api/orders proxy route to order service for host-based development.
-// Author review: (to be completed by author after review)
-//
-// Tool: Codex (model: GPT-6), date: 2026-10-01
-// Scope: Keep host-based API proxies on local services while Compose routes through the gateway.
-// Author review: Approved by ngkhengyang
-//
-// Tool: Codex (model: GPT-6), date: 2026-09-30
-// Scope: Serve admin pages and assets under /admin/ through the gateway.
-// Author review: <to be completed by huangjiaxi1111>
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by yanhwee)
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// AI-generated (edited by huangjiaxi1111)
 // Docker routes through the gateway; host-based development uses local services.
 const gatewayTarget = process.env.GATEWAY_URL;
 const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';

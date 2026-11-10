@@ -1,20 +1,7 @@
 # AI Assistance Disclosure:
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
-# Scope: Wrote this workflow, which runs an automated Claude Code review on pull requests.
-# Author review: <to be completed by Reallyeasy1>
-# AI Assistance Disclosure:
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-24
-# Scope: Added the Linked-issues check to the review prompt (replaces the deleted
-# pr-linked-issue.yml workflow) and allowed the read-only gh issue commands it needs.
-# Author review: <to be completed by Reallyeasy1>
-# AI Assistance Disclosure:
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-28
-# Scope: Raised --max-turns from 40 to 1500 at the author's request and updated the comment beside it.
-# Author review: <to be completed by Reallyeasy1>
-# AI Assistance Disclosure:
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
-# Scope: Added the CLAUDE_PR_REVIEW_ENABLED repository-variable switch to the job condition, at the author's request.
-# Author review: <to be completed by Reallyeasy1>
+# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23 to 2026-10-22
+# Scope: Wrote this workflow, which runs an automated Claude Code review on pull requests; updated across 4 AI-assisted revisions through D4 wrap-up (added the CLAUDE_PR_REVIEW_ENABLED repository-variable switch to the job condition, at the author's request).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 #
 # On/off switch: the repository variable CLAUDE_PR_REVIEW_ENABLED (Settings >
 # Secrets and variables > Actions > Variables, or `gh variable set

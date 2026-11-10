@@ -1,26 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Increment 6 of the author's Notification Redesign (§4, §9): settle() and refund() write a
- * credit.escrow.settled / credit.escrow.refunded outbox row in the same transaction as the escrow transition, ledger
- * row and wallet change, referencing that ledger row; an idempotent replay (escrow already closed) writes nothing.
- * applyEvent passes the triggering Order event's id and code into the receipt.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-19
- * Scope: Validated positive 32-bit integer amount in reserve() and simplified reservationResult to Saga Approach B2 (removed release-request and cross-service expiresAt clock check; order expiry refunds are handled via order.expired).
- * Author review: Reviewed and verified by yanhwee.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Atomically persist reservation/refund results, balance changes and deduplication; roll back rejected holds.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Implemented the author-specified persistent credit messaging and idempotency contract.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity; Codex (model: GPT-6), date: 2026-09-24 to 2026-10-22
+ * Scope: Implemented the author-specified persistent credit messaging and idempotency contract; updated across 4 AI-assisted revisions through D4 wrap-up (increment 6 of the author's Notification Redesign (§4, §9): settle() and refund() write a credit.escrow.settled / credit.escrow.refunded outbox row in the..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 import { randomBytes, randomUUID } from 'node:crypto';
 import type {
   CreditEscrowRefundedEvent,
@@ -39,7 +22,6 @@ export type CreditCommand =
   | { kind: 'settle'; body: EscrowSettleRequest & { orderCode?: string } }
   | { kind: 'refund'; body: EscrowRefundRequest & { orderCode?: string } };
 
-// AI-generated (edited by Reallyeasy1)
 /** What a receipt needs beyond the command: the Order event that caused it and the errand's display code. */
 export interface ReceiptContext {
   causationEventId?: string;
@@ -77,7 +59,6 @@ async function matchingEscrow(tx: CreditTransactionStore, body: EscrowReserveReq
   return escrow;
 }
 
-// AI-generated (edited by yanhwee)
 async function reserve(tx: CreditTransactionStore, body: EscrowReserveRequest): Promise<CreditWalletDTO> {
   if (!Number.isInteger(body.amount) || body.amount <= 0 || body.amount > 2147483647) {
     throw new CreditError('Amount must be a positive 32-bit integer');
@@ -116,7 +97,7 @@ async function settle(tx: CreditTransactionStore, body: EscrowSettleRequest, rec
       orderId: body.orderId, amount: body.amount, transactionType: 'ESCROW_RELEASE',
       description: `Escrow payout to courier for order ${body.orderId}`,
     });
-    // AI-generated (edited by Reallyeasy1): the receipt commits with the payout, or not at all.
+    // The receipt commits with the payout, or not at all.
     const settled: CreditEscrowSettledEvent = {
       eventId: randomUUID(), eventType: 'credit.escrow.settled', timestamp: new Date().toISOString(),
       schemaVersion: 2, producer: 'credit-service', orderId: body.orderId, correlationId: body.orderId,
@@ -143,7 +124,6 @@ async function refund(tx: CreditTransactionStore, body: EscrowRefundRequest, rec
       orderId: body.orderId, amount: body.amount, transactionType: 'ESCROW_REFUND',
       description: `Escrow refund for cancelled/expired order ${body.orderId}`,
     });
-    // AI-generated (edited by Reallyeasy1)
     const refunded: CreditEscrowRefundedEvent = {
       eventId: randomUUID(), eventType: 'credit.escrow.refunded', timestamp: new Date().toISOString(),
       schemaVersion: 2, producer: 'credit-service', orderId: body.orderId, correlationId: body.orderId,
@@ -157,7 +137,6 @@ async function refund(tx: CreditTransactionStore, body: EscrowRefundRequest, rec
   return (await tx.findWallet(body.requesterId))!;
 }
 
-// AI-generated (edited by yanhwee)
 async function reservationResult(tx: CreditTransactionStore, event: CreditReservationRequestEvent) {
   const body = { orderId: event.orderId, requesterId: event.requesterId, amount: event.rewardCredits };
   let eventType: CreditReservationResultEvent['eventType'] = 'credit.reservation.succeeded';

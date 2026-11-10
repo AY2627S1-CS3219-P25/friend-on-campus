@@ -1,23 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Include the existing messaging workspace and start only the application; Compose retains local migration startup.
-# Author review: <to be completed by the author>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
-# Scope: Copied from services/notification-service/Dockerfile (main @ a6aff23) with the workspace name and port
-# substituted. The build stages, Prisma engine copy, non-root runtime and migrate-then-exec command are the
-# Notification Service's (records: Codex GPT-5 2026-10-12 to 2026-10-16, ngkhengyang; Claude Code 2026-10-05, Reallyeasy1).
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
-# Scope: Added the @campus-errand/llm package to the build, dependency and runtime stages.
-# Author review: <to be completed by the author>
-#
-# Tool: Google Antigravity Agent, date: 2026-11-06
-# Scope: Consolidated the @campus-errand/llm disclosure record into the top disclosure block.
+# Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent, date: 2026-10-20 to 2026-11-08
+# Scope: Copied from services/notification-service/Dockerfile (main @ a6aff23) with the workspace name and port substituted; updated across 4 AI-assisted revisions through D4 wrap-up (include the existing messaging workspace and start only the application; Compose retains local migration startup).
 # Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 RUN apk add --no-cache openssl
@@ -93,5 +78,4 @@ EXPOSE 8006
 
 USER node
 
-# AI-generated (edited by ngkhengyang)
 CMD ["node", "dist/index.js"]

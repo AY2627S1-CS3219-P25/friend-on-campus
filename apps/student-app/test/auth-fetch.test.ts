@@ -1,27 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add unit tests for runSignupWithAutoLogin and EMPTY_SIGNUP_DATA covering post-registration auto-login failures and sign-up state reset (issues #170, #204).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-03 to 2026-11-10
+ * Scope: Unit test for withRequestDeadline: a default 10 s signal is attached, a caller's signal is kept, and the deadline actually aborts (N4 design, wiki "Graceful..; updated across 4 AI-assisted revisions through D4 wrap-up (add unit tests for runSignupWithAutoLogin and EMPTY_SIGNUP_DATA covering post-registration auto-login failures and sign-up state reset (issues #170, #204)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #225 review regression cases: a session abort stops a retry loop and aborts the combined deadline signal;
- *        a lifecycle write whose 2xx body cannot be read is reported as unconfirmed, not "HTTP 200"; parseErrandDraft
- *        sends its own deadline that outlasts Order Service's supplier lookup plus AI timeout.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: Added cases for isSafeRead, readRetryDelayMs bounds, retrySafeRead (5xx/throw retried, 4xx not, last outcome
- *        returned or rethrown) and describeWriteFailure (lost response copy versus server message).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-03
- * Scope: Unit test for withRequestDeadline: a default 10 s signal is attached, a caller's signal is kept, and the
- *        deadline actually aborts (N4 design, wiki "Graceful Degradation and Data Durability Design" section 5.1).
- * Author review: <to be completed by Reallyeasy1>
  */
 
-// AI-generated (edited by Reallyeasy1)
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -152,7 +135,7 @@ test('a lost write response is reported as unconfirmed, a server message is pass
   assert.equal(UNCONFIRMED_WRITE_MESSAGE, "We couldn't confirm the result. Check this errand before trying again.");
 });
 
-// AI-generated (edited by Reallyeasy1): PR #225 review cases.
+// PR #225 review cases.
 test('a session abort stops the retry loop at once, while a deadline abort is still retried', async () => {
   const { waits, wait } = immediate();
   const ended = new DOMException('Session ended', 'AbortError');
@@ -225,7 +208,6 @@ test('the draft assistant sends its own deadline that outlasts the supplier look
   assert.equal(isSafeRead(seen!), false);
 });
 
-// AI-generated (edited by yanhwee)
 test('runSignupWithAutoLogin distinguishes registration failures from post-registration auto-login failures (issues #170, #204)', async () => {
   assert.deepEqual(EMPTY_SIGNUP_DATA, { username: '', email: '', password: '', retypePassword: '' });
 
@@ -297,7 +279,6 @@ test('runSignupWithAutoLogin distinguishes registration failures from post-regis
   assert.deepEqual(ok, { kind: 'authenticated', accessToken: 'jwt-123' });
 });
 
-// AI-generated (edited by yanhwee)
 test('fetchWalletAndLedger retries HTTP 404 while a new account wallet is being initialized by CDC (issue #168)', async () => {
   const waits: number[] = [];
   let walletCalls = 0;

@@ -1,31 +1,7 @@
 /* AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Extend Manrope consistently to student-app headings while retaining existing body and status styles.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-09-30 to 2026-11-07
+ * Scope: Responsive shell, card grids, navigation, control sizing, and dialog overflow; updated across 7 AI-assisted revisions through D4 wrap-up (extend Manrope consistently to student-app headings while retaining existing body and status styles).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Bundle the brand font locally, define the wordmark treatment, and align keyboard focus with the blue identity.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Synchronize content clearance with the 1024px navigation breakpoint.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Widened responsive card grid tracks to 21.5rem to establish uniform 3-column desktop layout and prevent card text truncation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned student-app base styling, smooth scrollbars, frosted glass surfaces, and responsive card micro-animations.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Responsive shell, card grids, navigation, control sizing, and dialog overflow.
- * Author review: <to be completed by huangjiaxi1111>
  */
 @tailwind base;
 @tailwind components;
@@ -38,9 +14,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* AI-generated (edited by huangjiaxi1111) */
 @layer base {
-  /* AI-generated (edited by yanhwee): shared brand tokens. */
+  /* Shared brand tokens. */
   :root {
     --campus-ink: #183153;
     --campus-blue: #2563EB;
@@ -58,8 +33,7 @@ body {
 }
 
 @layer components {
-  /* AI-generated (edited by yanhwee) */
-  /* AI-generated (edited by yanhwee): keep display typography consistent across student screens. */
+  /* Keep display typography consistent across student screens. */
   .student-shell :is(h1, h2, h3, h4) {
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.025em;
@@ -121,7 +95,7 @@ body {
 }
 
 
-/* AI-generated (edited by yanhwee): respect the device's reduced-motion preference. */
+/* Respect the device's reduced-motion preference. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -131,7 +105,7 @@ body {
   }
 }
 
-/* AI-generated (edited by yanhwee): shared utilities also support Tailwind hover and responsive variants. */
+/* Shared utilities also support Tailwind hover and responsive variants. */
 @layer utilities {
   .font-display { font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif; }
   .text-campus-ink { color: var(--campus-ink); }

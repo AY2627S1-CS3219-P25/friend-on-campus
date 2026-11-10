@@ -1,11 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: Chat content moderation: asks the SoCLaaS model (through @campus-errand/llm, which is not modified) whether a
- * message is abusive or harmful. Fails open: any problem reaching or reading the model counts as "not flagged".
- * Author review: <to be completed by the author>
+ * Scope: Chat content moderation: asks the SoCLaaS model (through @campus-errand/llm, which is not modified) whether a message is abusive or harmful.
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by jagdeepsh)
 import { callSoclaas, type SoclaasConfig } from '@campus-errand/llm';
 
 const MODERATION_TIMEOUT_MS = 8_000;

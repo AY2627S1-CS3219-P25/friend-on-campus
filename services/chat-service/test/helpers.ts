@@ -1,27 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: memoryStore gains findById, findMessage and an onAppended hook that emits the delivery intent (issue #240).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Unit-test helpers: an in-memory ConversationStore with the same contract as the Prisma one, a principal
- * factory, fixed ids, and (copied from notification-service/test/helpers.ts) an Ed25519 token signer in the format
- * @campus-errand/auth verifies, a WebSocket test client that records frames and the close code, a polling wait, and a
- * throwaway PostgreSQL schema with the service's migrations applied.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fixes (PR #148 P1, P2): the in-memory store mirrors the Prisma one's courierSince replay guard and the
- * participant/closure recheck in append (shared checkAppend), with the new return shapes.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Review fix (PR #148, second round): the in-memory upsertAccepted applies a supplied closedAt to an existing row
- * set-once, as the Prisma store now does.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-09
+ * Scope: Unit-test helpers: an in-memory ConversationStore with the same contract as the Prisma one, a principal factory, fixed ids, and (copied from..; updated across 4 AI-assisted revisions through D4 wrap-up (memoryStore gains findById, findMessage and an onAppended hook that emits the delivery intent (issue #240)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';

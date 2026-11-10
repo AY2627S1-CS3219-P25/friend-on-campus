@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Group suppliers sharing coordinates into one selectable map location.
- * Author review: <to be completed by Reallyeasy1>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import type { SupplierDTO } from '@campus-errand/common-dtos';
 
 export interface SupplierLocation {

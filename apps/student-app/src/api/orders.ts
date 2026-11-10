@@ -1,49 +1,16 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #225 review: a lifecycle write whose 2xx body cannot be read rethrows the transport error (so the caller
- * reports it as unconfirmed) instead of "HTTP 200"; parseErrandDraft carries its own deadline covering Order Service's
- * supplier lookup plus its 10 s AI call, so the offline draft can still reach the student.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Added parseErrandDraft for F6 Natural-Language Errand Assistant.
+ * Tool: Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent, date: 2026-10-19 to 2026-11-06
+ * Scope: Extracted order feed, user activity, and accept order API helpers from student-app App.tsx into modular api/orders.ts; updated across 8 AI-assisted revisions through D4 wrap-up (added disputeOrderById and the 'dispute' task action).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: fetchOrderById for the notification deep link: the errand's live status from GET /api/orders/:id, with 403
- * and 404 kept apart so a former courier sees "no longer available" rather than a stale action (Notification Redesign §2).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added unassignOrderById and 'unassign' action to TaskOrderAction so couriers can drop ACCEPTED errands prior to pickup, and added optional courierContactNote support to acceptOrderById (F3.3.6).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Added pickup, deliver, complete, and cancel lifecycle API helpers, preserved 400/403/409 backend error messages, and included user activity history in fetchCombinedOrders (Issue #132).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted order feed, user activity, and accept order API helpers from student-app App.tsx into modular api/orders.ts.
- * Author review: Verified by yanhwee
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Added disputeOrderById and the 'dispute' task action.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Added courierDisputeOrderById and the 'courier-dispute' task action.
- * Author review: <to be completed by the author>
  */
 
-// AI-generated (edited by yanhwee)
 
 import { OrderDTO, ParsedErrandDraftDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './auth';
 
 export type TaskOrderAction = 'pickup' | 'deliver' | 'complete' | 'cancel' | 'unassign' | 'dispute' | 'courier-dispute';
 
-// AI-generated (edited by Reallyeasy1)
 export type FetchOrderResult =
   | { status: 'ok'; order: OrderDTO }
   | { status: 'forbidden' | 'not_found' | 'error'; message: string };
@@ -91,7 +58,7 @@ async function postOrderLifecycleAction(
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  // AI-generated (edited by Reallyeasy1): on a 2xx the server may have committed the action, so a body that cannot
+  // On a 2xx the server may have committed the action, so a body that cannot
   // be read (connection dropped, deadline hit mid-body) is a lost response and its error propagates to
   // describeWriteFailure; an unreadable error body still falls back to the HTTP status message.
   const body = await res.json().catch((error: unknown) => {
@@ -155,7 +122,6 @@ export async function completeOrderById(
   );
 }
 
-// AI-generated (edited by jagdeepsh)
 export async function disputeOrderById(
   authFetch: AuthFetchFn,
   orderId: string,
@@ -170,7 +136,6 @@ export async function disputeOrderById(
   );
 }
 
-// AI-generated (edited by jagdeepsh)
 export async function courierDisputeOrderById(
   authFetch: AuthFetchFn,
   orderId: string,
@@ -209,14 +174,12 @@ export async function unassignOrderById(
   );
 }
 
-// AI-generated (edited by Reallyeasy1)
 /**
  * Order Service looks suppliers up (4 s timeout) and then gives SoCLaaS 10 s before answering with an offline draft,
  * so this caller's deadline must outlast both; the 10 s authFetch default would drop the fallback on the floor.
  */
 export const DRAFT_DEADLINE_MS = 20_000;
 
-// AI-generated (edited by yanhwee)
 export async function parseErrandDraft(
   authFetch: AuthFetchFn,
   prompt: string

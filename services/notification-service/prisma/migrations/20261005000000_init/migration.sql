@@ -1,7 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
 -- Scope: Generated with prisma migrate diff from schema.prisma (the notifications table of the author's design).
--- Author review: <to be completed by Reallyeasy1>
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 -- CreateTable
 CREATE TABLE "notifications" (

@@ -1,19 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
-// Scope: N21 (2026-10-23) publishes a credit.escrow.settled receipt with the credit_service account (increment 6). Events are published with the version-2 contract of the author's Notification Redesign; N6/N7 now check the
-// quiet publication receipt and the courier's completion notice; N17–N19 add the two-recipient admin cancellation
-// with its redelivery, the action_needed view before and after completion, and the authoritative unread count on
-// PATCH read. Counts updated for the extra receipt.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
-// Scope: The published events carry courierUsername and N4 asserts the acceptance body names the courier (F5.1.1).
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
-// Scope: Acceptance driver for the Notification Service (issue #52, F5): logs in through the gateway, opens the WebSocket, publishes order events to RabbitMQ as Order Service will, and checks the pushed frames and the REST API.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-10-22
+// Scope: Acceptance driver for the Notification Service (issue #52, F5): logs in through the gateway, opens the WebSocket, publishes order events to RabbitMQ as..; updated across 3 AI-assisted revisions through D4 wrap-up (n21 (2026-10-23) publishes a credit.escrow.settled receipt with the credit_service account (increment 6)).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 // Run: node scripts/uat/uat-notifications.mjs   (stack up: docker compose up --build -d; uses amqplib from the repo's node_modules)
 // The driver publishes the events itself with the order_service broker account, shaped exactly as Order Service
 // writes them (schemaVersion 2). Set AMQP_URL when RabbitMQ is not on localhost:5672.

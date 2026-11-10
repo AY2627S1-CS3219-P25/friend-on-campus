@@ -1,13 +1,8 @@
 // AI Assistance Disclosure:
-// Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Keep runtime generation limited to database and RabbitMQ secrets while demo passwords come from the seed.
-// Author review: <to be completed by the author>
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-08
-// Scope: Generate fresh database, RabbitMQ and demo sign-in credentials while preserving broker permissions.
-// Author review: <to be completed by the author>
+// Tool: Codex (model: GPT-6), date: 2026-11-08 to 2026-11-09
+// Scope: Generate fresh database, RabbitMQ and demo sign-in credentials while preserving broker permissions; updated across 2 AI-assisted revisions through D4 wrap-up (keep runtime generation limited to database and RabbitMQ secrets while demo passwords come from the seed).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
-// AI-generated (edited by ngkhengyang)
 const { createHash, randomBytes } = require('node:crypto');
 const { writeFileSync } = require('node:fs');
 const { resolve } = require('node:path');

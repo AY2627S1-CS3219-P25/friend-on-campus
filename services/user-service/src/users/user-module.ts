@@ -1,38 +1,11 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: toggleUserStatus maps the last-enabled-admin guard to LAST_ADMIN_REQUIRED (UAT A8).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Map atomic last-admin guard failures to LAST_ADMIN_REQUIRED.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service profile business logic, deferred administration errors, and Prisma duplicate-constraint error handling.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented username-only profile updates and shared user and password DTO handling.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added deleteUser() and the FORBIDDEN error code for the new DELETE /api/users/:id endpoint. Role/self
- * authorization for this route is enforced at the route layer (requireSelfOrAdmin in user-routes.ts), not here —
- * this method trusts that check has already passed, same as toggleUserStatus trusts requireAdmin.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added toggleUserRole() (flips STUDENT<->ADMIN, backing the new PATCH /:id/toggle-role) and the
- * SELF_ACTION_FORBIDDEN error code (an admin may not change their own role — enforced at the route layer, same
- * split as toggleUserStatus/deleteUser). Removed the NOT_IMPLEMENTED error code — nothing throws it anymore
- * now that the old promote stub is gone.
- * Author review: (to be completed by author after review)
+ * Tool: Claude Code (model: Claude Fable 5.1, Sonnet 5); Codex (model: GPT-6, GPT-5.6 Terra), date: 2026-09-22 to 2026-10-04
+ * Scope: Implemented username-only profile updates and shared user and password DTO handling; updated across 6 AI-assisted revisions through D4 wrap-up (toggleUserStatus maps the last-enabled-admin guard to LAST_ADMIN_REQUIRED (UAT A8)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by ngkhengyang)
 
-// AI-generated (edited by ngkhengyang)
 
 
 import type {

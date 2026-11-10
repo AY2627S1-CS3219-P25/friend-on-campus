@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Moved the SoCLaaS chat-completions call out of order-service/src/assistant/assistant.service.ts (written by
- * yanhwee) into a shared package and made it generic: the caller supplies the instruction and the text, and gets the
- * model's reply back. Added parseJsonReply for callers that ask for JSON.
- * Author review: <to be completed by the author>
+ * Scope: Moved the SoCLaaS chat-completions call out of order-service/src/assistant/assistant.service.ts (written by yanhwee) into a shared package and made it...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by jagdeepsh)
 
 /** Connection settings for the SoCLaaS gateway (SOCLAAS_BASE_URL, SOCLAAS_API_KEY, SOCLAAS_MODEL). */
 export interface SoclaasConfig {

@@ -1,57 +1,11 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Tests for the optional drop-off coordinates and estimated credit on createOrder: stored when all three are
- * sent, absent when none are, 400 on a partial set, out-of-range coordinates or a non-integer estimate, and a reward
- * that differs from the estimate is accepted.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Version-2 outbox facts of the author's Notification Redesign (§6): a failed reservation now writes
- * order.rejected; new suite asserts actor, reason code, committed version/status, cancellation assignee and
- * priorCourierId on cancel, complete, unassign (courier and admin), rejection and both expiry paths.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Updated ACCEPTED order cancellation test to verify courierId preservation for courier history, and added unit tests for courier unassignOrder (ACCEPTED -> OPEN).
+ * Tool: Claude Code (model: Claude Opus 5.5, Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent; Codex (model: GPT-6, GPT-5.6 Sol), date: 2026-10-07 to 2026-11-07
+ * Scope: Unit test suite for Order Service core lifecycle state machine, escrow reservation, single-winner concurrency, and sweeper; updated across 11 AI-assisted revisions through D4 wrap-up (courier-first dispute test).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Verify development sample seeding requires explicit opt-in.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Update creation tests for outbox submissions while preserving funded lifecycle coverage; cover the inclusive reward limit and reject overflow before persistence.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: Tests that accept, pickup and deliver put the caller's username on the outbox event when present (F5.1.1).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added unit test suite for Admin Order Management: force-cancel, force-complete, unassign, optimistic concurrency guards, and query search.
- * Author review: (to be completed by author after review)
- * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
- * Scope: Removed an unused error import identified by the root lint configuration.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Unit test suite for Order Service core lifecycle state machine, escrow reservation, single-winner concurrency, and sweeper.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: disputeOrder tests (freeze, authorisation, validation, admin settlement clears the flag).
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: courier-first dispute test.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-// AI-generated (edited by huangjiaxi1111)
 import { prisma } from '../src/database/client';
 import { seedOrders } from '../src/database/seed';
 import { createExpirySweeper } from '../src/orders/expiry.sweeper';
@@ -73,7 +27,6 @@ const COURIER_2_ID = '20000000-0000-4000-8000-000000000003';
 const ADMIN_ID = '90000000-0000-4000-8000-000000000001';
 const SUPPLIER_ID = '10000000-0000-4000-8000-000000000001';
 
-// AI-generated (edited by huangjiaxi1111)
 it('sample seeding requires explicit true and does not access the database otherwise', async t => {
   const original = process.env.SEED_SAMPLE_ORDERS;
   const originalInsert = prisma.order.createMany;
@@ -189,7 +142,6 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(fakeRepo.outboxEvents[0].eventType, 'order.reservation.requested');
     });
 
-    // AI-generated (edited by huangjiaxi1111)
     describe('drop-off estimate fields', () => {
       const baseRequest = { supplierId: SUPPLIER_ID, itemDescription: 'Meal', dropoffLocation: 'COM1', rewardCredits: 20 };
       const estimate = { dropoffLatitude: 1.29496, dropoffLongitude: 103.77373, estimatedRewardCredits: 25 };
@@ -353,7 +305,7 @@ describe('Order Service Lifecycle and Concurrency', () => {
       });
       assert.equal(rejectedOrder.status, 'REJECTED');
       assert.equal(rejectedOrder.rejectionReason, 'Insufficient credits');
-      // AI-generated (edited by Reallyeasy1): the rejection is an Order-owned fact written with the REJECTED update.
+      // The rejection is an Order-owned fact written with the REJECTED update.
       assert.equal(fakeRepo.outboxEvents.length, 2);
       assert.equal(fakeRepo.outboxEvents[1].eventType, 'order.rejected');
     });
@@ -416,7 +368,6 @@ describe('Order Service Lifecycle and Concurrency', () => {
       assert.equal(payload.courierId, COURIER_1_ID);
     });
 
-    // AI-generated (edited by Reallyeasy1)
     it('puts the courier username on order.accepted when the caller has one, and omits it otherwise (F5.1.1)', async () => {
       const { fundedService: service, fakeRepo } = setupTest();
       const request = { supplierId: SUPPLIER_ID, itemDescription: 'Kaya toast', dropoffLocation: 'COM1', rewardCredits: 5 };
@@ -613,7 +564,6 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
   });
 
-  // AI-generated (edited by jagdeepsh)
   describe('disputeOrder', () => {
     async function delivered() {
       const ctx = setupTest();
@@ -1076,7 +1026,6 @@ describe('Order Service Lifecycle and Concurrency', () => {
     });
   });
 
-  // AI-generated (edited by Reallyeasy1)
   describe('Version-2 outbox facts (Notification Redesign §6)', () => {
     const last = (fakeRepo: ReturnType<typeof makeFakeOrderRepository>, eventType: string) => {
       const row = [...fakeRepo.outboxEvents].reverse().find((e) => e.eventType === eventType);

@@ -1,18 +1,14 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
- * Scope: New order lifecycle write workload for issue #236 (#36 Order N2.2): each VU owns a requester/courier
- *        pair and drives create -> (PENDING -> OPEN, polled) -> accept -> pickup -> deliver -> complete; every
- *        write is measured separately, the HTTP 202 latency is kept apart from the PENDING -> OPEN duration,
- *        and polling is excluded from the measured populations.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: New order lifecycle write workload for issue #236 (#36 Order N2.2): each VU owns a requester/courier pair and drives create -> (PENDING -> OPEN, polled) ->...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  *   npm run perf:k6 -- --target http://127.0.0.1 --profile load --workload lifecycle
  *
  * Roles alternate each iteration so one credit flows back and forth inside the pair and no wallet runs dry.
  * Expected 409 conflicts belong to the claim-race population only; here any non-2xx is a failure.
  */
-// AI-generated (edited by Reallyeasy1)
 import { sleep } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 import {

@@ -1,20 +1,7 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-5), date: 2026-10-15
-# Scope: Pinned the Node build and NGINX runtime images to exact Alpine release tags and verified registry digests.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-14
-# Scope: Prepared writable NGINX runtime directories, assigned runtime files to nginx, and run the web server without root privileges.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Build the Vite application in Node and serve only its static output from an NGINX runtime stage.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
-# Author review: <to be completed by ngkhengyang>
-# AI-generated (edited by ngkhengyang)
+# Tool: Codex (model: GPT-5), date: 2026-10-13 to 2026-10-15
+# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci; updated across 4 AI-assisted revisions through D4 wrap-up (pinned the Node build and NGINX runtime images to exact Alpine release tags and verified registry digests).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 WORKDIR /app

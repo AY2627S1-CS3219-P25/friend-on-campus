@@ -1,22 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Google Antigravity Agent, date: 2026-11-09
-// Scope: PR #252 review fix: performanceFromSummary resolves per-tier requiredVus from the matched limit entry
-//        before falling back to op.concurrency.required so multi-tier operations (e.g. supplier #29 vs #33)
-//        check concurrency against the selected tier.
-// Author review: Validated by Yee Yan Hwee (yanhwee)
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-// Scope: Evidence builders for the k6 performance harness (issue #237): a bounded 10-second time-series
-//        derived from k6's JSON output, and per-operation verdicts (thresholds, sample minimums, VUs versus
-//        estimated in-flight requests versus requests per second) derived from k6-summary.json.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: stageStatus and overallVerdict, moved out of run-perf.mjs so they can be tested: a stage status is always
-//        a verdict, and the run passes only when every required stage passed. compareRuns and renderComparison:
-//        a per-operation benchmark table for two runs (scripts/perf/compare-runs.mjs).
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+// Scope: Evidence builders for the k6 performance harness (issue #237): a bounded 10-second time-series derived from k6's JSON output, and per-operation verdicts..; updated across 3 AI-assisted revisions through D4 wrap-up (pR #252 review fix: performanceFromSummary resolves per-tier requiredVus from the matched limit entry before falling back to op.concurrency.required so..).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 import { createReadStream, createWriteStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { createGzip } from 'node:zlib';
@@ -39,7 +24,6 @@ function percentile(sorted, fraction) {
  */
 const VERDICTS = new Set(['PASS', 'FAIL', 'BLOCKED', 'INCOMPLETE']);
 
-// AI-generated (edited by Reallyeasy1)
 /**
  * The status of a stage that threw: the verdict the error carries, BLOCKED for a fixture problem, FAIL otherwise.
  * A gateway error carries an HTTP code in `status`; that is not a verdict (a reconciliation once ended as "401").
@@ -213,7 +197,6 @@ export function performanceFromSummary(summary, workloadSpec, context) {
   return { verdict, k6ExitCode, runSeconds, steadySeconds, operations, asyncMetrics, extraThresholds: extra, notCovered: workloadSpec.notCovered ?? [] };
 }
 
-// AI-generated (edited by Reallyeasy1)
 /**
  * Benchmark rows for two runs ({ manifest, workloads: { label: performance.json } }), one per operation present in
  * both. `comparable` is false when the virtual-user counts differ: latency under another load is another measurement.

@@ -1,73 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-10-06 to 2026-11-07
+ * Scope: Bell button with the unread count (top nav and mobile tab variants) and the Alerts board, per the author's Notification Service Design: list, mark read,..; updated across 13 AI-assisted revisions through D4 wrap-up (apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align selected alerts with the royal-blue navigation state.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align the top alert control with the larger navigation targets and quiet selected-state styling.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed duplicate Refresh and Mark all as read action buttons from NotificationPanel filter bar now that they are hoisted to the standard Campus Alerts page header row, decluttering the alert filter pills across mobile and desktop.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Implemented Option A compact icon button pattern for desktop header notification bell (w-9 h-9 min-h-0 icon-only with sr-only label and pinned badge).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Refined top variant to match wallet capsule height (h-9) and rounded-xl corners with pinned badge on mobile.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Made top variant responsive with compact icon-and-badge presentation on mobile screens while preserving test-id and aria-label.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned NotificationBell and NotificationPanel with elevated split inbox layout, tactile view pills, luminous unread badges, and full test-id preservation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light elegant theme styling for alert filter tabs and primary CTA button.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review fix (PR #184): the view is a prop the hook fetches server side; tab counts are only the ones the server
- * vouches for (the active view's total and the unread count) instead of counts over the rows loaded so far; Load more
- * is offered in every view, so a filtered view can page too.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Alerts board rebuilt as the inbox of the author's Notification Redesign (§2): views Action needed / Important /
- * All / Unread, one row per notification (title, one line of context, time, read state), a detail pane whose single
- * button follows the typed action (review delivery while the order is still DELIVERED, otherwise view errand or
- * wallet), a stale-data line when a refresh failed, Load more paging, and a generic card for kinds this build does
- * not know. The three-stage timeline and the "Needs your confirmation" stage counting are gone. Bell unchanged.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Updated onOpenErrand docstring now that TasksPage provides the confirm-delivery action (Issue #132).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
- * Scope: Bell button with the unread count (top nav and mobile tab variants) and the Alerts board, per the author's
- * Notification Service Design: list, mark read, mark all read, delivered rows lead to the errand. Fourth pass the
- * same day, after a scan of notification-centre patterns (Courier's design guide, Linear's inbox, delivery-app
- * order tracking): a two-pane inbox on desktop (errand list left, the selected errand's stage timeline right), a
- * list-then-detail flow on a phone, rows bundled per errand under "Needs your confirmation" / "Today" / "Earlier",
- * one quiet unread signal, read on open. The delivered step's button says what it does today (opens Tasks);
- * confirming delivery is an Order Service action that does not exist yet. Review fix the same day: the selected
- * errand is resolved from all errands, so under the Unread filter it stays open after opening marks it read.
- * Author review: <to be completed by Reallyeasy1>
  */
 
-// AI-generated (edited by Reallyeasy1)
-// AI-generated (edited by yanhwee)
 
 import { useEffect, useState } from 'react';
 import {
@@ -213,7 +150,7 @@ export function NotificationPanel({
   // The cache holds rows from every view fetched so far; the selected view's own pages are in it, so filtering here
   // never hides a matching row the server has (the hook fetched that view).
   const visible = items.filter((n) => inView(n, view, liveStatus(n.orderId)));
-  // AI-generated (edited by Reallyeasy1): only counts the server vouches for. A count over loaded rows would say
+  // Only counts the server vouches for. A count over loaded rows would say
   // "Important · 0" while an older important row sits beyond the loaded pages.
   const countOf = (key: InboxView): number | null => (key === 'unread' ? unreadCount : key === view ? total : null);
   // Resolved from every item, not the filtered list: opening marks read, which would otherwise drop the opened

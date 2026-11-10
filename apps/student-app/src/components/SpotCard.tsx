@@ -1,35 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-10-19 to 2026-11-07
+ * Scope: Extracted campus spot directory card component from student-app App.tsx into components/SpotCard.tsx; updated across 7 AI-assisted revisions through D4 wrap-up (apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Exported getCategoryIcon helper for reuse in directory list view.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned SpotCard with live operating hours indicator, category-specific icons, and refined micro-hover states.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light interactive pill button styling for Pick for Errand CTA.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Modernized campus spot directory card with category icons, live availability indicators, zone pills, and ergonomic CTA button.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted campus spot directory card component from student-app App.tsx into components/SpotCard.tsx.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 import { SupplierDTO } from '@campus-errand/common-dtos';
 import { ArrowRight, Clock, Coffee, MapPin, Package, Printer, Store, Utensils } from 'lucide-react';

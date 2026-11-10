@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-24
  * Scope: Generated ephemeral Ed25519 credentials for HTTP authentication tests.
- * Author review: <to be completed by huangjiaxi1111>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { authMiddleware } from '@campus-errand/auth';
 

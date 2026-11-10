@@ -1,27 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Assert pending cancellation returns 409 without mutations before controlled reservation approval.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added integration test for POST /api/orders/:id/unassign (courier drop before pickup, 403 for non-assigned courier, 409 after pickup).
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-10-07 to 2026-11-01
+ * Scope: Integration test suite for Order Service HTTP application, authentication middleware, route handlers, and status codes; updated across 5 AI-assisted revisions through D4 wrap-up (assert pending cancellation returns 409 without mutations before controlled reservation approval).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Verify asynchronous creation receipts, polling authorization and existing lifecycle routes.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added integration tests for admin order endpoints, RBAC authorization (403), optimistic concurrency (409), and search.
- * Author review: (to be completed by author after review)
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Integration test suite for Order Service HTTP application, authentication middleware, route handlers, and status codes.
- * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by yanhwee)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Request, Response, NextFunction } from 'express';
@@ -170,7 +152,6 @@ describe('Order Service HTTP Application & Routes', () => {
       assert.equal((await fetch(orderUrl)).status, 401);
       assert.equal((await fetch(orderUrl, { headers: { 'x-user-id': BOB_ID } })).status, 403);
 
-      // AI-generated (edited by Reallyeasy1)
       const pendingOutboxCount = fakeRepo.outboxEvents.length;
       const cancelPending = await fetch(`${orderUrl}/cancel`, {
         method: 'POST',

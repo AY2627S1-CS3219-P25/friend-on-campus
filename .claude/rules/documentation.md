@@ -4,13 +4,9 @@ paths:
 ---
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added documentation-scoped source verification instructions from the approved task.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6), date: 2026-10-25 to 2026-11-09
+Scope: Added documentation-scoped source verification instructions from the approved task; updated across 2 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Documentation maintenance

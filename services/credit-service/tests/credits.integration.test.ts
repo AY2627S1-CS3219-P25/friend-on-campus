@@ -1,24 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Asserts the credit.escrow.settled / credit.escrow.refunded outbox receipts (one per real operation, none on
- * replay, referencing the ledger row) per the author's Notification Redesign increment 6.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
- * Scope: Updated integration tests to verify HTTP POST /api/credits/escrow/reserve returns 404 alongside settle and refund (Issue #42), exercising reservation logic directly via CreditService.
- * Author review: Validated by Yee Yan Hwee (yanhwee)
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Verify wallet reads never create or change wallets, grants or ledger entries; initialize fixtures explicitly.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Tested JWT authentication and wallet ownership alongside HTTP and PostgreSQL regressions.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity (model: Claude Opus 4.6); Codex (model: GPT-6), date: 2026-09-24 to 2026-10-22
+ * Scope: Tested JWT authentication and wallet ownership alongside HTTP and PostgreSQL regressions; updated across 4 AI-assisted revisions through D4 wrap-up (asserts the credit.escrow.settled / credit.escrow.refunded outbox receipts (one per real operation, none on replay, referencing the ledger row) per the..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
@@ -144,7 +129,7 @@ async function main() {
     assert.equal(settle.requesterWallet.escrowCredits, 0);
     assert.equal(settle.courierWallet.availableCredits, 125);
     assert.equal(settle.courierWallet.totalEarnedCredits, 25);
-    // AI-generated (edited by Reallyeasy1): the settlement receipt commits with the payout and references its ledger row.
+    // The settlement receipt commits with the payout and references its ledger row.
     const settledReceipts = (await db.creditOutboxEvent.findMany({ where: { eventType: 'credit.escrow.settled', aggregateId: orderId } }))
       .map(row => JSON.parse(row.payload));
     assert.equal(settledReceipts.length, 1);

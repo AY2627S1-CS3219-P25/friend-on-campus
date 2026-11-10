@@ -1,36 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Reset sign-up form state on session clear and after registration (#170), and surface post-registration auto-login failures on the login view via loginError (#204).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-10-19 to 2026-11-10
+ * Scope: Extracted authentication session state, silent refresh, and authFetch hook from student-app App.tsx into hooks/useAuthSession.ts; updated across 6 AI-assisted revisions through D4 wrap-up (reset sign-up form state on session clear and after registration (#170), and surface post-registration auto-login failures on the login view via loginError..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #225 review (P1): requests started under one session are cancelled when that session is cleared. A
- *        per-session AbortSignal is combined with the deadline (withRequestDeadline), captured when authFetch is
- *        called so a retry cannot pick up the next account's session, and retrySafeRead stops on an AbortError.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: N4 §5.1 follow-ups: safe reads (GET/HEAD under the default deadline) are retried with bounded full-jitter
- *        backoff (retrySafeRead); describeWriteFailure maps a lost write response (deadline abort or network failure)
- *        to the design table's "We couldn't confirm the result" copy instead of the browser's TimeoutError text.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-03
- * Scope: authFetch applies a 10 s default request deadline (N4 design, wiki "Graceful Degradation and Data Durability
- *        Design" section 5.1) unless the caller passes its own signal; extracted as withRequestDeadline for a unit test.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted authentication session state, silent refresh, and authFetch hook from student-app App.tsx into hooks/useAuthSession.ts.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -48,7 +22,6 @@ export interface SignupFormData {
   retypePassword: string;
 }
 
-// AI-generated (edited by yanhwee)
 export const EMPTY_SIGNUP_DATA: SignupFormData = {
   username: '',
   email: '',
@@ -123,7 +96,6 @@ export async function runSignupWithAutoLogin(
   }
 }
 
-// AI-generated (edited by Reallyeasy1)
 /** Default deadline for reads and actions sent through authFetch; create (15 s) and the pending poll (10 s) pass their own signal. */
 export const REQUEST_DEADLINE_MS = 10_000;
 
@@ -148,7 +120,6 @@ export function isAborted(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-// AI-generated (edited by Reallyeasy1)
 /** Safe-read retry budget: total attempts, and the full-jitter backoff base (pause n is drawn from [0, base · 2^n)). */
 export const READ_RETRY_ATTEMPTS = 3;
 export const READ_RETRY_BASE_MS = 300;
@@ -234,7 +205,7 @@ export function useAuthSession(onSessionCleared: () => void) {
   const [signupError, setSignupError] = useState<{ code: string; message: string } | null>(null);
 
   const refreshInFlight = useRef<Promise<string | null> | null>(null);
-  // AI-generated (edited by Reallyeasy1): one controller per signed-in session. Clearing the session aborts every
+  // One controller per signed-in session. Clearing the session aborts every
   // request (and pending retry) that session started, so a 503 retry cannot run with the previous account's token
   // after the next account signs in (PR #225 review, P1).
   const sessionAbort = useRef(new AbortController());
@@ -275,7 +246,7 @@ export function useAuthSession(onSessionCleared: () => void) {
     setLoginPassword('');
     setLoginError(null);
     setRememberMe(false);
-    // AI-generated (edited by yanhwee): clear sign-up form state when session ends (issue #170).
+    // Clear sign-up form state when session ends (issue #170).
     setSignupData(EMPTY_SIGNUP_DATA);
     setSignupError(null);
   };
@@ -289,7 +260,7 @@ export function useAuthSession(onSessionCleared: () => void) {
         ...withRequestDeadline(init, REQUEST_DEADLINE_MS, session),
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       });
-    // AI-generated (edited by Reallyeasy1): one attempt, with the 401 refresh; safe reads repeat it with backoff.
+    // One attempt, with the 401 refresh; safe reads repeat it with backoff.
     const attempt = async (): Promise<Response> => {
       const res = await send();
       if (res.status !== 401) return res;
@@ -359,7 +330,7 @@ export function useAuthSession(onSessionCleared: () => void) {
 
     setIsSigningUp(true);
     try {
-      // AI-generated (edited by yanhwee): keep post-registration auto-login failures on loginError and reset sign-up fields (#170, #204).
+      // Keep post-registration auto-login failures on loginError and reset sign-up fields (#170, #204).
       const outcome = await runSignupWithAutoLogin({
         username: signupData.username,
         email: signupData.email,

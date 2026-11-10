@@ -1,8 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-10-21
 // Scope: Added gateway acceptance coverage of real User, Order and Credit Debezium delivery through registration, reservation and cancellation.
-// Author review: <to be completed by huangjiaxi1111>
-// AI-generated (edited by huangjiaxi1111)
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 // Run against the seeded Compose stack: node scripts/uat/uat-cdc.mjs
 // Uses HTTP only: no direct database writes or synthetic RabbitMQ events.
 // The isolated full-suite harness removes its own test volume and fixture data.

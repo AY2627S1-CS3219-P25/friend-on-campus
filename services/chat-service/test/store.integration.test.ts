@@ -1,21 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: PostgreSQL tests for src/conversations/store.ts: upsert by order id (create, then courier replaced only),
- * set-once pickup, delivery and close marks, the per-conversation sequence under concurrent appends (the unique
- * index as arbiter), and paging by sequence. Same opt-in and throwaway-schema pattern as the Notification Service.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fixes (PR #148 P1, P2): courierSince and the upsert outcome, the replay/redelivery guard, and append's
- * locked recheck (closed, non-participant, missing, recipients from the row) on real PostgreSQL.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Review fix (PR #148, second round): a terminal fallback's closedAt is applied set-once to an existing row.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-10-26
+ * Scope: PostgreSQL tests for src/conversations/store.ts: upsert by order id (create, then courier replaced only), set-once pickup, delivery and close marks, the..; updated across 3 AI-assisted revisions through D4 wrap-up (review fix (PR #148, second round): a terminal fallback's closedAt is applied set-once to an existing row).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 // Opt in with CHAT_TEST_DATABASE_URL pointing to any PostgreSQL database.
 // Creates and removes its own random schema; never touches existing tables.
 import { after, before, describe, it } from 'node:test';

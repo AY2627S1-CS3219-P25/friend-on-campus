@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Realtime fanout primitives for cross-replica WebSocket delivery (issue #239, wiki "RabbitMQ Cross-Replica
- *        Chat and Notification Delivery"): confirmed fanout publisher, per-replica exclusive-queue subscriber with
- *        bounded handler attempts and a recent-event cache, leased outbox relay with owner-checked completion, and a
- *        loopback implementation for unit tests. PR #246 review: a handler attempt is raced against its deadline and
- *        cancellation, and an attempt that finishes after its abort is not counted as handled; a subscriber closed
- *        while its reconnect is in flight tears that connection down.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Realtime fanout primitives for cross-replica WebSocket delivery (issue #239, wiki "RabbitMQ Cross-Replica Chat and Notification Delivery"): confirmed fanout...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';

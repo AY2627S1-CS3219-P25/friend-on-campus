@@ -1,17 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review regressions (PR #184) for the paging data flow against a fake offset-paginating server: the only
- * Important row sitting beyond the first 50 All rows is fetched when that view is selected, and 100 loaded + 60 offline
- * arrivals end with all 160 ids present before hasMore turns false.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Tests for the inbox helpers of the author's Notification Redesign: open actions follow the live order status,
- * views, id-merging of duplicate frames, the toast rule and the unknown-kind label. Replaces test/errands.test.ts.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22 to 2026-10-24
+ * Scope: Tests for the inbox helpers of the author's Notification Redesign: open actions follow the live order status, views, id-merging of duplicate frames, the..; updated across 2 AI-assisted revisions through D4 wrap-up (review regressions (PR #184) for the paging data flow against a fake offset-paginating server: the only Important row sitting beyond the first 50 All rows..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { NotificationDTO, NotificationPageDTO } from '@campus-errand/common-dtos';

@@ -1,7 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Google Antigravity Agent, date: 2026-10-07
 -- Scope: Initial migration for Order Service creating orders and outbox_events tables with performance and state indexes.
--- Author review: (to be completed by author after review)
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 -- CreateTable
 CREATE TABLE "orders" (

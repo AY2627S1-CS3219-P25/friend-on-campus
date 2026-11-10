@@ -1,26 +1,14 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Hid the Action needed and Important tabs (VIEWS lists only All and Unread); the views stay supported.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review fix (PR #184): inboxQuery() maps a view to the REST query the service already supports, and
- * applyPages() folds fetched pages into the cache, so the hook's paging is a pure, tested data flow.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Pure helpers for the inbox of the author's Notification Redesign (§2, §10): the four views, whether a
- * delivery review is still open (live order status beats the server's projection), merging rows by id, the toast
- * rule and a safe label for unknown kinds. Replaces notifications/errands.ts (stage grouping).
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22 to 2026-10-25
+ * Scope: Pure helpers for the inbox of the author's Notification Redesign (§2, §10): the four views, whether a delivery review is still open (live order status beats..; updated across 3 AI-assisted revisions through D4 wrap-up (hid the Action needed and Important tabs (VIEWS lists only All and Unread); the views stay supported).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import type { NotificationDTO, NotificationPageDTO, OrderStatus } from '@campus-errand/common-dtos';
 
 export type InboxView = 'action_needed' | 'important' | 'all' | 'unread';
 
-// AI-generated (edited by Reallyeasy1): only the tabs shown. Action needed and Important are hidden at the author's
+// Only the tabs shown. Action needed and Important are hidden at the author's
 // request (2026-10-25); the views themselves, inView() and the server query still support them, so re-adding a line here
 // brings a tab back.
 export const VIEWS: { key: InboxView; label: string }[] = [

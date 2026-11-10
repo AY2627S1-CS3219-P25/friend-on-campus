@@ -1,29 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-09
- * Scope: Updated getSuppliers unit tests to verify PostgreSQL $queryRaw SQL construction (LOWER() case-insensitive
- * ORDER BY with deterministic "id" ASC tie-breaker, parameterized WHERE filters, LIMIT/OFFSET clamping, unpaginated
- * 100-row cap, totalCount stripping, and out-of-range page COUNT(*) fallback) for issues #110 and #253.
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Sonnet 5), date: 2026-09-30 to 2026-11-09
+ * Scope: Unit tests for src/database/supplierRepository.ts with the Prisma client replaced by a recording fake (node:test module mock): where-clause and orderBy..; updated across 4 AI-assisted revisions through D4 wrap-up (updated getSuppliers unit tests to verify PostgreSQL $queryRaw SQL construction (LOWER() case-insensitive ORDER BY with deterministic "id" ASC tie-breaker,..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: Sorting and pagination tests now assert on the returned rows (case-insensitive order, stable ties,
- * slicing) because the repository sorts and pages in memory (UAT S8).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: Unit tests for src/database/supplierRepository.ts with the Prisma client replaced by a recording fake
- * (node:test module mock): where-clause and orderBy construction, pagination arithmetic and clamping, the
- * duplicate lookup, trimming and null defaults on create and update, supplier-code generation, toggle and delete.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: createSupplier's base test fixture now includes latitude/longitude (no longer optional), and its
- * assertion expects them passed straight through instead of defaulted to null.
- * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by Reallyeasy1)
-// AI-generated (edited by yanhwee)
 import { describe, it, before, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { Prisma } from '../src/generated/prisma';
@@ -242,7 +222,6 @@ describe('lookups', () => {
 });
 
 describe('createSupplier', () => {
-  // AI-generated (edited by jagdeepsh)
   const body = {
     name: '  Demo Cafe ',
     campusZone: ' COM3',

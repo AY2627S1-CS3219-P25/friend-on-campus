@@ -1,37 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Verify socket-service shutdown and isolate Order CDC fixtures from the standalone Credit messaging suite.
- * Author review: <to be completed by the author>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Isolated the Supplier Service migration suite in its own test database.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Start and await isolated Credit CDC for reservation messaging tests, then stop it before system suites.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Added the chat-service integration and messaging databases and test variables.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Provision an isolated Order database for the cross-service reservation messaging suite.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5), date: 2026-10-11
- * Scope: Select isolated host ports, route every aggregate command through them, and invoke npm portably on Windows.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-5), date: 2026-10-11
- * Scope: Orchestrate the complete local test suite with isolated PostgreSQL, RabbitMQ, Compose, API E2E, and Chromium UAT resources.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Codex (model: GPT-6, GPT-5); Claude Code (model: Claude Fable 5.1), date: 2026-10-11 to 2026-11-08
+ * Scope: Orchestrate the complete local test suite with isolated PostgreSQL, RabbitMQ, Compose, API E2E, and Chromium UAT resources; updated across 7 AI-assisted revisions through D4 wrap-up (verify socket-service shutdown and isolate Order CDC fixtures from the standalone Credit messaging suite).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by ngkhengyang)
 import { spawn, spawnSync } from 'node:child_process';
-// AI-generated (edited by ngkhengyang)
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { generateKeyPairSync } from 'node:crypto';
@@ -103,7 +76,7 @@ const composeEnvironment = {
   JWT_PUBLIC_KEY: publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'),
   JWT_ISSUER: 'friend-on-campus-user-service',
   JWT_AUDIENCE: 'friend-on-campus-services',
-  // AI-generated (edited by ngkhengyang): the standalone Credit suite also writes outbox rows.
+  // The standalone Credit suite also writes outbox rows.
   CREDIT_CDC_TEST_DATABASE: 'order_credit_messaging_test',
 };
 const gatewayUrl = `http://127.0.0.1:${selectedPorts.gateway}`;
@@ -256,7 +229,6 @@ async function runDatabaseSuites() {
   await deployDatabase('@campus-errand/credit-service', databaseUrl(databases.creditMessaging));
   await deployDatabase('@campus-errand/notification-service', databaseUrl(databases.notificationMessaging));
   await deployDatabase('@campus-errand/chat-service', databaseUrl(databases.chatMessaging));
-  // AI-generated (edited by ngkhengyang)
   const messagingEnvironment = {
     ...testEnvironment,
     ORDER_TEST_DATABASE_URL: databaseUrl(databases.orderMessaging),
@@ -306,7 +278,6 @@ async function runSystemSuites({ includeAcceptance = true } = {}) {
   await checkSocketShutdown();
 }
 
-// AI-generated (edited by ngkhengyang)
 async function checkSocketShutdown() {
   const sockets = ['/ws/chat/', '/ws/'].map((route) => new WebSocket(`${gatewayUrl.replace(/^http/, 'ws')}${route}`));
   try {

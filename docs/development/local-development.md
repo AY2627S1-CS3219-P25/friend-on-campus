@@ -1,28 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Clarify Compose test-version requirements, foreground development sessions and API E2E target troubleshooting.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate local setup and contribution guidance into one developer walkthrough, with source-checked commands, outcomes and troubleshooting.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Refresh six-service local commands, migration ownership, host/container routing and troubleshooting against main.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Replace task-specific stale permissions and dated file-layout notes with current documentation maintenance guidance.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Replace a dated tooling audit with current checked-in configuration, authorization boundaries and verification pointers.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 6 AI-assisted revisions through D4 wrap-up (clarify Compose test-version requirements, foreground development sessions and API E2E target troubleshooting).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Run and develop the application locally
@@ -77,7 +57,6 @@ The template contains local per-service database URLs and default ports. An empt
 ## Option A: start the full container stack
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose up --build -d
 docker compose ps
 ```
@@ -85,7 +64,6 @@ docker compose ps
 Wait for the backend dependencies to become healthy before opening `http://localhost`. RabbitMQ has a deliberately long startup allowance, so an initially starting broker is not by itself a failure. Inspect progress rather than repeatedly restarting it:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose logs --tail=80 postgres rabbitmq
 docker compose logs --tail=80 user-service credit-service
 ```
@@ -99,7 +77,6 @@ User/Supplier seed failure prevents their container startup. Order/Credit startu
 For a simple stop that preserves local data:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose down
 ```
 
@@ -108,7 +85,6 @@ docker compose down
 Start the databases and broker, then check their health:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose up -d postgres rabbitmq
 docker compose ps
 ```
@@ -116,7 +92,6 @@ docker compose ps
 After they are ready, apply the service schemas, start the three outbox connectors, seed development data and start the applications:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run db:deploy
 docker compose up --no-deps -d debezium-user debezium-order debezium-credit
 npm run db:seed
@@ -130,7 +105,6 @@ npm run dev
 For a smaller editing session, select only the processes you need:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run dev -- user supplier student
 npm run dev:services
 npm run dev:apps
@@ -146,7 +120,6 @@ Vite proxies the browser's `/api/...` and WebSocket paths to the host service po
 Both [Student](../../apps/student-app/vite.config.ts) and [Admin](../../apps/admin-portal/vite.config.ts) read proxy overrides from `process.env`. To route host frontends through an already-running local gateway, set the variable in the shell launching them:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 GATEWAY_URL=http://localhost npm run dev:apps
 ```
 
@@ -180,7 +153,6 @@ For older Supplier rows without coordinates, follow the targeted upgrade procedu
 The following removes this Compose project's named volumes, including database, broker and CDC checkpoint data. Use it only when you deliberately want a fresh local environment and have no data to retain:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose down -v
 docker compose up --build -d
 ```

@@ -1,18 +1,7 @@
 # AI Assistance Disclosure:
-# Tool: Google Antigravity Agent, date: 2026-11-09
-# Scope: Issue #253: Updated VU input description example from 30 back to 100 for the second supplier population (#33).
+# Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+# Scope: Manual k6 performance workflow for issue #237: allowlisted target and bounded profile inputs, pinned k6, per-target concurrency lock, preflight -> fixtures..; updated across 3 AI-assisted revisions through D4 wrap-up (issue #253: Updated VU input description example from 30 back to 100 for the second supplier population (#33)).
 # Author review: I validated correctness, edited for style, and verified with automated tests.
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-# Scope: Manual k6 performance workflow for issue #237: allowlisted target and bounded profile inputs, pinned k6,
-#        per-target concurrency lock, preflight -> fixtures -> k6 -> reconciliation/report -> cleanup through
-#        scripts/perf/run-perf.mjs, artifact upload after failure with the original verdict preserved.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-# Scope: Runs the wrapper's self-tests (scripts/perf/test) before any load is generated; the VU input hint follows
-#        the supplier load the author lowered on 2026-11-09.
-# Author review: <to be completed by Reallyeasy1>
 #
 # Never runs on push or pull request. The AWS target uses the `performance-aws` GitHub environment so required
 # reviewers can gate shared-cluster load; the gateway URL comes from the repository variable

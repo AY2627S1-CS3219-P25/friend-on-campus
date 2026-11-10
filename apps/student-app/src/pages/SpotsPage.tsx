@@ -1,67 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Prevent long campus-zone/action rows from widening the mobile viewport and displacing fixed navigation.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-10-19 to 2026-11-08
+ * Scope: Extracted campus spots directory page from student-app App.tsx into pages/SpotsPage.tsx; updated across 15 AI-assisted revisions through D4 wrap-up (prevent long campus-zone/action rows from widening the mobile viewport and displacing fixed navigation).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align browsing filters with the royal-blue navigation identity.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align directory filters with the calmer feed controls and label search and selection states.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized SpotsPage with Direction A Warm Campus Mango theme: updated view switcher, category shortcut pills, and spot hover accents to warm orange.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized height across search input, verified badge, and list/grid view switcher to strict h-11 (44px) using min-h-0, resolving tall button container protrusion.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Redesigned SpotsPage into a high-density campus directory list view with list/grid toggle, dense mobile rows, and unified search toolbar.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Streamlined page layout to action-first search and category filtering, eliminating redundant static page header while preserving Verified badge for UAT compatibility.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed internal backend service attribution from directory header for a formal consumer app appearance.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned SpotsPage with polished campus spot directory layout, sleek frosted search bar, tactile category pills, responsive skeleton states, and verified count badge.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Restored exact UAT search placeholder 'Search food, cafes, lockers, print hubs...' to preserve CI test suite compatibility.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light elegant theme update for category shortcut filters.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Refined category filter chips padding to prevent negative overflow clipping.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned SpotsPage with search quick-clear, category shortcut filter chips, skeleton loading states, and responsive grid layout.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted campus spots directory page from student-app App.tsx into pages/SpotsPage.tsx.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 import { SupplierDTO } from '@campus-errand/common-dtos';
 import {

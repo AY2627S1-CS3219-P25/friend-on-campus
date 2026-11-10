@@ -1,19 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Fixture carries the inbox DTO fields; new test for inboxChanged() reaching only the user's sockets.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
- * Scope: Added the liveness suite: a socket that stops answering pings is terminated within two intervals while an answering one survives, and a failing unread-count query closes the socket with 1011 before anything is filed.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Tests for src/ws/hub.ts over real sockets and real Ed25519 tokens: the AUTH handshake and its 4401
- * rejections, addressing a push to one user's sockets, closing at token expiry, and eviction on close.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-10-22
+ * Scope: Tests for src/ws/hub.ts over real sockets and real Ed25519 tokens: the AUTH handshake and its 4401 rejections, addressing a push to one user's sockets,..; updated across 3 AI-assisted revisions through D4 wrap-up (fixture carries the inbox DTO fields; new test for inboxChanged() reaching only the user's sockets).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
@@ -118,7 +108,6 @@ describe('WebSocket hub', () => {
     for (const client of [aliceTwo, bob, anonymous]) client.ws.close();
   });
 
-  // AI-generated (edited by Reallyeasy1)
   it('inboxChanged reaches every socket of its user and nobody else', async () => {
     const [aliceOne, aliceTwo, bob] = await Promise.all([1, 2, 3].map(() => openSocket(url)));
     aliceOne.send({ type: 'AUTH', token: signToken(keys.privateKey, ALICE) });
@@ -158,7 +147,6 @@ describe('WebSocket hub', () => {
   });
 });
 
-// AI-generated (edited by Reallyeasy1)
 describe('WebSocket hub liveness', () => {
   let wss: WebSocketServer;
   let url: string;

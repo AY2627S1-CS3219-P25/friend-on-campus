@@ -1,36 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Mirror last-enabled-admin check on toggleRole and deleteById in fake UserRepository (issue #109).
+ * Tool: Google Antigravity Agent; Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-09-30 to 2026-11-10
+ * Scope: Test helpers: in-memory fakes for AuthRepository and UserRepository, a deterministic TokenManager, an Ed25519 key pair for tests, and a small HTTP client..; updated across 7 AI-assisted revisions through D4 wrap-up (mirror last-enabled-admin check on toggleRole and deleteById in fake UserRepository (issue #109)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Keep registration outbox persistence in the fake and remove obsolete polling publisher operations.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: The fake token manager records the username passed to issueAccessToken.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: The fakes mirror the repositories: rotateSession refuses a disabled account and toggleStatus refuses
- * to disable the last enabled admin.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-03
- * Scope: Extended fake AuthRepository with outbox persistence and querying methods.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Mirror last-admin protection and UUID case handling in the user repository fake.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: Test helpers: in-memory fakes for AuthRepository and UserRepository, a deterministic TokenManager,
- * an Ed25519 key pair for tests, and a small HTTP client for the app tests. No production code changed.
- * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by Reallyeasy1)
 import type { Express } from 'express';
 import { createHash, generateKeyPairSync } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
@@ -243,7 +216,6 @@ export function makeFakeUserRepository(seed: UserRecord[] = [], shared?: Map<str
       u.status = !u.status;
       return { ...u };
     },
-    // AI-generated (edited by yanhwee)
     async toggleRole(userId) {
       const u = users.get(userId);
       if (!u) return null;

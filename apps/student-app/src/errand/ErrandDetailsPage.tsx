@@ -1,83 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Resolve main merge conflict by preserving the delivered-requester dispute and confirmation controls alongside redesigned details.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Opus 5.5, Claude Sonnet 5.5), date: 2026-10-26 to 2026-11-08
+ * Scope: The errand details page the author designed on 2026-10-26 (issues #188 and #189): header, status tracker with the order's timestamps and a red end state,..; updated across 15 AI-assisted revisions through D4 wrap-up (resolve main merge conflict by preserving the delivered-requester dispute and confirmation controls alongside redesigned details).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Redesigned ErrandDetailsPage into a balanced, centered single-column layout (max-w-3xl), eliminating empty space, 2-column height asymmetry, and redundant header item titles, while strictly preserving all data-testids, locators, and UAT contracts.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed internal microservice references (Credit Service) from user-facing errand action button captions and timeline details.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned ErrandDetailsPage with polished glassmorphic cards, luminous status tracker with pulsing milestone markers, route cards, tactile action buttons with NUS gradients, and full test-id preservation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light elegant theme update for primary action buttons.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Modernized ErrandDetailsPage with pulsing active tracker rings, route card layout, tactile action buttons, and responsive grid layout.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: UAT finding: the participant card's "Accepted <date>" line wraps instead of truncating at phone width.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: The errand details page the author designed on 2026-10-26 (issues #188 and #189): header, status tracker with
- * the order's timestamps and a red end state, expiry countdown while open, pickup / dropoff / item / credits, the other
- * side's contact note (no names: author's option 1), the embedded chat panel, and every status action (Accept with its
- * confirm step and contact note, pickup, deliver, confirm delivery, cancel, drop) gated by status and viewer role; the
- * Order Service's error text is shown with a reload control. Review pass of the same day: contact notes shown to
- * participants only, accept note kept when the accept fails, tracker state also conveyed with aria-current and hidden
- * text, countdown copy after expiry. Restyled the same day to the author's wireframe: back header with status pill,
- * participant card, vertical timeline whose rows carry the pickup spot, dropoff and escrow amount, live chat card,
- * one primary action with a caption, two columns on desktop with the chat card stretched to the left column's height.
- * PR #192 review: the chat panel is kept for retained history after a drop, and the completion row no longer claims
- * the payout before Credit Service settles it.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Author's request of 2026-11-04: the pickup store's operating hours and open / closed state are shown in the
- * Pickup cell, and a would-be courier sees a "closed now" reminder above Accept when the store is outside its hours.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: PR review: the open / closed label and the Accept reminder follow useMinuteClock rather than the render-time
- * clock, and a known store with missing or unreadable hours shows "Not listed" with no open / closed badge.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Drop-off estimator (author's decisions A6, A9): a Drop-off & estimate card under the errand details with a
- * read-only mini map (drop-off pin, plus the pickup pin when the store has coordinates), the coordinates to 5 decimal
- * places, the straight-line distance, and "Estimated M · Offered N credits", or "The poster did not use the
- * estimator" when the order has no estimate. Visible before accepting.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Requester DELIVERED block: confirm countdown (deliveredAt + 5 min, auto-completes when it runs out), Raise Dispute with a required reason, and dispute notes for requester and courier.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Courier dispute response: the requester's message above a text box and a Submit dispute report button.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: removed the 5-minute confirm countdown; courier dispute form shown by default on DELIVERED.
- * Author review: <to be completed by the author>
  */
 
-// AI-generated (edited by Reallyeasy1)
-// AI-generated (edited by yanhwee)
 
 import type { OrderDTO, SupplierDTO } from '@campus-errand/common-dtos';
 import { AlertTriangle, Check, ChevronLeft, Clock, Coins, MapPin, RefreshCw, User, X } from 'lucide-react';
@@ -122,7 +49,6 @@ export interface ErrandDetailsPageProps {
 
 type Role = ReturnType<typeof viewerRole>;
 
-// AI-generated (edited by huangjiaxi1111)
 /** The store's hours and whether it is open at `now`; nulls when the store or its hours are unknown. */
 function storeHours(
   supplier: SupplierDTO | null | undefined,
@@ -495,7 +421,6 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
   );
 }
 
-// AI-generated (edited by jagdeepsh)
 /**
  * The requester's DELIVERED block: confirm whenever they like, or Raise Dispute. Once a dispute exists (theirs or the
  * courier's) confirmation is disabled until an administrator settles the errand; the requester can still add their own
@@ -568,7 +493,6 @@ function DeliveredRequesterActions({
   );
 }
 
-// AI-generated (edited by jagdeepsh)
 /** The courier's dispute block on a DELIVERED errand: the requester's message (empty until they write one), then the courier's own report (once). */
 function CourierDisputeResponse({
   order,

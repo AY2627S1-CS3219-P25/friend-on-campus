@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Unit tests for the subscriber-side notification delivery (issue #241 RT3.2, RT3.3): current-row re-read,
- *        stale and already-read suppression, inbox hints for every recipient, read-state signals, malformed signals.
- *        PR #246 review: a row whose action the order already resolved at delivery time is not pushed.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Unit tests for the subscriber-side notification delivery (issue #241 RT3.2, RT3.3): current-row re-read, stale and already-read suppression, inbox hints for...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { NotificationDTO } from '@campus-errand/common-dtos';

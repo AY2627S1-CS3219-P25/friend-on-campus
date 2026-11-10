@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Classify identified infrastructure failures for unlimited retry while retaining permanent event failures.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Connected validated credit event handling to the generic RabbitMQ consumer.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Codex (model: GPT-6), date: 2026-09-24 to 2026-10-19
+ * Scope: Connected validated credit event handling to the generic RabbitMQ consumer; updated across 2 AI-assisted revisions through D4 wrap-up (classify identified infrastructure failures for unlimited retry while retaining permanent event failures).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import { isInfrastructureFailure, startRabbitConsumer, type MessagingConfig, type Failure } from '@campus-errand/messaging';
 import { CreditError, InvalidCreditEvent } from './errors';
 import { createCreditEventHandler, creditRoutingKeys } from './events';

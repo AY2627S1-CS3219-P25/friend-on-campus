@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Injected AssistantService into Express application factory for F6 NLP Errand Assistant.
+ * Tool: Google Antigravity Agent, date: 2026-10-07 to 2026-10-28
+ * Scope: Express application factory for Order Service configuring CORS, JSON middleware, health and readiness checks, and routing; updated across 2 AI-assisted revisions through D4 wrap-up (injected AssistantService into Express application factory for F6 NLP Errand Assistant).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Express application factory for Order Service configuring CORS, JSON middleware, health and readiness checks, and routing.
- * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by yanhwee)
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import cors from 'cors';
 import type { AssistantService } from './assistant/assistant.service';

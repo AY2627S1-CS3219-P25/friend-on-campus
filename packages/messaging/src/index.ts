@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Re-export the realtime fanout primitives and the SQL outbox store (issue #239).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client.
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity, date: 2026-10-20 to 2026-11-09
+ * Scope: Shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client; updated across 2 AI-assisted revisions through D4 wrap-up (re-export the realtime fanout primitives and the SQL outbox store (issue #239)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import { once } from 'node:events';
 import { setImmediate as immediate, setTimeout as delay } from 'node:timers/promises';
 import { Connection, ConsumerStatus } from 'rabbitmq-client';

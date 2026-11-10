@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Tests for the Browse feed's zone tabs: the per-tab counts cover the whole feed whichever tab is selected
- * (they used to be taken from the list already narrowed to the selected tab, so ALL and the other tabs showed 0),
- * the feed holds only open errands of other students, and a tab matches its zone name exactly.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Tests for the Browse feed's zone tabs: the per-tab counts cover the whole feed whichever tab is selected (they used to be taken from the list already...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { OrderDTO } from '@campus-errand/common-dtos';

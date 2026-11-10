@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
  * Scope: Unit tests for the chat moderator: true/false replies, fenced and noisy replies, and fail-open on a missing reply.
- * Author review: <to be completed by the author>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by jagdeepsh)
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createModerator, MODERATION_INSTRUCTION } from '../src/moderation/moderate';

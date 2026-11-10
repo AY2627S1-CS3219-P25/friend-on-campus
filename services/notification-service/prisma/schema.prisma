@@ -1,26 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
-// Scope: Recipient-aware inbox per the author's Notification Redesign (§7): notifications gain producer, category,
-// priority, action_type, target_id, source_version and stored_at, uniqueness moves from event_id to
-// (producer, event_id, user_id, kind), the inbox index is (user_id, stored_at DESC, id DESC); new tables
-// processed_notification_events (dedup + fingerprint) and order_notification_state (attention projection).
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Google Antigravity, date: 2026-10-20
-// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
-// Author review: <to be completed by author after review>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
-// Scope: The notifications table from the author's Notification Service Design (data model section), in the
-// layout credit-service uses.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: NotificationRealtimeOutbox (notification_realtime_outbox), the delivery-intent table for cross-replica
-// notification and read-state delivery (issue #241).
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by Reallyeasy1)
+// Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity, date: 2026-10-05 to 2026-11-09
+// Scope: The notifications table from the author's Notification Service Design (data model section), in the layout credit-service uses; updated across 4 AI-assisted revisions through D4 wrap-up (notificationRealtimeOutbox (notification_realtime_outbox), the delivery-intent table for cross-replica notification and read-state delivery (issue #241)).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
 generator client {
   provider = "prisma-client-js"

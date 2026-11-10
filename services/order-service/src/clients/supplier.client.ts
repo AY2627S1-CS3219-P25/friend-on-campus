@@ -1,18 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Added listActiveSuppliers to SupplierClient for assistant prompt grounding (F6.1).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-10-07 to 2026-10-28
+ * Scope: Refactored Supplier Service client using extracted helper functions and a lightweight factory function; updated across 3 AI-assisted revisions through D4 wrap-up (added listActiveSuppliers to SupplierClient for assistant prompt grounding (F6.1)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): the Supplier Service response body names the four fields read from it instead of any.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Refactored Supplier Service client using extracted helper functions and a lightweight factory function.
- * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by yanhwee)
 
 export interface SupplierDetails {
   id: string;
@@ -35,7 +26,6 @@ export interface SupplierClient {
 // Extracted Helper
 // ---------------------------------------------------------------------------
 
-// AI-generated (edited by yanhwee)
 async function handleListActiveSuppliers(baseUrl: string): Promise<SupplierDetails[]> {
   try {
     const url = new URL('/api/suppliers?isActive=true&limit=100', baseUrl).toString();

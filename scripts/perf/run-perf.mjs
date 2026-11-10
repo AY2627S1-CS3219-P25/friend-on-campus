@@ -1,24 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Google Antigravity Agent, date: 2026-11-09
-// Scope: Issue #253: Updated summary limitation note now that supplier search runs at its full issue-specified
-//        50 and 100 VU populations.
+// Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+// Scope: Orchestrator for the k6 performance harness (issues #236, #237): preflight -> run-owned fixtures -> k6 per workload -> reconciliation and report -> cleanup,..; updated across 3 AI-assisted revisions through D4 wrap-up (issue #253: Updated summary limitation note now that supplier search runs at its full issue-specified 50 and 100 VU populations).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-// Scope: Orchestrator for the k6 performance harness (issues #236, #237): preflight -> run-owned fixtures ->
-//        k6 per workload -> reconciliation and report -> cleanup, writing the evidence bundle under
-//        test-results/<runId>/ and exiting nonzero whenever a required stage fails, blocks or is incomplete.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: Fixes from run perf-20261108T135152Z-b09772: one self-renewing administrator session for the whole run
-//        (reconciliation and cleanup had reused a 26-minute-old token and got HTTP 401); stage statuses and the run
-//        verdict come from lib/report.mjs so an HTTP code can no longer stand in for a verdict; --cleanup-tag removes
-//        the fixtures of a run whose own cleanup failed; the summary names that command when cleanup had errors.
-//        The second load population comes from requirements.json (secondLoadVus), and the summary shows the
-//        figure an issue states beside any limit or load the author changed.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
 //
 //   npm run perf:k6 -- --target http://127.0.0.1 --profile smoke --workload all
 //   npm run perf:k6 -- --target http://127.0.0.1 --cleanup-tag <tag>    (remove a failed run's fixtures)

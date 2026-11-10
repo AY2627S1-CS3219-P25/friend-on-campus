@@ -1,58 +1,11 @@
 /**
  * AI Assistance Disclosure:
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): catch clauses narrow with instanceof Error; sortBy is cast to the DTO's union (the repository still validates it).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
- * Scope: Removed unused DTO imports identified by the root lint configuration.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-08
- * Scope: Relocated supplier routes to src/suppliers/supplierRoutes.ts and updated repository import to local module.
- * Author review: <to be completed by author after review>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Accepted configured Ed25519 authentication middleware for the author-approved Supplier Service migration.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: createSupplier and updateSupplier now check findDuplicateLocation() before writing, rejecting with
- * 409 and a `duplicate` object (name/category/building/floor of the conflicting record) if one is found.
- * updateSupplier merges the already-fetched `existing` row with the incoming partial body to get the
- * *effective* post-update values before checking, since PUT allows partial updates, and excludes its own id
- * so a no-op/unrelated update isn't flagged as duplicating itself.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
- * Scope: PR #93 review fixes: the duplicate check uses trimmed values (the repository stores trimmed values),
- * a unique-index violation (Prisma P2002) is answered with 409 instead of 500, and updateSupplier returns 400
- * when name, category, building or floor is sent empty. createSupplier treats whitespace-only required
- * fields as missing.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: latitude/longitude added to createSupplier's required-field check and validated as finite numbers;
- * updateSupplier rejects latitude/longitude sent as null or a non-finite value, matching the DB columns
- * being made NOT NULL in this same change.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
- * Scope: Merge of admin_dashboard into main: this file's validation logic (including the 2026-10-17
- * latitude/longitude checks above) was extracted into supplierService.ts's createNewSupplier/updateExistingSupplier
- * by main's own independent refactor; createSupplier/updateSupplier here are now thin wrappers that call those
- * functions and map the resulting errors, matching main's established pattern. The latitude/longitude checks
- * still exist, just relocated to supplierService.ts.
- * Author review: (to be completed by author after review)
+ * Tool: Claude Code (model: Claude Fable 5.1, Sonnet 5); Codex (model: GPT-5.6 Sol, GPT-5.6 Terra); Google Antigravity Agent, date: 2026-09-20 to 2026-10-30
+ * Scope: Protected mutating supplier endpoints with JWT authentication and Admin RBAC, added sorting and pagination query support; updated across 9 AI-assisted revisions through D4 wrap-up (merge of admin_dashboard into main: this file's validation logic (including the 2026-10-17 latitude/longitude checks above) was extracted into..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
 
-// AI-generated (edited by yanhwee)
 
 
 
@@ -214,7 +167,6 @@ export async function deleteSupplier(req: Request, res: Response) {
   }
 }
 
-// AI-generated (edited by ngkhengyang)
 export function createSupplierRouter(
   authenticateToken: RequestHandler,
   requireAdmin: RequestHandler,

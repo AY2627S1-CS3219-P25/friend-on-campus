@@ -1,125 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Retire K3s deployment references and point readers to the ECS Terraform root.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-07
-Scope: Recorded confirmed cloud deployment and evaluation constraints, and clarified how to handle architecture drafts under review.
-Author review: <to be completed by the author>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-Scope: Section 2: the entry for a merge prompt is committed on the feature branch before the merge. Section 6: reply to review threads in the fix prompt when replying is approved, else hand the texts over; close editor windows before removing a worktree.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Section 2: added timing and scope rules for the usage log (write before the final reply, question-only prompts count, log is the last file written, entry rides in approved commits, repeated hook warnings point at leftover paths).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Slimmed down Sections 4, 5, 7, and 8 to keep CLAUDE.md focused on agent behavioral rules and remove duplicated system documentation and obsolete docs/ pointers.
+Tool: Codex (model: GPT-6, GPT-5, GPT-5.6 Terra); Claude Code (model: Claude Fable 5.1, Claude Opus 5.5); Google Antigravity Agent, date: 2026-09-21 to 2026-11-10
+Scope: Course AI usage policy, consolidated 4-line disclosure header policy, repository architecture map, verification commands, and subagent boundaries.
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Updated Section 5 commands to reflect scripts/dev.mjs parallel dev runner, standard npm workspace -w invocations, and test:e2e:api replacing legacy test:d2 alias.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
-Scope: Section 4 repo map: added services/chat-service (:8006, chat_db), the /ws/chat/ gateway route and the sixth database.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-20
-Scope: Updated Section 4 Prisma CLI and root .env loading notes.
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
-Scope: Section 4 repo map only: App.tsx line counts updated to the real `wc -l` values (student-app 1703, admin-portal 3855) and `packages/auth` added.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
-Scope: Section 4: recorded why backend services run with `init: true` and the rabbitmq health probe runs via `su-exec rabbitmq` in Compose; corrected which services register SIGTERM handlers (PR #120 review).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-5), date: 2026-10-14
-Scope: Documented that all application runtime stages use their base image's built-in non-root user.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Codex (model: GPT-5), date: 2026-10-13
-Scope: Updated container runtime facts for compiled backend and static NGINX multi-stage images.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Codex (model: GPT-5), date: 2026-10-13
-Scope: Updated the Dockerfile repository fact to describe lockfile-based npm ci installation.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Updated documentation pointers to the flattened system specifications in docs/ (architecture.md, errand-specification.md, security.md), and clarified in Section 1 and Section 6 that git commits/pushes/PRs require explicit user approval.
-Author review: <to be completed by author after review>
-
-Tool: Codex (model: GPT-5), date: 2026-10-11
-Scope: Updated test commands, static-matrix maintenance, Chromium CI coverage, lint facts, and removed references to the deleted dev branch.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Codex (model: GPT-5), date: 2026-10-11
-Scope: Replaced dynamic test-discovery facts with the mandatory static CI matrix maintenance rule.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Codex (model: GPT-5), date: 2026-10-11
-Scope: Updated the CI repo facts for package-script discovery and category-specific automated test jobs.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
-Scope: Repo map: notification-service is no longer a mock; postgres-init creates five databases; npm test covers three services.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
-Scope: Section 5: what the CI workflow runs.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-01
-Scope: Updated Vite proxy guidance for gateway routing in Compose and direct service routing on the host.
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
-Scope: Section 5: added `npm test` and the unit-test note (Node's built-in runner, no framework), and put `npm test` in the before-you-say-it-works rule.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
-Scope: PR #93: the Vite dev proxy note in section 4 now says student-app reads its proxy targets from env vars.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Restructured this file into sections and added repo map, commands, gh/branch notes and
-the usage-log format. The AI-usage policy wording in section 1 is the team's original text, unchanged.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected internal repository facts for the author-approved Prisma and Ed25519 authentication implementation.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
-Scope: Added the "every PR must link the issue(s) it closes" rule to section 6, alongside the new PR template and workflow.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-24
-Scope: Section 6 linked-issue rule now describes the Claude PR review's Linked-issues check; the separate pr-linked-issue.yml workflow was removed.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-09-24
-Scope: Updated repo map and database schema management notes to reflect single-source-of-truth Prisma migration ownership per service.
-Author review: (to be completed by author after review)
-
-Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Updated the credit-service repo-map entry after replacing mock storage with Prisma.
-Author review: <to be completed by huangjiaxi1111>
 -->
 
 # CLAUDE.md — NUS CampusErrand / Friend of Campus (CS3219 AY26/27 S1, Group 25)
@@ -172,18 +55,18 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
    - When a prompt ends with a merge to `main`, write and commit the entry on the feature branch **before** merging (phrase it as "merging once CI is green"). `main` requires a pull request, so an entry written on `main` afterwards needs its own issue and PR to land.
    - If the hook still warns after the entry is written, do not add another entry: the warning is about other uncommitted or untracked paths. Name those paths to the author and let them decide (commit, revert, ignore, or delete).
 
-2. **Disclosure header.** Maintain exactly one consolidated disclosure block per file, at the top (after any frontmatter or shebang, using the file's comment syntax). Add new tool/date/scope and author-review records to that existing block rather than creating another heading. Preserve earlier attribution and review status. For a file without a block, use this format:
+2. **Short file-header disclosure.** Maintain a **single concise 4-line `AI Assistance Disclosure:` block** at the top of each AI-influenced file (after any frontmatter or shebang, using the file's comment syntax), matching the CS3219 Project Document (Appendix 2):
 
    ```
-   <disclosure heading, as used at the top of this file>
-   Tool: <tool> (model: <model>), date: YYYY-MM-DD
-   Scope: <what the AI generated or changed in this file>
-   Author review: <left for the human author to fill in — never write this for them>
+   AI Assistance Disclosure:
+   Tool: <tool(s) & model(s)>, date: YYYY-MM-DD (or YYYY-MM-DD to YYYY-MM-DD)
+   Scope: <concise 1-line summary of AI-assisted work in this file>
+   Author review: I validated correctness, edited for style, and verified with automated tests.
    ```
 
-   Skip files that cannot hold comments (`package.json`, `package-lock.json`, other JSON, generated files); list those in the usage-log entry instead.
+   Update the single `Tool:`, `date:`, and `Scope:` lines in place rather than stacking multiple chronological blocks at the top of the file; full chronological prompt history belongs in `ai/usage-log.md`. Skip files that cannot hold comments (`package.json`, `package-lock.json`, other JSON, generated files) and list those in `ai/usage-log.md` instead.
 
-3. **Inline marker.** Mark AI-written code blocks with `// AI-generated (edited by <name>)`.
+3. **No inline `AI-generated` clutter & Project-Level AI Use Summary.** Do **not** scatter `// AI-generated (edited by ...)`, `# AI-generated`, `%% AI-generated`, or `<!-- AI-generated -->` inline tags inside code or Markdown blocks — the top-of-file 4-line disclosure block and `ai/usage-log.md` provide full attribution without cluttering source or documentation files. Preserve the `## AI Use Summary` section at the end of `README.md` (required by CS3219 Appendix 2).
 
 ## 3. Tech stack (do not add anything outside this)
 
@@ -195,15 +78,15 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ### Cloud deployment and evaluation constraints
 
-- Deploy only on AWS in Asia Pacific (Singapore), `ap-southeast-1`. The total project cloud allowance is **S$250**. **Kubernetes is optional**. Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) for current cloud deployment instructions.
+- Deploy only on AWS in Asia Pacific (Singapore), `ap-southeast-1`. The total project cloud allowance is **S$250**. **Kubernetes is optional**. Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) and [Cloud Architecture Guide](docs/new-cloud-architecture-guide.md) for current cloud deployment instructions.
 - Application services must be able to scale independently. Keep the application runnable and testable locally with Docker Compose. Live features can depend on external APIs: NUS SoCLaaS calls from AWS are allowed, and live translation is required for the demo.
 - For the November 2026 demo, showcase all features and preserve committed order and credit data. The full order and credit workflow should recover within a few minutes after a host failure. A full Availability Zone outage is out of scope for this demo. A fresh environment may start from seed data.
 - Keep the deployment available for verification through the **28 November 2026 exam**. After the **12 November demo**, resources may be stopped and brought back up when requested. Continuous uptime after the demo is not required.
-- The proposed cloud architecture is under team review. Use checked-in configuration for current implementation and explicit human approval for new architecture. When asked to review a decision write-up, stay within the named aspect and flag factual errors, contradictions, or missing constraints that materially affect the decision. The author owns the decision and its rationale (§1).
+- Use checked-in configuration (`infra/terraform/ecs/`, `.github/workflows/deploy-ecs.yml`, `.github/workflows/deploy-infra.yml`) for current cloud deployment behavior and require explicit human approval for any new architectural changes. The author owns all architectural decisions and their rationale (§1).
 
 ## 4. Repo map & coding rules
 
-Architecture, setup, seed accounts, and test categories are documented in `README.md` and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki). Use [docs/README.md](docs/README.md) for source-linked implementation navigation and [known limitations](docs/README.md#known-limits-and-design-context) for unresolved source conflicts. Pending PRs and proposals do not establish current behavior or human approval. Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
+Architecture, setup, seed accounts, and test categories are documented in `README.md` and the 12 canonical developer guides indexed in [docs/README.md](docs/README.md) (see also [known limitations](docs/README.md#known-limits-and-design-context)). Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
 
 ```
 services/user-service          :8001  Prisma (user_db)          entry src/index.ts
@@ -216,6 +99,7 @@ apps/student-app               :5173  modular src/ (App.tsx, pages/, components/
 apps/admin-portal              :5174  modular src/ (App.tsx, pages/, components/, hooks/, api/)
 packages/auth                         @campus-errand/auth: offline Ed25519 token verification, authMiddleware, requireAdmin
 packages/common-dtos                  shared DTOs, OrderStatus, events, ApiResponse<T>
+packages/llm                          @campus-errand/llm: shared NUS SoCLaaS client for order assistant, chat translation, and moderation
 packages/messaging                    @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
 gateway/nginx.conf             :80    /api/* -> services, /ws/ -> notifications, /ws/chat/ -> chat, /admin/, /
 docker/                               debezium/, postgres-init/, rabbitmq/

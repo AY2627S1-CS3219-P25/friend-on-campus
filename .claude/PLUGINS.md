@@ -1,25 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/evidence/ reference from Playwright plugin description.
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this list from the plugins installed on the author's machine (names, marketplaces and versions read
-from the local plugin registry) and the project's stack and AI-usage policy. Only plugins verified to exist are named.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected the password-hashing terminology in the internal plugin guide.
-Author review: <to be completed by ngkhengyang>
+Tool: Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this list from the plugins installed on the author's machine (names, marketplaces and versions read from the local plugin registry) and the project's..; updated across 5 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 

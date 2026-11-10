@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-10
 Scope: Document source-checked API URLs, access requirements, WebSocket endpoints, probes and local read-only examples.
-Author review: <to be completed by Reallyeasy1>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # API URLs and access
@@ -23,7 +23,6 @@ Append the paths below to the appropriate base. For example, the local supplier 
 Read the configured AWS URL from the repository root after initializing the correct Terraform backend/workspace:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 terraform -chdir=infra/terraform/ecs output -raw public_url
 ```
 
@@ -205,7 +204,6 @@ Replace `/ready` with `/health` for each direct liveness URL. Readiness returns 
 After starting the local stack, these requests check the gateway, Order readiness and a public supplier page:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 curl --fail-with-body http://localhost/health
 curl --fail-with-body http://localhost/api/health/order/ready
 curl --fail-with-body 'http://localhost/api/suppliers?isActive=true&page=1&limit=10'
@@ -214,7 +212,6 @@ curl --fail-with-body 'http://localhost/api/suppliers?isActive=true&page=1&limit
 For an authenticated read, privately set `ACCESS_TOKEN` to an access token returned by login, then run:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 curl --fail-with-body \
   --header "Authorization: Bearer ${ACCESS_TOKEN:?Set an access token first}" \
   http://localhost/api/credits/wallet

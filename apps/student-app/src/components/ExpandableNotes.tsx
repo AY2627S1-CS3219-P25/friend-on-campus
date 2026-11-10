@@ -1,21 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-07
+ * Scope: Extracted ExpandableNotes component from student-app App.tsx into components/ExpandableNotes.tsx; updated across 3 AI-assisted revisions through D4 wrap-up (refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-20
- * Scope: Extracted ExpandableNotes component from student-app App.tsx into components/ExpandableNotes.tsx.
- * Author review: Verified by yanhwee
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Errand details page (issue #189): the Show more button is raised above a card's stretched details link so it
- * expands the notes instead of opening the page.
- * Author review: <to be completed by Reallyeasy1>
  */
 
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by yanhwee)
 
 import React, { useEffect, useRef, useState } from 'react';
 

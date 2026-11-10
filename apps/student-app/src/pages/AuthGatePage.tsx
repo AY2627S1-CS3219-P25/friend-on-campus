@@ -1,59 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Replace the vague sign-in tagline with clearer campus-errand wording.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-10-19 to 2026-11-08
+ * Scope: Extracted login and signup gate page from student-app App.tsx into pages/AuthGatePage.tsx; updated across 13 AI-assisted revisions through D4 wrap-up (replace the vague sign-in tagline with clearer campus-errand wording).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Bring the brand lockup, friendly supporting line, blue headline, and coral welcome offer into the sign-in page.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Implemented Direction B (Crisp Modern Canvas) styling in AuthGatePage: floating white brand canvas with refined shadow.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized AuthGatePage with Direction A Warm Campus Mango theme: updated ambient background accents, warm gradient tagline, and warm logo drop shadow.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Rebranded auth showcase to tompang. with Friend Pin logo and authentic Singapore campus errand value proposition.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Redesigned AuthGatePage into a high-converting promotional showcase with a split desktop layout, Direction A brand identity, luminous 100 Credits Welcome Grant banner, and verified NUS campus value props while preserving all form inputs and test IDs.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed demo evaluator auto-fill callouts and JWT technical metadata for a sleek, formal student portal.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned AuthGatePage with modern glassmorphic card layout, luminous brand crest with pulsing live indicator, tactile demo user chips, and preserved form IDs and aria labels.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light elegant theme update - vibrant orange CTA button, luminous brand mark gradient, accessible states.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned AuthGatePage with modern light theme, Package brand identity, vertically centered password reveal toggles, and clean campus delivery header.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted login and signup gate page from student-app App.tsx into pages/AuthGatePage.tsx.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 import {
   AlertCircle,
@@ -120,7 +71,7 @@ export function AuthGatePage({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-campus-canvas px-4 py-8 sm:py-12 relative overflow-hidden">
-      {/* AI-generated (edited by yanhwee): mobile content order puts authentication before promotions. */}
+      {/* Mobile content order puts authentication before promotions. */}
       <div
         aria-hidden="true"
         className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-200/15 rounded-full blur-3xl pointer-events-none"

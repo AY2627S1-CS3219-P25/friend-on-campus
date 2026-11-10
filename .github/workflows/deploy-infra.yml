@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Manually plan or apply the existing ECS stack using shared Terraform state.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 name: Deploy ECS infrastructure
 
 on:

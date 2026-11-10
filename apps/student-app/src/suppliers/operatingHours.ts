@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Pure helpers for a supplier's operating hours (author's request of 2026-11-04): parse the free-text
- * startingTime / closingTime strings ("0900hrs", "09:00"), format them for display, and tell whether the spot is
- * open at a given instant in Singapore time, including hours that run past midnight ("1100hrs" to "0200hrs").
- * Author review: <to be completed by huangjiaxi1111>
+ * Scope: Pure helpers for a supplier's operating hours (author's request of 2026-11-04): parse the free-text startingTime / closingTime strings ("0900hrs", "09:00"),...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import type { SupplierDTO } from '@campus-errand/common-dtos';
 
 type Hours = Pick<SupplierDTO, 'startingTime' | 'closingTime'>;

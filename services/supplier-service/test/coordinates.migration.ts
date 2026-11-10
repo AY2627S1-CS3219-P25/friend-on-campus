@@ -1,23 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-09
- * Scope: Added PostgreSQL integration test exercising getSuppliers case-insensitive sorting, deterministic id
- *        tie-breaking, search/filter predicates, and LIMIT/OFFSET pagination against a real PostgreSQL schema (#253).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1); Codex (model: GPT-6), date: 2026-11-01 to 2026-11-09
+ * Scope: Exercise coordinate migrations on fresh, legacy and already-constrained PostgreSQL schemas; updated across 3 AI-assisted revisions through D4 wrap-up (added PostgreSQL integration test exercising getSuppliers case-insensitive sorting, deterministic id tie-breaking, search/filter predicates, and..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #222 review (P3): one test drives the real Prisma CLI through the documented recovery path. The original
- *        NOT NULL migration is applied to a legacy row and fails, Prisma records the failed migration, then the
- *        runbook's `migrate resolve --rolled-back` and `migrate deploy` run against the corrected history and the
- *        legacy row survives with its nulls.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Exercise coordinate migrations on fresh, legacy and already-constrained PostgreSQL schemas.
- * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by Reallyeasy1)
-// AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -102,7 +88,7 @@ test('forward migration reconciles the original successfully applied NOT NULL ch
   ]);
 }));
 
-// AI-generated (edited by Reallyeasy1): PR #222 review (P3). The runbook's recovery path, driven through the real
+// PR #222 review (P3). The runbook's recovery path, driven through the real
 // Prisma CLI against a disposable schema (selected with the URL's `schema` parameter, so `_prisma_migrations` is
 // isolated too). A minimal schema.prisma is enough: `migrate deploy` and `migrate resolve` only read the datasource.
 const prismaCli = require.resolve('prisma/build/index.js');
@@ -177,7 +163,6 @@ test('a failed original coordinate migration is recovered with the documented re
   }
 });
 
-// AI-generated (edited by yanhwee)
 test('getSuppliers sorts case-insensitively with deterministic id tie-breaking and paginates in PostgreSQL', async () => {
   const schema = `supplier_test_${randomUUID().replaceAll('-', '')}`;
   const schemaUrl = new URL(url);

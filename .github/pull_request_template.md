@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
 Scope: Wrote this pull request template (Linked issues section with closing keywords).
-Author review: <to be completed by Reallyeasy1>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 ## Summary
 

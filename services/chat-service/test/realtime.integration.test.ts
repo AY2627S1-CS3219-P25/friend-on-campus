@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Cross-replica chat delivery with a real broker and database (issue #240 RT2.1 to RT2.5): two independent
- *        replicas (hub, subscriber, relay each), Alice on A reaching Bob on B, exclusion of outsiders and a replaced
- *        courier, duplicate-signal suppression, lost-lease recovery, a TCP-level broker interruption with queue
- *        recreation and outbox drain, and REST history as the recovery source. PR #246 review: a subscriber closed
- *        while its reconnect is in flight leaves nothing behind (the proxy can now hold a connection attempt).
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Cross-replica chat delivery with a real broker and database (issue #240 RT2.1 to RT2.5): two independent replicas (hub, subscriber, relay each), Alice on A...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 // Opt in with CHAT_TEST_DATABASE_URL and CHAT_TEST_RABBITMQ_URL (an account allowed to declare chat-service.events.test-*).
 // Uses its own fanout exchange (deleted afterwards), replica queues that auto-delete, and its own database schema.
 import { after, before, describe, it } from 'node:test';

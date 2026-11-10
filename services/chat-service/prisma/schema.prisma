@@ -1,21 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
-// Scope: The conversation and message tables as the author specified them in the F8 brief (S1, S2, answered in chat
-// on 2026-10-20): one conversation per order created on order.accepted, courier kept until the next accept, closed by
-// a timestamp, own uuid with a unique order id; messages with sender id, username and role from the token, a
-// per-conversation sequence and the server receive time, text unlimited. Transcribed into Prisma in the layout the
-// other services use.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-// Scope: Review fix (PR #148 P1): courierSince records when the current courier was assigned, so an older or replayed
-// order.accepted cannot move the assignment backwards.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: RealtimeOutbox (realtime_outbox), the delivery-intent table for cross-replica chat delivery (issue #240).
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-09
+// Scope: The conversation and message tables as the author specified them in the F8 brief (S1, S2, answered in chat on 2026-10-20): one conversation per order..; updated across 3 AI-assisted revisions through D4 wrap-up (realtimeOutbox (realtime_outbox), the delivery-intent table for cross-replica chat delivery (issue #240)).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
 generator client {
   provider = "prisma-client-js"

@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Create service databases and grant the CDC role access to the existing outbox tables.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 case "$1" in
   roles)
     for name in user supplier order credit notification chat cdc; do

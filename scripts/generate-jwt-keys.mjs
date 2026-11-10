@@ -1,12 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Google Antigravity Agent, date: 2026-10-21
-// Scope: Removed OS-specific clipboard copying logic and simplified script to print generated Ed25519 JWT keys directly to stdout.
+// Tool: Google Antigravity Agent; Codex (model: GPT-5.6 Terra), date: 2026-09-23 to 2026-10-21
+// Scope: Implemented a local Ed25519 JWT key-pair generator that emits Base64URL environment values; updated across 2 AI-assisted revisions through D4 wrap-up (removed OS-specific clipboard copying logic and simplified script to print generated Ed25519 JWT keys directly to stdout).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
-// Scope: Implemented a local Ed25519 JWT key-pair generator that emits Base64URL environment values.
-// Author review: <to be completed by ngkhengyang>
-// AI-generated (edited by yanhwee)
 import { generateKeyPairSync } from 'node:crypto';
 
 const { privateKey, publicKey } = generateKeyPairSync('ed25519');

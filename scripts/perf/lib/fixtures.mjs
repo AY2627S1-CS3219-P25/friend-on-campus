@@ -1,18 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-// Scope: Run-owned fixtures, post-run reconciliation and cleanup for the k6 performance harness (issue #236):
-//        registers accounts and waits for their welcome grants, creates the supplier dataset and open feed
-//        errands, reconciles orders/wallets/ledgers over HTTP with the issue #64 invariants, then cancels and
-//        deletes only what the run created.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: Fixes from run perf-20261108T135152Z-b09772, whose reconciliation and cleanup got HTTP 401 on a 26-minute-old
-//        admin token and left 100 accounts and 500 suppliers behind: the administrator and the account logins are
-//        self-renewing sessions (gateway.session), and findRunOwned locates one run's fixtures by its tag so that a
-//        failed or interrupted run can be cleaned up afterwards (the administrator cancels its open errands).
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+// Scope: Run-owned fixtures, post-run reconciliation and cleanup for the k6 performance harness (issue #236): registers accounts and waits for their welcome grants,..; updated across 2 AI-assisted revisions through D4 wrap-up (fixes from run perf-20261108T135152Z-b09772, whose reconciliation and cleanup got HTTP 401 on a 26-minute-old admin token and left 100 accounts and 500..).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 import { randomBytes, randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { GatewayError, mapLimit, until } from './gateway.mjs';

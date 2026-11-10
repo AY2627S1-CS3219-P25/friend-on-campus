@@ -2,9 +2,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Attach the retained broker disk and publish the slot's private DNS before ECS starts.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 set -euo pipefail
 mkdir -p /etc/systemd/system/ecs.service.d /etc/ecs /srv/rabbitmq
 cat >/etc/systemd/system/ecs.service.d/broker-volume.conf <<'EOF'

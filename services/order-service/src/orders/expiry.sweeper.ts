@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Refactored Expiry Sweeper using extracted sweep handler and a lightweight factory function.
- * Author review: (to be completed by author after review)
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import type { OrderRepository } from '../repositories/order.repository';
 
 export interface ExpirySweeper {

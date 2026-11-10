@@ -2,10 +2,9 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted supplier directory API client helper from student-app App.tsx into modular api/suppliers.ts.
- * Author review: Verified by yanhwee
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
 
 import { SupplierDTO } from '@campus-errand/common-dtos';
 

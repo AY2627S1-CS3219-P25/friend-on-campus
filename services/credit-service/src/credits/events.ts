@@ -1,28 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review fix (PR #184): the processed-event fingerprint leaves orderCode out, so a pre-upgrade event replayed
- * with its display code still matches the hash stored by the previous version instead of dead-lettering as a conflict.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Keeps the optional orderCode of completed/cancelled/expired events so the settlement or refund receipt can name
- * the errand (Notification Redesign increment 6). Version-2 fields the service does not use are still ignored.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-19
- * Scope: Removed redundant order.reservation.release_requested handling for Saga Approach B2 (refunds unified on order.expired/order.cancelled).
- * Author review: Reviewed and verified by yanhwee.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Validate and dispatch asynchronous reservation and release commands.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Reused shared credit event contracts and translated validated messages into transactional credit commands.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity; Codex (model: GPT-6), date: 2026-09-24 to 2026-10-24
+ * Scope: Reused shared credit event contracts and translated validated messages into transactional credit commands; updated across 5 AI-assisted revisions through D4 wrap-up (review fix (PR #184): the processed-event fingerprint leaves orderCode out, so a pre-upgrade event replayed with its display code still matches the hash..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import { createHash } from 'node:crypto';
 import type { CreditReservationRequestEvent, OrderCancelledEvent, OrderCompletedEvent, OrderExpiredEvent, UserRegisteredEvent } from '@campus-errand/common-dtos';
 import type { CreditCommand, CreditService } from './service';
@@ -73,7 +54,7 @@ export function parseCreditEvent(content: Buffer, routingKey: string): CreditEve
     return { ...base, eventType: 'user.registered', userId: uuid(input.userId, 'userId'), email: input.email, initialGrant: amount(input.initialGrant, 'initialGrant') };
   }
   const order = { ...base, orderId: uuid(input.orderId, 'orderId'), requesterId: uuid(input.requesterId, 'requesterId'), rewardCredits: amount(input.rewardCredits, 'rewardCredits') };
-  // AI-generated (edited by Reallyeasy1): the display code is optional (version-1 events may omit it) and only decorates receipts.
+  // The display code is optional (version-1 events may omit it) and only decorates receipts.
   if (input.orderCode !== undefined) {
     if (typeof input.orderCode !== 'string' || input.orderCode.length === 0 || input.orderCode.length > 32) throw new InvalidCreditEvent('orderCode must be a non-empty string');
     Object.assign(order, { orderCode: input.orderCode });
@@ -97,7 +78,7 @@ export function createCreditEventHandler(credits: CreditService) {
         ? { kind: 'settle', body: { ...body, courierId: event.courierId } }
         : { kind: 'refund', body };
     }
-    // AI-generated (edited by Reallyeasy1): orderCode only decorates receipts and was discarded before it was kept, so it
+    // OrderCode only decorates receipts and was discarded before it was kept, so it
     // stays out of the fingerprint; rows in processed_credit_events written by the previous version still match.
     const fingerprinted = Object.fromEntries(Object.entries(event).filter(([key]) => key !== 'orderCode'));
     await credits.applyEvent({

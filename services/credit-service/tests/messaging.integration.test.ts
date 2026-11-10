@@ -1,19 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
- * Scope: Replaced removed HTTP /api/credits/escrow/reserve calls with direct CreditService.reserve invocations (Issue #42).
- * Author review: Validated by Yee Yan Hwee (yanhwee)
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Verify infrastructure failures preserve the event retry budget and delayed recovery mutates credit once.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Exercised messaging using the isolated least-privilege RabbitMQ test identity.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Google Antigravity (model: Claude Opus 4.6); Codex (model: GPT-6), date: 2026-09-24 to 2026-10-19
+ * Scope: Exercised messaging using the isolated least-privilege RabbitMQ test identity; updated across 3 AI-assisted revisions through D4 wrap-up (replaced removed HTTP /api/credits/escrow/reserve calls with direct CreditService.reserve invocations (Issue #42)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';

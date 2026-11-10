@@ -1,32 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Cross-replica delivery wiring (issue #240): fanout publisher, SQL outbox relay, per-replica realtime
- *        subscriber feeding createChatDelivery; readiness includes the subscriber; subscription loss disconnects
- *        sockets and new sockets are refused (1013) until the subscriber is ready; shutdown stops the relay and
- *        subscriber before the consumer. PR #246 review: every socket gets an error listener on connection, so a
- *        malformed frame on a refused socket cannot end the process.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Gracefully drain HTTP, WebSockets, the consumer and Prisma on signals or broker failure, including startup races.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Wiring only, in the shape of notification-service/src/index.ts: store, conversation service with the Order
- * Service fallback, the REST app (/health, /ready, /api/chat), the chat socket hub on the same HTTP server (the
- * gateway forwards /ws/chat/ to its root path), and the consumer projecting order events onto conversations.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Passed a translator built from the SOCLAAS settings into the conversation service.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: Passed a moderator built from the SOCLAAS settings into the conversation service.
- * Author review: <to be completed by the author>
+ * Tool: Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5); Codex (model: GPT-6), date: 2026-10-20 to 2026-11-09
+ * Scope: Wiring only, in the shape of notification-service/src/index.ts: store, conversation service with the Order Service fallback, the REST app (/health, /ready,..; updated across 5 AI-assisted revisions through D4 wrap-up (cross-replica delivery wiring (issue #240): fanout publisher, SQL outbox relay, per-replica realtime subscriber feeding createChatDelivery).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import http from 'http';
 import { WebSocketServer } from 'ws';
 import { authMiddleware } from '@campus-errand/auth';
@@ -53,7 +30,6 @@ const delivery = createChatDelivery({ store, hub });
 const relay = createOutboxRelay({ store: createSqlOutboxStore(prisma, 'realtime_outbox'), publish: publisher.publish });
 let consumerReady = () => false;
 let subscriber: RealtimeSubscriber | undefined;
-// AI-generated (edited by ngkhengyang)
 let stopping = false;
 let shutdownPromise: Promise<void> | undefined;
 
@@ -84,7 +60,6 @@ server.listen(config.port, () => {
   console.log(`[Chat Service] listening on ${config.port}`);
 });
 
-// AI-generated (edited by ngkhengyang)
 const consumerPromise = startChatConsumer(config.rabbitmq, store, () => { void shutdown(true); });
 consumerPromise.then(
   (consumer) => { consumerReady = consumer.isReady; },

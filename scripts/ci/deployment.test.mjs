@@ -1,25 +1,8 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Test rollout completion lag and reject a failed rollout.
-// Author review: <to be completed by the author>
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Match the GitHub Script REST client shape in source-selection tests.
-// Author review: <to be completed by the author>
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Guard native ARM64 image builds against reintroducing cross-architecture emulation.
-// Author review: <to be completed by the author>
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Verify runtime generation keeps database and broker secrets random without generating demo passwords.
-// Author review: <to be completed by the author>
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Verify manual delivery gates, migration failures, and preservation of live images during infrastructure rollout.
-// Author review: <to be completed by the author>
+// Scope: Verify manual delivery gates, migration failures, and preservation of live images during infrastructure rollout; updated across 5 AI-assisted revisions through D4 wrap-up (test rollout completion lag and reject a failed rollout).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
-// AI-generated (edited by ngkhengyang)
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

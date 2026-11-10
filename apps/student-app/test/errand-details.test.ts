@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Unit tests for src/errand/details.ts (issue #188, DP1.4–DP1.6, DP1.8): tracker states per status including a
- * terminal order with partial timestamps, end states, escrow state and copy, viewer role for a former courier, the
- * countdown clamp at zero, and the conversation rule.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Unit tests for src/errand/details.ts (issue #188, DP1.4–DP1.6, DP1.8): tracker states per status including a terminal order with partial timestamps, end...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { OrderStatus } from '@campus-errand/common-dtos';

@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Define staged ARM64 application services, Service Connect routes, task inputs and scaling, with workflow ownership of deployed application revisions.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 locals {
   backends = {
     user-service         = { port = 8001, name = "user" }

@@ -3,7 +3,6 @@
  * Scope: Load the bundled, unmodified Manrope variable font; its original licence is in Manrope-OFL.txt.
  * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-/* AI-generated (edited by yanhwee) */
 @font-face {
   font-family: 'Manrope';
   src: url('./Manrope-Variable.ttf') format('truetype');

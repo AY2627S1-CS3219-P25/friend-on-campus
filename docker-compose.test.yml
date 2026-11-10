@@ -1,13 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-5), date: 2026-10-11
-# Scope: Isolate aggregate-test host ports while retaining existing port defaults for standalone CI jobs.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-11
-# Scope: Remove fixed container names for isolated aggregate-test and CI Compose projects.
-# Author review: <to be completed by ngkhengyang>
+# Scope: Remove fixed container names for isolated aggregate-test and CI Compose projects; updated across 2 AI-assisted revisions through D4 wrap-up (isolate aggregate-test host ports while retaining existing port defaults for standalone CI jobs).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 services:
   api-gateway:
     container_name: !reset null

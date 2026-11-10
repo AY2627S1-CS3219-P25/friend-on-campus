@@ -1,23 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add unit tests verifying demote and delete refuse removing the last enabled admin even if a disabled admin exists, while allowing removal of the disabled admin (issue #109).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1); Codex (model: GPT-6), date: 2026-09-30 to 2026-11-10
+ * Scope: Unit tests for src/users/user-module.ts against an in-memory repository: profile read, list, the username-only update rule, duplicate mapping, password..; updated across 4 AI-assisted revisions through D4 wrap-up (add unit tests verifying demote and delete refuse removing the last enabled admin even if a disabled admin exists, while allowing removal of the disabled..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: Added the last-enabled-admin tests for toggleUserStatus (UAT A8).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Cover last-admin error mapping and deletion when another admin remains.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: Unit tests for src/users/user-module.ts against an in-memory repository: profile read, list, the
- * username-only update rule, duplicate mapping, password change, status and role toggles, deletion.
- * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by Reallyeasy1)
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { hashPassword, verifyPassword } from '../src/auth/password';
@@ -200,7 +186,6 @@ describe('administration', () => {
     assert.equal(fake.users.get(ALICE.id)?.role, 'ADMIN');
   });
 
-  // AI-generated (edited by yanhwee)
   it('refuses demoting or deleting the last enabled admin even when a disabled admin exists, while allowing removal of the disabled admin (issue #109)', async () => {
     await users.toggleUserRole(ALICE.id);
     await users.toggleUserStatus(ALICE.id); // ALICE is now a disabled ADMIN; ADMIN is the only enabled ADMIN

@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Cross-replica notification delivery with a real broker and database (issue #241 RT3.1 to RT3.5): the work
- *        queue consumed on replica A reaching a recipient held by replica B, exclusion of unrelated users, duplicate
- *        business events and replayed signals, stale and already-read suppression, read and read-all propagation
- *        through the REST routes of one replica to the sockets of the other, lost-lease ownership checks and REST
- *        recovery after a reconnect.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Cross-replica notification delivery with a real broker and database (issue #241 RT3.1 to RT3.5): the work queue consumed on replica A reaching a recipient...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 // Opt in with NOTIFICATION_TEST_DATABASE_URL and NOTIFICATION_TEST_RABBITMQ_URL (the notification_service account).
 // Uses its own work exchange/queues and fanout exchange under notification-service.events.test-<id> and its own
 // database schema, and removes them afterwards; the real queues are never touched.

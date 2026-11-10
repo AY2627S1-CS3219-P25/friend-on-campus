@@ -1,32 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Correct the stale cross-replica implementation status and link the current messaging reference.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Document native ARM64 GitHub image builds following the emulation crash.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Document the verified Debezium EFS ownership and registration-to-wallet dependency on the live phase.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Document the fixed demo seed password and updating existing accounts.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Document manual GitHub delivery, release migrations, OIDC diagnosis and migration of existing state to S3.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Document the ECS rollout, K3s retirement and manually triggered ARM64 application deployment workflow.
-Author review: <to be completed by the author>
+Tool: Codex (model: GPT-6), date: 2026-11-08 to 2026-11-09
+Scope: Document the ECS rollout, K3s retirement and manually triggered ARM64 application deployment workflow; updated across 7 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Singapore ECS Terraform

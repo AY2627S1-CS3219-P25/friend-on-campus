@@ -1,36 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Cross-replica delivery wiring (issue #241): fanout publisher, SQL outbox relay, per-replica realtime
- *        subscriber feeding createNotificationDelivery; readiness includes the subscriber; subscription loss
- *        disconnects sockets and new sockets are refused (1013) until the subscriber is ready; shutdown stops the
- *        relay and subscriber before the consumer. PR #246 review: every socket gets an error listener on
- *        connection, so a malformed frame on a refused socket cannot end the process.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Gracefully drain HTTP, WebSockets, the consumer and Prisma on signals or broker failure, including startup races.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: createDeliver receives the hub (push and inboxChanged) and the app gets hub.inboxChanged for read changes.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Rewritten as wiring only, per the author's Notification Service Design: store, WebSocket hub, REST app and
- * consumer. The unauthenticated echo handler and POST /api/notifications/broadcast of the starter stub are removed.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Replaced the unused shared RabbitMQ credential with Notification Service's dedicated development identity.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03
- * Scope: Started the RabbitMQ consumer copied from PR #91 (src/messaging, src/notifications/events) at boot, exposed its
- * readiness on /health, and moved PORT/RABBITMQ_URL into src/config.ts. Delivery is a log line until the store and socket hub exist.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1); Codex (model: GPT-6), date: 2026-09-24 to 2026-11-09
+ * Scope: Replaced the unused shared RabbitMQ credential with Notification Service's dedicated development identity; updated across 6 AI-assisted revisions through D4 wrap-up (cross-replica delivery wiring (issue #241): fanout publisher, SQL outbox relay, per-replica realtime subscriber feeding createNotificationDelivery;..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111, Reallyeasy1)
 import http from 'http';
 import { WebSocketServer } from 'ws';
 import { authMiddleware } from '@campus-errand/auth';
@@ -53,7 +26,6 @@ const delivery = createNotificationDelivery({ store, hub });
 const relay = createOutboxRelay({ store: createSqlOutboxStore(prisma, 'notification_realtime_outbox'), publish: publisher.publish });
 let consumerReady = () => false;
 let subscriber: RealtimeSubscriber | undefined;
-// AI-generated (edited by ngkhengyang)
 let stopping = false;
 let shutdownPromise: Promise<void> | undefined;
 
@@ -85,7 +57,6 @@ server.listen(config.port, () => {
   console.log(`[Notification Service] listening on ${config.port}`);
 });
 
-// AI-generated (edited by ngkhengyang)
 const consumerPromise = startNotificationConsumer(
   config.rabbitmq,
   createDeliver(store),

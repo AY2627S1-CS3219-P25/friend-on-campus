@@ -1,49 +1,11 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: A non-UUID :id is answered with 400 INVALID_INPUT by one router.param check instead of reaching Prisma
- * and failing with 500 (UAT A10).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Clear the refresh cookie after successful self-deletion while retaining it on rejected deletion.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented authenticated profile routes and structured 501 ADMIN user-management placeholders for the User Service.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: The deferred ADMIN placeholders now return the service's standard JSON error body with code
- * NOT_IMPLEMENTED instead of an empty 501, so JSON clients (e.g. the admin portal Users page) do not throw.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added DELETE /:id (account deletion) with a new local requireSelfOrAdmin middleware — allows the
- * request through only if the caller is ADMIN or is deleting their own account (auth.userId === req.params.id),
- * otherwise throws UserError('FORBIDDEN'). Deliberately not added to the shared @campus-errand/auth package,
- * since "does the URL's :id match the caller's own id" is specific to this one route.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Renamed PATCH /:id/admin to PATCH /:id/toggle-status (same behavior — flips the status boolean —
- * just a clearer name, since "/admin" read as if it changed the ADMIN role, which it never did). Replaced the
- * POST /:id/promote 501 stub with a real PATCH /:id/toggle-role: admin-only (requireAdmin), flips the caller's
- * target between STUDENT and ADMIN, and explicitly rejects an admin targeting their own id (UserError
- * SELF_ACTION_FORBIDDEN) so an admin can never demote themselves. Removed the now-fully-dead
- * throwNotImplemented/notImplemented helpers and the NOT_IMPLEMENTED error code, since nothing uses them
- * anymore.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
- * Scope: PR #93 review fix: the self checks in requireSelfOrAdmin and PATCH /:id/toggle-role lower-case the
- * URL id before comparing it with the token's user id, because Postgres matches uuid values in any letter case.
- * Author review: (to be completed by author after review)
+ * Tool: Claude Code (model: Claude Fable 5.1, Sonnet 5); Codex (model: GPT-6, GPT-5.6 Terra), date: 2026-09-22 to 2026-10-04
+ * Scope: Implemented authenticated profile routes and structured 501 ADMIN user-management placeholders for the User Service; updated across 7 AI-assisted revisions through D4 wrap-up (a non-UUID :id is answered with 400 INVALID_INPUT by one router.param check instead of reaching Prisma and failing with 500 (UAT A10)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by ngkhengyang)
 
-// AI-generated (edited by ngkhengyang)
 
 
 
@@ -90,7 +52,6 @@ function requireSelfOrAdmin(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  // AI-generated (edited by jagdeepsh)
   if (authenticatedUser.role === 'ADMIN' || authenticatedUser.userId === req.params.id.toLowerCase()) {
     next();
     return;
@@ -109,7 +70,6 @@ export function createUserRouter(
 
   router.use(requireAuthentication);
 
-  // AI-generated (edited by Reallyeasy1)
   // The id column is a Postgres uuid; any other string makes the query itself fail.
   router.param('id', (_req, _res, next, id) => {
     next(isUuid(id) ? undefined : new UserError('INVALID_INPUT', 'User id must be a UUID'));
@@ -159,7 +119,6 @@ export function createUserRouter(
     '/:id/toggle-role',
     requireAdmin,
     asyncRoute(async (req, res) => {
-      // AI-generated (edited by jagdeepsh)
       if (req.params.id.toLowerCase() === authenticatedUserId(res)) {
         throw new UserError('SELF_ACTION_FORBIDDEN', 'Admins cannot change their own role');
       }

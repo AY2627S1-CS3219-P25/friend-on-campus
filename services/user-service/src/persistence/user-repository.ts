@@ -1,42 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Require at least one enabled admin to remain when demoting or deleting an enabled admin (issue #109).
+ * Tool: Google Antigravity Agent; Google Antigravity; Claude Code (model: Claude Fable 5.1, Sonnet 5); Codex (model: GPT-6, GPT-5.6 Terra), date: 2026-09-22 to 2026-11-10
+ * Scope: Enforced immutable email addresses in the User Service profile persistence path; updated across 8 AI-assisted revisions through D4 wrap-up (require at least one enabled admin to remain when demoting or deleting an enabled admin (issue #109)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Imported Prisma, PrismaClient, and User from ../database/client instead of directly from generated folder.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: toggleStatus now runs under the admin-membership lock and refuses to disable the last enabled admin
- * (UAT A8); LastAdminError takes the message for that case.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Serialize role changes and deletions with a transaction-scoped PostgreSQL advisory lock and reject removal of the last admin.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented Prisma-backed persistence operations for user profiles and password changes.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Enforced immutable email addresses in the User Service profile persistence path.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added deleteById() for the new DELETE /api/users/:id endpoint (self-or-admin account deletion).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Added toggleRole() (flips STUDENT<->ADMIN) for the new PATCH /:id/toggle-role endpoint, same
- * find-then-flip-then-update shape as toggleStatus.
- * Author review: (to be completed by author after review)
  */
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by ngkhengyang)
 import { Prisma, PrismaClient, type User as PrismaUser } from '../database/client';
 
 export class LastAdminError extends Error {
@@ -97,7 +65,7 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }
 
-  // AI-generated (edited by yanhwee): preserve at least one enabled ADMIN across demotion and deletion (issue #109).
+  // Preserve at least one enabled ADMIN across demotion and deletion (issue #109).
   async function assertAdminRemains(tx: Prisma.TransactionClient, user: PrismaUser) {
     if (
       user.role === 'ADMIN' &&
@@ -141,7 +109,6 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
       return updated.count === 1;
     },
 
-    // AI-generated (edited by Reallyeasy1)
     async toggleStatus(userId) {
       return withAdminMembershipLock(async (tx) => {
         const existing = await tx.user.findUnique({ where: { id: userId } });

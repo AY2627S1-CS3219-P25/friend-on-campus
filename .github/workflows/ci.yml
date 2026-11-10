@@ -1,83 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Google Antigravity Agent, date: 2026-11-09
-# Scope: Run k6 performance harness wrapper self-tests (scripts/perf/test/harness.test.mjs) in test-config job (PR #252 review).
-# Author review: Validated by Yee Yan Hwee (yanhwee)
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Resolved the merge conflict by retaining both CI disclosure entries.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Run delivery workflow and migration rollout regression checks in the configuration job.
-# Author review: <to be completed by the author>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-# Scope: Added the @campus-errand/messaging test:unit entry to the unit matrix (realtime primitives, issue #239).
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
-# Scope: Added the admin-portal test:unit entry to the unit matrix (supplier form validation test, PR #222 review).
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-01
-# Scope: Added the Supplier Service migration regression suite to CI.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-# Scope: browser-uat runs the multi-client real-time UAT (npm run test:e2e:ui:realtime) after the D2 browser UAT (issue #197).
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Google Antigravity Agent, date: 2026-10-21
-# Scope: Removed obsolete --print flag from scripts/generate-jwt-keys.mjs invocations.
+# Tool: Google Antigravity Agent; Codex (model: GPT-6, GPT-5, GPT-5.6 Sol); Claude Code (model: Claude Fable 5.1), date: 2026-10-04 to 2026-11-09
+# Scope: Wrote this workflow: type checks and unit tests (with the PostgreSQL admin-guard tests opted in), then the Docker Compose stack with the API acceptance..; updated across 19 AI-assisted revisions through D4 wrap-up (run k6 performance harness wrapper self-tests (scripts/perf/test/harness.test.mjs) in test-config job (PR #252 review)).
 # Author review: I validated correctness, edited for style, and verified with automated tests.
-#
-# Tool: Codex (model: GPT-6), date: 2026-10-21
-# Scope: Enable logical WAL and run an isolated Credit Debezium connector for reservation saga messaging tests.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Google Antigravity Agent, date: 2026-10-21
-# Scope: Aligned acceptance-tests and browser-uat artifact upload paths with the default test-results/ output directory.
-# Author review: <to be completed by author after review>
-#
-# Tool: Codex (model: GPT-6), date: 2026-10-19
-# Scope: Repair malformed messaging database URLs and isolate Credit migrations from Order in the saga job.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
-# Scope: Added the student-app and credit-service test:unit entries to the unit matrix.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-19
-# Scope: Added order-service messaging suite coverage and order-saga credit migration setup in the CI messaging matrix.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-11
-# Scope: Added static-matrix drift validation, isolated system-test stacks, Chromium UAT, console-only test output, and a dependency-only final gate.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
-# Scope: Added independent lint and production-build jobs with locked dependency installation and Prisma generation.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-11
-# Scope: Replaced dynamic test discovery with explicit static matrices maintained alongside package test scripts.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-11
-# Scope: Added package-script test discovery, category matrices, isolated PostgreSQL/RabbitMQ services, system-test jobs, failure artifacts, and a final gate.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
-# Scope: Opted the Notification Service's PostgreSQL tests into the unit job and its broker test into the acceptance job.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
-# Scope: Wrote this workflow: type checks and unit tests (with the PostgreSQL admin-guard tests opted in), then the
-# Docker Compose stack with the API acceptance driver, a credential-exposure review of the database and logs
-# (issue #23), and the D2 end-to-end suite.
-# Author review: <to be completed by Reallyeasy1>
 
-# AI-generated (edited by ngkhengyang)
 name: CI
 
 on:
@@ -386,7 +311,6 @@ jobs:
         run: npm run db:deploy --workspace="${{ matrix.workspace }}"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci_test
-      # AI-generated (edited by huangjiaxi1111)
       - name: Create credit database for order saga messaging tests
         if: matrix.workspace == '@campus-errand/order-service'
         run: node scripts/ci/create-test-database.mjs

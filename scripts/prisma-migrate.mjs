@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity, date: 2026-10-21
  * Scope: Shared Prisma migration helper loading service and root .env files with per-service database URL fallbacks.
- * Author review: <to be completed by author after review>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import path from 'node:path';

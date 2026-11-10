@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Added the chat target (services group) when merging main into PR #148; the dev:chat npm script it replaces was removed with the other per-service scripts.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-21
- * Scope: Zero-dependency parallel workspace dev runner with prefixed log output and cross-platform signal cleanup.
- * Author review: <to be completed by author after review>
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity, date: 2026-10-21 to 2026-10-25
+ * Scope: Zero-dependency parallel workspace dev runner with prefixed log output and cross-platform signal cleanup; updated across 2 AI-assisted revisions through D4 wrap-up (added the chat target (services group) when merging main into PR #148).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';

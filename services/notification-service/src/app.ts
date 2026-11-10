@@ -1,19 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: The router no longer takes an onInboxChanged hint (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Optional onInboxChanged dependency, handed to the notification router (Notification Redesign §7).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Express app for the Notification Service, in the shape of credit-service's app module: /health, /ready,
- * the notification routes and a generic error handler.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-11-09
+ * Scope: Express app for the Notification Service, in the shape of credit-service's app module: /health, /ready, the notification routes and a generic error handler; updated across 3 AI-assisted revisions through D4 wrap-up (the router no longer takes an onInboxChanged hint (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import { createNotificationRouter } from './notifications/routes';

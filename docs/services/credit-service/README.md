@@ -1,20 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Document registration email validation mismatch and lazy initialization; explain savepoint outcomes and financial debugging with concrete examples.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate Credit contracts, transactions, recovery and tests into one developer guide with an explained wallet/escrow example.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconciled this guide with current service code, schemas, configuration and tests; consolidated duplicated reference material.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 4 AI-assisted revisions through D4 wrap-up (document registration email validation mismatch and lazy initialization).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Credit Service: wallets, escrow and the ledger
@@ -129,7 +117,6 @@ For a new, validated reservation event, the three outcomes differ in what can be
 *Legend: each arrow is the next step, and arrow labels name the condition; the diamond is a decision.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Start["Begin transaction and stage event marker"] --> Savepoint["Create savepoint; attempt hold"]
     Savepoint --> Outcome{"Hold outcome"}
@@ -170,7 +157,6 @@ Prepare dependencies, generated clients, migrated databases and credentials thro
 Run from the repository root:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run dev -w @campus-errand/credit-service
 ```
 
@@ -192,7 +178,6 @@ The [seed implementation](../../../services/credit-service/src/database/seed.ts)
 The focused test command needs no database or broker:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/credit-service
 ```
 

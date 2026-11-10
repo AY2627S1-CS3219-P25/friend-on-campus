@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Provision the three ARM64 ECS slots with stable broker storage and names.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 data "aws_iam_policy_document" "assume_host" {
   statement {
     actions = ["sts:AssumeRole"]

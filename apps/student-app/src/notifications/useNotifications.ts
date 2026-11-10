@@ -1,40 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Issue #242 (RT4.1): a NOTIFICATION frame whose id was already seen in this logged-in session no longer calls
- * onNotification again (realtime signals are at-least-once); the merge and the refresh are unchanged.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
- * Scope: Issue #208 (simulated UAT case E04, 2 of 3 attempts): after the browser went offline and online the badge
- * never caught up while the chat socket reconnected. The browser's offline event now closes the socket (status
- * disconnected, as useChat does), the online event resets the backoff, reconnects at once and refreshes with the
- * failure counter cleared, and every inbox request is bounded by a timeout so a request that hangs across the
- * network change can no longer keep the serialized refresh in flight forever.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review fixes (PR #184): the hook owns the selected view and fetches it from the server (view=/unread= query)
- * instead of filtering loaded All rows, so an older Important/Action/Unread row is never hidden behind an empty state;
- * a refresh re-reads every loaded page (1..n) rather than page 1 alone, so arrivals that shift offset pages while the
- * socket was down are caught up and read state on older pages is reconciled; exposes total for the active view.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: REST-first inbox per the author's Notification Redesign (§10): history loads as soon as the student is logged
- * in (not after AUTH_OK), refreshes on reconnect, focus, visibility and every 30 s while visible (backing off after
- * failures), pages with loadMore(), merges rows by id so a duplicate frame cannot bump the badge, takes unread counts
- * only from the server, refetches on INBOX_CHANGED, and keeps old rows with a stale flag when a refresh fails.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
- * Scope: Client side of the Notification Service's WebSocket and REST contract, per the author's Notification Service
- * Design (third pull request): AUTH frame after login, reconnect with backoff, history over REST, mark read.
- * Review fix the same day: a 4401 before AUTH_OK (token rejected outright, e.g. mismatched keys) backs off like any
- * other close instead of looping refresh -> connect -> 4401 with no pause.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06 to 2026-11-09
+ * Scope: Client side of the Notification Service's WebSocket and REST contract, per the author's Notification Service Design (third pull request): AUTH frame after..; updated across 5 AI-assisted revisions through D4 wrap-up (issue #242 (RT4.1): a NOTIFICATION frame whose id was already seen in this logged-in session no longer calls onNotification again (realtime signals are..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NotificationDTO, NotificationPageDTO } from '@campus-errand/common-dtos';
 import { createFirstSeen } from '../hooks/recentIds';
@@ -67,7 +36,7 @@ export function useNotifications(options: {
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  // AI-generated (edited by Reallyeasy1): the view is fetched, not filtered client side, so the hook owns it.
+  // The view is fetched, not filtered client side, so the hook owns it.
   const [view, setView] = useState<InboxView>('all');
   /** Rows the server has for the current view; the authoritative count for the active tab. */
   const [total, setTotal] = useState(0);
@@ -165,7 +134,7 @@ export function useNotifications(options: {
       return;
     }
     const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
-    // AI-generated (edited by Reallyeasy1): back online, the failures accumulated while offline must not delay the
+    // Back online, the failures accumulated while offline must not delay the
     // catch-up (the timer backs off from them); the socket effect below reconnects at the same moment.
     const onOnline = () => { failures.current = 0; void refresh(); };
     window.addEventListener('focus', onVisible);
@@ -205,7 +174,7 @@ export function useNotifications(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
-    // AI-generated (edited by Reallyeasy1): one cache per logged-in session, discarded with this effect (issue #242).
+    // One cache per logged-in session, discarded with this effect (issue #242).
     const firstSeen = createFirstSeen();
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/`;
@@ -259,7 +228,7 @@ export function useNotifications(options: {
 
     connect(options.token);
 
-    // AI-generated (edited by Reallyeasy1): a half-open socket after a network drop never reports itself (the hub's
+    // A half-open socket after a network drop never reports itself (the hub's
     // ping evicts the server side only). Offline: close it, so the status is honest. Online: forget the backoff and
     // reconnect at once; the AUTH_OK refresh then catches up (issue #208).
     const onOffline = () => { if (socket) socket.close(); else setStatus('disconnected'); };

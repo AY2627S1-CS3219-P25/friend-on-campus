@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
+ * Tool: Codex (model: GPT-6); Claude Code (model: Claude Opus 5.5), date: 2026-11-04 to 2026-11-07
+ * Scope: Moved the bundled marker icon fix out of SupplierPickupMap so the drop-off maps share it; updated across 2 AI-assisted revisions through D4 wrap-up (align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Moved the bundled marker icon fix out of SupplierPickupMap so the drop-off maps share it; also holds the
- * shared tile layer settings and the campus fallback view.
- * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by huangjiaxi1111)
 import L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';

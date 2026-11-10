@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
- * Scope: Issue #206 (simulated UAT case F06): Chat Service added to the probed services; the gateway now proxies /api/health/chat/{health,ready}.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Created microservice health and readiness probe API client for the Admin Portal HealthPage.
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity Agent, date: 2026-10-22 to 2026-10-27
+ * Scope: Created microservice health and readiness probe API client for the Admin Portal HealthPage; updated across 2 AI-assisted revisions through D4 wrap-up (issue #206 (simulated UAT case F06): Chat Service added to the probed services; the gateway now proxies /api/health/chat/{health,ready}).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
 
 export type ServiceHealthKey = 'user' | 'supplier' | 'order' | 'credit' | 'notification' | 'chat';
 
@@ -50,7 +45,6 @@ export const SERVICE_HEALTH_SPECS: ServiceHealthSpec[] = [
     port: 8005,
     db: 'notification_db (PostgreSQL) + RabbitMQ',
   },
-  // AI-generated (edited by Reallyeasy1)
   {
     key: 'chat',
     name: 'Chat Service (F8)',

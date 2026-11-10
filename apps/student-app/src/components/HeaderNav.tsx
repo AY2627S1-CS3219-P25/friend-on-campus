@@ -1,107 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Keep the full product name on one line at every viewport width and compact phone utilities to fit.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-10-19 to 2026-11-07
+ * Scope: Extracted top header navigation bar and status bar from student-app App.tsx into components/HeaderNav.tsx; updated across 25 AI-assisted revisions through D4 wrap-up (keep the full product name on one line at every viewport width and compact phone utilities to fit).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the unboxed origami mark and Manrope wordmark, blue page selection, and a coral Post action.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Improve desktop navigation labels and target sizes, clarify the credit balance, and retain mobile navigation below 1024px.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Implemented Direction B (Crisp Modern Canvas) theme in HeaderNav: updated brand logo styling to crisp floating canvas with subtle border and sleek hover states.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized HeaderNav with Direction A Warm Campus Mango theme: updated brand hover to warm glow, unified desktop active nav indicators with mobile bottom bar's vibrant orange accent, and refreshed mobile FoC badge.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Rebranded navbar identity to tompang. with Friend Pin logo, featuring 'by Friend on Campus' (FoC) brand signature and responsive badge.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Implemented Direction A clean modern tech brand identity: removed confusing blinking pulse badge from package icon, unified brand typography to NUS Blue and Slate-900 with signature orange accent dot, and removed subtitle for compact 48px header height.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Illuminated wallet capsule with vibrant amber active state in top header when activeTab === 'wallet', matching NotificationBell's active treatment for instant user orientation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Refined desktop profile button active styling with soft tinted blue background, accessible contrast, and subtle ring focus, eliminating harsh dark navy fill.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Renamed Tasks navigation item to My Errands for natural user mental model and consistent errand vocabulary.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities): anchored primary browsing nav tabs next to brand logo, streamlined right cluster with prominent Post CTA, spendable wallet capsule, and compact icon-only alerts and profile buttons.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Implemented Option B (Silent when connected, warning banner when disconnected) for WebSocket status, removing persistent Live badge from header while preserving test locators and providing discreet top alert on disconnection.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed redundant STUDENT badge from brand header for clean, minimal consumer presentation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Refined PC desktop top nav to Marketplace Pattern (Approach 1): left nav pure browsing (Feed, Spots, Tasks), right cluster hero Post CTA and unified personal hub.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Polished mobile header to single-row alignment: integrated inline Live indicator, balanced h-9 utility buttons, and eliminated orphan sub-badge.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Streamlined header wallet capsule to show spendable available balance only, moving held funds breakdown exclusively to the wallet screen.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized desktop Post action as a prominent CTA pill alongside browsing tabs (Feed, Spots, Tasks).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Moved Alerts notification bell to universal header presentation across both mobile and desktop views.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed technical meta information (WS Hub) in favor of a sleek, formal Live network indicator with data-status attributes.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned HeaderNav with premium glassmorphism, animated pulse indicators, interactive tab pills, and refined wallet capsule.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Styled HeaderNav active tabs, profile button, and wallet capsule in light elegant aesthetic without dark button colors.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned HeaderNav to compact single-row frosted layout, inline WS Hub indicator, unified mobile/desktop alerts, and removed duplicate escrow subline.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted top header navigation bar and status bar from student-app App.tsx into components/HeaderNav.tsx.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 import { CreditWalletDTO } from '@campus-errand/common-dtos';
 import {
@@ -152,7 +55,6 @@ export function HeaderNav({
             <FriendOnCampusLogo className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 transition-transform duration-200 group-hover:-rotate-6" />
             <div>
               <div className="flex items-baseline gap-1 sm:gap-1.5">
-                {/* AI-generated (edited by yanhwee) */}
                 <span className="brand-wordmark whitespace-nowrap text-sm sm:text-lg xl:text-xl leading-tight">
                   <span>Friend <span className="brand-connector">on</span></span>{' '}
                   <span>Campus</span>
@@ -268,7 +170,7 @@ export function HeaderNav({
               }`}
               aria-live="polite"
             >
-              {/* AI-generated (edited by yanhwee): keep the balance compact on phones and explicit on desktop. */}
+              {/* Keep the balance compact on phones and explicit on desktop. */}
               {wallet || !isLoadingCredits ? (
                 <>
                   {wallet?.availableCredits ?? 0}

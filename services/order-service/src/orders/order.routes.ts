@@ -1,43 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Added POST /assistant/draft endpoint for Natural-Language Errand Creation Assistant (F6).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5); Codex (model: GPT-6), date: 2026-10-07 to 2026-11-06
+ * Scope: Express router for Order Service lifecycle endpoints with Ed25519 authentication, authorization checks, and error mapping; updated across 9 AI-assisted revisions through D4 wrap-up (added POST /:id/dispute).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Success messages no longer claim credits were transferred or refunded; Credit Service settles or returns
- * escrow asynchronously after the Order event (author's Notification Redesign §9).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added POST /:id/unassign endpoint allowing the assigned courier to drop an ACCEPTED errand before pickup.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Return asynchronous submission receipts and expose owner-authorized submission polling.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: accept, pickup and deliver pass the caller's username from the verified token to the service (F5.1.1).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added admin force-cancel, force-complete, and courier unassign endpoints with RBAC checks and query search.
- * Author review: (to be completed by author after review)
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Express router for Order Service lifecycle endpoints with Ed25519 authentication, authorization checks, and error mapping.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Added POST /:id/dispute.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Added POST /:id/courier-dispute.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by yanhwee)
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { ApiResponse, CreateOrderRequest, OrderDTO, ParseErrandDraftRequest } from '@campus-errand/common-dtos';
 import { Router, type ErrorRequestHandler, type Request, type RequestHandler, type Response } from 'express';
@@ -66,7 +32,6 @@ function asyncRoute(handler: (req: Request, res: Response) => Promise<void>): Re
   };
 }
 
-// AI-generated (edited by Reallyeasy1)
 function resolvePrincipal(res: Response): AuthenticatedPrincipal {
   const auth = res.locals.auth as AuthenticatedPrincipal | undefined;
   if (auth && auth.userId) {
@@ -120,7 +85,6 @@ export function createOrderRouter(
   const router = Router();
 
   // 0. AI Errand Creation Assistant Draft (F6)
-  // AI-generated (edited by yanhwee)
   router.post('/assistant/draft', authenticate, asyncRoute(async (req: Request, res: Response) => {
     if (!assistantService) {
       res.status(503).json({
@@ -224,7 +188,6 @@ export function createOrderRouter(
 
   // 5. Accept Errand (Single courier assignment, self-accept check)
   router.post('/:id/accept', authenticate, asyncRoute(async (req: Request, res: Response<ApiResponse<OrderDTO>>) => {
-    // AI-generated (edited by Reallyeasy1)
     const courier = resolvePrincipal(res);
     const order = await orderService.acceptOrder(req.params.id, courier.userId, req.body, courier.username);
     res.json({

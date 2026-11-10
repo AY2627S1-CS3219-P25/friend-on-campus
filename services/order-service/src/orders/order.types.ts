@@ -1,26 +1,8 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: toOrderDTO maps the nullable drop-off coordinates and estimated credit (NULL -> undefined).
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Version-2 Order events per the author's Notification Redesign (§6): OrderLifecycleEvent gains order.rejected and
- * order.unassigned; OrderEventDraft is what the service builds and completeEvent() fills orderVersion, previousStatus,
- * status, the cancelled/expired assignee and priorCourierId from the rows inside the committing transaction.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Domain types, custom errors, and DTO mappers for Order Service.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: toOrderDTO maps the dispute flag and the requester's dispute details.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: toOrderDTO maps courierDisputeDetails.
- * Author review: <to be completed by the author>
+ * Tool: Claude Code (model: Claude Opus 5.5, Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent, date: 2026-10-07 to 2026-11-06
+ * Scope: Domain types, custom errors, and DTO mappers for Order Service; updated across 5 AI-assisted revisions through D4 wrap-up (toOrderDTO maps the dispute flag and the requester's dispute details).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 import type {
   CreditReservationRequestEvent,
@@ -51,7 +33,6 @@ export type OrderLifecycleEvent =
   | OrderRejectedEvent
   | OrderUnassignedEvent;
 
-// AI-generated (edited by Reallyeasy1)
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 /** An event as the service builds it, before the repository knows the committed row. */

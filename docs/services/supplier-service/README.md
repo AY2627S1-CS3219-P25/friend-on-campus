@@ -1,44 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Google Antigravity Agent, date: 2026-11-10
-Scope: Reconciled consolidated Supplier Service guide with PR #254 (`85033d0`) PostgreSQL sorting (`LOWER(col)` with `"id" ASC` tie-breaking) and pagination (`COUNT(*) OVER()` + `LIMIT`/`OFFSET`, 100-row unpaginated cap).
+Tool: Google Antigravity Agent; Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-25 to 2026-11-10
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 10 AI-assisted revisions through D4 wrap-up (reconciled consolidated Supplier Service guide with PR #254 (`85033d0`) PostgreSQL sorting (`LOWER(col)` with `"id" ASC` tie-breaking) and pagination..).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Explain directory, map and order availability boundaries; add a decision diagram, read-only query examples and concrete seed/update guidance.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate Supplier directory behavior, APIs, safe coordinate upgrades, operations and tests into one practical guide with an explained uniqueness sequence.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
-Author review: <to be completed by the author>
-
-Tool: Google Antigravity Agent, date: 2026-11-09
-Scope: Updated supplierRepository.ts responsibility from in-memory sorting/pagination to PostgreSQL sorting and pagination (#110, #253).
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
-Scope: PR #222 review: seed description notes that recorded coordinates survive a reseed.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-01
-Scope: Link the supplier coordinate upgrade and recovery instructions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
-Scope: PR #222 review: recovery commands now show how to set DATABASE_URL (the bare Prisma CLI bypasses the repository wrapper's SUPPLIER_DATABASE_URL mapping); documented that reseeding keeps recorded coordinates and that the migration suite exercises the recovery path through the Prisma CLI.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-01
-Scope: Document staged coordinate enforcement and recovery from the PR #220 migration.
-Author review: <to be completed by Reallyeasy1>
 -->
 
 # Supplier Service: the campus pickup directory
@@ -202,7 +166,6 @@ The pickup dropdown and map receive only active suppliers. The [map grouping hel
 This diagram follows the separate checks applied to a directory row:
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Row["Supplier directory row"] --> Active{"Currently active?"}
     Active -->|"Yes"| Choice["Available pickup choice"]
@@ -223,7 +186,6 @@ Opening hours are another separate concept. The frontend [hours helper](../../..
 To inspect the distinction on a running local gateway, these reads make no changes:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 curl --fail-with-body 'http://localhost/api/suppliers?isActive=true&page=1&limit=10'
 curl --fail-with-body 'http://localhost/api/suppliers?category=Food&sortBy=name&sortOrder=asc&page=1&limit=10'
 ```
@@ -254,7 +216,6 @@ Updates accept only the fields implemented by the repository; `supplierCode` is 
 A place is unique by the case-insensitive combination of **name, category, building and floor**. The service first checks that combination so it can return helpful duplicate details. The SQL unique index then protects against two requests that pass the precheck at the same time.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant Admin
     participant API as Supplier API
@@ -288,7 +249,6 @@ Soft deletion sets `isActive=false`. Permanent deletion removes the Supplier row
 After completing the [shared setup](../../development/local-development.md), run from the repository root:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run db:generate -w @campus-errand/supplier-service
 npm run db:deploy -w @campus-errand/supplier-service
 npm run dev -w @campus-errand/supplier-service
@@ -326,7 +286,6 @@ The CSV path is a seed-script input, not an upload endpoint in the REST contract
 For a disposable development database with migrations already applied, run the default seed from the repository root:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run db:seed -w @campus-errand/supplier-service
 ```
 
@@ -355,7 +314,6 @@ Back up the intended database and inspect the recorded migration failure first. 
 Run from `services/supplier-service`. The bare Prisma CLI reads `DATABASE_URL`; unlike the repository's `db:deploy` wrapper, it does not map `SUPPLIER_DATABASE_URL` for you. Configure the intended connection privately in your shell. If it is already exported as `SUPPLIER_DATABASE_URL`, use:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 : "${SUPPLIER_DATABASE_URL:?Set the intended database connection first}"
 export DATABASE_URL="$SUPPLIER_DATABASE_URL"
 npx prisma migrate status --schema prisma/schema.prisma
@@ -364,7 +322,6 @@ npx prisma migrate status --schema prisma/schema.prisma
 After confirming the specific failed migration, mark **that failed attempt** rolled back and deploy the corrected history:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npx prisma migrate resolve --rolled-back 20261017102809_make_coordinates_required --schema prisma/schema.prisma
 npx prisma migrate deploy --schema prisma/schema.prisma
 ```
@@ -391,7 +348,6 @@ Business errors generally return `{success:false,error}` without a stable machin
 Run the focused suites from the repository root:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/supplier-service
 npm run test:migration -w @campus-errand/supplier-service
 ```

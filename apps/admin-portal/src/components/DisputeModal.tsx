@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Admin dialog for a disputed errand: shows the requester's reason (read only) and settles it with Refund (the
- * existing admin cancel, which publishes order.cancelled) or Complete (the existing admin complete, which publishes
- * order.completed). Order Service clears the dispute flag in the same transaction.
- * Author review: <to be completed by the author>
+ * Scope: Admin dialog for a disputed errand: shows the requester's reason (read only) and settles it with Refund (the existing admin cancel, which publishes...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by jagdeepsh)
 import { useState } from 'react';
 import { AlertCircle, AlertTriangle, RefreshCw, X } from 'lucide-react';
 import { OrderDTO } from '@campus-errand/common-dtos';

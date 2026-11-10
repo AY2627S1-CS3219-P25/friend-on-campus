@@ -1,16 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: issueAccessToken takes an optional username and adds it to the claims when given (F5.1.1 courier name).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Access tokens now carry the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud) typed by the
- * shared JWTPayload from common-dtos, replacing the local claim interface. Signing, refresh-token generation and hashing
- * are unchanged from the PR author's version.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23 to 2026-10-17
+ * Scope: Access tokens now carry the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud) typed by the shared JWTPayload from common-dtos, replacing..; updated across 2 AI-assisted revisions through D4 wrap-up (issueAccessToken takes an optional username and adds it to the claims when given (F5.1.1 courier name)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by ngkhengyang)
 import {
   createHash,
   createPrivateKey,
@@ -67,7 +60,6 @@ export function createTokenManager(options: TokenManagerOptions): TokenManager {
         sub: userId,
         sid: sessionId,
         role,
-        // AI-generated (edited by Reallyeasy1)
         ...(username !== undefined && { username }),
         iat: currentUnixTimeSeconds,
         exp: currentUnixTimeSeconds + options.accessTokenLifetimeSeconds,

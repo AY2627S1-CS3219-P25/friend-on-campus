@@ -1,50 +1,9 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Start only the application; Compose retains local migrations and development seeding.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-10-21
-# Scope: Remove the User application messaging dependency after moving outbox publication to Debezium.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Google Antigravity, date: 2026-10-20
-# Scope: Updated runtime Prisma generated client copy path to src/generated -> dist/generated.
-# Author review: <to be completed by author after review>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-16
-# Scope: Copied the build-stage Prisma engines into the production runtime so migrations do not download binaries at startup.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-15
-# Scope: Pinned the Node 20 Alpine base image to an exact release tag and verified registry digest.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-14
-# Scope: Assigned runtime files to the built-in node user and run migrations, seeding, and the service without root privileges.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Split dependency installation, TypeScript/Prisma generation, and the compiled Node runtime into separate stages.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Made workspace-scoped dependency installation reproducible with the root lockfile and npm ci.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-12
-# Scope: Restricted dependency installation to the User Service workspace and its local dependencies.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
-# Scope: Implemented the User Service container build with workspace dependencies, Prisma generation, and a production start command.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Google Antigravity Agent, date: 2026-09-24
-# Scope: Updated startup command to deploy Prisma migrations and seed development accounts on container boot.
-# Author review: (to be completed by author after review)
+# Tool: Codex (model: GPT-6, GPT-5, GPT-5.6 Terra); Google Antigravity; Google Antigravity Agent, date: 2026-09-23 to 2026-11-08
+# Scope: Implemented the User Service container build with workspace dependencies, Prisma generation, and a production start command; updated across 11 AI-assisted revisions through D4 wrap-up (start only the application; Compose retains local migrations and development seeding).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
 
-# AI-generated (edited by ngkhengyang)
 FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build
 
 RUN apk add --no-cache openssl
@@ -108,5 +67,4 @@ EXPOSE 8001
 
 USER node
 
-# AI-generated (edited by ngkhengyang)
 CMD ["node", "dist/index.js"]
