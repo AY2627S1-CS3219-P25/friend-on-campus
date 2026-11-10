@@ -21,7 +21,7 @@ Your prompt does not include the conversation, so build context from the repo fi
 1. `CLAUDE.md` — AI policy (§1–2), stack (§3), repo map and rules (§4), verification (§5), agent team (§8).
 2. `README.md` — container topology, ports, and CI test categories.
 
-Technical reference: `docs/README.md`, `docs/new-cloud-architecture-guide.md` and `docs/README.md#known-limits-and-design-context`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+Technical reference: `docs/README.md`, `docs/architecture/cloud-architecture.md` and `docs/README.md#known-limits-and-design-context`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
 
 Cloud deployment or evaluation: apply [the confirmed constraints in CLAUDE.md §3](../../CLAUDE.md#cloud-deployment-and-evaluation-constraints). Check the deployment configuration for current behavior. Treat architecture drafts under team review as proposals.
 

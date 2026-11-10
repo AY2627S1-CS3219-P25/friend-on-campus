@@ -78,7 +78,7 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ### Cloud deployment and evaluation constraints
 
-- Deploy only on AWS in Asia Pacific (Singapore), `ap-southeast-1`. The total project cloud allowance is **S$250**. **Kubernetes is optional**. Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) and [Cloud Architecture Guide](docs/new-cloud-architecture-guide.md) for current cloud deployment instructions.
+- Deploy only on AWS in Asia Pacific (Singapore), `ap-southeast-1`. The total project cloud allowance is **S$250**. **Kubernetes is optional**. Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) and [Cloud Architecture Guide](docs/architecture/cloud-architecture.md) for current cloud deployment instructions.
 - Application services must be able to scale independently. Keep the application runnable and testable locally with Docker Compose. Live features can depend on external APIs: NUS SoCLaaS calls from AWS are allowed, and live translation is required for the demo.
 - For the November 2026 demo, showcase all features and preserve committed order and credit data. The full order and credit workflow should recover within a few minutes after a host failure. A full Availability Zone outage is out of scope for this demo. A fresh environment may start from seed data.
 - Keep the deployment available for verification through the **28 November 2026 exam**. After the **12 November demo**, resources may be stopped and brought back up when requested. Continuous uptime after the demo is not required.

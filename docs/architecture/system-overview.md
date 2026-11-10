@@ -9,7 +9,7 @@ Author review: I validated correctness, edited for style, and verified with auto
 
 Friend on Campus lets a student post an errand, reserve a reward, work with a courier and confirm completion. The interesting part is that these steps do not happen in one database transaction: Order decides the errand state, Credit controls the money, and Chat and Notification maintain their own views.
 
-Start here to understand those boundaries. For a runnable environment, use [local development](../development/local-development.md); for deployment topology, use the [AWS guide](../new-cloud-architecture-guide.md). The [documentation index](../README.md#baseline-and-verification) records the inspected revisions and verification limits for these guides.
+Start here to understand those boundaries. For a runnable environment, use [local development](../development/local-development.md); for deployment topology, use the [AWS guide](cloud-architecture.md). The [documentation index](../README.md#baseline-and-verification) records the inspected revisions and verification limits for these guides.
 
 Think about a feature in three parts: **who accepts the action, who stores the authoritative result, and who displays a copy**. For example, the requester confirms delivery through Order, Credit later records the payment, and Notification tells the courier about the financial receipt. These are connected operations, but each service can be at a different point in that flow.
 
@@ -143,7 +143,7 @@ There are two especially important implementation limits:
 - **Order development authentication:** without a public key, `ORDER_DEV_AUTH=1` or `true` enables identity headers. This is not guarded by `NODE_ENV`; it must not be enabled on an exposed deployment.
 - **Chat membership:** history permits participants or ADMIN, while sending is participant-only. Existing conversation projections can be stale after unassignment. The [Chat guide](../services/chat-service/README.md) separates current behavior from the stricter participant-only requirement.
 
-CloudFront gives the browser HTTPS, but the current origin hop to the ALB is HTTP. Do not infer end-to-end encryption from the browser padlock; the [AWS guide](../new-cloud-architecture-guide.md) explains the configured network boundary.
+CloudFront gives the browser HTTPS, but the current origin hop to the ALB is HTTP. Do not infer end-to-end encryption from the browser padlock; the [AWS guide](cloud-architecture.md) explains the configured network boundary.
 
 ## Shared libraries and contracts
 

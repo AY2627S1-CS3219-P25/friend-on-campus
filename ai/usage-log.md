@@ -8307,6 +8307,111 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 - All 348 repository files carrying `AI Assistance Disclosure:` headers and/or inline `AI-generated` comments — consolidated into single 4-line disclosure headers and removed inline `AI-generated` markers
 - `ai/usage-log.md` — consolidated top HTML comment disclosure block and appended this entry
 
+## 2026-11-10 20:40 SGT — Move the cloud guide and add an editable AWS diagram
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unavailable: `gh api user --jq .login` could not run because the GitHub CLI is not installed in this shell.
+**Branch:** main
+
+**Prompt (summarised):** Move new-cloud-architecture-guide.md into docs/architecture as cloud-architecture, and create a simple AWS service diagram like the supplied reference, with separate source code if possible; consult DesignDocs.dev.
+
+**Usage scenario:** Documentation improvements that depict the author's existing checked-in deployment. Read the current guide and ECS Terraform main.tf, edge.tf and data-tasks.tf at local main d3e9dcc; no architecture, resource, schema or interface changes. Inspected the user-supplied image as a visual reference and DesignDocs.dev's linked diagram example. Created a local code-generated SVG without dependencies or a web account.
+
+**Verification:** Generator syntax check and assert-based SVG self-checks pass; repeated generation is byte-identical. All 217 local links across ten affected Markdown files resolve. Rendered the final SVG with installed Playwright and Edge, verified all text lies inside the canvas and visually inspected the screenshot. Git diff whitespace check passed. Attempted npm run typecheck and npm run test:unit; both unavailable because npm is not installed/on PATH in this shell. No live AWS inventory, deployment, failover or application behavior was tested. No commits or pushes.
+
+**Files changed:**
+- `docs/new-cloud-architecture-guide.md` → `docs/architecture/cloud-architecture.md` — moved guide, rebased relative links and embedded the AWS overview with regeneration instructions.
+- `docs/architecture/cloud-architecture.mjs` — dependency-free editable SVG generator with self-checks.
+- `docs/architecture/cloud-architecture.svg` — generated diagram; disclosure is recorded here because it is generated output.
+- `README.md`, `CLAUDE.md`, `.claude/agents/infrastructure.md`, `docs/README.md`, `docs/architecture/system-overview.md`, `docs/development/local-development.md`, `docs/frontend/README.md`, `docs/infrastructure/cdc-and-broker.md`, `docs/services/supplier-service/README.md` — update guide references and file disclosures; docs index records verification.
+- `ai/usage-log.md` — this entry.
+
+## 2026-11-10 20:39 SGT — Use official AWS architecture icons
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unavailable: GitHub CLI is not installed in this shell.
+**Branch:** main
+
+**Prompt (summarised):** Replace generic diagram symbols with AWS icons.
+
+**Usage scenario:** Documentation and visual asset improvements to the already-approved architecture. Downloaded the official AWS 30 April 2026 architecture icon archive from the AWS architecture icons page; copied ten unmodified SVGs with shortened filenames. ECS icons identify self-managed ECS workloads; browsers and the external SoCLaaS API retain neutral symbols. No resource or architecture changes.
+
+**Verification:** Generator syntax and assert-based self-checks pass; repeated generation is byte-identical. All fourteen embedded icon instances decode in Edge, all diagram text stays within the canvas, and the final screenshot was visually inspected. Local links in the diagram guide and icon provenance file resolve. Whitespace check passed before the final documentation/log append. npm run typecheck and npm run test:unit were attempted but unavailable because npm is not on PATH. No live AWS checks, commits or pushes.
+
+**Files changed:**
+- `docs/architecture/cloud-architecture.mjs` — load local AWS icons and embed them into the generated SVG; validate fourteen embedded icon instances.
+- `docs/architecture/cloud-architecture.svg` — regenerated diagram with official AWS icons (generated output; disclosure recorded here).
+- `docs/architecture/aws-icons/*.svg` — ten unmodified third-party AWS assets; original content retained without AI disclosure edits.
+- `docs/architecture/aws-icons/README.md` — icon provenance, original filenames and usage context.
+- `docs/architecture/cloud-architecture.md`, `docs/README.md` — icon documentation and verification details.
+- `ai/usage-log.md` — this entry.
+
+## 2026-11-10 21:19 SGT — Match the supplied Eraser AWS visual style
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unavailable: GitHub CLI is not installed in this shell.
+**Branch:** main
+
+**Prompt (summarised):** Inspect the linked Eraser AWS example, explain whether the environment supports its style, and correct the distinctly different diagram produced earlier.
+
+**Usage scenario:** Documentation and diagram presentation improvements. Read Eraser's official architecture example, syntax/styling and DSL render API docs. Confirmed that Eraser supports diagram-as-code rendering with a bearer token; no Eraser connector is available. Existing Node.js, local AWS SVGs and installed Playwright/Edge suffice to reproduce the requested visual conventions locally without a new dependency. Replaced explanatory cards with standalone rounded icons, labels underneath, thin unfilled groups and orthogonal connectors. The result is a local SVG rather than output from Eraser's renderer. Existing infrastructure topology is unchanged.
+
+**Verification:** Generator syntax and embedded-icon/coordinate/ID self-checks pass; regeneration is byte-identical. Final Edge render decodes all fourteen embedded AWS icons; all text stays within the 1280 × 885 canvas. Final screenshot visually inspected. All 62 local links in the cloud guide, docs index and icon provenance file resolve. Git diff whitespace check passed before this log append. Attempted npm run typecheck and npm run test:unit; both unavailable because npm is not on PATH. No live AWS checks, Eraser API requests, dependency installations, commits or pushes.
+
+**Files changed:**
+- `docs/architecture/cloud-architecture.mjs` — simpler icon-and-label layout following the supplied Eraser AWS reference.
+- `docs/architecture/cloud-architecture.svg` — regenerated standalone diagram; generated-file disclosure recorded here.
+- `docs/architecture/cloud-architecture.md` — link the exact Eraser reference and describe the corrected style.
+- `docs/README.md` — record restyling and rendering checks.
+- `ai/usage-log.md` — this entry.
+
+## 2026-11-10 21:21 SGT — Revert AI disclosure header edits from this chat
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unavailable: GitHub CLI is not installed in this shell.
+**Branch:** main
+
+**Prompt (summarised):** Revert all AI assistance header additions and edits; the user's instruction supersedes the repository header bookkeeping requirement because attribution is already handled.
+
+**Usage scenario:** Author-requested documentation cleanup. Restored existing disclosure blocks to their pre-chat HEAD contents, including the relocated cloud guide's original header. Removed the new headers from the generator and icon provenance README. Diagram, documentation bodies, guide move and navigation changes are preserved. No new disclosure headers added.
+
+**Verification:** Asserted that existing file bodies are identical after restoring only their header blocks. Generator syntax and git whitespace checks pass. No application tests rerun for comment-only changes.
+
+**Files changed:**
+- Existing Markdown files touched by this chat — restore original disclosure header contents.
+- `docs/architecture/cloud-architecture.mjs`, `docs/architecture/aws-icons/README.md` — remove disclosure headers introduced in this chat.
+- `ai/usage-log.md` — this entry.
+
+## 2026-11-10 21:26 SGT — Compact the diagram and move supporting services left
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unavailable: GitHub CLI is not installed in this shell.
+**Branch:** main
+
+**Prompt (summarised):** Remove the diagram title and move supporting services to the left with less spacing.
+
+**Usage scenario:** Diagram presentation and documentation improvements. Removed the visible title and unused title styling, arranged supporting services in a compact two-column group on the left, and cropped the canvas from 1280 × 885 to 1280 × 710. Retained the nonvisible SVG accessibility title. No attribution header edits, architecture or application changes.
+
+**Verification:** Generator syntax/self-checks and deterministic regeneration pass. Final Edge render decodes all fourteen embedded AWS icons, keeps all text inside the canvas and contains no visible former title. Screenshot visually inspected; whitespace check passed. Application tests not rerun for this layout-only edit.
+
+**Files changed:**
+- `docs/architecture/cloud-architecture.mjs` — remove visible title, reposition supporting nodes and crop the canvas.
+- `docs/architecture/cloud-architecture.svg` — regenerated diagram.
+- `docs/architecture/cloud-architecture.md` — describe supporting dependencies as grouped on the left.
+- `ai/usage-log.md` — this entry.
+
+## 2026-11-10 21:27 SGT — Explain Route 53 private DNS in the diagram
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Unavailable: GitHub CLI is not installed in this shell.
+**Branch:** main
+
+**Prompt (summarised):** What is Route 53 private DNS?
+
+**Usage scenario:** Learning support and explanation of existing configuration. Read the Route 53 references in ECS hosts.tf, main.tf, brokers.tf and host-bootstrap.sh.tftpl, and AWS's official private hosted zone documentation. Explain the private rabbit.foc.internal namespace and stable broker names updated during host bootstrap. No attribution header edits.
+
+**Files changed:**
+- none (explanation only; this required usage-log entry is the only write).
 ## 2026-11-10 21:20 SGT — Create a separate D4 presentation folder
 
 **Tool:** Codex (model: GPT-6)

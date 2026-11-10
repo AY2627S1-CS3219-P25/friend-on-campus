@@ -7,9 +7,23 @@ Author review: I validated correctness, edited for style, and verified with auto
 
 # Cloud deployment and operations
 
-This guide explains how the checked-in AWS configuration routes a request, runs containers and preserves data. Use it to understand a failure before changing infrastructure. The [ECS Terraform runbook](../infra/terraform/ecs/README.md) contains the provisioning, migration, release and stop/resume commands; [local development](development/local-development.md) covers Docker Compose.
+This guide explains how the checked-in AWS configuration routes a request, runs containers and preserves data. Use it to understand a failure before changing infrastructure. The [ECS Terraform runbook](../../infra/terraform/ecs/README.md) contains the provisioning, migration, release and stop/resume commands; [local development](../development/local-development.md) covers Docker Compose.
 
 Implementation was checked against main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026. The configuration described here is not evidence that a particular image or resource is currently running in AWS.
+
+## AWS architecture overview
+
+![AWS architecture: CloudFront and ALB route browsers to ECS services on EC2; RDS, RabbitMQ, EBS and EFS preserve application and event state.](cloud-architecture.svg)
+
+The overview groups the existing services rather than individual task replicas. The ALB spans two public subnets; the EC2 fleet occupies one public subnet in one AZ. RabbitMQ and Debezium are self-managed ECS tasks. The private NLB is the AMQP entry point to RabbitMQ. Supporting dependencies are grouped on the left, with their connections omitted for readability.
+
+[Editable diagram source](cloud-architecture.mjs) · [Full-size SVG](cloud-architecture.svg). Regenerate from the repository root with:
+
+```bash
+node docs/architecture/cloud-architecture.mjs
+```
+
+The diagram describes checked-in configuration, not live AWS state. Its layout follows the [Eraser AWS example](https://docs.eraser.io/architecture-diagram-examples#aws-diagram): standalone icons, labels underneath, thin unfilled group boundaries and orthogonal connectors; the SVG embeds [official AWS architecture icons](aws-icons/README.md) and has no external assets or rendering dependencies. ECS icons mark the hosting service for application, RabbitMQ and Debezium tasks.
 
 ## What runs where
 
@@ -25,7 +39,7 @@ Amazon Elastic Container Service (ECS) manages the containers; Amazon Elastic Co
 | EC2 instance / host | A machine providing CPU, memory and local storage to multiple tasks | One of the three `m7g.xlarge` host slots |
 | ECS cluster | The management group containing these registered hosts, services and tasks | `foc-ecs` |
 
-Creating another Order task creates another running copy of Order. It does not create another Order database or another EC2 host. Replacing an image changes what a task runs; changing a service's desired count changes how many copies ECS tries to keep running. [applications.tf](../infra/terraform/ecs/applications.tf) defines the application tasks and services; [hosts.tf](../infra/terraform/ecs/hosts.tf) defines their machines.
+Creating another Order task creates another running copy of Order. It does not create another Order database or another EC2 host. Replacing an image changes what a task runs; changing a service's desired count changes how many copies ECS tries to keep running. [applications.tf](../../infra/terraform/ecs/applications.tf) defines the application tasks and services; [hosts.tf](../../infra/terraform/ecs/hosts.tf) defines their machines.
 
 ## Follow a browser request
 
@@ -53,13 +67,13 @@ CloudFront, ALB and NGINX serve different purposes:
 | Service Connect | Resolves the selected service through task proxies and connects to its replicas | Cross-replica delivery of Chat or Notification updates |
 | Backend middleware and handlers | Authentication, authorization and business processing | Completion of downstream asynchronous work merely because HTTP succeeded |
 
-For example, a `202` from Order means the request was accepted. The gateway does not reserve credits or wait for the Saga to finish. Follow the persisted state described in the [Order guide](services/order-service/README.md).
+For example, a `202` from Order means the request was accepted. The gateway does not reserve credits or wait for the Saga to finish. Follow the persisted state described in the [Order guide](../services/order-service/README.md).
 
 Opening `/` first retrieves the student app's static files. The JavaScript then makes a separate `/api/orders` request through the same public entry point. NGINX routes the first request to Student and the second to Order. The ALB chooses a gateway target; the gateway chooses a service name; Service Connect connects that request to a service replica. These are separate routing decisions, so a working page does not establish that Order is reachable.
 
 ### Routes that matter when debugging
 
-These routes come from [gateway/nginx.conf](../gateway/nginx.conf). API paths retain their URI unless noted.
+These routes come from [gateway/nginx.conf](../../gateway/nginx.conf). API paths retain their URI unless noted.
 
 | Browser path | Destination |
 |---|---|
@@ -79,13 +93,13 @@ These routes come from [gateway/nginx.conf](../gateway/nginx.conf). API paths re
 
 Unknown `/api` paths return 404. The `/api/credits/escrow` prefix returns 403 at the gateway; there is no public HTTP escrow mutation API. Authentication and business authorization remain inside the services.
 
-The two frontend containers serve Vite-built static assets through NGINX. They are separate ECS services: CloudFront is not serving these files from S3. Admin uses the `/admin/` base path. See the [frontend guide](frontend/README.md) for browser behavior.
+The two frontend containers serve Vite-built static assets through NGINX. They are separate ECS services: CloudFront is not serving these files from S3. Admin uses the `/admin/` base path. See the [frontend guide](../frontend/README.md) for browser behavior.
 
 ### Why local routing differs from AWS
 
 On host development, Vite normally proxies to individual service ports; `GATEWAY_URL` selects a gateway instead. In Compose, NGINX routes through shared-memory `upstream` blocks with HTTP/1.1 `keepalive` connection pooling and `resolve` through Docker DNS at `127.0.0.11` (with a ten-second cache). This reuses backend TCP connections under load while still finding a replaced container without restarting the gateway.
 
-ECS overrides the gateway's startup command. [gateway-start.sh](../infra/terraform/ecs/gateway-start.sh) reads **IPv4 Service Connect aliases from `/etc/hosts`**, substitutes them into the `upstream` `server` and `http://` directives in the NGINX configuration, then starts NGINX. Do not diagnose an ECS failure by assuming Docker's DNS server or a Kubernetes service is involved. The current Terraform root contains no K3s, Traefik or EKS layer.
+ECS overrides the gateway's startup command. [gateway-start.sh](../../infra/terraform/ecs/gateway-start.sh) reads **IPv4 Service Connect aliases from `/etc/hosts`**, substitutes them into the `upstream` `server` and `http://` directives in the NGINX configuration, then starts NGINX. Do not diagnose an ECS failure by assuming Docker's DNS server or a Kubernetes service is involved. The current Terraform root contains no K3s, Traefik or EKS layer.
 
 ECS registers gateway tasks in the ALB's **instance target group** using dynamically allocated host ports. ALB traffic reaches a host/port mapping; it does not discover or route to Kubernetes pod IPs.
 
@@ -93,7 +107,7 @@ Bridge networking separates the port inside a container from the port exposed on
 
 ## Network and security boundaries
 
-[edge.tf](../infra/terraform/ecs/edge.tf) configures HTTPS/WSS between browsers and CloudFront, with HTTP viewers redirected to HTTPS. CloudFront's connection to the ALB is **HTTP/WS**. Browser HTTPS therefore does not establish end-to-end TLS to the origin.
+[edge.tf](../../infra/terraform/ecs/edge.tf) configures HTTPS/WSS between browsers and CloudFront, with HTTP viewers redirected to HTTPS. CloudFront's connection to the ALB is **HTTP/WS**. Browser HTTPS therefore does not establish end-to-end TLS to the origin.
 
 The ALB security group accepts port 80 from the AWS CloudFront origin-facing prefix list. Its default listener action returns 403; forwarding requires the configured `X-Foc-Origin` header. The header is private configuration stored in Terraform state. These restrictions control origin access, but do not encrypt the origin hop or replace application authentication.
 
@@ -101,15 +115,15 @@ Caching is disabled for all paths. The origin request policy forwards viewer dat
 
 The EC2 hosts occupy one public subnet in one Availability Zone (AZ). They use public IPv4 for outbound traffic, with no NAT gateway. Their application ports are restricted to the ALB and internal host traffic; RDS and the broker Network Load Balancer (NLB) are private. The ALB uses two public subnets, but the application fleet is still single-AZ.
 
-Runtime JWT keys and service credentials are referenced from Secrets Manager. Keep secret values, Terraform state and saved plans out of reports. The [runbook](../infra/terraform/ecs/README.md) documents initial secret provisioning and the separate deployment-role permissions.
+Runtime JWT keys and service credentials are referenced from Secrets Manager. Keep secret values, Terraform state and saved plans out of reports. The [runbook](../../infra/terraform/ecs/README.md) documents initial secret provisioning and the separate deployment-role permissions.
 
 ## What scales, and what stays fixed
 
 There are two separate controls: the number of application tasks and the number of EC2 hosts available to run them. Application Auto Scaling can change the first. The host Auto Scaling groups maintain fixed slots; they do not expand in response to a queue of unplaced tasks.
 
-[hosts.tf](../infra/terraform/ecs/hosts.tf) defines three Auto Scaling groups, each with a maximum of **one** EC2 instance. With `hosts_running = true`, there are three ARM64 `m7g.xlarge` host slots. Each has a 30 GiB root disk and a separate retained 10 GiB RabbitMQ disk. The groups replace hosts but cannot expand beyond the three-host ceiling.
+[hosts.tf](../../infra/terraform/ecs/hosts.tf) defines three Auto Scaling groups, each with a maximum of **one** EC2 instance. With `hosts_running = true`, there are three ARM64 `m7g.xlarge` host slots. Each has a 30 GiB root disk and a separate retained 10 GiB RabbitMQ disk. The groups replace hosts but cannot expand beyond the three-host ceiling.
 
-Application tasks use bridge networking, dynamic host ports and spread placement by instance. [applications.tf](../infra/terraform/ecs/applications.tf) configures independent task scaling:
+Application tasks use bridge networking, dynamic host ports and spread placement by instance. [applications.tf](../../infra/terraform/ecs/applications.tf) configures independent task scaling:
 
 | Service | Minimum tasks when enabled | Maximum tasks |
 |---|---:|---:|
@@ -134,7 +148,7 @@ flowchart TD
 
 Read the upper loop as demand for task copies and the lower branch as replacement of hardware. There is no configured link that turns pending application tasks into a fourth host. Spread placement distributes tasks across instances where capacity permits; it is not a reserved machine for each service or a guarantee that another task can fit.
 
-For a concrete count, the minimum is **17 application tasks**: twelve backend tasks, two Student, one Admin and two Gateway. Their combined maximum is **26**. Each application task definition has 384 CPU units; three brokers and three CDC tasks add 512 units each. In the `live` phase, the configured task totals are therefore `17 × 384 + 6 × 512 = 9,600` CPU units at application minima, and `26 × 384 + 6 × 512 = 13,056` at maxima. These are configured task allocations, not measured CPU use or throughput. They also exclude temporary database jobs and extra tasks during deployment. The [runbook](../infra/terraform/ecs/README.md) records that the simultaneous maxima exceed the trial fleet budget.
+For a concrete count, the minimum is **17 application tasks**: twelve backend tasks, two Student, one Admin and two Gateway. Their combined maximum is **26**. Each application task definition has 384 CPU units; three brokers and three CDC tasks add 512 units each. In the `live` phase, the configured task totals are therefore `17 × 384 + 6 × 512 = 9,600` CPU units at application minima, and `26 × 384 + 6 × 512 = 13,056` at maxima. These are configured task allocations, not measured CPU use or throughput. They also exclude temporary database jobs and extra tasks during deployment. The [runbook](../../infra/terraform/ecs/README.md) records that the simultaneous maxima exceed the trial fleet budget.
 
 Actual placement needs both CPU and memory on a suitable host. For example, if Order's desired count rises from two to three but its running count stays at two, inspect ECS placement events and remaining host resources before expecting more capacity. Rolling updates also need spare room: application deployment allows up to twice the desired task count while retaining the healthy minimum. That limit permits overlap; it does not reserve resources for it.
 
@@ -149,9 +163,9 @@ Restarting a task and recovering its data are separate concerns. These are the c
 | Debezium checkpoints | Separate access points/directories on encrypted EFS One Zone | A connector restarts from its checkpoint; losing the checkpoint or replication slot needs separate investigation |
 | Application process memory | The task itself | WebSocket connections disappear on replacement; clients must reconnect and recover persisted state |
 
-A private NLB provides the AMQP endpoint for the three RabbitMQ nodes. Each broker task is constrained to its host slot. [Host bootstrap](../infra/terraform/ecs/host-bootstrap.sh.tftpl) waits for the retained disk, attaches/mounts it and publishes private DNS before ECS starts. It does not force-detach a disk that is still unavailable. This protects the storage handover, but can delay replacement; retaining a disk is not proof of a particular recovery time.
+A private NLB provides the AMQP endpoint for the three RabbitMQ nodes. Each broker task is constrained to its host slot. [Host bootstrap](../../infra/terraform/ecs/host-bootstrap.sh.tftpl) waits for the retained disk, attaches/mounts it and publishes private DNS before ECS starts. It does not force-detach a disk that is still unavailable. This protects the storage handover, but can delay replacement; retaining a disk is not proof of a particular recovery time.
 
-The event path also crosses these storage boundaries. Order, User and Credit write their outbox records to PostgreSQL. Their Debezium tasks read database changes, publish to RabbitMQ through the private NLB, and retain connector checkpoints on EFS. Backend consumers then process the messages. A healthy HTTP route, a database row, and a completed downstream operation are three separate observations. Use [messaging and recovery](infrastructure/cdc-and-broker.md) to follow a delayed operation across them.
+The event path also crosses these storage boundaries. Order, User and Credit write their outbox records to PostgreSQL. Their Debezium tasks read database changes, publish to RabbitMQ through the private NLB, and retain connector checkpoints on EFS. Backend consumers then process the messages. A healthy HTTP route, a database row, and a completed downstream operation are three separate observations. Use [messaging and recovery](../infrastructure/cdc-and-broker.md) to follow a delayed operation across them.
 
 Compare two failures. If only an Order task exits, ECS can replace that copy on an eligible host and it reconnects to the existing RDS database. If a host disappears, all tasks on it lose their processes together. Application tasks can be placed on remaining capacity, but that host slot's broker needs its retained disk and stable node identity restored on the replacement. Existing WebSocket connections also disappear; browser reconnect and history reconciliation recover the view. None of those steps justifies reseeding committed orders or wallet records.
 
@@ -159,7 +173,7 @@ On a host failure, ECS has application tasks to replace, the Auto Scaling group 
 
 ## Deploy, stop and resume safely
 
-Use the [ECS Terraform runbook](../infra/terraform/ecs/README.md) rather than copying commands from an old cloud plan. Its phases intentionally separate infrastructure from working event delivery:
+Use the [ECS Terraform runbook](../../infra/terraform/ecs/README.md) rather than copying commands from an old cloud plan. Its phases intentionally separate infrastructure from working event delivery:
 
 | Phase | Workloads enabled | What a successful phase does not prove |
 |---|---|---|
@@ -172,11 +186,11 @@ Each connector has one task and its own EFS checkpoint path. The access points u
 
 Database roles/publications and migrations run as separate one-off jobs. Default backend images only start the application. Seeds are explicit fresh-environment operations, not a routine repair for a failed rollout. In particular, normal release migrations must not be confused with rerunning the demo account seed.
 
-[Deploy applications to ECS](../.github/workflows/deploy-ecs.yml) is manually dispatched from a tested `main` commit. It builds ARM64 images, runs selected backend migrations before updates, pins images by digest and rolls services sequentially. If a later rollout fails, earlier successful updates and committed migrations remain; this is not an all-or-nothing release.
+[Deploy applications to ECS](../../.github/workflows/deploy-ecs.yml) is manually dispatched from a tested `main` commit. It builds ARM64 images, runs selected backend migrations before updates, pins images by digest and rolls services sequentially. If a later rollout fails, earlier successful updates and committed migrations remain; this is not an all-or-nothing release.
 
-[Deploy ECS infrastructure](../.github/workflows/deploy-infra.yml) is also manually dispatched from `main`. It uses shared S3 Terraform state and rolls application configuration while preserving deployed image digests. It does not run application migrations. A local Terraform apply does not by itself switch application services to newly registered task revisions, because their selected revisions are workflow-owned.
+[Deploy ECS infrastructure](../../.github/workflows/deploy-infra.yml) is also manually dispatched from `main`. It uses shared S3 Terraform state and rolls application configuration while preserving deployed image digests. It does not run application migrations. A local Terraform apply does not by itself switch application services to newly registered task revisions, because their selected revisions are workflow-owned.
 
-For stop/resume, reverse the workload phases before stopping hosts, retain disks/checkpoints/database state, then resume in order without reseeding. The runbook owns the exact procedure. The [project constraints](../CLAUDE.md#cloud-deployment-and-evaluation-constraints) specify AWS Singapore, S$250 total, verification availability through 28 November 2026, and permission to stop/resume after the 12 November demo. This guide does not provide a fresh cost quote or billing check.
+For stop/resume, reverse the workload phases before stopping hosts, retain disks/checkpoints/database state, then resume in order without reseeding. The runbook owns the exact procedure. The [project constraints](../../CLAUDE.md#cloud-deployment-and-evaluation-constraints) specify AWS Singapore, S$250 total, verification availability through 28 November 2026, and permission to stop/resume after the 12 November demo. This guide does not provide a fresh cost quote or billing check.
 
 ## Health, logs and monitoring
 
@@ -212,7 +226,7 @@ Compare desired/running/pending counts and recent service events with the task l
 | CloudFront responds but an API returns 502 | ALB target health, gateway logs, service `/ready`, Service Connect aliases | That healthy gateway liveness proves healthy backends |
 | Desired task count exceeds running count | ECS placement events and available CPU/memory | That the fixed host groups will grow beyond three |
 | Registration works but wallet is missing | `live` phase, `cdc-user`, broker queues and Credit consumer | That a successful registration means welcome credits already arrived |
-| Errand remains pending or refund is late | [Messaging diagnosis](infrastructure/cdc-and-broker.md#trace-a-delayed-operation), then Order/Credit persisted state | That retrying the browser request is automatically safe |
+| Errand remains pending or refund is late | [Messaging diagnosis](../infrastructure/cdc-and-broker.md#trace-a-delayed-operation), then Order/Credit persisted state | That retrying the browser request is automatically safe |
 | Chat/inbox updates arrive only after refresh | Subscriber/relay readiness, outbox backlog and socket reconnect behavior | That a gateway or sticky session can replace fanout |
 | WebSockets disconnect | Service readiness/token expiry, ALB idle timeout and client reconnect logs | That NGINX's long timeout overrides every other hop |
 | CDC task never starts | ECS stopped-task reason, EFS mount/access-point ownership and secrets | That an absence of connector logs proves the database is the cause |
@@ -222,8 +236,8 @@ NGINX uses a three-second connect timeout and 60-second ordinary read/send timeo
 
 ## Source map and historical decisions
 
-For a routing change, start with [gateway/nginx.conf](../gateway/nginx.conf), [edge.tf](../infra/terraform/ecs/edge.tf) and [applications.tf](../infra/terraform/ecs/applications.tf). For state or replacement behavior, read [main.tf](../infra/terraform/ecs/main.tf), [hosts.tf](../infra/terraform/ecs/hosts.tf), [brokers.tf](../infra/terraform/ecs/brokers.tf) and [data-tasks.tf](../infra/terraform/ecs/data-tasks.tf). [Messaging and recovery](infrastructure/cdc-and-broker.md) explains how those dependencies affect asynchronous outcomes.
+For a routing change, start with [gateway/nginx.conf](../../gateway/nginx.conf), [edge.tf](../../infra/terraform/ecs/edge.tf) and [applications.tf](../../infra/terraform/ecs/applications.tf). For state or replacement behavior, read [main.tf](../../infra/terraform/ecs/main.tf), [hosts.tf](../../infra/terraform/ecs/hosts.tf), [brokers.tf](../../infra/terraform/ecs/brokers.tf) and [data-tasks.tf](../../infra/terraform/ecs/data-tasks.tf). [Messaging and recovery](../infrastructure/cdc-and-broker.md) explains how those dependencies affect asynchronous outcomes.
 
 The [recorded cloud decisions and dated cost estimates](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/blob/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive/infrastructure/2026-11-09-cloud-architecture-guide.md) and [retired K3s guide](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/blob/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive/infrastructure/cloud-deployment-and-devops-guide.md) remain in Git history. Their dates and assumptions remain intact; neither is a current deployment runbook.
 
-[Documentation index](README.md) · [Testing and evidence](development/testing-strategy.md)
+[Documentation index](../README.md) · [Testing and evidence](../development/testing-strategy.md)

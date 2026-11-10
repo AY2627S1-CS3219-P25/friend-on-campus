@@ -36,7 +36,7 @@ For example, with the local gateway already listening on port 80, this POSIX-she
 GATEWAY_URL=http://localhost npm run dev -w @campus-errand/student-app
 ```
 
-Vite's proxy settings are development-server settings, not instructions baked into the static JavaScript bundle. For production routing, use the [cloud guide](../new-cloud-architecture-guide.md).
+Vite's proxy settings are development-server settings, not instructions baked into the static JavaScript bundle. For production routing, use the [cloud guide](../architecture/cloud-architecture.md).
 
 | Setting | Meaning |
 |---|---|

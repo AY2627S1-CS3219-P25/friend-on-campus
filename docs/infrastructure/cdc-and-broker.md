@@ -233,4 +233,4 @@ Chat and Notification messaging suites add real PostgreSQL/RabbitMQ two-replica 
 
 For code changes, start with [business consumer/publisher primitives](../../packages/messaging/src/index.ts), [realtime transport](../../packages/messaging/src/realtime.ts), [SQL leases](../../packages/messaging/src/outbox-sql.ts), and the owning service's handler/configuration. `createRabbitPublisher`, used by tests/utilities, uses publisher confirms, mandatory routing and durable messages; its default confirm timeout is five seconds. Those helper semantics must not be silently attributed to the separate Debezium publisher.
 
-[Documentation index](../README.md) · [Cloud operations](../new-cloud-architecture-guide.md)
+[Documentation index](../README.md) · [Cloud operations](../architecture/cloud-architecture.md)

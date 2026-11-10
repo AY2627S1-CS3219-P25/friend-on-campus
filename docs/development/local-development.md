@@ -70,7 +70,7 @@ docker compose logs --tail=80 user-service credit-service
 
 The gateway serves the student interface at `/` and the administrator interface at `/admin/`. Use this shared entry point for the container stack; the frontends make relative API and WebSocket requests that the gateway routes.
 
-Compose explicitly overrides each backend's startup command to run committed migrations. It seeds User, Supplier, Order and Credit before starting their apps; Notification and Chat have no startup seeder. The images themselves start the application only, which is why [cloud rollout](../new-cloud-architecture-guide.md) uses separate migration jobs.
+Compose explicitly overrides each backend's startup command to run committed migrations. It seeds User, Supplier, Order and Credit before starting their apps; Notification and Chat have no startup seeder. The images themselves start the application only, which is why [cloud rollout](../architecture/cloud-architecture.md) uses separate migration jobs.
 
 User/Supplier seed failure prevents their container startup. Order/Credit startup logs seed failure and continues, so a running container does not prove that demonstration errands or wallets were created. Use the seeded accounts described in the [root README](../../README.md), then inspect their actual data in the UI.
 
@@ -125,7 +125,7 @@ GATEWAY_URL=http://localhost npm run dev:apps
 
 This example uses POSIX shell syntax; in PowerShell, set `$env:GATEWAY_URL` before starting npm. The current Vite configs do not load the repository root `.env` into `process.env`, so adding this override only to that file is insufficient. Backend dotenv loading and frontend proxy configuration are different mechanisms.
 
-A Vite override also cannot change a built frontend or the cloud gateway. Those use the checked-in NGINX/ECS configuration described in the [cloud guide](../new-cloud-architecture-guide.md).
+A Vite override also cannot change a built frontend or the cloud gateway. Those use the checked-in NGINX/ECS configuration described in the [cloud guide](../architecture/cloud-architecture.md).
 
 ## Manage schemas and development data deliberately
 
