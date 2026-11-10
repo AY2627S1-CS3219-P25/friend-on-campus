@@ -202,12 +202,17 @@ export function useChat(options: {
       return Promise.resolve({ ok: false, code: 'DISCONNECTED', message: 'Not connected; your message was not sent' });
     }
     const clientId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    // Sending again dismisses the other person's earlier removed-message notice.
+    updateThreads((current) => {
+      const thread = current[orderId];
+      return thread && thread.removedNotices ? { ...current, [orderId]: { ...thread, removedNotices: 0 } } : current;
+    });
     return new Promise<SendOutcome>((resolve) => {
       const timer = setTimeout(() => { void reconcilePending([clientId], true); }, SEND_TIMEOUT_MS);
       pending.current.set(clientId, { orderId, text, startedAt: Date.now(), resolve, timer });
       ws.send(JSON.stringify({ type: 'SEND', orderId, text, clientId }));
     });
-  }, [reconcilePending]);
+  }, [reconcilePending, updateThreads]);
 
   /**
    * Display-only translations of stored messages into `language` (POST /api/chat/:orderId/translate).
@@ -279,7 +284,8 @@ export function useChat(options: {
           updateThreads((current) => {
             const thread = current[orderId] ?? EMPTY;
             const messages = mergeMessage(thread.messages, message);
-            return { ...current, [orderId]: { ...thread, messages, loadedThrough: coveredThrough(messages, thread.loadedThrough) } };
+            // A new message means the removed-message notice is no longer the latest event; clear it.
+            return { ...current, [orderId]: { ...thread, messages, loadedThrough: coveredThrough(messages, thread.loadedThrough), removedNotices: 0 } };
           });
           // Only the sender's own echo carries the client id; a frame from anyone else settles nothing (F8.2.3).
           settle(frame.clientId, { ok: true });

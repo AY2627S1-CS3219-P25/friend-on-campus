@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
-# Tool: Google Antigravity Agent; Codex (model: GPT-6, GPT-5, GPT-5.6 Sol); Claude Code (model: Claude Fable 5.1), date: 2026-10-04 to 2026-11-09
-# Scope: Wrote this workflow: type checks and unit tests (with the PostgreSQL admin-guard tests opted in), then the Docker Compose stack with the API acceptance..; updated across 19 AI-assisted revisions through D4 wrap-up (run k6 performance harness wrapper self-tests (scripts/perf/test/harness.test.mjs) in test-config job (PR #252 review)).
+# Tool: Google Antigravity Agent; Codex (model: GPT-6, GPT-5, GPT-5.6 Sol); Claude Code (model: Claude Fable 5.1), date: 2026-10-04 to 2026-11-10
+# Scope: Wrote this workflow: type checks and unit tests (with the PostgreSQL admin-guard tests opted in), then the Docker Compose stack with the API acceptance..; updated across 20 AI-assisted revisions through D4 wrap-up (disable Debezium WAL heartbeat on ephemeral credit-messaging-cdc container before test exchange creation).
 # Author review: I validated correctness, edited for style, and verified with automated tests.
 
 name: CI
@@ -342,6 +342,7 @@ jobs:
             -e DEBEZIUM_SOURCE_SLOT_NAME=debezium_credit_messaging \
             -e DEBEZIUM_SOURCE_PUBLICATION_NAME=dbz_credit_messaging_publication \
             -e DEBEZIUM_SOURCE_TOPIC_PREFIX=campus_credit_messaging \
+            -e DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS=0 \
             -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_HOST=localhost \
             -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_USERNAME=ci_test \
             -e DEBEZIUM_SINK_RABBITMQ_CONNECTION_PASSWORD=ci-test-password \
