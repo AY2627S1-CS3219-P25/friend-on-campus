@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add unit tests verifying demote and delete refuse removing the last enabled admin even if a disabled admin exists, while allowing removal of the disabled admin (issue #109).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: Added the last-enabled-admin tests for toggleUserStatus (UAT A8).
  * Author review: <to be completed by Reallyeasy1>
@@ -194,6 +198,22 @@ describe('administration', () => {
     await users.deleteUser(ADMIN.id);
     assert.equal(fake.users.has(ADMIN.id), false);
     assert.equal(fake.users.get(ALICE.id)?.role, 'ADMIN');
+  });
+
+  // AI-generated (edited by yanhwee)
+  it('refuses demoting or deleting the last enabled admin even when a disabled admin exists, while allowing removal of the disabled admin (issue #109)', async () => {
+    await users.toggleUserRole(ALICE.id);
+    await users.toggleUserStatus(ALICE.id); // ALICE is now a disabled ADMIN; ADMIN is the only enabled ADMIN
+    await rejects(users.toggleUserRole(ADMIN.id), 'LAST_ADMIN_REQUIRED');
+    await rejects(users.deleteUser(ADMIN.id), 'LAST_ADMIN_REQUIRED');
+    assert.equal(fake.users.get(ADMIN.id)?.role, 'ADMIN');
+    assert.equal(fake.users.get(ADMIN.id)?.status, true);
+
+    // Demoting or deleting the disabled admin while ADMIN remains enabled is permitted
+    assert.equal((await users.toggleUserRole(ALICE.id)).userRole, 'STUDENT');
+    await users.toggleUserRole(ALICE.id); // back to disabled ADMIN
+    await users.deleteUser(ALICE.id);
+    assert.equal(fake.users.has(ALICE.id), false);
   });
 
   it('every admin operation throws USER_NOT_FOUND for an unknown id', async () => {

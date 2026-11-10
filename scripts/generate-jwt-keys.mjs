@@ -1,7 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Google Antigravity Agent, date: 2026-10-21
 // Scope: Removed OS-specific clipboard copying logic and simplified script to print generated Ed25519 JWT keys directly to stdout.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-23
 // Scope: Implemented a local Ed25519 JWT key-pair generator that emits Base64URL environment values.

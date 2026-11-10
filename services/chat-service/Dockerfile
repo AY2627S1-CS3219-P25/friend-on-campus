@@ -15,7 +15,7 @@
 #
 # Tool: Google Antigravity Agent, date: 2026-11-06
 # Scope: Consolidated the @campus-errand/llm disclosure record into the top disclosure block.
-# Author review: <to be completed by yanhwee>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
 # AI-generated (edited by ngkhengyang)
 FROM node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS build

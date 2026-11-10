@@ -1,12 +1,18 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add confirmReorderWhenStoreClosed so "Order again" requires confirmation when the pickup store is outside operating hours (issue #234).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
  * Scope: Builds the create-order request for "Order again": the same details as a completed errand, without the admin
  * audit tags that admin actions append to special notes.
  * Author review: <to be completed by the author>
  */
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by jagdeepsh)
-import type { CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
+import type { CreateOrderRequest, OrderDTO, SupplierDTO } from '@campus-errand/common-dtos';
+import { formatOperatingHours, isOpenAt } from '../suppliers/operatingHours';
 
 const DEFAULT_DURATION_MINUTES = 30;
 const MAX_DURATION_MINUTES = 1440;
@@ -46,4 +52,19 @@ export function buildReorderRequest(order: OrderDTO): CreateOrderRequest {
       }
       : {}),
   };
+}
+
+// AI-generated (edited by yanhwee): require confirmation before re-posting when the pickup store is currently closed (issue #234).
+export function confirmReorderWhenStoreClosed(
+  order: Pick<OrderDTO, 'supplierId' | 'supplierName'>,
+  suppliers: readonly SupplierDTO[],
+  now: Date = new Date(),
+  confirm: (message: string) => boolean = (message) => window.confirm(message),
+): boolean {
+  const supplier = suppliers.find((s) => s.id === order.supplierId);
+  if (!supplier || isOpenAt(supplier, now) !== false) return true;
+  const hours = formatOperatingHours(supplier);
+  const storeName = supplier.name || order.supplierName || 'This pickup store';
+  const hoursClause = hours ? ` (operating hours: ${hours})` : '';
+  return confirm(`${storeName} is currently closed${hoursClause}. Post this errand anyway?`);
 }

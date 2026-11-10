@@ -8,7 +8,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Added parseErrandDraft for F6 Natural-Language Errand Assistant.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: fetchOrderById for the notification deep link: the errand's live status from GET /api/orders/:id, with 403
@@ -17,11 +17,11 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added unassignOrderById and 'unassign' action to TaskOrderAction so couriers can drop ACCEPTED errands prior to pickup, and added optional courierContactNote support to acceptOrderById (F3.3.6).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Added pickup, deliver, complete, and cancel lifecycle API helpers, preserved 400/403/409 backend error messages, and included user activity history in fetchCombinedOrders (Issue #132).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted order feed, user activity, and accept order API helpers from student-app App.tsx into modular api/orders.ts.

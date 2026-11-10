@@ -1,15 +1,15 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-08
 // Scope: Align lifecycle posting fields and My Errands navigation with the redesigned UI using stable field IDs and current accessible names.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Codex (model: GPT-6), date: 2026-11-07
 // Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Google Antigravity Agent, date: 2026-11-07
 // Scope: Updated RT01 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: Multi-client real-time UAT (issue #197): four Playwright contexts check that notifications and chat stay

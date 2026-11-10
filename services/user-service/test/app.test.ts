@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add HTTP test verifying a disabled admin cannot satisfy the last-enabled-admin guard when demoting or deleting the only enabled admin (issue #109).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: Added tests for the last enabled admin disabling itself (UAT A8), non-UUID ids on the /:id routes (A10)
  * and refresh for a disabled account (A11).
@@ -446,6 +450,25 @@ describe('user-service app', () => {
         assert.equal(res.body.code, 'LAST_ADMIN_REQUIRED');
         assert.equal(res.headers.get('set-cookie'), null);
       }
+    });
+
+    // AI-generated (edited by yanhwee)
+    it('a disabled admin does not count as a remaining admin when demoting or deleting the last enabled admin (issue #109)', async () => {
+      const admin = issueToken(ADMIN_ID, 'ADMIN');
+      await client.call('PATCH', `/api/users/${ALICE_ID}/toggle-role`, { token: admin });
+      await client.call('PATCH', `/api/users/${ALICE_ID}/toggle-status`, { token: admin });
+
+      const staleDisabledAdmin = issueToken(ALICE_ID, 'ADMIN');
+      for (const [method, suffix] of [['PATCH', '/toggle-role'], ['DELETE', '']]) {
+        const res = await client.call(method, `/api/users/${ADMIN_ID}${suffix}`, { token: staleDisabledAdmin });
+        assert.equal(res.status, 409);
+        assert.equal(res.body.code, 'LAST_ADMIN_REQUIRED');
+      }
+
+      const demoteDisabled = await client.call('PATCH', `/api/users/${ALICE_ID}/toggle-role`, { token: admin });
+      assert.equal(demoteDisabled.status, 200);
+      assert.equal(demoteDisabled.body.data.user.userRole, 'STUDENT');
+      await client.call('PATCH', `/api/users/${ALICE_ID}/toggle-status`, { token: admin });
     });
 
     it('an admin may delete itself when another admin remains, clearing its cookie', async () => {

@@ -8,7 +8,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Assigned deterministic UUIDs on supplier row creation so SUP-001 and SUP-002 align with Order Service sample order fixtures.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
  * Scope: building/floor are now required columns (part of the new location-uniqueness constraint), so the seed

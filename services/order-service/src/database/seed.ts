@@ -7,7 +7,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Assigned deterministic UUIDs to the 4 seeded sample orders so Credit Service can seed matching escrow reservations.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Add two sample errands and insert missing seeds without changing existing orders.

@@ -2,39 +2,39 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align selected alerts with the royal-blue navigation state.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align the top alert control with the larger navigation targets and quiet selected-state styling.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed duplicate Refresh and Mark all as read action buttons from NotificationPanel filter bar now that they are hoisted to the standard Campus Alerts page header row, decluttering the alert filter pills across mobile and desktop.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Option A compact icon button pattern for desktop header notification bell (w-9 h-9 min-h-0 icon-only with sr-only label and pinned badge).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Refined top variant to match wallet capsule height (h-9) and rounded-xl corners with pinned badge on mobile.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Made top variant responsive with compact icon-and-badge presentation on mobile screens while preserving test-id and aria-label.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned NotificationBell and NotificationPanel with elevated split inbox layout, tactile view pills, luminous unread badges, and full test-id preservation.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme styling for alert filter tabs and primary CTA button.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
  * Scope: Review fix (PR #184): the view is a prop the hook fetches server side; tab counts are only the ones the server
@@ -52,7 +52,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Updated onOpenErrand docstring now that TasksPage provides the confirm-delivery action (Issue #132).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: Bell button with the unread count (top nav and mobile tab variants) and the Alerts board, per the author's

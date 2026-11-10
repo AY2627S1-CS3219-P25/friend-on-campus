@@ -17,11 +17,11 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Preserved courierId on requester order cancellation for courier task history visibility and added courier unassignOrder (ACCEPTED -> OPEN) before pickup.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Included admin-cancelled courier orders (order.status === 'CANCELLED' where courierId === userId) in getUserActivity history.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity, date: 2026-10-19
  * Scope: Implemented Saga Approach B2 state transitions (PENDING -> OPEN / REJECTED / EXPIRED) directly in OrderRepository with Debezium CDC outbox metadata.

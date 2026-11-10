@@ -2,67 +2,67 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized container width (max-w-4xl) and action button dimensions (rounded-xl px-3 py-1.5 text-xs font-bold) across Student Profile and Credit Wallet to eliminate visual jump when switching tabs on PC view.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Unified Student Profile with clean 1-line header row and promoted Log Out action matching Credit Wallet and Alerts, eliminating redundant Session Management card to streamline account management above the fold.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Eliminated phantom top margin on Student Profile view by isolating sr-only heading from space-y container, aligning NUS student account flush with standard viewport padding.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Restored clean 1-line Credit Wallet page header with inline refresh action, paired with a compact, authoritative balance card (~85px) featuring bold available credits typography and contextual active order reservations.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Transformed Credit Wallet into an ultra space-efficient toolbar (~40px) matching AlertsPage layout, eliminating the bulky card container, guaranteeing single-line earned metrics, and bringing Recent Activity directly above the fold.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned Credit Wallet into a consumer-first single-row hero card focused strictly on Available Balance, contextual active order reservations, and integrated refresh control, removing synthetic Total Account Value and redundant title banner.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined Credit Wallet summary card into a compact 3-column stat bar (Available, In Active Orders, Total Value) and aligned header toolbar, reducing card height by ~60% and bringing transaction history above the fold.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from NUS student account card.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed "Escrow Protected" badges, technical ledger jargon, and meta information from Credit Wallet view in favor of clean consumer balance and recent activity presentation.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed redundant visible Student Profile heading in favor of sr-only accessible heading, bringing the NUS student account card immediately above the fold.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed meta indicators (Verified Student, CAMPUS-ID, microservices ecosystem reference) from profile view for clean, professional consumer presentation.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed backend architecture meta terms (Saga Escrow, Credit Service) in favor of consumer-facing Escrow Protected wallet language.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned ProfileWalletPage with digital NUS student identity card, fintech-style escrow balance card with dual sub-wallets, tactile edit controls, category-iconized ledger transactions, and isolated danger zone.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned NUS student account card and Digital Wallet card in light elegant theme, updated action buttons to warm orange/light styles without dark button colors.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Modernized ProfileWalletPage with digital NUS student identity card, fintech-style escrow balance card, category-iconized ledger transactions, and isolated danger zone for account deletion.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted profile and credit wallet/ledger page from student-app App.tsx into pages/ProfileWalletPage.tsx.

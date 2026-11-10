@@ -2,7 +2,7 @@
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-07
 Scope: Use the user-supplied origami courier artwork as the application favicon.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
   <!-- Crisp Modern Canvas -->

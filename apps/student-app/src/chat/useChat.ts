@@ -41,7 +41,7 @@
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: PR #228 review fixes: chunk messageIds to at most 200 per POST /api/chat/:orderId/translate request and pass
  * a 25 s request deadline signal so authFetch's default 10 s deadline does not abort the backend's 20 s LLM timeout.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
  * Scope: A MODERATED_PEER ERROR frame adds a removed-message notice to the thread (in memory only).

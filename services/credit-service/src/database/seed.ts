@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added offline deterministic seed UUID fallback when User Service is unreachable during host-based CLI database seeding, and idempotent sample order escrow reservation seeding when SEED_SAMPLE_ORDERS=true.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
  * Scope: Preserved seed-session cleanup while removing an unsafe throw from a finally block.

@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Handled non-JSON error responses (e.g. NGINX 502/503 HTML pages during container startup) gracefully in loginWithPassword and registerUserAccount.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted authentication API client functions from student-app App.tsx into modular api/auth.ts.

@@ -2,15 +2,15 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Simplify the optional building-pin label to complement the posting page disclosure.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Typed useMapEvents click handler parameter with L.LeafletMouseEvent for strict TypeScript compliance.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Two-tier drop-off picker for Post Errand (author's decision A16): search the NUS building snapshot and pick

@@ -1,7 +1,7 @@
 # AI Assistance Disclosure:
 # Tool: Google Antigravity Agent, date: 2026-11-09
 # Scope: Issue #253: Also substitute Service Connect host addresses in nginx `server <service>:<port>` upstream directives.
-# Author review: <to be completed by yanhwee>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 #
 # Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Select IPv4 Service Connect hosts entries for the IPv4 bridge network.

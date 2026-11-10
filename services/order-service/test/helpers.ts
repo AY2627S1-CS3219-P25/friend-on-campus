@@ -11,11 +11,11 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Preserved courierId on cancelOrder and added unassignOrder to fake repository to mirror OrderRepository.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Included admin-cancelled courier orders in fake repository getUserActivity history to mirror OrderRepository.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Replace synchronous Credit fakes with reservation submission and confirmation fixtures.

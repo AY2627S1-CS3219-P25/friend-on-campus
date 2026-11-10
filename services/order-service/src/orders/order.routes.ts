@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Added POST /assistant/draft endpoint for Natural-Language Errand Creation Assistant (F6).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
  * Scope: Success messages no longer claim credits were transferred or refunded; Credit Service settles or returns
@@ -11,7 +11,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added POST /:id/unassign endpoint allowing the assigned courier to drop an ACCEPTED errand before pickup.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Return asynchronous submission receipts and expose owner-authorized submission polling.

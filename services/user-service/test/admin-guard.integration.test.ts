@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add PostgreSQL integration test verifying demote and delete refuse removing the last enabled admin when the only other admin is disabled (issue #109).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Verify registration commits its CDC event and rolls the account back if the outbox insert fails.
  * Author review: <to be completed by huangjiaxi1111>
@@ -178,6 +182,21 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
     const other = await clients[0].call('PATCH', `/api/users/${student}/toggle-status`, { token: tokenFor(adminA) });
     assert.equal(other.body.data.user.status, false);
     assert.equal((await databases[0].user.findUnique({ where: { id: adminA } }))?.status, true);
+  });
+
+  // AI-generated (edited by yanhwee)
+  it('refuses demoting or deleting the last enabled admin when the other admin is disabled, while allowing the disabled admin to be demoted or deleted (issue #109)', async () => {
+    await databases[0].user.update({ where: { id: adminB }, data: { status: false } });
+    const demoteLastEnabled = await clients[0].call('PATCH', `/api/users/${adminA}/toggle-role`, { token: tokenFor(adminB) });
+    assert.equal(demoteLastEnabled.status, 409);
+    assert.equal(demoteLastEnabled.body.code, 'LAST_ADMIN_REQUIRED');
+    const deleteLastEnabled = await clients[0].call('DELETE', `/api/users/${adminA}`, { token: tokenFor(adminA) });
+    assert.equal(deleteLastEnabled.status, 409);
+    assert.equal(deleteLastEnabled.body.code, 'LAST_ADMIN_REQUIRED');
+
+    const demoteDisabled = await clients[0].call('PATCH', `/api/users/${adminB}/toggle-role`, { token: tokenFor(adminA) });
+    assert.equal(demoteDisabled.status, 200);
+    assert.equal(demoteDisabled.body.data.user.userRole, 'STUDENT');
   });
 
   it('refuses refresh for a disabled account without rotating or revoking its session', async () => {

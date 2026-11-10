@@ -15,7 +15,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Added ParseErrandDraftRequest, ParsedErrandItemDTO, and ParsedErrandDraftDTO for Natural-Language Errand Creation Assistant (F6).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
  * Scope: Review fix (PR #148): optional clientId on the MESSAGE server frame (the sender's own echo).

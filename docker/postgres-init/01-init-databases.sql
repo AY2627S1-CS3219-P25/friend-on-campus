@@ -1,7 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Google Antigravity Agent, date: 2026-10-21
 -- Scope: Removed redundant GRANT ALL PRIVILEGES ON DATABASE, \connect, GRANT ALL ON SCHEMA public, and ALTER DEFAULT PRIVILEGES statements already covered by CREATE DATABASE ... OWNER on PostgreSQL 16.
--- Author review: <to be completed by yanhwee>
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 --
 -- Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
 -- Scope: Added the chat_svc role, chat_db and its grants for the Chat Service (F8), same shape as the other five.

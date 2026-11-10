@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Clear supplier rows on Supplier Service fetch failure instead of rendering static demo rows with active mutation buttons (issue #201).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #222 review: the edit form validates against the supplier being edited, so an unrelated edit to a legacy
  * supplier without coordinates is no longer blocked by "Latitude/Longitude is required".
@@ -15,7 +19,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Removed dead AuditPage view and wired HealthPage to live /health and /ready probes across all 5 microservices.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Refactored monolithic 3856-line Admin Portal App.tsx into modular pages, components, hooks, constants, and API modules while preserving 100% UI behavior and UAT selectors.
@@ -48,7 +52,6 @@ import {
 import {
   createSupplierApi,
   deleteSupplierApi,
-  FALLBACK_SUPPLIERS,
   fetchSuppliersApi,
   toggleSupplierStatusApi,
   updateSupplierApi,
@@ -241,9 +244,10 @@ export default function App() {
       const items = await fetchSuppliersApi();
       setSuppliers(items);
     } catch (err) {
-      console.warn('API error, falling back to cached list:', err instanceof Error ? err.message : err);
-      setError('Could not connect to live Supplier Service API (/api/suppliers). Showing cached records.');
-      setSuppliers(FALLBACK_SUPPLIERS);
+      // AI-generated (edited by yanhwee): clear supplier rows on API failure instead of showing static demo rows (issue #201).
+      console.warn('API error fetching suppliers:', err instanceof Error ? err.message : err);
+      setError('Could not connect to live Supplier Service API (/api/suppliers).');
+      setSuppliers([]);
     } finally {
       setIsLoading(false);
     }

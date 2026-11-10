@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Require at least one enabled admin to remain when demoting or deleting an enabled admin (issue #109).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Imported Prisma, PrismaClient, and User from ../database/client instead of directly from generated folder.
  * Author review: <to be completed by author after review>
@@ -93,8 +97,13 @@ export function createUserRepository(prisma: PrismaClient): UserRepository {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }
 
+  // AI-generated (edited by yanhwee): preserve at least one enabled ADMIN across demotion and deletion (issue #109).
   async function assertAdminRemains(tx: Prisma.TransactionClient, user: PrismaUser) {
-    if (user.role === 'ADMIN' && await tx.user.count({ where: { role: 'ADMIN' } }) <= 1) {
+    if (
+      user.role === 'ADMIN' &&
+      user.status &&
+      (await tx.user.count({ where: { role: 'ADMIN', status: true, id: { not: user.id } } })) === 0
+    ) {
       throw new LastAdminError();
     }
   }

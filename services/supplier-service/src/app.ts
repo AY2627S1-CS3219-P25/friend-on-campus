@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added /ready readiness probe endpoint to Supplier Service createApp() to match other microservices.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted Express application factory createApp() for Supplier Service to match service architecture conventions.

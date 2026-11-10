@@ -1,16 +1,21 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add unit test for describeOrderEscrowSubtitle (issue #200).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: Unit test for validateSupplierForm (PR #222 review): coordinates are mandatory on creation, a legacy
  *        supplier's missing coordinate may stay blank on edit, a recorded coordinate cannot be blanked on edit.
  * Author review: <to be completed by Reallyeasy1>
  */
 
+// AI-generated (edited by yanhwee)
 // AI-generated (edited by Reallyeasy1)
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { validateSupplierForm } from '../src/constants';
+import { describeOrderEscrowSubtitle, validateSupplierForm } from '../src/constants';
 
 const complete = {
   name: 'NUS Co-op',
@@ -50,4 +55,17 @@ test('a non-numeric coordinate is rejected in both modes', () => {
     validateSupplierForm({ ...complete, latitude: nan, longitude: 103.7732677 }, { latitude: null, longitude: null }).latitude,
     'Latitude is required.',
   );
+});
+
+// AI-generated (edited by yanhwee)
+test('describeOrderEscrowSubtitle reflects asynchronous settlement/refund without claiming Credit Service completion from Order status alone (issue #200)', () => {
+  assert.equal(describeOrderEscrowSubtitle('PENDING'), 'Awaiting Escrow');
+  assert.equal(describeOrderEscrowSubtitle('REJECTED'), 'Not Reserved');
+  assert.equal(describeOrderEscrowSubtitle('OPEN'), 'Held in Escrow');
+  assert.equal(describeOrderEscrowSubtitle('ACCEPTED'), 'Held in Escrow');
+  assert.equal(describeOrderEscrowSubtitle('IN_TRANSIT'), 'Held in Escrow');
+  assert.equal(describeOrderEscrowSubtitle('DELIVERED'), 'Held in Escrow');
+  assert.equal(describeOrderEscrowSubtitle('COMPLETED'), 'Settlement queued');
+  assert.equal(describeOrderEscrowSubtitle('CANCELLED'), 'Refund queued');
+  assert.equal(describeOrderEscrowSubtitle('EXPIRED'), 'Refund queued');
 });

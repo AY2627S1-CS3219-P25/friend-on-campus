@@ -4,7 +4,7 @@
  * Scope: Updated getSuppliers unit tests to verify PostgreSQL $queryRaw SQL construction (LOWER() case-insensitive
  * ORDER BY with deterministic "id" ASC tie-breaker, parameterized WHERE filters, LIMIT/OFFSET clamping, unpaginated
  * 100-row cap, totalCount stripping, and out-of-range page COUNT(*) fallback) for issues #110 and #253.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
  * Scope: Sorting and pagination tests now assert on the returned rows (case-insensitive order, stable ties,

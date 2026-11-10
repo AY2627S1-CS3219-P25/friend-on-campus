@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-10
-Scope: Integrated the Supplier coordinates and OpenStreetMap tile/route flow diagram from PR #250 (`docs_update`) into the consolidated frontend developer guide.
+Scope: Integrated the Supplier coordinates and OpenStreetMap tile/route flow diagram from PR #250 (`docs_update`) into the consolidated frontend developer guide, and updated Admin Supplier fetch failure behavior after removing FALLBACK_SUPPLIERS (#201).
 Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Codex (model: GPT-6), date: 2026-11-09
@@ -243,7 +243,7 @@ The admin portal provides these operational views:
 | Orders and disputes | Filter orders, inspect both parties' reports, and perform administrative cancel/complete/unassign actions. The dispute filter uses the `dispute` flag, not a transition to `DISPUTED` |
 | Health | Poll liveness/readiness for six services every fifteen seconds while the Health page is selected; each probe has a four-second timeout |
 
-On a failed Supplier fetch, the admin app shows static `FALLBACK_SUPPLIERS`. The warning currently calls them “cached records,” but these are neither live data nor a cache of the user's previous response. Failed User and Order fetches instead clear their lists. Do not use fallback rows as evidence that the Supplier API is working.
+On a failed Supplier, User or Order fetch, the admin app clears that view's list and displays a service-specific connectivity warning banner rather than substituting static placeholder rows.
 
 The Health page combines `/health` and `/ready` into ONLINE, DEGRADED or OFFLINE. Its latency is the elapsed time for the pair of HTTP probes. It is not an NFR benchmark, a persistent monitoring dashboard, an alerting service or proof that an asynchronous order completed.
 
@@ -285,7 +285,7 @@ Record the page, action, record ID, HTTP status and observed state. Remove autho
 | Inbox shows stale data or Chat has a gap | Compare REST history with the socket state, then inspect reconnect/reconciliation. Do not clear saved rows merely because a socket disconnected |
 | Chat send times out | Read persisted history before sending again; `clientId` does not provide persistent server deduplication |
 | A pickup spot has no marker | Check coordinates in the Supplier response and map-coordinate filtering; directory presence alone is insufficient |
-| Admin shows suppliers while the API is down | Look for the fallback warning and inspect the actual network response; those rows may be static placeholders |
+| Admin Supplier, User or Order list is empty with a banner | Inspect the failing `/api/suppliers`, `/api/users` or `/api/orders` network response and upstream service readiness |
 | Only Chat is offline in local admin Health | Check whether direct Vite mode sent the probe to Supplier; compare the same route through the gateway |
 
 [Documentation index](../README.md) · [System overview](../architecture/system-overview.md) · [Local development](../development/local-development.md) · [Testing](../development/testing-strategy.md)

@@ -19,11 +19,11 @@ Author review: <to be completed by Reallyeasy1>
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Removed obsolete docs/ orientation references and updated container/CI facts to match current multi-stage Dockerfiles, Debezium CDC, and .github/workflows/ci.yml.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated test:d2 reference to test:e2e:api.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-11
 Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).

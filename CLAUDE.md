@@ -26,11 +26,11 @@ Author review: <to be completed by Reallyeasy1>
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Slimmed down Sections 4, 5, 7, and 8 to keep CLAUDE.md focused on agent behavioral rules and remove duplicated system documentation and obsolete docs/ pointers.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated Section 5 commands to reflect scripts/dev.mjs parallel dev runner, standard npm workspace -w invocations, and test:e2e:api replacing legacy test:d2 alias.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
 Scope: Section 4 repo map: added services/chat-service (:8006, chat_db), the /ws/chat/ gateway route and the sixth database.

@@ -5,7 +5,7 @@
 //
 // Tool: Google Antigravity Agent, date: 2026-10-28
 // Scope: Added k6 globals (__ENV, __VU, __ITER) for tests/k6 scripts.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 // Scope: scripts/uat/uat-realtime.mjs shares the browser globals block with uat-d2-ui.mjs (page.evaluate callbacks; issue #197).

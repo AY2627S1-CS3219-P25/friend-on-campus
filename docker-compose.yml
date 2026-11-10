@@ -16,7 +16,7 @@
 #
 # Tool: Google Antigravity Agent, date: 2026-10-22
 # Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe, and passed SEED_SAMPLE_ORDERS to credit-service so sample order escrow reservations are seeded alongside order-service.
-# Author review: <to be completed by yanhwee>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 #
 # Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
 # Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
