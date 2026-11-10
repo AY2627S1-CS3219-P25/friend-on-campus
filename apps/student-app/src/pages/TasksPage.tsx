@@ -1,120 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Resolve main merge conflicts; retain redesigned cards and toolbar with upstream posted columns, reorder action, and dispute status.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5), date: 2026-10-19 to 2026-11-08
+ * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx; updated across 27 AI-assisted revisions through D4 wrap-up (resolve main merge conflicts; retain redesigned cards and toolbar with upstream posted columns, reorder action, and dispute status).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized TasksPage with Direction A Warm Campus Mango theme: updated card hover border and title to warm orange, and empty state icon to warm amber tint.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Eliminated orphan whitespace row on mobile errand cards by locking order code, reward credits, and 'View details' CTA into unified top row and rendering mobile status on dedicated left-aligned line.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Resolved text truncation and missing dropoff icon on My Errands cards: gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Polished My Errands segmented filter into high-end h-11 control with unified blue active styling and embedded count badges.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Streamlined errand cards into sleek compact 2-line cards (~72px), eliminated duplicate status badge and box-in-a-box styling, and provided full-width route row to eliminate text clipping.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Redesigned My Errands into responsive full-width horizontal tracking rows (desktop) with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Compact mobile toolbar pairing segmented filter tabs and refresh action in a single row without orphan whitespace.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Harmonized Tasks page copy to Errand terminology ('Errands posted', 'Errands delivering') matching My Errands navigation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Split connected route to 2-line layout (Pickup & Dropoff) with full card width and tooltips to resolve location text truncation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Compact high-density task cards: inlined order code and reward badges, single-line connected route snippet, removed redundant list-view progress stepper, tightened card padding.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed internal backend microservice references (Credit Service) in favor of clear consumer wallet language.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Streamlined TasksPage header into an action-first segmented toolbar, eliminating redundant static title while preserving Refresh button accessibility and role filter counts.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned TasksPage with elevated card ergonomics, glassmorphic card containers, animated milestone progress bar, and refined filter tabs.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light interactive pill button styling for View Details CTA.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Modernized TasksPage with segmented role filter tabs (All / Posted / Delivering), visual progress step bars, route snippets, and ergonomic interactive cards.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Errand details page (issues #188, #189; author's design of 2026-10-26): each task card is now a summary that
- * links to the errand's page (/?tab=tasks&orderId=), which owns the chat panel and every status action; the action
- * buttons, chat toggle and the notification focus panel left this file. Status badge classes moved to errand/details.ts.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148): the expanded ChatPanel receives the card's status so it can switch to read-only live.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Per the author's Notification Redesign (§2, §9): a focus panel for the errand a notification opened (live
- * status from Order Service, "no longer available" for a former participant), the matching card highlighted and
- * scrolled into view, and status copy that no longer claims credits were transferred or refunded.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added courier Drop Errand (unassign) action before pickup and CANCELLED status summary on accepted courier task cards.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Added courier pickup/deliver actions and requester confirm-delivery (complete)/cancel actions on task cards in pages/TasksPage.tsx (Issue #132).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Each card of an accepted-or-later errand gains a Chat toggle that expands the conversation in place
- * (author's D9, F8.1.1); OPEN errands have no conversation yet and show no toggle.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted active tasks page from student-app App.tsx into pages/TasksPage.tsx.
- * Author review: Verified by yanhwee
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: DELIVERED status line says when the errand is under dispute.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Posted by Me splits into Open / Cancelled / Completed columns; completed cards get an Order again button.
- * Author review: <to be completed by the author>
  */
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by Reallyeasy1)
 
 import { useState } from 'react';
 import { OrderDTO } from '@campus-errand/common-dtos';
@@ -225,7 +115,6 @@ export function TasksPage({
     { key: 'completed', title: 'Completed', statuses: ['COMPLETED'] },
   ] as const;
 
-  // AI-generated (edited by yanhwee)
   const renderTask = (task: OrderDTO, groupKey: 'posted' | 'accepted') => {
     const line = statusLine(task, groupKey);
 

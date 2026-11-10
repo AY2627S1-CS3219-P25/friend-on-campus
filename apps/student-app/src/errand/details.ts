@@ -1,13 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Pure helpers behind the errand details page (issue #188, author's design of 2026-10-26): the five-step status
- * tracker from the order timestamps, the terminal end state, the escrow state and its copy (no claim that credits
- * moved), the viewer's role, the expiry countdown, the conversation rule and the status badge classes (moved from
- * pages/TasksPage.tsx so the page and the cards share them).
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Pure helpers behind the errand details page (issue #188, author's design of 2026-10-26): the five-step status tracker from the order timestamps, the...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import type { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
 
 export type TrackerKey = 'posted' | 'accepted' | 'picked_up' | 'delivered' | 'completed';

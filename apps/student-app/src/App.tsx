@@ -1,156 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Require closed-store confirmation in handleOrderAgain (#234) and revalidate the supplier directory when navigating to the Post or Places tabs (#171).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Opus 5.5, Claude Sonnet 5.5); Codex (model: GPT-6, GPT-5.6 Sol), date: 2026-10-06 to 2026-11-10
+ * Scope: Notifications per the author's Notification Service Design (third pull request): the socket opens after login and sends the AUTH frame..; updated across 32 AI-assisted revisions through D4 wrap-up (require closed-store confirmation in handleOrderAgain (#234) and revalidate the supplier directory when navigating to the Post or Places tabs (#171)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: The Browse feed is built with orders/feedZones.ts and passed whole to FeedPage for the zone tab counts;
- * only the cards are narrowed to the selected tab.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the soft blue-white campus canvas behind the existing app layout.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Preserve bottom-navigation clearance on tablet widths until the desktop header appears at 1024px.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Fixed mobile layout issue where fixed BottomNav was covering bottom content (e.g. Danger Zone / Delete Account on ProfilePage): replaced conflicting pb-8 on <main> with safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Eliminated credit balance flicker on tab navigation by removing redundant wallet/ledger state wipes and introducing quiet background revalidation.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Unified body and navigation max-width: wrapped main content in max-w-7xl mx-auto container and aligned horizontal padding with HeaderNav across all responsive breakpoints.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Polished lifecycle action toast notifications to user-friendly consumer copy without internal microservice references.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned student-app frontend shell and layout, enhanced card styling and rounded-3xl aesthetics across all sub-pages.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Drop-off estimator: the post form keeps the drop-off point and whether the reward was set by hand, clears
- * both after a post, and sends dropoffLatitude / dropoffLongitude / estimatedRewardCredits only when the pickup store
- * has coordinates and a drop-off point is chosen.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #225 review: a profile result from an earlier session is discarded (profileRequestId, bumped on session
- * clear like the orders and credits counters), and a quiet Feed poll is skipped while an orders load is still in
- * flight so a retrying load is not superseded before it can settle.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: N4 §5.1: the accept and task-action catch blocks report a lost write response (deadline abort or network
- * failure) with the design table's "We couldn't confirm the result" copy via describeWriteFailure.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Refined main viewport padding to eliminate excessive vertical whitespace under the sticky navbar.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned student-app UI/UX, handled order submission rejection states, prevented multi-click duplicate submissions and credit balance overdraw.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Passed authFetch to PostErrandPage for F6 Natural-Language Errand Assistant.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Multi-client UAT finding: no courier alert exists for a newly posted errand, so the Feed polls quietly (no
- * loading state) every 15 s while it is on screen and when the tab becomes visible again.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): credits effect reads fetchCredits through a ref and aliases the request counter, as the orders effect does.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Errand details page (issues #188, #189; author's design of 2026-10-26): the focus state becomes the open
- * errand, rendered as ErrandDetailsPage over the active tab; openErrand / closeErrand push and pop the existing
- * ?tab=&orderId= deep link (popstate restores the tab, scroll position restored on close); Feed and Tasks cards and
- * the Alerts actions open it; the lifecycle handlers and their in-flight / error state now feed the page. Review
- * pass of the same day: nav tabs leave the page (selectTab), action failures live in actionError, apart from the
- * list poll's ordersError. PR #190 review: the origin tab is kept in the list entry's URL instead of a ref, so
- * Back → Forward → Back and refresh keep it.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review fix (PR #184): AlertsPage receives the hook's view, total and setView.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Inbox wiring per the author's Notification Redesign (§2, §9, §10): opening a notification deep-links to the
- * exact errand (?tab=tasks&orderId=, fetched live from Order Service) or the wallet, toasts follow the inbox rule,
- * the Alerts page receives the REST-first hook's stale/paging state and the app's live order statuses, and the
- * confirm/cancel banners no longer claim credits were transferred or refunded. Supersedes the same-day
- * awaitingConfirmation fix.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage and forwarded optional courierContactNote on accept (F3.3.6).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Wires the chat socket hook (F8) and passes it to TasksPage.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Refactored monolithic student-app App.tsx into modular api/, hooks/, components/, and pages/ architecture.
- * Author review: Verified by yanhwee
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Connect posting to the async reservation API; display saga outcomes and refresh real feed, activity and credits; remove mock suppliers and order mutations.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Restore the two original sample errand cards alongside live orders for demos; prevent sample IDs from reaching backend actions.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
- * Scope: Removed an unused logout error binding identified by the root lint configuration.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
- * Scope: Notifications per the author's Notification Service Design (third pull request): the socket opens after login
- * and sends the AUTH frame (src/notifications/useNotifications.ts), an Alerts bell with the unread badge in the top nav
- * and the mobile tab bar, and an Alerts view listing notifications with mark-read (src/notifications/NotificationBell.tsx).
- * The old unauthenticated socket and SYSTEM_BROADCAST toast are gone. VITE_SHOW_WS_STATUS=false hides the "WS Hub" status line.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Passes the focused errand's pickup store from the loaded supplier list to ErrandDetailsPage so the page can
- * show the store's operating hours (author's request of 2026-11-04).
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Wired the 'dispute' task action (raise a delivery dispute) and its optional details.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Wired the 'courier-dispute' task action.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: handleOrderAgain: posts a completed errand's details again through the existing order submission.
- * Author review: <to be completed by the author>
  */
 
-// AI-generated (edited by yanhwee)
 
 import { CreditTransactionDTO, CreditWalletDTO, NotificationDTO, OrderDTO, SupplierDTO, UserDTO } from '@campus-errand/common-dtos';
 import { RefreshCw } from 'lucide-react';
@@ -200,7 +54,6 @@ import { TasksPage } from './pages/TasksPage';
 /** How often the Feed re-reads the open errands while it is on screen (no push exists for new postings). */
 const FEED_POLL_MS = 15_000;
 
-// AI-generated (edited by Reallyeasy1)
 // Deep link a notification can open: /?tab=tasks&orderId=<id>. Read once; the app stays tab-based otherwise.
 function readDeepLink(): { tab: StudentTab | null; orderId: string | null } {
   const params = new URLSearchParams(window.location.search);
@@ -218,7 +71,7 @@ export default function App() {
   // The errand a notification opened; its live state is fetched so a stale notice never shows a stale action.
   const [focusOrderId, setFocusOrderId] = useState<string | null>(() => readDeepLink().orderId);
   const [focusOrder, setFocusOrder] = useState<FetchOrderResult | null>(null);
-  // AI-generated (edited by Reallyeasy1): the page's manual reload, and the list's scroll offset to return to.
+  // The page's manual reload, and the list's scroll offset to return to.
   const [reloadKey, setReloadKey] = useState(0);
   // Failures of the page's actions (service 400 / 403 / 409 text), kept apart from the list poll's ordersError.
   const [actionError, setActionError] = useState<string | null>(null);
@@ -328,7 +181,7 @@ export default function App() {
     refreshToken: refreshAccessToken,
     authFetch,
     onNotification: (n) => {
-      // AI-generated (edited by Reallyeasy1): quiet receipts and changes already on screen get no toast.
+      // Quiet receipts and changes already on screen get no toast.
       if (shouldToast(n, activeTab)) {
         setNoticeTone(n.priority === 'HIGH' ? 'alert' : 'ok');
         setNotification(`🔔 ${n.title}`);
@@ -336,7 +189,6 @@ export default function App() {
       void loadOrders.current();
     },
   });
-  // AI-generated (edited by Reallyeasy1)
   // The order the app has loaded is fresher than the Notification Service's projection.
   const liveStatus = (orderId: string) => orders.find((o) => o.id === orderId)?.status;
   const openNotification = (n: NotificationDTO) => {
@@ -347,7 +199,6 @@ export default function App() {
     }
     openErrand(n.orderId, 'tasks');
   };
-  // AI-generated (edited by Reallyeasy1)
   // The details page (#188) is the existing deep link made navigable: opening pushes /?tab=&orderId= so Back returns
   // to the tab the card was on; closing pops that entry when it exists, else rewrites the URL in place. The list
   // entry's URL is first synchronised with the tab the user is on (Alerts included), so history itself carries the
@@ -411,14 +262,14 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, focusOrderId, orders, reloadKey]);
   const wsStatus = notifications.status;
-  // AI-generated (edited by Reallyeasy1): the chat socket (F8) beside the notification socket.
+  // The chat socket (F8) beside the notification socket.
   const chat = useChat({ enabled: isAuthenticated, token: authToken, refreshToken: refreshAccessToken, authFetch });
   const showWsStatus = import.meta.env.VITE_SHOW_WS_STATUS !== 'false';
 
   const walletRef = useRef(wallet);
   walletRef.current = wallet;
 
-  // AI-generated (edited by yanhwee): quiet background revalidation prevents credit flickering on tab navigation
+  // Quiet background revalidation prevents credit flickering on tab navigation
   // by keeping existing wallet/ledger state in memory instead of clearing it before the fetch settles.
   const fetchCredits = async (quiet = Boolean(walletRef.current)) => {
     const requestId = ++creditRequestId.current;
@@ -441,7 +292,7 @@ export default function App() {
     }
   };
 
-  // AI-generated (edited by Reallyeasy1): same shape as the orders effect below. The latest fetchCredits is read from a
+  // Same shape as the orders effect below. The latest fetchCredits is read from a
   // ref (it closes over authFetch and setters, so listing it would refetch on every render) and the request counter is
   // bumped on cleanup so a response from the previous tab or session is ignored.
   const loadCredits = useRef(fetchCredits);
@@ -454,11 +305,11 @@ export default function App() {
     };
   }, [isAuthenticated, activeTab]);
 
-  // AI-generated (edited by Reallyeasy1): a quiet reload keeps the list on screen (no "Loading errands…", no error
+  // A quiet reload keeps the list on screen (no "Loading errands…", no error
   // banner) for polls, and a list that started before a local change (accept, pickup, …) is dropped as stale so it
   // cannot overwrite that change (PR #196 review).
   const ordersMutatedAt = useRef(0);
-  // AI-generated (edited by Reallyeasy1): a retrying load can outlast the 15 s poll interval, and each new load
+  // A retrying load can outlast the 15 s poll interval, and each new load
   // supersedes the previous request id; a quiet poll therefore waits while any load is in flight, otherwise a Feed
   // facing a flapping Order Service never settles on an error or a result (PR #225 review, P2).
   const ordersLoadsInFlight = useRef(0);
@@ -495,7 +346,7 @@ export default function App() {
     };
   }, [currentUserId, activeTab]);
 
-  // AI-generated (edited by Reallyeasy1): couriers get no alert when an errand is posted (Notification Service's
+  // Couriers get no alert when an errand is posted (Notification Service's
   // order.created goes to the requester only), so the Feed polls while it is on screen and the tab is visible.
   // ponytail: a 15 s poll of the two list calls; a courier-side push would need a new notification recipient.
   const feedOnScreen = Boolean(currentUserId) && !focusOrderId && activeTab === 'feed';
@@ -545,7 +396,7 @@ export default function App() {
     },
   });
 
-  // AI-generated (edited by Reallyeasy1): the counter is bumped on session clear, so a profile that belongs to the
+  // The counter is bumped on session clear, so a profile that belongs to the
   // account that signed out (including one returned by a retry) never lands on the next account's screen.
   const fetchProfile = async () => {
     const requestId = ++profileRequestId.current;
@@ -660,14 +511,14 @@ export default function App() {
     void fetchLiveSuppliers();
   }, []);
 
-  // AI-generated (edited by yanhwee): revalidate pickup spots when opening Post Errand or Places so admin status toggles take effect without a full page reload (issue #171).
+  // Revalidate pickup spots when opening Post Errand or Places so admin status toggles take effect without a full page reload (issue #171).
   useEffect(() => {
     if (isAuthenticated && (activeTab === 'post' || activeTab === 'spots')) {
       void fetchLiveSuppliers({ quiet: true });
     }
   }, [isAuthenticated, activeTab]);
 
-  // AI-generated (edited by jagdeepsh): "Order again" posts a new errand with the details of a completed one.
+  // "Order again" posts a new errand with the details of a completed one.
   const handleOrderAgain = (order: OrderDTO) => {
     if (submission.busy) return;
     if (wallet && order.rewardCredits > wallet.availableCredits) {
@@ -677,7 +528,7 @@ export default function App() {
       );
       return;
     }
-    // AI-generated (edited by yanhwee): require confirmation when the pickup store is outside operating hours (issue #234).
+    // Require confirmation when the pickup store is outside operating hours (issue #234).
     if (!confirmReorderWhenStoreClosed(order, suppliers)) {
       return;
     }
@@ -800,7 +651,7 @@ export default function App() {
     }
   };
 
-  // AI-generated (edited by Reallyeasy1): the whole feed goes to FeedPage for the tab counts; only the cards are
+  // The whole feed goes to FeedPage for the tab counts; only the cards are
   // narrowed to the selected tab.
   const feed = feedOrders(orders, currentUserId);
   const filteredOrders = feed.filter((o) => inFeedZone(o, selectedZone));
@@ -856,7 +707,7 @@ export default function App() {
     void fetchProfile();
   };
 
-  // AI-generated (edited by Reallyeasy1): while an errand is open its page stands in for the tab's content.
+  // While an errand is open its page stands in for the tab's content.
   const page: StudentTab | null = focusOrderId ? null : activeTab;
 
   return (

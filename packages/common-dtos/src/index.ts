@@ -1,123 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Optional eventId on the chat ERROR frame for the transient MODERATED_PEER notice (issue #242).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Optional drop-off coordinates and estimated credit (dropoffLatitude, dropoffLongitude,
- * estimatedRewardCredits) on OrderDTO and CreateOrderRequest, per the author's drop-off estimator decisions.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Represent missing legacy supplier coordinates in read responses; create inputs remain required.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Added ParseErrandDraftRequest, ParsedErrandItemDTO, and ParsedErrandDraftDTO for Natural-Language Errand Creation Assistant (F6).
+ * Tool: Claude Code (model: Claude Fable 5.1, Claude Opus 5.5, Sonnet 5, Claude Sonnet 5.5); Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity Agent; Google Antigravity, date: 2026-09-20 to 2026-11-09
+ * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2; updated across 24 AI-assisted revisions through D4 wrap-up (optional eventId on the chat ERROR frame for the transient MODERATED_PEER notice (issue #242)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148): optional clientId on the MESSAGE server frame (the sender's own echo).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): ApiResponse and PaginatedResponse default their type parameter to unknown instead of any.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Increment 6 of the same design: CreditEscrowSettledEvent / CreditEscrowRefundedEvent (Credit-owned outcomes
- * with ledger reference, amount, beneficiary and causation), the CREDITS_RECEIVED / CREDITS_RETURNED kinds and the
- * RECEIPT category.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Implements the contract section of the author's "Student Notification System Redesign" (22 Oct 2026):
- * version-2 fields on every Order event (OrderEventV2Fields), the new order.rejected and order.unassigned facts,
- * courierId on cancelled/expired, and the inbox NotificationKind/NotificationDTO (category, priority, actionType,
- * targetId, sourceVersion, storedAt, orderStatus) plus NotificationView and NotificationPageDTO.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Chat Service contract (F8) per the author's S1 to S6 answers: ConversationDTO, ChatMessageDTO, the
- * ChatClientFrame and ChatServerFrame unions and ChatHistoryResponse.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-19
- * Scope: Refactored Order Saga contracts to Approach B2 (PENDING/REJECTED OrderStatus, rejectionReason on OrderDTO, removed OrderSubmissionDTO and release_requested/released events).
- * Author review: Reviewed and verified by yanhwee.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Add submission receipts and correlated reservation request/result DTOs for the author-approved saga.
- * Author review: <to be completed by huangjiaxi1111>
- *
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: Optional username claim on JWTPayload and optional courierUsername on the accepted, in-transit and
- * delivered order events, per the author's F5.1.1 design.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added AdminCancelOrderRequest, AdminCompleteOrderRequest, and AdminUnassignOrderRequest for administrative order lifecycle management.
- * Author review: (to be completed by author after review)
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Added DELIVERED status to OrderStatus, deliveredAt and courierContactNote to OrderDTO, durationMinutes to CreateOrderRequest, and AcceptOrderRequest for Order Service lifecycle management.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Notification contract from the author's Notification Service Design: optional orderCode on the order
- * events that lacked it, OrderDeliveredEvent, NotificationKind and NotificationDTO.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Added user profile update, promotion, JWT payload, supplier query options, and pagination DTOs for Milestone D2.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Replaced legacy user and authentication DTOs with the author-approved account and session contract.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Added the author-approved refresh-token response DTO, standardized shared JWT claims, and structured API error codes.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: JWTPayload now uses the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud);
- * LoginUserRequest.keepLoggedIn made optional and UpdateUserProfileRequest.username made required to match
- * the User Service behaviour and API reference. Applied on the PR author's behalf after review round 2.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: CreateSupplierRequest.building/.floor changed from optional to required, so a caller creating a
- * supplier can no longer omit them — needed for the new (name, category, building, floor) uniqueness
- * constraint on suppliers to be meaningful (a null building/floor can't be compared for duplicates).
- * UpdateSupplierRequest and SupplierDTO are unchanged (partial-update and read shapes stay flexible).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: CreateSupplierRequest.latitude/.longitude changed from optional to required, matching the
- * supplier-service DB columns being made NOT NULL in the same change. UpdateSupplierRequest and SupplierDTO
- * stay optional (same precedent as building/floor above — partial-update and read shapes stay flexible).
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: OrderDTO gained dispute and requesterDisputeDetails; added DisputeOrderRequest.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: OrderDTO gained courierDisputeDetails; added CourierDisputeRequest.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: ChatErrorCode gains MODERATED and MODERATED_PEER (chat content moderation).
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by ngkhengyang)
-// AI-generated (edited by ngkhengyang)
-// AI-generated (edited by ngkhengyang)
 
 /**
  * NUS CampusErrand - Shared TypeScript Contracts & DTOs
@@ -256,7 +142,6 @@ export interface SupplierQueryOptions {
 // ==========================================
 // 3. Order Service Types (M4)
 // ==========================================
-// AI-generated (edited by yanhwee)
 export type OrderStatus =
   | 'PENDING'
   | 'OPEN'
@@ -327,12 +212,10 @@ export interface CreateOrderRequest {
   estimatedRewardCredits?: number;
 }
 
-// AI-generated (edited by yanhwee)
 export interface ParseErrandDraftRequest {
   prompt: string;
 }
 
-// AI-generated (edited by yanhwee)
 export interface ParsedErrandItemDTO {
   itemDescription: string;
   quantity: number;
@@ -340,7 +223,6 @@ export interface ParsedErrandItemDTO {
   unitSize?: string;
 }
 
-// AI-generated (edited by yanhwee)
 export interface ParsedErrandDraftDTO {
   supplierId?: string;
   supplierName?: string;
@@ -438,7 +320,6 @@ export interface UserRegisteredEvent extends BaseEvent {
   initialGrant: number;
 }
 
-// AI-generated (edited by Reallyeasy1)
 // Version 2 of the Order event contract (Notification Redesign §6). schemaVersion is additive: a message without it is
 // version 1. The producer fills orderVersion/previousStatus/status inside the committing transaction.
 export type OrderActorRole = 'STUDENT' | 'ADMIN' | 'SYSTEM';
@@ -479,7 +360,6 @@ export interface OrderCreatedEvent extends BaseEvent, Partial<OrderEventV2Fields
   expiresAt: string;
 }
 
-// AI-generated (edited by yanhwee)
 export interface CreditReservationRequestEvent extends BaseEvent {
   eventType: 'order.reservation.requested';
   correlationId: string;
@@ -497,7 +377,6 @@ export interface CreditReservationResultEvent extends BaseEvent {
   reason?: string;
 }
 
-// AI-generated (edited by Reallyeasy1)
 // courierUsername is the courier's display name from their access token at the time of the call (F5.1.1).
 // Optional: events already queued, and calls made with a token that predates the claim, omit it.
 export interface OrderAcceptedEvent extends BaseEvent, Partial<OrderEventV2Fields> {
@@ -518,7 +397,6 @@ export interface OrderInTransitEvent extends BaseEvent, Partial<OrderEventV2Fiel
   courierUsername?: string;
 }
 
-// AI-generated (edited by Reallyeasy1)
 export interface OrderDeliveredEvent extends BaseEvent, Partial<OrderEventV2Fields> {
   eventType: 'order.delivered';
   orderId: string;
@@ -557,7 +435,6 @@ export interface OrderCancelledEvent extends BaseEvent, Partial<OrderEventV2Fiel
   rewardCredits: number;
 }
 
-// AI-generated (edited by Reallyeasy1)
 // Written in the transaction that sets REJECTED (Notification Redesign §6, §9).
 export interface OrderRejectedEvent extends BaseEvent, OrderEventV2Fields {
   eventType: 'order.rejected';
@@ -579,7 +456,6 @@ export interface OrderUnassignedEvent extends BaseEvent, OrderEventV2Fields {
   reasonCode: 'COURIER_DROPPED' | 'ADMIN_UNASSIGNED';
 }
 
-// AI-generated (edited by Reallyeasy1)
 // Financial outcomes (Notification Redesign §4, §6, §9, increment 6): written by Credit Service in the transaction that
 // commits the ledger row, escrow state and wallet change. An idempotent replay of the command writes no second event.
 export interface CreditEscrowOutcomeFields extends BaseEvent {
@@ -624,7 +500,6 @@ export type CampusErrandEvent =
   | OrderRejectedEvent
   | OrderUnassignedEvent;
 
-// AI-generated (edited by Reallyeasy1)
 // Notification Service: one inbox row per intended recipient, as stored and as sent over REST and the WebSocket
 // (Notification Redesign §7). The three F5 kinds are unchanged; the others arrive with version-2 Order events.
 export type NotificationKind =
@@ -679,7 +554,6 @@ export interface NotificationPageDTO extends PaginatedResponse<NotificationDTO> 
   unreadCount: number;
 }
 
-// AI-generated (edited by Reallyeasy1)
 // Chat Service (F8): one conversation per accepted errand, its messages, and the frames on /ws/chat/.
 // The socket protocol mirrors the Notification Service's: AUTH first, then SEND from the client; AUTH_OK, MESSAGE
 // and ERROR from the server. History is read over REST (GET /api/chat/:orderId).

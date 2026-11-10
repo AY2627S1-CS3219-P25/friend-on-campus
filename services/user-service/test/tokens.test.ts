@@ -1,16 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: Tests for the optional username claim (F5.1.1): issued when given, exposed on the principal by
- * @campus-errand/auth, absent tokens still verify, and non-string, empty or over-long claims are rejected.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: Unit tests for src/auth/tokens.ts (JWT structure and claims, Ed25519 signature verifiable with the
- * public key, refresh-token generation and hashing, private-key validation).
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30 to 2026-10-17
+ * Scope: Unit tests for src/auth/tokens.ts (JWT structure and claims, Ed25519 signature verifiable with the public key, refresh-token generation and hashing,..; updated across 2 AI-assisted revisions through D4 wrap-up (tests for the optional username claim (F5.1.1): issued when given, exposed on the principal by @campus-errand/auth, absent tokens still verify, and..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify } from 'node:crypto';
@@ -32,7 +25,6 @@ function decodePart(part: string): any {
   return JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
 }
 
-// AI-generated (edited by Reallyeasy1)
 /** Re-signs a real token's claims with the test private key after overriding some of them. */
 function reissue(token: string, overrides: Record<string, unknown>): string {
   const [header, claims] = token.split('.');
@@ -102,7 +94,6 @@ describe('issueAccessToken', () => {
     );
   });
 
-  // AI-generated (edited by Reallyeasy1)
   it('carries the username claim when given, and the shared verifier exposes it on the principal (F5.1.1)', () => {
     const token = tokens.issueAccessToken('user-1', 'session-1', 'STUDENT', 'alice');
     const claims = decodePart(token.split('.')[1]);

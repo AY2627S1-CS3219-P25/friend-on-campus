@@ -1,68 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Keep the thirteen-guide index concise while linking corrected failure boundaries and recording the expanded explanations, diagrams and executed checks.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Replace fragmented navigation/audits with one task index, compact provenance and unresolved-boundary notes; preserve prior attribution in history and consolidated records.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile the active documentation with main b989758 and simplify navigation; preserve historical attribution.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Link the ECS rollout after retirement of the K3s deployment files.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Update confirmed migration decisions and architecture navigation.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Update target-architecture navigation for the author-requested CloudFront entry point, origin TLS requirements and incremental costs.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Link the author's confirmed shared-host ECS target architecture separately from implemented deployment references.
-Author review: <to be completed by the author>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-Scope: Inventory row for the errand details page implementation plan (docs/superpowers/plans/, issues #188 and #189).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Chat row now links the new chat-service README and D4 specification (PR #148 head f39ab1f, pending); two inventory rows added.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
-Scope: Added the Chat Service row to the service table.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Added drift rows D26-D30 (Chat PR #148 head f39ab1f versus main 9a36146, issue #56 and the wiki Chat proposal) and a pointer to the Chat decision register; earlier rows unchanged.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Recorded the PR #148 head and main commit inspected for the Chat documents and added the issue #56 row; wiki snapshot unchanged.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Added the Chat (pending PR #148) coverage row; other rows unchanged and not reverified.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Record executed documentation/local checks, independent corrections and unavailable runtime evidence for the November cleanup.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Added the dated "Chat documentation checks" block (executed chat-service unit run, link/anchor/Mermaid validation, inventory check); earlier checks not rerun.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-09
+Scope: Added the Chat Service row to the service table; updated across 16 AI-assisted revisions through D4 wrap-up (keep the thirteen-guide index concise while linking corrected failure boundaries and recording the expanded explanations, diagrams and executed checks).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Developer documentation

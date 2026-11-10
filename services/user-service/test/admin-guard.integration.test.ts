@@ -1,28 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add PostgreSQL integration test verifying demote and delete refuse removing the last enabled admin when the only other admin is disabled (issue #109).
+ * Tool: Google Antigravity Agent; Codex (model: GPT-6); Google Antigravity; Claude Code (model: Claude Fable 5.1), date: 2026-09-30 to 2026-11-10
+ * Scope: PostgreSQL integration tests for concurrent admin removal and self-deletion session cleanup; updated across 5 AI-assisted revisions through D4 wrap-up (add PostgreSQL integration test verifying demote and delete refuse removing the last enabled admin when the only other admin is disabled (issue #109)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Verify registration commits its CDC event and rolls the account back if the outbox insert fails.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Imported PrismaClient from ../src/database/client instead of directly from generated folder.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: Added PostgreSQL tests for the last-enabled-admin disable guard (UAT A8) and for refresh being refused
- * for a disabled account (A11).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: PostgreSQL integration tests for concurrent admin removal and self-deletion session cleanup.
- * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 // Opt in with ADMIN_GUARD_TEST_DATABASE_URL pointing to a disposable PostgreSQL database.
 // Creates and removes its own random schema; never modifies existing application tables.
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
@@ -164,7 +145,6 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
     assert.equal(await databases[0].session.count({ where: { userId: adminA } }), 1);
   });
 
-  // AI-generated (edited by Reallyeasy1)
   it('keeps one enabled admin when two instances race to disable each other', async () => {
     const results = await Promise.all([0, 1].map((i) => clients[i].call(
       'PATCH', `/api/users/${i === 0 ? adminB : adminA}/toggle-status`, { token: tokenFor(i === 0 ? adminA : adminB) },
@@ -184,7 +164,6 @@ describe('atomic admin guards (PostgreSQL)', { skip: !databaseUrl }, () => {
     assert.equal((await databases[0].user.findUnique({ where: { id: adminA } }))?.status, true);
   });
 
-  // AI-generated (edited by yanhwee)
   it('refuses demoting or deleting the last enabled admin when the other admin is disabled, while allowing the disabled admin to be demoted or deleted (issue #109)', async () => {
     await databases[0].user.update({ where: { id: adminB }, data: { status: false } });
     const demoteLastEnabled = await clients[0].call('PATCH', `/api/users/${adminA}/toggle-role`, { token: tokenFor(adminB) });

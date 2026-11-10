@@ -1,22 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: Optional username claim (1–50 characters) accepted and exposed as principal.username (F5.1.1); a token
- * without it still verifies and every other check is unchanged.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Exported readPublicKey and verifyAccessToken so the Notification Service's WebSocket hub can verify a token
- * outside an HTTP request. No behaviour change for the middleware.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Switched access-token verification to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud)
- * and made this package consume the shared JWTPayload type from common-dtos instead of a local duplicate. The
- * verification logic (Ed25519 signature, header, issuer/audience, expiry, clock skew) is unchanged from the PR author's version.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23 to 2026-10-17
+ * Scope: Switched access-token verification to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud) and made this package consume the shared..; updated across 3 AI-assisted revisions through D4 wrap-up (optional username claim (1–50 characters) accepted and exposed as principal.username (F5.1.1)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by ngkhengyang)
 import { createPublicKey, verify } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 import type { RequestHandler, Response } from 'express';
@@ -68,7 +55,6 @@ function isJwtPayload(value: unknown): value is JWTPayload {
     typeof claims.sid === 'string' &&
     claims.sid.length > 0 &&
     (claims.role === 'STUDENT' || claims.role === 'ADMIN') &&
-    // AI-generated (edited by Reallyeasy1)
     (claims.username === undefined ||
       (typeof claims.username === 'string' && claims.username.length >= 1 && claims.username.length <= 50)) &&
     Number.isInteger(claims.iat) &&

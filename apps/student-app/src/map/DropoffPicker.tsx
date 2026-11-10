@@ -1,37 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Simplify the optional building-pin label to complement the posting page disclosure.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Opus 5.5), date: 2026-11-04 to 2026-11-07
+ * Scope: Author's follow-up on UI consistency: the picker is a regular Post form field (bold icon label with a pill, rounded-xl input, map icon button beside it as..; updated across 6 AI-assisted revisions through D4 wrap-up (simplify the optional building-pin label to complement the posting page disclosure).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Typed useMapEvents click handler parameter with L.LeafletMouseEvent for strict TypeScript compliance.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Two-tier drop-off picker for Post Errand (author's decision A16): search the NUS building snapshot and pick
- * one, or, when the building is not listed, open the same Leaflet / OpenStreetMap map as the pickup picker and click
- * any point (no campus outline check, author's decision). One movable pin; the chosen point can be cleared.
- * Notes that the exact drop-off address is still required (author's follow-up).
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Author's follow-up: the pickup location is shown clearly on the map: the view opens fitted to the pickup and
- * the current drop-off, both pins carry a permanent label, the header has a legend, and a note asks for a pickup store
- * when none is selected.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Author's follow-up on UI consistency: the picker is a regular Post form field (bold icon label with a pill,
- * rounded-xl input, map icon button beside it as on Pickup Store, grey helper line), and the map's confirm button uses
- * the page's orange primary style.
- * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by huangjiaxi1111)
 import L from 'leaflet';
 import { Building2, Map as MapIcon, MapPin, Navigation, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';

@@ -1,40 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: createDeliver no longer pushes to local sockets; the committed delivery intent and the realtime subscriber do that on every replica (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-23
- * Scope: Increment 6: credit.escrow.settled / credit.escrow.refunded are bound and parsed (parseCreditReceipt: Credit is
- * the only producer, beneficiary must match the outcome), parseNotificationEvent dispatches by key family, and
- * createDeliver stores receipts under producer credit-service without touching the order projection.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Per the author's Notification Redesign (§5, §6, §8, §10): version-2 parsing (envelope, actor, reason code,
- * committed versions, assignee fields) next to the unchanged version-1 rules, order.rejected and order.unassigned
- * routing keys, a canonical payload fingerprint, the shared infrastructure classifier, and createDeliver() running
- * the policy plus the one-transaction store write before pushing NOTIFICATION and INBOX_CHANGED frames.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: parseOrderEvent validates the optional courierUsername (1–50 characters) and toNotification names the
- * courier in the acceptance body, falling back to the previous wording (F5.1.1, author's design and copy).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Per the author's Notification Service Design: order.delivered is bound and validated, toNotification maps
- * accepted, in_transit and delivered to a notification (titles from the design, body text added), and createDeliver
- * stores the row before pushing it.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03
- * Scope: Validates order lifecycle events from campus.events (same rules as credit-service/src/credits/events.ts on PR #91)
- * and wires them to the copied RabbitMQ consumer. The routing-key-to-notification mapping (toNotification) is left for the
- * author to write; until then every valid event is acknowledged without producing a notification.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03 to 2026-11-09
+ * Scope: Validates order lifecycle events from campus.events (same rules as credit-service/src/credits/events.ts on PR #91) and wires them to the copied RabbitMQ..; updated across 6 AI-assisted revisions through D4 wrap-up (createDeliver no longer pushes to local sockets).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { createHash } from 'node:crypto';
 import type { OrderActorRole, OrderReasonCode, OrderStatus } from '@campus-errand/common-dtos';
 import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';

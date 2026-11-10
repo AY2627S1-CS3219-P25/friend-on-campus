@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added integration test assertions for offline deterministic seed UUID fallback when User Service is unreachable vs reachable HTTP failures.
+ * Tool: Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-03 to 2026-10-22
+ * Scope: Verify seed identity matching, session cleanup and repeat-safe PostgreSQL wallet initialization; updated across 2 AI-assisted revisions through D4 wrap-up (added integration test assertions for offline deterministic seed UUID fallback when User Service is unreachable vs reachable HTTP failures).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Verify seed identity matching, session cleanup and repeat-safe PostgreSQL wallet initialization.
- * Author review: <to be completed by huangjiaxi1111>
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';

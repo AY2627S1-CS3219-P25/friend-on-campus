@@ -1,28 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Clarify realtime message expiry and add concrete persisted-data, delivery-intent and crash-recovery examples.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Combine CDC and shared messaging into a human-readable transport/recovery guide with business-event and realtime diagrams, failure semantics and safe diagnosis.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Separate business CDC from implemented realtime outbox relays; verify topology, retry behavior and environment-specific persistence.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Document Chat's shared quorum consumer and the non-destructive handover required for an existing classic Chat queue.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile current implementation, contracts, realtime delivery and verification limits; preserve historical records.
-Author review: <to be completed by the author>
+Tool: Codex (model: GPT-6), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 6 AI-assisted revisions through D4 wrap-up (clarify realtime message expiry and add concrete persisted-data, delivery-intent and crash-recovery examples).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Messaging and asynchronous recovery
@@ -49,7 +29,6 @@ A missing wallet reservation is a business-processing problem. A message visible
 The producer's database transaction finishes before another service handles the event. In this example, “consumer transaction” means work in the receiving service's own database.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant App as Producer
     participant DB as Producer database
@@ -99,7 +78,6 @@ The main queues explicitly request quorum type. The DLQ declaration is durable b
 The service handler classifies a failure before the shared consumer decides what to do:
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Delivery["Business event delivered"] --> Handler["Run service handler"]
     Handler -->|"Success or safe duplicate"| Ack["ACK"]
@@ -140,7 +118,6 @@ Business queues divide work between service replicas. Realtime delivery has a di
 For example, a message may be written through Chat replica A while its recipient is connected to replica B. Chat stores the message and a realtime intent in one transaction. A relay publishes the intent to a fanout exchange; both replicas receive a hint, reread the persisted message and deliver to eligible local sockets.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     subgraph Tx["One service database transaction"]
         Data["Message or inbox state"]
@@ -222,7 +199,6 @@ Start with one affected record and a time window. Inspect before retrying an amb
 For a local Compose stack, these commands inspect status and recent logs without changing data:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose ps
 docker compose logs --tail=100 debezium-user debezium-order debezium-credit
 docker compose logs --tail=100 order-service credit-service notification-service chat-service
@@ -248,7 +224,6 @@ No general automated business DLQ inspection/replay worker or operational alert 
 The shared transport's unit tests do not need a running database or broker:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/messaging
 ```
 

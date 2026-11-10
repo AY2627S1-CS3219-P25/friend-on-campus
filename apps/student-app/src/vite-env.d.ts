@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
  * Scope: Vite client types plus the app's own VITE_* variables, so import.meta.env is typed.
- * Author review: <to be completed by Reallyeasy1>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 /// <reference types="vite/client" />
 

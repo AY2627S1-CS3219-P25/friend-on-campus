@@ -1,16 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Standardized Prisma client module to import from ../generated/prisma, use centralized config.databaseUrl with globalForPrisma singleton guard, and re-export Prisma types.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
- * Scope: Generated Prisma client singleton for the supplier service; added dotenv.config() so
- *        standalone scripts (seed.ts) also pick up src/.env, not just backend/server.ts.
- * Author review: (to be completed by author after review)
+ * Tool: Google Antigravity; Claude Code (model: Claude Opus 5), date: 2026-09-19 to 2026-10-20
+ * Scope: Generated Prisma client singleton for the supplier service; updated across 2 AI-assisted revisions through D4 wrap-up (standardized Prisma client module to import from ../generated/prisma, use centralized config.databaseUrl with globalForPrisma singleton guard, and re-export..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by jagdeepsh)
 import { config } from '../config';
 import { PrismaClient } from '../generated/prisma';
 

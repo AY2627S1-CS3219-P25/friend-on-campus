@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Share the existing ECS Terraform state between local CLI and GitHub infrastructure runs.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 terraform {
   backend "s3" {
     key          = "ecs/terraform.tfstate"

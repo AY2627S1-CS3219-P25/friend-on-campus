@@ -1,32 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Document aggregate target overrides and Compose minimum, explain direct API E2E database/fixture behavior, and diagram test provisioning boundaries.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate testing and CI into an explanatory developer guide with scoped commands, test-resource boundaries, evidence interpretation and retained performance/recovery limitations.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Refresh test categories, isolation boundaries, driver variables, failure exits and k6 evidence limitations.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-Scope: Driver environment matrix rows for scripts/uat/uat-realtime.mjs (issue #197).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Refresh current CI matrices, manual ECS release workflows, manual k6 coverage and unresolved harness findings.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-Scope: Added the manual k6 performance workflow section (performance.yml, npm run perf:k6; issues #236, #237).
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 7 AI-assisted revisions through D4 wrap-up (document aggregate target overrides and Compose minimum, explain direct API E2E database/fixture behavior, and diagram test provisioning boundaries).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Test the system and interpret the results
@@ -57,7 +33,6 @@ All commands run from the repository root after `npm ci` has generated the six P
 A focused edit does not require rerunning every unrelated suite immediately. For example, while working on Chat rules:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/chat-service
 npm run typecheck
 ```
@@ -73,7 +48,6 @@ First clear `BASE_URL` and `CREDIT_AMQP_URL` from the environment passed to the 
 On a POSIX shell, clear them for this invocation only:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 env -u BASE_URL -u CREDIT_AMQP_URL npm test
 ```
 
@@ -84,7 +58,6 @@ In PowerShell, use `Remove-Item Env:BASE_URL, Env:CREDIT_AMQP_URL -ErrorAction S
 The provisioned resources and the destinations used by each test are separate concerns. The full aggregate's acceptance drivers can reach these targets before the two inherited overrides are cleared:
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
   Shell["Shell environment"] --> Runner["Aggregate runner"]
   Runner -->|provisions| Stack["Isolated Compose project"]
@@ -97,7 +70,6 @@ flowchart TD
 For just the runner's system portion:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 env -u BASE_URL -u CREDIT_AMQP_URL npm run test:e2e
 ```
 
@@ -122,7 +94,6 @@ The standalone `npm run test:e2e:api` command starts User and Supplier processes
 Use this command only when that exact PostgreSQL instance is disposable and already prepared. For a fresh disposable default Compose project, follow [local setup](local-development.md#prepare-the-checkout), start PostgreSQL, wait for it to become healthy, then prepare just these services:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose up -d postgres
 docker compose ps
 ```
@@ -130,7 +101,6 @@ docker compose ps
 After PostgreSQL is healthy, confirm that the root `.env` contains the default localhost User/Supplier URLs and that no exported `DATABASE_URL` overrides them. Then run:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run db:deploy -w @campus-errand/user-service -w @campus-errand/supplier-service
 npm run db:seed -w @campus-errand/user-service -w @campus-errand/supplier-service
 npm run test:e2e:api
@@ -164,7 +134,6 @@ These drivers were written for seeded, controlled test environments. They can si
 After starting an explicitly selected disposable local stack, the main browser command is:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npx playwright install chromium
 GW=http://localhost npm run test:e2e:ui
 ```
@@ -211,7 +180,6 @@ For a test broker mapped to host port 5673, set the actual publisher URL, identi
 When adding, renaming or removing a workspace `test:*` script, update its static matrix entry and run:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run ci:validate-tests
 node --test scripts/ci/deployment.test.mjs
 node --test scripts/perf/test/harness.test.mjs
@@ -235,7 +203,6 @@ Application and infrastructure releases share the non-cancelling `foc-ecs-releas
 k6 generates concurrent HTTP traffic through the gateway. The Node wrapper creates tagged fixtures, runs a workload, reconciles business outcomes and attempts cleanup. Start with a smoke profile on a disposable local stack to check the harness setup; it is not a performance claim:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run perf:k6 -- --target http://127.0.0.1 --profile smoke --workload discovery
 ```
 

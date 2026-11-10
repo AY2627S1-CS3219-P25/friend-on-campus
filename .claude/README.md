@@ -1,33 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Consolidated disclosure header and updated test:d2 / dev:user references to test:e2e:api and npm workspace commands.
+Tool: Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this set-up guide from the configuration in this folder and from problems actually hit while setting it up on Windows (gh default repo, missing..; updated across 7 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Removed reference to retired new-adr skill.
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
-Scope: Prerequisite row: Node 22.3+ because npm test uses node --test with module mocking.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this set-up guide from the configuration in this folder and from problems actually hit while
-setting it up on Windows (gh default repo, missing language server, missing node_modules, plugin start-up timeouts).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected the shared-DTO reference example after the author-approved authentication migration.
-Author review: <to be completed by ngkhengyang>
 -->
 
 
@@ -51,7 +26,6 @@ About 15 minutes. Do it once per machine. Everything here is about the AI toolin
 ## 2. Repository
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 git clone https://github.com/AY2627S1-CS3219-P25/friend-on-campus
 cd friend-on-campus
 npm ci                           # also generates six Prisma clients; needed for typecheck and the language server

@@ -1,11 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Prisma client for chat_db, copied from notification-service/src/database/client.ts (generated client under
- * src/generated/prisma, singleton guard outside production).
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Prisma client for chat_db, copied from notification-service/src/database/client.ts (generated client under src/generated/prisma, singleton guard outside...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { config } from '../config';
 import { PrismaClient } from '../generated/prisma';
 

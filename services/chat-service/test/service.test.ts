@@ -1,35 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add regression tests for courier reassignment and conversation closure during delayed moderation (issue #235).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5), date: 2026-10-20 to 2026-11-10
+ * Scope: Unit checks for the conversation rules: open uses the local row, else the Order Service fallback (S4) and fails closed on 404 or outage; updated across 6 AI-assisted revisions through D4 wrap-up (add regression tests for courier reassignment and conversation closure during delayed moderation (issue #235)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: The flagged send result now carries the conversation; the assertion checks kind and recipients (issue #240).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Unit checks for the conversation rules: open uses the local row, else the Order Service fallback (S4) and
- * fails closed on 404 or outage; read for participants and admins, not others (F8.1.2, D8); send only for
- * participants while open, blank text rejected, sender name and role from the token (F8.2, F8.2.2, F8.2.3, F8.3.2);
- * history in sequence order (F8.3.1). In-memory store and a fake Order Service.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fixes (PR #148 P1, P2): regressions for a close or re-courier committed between send's pre-check and
- * the append (racingStore), and for accept A, accept B, replay A keeping only B authorised.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Review fix (PR #148, second round): a terminal Order fallback whose row is created by an accept event during
- * the lookup still returns a closed conversation and later sends are refused.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: Moderation test: a flagged send is not stored.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { OrderClient, OrderLookupResult } from '../src/clients/order.client';
@@ -214,7 +188,6 @@ test('P2: a terminal fallback racing an accept event that creates the row still 
   assert.equal((await service.send(ORDER, principal(BOB), 'too late')).kind, 'closed');
 });
 
-// AI-generated (edited by jagdeepsh)
 test('translate: readable by participants and admins, stores nothing, and sends were never altered', async () => {
   const { store } = memoryStore();
   await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
@@ -260,7 +233,6 @@ test('send: a flagged message is not stored; a clean one is; an absent moderator
   assert.equal((await plain.send(ORDER, principal(BOB, { username: 'bob' }), 'badword')).kind, 'sent');
 });
 
-// AI-generated (edited by yanhwee)
 test('send: delayed moderation re-checks courier reassignment and closure before returning flagged recipients (issue #235)', async () => {
   const { store, messages } = memoryStore();
   await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });

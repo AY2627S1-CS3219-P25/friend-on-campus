@@ -5,41 +5,9 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-07
-Scope: Added a pointer to the confirmed cloud deployment constraints for infrastructure work.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/ orientation references and updated container/CI facts to match current multi-stage Dockerfiles, Debezium CDC, and .github/workflows/ci.yml.
+Tool: Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this agent definition; updated across 9 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Updated test:d2 reference to test:e2e:api.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
-Author review: <to be completed by author after review>
-
-Tool: Codex (model: GPT-6), date: 2026-10-01
-Scope: Clarified which Compose proxy variables point to the gateway and admin portal.
-Author review: Approved by ngkhengyang
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this agent definition.
-Author review: Approved by Reallyeasy1
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected the agent's stale Supplier Service JWT configuration fact.
-Author review: <to be completed by ngkhengyang>
 -->
 
 

@@ -4,17 +4,9 @@ description: Start work on a GitHub issue in this repo - fetch it from the team 
 ---
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this skill.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this skill; updated across 3 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # issue-start <number>

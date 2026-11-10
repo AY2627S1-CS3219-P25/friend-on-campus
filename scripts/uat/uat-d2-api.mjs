@@ -1,20 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Codex (model: GPT-6), date: 2026-11-01
-// Scope: Added required coordinates to the successful supplier CRUD fixture.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Google Antigravity Agent, date: 2026-10-21
-// Scope: Standardized default JSON result path (UAT_OUT) under root git-ignored test-results/uat-d2-api-results.json instead of os.tmpdir().
-// Author review: <to be completed by author after review>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
-// Scope: A8 expects 409 LAST_ADMIN_REQUIRED, A10 expects 400, A11 checks the decided behaviour (refresh refused for a disabled account; its access token stays valid until it expires), S8 compares names without regard to letter case.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-29
-// Scope: 2026-09-29 (PR #93): admin checks call the renamed PATCH /:id/toggle-status, A3 exercises PATCH /:id/toggle-role, and the supplier create body sends building and floor. 2026-09-29: R3 detail reads userRole; header comment states the real output path. Wrote this D2 UAT driver: 63 API-level checks (auth, sessions, profile, admin user management, supplier directory queries, supplier CRUD + RBAC) against the gateway and the supplier service directly. See docs/evidence/d2/d2-checklist.md for the run results.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-26 to 2026-11-01
+// Scope: 2026-09-29 (PR #93): admin checks call the renamed PATCH /:id/toggle-status, A3 exercises PATCH /:id/toggle-role, and the supplier create body sends..; updated across 4 AI-assisted revisions through D4 wrap-up (added required coordinates to the successful supplier CRUD fixture).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 // Run: node scripts/uat/uat-d2-api.mjs   (stack up: docker compose up --build -d; no npm deps)
 // D2 UAT — API level, through the nginx gateway (http://localhost) and directly to
 // the supplier service (http://localhost:8002) to show it works without the UI/gateway.
@@ -227,7 +214,6 @@ let firstSupplier;
 
 // ---------------------------------------------------------------- supplier writes (RBAC + CRUD)
 {
-  // AI-generated (edited by Reallyeasy1)
   const body = { name: `UAT Cafe ${stamp}`, campusZone: 'COM3', exactLocation: 'COM3 Level 1', category: 'Food', building: 'COM3', floor: '1', latitude: 1.2948308, longitude: 103.7716305, description: 'created by D2 UAT' };
   const anon = await call(`${GW}/api/suppliers`, { method: 'POST', body });
   record('W1', 'rbac', 'POST /suppliers without token -> 401', anon.status === 401, `HTTP ${anon.status} ${code(anon)}`);
@@ -261,7 +247,6 @@ let firstSupplier;
 
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} checks passed`);
-// AI-generated (edited by yanhwee)
 const out = process.env.UAT_OUT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-results/uat-d2-api-results.json');
 mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));

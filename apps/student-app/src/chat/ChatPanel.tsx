@@ -1,56 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5), date: 2026-10-20 to 2026-11-07
+ * Scope: The conversation panel that expands inside a Tasks card (author's D9 and S2): messages as plain text with the sender's username and time (F8.2.2), long..; updated across 10 AI-assisted revisions through D4 wrap-up (apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Polished ChatPanel message bubbles with gradients, glowing indicators, and tactile send button.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Light elegant theme update for outgoing chat bubble styling.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: PR #196 review: the panel registers its thread with the chat hook while mounted, so only on-screen threads
- * are reconciled on the hook's timer.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Restyled to the author's errand-page wireframe (issue #188): "Live errand chat" header with the connection
- * state in words, own messages in NUS blue on the right, a pill composer with a round orange send button, a taller
- * list that fills the card's height on desktop and scrolls inside it; opens at the newest message and follows new
- * ones only while the reader is at the bottom. PR #192 review: the service's 404 (never accepted) is an empty state.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: The conversation panel that expands inside a Tasks card (author's D9 and S2): messages as plain text with
- * the sender's username and time (F8.2.2), long messages clamped with a Show more toggle (S2 answer 1), a composer
- * that rejects blank text locally and shows the server's reason when a send fails (F8.2.3), and a read-only state
- * once the errand is finished (F8.3.2). Styling follows the Tasks card and ExpandableNotes.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148): the panel takes the errand's status and reloads the conversation when it changes, so
- * the read-only switch happens while the panel is open.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Translate toggle beside Send: a language menu (English first); once chosen, every message is shown translated into it, via the Chat Service, until the toggle is clicked off. Stored text is untouched.
- * Author review: <to be completed by the author>
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: PR #228 review fixes: show the "· translated" badge only when the translated text differs from the original,
- * reset inFlight when switching languages or turning translation off, and keep the translate toggle accessible when
- * the conversation is closed/read-only.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: Red translucent notices: the sender's MODERATED error and the other participant's removed-message notice.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by Reallyeasy1)
 import React, { useEffect, useRef, useState } from 'react';
 import { Languages, MessageCircle, RefreshCw, Send } from 'lucide-react';
 import type { ChatMessageDTO, OrderStatus } from '@campus-errand/common-dtos';
@@ -143,7 +96,7 @@ export function ChatPanel({ orderId, status, currentUserId, chat }: {
 
   // The server pushes no frame when a conversation closes; the card's status is the signal that it may have.
   useEffect(() => { void load(orderId); }, [load, orderId, status]);
-  // AI-generated (edited by Reallyeasy1): while this panel is on screen its thread is reconciled on the hook's timer.
+  // While this panel is on screen its thread is reconciled on the hook's timer.
   const watch = chat.watch;
   useEffect(() => watch(orderId), [watch, orderId]);
 

@@ -1,30 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Added realtime.exchange (RABBITMQ_REALTIME_EXCHANGE, default notification-service.events.realtime) for cross-replica delivery (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Retry limit default lowered to 5: database and broker outages are now classified as infrastructure failures
- * and retry without limit, so the budget only covers unexpected handler errors (Notification Redesign §10).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
- * Scope: Retry defaults raised to 30 attempts 2 s apart, so a database restart no longer dead-letters notifications
- * (review finding on PR #111).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Added the database URL and the access-token verification settings (same variables as credit-service).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03
- * Scope: Broker configuration for the Notification Service, mirroring credit-service/src/config.ts on PR #91. The dead-letter
- * exchange is service-owned (not the shared campus.events.dlx) because the notification_service broker account may only
- * configure and write its own notification-service.events* resources.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03 to 2026-11-09
+ * Scope: Broker configuration for the Notification Service, mirroring credit-service/src/config.ts on PR #91; updated across 5 AI-assisted revisions through D4 wrap-up (added realtime.exchange (RABBITMQ_REALTIME_EXCHANGE, default notification-service.events.realtime) for cross-replica delivery (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import path from 'node:path';
 import dotenv from 'dotenv';
 

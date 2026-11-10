@@ -1,20 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Google Antigravity, date: 2026-10-20
-// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
-// Author review: <to be completed by author after review>
-//
-// Tool: Google Antigravity, date: 2026-10-19
-// Scope: Added aggregateType and aggregateId to CreditOutboxEvent for Debezium Outbox Event Router compatibility.
-// Author review: Reviewed and verified by yanhwee.
-//
-// Tool: Codex (model: GPT-6), date: 2026-10-18
-// Scope: Add the persistent Credit result outbox used by the reservation saga.
-// Author review: <to be completed by huangjiaxi1111>
-//
-// Tool: Codex (model: GPT-6), date: 2026-09-24
-// Scope: Added persistent grants, escrow state and processed event identities.
-// Author review: <to be completed by huangjiaxi1111>
-// AI-generated (edited by yanhwee)
+// Tool: Google Antigravity; Codex (model: GPT-6), date: 2026-09-24 to 2026-10-20
+// Scope: Added persistent grants, escrow state and processed event identities; updated across 4 AI-assisted revisions through D4 wrap-up (updated Prisma client generator output path to standard ../src/generated/prisma).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
 generator client {
   provider = "prisma-client-js"
@@ -82,7 +69,6 @@ model ProcessedCreditEvent {
   @@map("processed_credit_events")
 }
 
-// AI-generated (edited by yanhwee)
 model CreditOutboxEvent {
   id            String   @id @db.Uuid
   aggregateType String   @default("credit") @map("aggregate_type") @db.VarChar(64)

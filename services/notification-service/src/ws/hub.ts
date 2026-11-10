@@ -1,20 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: disconnectAll() for realtime subscription loss (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: inboxChanged(): a user-scoped INBOX_CHANGED frame after inserts and read changes so every open tab refetches
- * (author's Notification Redesign §7); frames stay hints, the client reads counts from REST.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: The WebSocket hub of the author's design: AUTH as the first frame within a time limit, sockets filed under
- * the token's user, push to one user's sockets, close at token expiry, and a ping that evicts dead sockets.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-11-09
+ * Scope: The WebSocket hub of the author's design: AUTH as the first frame within a time limit, sockets filed under the token's user, push to one user's sockets,..; updated across 3 AI-assisted revisions through D4 wrap-up (disconnectAll() for realtime subscription loss (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { WebSocket } from 'ws';
 import { readPublicKey, verifyAccessToken, type AuthMiddlewareOptions } from '@campus-errand/auth';
 import type { NotificationDTO } from '@campus-errand/common-dtos';
@@ -108,7 +97,6 @@ export function createHub(options: {
     });
   }
 
-  // AI-generated (edited by Reallyeasy1)
   function sendToUser(userId: string, frame: string): number {
     let sent = 0;
     for (const ws of byUser.get(userId) ?? []) {

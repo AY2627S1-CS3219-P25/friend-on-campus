@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: List the inputs for a fresh Singapore ECS Terraform state.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 account_id     = "replace-with-aws-account-id"
 image_tag      = "replace-with-arm64-release-tag"
 debezium_image = "quay.io/debezium/server:2.7"

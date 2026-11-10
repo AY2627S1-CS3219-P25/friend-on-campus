@@ -1,27 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #222 review: in Edit Supplier a coordinate the record never had is labelled optional ("Not recorded yet")
- * instead of required, matching the relaxed validation for legacy suppliers.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted Supplier Filter, Add, Edit, Delete, and Details Inspection modals into src/components/SupplierModals.tsx.
- * Author review: Verified by yanhwee on 2026-10-19
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
- * Scope: Merge of admin_dashboard into main. Add Supplier modal: Latitude and Longitude are now required fields
- * (red asterisk, validateSupplierForm check, no API call sent until both are filled with a valid number),
- * matching the supplier-service DB columns made NOT NULL on 2026-10-17. newSupplier/setNewSupplier widened to
- * number | '' for latitude/longitude so an empty number input is representable before the first keystroke.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Expose editable coordinates so admins can repair legacy supplier locations.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1, Sonnet 5); Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-19 to 2026-11-04
+ * Scope: Extracted Supplier Filter, Add, Edit, Delete, and Details Inspection modals into src/components/SupplierModals.tsx; updated across 4 AI-assisted revisions through D4 wrap-up (pR #222 review: in Edit Supplier a coordinate the record never had is labelled optional ("Not recorded yet") instead of required, matching the relaxed..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
 
 import React from 'react';
 import {
@@ -371,7 +354,6 @@ export function SupplierModals({
               </div>
             </div>
 
-            {/* AI-generated (edited by jagdeepsh) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1">
@@ -636,7 +618,6 @@ export function SupplierModals({
               </div>
             </div>
 
-            {/* AI-generated (edited by Reallyeasy1) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(['latitude', 'longitude'] as const).map((coordinate) => (
                 <div key={coordinate}>

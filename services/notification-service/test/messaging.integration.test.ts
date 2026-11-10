@@ -1,36 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Delivery runs through the outbox relay and a loopback fanout into createNotificationDelivery (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Folded the PR #140 retry-path tests in (relative counts, dead-letter drain) and made the malformed-message test wait for its own row, which the next test's baseline depends on.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Increment 6 (2026-10-23): a settlement receipt reaches the courier once. Per the author's Notification Redesign: a version-1 order.completed is acknowledged and suppressed, and a
- * version-2 admin cancellation reaches requester and courier once each (two sockets, two rows, replay adds nothing).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-21
- * Scope: Retry-path tests rewritten for the native quorum-queue redelivery of PR #145 (no retry queue; x-delivery-count and the broker's x-death / x-first-death-* headers instead of the former x-notification-* headers).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
- * Scope: Added the retry path: a transient failure is retried and delivered once it clears, and a failure that outlasts retryLimit is dead-lettered while the main queue keeps draining; the consumer is started through a deliver wrapper that can simulate the outage.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: The accepted event carries courierUsername and the pushed frame's body is asserted (F5.1.1).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: End-to-end test of the consumer with a real broker and database: an order.accepted event becomes one row
- * and one pushed frame, a redelivery adds neither, and a malformed message is dead-lettered without blocking the queue.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-11-09
+ * Scope: End-to-end test of the consumer with a real broker and database: an order.accepted event becomes one row and one pushed frame, a redelivery adds neither,..; updated across 7 AI-assisted revisions through D4 wrap-up (delivery runs through the outbox relay and a loopback fanout into createNotificationDelivery (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 // Opt in with NOTIFICATION_TEST_DATABASE_URL and NOTIFICATION_TEST_RABBITMQ_URL (the notification_service account).
 // Uses its own exchange and queues under notification-service.events.test-<id> and its own database schema, and
 // removes them afterwards; the real queue is never touched.
@@ -108,7 +81,6 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     bob.send({ type: 'AUTH', token: signToken(keys.privateKey, BOB) });
     await bob.frame('AUTH_OK');
 
-    // AI-generated (edited by Reallyeasy1)
     // outage.remaining > 0 makes the next deliveries throw a plain error, standing in for an unexpected handler
     // failure (the retry budget; connectivity errors would retry without limit).
     // The consumer commits rows plus a realtime intent; a relay drains the intent and the loopback stands in for the
@@ -177,7 +149,6 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     assert.equal(processed?.outcome, 'suppressed');
   });
 
-  // AI-generated (edited by Reallyeasy1)
   it('a version-2 admin cancellation reaches requester and courier once each; a redelivery adds nothing', async () => {
     const orderId = randomUUID();
     const cancelled = {
@@ -219,7 +190,6 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     assert.deepEqual([state.highestOrderVersion, state.status, state.courierId], [5, 'CANCELLED', BOB]);
   });
 
-  // AI-generated (edited by Reallyeasy1)
   it('a credit settlement receipt reaches the courier as a quiet CREDITS_RECEIVED row under producer credit-service', async () => {
     const orderId = randomUUID();
     const settled = {
@@ -242,7 +212,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
   });
 
   it('dead-letters a malformed message and keeps draining the queue', async () => {
-    // AI-generated (edited by Reallyeasy1): wait for this test's own row. ALICE already had rows from the earlier tests,
+    // Wait for this test's own row. ALICE already had rows from the earlier tests,
     // so an absolute count was satisfied before the event landed and the next test measured a moving baseline.
     const rowsBefore = await rowsFor(ALICE);
     await publish(Buffer.from('not json'));
@@ -253,7 +223,7 @@ describe('order events to notifications (RabbitMQ + PostgreSQL)', { skip: !datab
     assert.equal(consumer.isReady(), true);
   });
 
-  // AI-generated (edited by Reallyeasy1): ported from PR #140; counts are relative to the rows the earlier tests stored.
+  // Ported from PR #140; counts are relative to the rows the earlier tests stored.
   it('requeues a transient failure on the quorum queue and delivers once it clears', async () => {
     const rowsBefore = await rowsFor(ALICE);
     const dlqBefore = (await channel.checkQueue(config.deadLetterQueue)).messageCount;

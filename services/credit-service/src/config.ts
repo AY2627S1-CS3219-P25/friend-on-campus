@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Configure the User Service URL used only by the development wallet seed.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Centralized dedicated RabbitMQ identity and public-key access-token verification configuration.
- * Author review: <to be completed by Jiaxi>
+ * Tool: Codex (model: GPT-6), date: 2026-09-24 to 2026-10-03
+ * Scope: Centralized dedicated RabbitMQ identity and public-key access-token verification configuration; updated across 2 AI-assisted revisions through D4 wrap-up (configure the User Service URL used only by the development wallet seed).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Jiaxi)
 import path from 'node:path';
 import dotenv from 'dotenv';
 

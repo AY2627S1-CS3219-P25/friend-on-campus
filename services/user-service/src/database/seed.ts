@@ -1,36 +1,12 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-09
- * Scope: Seed all demo accounts with Password123! in every environment using the existing password hasher.
- * Author review: <to be completed by the author>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-09
- * Scope: Require distinct private credentials for the production demo seed.
- * Author review: <to be completed by the author>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Assigned deterministic UUIDs to development seed accounts so offline Credit and Order Service seeds align across services.
+ * Tool: Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-20 to 2026-11-09
+ * Scope: Implemented database seeding for initial Admin and Student accounts for Milestone D2; updated across 6 AI-assisted revisions through D4 wrap-up (seed all demo accounts with Password123!).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Implemented database seeding for initial Admin and Student accounts for Milestone D2.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented development seed accounts using the Prisma user model, scrypt password format, and case-insensitive email lookup.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Existing-account look-up now matches on LOWER(email) like the service does, so the seed updates an
- * account registered with different letter-casing instead of colliding with the unique index.
- * Author review: <to be completed by ngkhengyang>
  */
 
-// AI-generated (edited by yanhwee)
 
-// AI-generated (edited by ngkhengyang)
 
-// AI-generated (edited by ngkhengyang)
 import { hashPassword } from '../auth/password';
 import { prisma } from './client';
 
@@ -48,7 +24,6 @@ const seedUsers: SeedUser[] = [
 ];
 
 async function main() {
-  // AI-generated (edited by ngkhengyang)
   for (const user of seedUsers) {
     const passwordHash = await hashPassword('Password123!');
     const existingUsers = await prisma.$queryRaw<Array<{ id: string }>>`

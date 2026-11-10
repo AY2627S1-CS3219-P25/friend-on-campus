@@ -1,19 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Handled non-JSON / 502 Bad Gateway responses gracefully in handleAdminLogin.
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity Agent, date: 2026-10-19 to 2026-10-24
+ * Scope: Extracted admin authentication, token refresh, and authFetch session hook into src/hooks/useAdminAuth.ts; updated across 3 AI-assisted revisions through D4 wrap-up (lint fix (PR #184): catch clauses take the default unknown and narrow with instanceof Error instead of any).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted admin authentication, token refresh, and authFetch session hook into src/hooks/useAdminAuth.ts.
- * Author review: Verified by yanhwee on 2026-10-19
  */
 
-// AI-generated (edited by yanhwee)
 
 import React, { useEffect, useRef, useState } from 'react';
 import { adminLoginApi, adminLogoutApi, adminRefreshTokenApi } from '../api/auth';

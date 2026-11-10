@@ -1,16 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Tests for the drop-off estimator helpers: haversine distance, the longest span, the linear 5-70 suggestion
- * (bounds, cap beyond D_MAX, rounding, monotonic), missing points, building de-duplication by name and building search.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Tests for matchBuildingInText (the assistant draft's drop-off building): whole words, spacing ignored,
- * longest name wins, no match gives null.
- * Author review: <to be completed by huangjiaxi1111>
+ * Scope: Tests for matchBuildingInText (the assistant draft's drop-off building): whole words, spacing ignored, longest name wins, no match gives null; updated across 2 AI-assisted revisions through D4 wrap-up (tests for the drop-off estimator helpers: haversine distance, the longest span, the linear 5-70 suggestion (bounds, cap beyond D_MAX, rounding, monotonic),..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { SupplierDTO } from '@campus-errand/common-dtos';

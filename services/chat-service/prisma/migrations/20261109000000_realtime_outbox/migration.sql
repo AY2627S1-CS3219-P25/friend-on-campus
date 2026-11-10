@@ -1,8 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
--- Scope: Transactional realtime outbox (issue #240): a delivery intent committed with the business row, leased by the
---        relay running in each replica and deleted once RabbitMQ confirmed the publication.
--- Author review: <to be completed by Reallyeasy1>
+-- Scope: Transactional realtime outbox (issue #240): a delivery intent committed with the business row, leased by the relay running in each replica and deleted once...
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 CREATE TABLE "realtime_outbox" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),

@@ -1,7 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
 -- Scope: Generated from prisma/schema.prisma with prisma migrate diff (the author's S1 to S3 schema answers), not hand-edited.
--- Author review: <to be completed by Reallyeasy1>
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";

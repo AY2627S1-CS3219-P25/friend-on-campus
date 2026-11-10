@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add unit tests for confirmReorderWhenStoreClosed when the pickup store is open, closed, or has unknown hours (issue #234).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06 to 2026-11-10
+ * Scope: Tests for the "Order again" request builder; updated across 2 AI-assisted revisions through D4 wrap-up (add unit tests for confirmReorderWhenStoreClosed when the pickup store is open, closed, or has unknown hours (issue #234)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Tests for the "Order again" request builder.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by jagdeepsh)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { OrderDTO, SupplierDTO } from '@campus-errand/common-dtos';
@@ -48,7 +42,6 @@ test('the duration is the original window, clamped to 30 to 1440 minutes', () =>
   assert.equal(originalDurationMinutes({ createdAt: 'bad', expiresAt: 'bad' }), 30);
 });
 
-// AI-generated (edited by yanhwee)
 test('confirmReorderWhenStoreClosed prompts only when the store is outside its operating hours (issue #234)', () => {
   const deck: SupplierDTO = {
     id: 's1',

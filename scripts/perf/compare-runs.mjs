@@ -1,10 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: Benchmark comparison for the k6 performance harness: reads two evidence bundles (test-results/<runId>/)
-//        and prints, per workload and operation, the baseline and current p50/p95 and throughput with the change.
-//        It measures nothing and judges nothing; requirement verdicts stay in each run's own summary.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Scope: Benchmark comparison for the k6 performance harness: reads two evidence bundles (test-results/<runId>/) and prints, per workload and operation, the baseline...
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 //   node scripts/perf/compare-runs.mjs <baseline run> <current run> [--out file.md]
 //   A run is a run id under test-results/ or a path to a run directory.

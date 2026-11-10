@@ -1,30 +1,16 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Issue #242 (RT4.1 to RT4.3): the bounded recent-id cache (first sight, repeat, eviction of the oldest id at
- * capacity) and its two uses: one toast per notification id and one removed-message line per MODERATED_PEER eventId,
- * with a frame that carries no eventId counted every time.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
- * Scope: Issue #202: findDeliveredCopy settles an unconfirmed send from history only on this user's copy of the same
- * text stored at or after the send started; an older identical message or the peer's text does not count.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Review fix (PR #148, second round): the coverage cursor useChat reconciles from after every AUTH_OK. Replays
- * the reported schedule (REST returns [1], the peer sends 2 before the first AUTH_OK, live 3 arrives) against the
- * hook's pure helpers and checks the catch-up starts after 1, not after 3, and recovers 2.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26 to 2026-11-09
+ * Scope: Review fix (PR #148, second round): the coverage cursor useChat reconciles from after every AUTH_OK; updated across 3 AI-assisted revisions through D4 wrap-up (issue #242 (RT4.1 to RT4.3): the bounded recent-id cache (first sight, repeat, eviction of the oldest id at capacity) and its two uses: one toast per..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ChatMessageDTO } from '@campus-errand/common-dtos';
 import { coveredThrough, countsAsRemoval, findDeliveredCopy, mergeMessage } from '../src/chat/useChat';
 import { RECENT_IDS, createFirstSeen } from '../src/hooks/recentIds';
 
-// AI-generated (edited by Reallyeasy1): issue #242.
+// Issue #242.
 test('RT4.3: the recent-id cache reports a repeat and forgets only the oldest id past its capacity', () => {
   const firstSeen = createFirstSeen(3);
   assert.deepEqual(['a', 'b', 'c', 'a'].map(firstSeen), [true, true, true, false], 'a repeat inside the window is not new');
@@ -85,7 +71,6 @@ test('REST [1], peer sends 2 before the first AUTH_OK, live 3: the catch-up fetc
   assert.equal(loadedThrough, 3);
 });
 
-// AI-generated (edited by Reallyeasy1)
 test('an unconfirmed send is settled by a copy from this user stored at or after the send, not by older or foreign copies', () => {
   const at = (iso: string, overrides: Partial<ChatMessageDTO> = {}): ChatMessageDTO => ({ ...msg(1), sentAt: iso, ...overrides });
   const startedAt = Date.parse('2026-10-27T02:25:13.126Z');

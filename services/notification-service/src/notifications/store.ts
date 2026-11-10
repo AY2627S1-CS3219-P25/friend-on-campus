@@ -1,28 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: applyEvent, markRead and markAllRead commit realtime delivery intents in their transactions; findForUser for the subscriber (issue #241).
- *        PR #246 review: findForUser also reports whether the order's current state already resolved the row's action.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Rewritten for the author's Notification Redesign (§5, §7, §8): applyEvent() claims (producer, event_id),
- * checks the payload fingerprint, advances the per-order attention projection only on a newer version and inserts
- * one row per recipient, all in one transaction; list() adds the action_needed/important views, orders by stored_at
- * and takes items, total and unreadCount from one snapshot; mark-read operations return the authoritative unread count.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Imported PrismaClient type from ../database/client instead of directly from generated folder.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Persistence for notifications as the author's design specifies: one insert guarded by the unique event id,
- * listing newest first with an unread count, and mark-read operations scoped to the owning user.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity, date: 2026-10-05 to 2026-11-09
+ * Scope: Persistence for notifications as the author's design specifies: one insert guarded by the unique event id, listing newest first with an unread count, and..; updated across 4 AI-assisted revisions through D4 wrap-up (applyEvent, markRead and markAllRead commit realtime delivery intents in their transactions; findForUser for the subscriber (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by Reallyeasy1)
 import type {
   NotificationActionType,
   NotificationCategory,

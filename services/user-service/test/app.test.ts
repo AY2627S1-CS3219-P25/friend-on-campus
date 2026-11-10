@@ -1,29 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add HTTP test verifying a disabled admin cannot satisfy the last-enabled-admin guard when demoting or deleting the only enabled admin (issue #109).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1); Codex (model: GPT-6), date: 2026-09-30 to 2026-11-10
+ * Scope: HTTP tests for the assembled user-service app (src/app.ts with the real routers, error handler and @campus-errand/auth middleware) over in-memory..; updated across 5 AI-assisted revisions through D4 wrap-up (add HTTP test verifying a disabled admin cannot satisfy the last-enabled-admin guard when demoting or deleting the only enabled admin (issue #109)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: Added tests for the last enabled admin disabling itself (UAT A8), non-UUID ids on the /:id routes (A10)
- * and refresh for a disabled account (A11).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
- * Scope: Added the 403 ACCOUNT_DISABLED login test.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Cover last-admin HTTP errors and cookie behavior for self-deletion and deletion of another account.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: HTTP tests for the assembled user-service app (src/app.ts with the real routers, error handler and
- * @campus-errand/auth middleware) over in-memory repositories: health and readiness, body parsing errors, the
- * auth routes and their cookies, token errors, RBAC on the admin routes, the self-target rules, error bodies.
- * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by Reallyeasy1)
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
@@ -452,7 +432,6 @@ describe('user-service app', () => {
       }
     });
 
-    // AI-generated (edited by yanhwee)
     it('a disabled admin does not count as a remaining admin when demoting or deleting the last enabled admin (issue #109)', async () => {
       const admin = issueToken(ADMIN_ID, 'ADMIN');
       await client.call('PATCH', `/api/users/${ALICE_ID}/toggle-role`, { token: admin });

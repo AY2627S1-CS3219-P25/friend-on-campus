@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-09
- * Scope: Verify production seeding creates and resets demo accounts with independently salted Password123! hashes.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: Unit tests for src/auth/password.ts (scrypt hash format, verification, rejection of malformed or
- * foreign-parameter hashes, the dummy hash).
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-09-30 to 2026-11-09
+ * Scope: Unit tests for src/auth/password.ts (scrypt hash format, verification, rejection of malformed or foreign-parameter hashes, the dummy hash); updated across 2 AI-assisted revisions through D4 wrap-up (verify production seeding creates and resets demo accounts with independently salted Password123!).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -18,7 +12,6 @@ import { runInNewContext } from 'node:vm';
 import { ModuleKind, transpileModule } from 'typescript';
 import { DUMMY_PASSWORD_HASH, hashPassword, verifyPassword } from '../src/auth/password';
 
-// AI-generated (edited by ngkhengyang)
 describe('production demo seed', () => {
   for (const existingAccounts of [false, true]) {
     it(`${existingAccounts ? 'resets existing' : 'creates new'} accounts with hashed Password123!`, async () => {

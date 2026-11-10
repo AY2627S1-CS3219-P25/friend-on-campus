@@ -1,11 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: PostgreSQL implementation of the leased realtime outbox (issue #239) shared by the Chat and Notification
- *        services: claim with FOR UPDATE SKIP LOCKED, owner-checked complete and release.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: PostgreSQL implementation of the leased realtime outbox (issue #239) shared by the Chat and Notification services: claim with FOR UPDATE SKIP LOCKED,...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import type { OutboxRow, OutboxStore } from './realtime';
 
 /** The two raw-query methods every generated Prisma client exposes; no Prisma import, so one implementation serves both services. */

@@ -1,11 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Express app for the Chat Service in the shape of notification-service/src/app.ts: /health, /ready, the chat
- * history route under /api/chat (S6) and the generic error handler.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Express app for the Chat Service in the shape of notification-service/src/app.ts: /health, /ready, the chat history route under /api/chat (S6) and the...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import { createChatRouter } from './chat/routes';

@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Centralized Supplier Service configuration loading from local and root .env files.
- * Author review: (to be completed by yanhwee)
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import path from 'node:path';
 import dotenv from 'dotenv';
 

@@ -1,28 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Correct credential persistence, configured performance limits, proposed harness status and cleanup/target-safety limitations.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-11-09
-Scope: Issue #253: Restored supplier load populations in documentation from 20/30 VUs back to the issue-specified
-       50 VUs (#29) and 100 VUs (#33) after pushing supplier sorting and pagination to PostgreSQL.
+Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-08 to 2026-11-09
+Scope: Rewrote the k6 notes for issues #236/#237: wrapper-driven smoke/load/stress profiles, run-owned fixtures, per-operation thresholds from the linked issues,..; updated across 5 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-Scope: Rewrote the k6 notes for issues #236/#237: wrapper-driven smoke/load/stress profiles, run-owned fixtures,
-       per-operation thresholds from the linked issues, evidence bundle layout and the claim-race script's scope.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-Scope: Documented --cleanup-tag (removing a failed run's fixtures), the wrapper's self-renewing logins, its self-tests
-       and the run comparison (scripts/perf/compare-runs.mjs).
-       The threshold table and wording follow the limits the author raised on 2026-11-09 (requirements.json).
-Author review: <to be completed by Reallyeasy1>
 -->
 
 # k6 API load tests

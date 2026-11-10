@@ -1,17 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: The NUS building list behind the drop-off picker (author's decisions D10: static snapshot, D13: records
- * sharing a name are merged and the first record's coordinates kept), the building search, and D_MAX computed once
- * from the merged list.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: matchBuildingInText finds the building named in free text (the assistant draft's drop-off), ignoring case,
- * punctuation and spacing ("LT27" = "LT 27"); the longest matching name wins, and no match gives null.
- * Author review: <to be completed by huangjiaxi1111>
+ * Scope: matchBuildingInText finds the building named in free text (the assistant draft's drop-off), ignoring case, punctuation and spacing ("LT27" = "LT 27"); the..; updated across 2 AI-assisted revisions through D4 wrap-up (the NUS building list behind the drop-off picker (author's decisions D10: static snapshot, D13: records sharing a name are merged and the first record's..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import { longestSpanKm } from './creditEstimate';
 import { NUS_BUILDING_RECORDS } from './nusBuildingsData';
 

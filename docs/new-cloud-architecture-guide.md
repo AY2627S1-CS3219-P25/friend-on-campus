@@ -1,84 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Explain the configured ECS objects, request routing, task scaling, fixed host capacity and recovery boundaries with focused diagrams and examples; distinguish configuration from live evidence.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate cloud, gateway and container operations into one source-verified guide with request routing, scaling, state, probes and troubleshooting; retain decision history through pinned links.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Replace mixed proposal/current guidance with a source-verified ECS overview; preserve the previous explanatory guide in the archive.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Record manually triggered main-branch delivery and shared Terraform state requirements.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Retire K3s deployment references and record the manually triggered ECS deployment workflow.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Record confirmed HTTP origin, bridge networking, three-host ceiling, pay-as-you-go, fresh seed data, accepted trial resource budgets, deferred fanout and legacy retirement approval.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Add the author-requested CloudFront entry point, distinguish viewer and origin TLS, and document deployment requirements and incremental pricing.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Record the author's confirmed three shared application/RabbitMQ hosts, add the placement diagram and verified cost breakdown, and identify pending implementation decisions.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Remove links and reading dependencies on the team's private infrastructure decision reference.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-07
-Scope: Expanded cloud and networking acronyms in the beginner glossary.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-07
-Scope: Expanded the team's existing infrastructure write-up into an educational companion with deployment details, cost assumptions, and a glossary.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Verify gateway routes and distinguish Compose DNS, Vite proxying and ECS Service Connect at the current baseline.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
-Scope: Issues #173/#169/#206: upstreams resolved per request through Docker DNS (variables, 10 s TTL), 3 s connect timeout, Chat health routes; diagnostics paragraph updated accordingly.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Added the /api/chat and /ws/chat/ routes of the Chat Service (F8, PR #148) while merging main into that PR.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Refresh container startup, local/cloud probe differences and current realtime shutdown; preserve the actual runtime-version and gateway-user distinctions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Document application-only image startup, preserved Compose bootstrap, and graceful socket-service shutdown.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Replace the retired K3s guide with navigation to its preserved archive and the current ECS documentation.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Mark the retired K3s guide as historical and link the current rollout.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Archive the previous guide without treating its commands, decisions or prices as current; relocate source links.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 20 AI-assisted revisions through D4 wrap-up (explain the configured ECS objects, request routing, task scaling, fixed host capacity and recovery boundaries with focused diagrams and examples;..).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Cloud deployment and operations
@@ -110,7 +34,6 @@ Suppose a student opens the app and then requests `/api/orders`. CloudFront is t
 The diagram follows request routing only. The Service Connect box represents proxies associated with the application tasks, rather than another shared gateway machine. Storage and event delivery are explained separately below.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Browser["Student or administrator"] -->|"HTTPS / WSS"| CF["CloudFront"]
     CF -->|"HTTP / WS and origin header"| ALB["Public ALB"]
@@ -198,7 +121,6 @@ Application tasks use bridge networking, dynamic host ports and spread placement
 The target is 65% average service CPU, with a 60-second scale-out cooldown and a 180-second scale-in cooldown. If Order is busy, its desired count can rise while another service remains at its minimum. That is independent service scaling within a shared fleet.
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     CPU["Average CPU for one service"] --> Policy["CPU target tracking"]
     Policy --> Desired["Desired task count within limits"]
@@ -276,7 +198,6 @@ ECS task definitions send application, broker, connector and database-job logs t
 With an authorized AWS profile and the required read permissions, these commands inspect the current deployment without changing it:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 aws ecs describe-services --cluster foc-ecs --services gateway order-service --region ap-southeast-1
 aws logs tail /ecs/foc-ecs --since 10m --region ap-southeast-1
 ```

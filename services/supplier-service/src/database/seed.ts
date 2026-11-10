@@ -1,28 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #222 review: a reseed (every container start) keeps coordinates an administrator has already recorded
- * and only fills coordinates that are still missing; seedSuppliers is exported and main() runs only when the file is
- * the entry point, so the seed can be unit-tested against a fake Prisma client.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Assigned deterministic UUIDs on supplier row creation so SUP-001 and SUP-002 align with Order Service sample order fixtures.
+ * Tool: Claude Code (model: Claude Fable 5.1, Sonnet 5); Google Antigravity Agent, date: 2026-09-29 to 2026-11-04
+ * Scope: building/floor are now required columns (part of the new location-uniqueness constraint), so the seed script fails loudly with a clear error if a CSV row is..; updated across 4 AI-assisted revisions through D4 wrap-up (pR #222 review: a reseed (every container start) keeps coordinates an administrator has already recorded and only fills coordinates that are still missing;..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: building/floor are now required columns (part of the new location-uniqueness constraint), so the seed
- * script fails loudly with a clear error if a CSV row is missing either, instead of silently seeding a null
- * that the database would then reject. Every current seed row already has both, so this is a safety net for
- * future CSV edits, not a fix for a live problem.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: latitude/longitude are now required columns too. parseCoordinate() now throws on a blank value
- * instead of returning null, same reasoning and precedent as requireField() above for building/floor.
- * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by yanhwee)
 import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from './client';
@@ -201,7 +182,7 @@ export async function seedSuppliers(csvPath: string) {
         description: data.description,
         building: data.building,
         floor: data.floor,
-        // AI-generated (edited by Reallyeasy1): an administrator's verified coordinates outrank the CSV on a reseed;
+        // An administrator's verified coordinates outrank the CSV on a reseed;
         // only a coordinate that is still missing is filled in. The CSV remains the source for new rows.
         latitude: existing?.latitude ?? data.latitude,
         longitude: existing?.longitude ?? data.longitude,

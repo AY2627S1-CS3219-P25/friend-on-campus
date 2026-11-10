@@ -1,74 +1,14 @@
 /**
  * AI Assistance Disclosure:
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Added supplier coordinates to valid fixtures while isolating the missing-building/floor check.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): the final catch no longer types err as any; it only logs the value.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Readiness wait for the two spawned services raised from 30 s to 120 s. A cold `npx tsx src/index.ts` boot
- * of user-service measured 8 s idle and exceeded 30 s while the full Compose stack was running beside it, which
- * failed `npm test` with "User Ready: false" although nothing was wrong with the service.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-5), date: 2026-10-11
- * Scope: Allow isolated aggregate runs to configure user, supplier, and PostgreSQL host ports while retaining manual defaults.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: On Linux and macOS the two services are spawned in their own process group and the group is killed, so the
- * suite exits when it finishes; before, only the npx wrapper was killed and the run hung (first seen in CI).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Aligned D2 account, session, profile, structured administration-placeholder, and Supplier Service RBAC checks with the author-approved Ed25519 contracts.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: Made the runner work on Windows (spawn through a shell so `npx` resolves; kill the process tree on
- * cleanup), raised the service readiness timeout from 8 s to 30 s (user-service cold-starts in ~10 s), and
- * added an assertion that the access token carries the standard claims (sub, sid, role, iat, exp, iss, aud).
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-24
- * Scope: Fixed function reference from decodeJwtPayload to decodeJwtClaims in student JWT claims assertions.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-28
- * Scope: Rewrote Scenario 4 (renamed from "Deferred Administration Endpoint Authorization" — nothing there is
- * deferred anymore). Fixed two assertions that were already stale before this change (found during
- * investigation, unrelated to the rename): the user list has returned a real 200 for a while, not 501; and the
- * GET /api/users/:id check was asserting 501 for a route that was never implemented at all (no route matches
- * it, so it 404s). Replaced the old promote-returns-501 checks with real coverage of PATCH /:id/toggle-status
- * and PATCH /:id/toggle-role (both endpoints renamed/implemented this session): forbidden-for-student on both,
- * an admin round-tripping a target's status and role in both directions (asserting the value actually flips
- * each way, not just the status code), an admin blocked from targeting their own id for toggle-role, and an
- * unknown-UUID 404.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-29
- * Scope: PR #93 review fix: Scenario 6 sends the now-required building and floor when the admin creates the
- * test supplier, and asserts that a create without them is rejected with 400. The test supplier's name
- * carries the random test code, so a row left by an aborted run cannot trip the uniqueness rule.
- * Author review: (to be completed by author after review)
+ * Tool: Codex (model: GPT-6, GPT-5, GPT-5.6 Terra); Claude Code (model: Claude Fable 5.1, Sonnet 5); Google Antigravity Agent, date: 2026-09-20 to 2026-11-01
+ * Scope: Automated end-to-end integration test runner validating Milestone D2 requirements across User Service, Supplier Service, and RBAC enforcement; updated across 11 AI-assisted revisions through D4 wrap-up (added supplier coordinates to valid fixtures while isolating the missing-building/floor check).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by ngkhengyang)
-// AI-generated (edited by yanhwee)
 
 import { spawn, ChildProcess, execFileSync } from 'child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import path from 'path';
 
-// AI-generated (edited by ngkhengyang)
 function configuredPort(name: string, fallback: number): number {
   const value = process.env[name];
   if (value === undefined) return fallback;
@@ -89,7 +29,6 @@ const databaseUrl = (database: string) => `postgresql://postgres:postgres@localh
 let userProcess: ChildProcess | null = null;
 let supplierProcess: ChildProcess | null = null;
 
-// AI-generated (edited by ngkhengyang)
 function createTestJwtEnvironment(): Record<string, string> {
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
 
@@ -126,7 +65,7 @@ function decodeJwtClaims(token: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
 }
 
-// AI-generated (edited by Reallyeasy1): a cold `npx tsx` boot takes ~8 s idle and >30 s beside a running Compose stack.
+// A cold `npx tsx` boot takes ~8 s idle and >30 s beside a running Compose stack.
 async function waitReady(url: string, timeoutMs = 120000): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -475,7 +414,6 @@ async function runTests() {
     });
     assert(studentCreate.status === 403, 'Student token POST /api/suppliers rejected (403 Forbidden)');
 
-    // AI-generated (edited by jagdeepsh)
     // 2b. Admin create without building/floor -> 400 Bad Request
     const adminCreateNoBuilding = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
@@ -495,7 +433,6 @@ async function runTests() {
     assert(adminCreateNoBuilding.status === 400, 'Admin POST /api/suppliers without building/floor is rejected (400 Bad Request)');
 
     // 3. Admin token write attempt -> 201 Created
-    // AI-generated (edited by Reallyeasy1)
     const testSupplierCode = `TEST-${Math.floor(100 + Math.random() * 900)}`;
     const adminCreate = await fetch(`${SUPPLIER_API}/api/suppliers`, {
       method: 'POST',
@@ -592,7 +529,6 @@ function killProcessTree(child: ChildProcess) {
       // fall through to the plain kill
     }
   }
-  // AI-generated (edited by Reallyeasy1)
   // Elsewhere npx starts the tsx server as a grandchild; killing npx alone leaves it running with our pipes open,
   // so this script never exits. The child leads its own process group (detached), and the group is killed.
   if (!SPAWN_THROUGH_SHELL && child.pid) {

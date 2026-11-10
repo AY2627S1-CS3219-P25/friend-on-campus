@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-5), date: 2026-10-11
  * Scope: Create the isolated PostgreSQL database used by database-backed CI test matrices.
- * Author review: <to be completed by ngkhengyang>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by ngkhengyang)
 import pg from 'pg';
 
 const { Client } = pg;

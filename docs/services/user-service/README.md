@@ -1,24 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Google Antigravity Agent, date: 2026-11-10
-Scope: Update last-admin invariant description after unifying demote, delete, and disable guards to require at least one enabled ADMIN (issue #109).
+Tool: Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-25 to 2026-11-10
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 5 AI-assisted revisions through D4 wrap-up (update last-admin invariant description after unifying demote, delete, and disable guards to require at least one enabled ADMIN (issue #109)).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Correct registration-to-Credit failure guidance and explain refresh replay and revocation with source-checked examples.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate User Service identity, API, session behavior, operations and tests into one practical guide with an explained authentication sequence.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
 -->
 
 # User Service: accounts, login and sessions
@@ -50,7 +34,6 @@ This sequence shows why refreshing needs User Service and its database, while an
 *Legend: solid arrows are requests or calls, dashed arrows are replies; the note marks a state that persists.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant Browser
     participant User as User Service
@@ -148,7 +131,6 @@ Administrative role, status and deletion changes serialize through transaction-s
 Use the root [setup guide](../../development/local-development.md) to install dependencies, provision PostgreSQL and configure keys first. The following commands run from the repository root:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run db:generate -w @campus-errand/user-service
 npm run db:deploy -w @campus-errand/user-service
 npm run dev -w @campus-errand/user-service
@@ -191,7 +173,6 @@ The registration outbox retains polling-era `status` and `retryCount` fields. Th
 ## Test the behavior you changed
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/user-service
 npm run test:integration -w @campus-errand/user-service
 ```

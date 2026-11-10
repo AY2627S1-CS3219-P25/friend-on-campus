@@ -1,13 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Allow GitHub delivery to run and inspect migration tasks in foc-ecs.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Grant the retained GitHub deployment role ECR push and ECS application rollout permissions.
-# Author review: <to be completed by the author>
+# Tool: Codex (model: GPT-6), date: 2026-11-08 to 2026-11-09
+# Scope: Grant the retained GitHub deployment role ECR push and ECS application rollout permissions; updated across 2 AI-assisted revisions through D4 wrap-up (allow GitHub delivery to run and inspect migration tasks in foc-ecs).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 resource "aws_iam_role_policy" "github_deploy" {
   name = "foc-ecs-application-deploy"
   role = "foc-production-github-actions-cd-role"

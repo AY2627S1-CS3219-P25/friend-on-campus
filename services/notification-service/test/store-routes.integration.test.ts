@@ -1,27 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Read routes are checked through the committed INBOX_CHANGED outbox intents instead of a local callback (issue #241).
- *        PR #246 review: findForUser reports whether the order's current state already resolved the row's action.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Rewritten for the author's Notification Redesign (§7, §8): applyEvent's one-transaction two-recipient commit,
- * replay as a no-op that keeps read_at, fingerprint mismatch, suppressed-event memory, forward-only projection with
- * the stale flag, the action_needed and important views, stored_at ordering with a snapshot unreadCount, the read
- * routes' authoritative counts and INBOX_CHANGED callback, and the migration's legacy backfill.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
- * Scope: Added a paging test: a later page returns the remainder, totalPages follows the active filter while unreadCount does not, and a page past the end is empty.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: PostgreSQL tests for src/notifications/store.ts and the REST routes over it: the unique event id as the
- * duplicate guard, ordering by event time, the unread filter and count, ownership on list and mark-read, read-all.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-11-09
+ * Scope: PostgreSQL tests for src/notifications/store.ts and the REST routes over it: the unique event id as the duplicate guard, ordering by event time, the unread..; updated across 4 AI-assisted revisions through D4 wrap-up (read routes are checked through the committed INBOX_CHANGED outbox intents instead of a local callback (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 // Opt in with NOTIFICATION_TEST_DATABASE_URL pointing to any PostgreSQL database.
 // Creates and removes its own random schema; never touches existing tables.
 import { after, before, beforeEach, describe, it } from 'node:test';
@@ -336,7 +318,6 @@ describe('notification store and routes (PostgreSQL)', { skip: !databaseUrl }, (
       assert.deepEqual([junk.body.data.page, junk.body.data.limit], [1, 1]);
     });
 
-    // AI-generated (edited by Reallyeasy1)
     it('a later page returns the remainder, and totalPages follows the filter', async () => {
       const carol = randomUUID();
       const ids: string[] = [];

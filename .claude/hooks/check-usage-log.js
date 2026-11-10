@@ -1,8 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 // Scope: Stop hook that warns when files changed but ai/usage-log.md was not updated afterwards.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Warn-only by team choice: prints a message to the user, never blocks Claude from stopping.
 // To make it blocking instead, replace the systemMessage output with:

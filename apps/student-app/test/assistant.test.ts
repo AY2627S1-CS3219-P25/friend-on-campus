@@ -4,7 +4,6 @@
  * Scope: Unit tests for student-app parseErrandDraft API helper (F6).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { ParsedErrandDraftDTO } from '@campus-errand/common-dtos';

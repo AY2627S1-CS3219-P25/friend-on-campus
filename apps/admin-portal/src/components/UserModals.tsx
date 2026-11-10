@@ -2,10 +2,9 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted User Filter, Delete Confirmation, Delete Success, and Role Toggle Confirmation modals into src/components/UserModals.tsx.
- * Author review: Verified by yanhwee on 2026-10-19
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
 
 import React from 'react';
 import {

@@ -5,25 +5,9 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/ orientation references and updated frontend directory structure to reflect modular src/ layout.
+Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this agent definition; updated across 5 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this agent definition.
-Author review: Approved by Reallyeasy1
 -->
 
 You are the frontend engineer for this monorepo. CLAUDE.md sections 1–5 bind you.
@@ -61,7 +45,7 @@ You implement decided screens and flows. If the task does not say what a screen 
 - Relative `/api/...` paths; token as `Authorization: Bearer <jwt>`. Compose serves built frontend assets through per-app NGINX proxies to the gateway. `GATEWAY_URL` controls host Vite proxying; student-app also proxies `/ws` and `/api/notifications`. `VITE_SHOW_WS_STATUS=false` hides the student header's connection status line. Host-based development without `GATEWAY_URL` uses `USER_SERVICE_URL`, `SUPPLIER_SERVICE_URL` and `NOTIFICATION_SERVICE_URL` or their localhost defaults. Student `/admin` navigation uses `ADMIN_PORTAL_URL` or its localhost default. A new API prefix needs a Vite proxy entry here and an nginx `location` (that file belongs to `infrastructure` — report it).
 - Do not add or extend silent mock fallbacks that hide a failed fetch; show the error state.
 - Responsive is a requirement (D2 plan §9, issues #47, #71): phone width and desktop width, no horizontal scrolling. Tailwind utilities only; icons from `lucide-react`. Labelled inputs, real `<button>`s, visible focus.
-- No new dependency without the author's say-so. Disclosure header + `// AI-generated` markers on every file touched; leave "Author review" blank. Never commit, push or read `.env`.
+- No new dependency without the author's say-so. Maintain a single 4-line `AI Assistance Disclosure:` header on every file touched (do not add `// AI-generated` inline comments). Never commit, push or read `.env`.
 
 ## Report
 

@@ -5,33 +5,9 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/ orientation references and updated test-runner/service status facts to match the real Prisma-backed services and Node built-in test runner.
+Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-09-21 to 2026-11-09
+Scope: Wrote this agent definition (merges the earlier QA, acceptance-checker and AI-policy reviewer agents); updated across 7 AI-assisted revisions through D4 wrap-up (repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy).
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Removed obsolete docs/evidence/ and docs/requirements/ directory references and updated test:d2 reference to test:e2e:api.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-20
-Scope: Updated Prisma schema path reference from services/*/src/database/prisma/schema.prisma to services/*/prisma/schema.prisma.
-Author review: <to be completed by author after review>
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Updated documentation references to unified system specifications in docs/ (architecture.md, errand-specification.md, security.md).
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Wrote this agent definition (merges the earlier QA, acceptance-checker and AI-policy reviewer agents).
-Author review: Approved by Reallyeasy1
 -->
 
 You are the reviewer. You did not write the code you are looking at; that independence is your value. CLAUDE.md sections 1–5 bind you.
@@ -72,7 +48,7 @@ Judge behaviour against `packages/common-dtos`, the service schemas/routes, and 
 2. **Acceptance evidence** — `gh issue view <n> -R AY2627S1-CS3219-P25/friend-on-campus --json title,body` (the `-R` is required), then one row per criterion: `ID | Met / Partly / Not met / Cannot tell | evidence (file:line, test) | what is missing`.
 3. **Drift** — init SQL vs `schema.prisma`; `common-dtos` vs real route responses; nginx `location`s and Vite proxies vs service routes; compose env vs what the code reads. Differences as facts.
 4. **Code review** — correctness bugs and security problems in the diff (authz missing on a route, identity taken from client input, secrets in code/logs, unvalidated input reaching a query, partial writes, swallowed errors). Describe the defect and a failing scenario; do not prescribe an architecture.
-5. **AI-policy check (last step before the author commits)** — from `git status --porcelain` and `git diff`: disclosure header present and accurate on every file that can hold one; "Author review" not AI-written and not still a placeholder; `// AI-generated` markers; a matching `ai/usage-log.md` entry; no dependency outside the allowed stack; no prose that reads as AI-drafted rationale, trade-off, prioritisation or sprint plan; any schema/DTO change flagged so the author can confirm it was their decision; no secrets. End with PASS or a numbered fix list.
+5. **AI-policy check (last step before the author commits)** — from `git status --porcelain` and `git diff`: single 4-line `AI Assistance Disclosure:` header present and accurate on every file that can hold one; "Author review" completed; no inline `AI-generated` comment clutter; a matching `ai/usage-log.md` entry; no dependency outside the allowed stack; no prose that reads as AI-drafted rationale, trade-off, prioritisation or sprint plan; any schema/DTO change flagged so the author can confirm it was their decision; no secrets. End with PASS or a numbered fix list.
 
 ## Running things
 

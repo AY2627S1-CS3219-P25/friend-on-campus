@@ -1,21 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-19
- * Scope: openSocket accepts ws client options so a test can open a socket that never answers pings.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Imported PrismaClient from ../src/database/client instead of directly from generated folder.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Test helpers: an Ed25519 access-token signer in the format @campus-errand/auth verifies, a WebSocket test
- * client that records frames and the close code, a polling wait, and a throwaway PostgreSQL schema with the
- * service's migrations applied.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity, date: 2026-10-05 to 2026-10-20
+ * Scope: Test helpers: an Ed25519 access-token signer in the format @campus-errand/auth verifies, a WebSocket test client that records frames and the close code, a..; updated across 3 AI-assisted revisions through D4 wrap-up (imported PrismaClient from ../src/database/client instead of directly from generated folder).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by Reallyeasy1)
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';

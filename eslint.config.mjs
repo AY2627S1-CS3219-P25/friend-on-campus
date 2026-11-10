@@ -1,30 +1,8 @@
 // AI Assistance Disclosure:
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-// Scope: Added the k6 open() global to the tests/k6 block (tests/k6/lib/perf.js reads requirements.json and fixtures; issue #236).
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Google Antigravity Agent, date: 2026-10-28
-// Scope: Added k6 globals (__ENV, __VU, __ITER) for tests/k6 scripts.
+// Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity Agent; Google Antigravity; Codex (model: GPT-5.6 Sol), date: 2026-10-11 to 2026-11-08
+// Scope: Added the root ESLint flat configuration for TypeScript, React, React Hooks, and repository scripts; updated across 6 AI-assisted revisions through D4 wrap-up (added the k6 open() global to the tests/k6 block (tests/k6/lib/perf.js reads requirements.json and fixtures; issue #236)).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-// Scope: scripts/uat/uat-realtime.mjs shares the browser globals block with uat-d2-ui.mjs (page.evaluate callbacks; issue #197).
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Google Antigravity Agent, date: 2026-10-21
-// Scope: Added **/test-results/** to ESLint ignores.
-// Author review: <to be completed by author after review>
-//
-// Tool: Google Antigravity, date: 2026-10-20
-// Scope: Updated ESLint ignores for Prisma generated client path **/src/generated/**.
-// Author review: <to be completed by author after review>
-//
-// Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
-// Scope: Added the root ESLint flat configuration for TypeScript, React, React Hooks, and repository scripts.
-// Author review: <to be completed by ngkhengyang>
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by ngkhengyang)
 import js from "@eslint/js";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";

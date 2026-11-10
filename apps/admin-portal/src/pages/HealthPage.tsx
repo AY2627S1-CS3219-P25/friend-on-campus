@@ -1,19 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
- * Scope: Issue #206: the service count in the probe caption follows the probed list instead of a fixed "5".
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Wired HealthPage to live /health and /ready probes across all 5 microservices, displaying liveness, readiness, latency, and storage status.
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity Agent, date: 2026-10-19 to 2026-10-27
+ * Scope: Extracted HealthPage component into src/pages/HealthPage.tsx; updated across 3 AI-assisted revisions through D4 wrap-up (issue #206: the service count in the probe caption follows the probed list instead of a fixed "5").
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted HealthPage component into src/pages/HealthPage.tsx.
- * Author review: Verified by yanhwee on 2026-10-19
  */
 
-// AI-generated (edited by yanhwee)
 
 import { RefreshCw } from 'lucide-react';
 import { ServiceHealthStatus } from '../api/health';

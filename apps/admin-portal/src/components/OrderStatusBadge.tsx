@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted OrderStatusBadge component into src/components/OrderStatusBadge.tsx.
- * Author review: Verified by yanhwee on 2026-10-19
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: renderDisputedBadge (red Disputed pill).
- * Author review: <to be completed by the author>
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Sonnet 5.5), date: 2026-10-19 to 2026-11-06
+ * Scope: Extracted OrderStatusBadge component into src/components/OrderStatusBadge.tsx; updated across 2 AI-assisted revisions through D4 wrap-up (renderDisputedBadge (red Disputed pill)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
 
 import { Activity, AlertTriangle, CheckCircle, CheckSquare, Clock, XCircle } from 'lucide-react';
 import { OrderStatus } from '@campus-errand/common-dtos';

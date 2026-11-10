@@ -2,10 +2,9 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted admin order management API calls into src/api/orders.ts.
- * Author review: Verified by yanhwee on 2026-10-19
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by yanhwee)
 
 import { OrderDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './suppliers';

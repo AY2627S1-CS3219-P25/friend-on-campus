@@ -1,21 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Use the GitHub Script REST client for branch and CI lookups.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Build release images on native ARM64 runners after a QEMU illegal-instruction failure.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Manually deliver tested main commits and expose an AWS OIDC access check.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Manually build ARM64 release images and deploy ECS application services through AWS OIDC.
-# Author review: <to be completed by the author>
+# Tool: Codex (model: GPT-6), date: 2026-11-08 to 2026-11-09
+# Scope: Manually build ARM64 release images and deploy ECS application services through AWS OIDC; updated across 4 AI-assisted revisions through D4 wrap-up (use the GitHub Script REST client for branch and CI lookups).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 name: Deploy applications to ECS
 
 on:

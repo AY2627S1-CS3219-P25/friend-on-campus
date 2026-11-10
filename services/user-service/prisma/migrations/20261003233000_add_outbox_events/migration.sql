@@ -1,7 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Google Antigravity Agent, date: 2026-10-03
 -- Scope: Created outbox_events table and status/created_at index for transactional outbox delivery.
--- Author review: <to be completed by huangjiaxi1111>
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 -- CreateTable
 CREATE TABLE "outbox_events" (

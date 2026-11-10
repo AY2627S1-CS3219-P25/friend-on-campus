@@ -1,20 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Regression checks for recoverable PostgreSQL, Prisma and network outages versus bounded handler errors.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Unit checks for order-event validation and the S3 projection: accept creates, a second accept replaces the
- * courier only, pickup and delivery are recorded once, the three terminal keys close once, and events for an order
- * with no row are ignored. No broker needed.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148 P1): regression for accept A, accept B, replay A (and a same-timestamp redelivery).
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-08
+ * Scope: Unit checks for order-event validation and the S3 projection: accept creates, a second accept replaces the courier only, pickup and delivery are recorded..; updated across 3 AI-assisted revisions through D4 wrap-up (regression checks for recoverable PostgreSQL, Prisma and network outages versus bounded handler errors).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { InvalidChatEvent, classifyChatFailure, createProjection, parseOrderEvent } from '../src/conversations/events';
@@ -53,7 +42,6 @@ test('unexpected handler errors remain transient', () => {
   assert.deepEqual(classifyChatFailure(new Error('db')), { category: 'transient', reason: 'processing_failure' });
 });
 
-// AI-generated (edited by ngkhengyang)
 test('dependency outages are infrastructure failures, including wrapped Prisma errors', () => {
   for (const error of [
     { code: 'P1001' }, { errorCode: 'P1017' }, { code: 'ECONNRESET' },

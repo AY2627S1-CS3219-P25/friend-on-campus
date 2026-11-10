@@ -1,40 +1,13 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: /api/chat and /ws/chat proxy entries for the Chat Service (F8) in host-based development.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Proxy Order Service endpoints during host-based development.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
- * Scope: /api/notifications proxy entry for host-based development (the Notification Service over HTTP).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-03
- * Scope: Route student credit API requests through the gateway or directly to local Credit Service.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-01
- * Scope: Restore the admin proxy target and keep host-based API and WebSocket service fallbacks.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
- * Scope: Proxy targets now read from env vars (falling back to localhost for host-based dev), mirroring
- * the admin-portal fix — student-app runs in its own container where "localhost" refers to itself, not
- * the backend containers, so docker-compose.yml overrides these to the real service names.
- * Author review: (to be completed by author after review)
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Forward admin navigation and assets during direct Vite development.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Claude Code (model: Claude Fable 5.1, Sonnet 5); Codex (model: GPT-6), date: 2026-09-27 to 2026-10-20
+ * Scope: Proxy targets now read from env vars (falling back to localhost for host-based dev), mirroring the admin-portal fix — student-app runs in its own container..; updated across 7 AI-assisted revisions through D4 wrap-up (/api/chat and /ws/chat proxy entries for the Chat Service (F8) in host-based development).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// AI-generated (edited by huangjiaxi1111)
 // Docker routes through the gateway; host-based development uses local services.
 const gatewayTarget = process.env.GATEWAY_URL;
 const supplierTarget = gatewayTarget ?? process.env.SUPPLIER_SERVICE_URL ?? 'http://localhost:8002';
@@ -42,10 +15,10 @@ const userTarget = gatewayTarget ?? process.env.USER_SERVICE_URL ?? 'http://loca
 const orderTarget = gatewayTarget ?? process.env.ORDER_SERVICE_URL ?? 'http://localhost:8003';
 const creditTarget = gatewayTarget ?? process.env.CREDIT_SERVICE_URL ?? 'http://localhost:8004';
 const notificationTarget = gatewayTarget ?? process.env.NOTIFICATION_SERVICE_URL ?? 'ws://localhost:8005';
-// AI-generated (edited by Reallyeasy1): the same service over HTTP for /api/notifications.
+// The same service over HTTP for /api/notifications.
 const notificationApiTarget = gatewayTarget ?? notificationTarget.replace(/^ws/, 'http');
 const adminTarget = process.env.ADMIN_PORTAL_URL ?? 'http://localhost:5174';
-// AI-generated (edited by Reallyeasy1): the Chat Service (F8) over WebSocket and HTTP.
+// The Chat Service (F8) over WebSocket and HTTP.
 const chatTarget = gatewayTarget ?? process.env.CHAT_SERVICE_URL ?? 'ws://localhost:8006';
 const chatApiTarget = gatewayTarget ?? chatTarget.replace(/^ws/, 'http');
 

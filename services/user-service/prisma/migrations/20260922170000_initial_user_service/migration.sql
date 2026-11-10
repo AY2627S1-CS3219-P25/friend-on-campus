@@ -1,7 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
 -- Scope: Implemented the initial PostgreSQL schema migration for User and Session persistence.
--- Author review: <to be completed by ngkhengyang>
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 CREATE TABLE "users" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),

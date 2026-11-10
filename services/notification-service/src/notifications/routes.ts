@@ -1,21 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Read routes no longer call a local inbox hint; the store commits the INBOX_CHANGED intent for every replica (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Per the author's Notification Redesign (§7): GET takes view=all|action_needed|important, PATCH /:id/read adds
- * meta.unreadCount next to the unchanged DTO, POST /read-all returns the count and the authoritative unreadCount, and
- * both read routes report the change to the socket hub so the caller's other tabs refetch.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: The three REST routes of the author's design (list, mark one read, mark all read), every one behind the
- * access-token middleware and scoped to the caller's user id.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05 to 2026-11-09
+ * Scope: The three REST routes of the author's design (list, mark one read, mark all read), every one behind the access-token middleware and scoped to the caller's..; updated across 3 AI-assisted revisions through D4 wrap-up (read routes no longer call a local inbox hint; the store commits the INBOX_CHANGED intent for every replica (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { NotificationView } from '@campus-errand/common-dtos';

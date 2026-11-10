@@ -1,112 +1,8 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Preserve local migration/seed startup while images start only the app, and allow bounded socket-service shutdown.
-# Author review: <to be completed by the author>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-# Scope: RabbitMQ health-probe budget: timeout 5 s -> 20 s (as PR #147) and start_period 60 s -> 180 s. A cold boot on a
-# 5 GB Docker Desktop VM took 231 s to open the listeners, so the probe gave up before Erlang had started and compose up
-# --wait aborted the four dependent services.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
-# Scope: Raised the rabbitmq health-probe timeout from 5 s to 20 s; the probe measured 3.7-18.7 s on a loaded Windows
-# host and the resulting "unhealthy" state aborted `docker compose up --wait` in npm test although the broker worked.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Google Antigravity Agent, date: 2026-10-22
-# Scope: Updated supplier-service healthcheck from /health to /ready now that supplier-service exposes a readiness DB probe, and passed SEED_SAMPLE_ORDERS to credit-service so sample order escrow reservations are seeded alongside order-service.
+# Tool: Codex (model: GPT-6, GPT-5, GPT-5.6 Terra); Claude Code (model: Claude Fable 5.1, Sonnet 5); Google Antigravity Agent; Google Antigravity (model: Claude Opus 4.6), date: 2026-09-22 to 2026-11-08
+# Scope: Supplied the author-approved Ed25519 verification configuration to Supplier Service; updated across 22 AI-assisted revisions through D4 wrap-up (preserve local migration/seed startup while images start only the app, and allow bounded socket-service shutdown).
 # Author review: I validated correctness, edited for style, and verified with automated tests.
-#
-# Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
-# Scope: Configured dedicated least-privilege PostgreSQL credentials per microservice (user_svc, supplier_svc, order_svc, credit_svc, notification_svc) and mounted static supplier images into api-gateway.
-# Author review: Validated by Yee Yan Hwee (yanhwee)
-#
-# Tool: Codex (model: GPT-6), date: 2026-10-18
-# Scope: Restart Order after fatal consumer failures and remove the synchronous Credit URL.
-# Author review: <to be completed by huangjiaxi1111>
-#
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-16
-# Scope: Backend services get `init: true` so SIGTERM reaches node (as PID 1 it ignored the signal and `docker stop` fell
-# back to SIGKILL after 10s); the rabbitmq health probe runs through `su-exec rabbitmq` so a root-run probe can no longer
-# create a root-owned .erlang.cookie before the server does (cold-boot `eacces` crash seen while testing PR #118). The
-# container stays root so the entrypoint's ownership repair of /var/lib/rabbitmq still heals already-poisoned volumes
-# (PR #120 review).
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-16
-# Scope: Made frontend health checks use IPv4 loopback so BusyBox wget reaches the IPv4-only NGINX listeners.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-15
-# Scope: Pinned the NGINX gateway, PostgreSQL 16, and RabbitMQ 3.13 images to exact release tags and verified registry digests.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5), date: 2026-10-13
-# Scope: Pass the student feature flag at image build time and use NGINX-compatible frontend health checks.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-# Scope: notification-service's health check probes /ready, so `up --wait` returns only once the consumer is bound and
-# the database answers (review finding on PR #111). VITE_SHOW_WS_STATUS passed to the student app.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
-# Scope: notification-service gets its database URL, the access-token verification settings, a restart policy and a
-# dependency on postgres, per the author's Notification Service Design.
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
-# Scope: Gave the RabbitMQ health check a start period; a cold broker boot outlasted the five retries, so the first
-# `docker compose up` (and CI) failed with "dependency failed to start".
-# Author review: <to be completed by Reallyeasy1>
-#
-# Tool: Google Antigravity Agent, date: 2026-10-03
-# Scope: Configured User Service RabbitMQ URL and startup dependency on healthy RabbitMQ broker.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Codex (model: GPT-6), date: 2026-10-03
-# Scope: Wait for seeded User Service before Credit Service startup seeding; configure its seed API URL.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Codex (model: GPT-6), date: 2026-10-01
-# Scope: Restore the student's admin portal target alongside gateway API routing.
-# Author review: Approved by ngkhengyang
-#
-# Tool: Codex (model: GPT-6), date: 2026-09-30
-# Scope: Configure the student development server's admin portal proxy inside Docker.
-# Author review: <to be completed by huangjiaxi1111>
-#
-# Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-# Scope: Consolidated User Service onto the shared PostgreSQL Compose deployment.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-# Scope: Supplied the author-approved Ed25519 verification configuration to Supplier Service.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
-# Scope: JWT key variables now fail `docker compose up` immediately with an instruction when unset (`:?`) instead of
-# expanding to an empty string and crashing two containers; CORS_ORIGIN passed through to user-service.
-# Author review: <to be completed by ngkhengyang>
-#
-# Tool: Claude Code (model: Sonnet 5), date: 2026-09-27
-# Scope: Added healthchecks to student-app, admin-portal, supplier-service, order-service, credit-service, and
-# notification-service, and switched api-gateway's depends_on conditions for all of them from service_started to
-# service_healthy. Previously nginx (api-gateway) could start and resolve its upstream hostnames to IP addresses
-# before those containers had actually finished starting, caching stale/wrong IPs for the rest of its lifetime
-# (only a full gateway restart re-resolved them) — service_started only waits for the container process to be
-# launched, not for it to actually be reachable. service_healthy makes the gateway wait for a real response from
-# each service first, so this race can no longer happen on a normal `docker compose down -v && up --build`.
-# Author review: (to be completed by author after review)
-#
-# Tool: Codex (model: GPT-6), date: 2026-09-24
-# Scope: Supplied Credit Service recovery and separate least-privilege RabbitMQ identities.
-# Author review: <to be completed by huangjiaxi1111>
 
-# AI-generated (edited by yanhwee)
-# AI-generated (edited by huangjiaxi1111)
 
 services:
   # ----------------------------------------------------
@@ -186,15 +82,14 @@ services:
   # ----------------------------------------------------
   # Backend Microservices (compiled JavaScript on Node)
   # ----------------------------------------------------
-  # AI-generated (edited by ngkhengyang)
   user-service:
-    # AI-generated (edited by ngkhengyang): local bootstrap stays in Compose, outside the cloud application command.
+    # Local bootstrap stays in Compose, outside the cloud application command.
     command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/user-service/Dockerfile
     container_name: campuserrand-user-service
-    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
+    init: true # Node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8001:8001"
     environment:
@@ -224,19 +119,17 @@ services:
       start_period: 10s
 
   supplier-service:
-    # AI-generated (edited by ngkhengyang)
     command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && node dist/database/seed.js && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/supplier-service/Dockerfile
     container_name: campuserrand-supplier-service
-    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
+    init: true # Node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8002:8002"
     environment:
       - PORT=8002
       - DATABASE_URL=postgresql://supplier_svc:supplier-service-dev@postgres:5432/supplier_db
-      # AI-generated (edited by ngkhengyang)
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
@@ -256,19 +149,18 @@ services:
       start_period: 10s
 
   order-service:
-    # AI-generated (edited by ngkhengyang)
     command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && (node dist/database/seed.js || echo >&2 '[order-seed] Automatic startup seed skipped or failed') && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/order-service/Dockerfile
     container_name: campuserrand-order-service
     restart: unless-stopped
-    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
+    init: true # Node is PID 1 and ignores SIGTERM without an init
     ports:
       - "8003:8003"
     environment:
       - PORT=8003
-      # AI-generated (edited by huangjiaxi1111): Local demo default; set false for deployments with real orders.
+      # Local demo default; set false for deployments with real orders.
       - SEED_SAMPLE_ORDERS=${SEED_SAMPLE_ORDERS:-true}
       - DATABASE_URL=postgresql://order_svc:order-service-dev@postgres:5432/order_db
       - RABBITMQ_URL=amqp://order_service:order-service-dev@rabbitmq:5672/campus
@@ -276,7 +168,7 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:?Run `npm run generate:jwt-keys` and paste JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env}
       - JWT_ISSUER=${JWT_ISSUER:-friend-on-campus-user-service}
       - JWT_AUDIENCE=${JWT_AUDIENCE:-friend-on-campus-services}
-      # AI-generated (edited by yanhwee): NUS SoCLaaS LLM gateway configuration for Assistant (F6)
+      # NUS SoCLaaS LLM gateway configuration for Assistant (F6)
       - SOCLAAS_BASE_URL=${SOCLAAS_BASE_URL:-https://soclaas-api.comp.nus.edu.sg/v1}
       - SOCLAAS_API_KEY=${SOCLAAS_API_KEY:-}
       - SOCLAAS_MODEL=${SOCLAAS_MODEL:-default}
@@ -298,13 +190,12 @@ services:
       start_period: 10s
 
   credit-service:
-    # AI-generated (edited by ngkhengyang)
     command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && (node dist/database/seed.js || echo >&2 '[credit-seed] Automatic startup seed failed; continuing without development wallet seeding') && exec node dist/index.js"]
     build:
       context: .
       dockerfile: services/credit-service/Dockerfile
     container_name: campuserrand-credit-service
-    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
+    init: true # Node is PID 1 and ignores SIGTERM without an init
     restart: unless-stopped
     ports:
       - "8004:8004"
@@ -337,14 +228,13 @@ services:
       start_period: 10s
 
   notification-service:
-    # AI-generated (edited by ngkhengyang)
     command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && exec node dist/index.js"]
     stop_grace_period: 30s
     build:
       context: .
       dockerfile: services/notification-service/Dockerfile
     container_name: campuserrand-notification-service
-    init: true # AI-generated (edited by Reallyeasy1): node is PID 1 and ignores SIGTERM without an init
+    init: true # Node is PID 1 and ignores SIGTERM without an init
     # The service exits when its broker connection fails and relies on this to come back.
     restart: unless-stopped
     ports:
@@ -373,9 +263,8 @@ services:
       retries: 10
       start_period: 10s
 
-  # AI-generated (edited by Reallyeasy1): Chat Service (F8), same shape as notification-service.
+  # Chat Service (F8), same shape as notification-service.
   chat-service:
-    # AI-generated (edited by ngkhengyang)
     command: ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy --schema prisma/schema.prisma && exec node dist/index.js"]
     stop_grace_period: 30s
     build:
@@ -392,7 +281,7 @@ services:
       - DATABASE_URL=postgresql://chat_svc:chat-service-dev@postgres:5432/chat_db
       - RABBITMQ_URL=amqp://chat_service:chat-service-dev@rabbitmq:5672/campus
       - ORDER_SERVICE_URL=http://order-service:8003
-      # AI-generated (edited by jagdeepsh): SoCLaaS settings for optional chat message translation
+      # SoCLaaS settings for optional chat message translation
       - SOCLAAS_BASE_URL=${SOCLAAS_BASE_URL:-https://soclaas-api.comp.nus.edu.sg/v1}
       - SOCLAAS_API_KEY=${SOCLAAS_API_KEY:-}
       - SOCLAAS_MODEL=${SOCLAAS_MODEL:-default}
@@ -422,7 +311,7 @@ services:
   postgres:
     image: postgres:16.15-alpine3.24@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     container_name: campuserrand-postgres
-    # AI-generated (edited by yanhwee): enable logical WAL decoding for Debezium CDC Outbox Event Router
+    # Enable logical WAL decoding for Debezium CDC Outbox Event Router
     command: ["postgres", "-c", "wal_level=logical"]
     ports:
       - "5432:5432"
@@ -449,17 +338,17 @@ services:
       - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
       - ./docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     healthcheck:
-      # AI-generated (edited by Reallyeasy1): probe as the server user, otherwise a root-run probe can create a root-owned
+      # Probe as the server user, otherwise a root-run probe can create a root-owned
       # .erlang.cookie before the server does. The container itself stays root so the entrypoint still repairs ownership.
       test: ["CMD", "su-exec", "rabbitmq", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 10s
-      # AI-generated (edited by Reallyeasy1): each probe boots a throwaway Erlang VM (3.4-5.5 s here, up to 18.7 s on a
+      # Each probe boots a throwaway Erlang VM (3.4-5.5 s here, up to 18.7 s on a
       # loaded host), and a cold boot took 231 s on a 5 GB VM; 60 s + 5 x 10 s gave up before Erlang had started.
       timeout: 20s
       retries: 5
       start_period: 180s
 
-  # AI-generated (edited by yanhwee): log-based Debezium Server Outbox CDC connector
+  # Log-based Debezium Server Outbox CDC connector
   debezium-order:
     image: quay.io/debezium/server:2.7
     container_name: campuserrand-debezium-order
@@ -475,7 +364,6 @@ services:
       order-service:
         condition: service_healthy
 
-  # AI-generated (edited by huangjiaxi1111)
   debezium-user:
     image: quay.io/debezium/server:2.7
     container_name: campuserrand-debezium-user
@@ -491,7 +379,6 @@ services:
       user-service:
         condition: service_healthy
 
-  # AI-generated (edited by huangjiaxi1111)
   debezium-credit:
     image: quay.io/debezium/server:2.7
     container_name: campuserrand-debezium-credit

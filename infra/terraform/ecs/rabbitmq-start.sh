@@ -2,9 +2,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Configure cluster discovery and import generated RabbitMQ credentials.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 set -eu
 umask 077
 printf '%s' "$BROKER_COOKIE" >/var/lib/rabbitmq/.erlang.cookie

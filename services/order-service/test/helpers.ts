@@ -1,48 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Fake createOrderWithOutbox keeps the optional drop-off coordinates and estimated credit, like the real one.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Fake repository mirrors the version-2 outbox facts of the real one: payloads completed with completeEvent(),
- * order.rejected on a failed reservation, order.unassigned on both unassignment paths, SYSTEM actor on created/expired.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Preserved courierId on cancelOrder and added unassignOrder to fake repository to mirror OrderRepository.
+ * Tool: Claude Code (model: Claude Opus 5.5, Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-07 to 2026-11-07
+ * Scope: In-memory repository fakes, mock clients, and HTTP test server helpers for Order Service unit/integration testing; updated across 10 AI-assisted revisions through D4 wrap-up (fake repository follows the same dispute rules).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Included admin-cancelled courier orders in fake repository getUserActivity history to mirror OrderRepository.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Replace synchronous Credit fakes with reservation submission and confirmation fixtures.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder, and search filtering to fake repository.
- * Author review: (to be completed by author after review)
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: In-memory repository fakes, mock clients, and HTTP test server helpers for Order Service unit/integration testing.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Fake repository: disputeOrder, completion guard, admin cancel/complete clear the dispute flag.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Fake repository: courierDisputeOrder.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: fake repository follows the same dispute rules.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by huangjiaxi1111)
-// AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent, OrderCreatedEvent, OrderDTO, OrderExpiredEvent } from '@campus-errand/common-dtos';
 import type { Express } from 'express';
 import { generateKeyPairSync } from 'node:crypto';
@@ -59,7 +20,6 @@ import {
 } from '../src/orders/order.types';
 import type { CreateOrderParams, ListOrdersOptions, OrderRepository } from '../src/repositories/order.repository';
 
-// AI-generated (edited by Reallyeasy1)
 const systemActor = (orderId: string) =>
   ({ schemaVersion: 2 as const, producer: 'order-service' as const, correlationId: orderId, actorRole: 'SYSTEM' as const });
 

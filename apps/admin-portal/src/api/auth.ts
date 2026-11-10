@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Handled non-JSON error responses gracefully in adminLoginApi.
+ * Tool: Google Antigravity Agent, date: 2026-10-19 to 2026-10-22
+ * Scope: Extracted admin authentication API calls into src/api/auth.ts; updated across 2 AI-assisted revisions through D4 wrap-up (handled non-JSON error responses gracefully in adminLoginApi).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted admin authentication API calls into src/api/auth.ts.
- * Author review: Verified by yanhwee on 2026-10-19
  */
 
-// AI-generated (edited by yanhwee)
 
 export async function adminLoginApi(email: string, password: string, keepLoggedIn: boolean) {
   const res = await fetch('/api/auth/login', {
@@ -27,7 +22,7 @@ export async function adminLogoutApi() {
 
 export async function adminRefreshTokenApi(): Promise<string | null> {
   try {
-    // AI-generated (edited by Reallyeasy1): issue #169; bounded so a dead backend does not hold the portal on a spinner.
+    // Issue #169; bounded so a dead backend does not hold the portal on a spinner.
     const res = await fetch('/api/auth/refresh', { method: 'POST', signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     if (!res.ok || !data.success) return null;

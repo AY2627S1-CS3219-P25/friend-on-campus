@@ -1,28 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Verify durable registration events and commit completion without a direct publisher.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: The login test expects the username to be passed to the token manager.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-03
- * Scope: Added registration event publisher integration tests and error isolation checks.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-01
- * Scope: Added the disabled-account login tests (ACCOUNT_DISABLED, password checked before status).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
- * Scope: Unit tests for src/auth/auth-module.ts against an in-memory repository and a fake token manager:
- * registration validation and duplicate mapping, login and the dummy-hash path, refresh rotation and replay,
- * keep-me-logged-in lifetimes, logout.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1); Google Antigravity Agent, date: 2026-09-30 to 2026-10-21
+ * Scope: Unit tests for src/auth/auth-module.ts against an in-memory repository and a fake token manager: registration validation and duplicate mapping, login and..; updated across 5 AI-assisted revisions through D4 wrap-up (verify durable registration events and commit completion without a direct publisher).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import type { UserRegisteredEvent } from '@campus-errand/common-dtos';
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';

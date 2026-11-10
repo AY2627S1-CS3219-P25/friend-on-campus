@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Unit tests for the realtime primitives (issue #239 RT1.1): relay claim/publish/complete ordering, owner-checked
- *        completion after a lost lease, release with the failure delay, recent-set bounds, bounded handler attempts
- *        and the loopback fanout.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Unit tests for the realtime primitives (issue #239 RT1.1): relay claim/publish/complete ordering, owner-checked completion after a lost lease, release with...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';

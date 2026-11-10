@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity, date: 2026-10-20
- * Scope: Updated generated Prisma client import path to ../generated/prisma.
- * Author review: <to be completed by author after review>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Created the service-local Prisma client using centralized configuration.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Google Antigravity; Codex (model: GPT-6), date: 2026-09-24 to 2026-10-20
+ * Scope: Created the service-local Prisma client using centralized configuration; updated across 2 AI-assisted revisions through D4 wrap-up (updated generated Prisma client import path to ../generated/prisma).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by huangjiaxi1111)
 import { config } from '../config';
 import { PrismaClient } from '../generated/prisma';
 

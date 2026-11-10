@@ -1,23 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Use describeOrderEscrowSubtitle for reward credit subtitles so COMPLETED and CANCELLED/EXPIRED rows reflect asynchronous escrow settlement/refund accurately (issue #200).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Sonnet 5.5), date: 2026-10-19 to 2026-11-10
+ * Scope: Extracted OrdersPage state management component into src/pages/OrdersPage.tsx; updated across 4 AI-assisted revisions through D4 wrap-up (use describeOrderEscrowSubtitle for reward credit subtitles so COMPLETED and CANCELLED/EXPIRED rows reflect asynchronous escrow settlement/refund accurately..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Added Dispute Cancel button alongside Force Complete for DELIVERED orders in OrdersPage.tsx to match backend adminCancelOrder support.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted OrdersPage state management component into src/pages/OrdersPage.tsx.
- * Author review: Verified by yanhwee on 2026-10-19
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Dispute filter chip (counts orders with dispute = true) and a View details button on disputed DELIVERED orders.
- * Author review: <to be completed by the author>
  */
 
-// AI-generated (edited by yanhwee)
 
 import {
   Activity,
@@ -311,7 +298,7 @@ export function OrdersPage({
                                 </td>
                                 <td className="p-4 align-top">
                                   <div className="font-bold text-slate-900">{order.rewardCredits} pts</div>
-                                  {/* AI-generated (edited by yanhwee): reflect async escrow boundary honestly (#200). */}
+                                  {/* Reflect async escrow boundary honestly (#200). */}
                                   <div className="text-[11px] text-slate-400">
                                     {describeOrderEscrowSubtitle(order.status)}
                                   </div>

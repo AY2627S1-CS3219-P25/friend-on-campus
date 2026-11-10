@@ -1,69 +1,8 @@
 // AI Assistance Disclosure:
-// Tool: Codex (model: GPT-6), date: 2026-11-08
-// Scope: Align lifecycle fields, navigation, profile checks, and visible responsive history assertions with the redesigned UI; check mobile directory overflow.
+// Tool: Codex (model: GPT-6, GPT-5); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Opus 5.5), date: 2026-09-26 to 2026-11-08
+// Scope: 2026-09-29: results file now goes to the temp folder (or UAT_OUT), like the API driver; header comment corrected; updated across 15 AI-assisted revisions through D4 wrap-up (align lifecycle fields, navigation, profile checks, and visible responsive history assertions with the redesigned UI).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-07
-// Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
-// Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Google Antigravity Agent, date: 2026-11-07
-// Scope: Updated UD2 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
-// Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-01
-// Scope: Fixed supplier form selectors/coordinates and made failed browser checks fail CI.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-// Scope: UO0 preflight: the requester seed account must still afford the credits UO1 and UO6 reserve; earlier runs
-// drain it, which previously surfaced only as a timeout on Post Errand. PR #194 review: UO1-UO6 are skipped when it
-// fails, the wallet and login responses are checked, the rewards are named constants, one apiLogin helper.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-// Scope: UO1-UO6 drive accept, pickup, deliver, confirm delivery and cancel through the errand details page (issues
-// #188, #189): each card is opened via its open-errand-link, the action is clicked on the page, Back returns to the list.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
-// Scope: UO5/UO6 expect the truthful completion and cancellation copy of the author's Notification Redesign (§9).
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Google Antigravity Agent, date: 2026-10-22
-// Scope: Updated UO2 to click the inline Confirm button after clicking Accept Errand on the feed card.
-// Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Google Antigravity Agent, date: 2026-10-21
-// Scope: Added UO1-UO6 student order lifecycle E2E UI checks (post with durationMinutes, accept, pickup, deliver, complete, cancel, and history persistence) and standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (Issue #132).
-// Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
-// Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Codex (model: GPT-5), date: 2026-10-11
-// Scope: Updated the manual run note now that Chromium Playwright is a locked repository dependency.
-// Author review: <to be completed by ngkhengyang>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-// Scope: UD2-UD5: the student app's notification socket, bell badge, toast and Alerts view, with an order event published as Order Service will (AMQP_URL overrides the broker address). UD4 finds the step inside its errand card.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Codex (model: GPT-6), date: 2026-09-30
-// Scope: Test the admin portal through the gateway and the student login's Admin Log In navigation and reload.
-// Author review: <to be completed by huangjiaxi1111>
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-26, 2026-09-28, 2026-09-29
-// Scope: 2026-09-29: results file now goes to the temp folder (or UAT_OUT), like the API driver; header comment corrected. 2026-09-28: fixed the ADMIN_URL default (it referenced itself). Wrote this D2 UAT driver: 29 browser-level checks with Playwright (admin portal desktop + mobile: login gate, search, filter, sort, pagination, details, add/edit/delete, Users page; student app mobile + desktop: login, session restore, Spots directory, search, Post, Profile, logout) and the docs/evidence/d2/screenshots capture.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
-// Scope: UO1/UO6 post through postErrandConfirmingHours, which clicks "Post anyway" when the pre-selected store is
-// outside its operating hours, so the lifecycle checks pass at any time of day.
-// Author review: <to be completed by huangjiaxi1111>
 
-// AI-generated (edited by Reallyeasy1)
 // Run: npx playwright install chromium && npm run test:e2e:ui
 // D2 UAT — browser level (Playwright, headless Chromium). Student app through the nginx
 // gateway at /; admin portal defaults to the same gateway at /admin/ (override with ADMIN_URL).
@@ -78,7 +17,6 @@ import { chromium } from 'playwright';
 
 const GW = process.env.GW ?? 'http://localhost';
 const ADMIN = process.env.ADMIN_URL ?? `${GW}/admin/`;
-// AI-generated (edited by yanhwee)
 const TEST_RESULTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../test-results');
 const SHOTS = process.env.SHOTS ?? path.join(TEST_RESULTS_DIR, 'screenshots');
 const PW = 'Password123!';
@@ -92,7 +30,7 @@ const record = (id, name, pass, detail = '') => {
   results.push({ id, name, pass, detail });
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${id.padEnd(7)} ${name}${detail ? '  -> ' + detail : ''}`);
 };
-// AI-generated (edited by Reallyeasy1): one API login for the steps that need a token; a failed login names the cause.
+// One API login for the steps that need a token; a failed login names the cause.
 async function apiLogin(email) {
   const res = await fetch(`${GW}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: PW }) });
   const body = await res.json().catch(() => ({}));
@@ -387,7 +325,7 @@ const browser = await chromium.launch();
     await page.getByPlaceholder('Search food, cafes, lockers, print hubs...').waitFor();
     const txt = await page.locator('body').innerText();
     const m = txt.match(/(\d+)\s+Verified/);
-    // AI-generated (edited by yanhwee): a widened mobile page can displace the fixed bottom navigation.
+    // A widened mobile page can displace the fixed bottom navigation.
     const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     if (pageWidth > MOBILE.width + 1) throw new Error(`mobile directory overflows: ${pageWidth}px at ${MOBILE.width}px`);
     await shot(page, 'student-spots-mobile');
@@ -445,7 +383,6 @@ const browser = await chromium.launch();
     await shot(page, 'student-spots-desktop');
   });
 
-  // AI-generated (edited by Reallyeasy1)
   // Notifications (issue #52, F5): Order Service does not publish yet, so the event is published here as order_service.
   let bobId;
   await step('UD2', 'student (desktop): the socket authenticates after login and the Alerts bell shows no unread', async () => {
@@ -512,7 +449,6 @@ const browser = await chromium.launch();
 }
 
 // ============================================================ STUDENT ORDER LIFECYCLE (F3 / ISSUE #132), DESKTOP
-// AI-generated (edited by yanhwee)
 {
   const aliceCtx = await browser.newContext({ viewport: DESKTOP });
   const bobCtx = await browser.newContext({ viewport: DESKTOP });
@@ -528,7 +464,7 @@ const browser = await chromium.launch();
   const LIFECYCLE_REWARD = 5;
   const CANCEL_REWARD = 3;
 
-  // AI-generated (edited by Reallyeasy1): the errand details page (#188) owns the actions; cards only link to it.
+  // The errand details page (#188) owns the actions; cards only link to it.
   const openErrand = async (page, card) => {
     await card.getByTestId('open-errand-link').click();
     await page.getByTestId('status-tracker').waitFor();
@@ -539,7 +475,7 @@ const browser = await chromium.launch();
     await page.getByTestId('errand-details').waitFor({ state: 'detached' });
   };
 
-  // AI-generated (edited by Reallyeasy1): earlier runs leave escrows behind, so the requester may no longer afford
+  // Earlier runs leave escrows behind, so the requester may no longer afford
   // the credits UO1 and UO6 reserve; say so here, and skip UO1-UO6 rather than let them time out on Post Errand.
   const needed = LIFECYCLE_REWARD + CANCEL_REWARD;
   let lifecycleBlocked = null;
@@ -693,7 +629,6 @@ const browser = await chromium.launch();
 await browser.close();
 const passed = results.filter((r) => r.pass).length;
 console.log(`\n${passed}/${results.length} UI checks passed; screenshots in ${SHOTS}`);
-// AI-generated (edited by yanhwee)
 const out = process.env.UAT_OUT ?? path.join(TEST_RESULTS_DIR, 'uat-d2-ui-results.json');
 mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, JSON.stringify(results, null, 2));

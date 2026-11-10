@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Remove static FALLBACK_SUPPLIERS placeholder rows so supplier API failures never render non-existent demo records (issue #201).
+ * Tool: Google Antigravity Agent, date: 2026-10-19 to 2026-11-10
+ * Scope: Extracted admin supplier API calls and fallback list into src/api/suppliers.ts; updated across 2 AI-assisted revisions through D4 wrap-up (remove static FALLBACK_SUPPLIERS placeholder rows so supplier API failures never render non-existent demo records (issue #201)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted admin supplier API calls and fallback list into src/api/suppliers.ts.
- * Author review: Verified by yanhwee on 2026-10-19
  */
 
-// AI-generated (edited by yanhwee)
 
 import { CreateSupplierRequest, SupplierDTO, UpdateSupplierRequest } from '@campus-errand/common-dtos';
 

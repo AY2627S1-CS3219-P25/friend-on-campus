@@ -1,41 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-10-19 to 2026-11-07
+ * Scope: Extracted alerts/notifications page from student-app App.tsx into pages/AlertsPage.tsx; updated across 8 AI-assisted revisions through D4 wrap-up (apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Standardized Campus Alerts page header with Credit Wallet and Profile by introducing matching action controls (Mark all as read and Refresh) with uniform 32px height, 4xl max width, and unified icon styling.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Restored clean 1-line Campus Alerts page title header without redundant multi-line subtitle copy, eliminating phantom space-y margin and anchoring the notifications view with consistent typography.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed visual Campus Alerts title banner and subtitle in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned AlertsPage header with refined typography and disclosure metadata.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Review fix (PR #184): passes the server-fetched view, its total and the view setter through to the panel.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Inbox props of the author's Notification Redesign (stale flag, load more, live order status, onOpen) replace
- * the awaitingConfirmation set; subtitle reworded for an inbox of changes rather than a stage timeline.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted alerts/notifications page from student-app App.tsx into pages/AlertsPage.tsx.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by Reallyeasy1)
 
 import { NotificationDTO, OrderStatus } from '@campus-errand/common-dtos';
 import { CheckCheck, RefreshCw } from 'lucide-react';

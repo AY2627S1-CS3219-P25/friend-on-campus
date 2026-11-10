@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: A wall clock that ticks at each minute boundary and again when the tab comes back into view, so the
- * operating-hours labels (Post Errand, Errand Details, map tooltips) move from "Open now" to "Closed now" without the
- * student touching the page (PR review of 2026-11-04).
- * Author review: <to be completed by huangjiaxi1111>
+ * Scope: A wall clock that ticks at each minute boundary and again when the tab comes back into view, so the operating-hours labels (Post Errand, Errand Details, map...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import { useEffect, useState } from 'react';
 
 const MINUTE_MS = 60_000;

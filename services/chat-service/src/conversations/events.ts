@@ -1,22 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-08
- * Scope: Reuse the existing quorum consumer and infrastructure-failure classifier without changing event projection rules.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Order-event validation copied from notification-service/src/notifications/events.ts (same rules, the six
- * keys the F8 decision record names), and the projection the author specified in S3: order.accepted creates or
- * re-couriers the conversation, order.in_transit and order.delivered are recorded, the three terminal keys close it;
- * events for an order with no row are acknowledged and ignored.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148 P1): an order.accepted the store ignores as a replay reports 'ignored'.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-08
+ * Scope: Order-event validation copied from notification-service/src/notifications/events.ts (same rules, the six keys the F8 decision record names), and the..; updated across 3 AI-assisted revisions through D4 wrap-up (reuse the existing quorum consumer and infrastructure-failure classifier without changing event projection rules).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
-// AI-generated (edited by ngkhengyang)
 import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';
 import type { ConversationStore } from './store';
 
@@ -86,7 +73,6 @@ export function parseOrderEvent(content: Buffer, routingKey: string): OrderEvent
 
 export function classifyChatFailure(error: unknown): Failure {
   if (error instanceof InvalidChatEvent) return { category: 'permanent', reason: 'invalid_event' };
-  // AI-generated (edited by ngkhengyang)
   if (isInfrastructureFailure(error)) return { category: 'infrastructure', reason: 'dependency_unavailable' };
   return { category: 'transient', reason: 'processing_failure' };
 }

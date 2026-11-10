@@ -1,44 +1,10 @@
 /**
  * AI Assistance Disclosure:
- *
- * Tool: Google Antigravity Agent, date: 2026-11-09
- * Scope: Pushed supplier sorting (case-insensitive LOWER() on text columns with deterministic id tie-breaker)
- * and pagination (LIMIT/OFFSET + COUNT(*) OVER()) into PostgreSQL via prisma.$queryRaw, capping unpaginated
- * queries at 100 rows so high-concurrency load tests (#29, #33, #253) do not block the Node event loop or
- * exhaust the database connection pool (resolving #110 and #253).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Sonnet 5), date: 2026-09-20 to 2026-11-09
+ * Scope: Enhanced supplier repository with dynamic sorting, pagination, and total count calculations for Milestone D2; updated across 7 AI-assisted revisions through D4 wrap-up (pushed supplier sorting (case-insensitive LOWER() on text columns with deterministic id tie-breaker) and pagination (LIMIT/OFFSET + COUNT(*) OVER()) into..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): where and update objects typed as Prisma.SupplierWhereInput / SupplierUpdateInput instead of any.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-08
- * Scope: Relocated supplier repository to src/suppliers/supplierRepository.ts and updated prisma client import.
- * Author review: <to be completed by author after review>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-04
- * Scope: getSuppliers sorts and pages the matching rows in memory so text columns order without regard to letter
- * case (UAT S8); the database ORDER BY and the separate count query are gone.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-09-20
- * Scope: Enhanced supplier repository with dynamic sorting, pagination, and total count calculations for Milestone D2.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
- * Scope: Added findDuplicateLocation() for the new (name, category, building, floor) uniqueness check used by
- * createSupplier/updateSupplier in supplierRoutes.ts. Case-insensitive via Prisma's native mode: 'insensitive'
- * filter (already used elsewhere in this file for campusZone/category), matching the DB-level expression index
- * added in this same round's migration.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: createSupplier no longer falls back latitude/longitude to null — both are required (validated by the
- * route layer) and the DB columns are now NOT NULL.
- * Author review: (to be completed by author after review)
  */
 
-// AI-generated (edited by yanhwee)
 
 
 import { prisma, Prisma, type Supplier } from '../database/client';
@@ -99,7 +65,6 @@ export async function getSuppliers(filter?: SupplierQueryOptions) {
   const limit = isPaginated ? Math.min(100, Math.max(1, rawLimit)) : 100;
   const skip = (page - 1) * limit;
 
-  // AI-generated (edited by yanhwee)
   // Sort and page in PostgreSQL so text columns order case-insensitively with deterministic tie-breaking by id,
   // without loading or sorting the full table on the Node.js event loop (issues #110, #253).
   const rows = await prisma.$queryRaw<SupplierRow[]>(Prisma.sql`

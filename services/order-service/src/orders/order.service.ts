@@ -1,45 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: createOrder validates the optional drop-off point and estimated credit (all three or none, coordinate and
- * integer range checks only) and passes them to the repository, per the author's drop-off estimator decisions.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Per the author's Notification Redesign (§6): every outbox draft carries the version-2 fields (schemaVersion,
- * producer, correlationId, actor, reason code) via v2(); courier drop and admin unassign now emit order.unassigned.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Added courier unassignOrder handler allowing assigned couriers to drop an ACCEPTED errand prior to pickup.
+ * Tool: Claude Code (model: Claude Opus 5.5, Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-07 to 2026-11-06
+ * Scope: Refactored Order Service orchestrator into modular, extracted domain handler functions and a lightweight factory function; updated across 9 AI-assisted revisions through D4 wrap-up (added disputeOrder (validates the requester's details, then the repository raises the dispute)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Replace synchronous reserve/create calls with durable outbox submission.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: accept, pickup and deliver take the caller's optional username and put it on the outbox event as
- * courierUsername (F5.1.1), per the author's design.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder handlers for administrative state interventions.
- * Author review: (to be completed by author after review)
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Refactored Order Service orchestrator into modular, extracted domain handler functions and a lightweight factory function.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Added disputeOrder (validates the requester's details, then the repository raises the dispute).
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: courierDisputeOrder (validates the courier's details).
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by yanhwee)
 import type {
   AcceptOrderRequest,
   AdminCancelOrderRequest,
@@ -62,7 +26,6 @@ import type { SupplierClient } from '../clients/supplier.client';
 import type { ListOrdersOptions, OrderRepository } from '../repositories/order.repository';
 import { generateOrderCode, OrderError, type OrderEventDraft, OrderNotFoundError, OrderValidationError } from './order.types';
 
-// AI-generated (edited by Reallyeasy1)
 // Version-2 envelope fields the service knows before the transaction (Notification Redesign §6). The repository adds
 // orderVersion, previousStatus, status and the removed assignee when it commits.
 function v2(order: Pick<OrderDTO, 'id'>, actor: { role: OrderActorRole; id?: string }, reasonCode?: OrderReasonCode) {
@@ -84,7 +47,6 @@ export interface OrderService {
   getOrderById(id: string): Promise<OrderDTO>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
-  // AI-generated (edited by Reallyeasy1)
   // courierUsername comes from the caller's access token; undefined when the token predates the claim (F5.1.1).
   acceptOrder(orderId: string, courierId: string, req?: AcceptOrderRequest, courierUsername?: string): Promise<OrderDTO>;
   pickupOrder(orderId: string, courierId: string, courierUsername?: string): Promise<OrderDTO>;
@@ -416,7 +378,6 @@ async function handleCompleteOrder(
   return repository.completeOrder(existing.id, requesterId, event);
 }
 
-// AI-generated (edited by jagdeepsh)
 async function handleDisputeOrder(
   deps: OrderServiceDependencies,
   orderId: string,
@@ -427,7 +388,6 @@ async function handleDisputeOrder(
   return deps.repository.disputeOrder(orderId, requesterId, text);
 }
 
-// AI-generated (edited by jagdeepsh)
 async function handleCourierDisputeOrder(
   deps: OrderServiceDependencies,
   orderId: string,

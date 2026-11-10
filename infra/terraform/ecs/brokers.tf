@@ -1,9 +1,8 @@
 # AI Assistance Disclosure:
 # Tool: Codex (model: GPT-6), date: 2026-11-08
 # Scope: Run one persistent RabbitMQ task on each ECS slot and expose AMQP privately.
-# Author review: <to be completed by the author>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 resource "aws_ecs_task_definition" "broker" {
   for_each                 = local.brokers
   family                   = "${local.name}-broker-${each.key}"

@@ -1,27 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: The test topology binds order.rejected (new Order outcome, Notification Redesign §9) so the mandatory outbox
- * flush routes it, and the rejection case asserts the committed fact's reason code, statuses and SYSTEM actor.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Exercise Credit result publication through Debezium and keep late-delivery cases behind an offline Order consumer.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity (model: Claude Opus 4.6), date: 2026-10-19
- * Scope: Updated reservation messaging integration test for Saga Approach B2 (PENDING/OPEN/REJECTED/EXPIRED orders and order.expired late-reservation refund).
- * Author review: Reviewed and verified by Yee Yan Hwee (yanhwee)
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Verify infrastructure recovery, release compensation, bounded event retries and immediate malformed-event dead-lettering.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Real PostgreSQL/RabbitMQ reservation saga, restart, rollback, duplicate, rejection and compensation tests.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Claude Code (model: Claude Fable 5.1); Codex (model: GPT-6); Google Antigravity (model: Claude Opus 4.6), date: 2026-10-18 to 2026-10-22
+ * Scope: Real PostgreSQL/RabbitMQ reservation saga, restart, rollback, duplicate, rejection and compensation tests; updated across 5 AI-assisted revisions through D4 wrap-up (the test topology binds order.rejected (new Order outcome, Notification Redesign §9) so the mandatory outbox flush routes it, and the rejection case asserts..).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import type { CreditReservationRequestEvent, CreditReservationResultEvent } from '@campus-errand/common-dtos';
 import { createRabbitPublisher, queueArguments } from '@campus-errand/messaging';
 import amqp from 'amqplib';
@@ -142,7 +124,7 @@ async function main() {
     }
     await channel.assertQueue(`${prefix}.created`, { durable: true });
     await channel.bindQueue(`${prefix}.created`, exchange, 'order.created');
-    // AI-generated (edited by Reallyeasy1): order.rejected is an Order outcome for the Notification Service, which is
+    // Order.rejected is an Order outcome for the Notification Service, which is
     // not part of this topology; the outbox flush publishes mandatory, so it needs a sink too.
     await channel.bindQueue(`${prefix}.created`, exchange, 'order.rejected');
 

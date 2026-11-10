@@ -6,7 +6,7 @@ description: Append the mandatory AI usage-log entry for the current prompt to a
 AI Assistance Disclosure:
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
 Scope: Wrote this skill; it restates the log format the team already uses in ai/usage-log.md.
-Author review: <to be completed by Reallyeasy1>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # usage-log

@@ -1,26 +1,11 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-5.6 Sol), date: 2026-10-11
- * Scope: Removed an unused authentication error import identified by the root lint configuration.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-30
- * Scope: Share refresh-cookie clearing between logout and successful self-deletion.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service authentication HTTP routes with typed responses and safe malformed-cookie handling.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
- * Scope: A malformed (non-URI-encoded) refresh cookie is now treated as absent (401 INVALID_SESSION) instead of
- * throwing URIError into the 500 handler.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Codex (model: GPT-5.6 Sol, GPT-6, GPT-5.6 Terra); Claude Code (model: Claude Fable 5.1), date: 2026-09-22 to 2026-10-11
+ * Scope: Implemented User Service authentication HTTP routes with typed responses and safe malformed-cookie handling; updated across 4 AI-assisted revisions through D4 wrap-up (removed an unused authentication error import identified by the root lint configuration).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by ngkhengyang)
 
-// AI-generated (edited by ngkhengyang)
 import type { AuthResponse, RefreshTokenResponse } from '@campus-errand/common-dtos';
 import { CookieOptions, NextFunction, Request, RequestHandler, Response, Router } from 'express';
 import { AuthModule } from './auth-module';

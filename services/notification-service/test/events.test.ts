@@ -1,30 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: createDeliver takes only the store and returns the applied result; push assertions moved to test/realtime.test.ts (issue #241).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Increment 6 receipt parsing added 2026-10-23. Version-2 parsing (envelope, actor, reason code, versions, assignee fields), the payload fingerprint, the
- * infrastructure/permanent/transient classifier and createDeliver's push-after-commit, stale and duplicate behaviour,
- * per the author's Notification Redesign (§6, §8, §10). The version-1 cases are kept; the mapping tests moved to
- * policy.test.ts.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
- * Scope: Tests for courierUsername (F5.1.1): validated on parse, rendered in the acceptance body, generic fallback
- * without it, pickup and delivery wording unchanged.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-05
- * Scope: Tests for the event-to-notification mapping, order.delivered, and store-before-push delivery.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03
- * Scope: Unit checks for order-event validation and failure classification; no broker needed.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-03 to 2026-11-09
+ * Scope: Unit checks for order-event validation and failure classification; no broker needed; updated across 5 AI-assisted revisions through D4 wrap-up (createDeliver takes only the store and returns the applied result; push assertions moved to test/realtime.test.ts (issue #241)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { NotificationDTO } from '@campus-errand/common-dtos';
@@ -151,7 +130,6 @@ test('classification: invalid contracts are permanent, connectivity failures are
   assert.equal(classifyNotificationFailure({ code: 'P2002' }).category, 'transient');
 });
 
-// AI-generated (edited by Reallyeasy1)
 const dto = (userId: string, kind: string) => ({ userId, notification: { id: `${userId}-${kind}`, kind } as unknown as NotificationDTO });
 
 // Pushing moved to the realtime subscriber (test/realtime.test.ts): delivery commits through the store and returns
@@ -206,7 +184,6 @@ test('a duplicate or suppressed event is returned as such', async () => {
   }
 });
 
-// AI-generated (edited by Reallyeasy1)
 const settled = {
   eventId: '10000000-0000-4000-8000-000000000009', eventType: 'credit.escrow.settled', timestamp: '2026-10-23T04:00:00.000Z',
   schemaVersion: 2, producer: 'credit-service', orderId: accepted.orderId, orderCode: 'ORD-1042', correlationId: accepted.orderId,

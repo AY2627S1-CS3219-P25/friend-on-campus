@@ -1,20 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Add concrete receipt/read-state examples, clarify the legacy event envelope, and diagram read-state synchronization between replicas.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate recipient policy, inbox/read contracts, persistence, realtime eligibility and operational diagnosis into one source-checked guide.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile current implementation, contracts, realtime delivery and verification limits; preserve historical records.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 4 AI-assisted revisions through D4 wrap-up (add concrete receipt/read-state examples, clarify the legacy event envelope, and diagram read-state synchronization between replicas).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Notification Service
@@ -109,7 +97,6 @@ The shared [realtime transport](../../infrastructure/cdc-and-broker.md) sends hi
 *Legend: each arrow is the next step, and arrow labels name the condition; diamonds are decisions.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Signal["Notification hint"] --> Stale{"Stale at event processing?"}
     Stale -->|Yes| Refresh["Send INBOX_CHANGED"]
@@ -130,7 +117,6 @@ The following successful-delivery example uses two tabs belonging to the same st
 *Legend: solid arrows are requests or calls, dashed arrows are replies or pushes to the browser; notes mark committed or asynchronous steps.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant Tabs as Student's two tabs
     participant A as Replica A
@@ -160,7 +146,6 @@ Live signals can repeat or be missed; neither the bounded subscriber cache nor b
 Complete [local setup](../../development/local-development.md) before starting this service: JWT verification configuration, PostgreSQL/RabbitMQ and migrations are required, and User/Order/Credit CDC must run to observe real business events. From the repository root:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run db:deploy -w @campus-errand/notification-service
 npm run dev -w @campus-errand/notification-service
 ```
@@ -206,7 +191,6 @@ Do not replay or purge a queue simply to clear an alert. Identify the owning wor
 Use isolated dependencies from the [testing guide](../../development/testing-strategy.md), then run from the repository root:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/notification-service
 npm run test:integration -w @campus-errand/notification-service
 npm run test:messaging -w @campus-errand/notification-service

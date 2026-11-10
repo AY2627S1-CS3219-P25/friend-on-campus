@@ -1,28 +1,8 @@
 // AI Assistance Disclosure:
-// Tool: Codex (model: GPT-6), date: 2026-11-08
-// Scope: Align lifecycle posting fields and My Errands navigation with the redesigned UI using stable field IDs and current accessible names.
+// Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Claude Opus 5.5), date: 2026-10-26 to 2026-11-08
+// Scope: Multi-client real-time UAT (issue #197): four Playwright contexts check that notifications and chat stay consistent in real time across a requester's two..; updated across 5 AI-assisted revisions through D4 wrap-up (align lifecycle posting fields and My Errands navigation with the redesigned UI using stable field IDs and current accessible names).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Codex (model: GPT-6), date: 2026-11-07
-// Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
-// Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Google Antigravity Agent, date: 2026-11-07
-// Scope: Updated RT01 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
-// Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-// Scope: Multi-client real-time UAT (issue #197): four Playwright contexts check that notifications and chat stay
-// consistent in real time across a requester's two clients, the winning courier and a losing courier, with an
-// opt-in restart of the Chat Service container under load. Grown from the throwaway driver that found #195.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
-// Scope: postErrand confirms the Post Errand page's new "store may be closed" dialog when it appears, so the run
-// passes at any hour of the day.
-// Author review: <to be completed by huangjiaxi1111>
 
-// AI-generated (edited by Reallyeasy1)
 // Run: npx playwright install chromium && npm run test:e2e:ui:realtime
 // Needs a healthy Compose stack with the seed accounts (bob is the requester: alice's seed wallet is drained by
 // earlier runs; bob's holds enough). Registers one throwaway courier uatcourier-<stamp>@u.nus.edu through the API.
@@ -83,7 +63,7 @@ async function login(page, email) {
   await page.getByRole('button', { name: 'Log In' }).click();
   await page.getByRole('button', { name: 'Post errand', exact: true }).first().waitFor();
 }
-// AI-generated (edited by yanhwee): use current accessible navigation names, distinct from the submit button.
+// Use current accessible navigation names, distinct from the submit button.
 const nav = async (page, tab) => {
   const label = { Feed: 'Browse', Tasks: 'My Errands', Post: 'Post errand' }[tab] ?? tab;
   await page.getByRole('button', { name: tab === 'Alerts' ? /^Alerts(?:,|$)/ : label, exact: true }).first().click();

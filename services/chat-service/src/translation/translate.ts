@@ -1,17 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Display-only translation of chat messages through @campus-errand/llm. Messages go to the model in batches as
- * a JSON array and come back in the same order; when the target is English, text that is plainly English is not sent.
- * Author review: <to be completed by the author>
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: PR #228 review fixes: require a majority of distinctly English words before skipping English translation so
- * Latin-script non-English sentences (Spanish, French, German, Malay) are not skipped, and return null upfront when
- * the SoCLaaS API key is unconfigured even if all texts would be skipped.
+ * Tool: Claude Code (model: Claude Sonnet 5.5); Google Antigravity Agent, date: 2026-11-05 to 2026-11-06
+ * Scope: Display-only translation of chat messages through @campus-errand/llm; updated across 2 AI-assisted revisions through D4 wrap-up (pR #228 review fixes: require a majority of distinctly English words before skipping English translation so Latin-script non-English sentences (Spanish,..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import { callSoclaas, parseJsonReply, type SoclaasConfig } from '@campus-errand/llm';
 
 const BATCH_SIZE = 30;

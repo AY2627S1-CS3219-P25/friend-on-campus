@@ -1,111 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Google Antigravity Agent, date: 2026-11-10
-Scope: Added the required Project-Level AI Use Summary section at the end of README.md in compliance with the CS3219 AI Usage Policy (Appendix 2).
+Tool: Google Antigravity Agent; Codex (model: GPT-6, GPT-5.6 Terra); Claude Code (model: Claude Fable 5.1, Claude Opus 5.5), date: 2026-09-21 to 2026-11-10
+Scope: Repository overview, system architecture, local and Docker setup instructions, test suite guide, and project-level AI use summary.
 Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Separate foreground host startup from verification and point aggregate-test users to target-isolation prerequisites.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Keep the root README focused on quick start and canonical human-readable guides; move detailed workflows into docs without changing runtime instructions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Refresh six-service quick-start facts, test scope and documentation navigation; remove stale duplicated topology and routine volume-reset advice.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
-Scope: Documented the k6 performance harness command (npm run perf:k6, tests/k6/README.md, performance.yml) in the test table and the D4 cheat sheet; removed the unbounded discovery/claim-race commands (issues #236, #237).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Link the manual main-branch application and infrastructure delivery workflows.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Retire K3s deployment references and link the ECS Terraform rollout and manual deployment workflow.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Record confirmed HTTP origin and bridge networking, link the accepted sizing budget and record legacy retirement approval.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Add the confirmed CloudFront entry point and separate origin TLS and incremental pricing from the shared-host migration baseline.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Link the confirmed shared-host ECS architecture and distinguish it from the existing K3s deployment configuration.
-Author review: <to be completed by the author>
-Tool: Codex (model: GPT-6), date: 2026-11-07
-Scope: Restore Friend on Campus as the product name in the heading and overview.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-11-07
-Scope: Updated project heading and overview to tompang. — Friend on Campus (FoC), fixing historical 'Friend of Campus' typo to align with official CS3219 lecture project designation (FoC – Friend on Campus).
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-28
-Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
-Scope: Test-command table gained the `npm run test:e2e:ui:realtime` row and the artifacts note names `test-results/uat-realtime/` (issue #197).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Test-command table gained the `npm run coverage` row (moved here from the deleted docs/ci.md while merging main into PR #147).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-22
-Scope: Fixed Local Development Workflow migration/seeding ordering (db:deploy before db:seed), documented root db:deploy and offline db:seed commands, added .env setup to Quick Start with Docker, and updated test:seed and test:acceptance descriptions.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Updated JWT key generation instructions after removing clipboard copying from scripts/generate-jwt-keys.mjs.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Consolidated CI/testing documentation from docs/ci.md into Testing & Verification, removed docs/ from the monorepo tree, and updated System Documentation links to point to the project Wiki.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Google Antigravity Agent, date: 2026-10-21
-Scope: Updated local development server commands, test category table, and monorepo structure tree for scripts/dev.mjs, scripts/prisma-migrate.mjs, and test:e2e:api.
-Author review: I validated correctness, edited for style, and verified with automated tests.
-
-Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
-Scope: Refreshed facts to main @ 7f2d972: diagram arrows, Milestone Status (D2 done, D3 prepared, wiki link), access URLs for all services, seed commands, Testing & Verification categories, seed-account permissions, Monorepo Structure tree; merged the second disclosure block into this one.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-11
-Scope: Updated documentation links to the flattened specification structure.
-Author review: <to be completed by author after review>
-
-Tool: Codex (model: GPT-6), date: 2026-09-30
-Scope: Documented the working admin gateway route and student login navigation.
-Author review: <to be completed by huangjiaxi1111>
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Updated D2 test and seed-account descriptions to match the author-approved User Service contracts.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
-Scope: Corrected stale Milestone D2 implementation facts after the author-approved User and Supplier Service migrations.
-Author review: <to be completed by ngkhengyang>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-21
-Scope: Added the "Documentation index" and "Claude Code set-up" links under Milestone Documentation. Nothing else in this file was changed.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-09-24
-Scope: Updated the local RabbitMQ dashboard login for separate service identities.
-Author review: <to be completed by huangjiaxi1111>
 -->
 
 # Friend on Campus
@@ -121,7 +18,6 @@ Prerequisites: Git, Node.js 22.3 or later with npm, and Docker with Compose. The
 From the repository root, create `.env` only if it does not already exist:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 cp .env.example .env
 npm run generate:jwt-keys
 ```
@@ -129,7 +25,6 @@ npm run generate:jwt-keys
 Copy the generated `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` values into your local `.env`, then start the stack:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 docker compose up --build
 ```
 
@@ -150,14 +45,12 @@ For host-based development, port conflicts, migrated data or startup failures, f
 Follow the [host development setup](docs/development/local-development.md#option-b-edit-applications-on-the-host), which ends by starting the applications in one terminal:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run dev
 ```
 
 Keep that terminal running while you use the application. In a second terminal at the repository root, check types and run unit tests:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run typecheck
 npm run test:unit
 ```

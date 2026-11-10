@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Removed dead Audit & Disputes navigation option and wired top Refresh button and mobile Health tab to fetchServicesHealth.
+ * Tool: Google Antigravity Agent, date: 2026-10-19 to 2026-10-22
+ * Scope: Extracted top header bar, mobile navigation drawer, and action alert banner into src/components/AdminHeader.tsx; updated across 2 AI-assisted revisions through D4 wrap-up (removed dead Audit & Disputes navigation option and wired top Refresh button and mobile Health tab to fetchServicesHealth).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted top header bar, mobile navigation drawer, and action alert banner into src/components/AdminHeader.tsx.
- * Author review: Verified by yanhwee on 2026-10-19
  */
 
-// AI-generated (edited by yanhwee)
 
 import {
   AlertCircle,

@@ -1,33 +1,8 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
+ * Tool: Codex (model: GPT-6); Claude Code (model: Sonnet 5, Claude Opus 5.5), date: 2026-10-17 to 2026-11-07
+ * Scope: Interactive React Leaflet map (OpenStreetMap tiles) for the Post Errand pickup-spot picker; updated across 6 AI-assisted revisions through D4 wrap-up (align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
- * Scope: Interactive React Leaflet map (OpenStreetMap tiles) for the Post Errand pickup-spot picker. Drops a
- * pin for every supplier with coordinates; clicking a pin selects that supplier and closes the map, same as
- * picking it from the existing dropdown. The view auto-fits to whichever suppliers are passed in instead of a
- * hardcoded zoom level.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Hovering a pin shows a tooltip above it with the store's name, its operating hours and "Closed now" when
- * it is outside them (author's request of 2026-11-04).
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: PR review: the tooltip lists every store sharing the pin (the merge with the grouped markers left it reading
- * an undefined `s`), and its "Closed now" follows useMinuteClock rather than the render-time clock.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: The marker icon fix, fallback view and tile settings moved to ./leafletSetup so the drop-off maps share them.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-01
- * Scope: Group coincident markers and let users select a named supplier in the popup.
- * Author review: <to be completed by Reallyeasy1>
  */
 
 import { useEffect, useMemo } from 'react';
@@ -47,7 +22,6 @@ interface SupplierPickupMapProps {
   onClose: () => void;
 }
 
-// AI-generated (edited by Reallyeasy1)
 function FitBoundsToMarkers({ locations }: { locations: SupplierLocation[] }) {
   const map = useMap();
 

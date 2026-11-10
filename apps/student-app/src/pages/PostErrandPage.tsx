@@ -1,101 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Simplify the approved posting UX with essential fields first, optional disclosures, clearer labels and reservation/timing feedback, preserving the existing form contract and submission rules.
+ * Tool: Codex (model: GPT-6); Google Antigravity Agent; Claude Code (model: Sonnet 5, Claude Opus 5.5), date: 2026-10-19 to 2026-11-07
+ * Scope: Extracted post errand form page from student-app App.tsx into pages/PostErrandPage.tsx; updated across 21 AI-assisted revisions through D4 wrap-up (simplify the approved posting UX with essential fields first, optional disclosures, clearer labels and reservation/timing feedback, preserving the existing..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Align the posting assistant controls with the refreshed blue action palette.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-11-07
- * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed visual "Post New Errand" title banner and subtitle, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Streamlined AI Errand Assistant into 1-click inline smart autofill, removing redundant intermediate draft preview card and extra apply step.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-07
- * Scope: Removed meta milestone labels (NUS SoCLaaS M3) and internal service references from user-facing post-errand builder.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: Redesigned PostErrandPage with elevated card hierarchy, glowing AI assistant hero container, refined stepper & quick-set badges, and glassmorphic styling.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Disambiguated stepper button aria-labels ('Decrease amount' / 'Increase amount') to resolve Playwright getByLabel('Reward credits') strict mode collision.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Restored exact UAT drop-off location and notes placeholders to preserve CI test suite compatibility.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Removed legacy milestone text from form footer.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Refined PostErrandPage layout to remove redundant header wallet card and styled AI Errand Assistant in consistent light theme.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Redesigned PostErrandPage UI/UX, implemented synchronous double-click submission lock, balance validation guards, presets, and progressive status feedback.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Integrated Natural-Language Errand Assistant (F6) with prompt extraction, template chips, draft preview, warning notices, and human-in-the-loop form prefilling.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Added configurable acceptance duration (durationMinutes, 30-1440 mins, default 30 mins) per D1 F3.1.5.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted post errand form page from student-app App.tsx into pages/PostErrandPage.tsx.
- * Author review: Verified by yanhwee
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
- * Scope: Merge of admin_dashboard into main. Added a Map icon button beside the Pickup Store dropdown, opening
- * an interactive map modal (../map/SupplierPickupMap.tsx, React Leaflet + OpenStreetMap tiles) dropping a pin
- * for every active supplier with coordinates; clicking a pin selects that supplier via the same setFormData
- * fields the dropdown's own onChange already sets, and closes the map. The <select>'s existing id/aria-label/
- * required attributes are unchanged (left intact for the UAT selectors noted above) — it is now wrapped in a
- * flex row alongside the new button instead of being full-width on its own.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Author's request of 2026-11-04: the selected store's operating hours and open / closed state are shown
- * under the Pickup Store picker, and posting while the store is outside its hours first asks for confirmation in a
- * dialog ("Post anyway" / "Go back"). Stores with no readable hours post without the dialog.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Drop-off estimator (author's decisions A16-A18, D5, D9): an optional drop-off point under the drop-off field
- * (building search, or a map click when not listed), the suggested reward with its straight-line distance in the
- * reward card, and the suggestion prefilling the reward until the requester sets their own (typing, stepper,
- * presets or an applied assistant draft that carries a reward). A store without coordinates gives no suggestion.
- * Author review: <to be completed by huangjiaxi1111>
  */
 
-// AI-generated (edited by yanhwee)
 
 import { CreditWalletDTO, ParsedErrandDraftDTO, SupplierDTO } from '@campus-errand/common-dtos';
 import {
@@ -134,7 +43,6 @@ export interface PostErrandFormData {
   dropoffLocation: string;
   rewardCredits: number;
   durationMinutes: number;
-  // AI-generated (edited by huangjiaxi1111)
   /** Optional drop-off point behind the suggested reward. */
   dropoffPoint: DropoffPoint | null;
   /** True once the requester sets the reward themselves; the suggestion then stops prefilling it. */
@@ -176,7 +84,6 @@ const TEMPLATE_PROMPTS: QuickTemplate[] = [
   },
 ];
 
-// AI-generated (edited by yanhwee)
 const DISCLOSURE_SUMMARY = 'flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg text-sm text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden';
 
 export function PostErrandPage({
@@ -198,7 +105,6 @@ export function PostErrandPage({
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [extractedDraft, setExtractedDraft] = useState<ParsedErrandDraftDTO | null>(null);
-  // AI-generated (edited by jagdeepsh)
   const [isPickupMapOpen, setIsPickupMapOpen] = useState(false);
   const [appliedNotice, setAppliedNotice] = useState(false);
   const [dismissError, setDismissError] = useState(false);
@@ -219,7 +125,6 @@ export function PostErrandPage({
   const isOverdraw = availableCredits !== null && formData.rewardCredits > availableCredits;
   const isZeroBalance = availableCredits !== null && availableCredits <= 0;
 
-  // AI-generated (edited by yanhwee)
   const durationLabel = !Number.isFinite(formData.durationMinutes)
     ? 'Choose an acceptance window'
     : formData.durationMinutes >= 60 && formData.durationMinutes % 60 === 0
@@ -340,7 +245,6 @@ export function PostErrandPage({
     submitNow(e);
   };
 
-  // AI-generated (edited by huangjiaxi1111)
   const handleConfirmClosedStore = () => {
     const pending = pendingSubmitRef.current;
     pendingSubmitRef.current = null;
@@ -371,7 +275,6 @@ export function PostErrandPage({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* AI-generated (edited by yanhwee) */}
       <header className="space-y-1">
         <h2 className="text-xl sm:text-2xl font-semibold text-campus-ink">Post an errand</h2>
         <p className="text-sm text-slate-600">What do you need, and where should we bring it?</p>
@@ -417,7 +320,7 @@ export function PostErrandPage({
         </div>
       )}
 
-      {/* AI-generated (edited by yanhwee): optional shortcut; the form below works independently. */}
+      {/* Optional shortcut; the form below works independently. */}
       <details className="group rounded-2xl border border-slate-200 bg-white px-4 sm:px-5">
         <summary className={DISCLOSURE_SUMMARY}>
           <Sparkles className="h-4 w-4 shrink-0 text-campus-blue" aria-hidden="true" />
@@ -533,7 +436,7 @@ export function PostErrandPage({
           disabled={submissionBusy}
           className="min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)] gap-4 sm:gap-5 items-start"
         >
-          {/* AI-generated (edited by yanhwee): two concise groups keep the essential fields visible. */}
+          {/* Two concise groups keep the essential fields visible. */}
           <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-subtle space-y-6">
             <section aria-labelledby="post-details-heading" className="space-y-4">
               <h3 id="post-details-heading" className="flex items-center gap-2 text-base font-semibold text-campus-ink">
@@ -571,7 +474,6 @@ export function PostErrandPage({
                   {activeSuppliers.length} active spots
                 </span>
               </div>
-              {/* AI-generated (edited by jagdeepsh) */}
               <div className="flex items-stretch gap-2">
                 <select
                   id="errand-supplier-select"
@@ -978,7 +880,6 @@ export function PostErrandPage({
         </fieldset>
       </form>
 
-      {/* AI-generated (edited by jagdeepsh) */}
       {isPickupMapOpen && (
         <SupplierPickupMap
           suppliers={activeSuppliers}

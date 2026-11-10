@@ -1,18 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Refactored AssistantService into modular, single-responsibility helper functions (prompt building, SoCLaaS gateway call, supplier matching, timing rules, offline fallback).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Sonnet 5.5), date: 2026-10-28 to 2026-11-05
+ * Scope: Natural-Language Errand Creation Assistant service (F6) calling NUS SoCLaaS OpenAI-compatible gateway with supplier grounding and D1 §3.3 timing constraints; updated across 3 AI-assisted revisions through D4 wrap-up (replaced the inline SoCLaaS fetch with callSoclaas/parseJsonReply from @campus-errand/llm).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-28
- * Scope: Natural-Language Errand Creation Assistant service (F6) calling NUS SoCLaaS OpenAI-compatible gateway with supplier grounding and D1 §3.3 timing constraints.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Replaced the inline SoCLaaS fetch with callSoclaas/parseJsonReply from @campus-errand/llm.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by yanhwee)
 
 import { callSoclaas, parseJsonReply } from '@campus-errand/llm';
 import type { ParsedErrandDraftDTO, ParsedErrandItemDTO } from '@campus-errand/common-dtos';
@@ -50,7 +41,6 @@ interface RawLlmExtraction {
 // Extracted Helpers
 // ---------------------------------------------------------------------------
 
-// AI-generated (edited by yanhwee)
 function matchSupplier(
   rawName: string | null | undefined,
   rawId: string | null | undefined,
@@ -86,7 +76,6 @@ function matchSupplier(
   return {};
 }
 
-// AI-generated (edited by yanhwee)
 function fallbackOfflineExtract(
   prompt: string,
   activeSuppliers: SupplierDetails[]
@@ -134,7 +123,6 @@ function fallbackOfflineExtract(
   };
 }
 
-// AI-generated (edited by yanhwee)
 function buildSystemPrompt(activeSuppliers: SupplierDetails[]): string {
   const suppliersContext = activeSuppliers
     .map((s) => `- ${s.name} (Zone: ${s.campusZone}, ID: ${s.id})`)
@@ -174,7 +162,6 @@ IMPORTANT RULES:
 3. ITEM SUMMARY: If multiple items are listed, provide itemDescription as a clear formatted list (e.g. "2x Iced Americano, 1x Croissant").`;
 }
 
-// AI-generated (edited by yanhwee)
 async function extractWithLlm(
   prompt: string,
   activeSuppliers: SupplierDetails[],
@@ -194,7 +181,6 @@ async function extractWithLlm(
   }
 }
 
-// AI-generated (edited by yanhwee)
 function buildDraftFromExtraction(
   rawExtraction: RawLlmExtraction,
   trimmedPrompt: string,
@@ -284,7 +270,6 @@ function buildDraftFromExtraction(
 // Service Factory
 // ---------------------------------------------------------------------------
 
-// AI-generated (edited by yanhwee)
 export function createAssistantService(
   supplierClient: SupplierClient,
   config: AssistantServiceConfig

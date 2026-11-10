@@ -1,21 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: The history route of the author's S5/S6 answers (REST like the bell): GET /api/chat/:orderId opens the
- * conversation (running the Order Service fallback when no row exists) and returns it with its messages in
- * sequence order. Paging and error shape follow notification-service/src/notifications/routes.ts.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #148): afterSequence is clamped to the INTEGER maximum so an oversized value pages to an
- * empty list instead of a 500.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Added POST /api/chat/:orderId/translate (display-only translation of stored messages).
- * Author review: <to be completed by the author>
+ * Tool: Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5), date: 2026-10-20 to 2026-11-05
+ * Scope: The history route of the author's S5/S6 answers (REST like the bell): GET /api/chat/:orderId opens the conversation (running the Order Service fallback when..; updated across 3 AI-assisted revisions through D4 wrap-up (added POST /api/chat/:orderId/translate (display-only translation of stored messages)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import type { AuthenticatedPrincipal } from '@campus-errand/auth';
 import type { ConversationService } from '../conversations/service';

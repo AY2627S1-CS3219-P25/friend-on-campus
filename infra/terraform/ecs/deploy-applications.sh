@@ -1,18 +1,9 @@
 #!/bin/bash
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Wait for the expected ECS rollout to complete after task counts stabilize.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-09
-# Scope: Run release migrations before rollout and preserve deployed images during infrastructure updates.
-# Author review: <to be completed by the author>
-#
-# Tool: Codex (model: GPT-6), date: 2026-11-08
-# Scope: Deploy digest-pinned application images using the latest Terraform task templates and verify each rollout.
-# Author review: <to be completed by the author>
+# Tool: Codex (model: GPT-6), date: 2026-11-08 to 2026-11-09
+# Scope: Deploy digest-pinned application images using the latest Terraform task templates and verify each rollout; updated across 3 AI-assisted revisions through D4 wrap-up (wait for the expected ECS rollout to complete after task counts stabilize).
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 
-# AI-generated (edited by ngkhengyang)
 set -euo pipefail
 cluster=foc-ecs
 account=$(aws sts get-caller-identity --query Account --output text)

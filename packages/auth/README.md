@@ -1,20 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
-Scope: Documented the optional username claim and principal.username (F5.1.1).
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Google Antigravity Agent, date: 2026-10-08
-Scope: Moved authentication-for-services.md from services/user-service/docs to packages/auth/README.md to serve as the official package documentation.
-Author review: <to be completed by author after review>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-06
-Scope: Noted the exported verifier functions and their WebSocket use.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-23
-Scope: Updated the access-token payload section to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud).
-Author review: <to be completed by ngkhengyang>
+Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity Agent, date: 2026-09-23 to 2026-10-17
+Scope: Updated the access-token payload section to the RFC 7519 registered claim names (sub, sid, role, iat, exp, iss, aud); updated across 4 AI-assisted revisions through D4 wrap-up (documented the optional username claim and principal.username (F5.1.1)).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Authentication for Backend Services

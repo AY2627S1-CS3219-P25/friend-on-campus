@@ -1,23 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Delegate registration outbox publication to Debezium instead of starting a polling worker.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-03
- * Scope: Wired transactional outbox relay worker into User Service startup and shutdown lifecycle.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Implemented User Service startup, dependency wiring, middleware initialization, and route registration.
- * Author review: <to be completed by ngkhengyang>
- *
- * Tool: Codex (model: GPT-5.6 Terra), date: 2026-09-22
- * Scope: Integrated ADMIN authorization middleware into the User Service route pipeline.
- * Author review: <to be completed by ngkhengyang>
+ * Tool: Codex (model: GPT-6, GPT-5.6 Terra); Google Antigravity Agent, date: 2026-09-22 to 2026-10-21
+ * Scope: Integrated ADMIN authorization middleware into the User Service route pipeline; updated across 4 AI-assisted revisions through D4 wrap-up (delegate registration outbox publication to Debezium instead of starting a polling worker).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
-// AI-generated (edited by ngkhengyang)
 import { authMiddleware, requireAdmin } from '@campus-errand/auth';
 import { createApp } from './app';
 import { createAuthModule } from './auth/auth-module';

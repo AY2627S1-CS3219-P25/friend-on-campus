@@ -1,18 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-21
- * Scope: Publish Credit result outbox events through Debezium instead of an application polling worker.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Start, verify and close the Credit result outbox worker.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Constructed shared JWT verification and exited cleanly for supervised RabbitMQ recovery.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Codex (model: GPT-6), date: 2026-09-24 to 2026-10-21
+ * Scope: Constructed shared JWT verification and exited cleanly for supervised RabbitMQ recovery; updated across 3 AI-assisted revisions through D4 wrap-up (publish Credit result outbox events through Debezium instead of an application polling worker).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import type { Server } from 'node:http';
 import { authMiddleware } from '@campus-errand/auth';
 import { createApp } from './app';

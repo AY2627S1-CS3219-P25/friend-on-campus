@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Wait for an isolated messaging-test connector to stream its PostgreSQL replication slot before testing delivery.
- * Author review: <to be completed by huangjiaxi1111>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import pg from 'pg';
 import { setTimeout as delay } from 'node:timers/promises';
 

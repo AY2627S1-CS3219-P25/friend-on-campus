@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Refactored useOrderSubmission to poll /api/orders/:id directly with OrderDTO (Approach B2).
- * Author review: Validated against order-service /api/orders/:id contract by yanhwee
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Connect the existing submission API to authenticated posting, resumable polling and saga outcomes.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-19
+ * Scope: Connect the existing submission API to authenticated posting, resumable polling and saga outcomes; updated across 2 AI-assisted revisions through D4 wrap-up (refactored useOrderSubmission to poll /api/orders/:id directly with OrderDTO (Approach B2)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import type { CreateOrderRequest, OrderDTO } from '@campus-errand/common-dtos';
 import { useEffect, useRef, useState } from 'react';
 

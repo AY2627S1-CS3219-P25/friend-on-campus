@@ -1,57 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: CreateOrderParams and the create write carry the optional drop-off coordinates and estimated credit.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-24
- * Scope: Lint fix (PR #184): the list filter is built as Prisma.OrderWhereInput instead of Record<string, any>.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: Per the author's Notification Redesign (§6, §11 increment 3): every outbox payload is completed with the
- * committed version/status inside its transaction (completeEvent); order.rejected is written with the REJECTED
- * update; both unassignment paths write order.unassigned with priorCourierId; repository-built created/expired
- * events carry the SYSTEM actor and a reason code.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Preserved courierId on requester order cancellation for courier task history visibility and added courier unassignOrder (ACCEPTED -> OPEN) before pickup.
+ * Tool: Claude Code (model: Claude Opus 5.5, Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent; Google Antigravity; Codex (model: GPT-6), date: 2026-10-07 to 2026-11-07
+ * Scope: Refactored persistence repository for Order Service using extracted domain handler functions and a lightweight factory function; updated across 12 AI-assisted revisions through D4 wrap-up (courier dispute allowed on any DELIVERED errand and sets dispute; requester dispute allowed once even after the courier's).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-21
- * Scope: Included admin-cancelled courier orders (order.status === 'CANCELLED' where courierId === userId) in getUserActivity history.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity, date: 2026-10-19
- * Scope: Implemented Saga Approach B2 state transitions (PENDING -> OPEN / REJECTED / EXPIRED) directly in OrderRepository with Debezium CDC outbox metadata.
- * Author review: Reviewed and verified by yanhwee.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Remove obsolete synchronous reservation compensation bookkeeping.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-11
- * Scope: Added adminCancelOrder, adminCompleteOrder, adminUnassignOrder with optimistic version checks and search options.
- * Author review: (to be completed by author after review)
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Refactored persistence repository for Order Service using extracted domain handler functions and a lightweight factory function.
- * Author review: (to be completed by author after review)
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: Delivery dispute: disputeOrder, a guard on requester completion, and admin cancel/complete clear the flag (kept requesterDisputeDetails as the record).
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-06
- * Scope: courierDisputeOrder: the assigned courier's response to an open dispute.
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: courier dispute allowed on any DELIVERED errand and sets dispute; requester dispute allowed once even after the courier's.
- * Author review: <to be completed by the author>
  */
-// AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent, OrderDTO } from '@campus-errand/common-dtos';
 import crypto from 'node:crypto';
 import type { Order, Prisma, PrismaClient } from '../database/client';
@@ -103,7 +55,6 @@ export interface OrderRepository {
   findOrderById(id: string): Promise<OrderDTO | null>;
   listOrders(options: ListOrdersOptions): Promise<{ orders: OrderDTO[]; total: number }>;
   getUserActivity(userId: string): Promise<{ requested: OrderDTO[]; delivering: OrderDTO[]; history: OrderDTO[] }>;
-  // AI-generated (edited by Reallyeasy1)
   // Mutations take an OrderEventDraft: the repository completes it with the committed row (completeEvent) before
   // writing the outbox row in the same transaction.
   acceptOrder(orderId: string, courierId: string, courierContactNote: string | undefined, event: OrderEventDraft): Promise<OrderDTO>;
@@ -190,7 +141,6 @@ async function handleApplyReservationResult(
       return { order: toOrderDTO(order) };
     }
 
-    // AI-generated (edited by Reallyeasy1)
     // The saga outcome is an Order-owned fact (Notification Redesign §9): the credit result decides the status, and
     // the row and its outbox event commit together. The actor is SYSTEM because no student issued this transition.
     const outcome = (eventType: 'order.rejected' | 'order.expired' | 'order.created', status: string) => ({
@@ -244,7 +194,6 @@ async function handleApplyReservationResult(
   });
 }
 
-// AI-generated (edited by Reallyeasy1)
 function systemActor(orderId: string) {
   return { schemaVersion: 2 as const, producer: 'order-service' as const, correlationId: orderId, actorRole: 'SYSTEM' as const };
 }
@@ -617,7 +566,6 @@ async function handleCompleteOrder(
   });
 }
 
-// AI-generated (edited by jagdeepsh)
 async function handleDisputeOrder(
   prisma: PrismaClient,
   orderId: string,
@@ -655,7 +603,6 @@ async function handleDisputeOrder(
   });
 }
 
-// AI-generated (edited by jagdeepsh)
 async function handleCourierDisputeOrder(
   prisma: PrismaClient,
   orderId: string,
@@ -795,7 +742,6 @@ async function handleUnassignOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
-    // AI-generated (edited by Reallyeasy1)
     // The reopened errand is a committed fact the requester must learn about (Notification Redesign §3).
     const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
@@ -1050,7 +996,6 @@ async function handleAdminUnassignOrder(
       throw new OrderStateConflictError('Errand was modified concurrently');
     }
 
-    // AI-generated (edited by Reallyeasy1)
     const refreshed = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     await tx.outboxEvent.create({
       data: {

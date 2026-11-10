@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Poll wallet initialization briefly on HTTP 404 so newly registered accounts wait for the async welcome-grant CDC event instead of flashing an immediate wallet error (issue #168).
+ * Tool: Google Antigravity Agent, date: 2026-10-19 to 2026-11-10
+ * Scope: Extracted credit wallet and ledger API client functions from student-app App.tsx into modular api/credits.ts; updated across 2 AI-assisted revisions through D4 wrap-up (poll wallet initialization briefly on HTTP 404 so newly registered accounts wait for the async welcome-grant CDC event instead of flashing an immediate..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted credit wallet and ledger API client functions from student-app App.tsx into modular api/credits.ts.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 import { CreditTransactionDTO, CreditWalletDTO } from '@campus-errand/common-dtos';
 import { AuthFetchFn } from './auth';
@@ -36,7 +31,7 @@ export async function fetchWalletAndLedger(
 
   try {
     let walletResponse: Response | null = null;
-    // AI-generated (edited by yanhwee): retry HTTP 404 briefly while the user.registered CDC event initializes the wallet (#168).
+    // Retry HTTP 404 briefly while the user.registered CDC event initializes the wallet (#168).
     for (let attempt = 0; attempt < attempts; attempt++) {
       walletResponse = await authFetch('/api/credits/wallet');
       if (walletResponse.status !== 404) break;

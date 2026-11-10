@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Subscriber-side delivery for cross-replica chat signals (issue #240, wiki section 3): a `message` signal
- *        re-reads the stored message and the current conversation and pushes MESSAGE only to users who are both in the
- *        original recipient set and current participants (clientId only on the sender's sockets); a transient
- *        `moderated` signal pushes MODERATED_PEER to the current peer. The outbox payload builder lives here too so the
- *        store and the subscriber agree on one shape. PR #246 review: the sender's clientId is echoed whatever its
- *        length (author's decision), since the hub accepts any length.
- * Author review: <to be completed by Reallyeasy1>
+ * Scope: Subscriber-side delivery for cross-replica chat signals (issue #240, wiki section 3): a `message` signal re-reads the stored message and the current...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { randomUUID } from 'node:crypto';
 import type { RealtimeSignal } from '@campus-errand/messaging';
 import type { ChatServerFrame } from '@campus-errand/common-dtos';

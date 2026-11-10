@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Unit tests for the English check and the batch translator (skip for English targets, order, failure).
- * Author review: <to be completed by the author>
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: PR #228 review tests: Latin-script non-English sentences with shared short words ('no', 'a', 'on', 'in', 'ok')
- * still require translation, and an empty API key returns null even when all messages are plain English.
+ * Tool: Claude Code (model: Claude Sonnet 5.5); Google Antigravity Agent, date: 2026-11-05 to 2026-11-06
+ * Scope: Unit tests for the English check and the batch translator (skip for English targets, order, failure); updated across 2 AI-assisted revisions through D4 wrap-up (pR #228 review tests: Latin-script non-English sentences with shared short words ('no', 'a', 'on', 'in', 'ok') still require translation, and an empty API..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { createTranslator, needsTranslation } from '../src/translation/translate';

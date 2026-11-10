@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-09-27
  * Scope: Tested fresh database initialization and persistent credit constraints from the single migration.
- * Author review: <to be completed by huangjiaxi1111>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';

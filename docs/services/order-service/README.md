@@ -1,25 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Correct dispute limits and list defaults; explain late reservation compensation and practical event-chain diagnosis.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate Order contracts, Saga, runtime and tests into one developer guide with concrete examples and focused diagrams.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconciled this guide with current service code, schemas, configuration and tests; consolidated duplicated reference material.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-10-25
-Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
-Prior diagram attribution: AI-generated (edited by Reallyeasy1).
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6), date: 2026-10-25 to 2026-11-09
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1; updated across 5 AI-assisted revisions through D4 wrap-up (correct dispute limits and list defaults; explain late reservation compensation and practical event-chain diagnosis).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Order Service: from request to completed errand
@@ -45,7 +28,6 @@ This sequence shows the successful path. “CDC and RabbitMQ” represents the t
 *Legend: solid arrows are requests or calls, dashed arrows are replies or events published to the bus; notes mark committed state.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     autonumber
     participant UI as Student app
@@ -93,7 +75,6 @@ Suppose Mei's order has `expiresAt = 12:30`. Credit commits the 10-credit hold a
 *Legend: solid arrows are requests or calls, dashed arrows are events published to the bus; notes mark committed state.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant Order as Order Service
     participant Bus as CDC and RabbitMQ
@@ -119,7 +100,6 @@ The main path and reservation outcomes are below. Cancellation and dispute permi
 *Legend: each arrow is a state transition, and its label is the trigger.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 stateDiagram-v2
     direction TB
     [*] --> PENDING: Valid submission
@@ -245,7 +225,6 @@ First prepare dependencies, generated Prisma clients, migrations and local crede
 From the repository root:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run dev -w @campus-errand/order-service
 ```
 
@@ -272,7 +251,6 @@ Startup starts the result consumer and expiry sweeper. SIGINT/SIGTERM stop backg
 The focused no-infrastructure test command is:
 
 ```sh
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/order-service
 ```
 

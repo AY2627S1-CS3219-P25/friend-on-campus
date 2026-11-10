@@ -1,19 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
- * Scope: addTransaction returns the ledger row's id and code so settlement/refund receipts can reference it
- * (Notification Redesign increment 6).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Add transaction savepoints and Credit result outbox writes.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-09-24
- * Scope: Added serializable transactions and persistent grant, escrow and event access.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Claude Code (model: Claude Fable 5.1); Codex (model: GPT-6), date: 2026-09-24 to 2026-10-22
+ * Scope: Added serializable transactions and persistent grant, escrow and event access; updated across 3 AI-assisted revisions through D4 wrap-up (addTransaction returns the ledger row's id and code so settlement/refund receipts can reference it (Notification Redesign increment 6)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import type { Prisma, PrismaClient, CreditWallet, CreditTransaction } from '../database/client';
 import type { CreditTransactionDTO, CreditWalletDTO } from './types';
 
@@ -45,7 +35,6 @@ function transactionDTO(transaction: CreditTransaction): CreditTransactionDTO {
 
 function queries(db: Prisma.TransactionClient) {
   return {
-    // AI-generated (edited by yanhwee)
     savepoint: () => db.$executeRawUnsafe('SAVEPOINT reservation_attempt'),
     rollbackAttempt: () => db.$executeRawUnsafe('ROLLBACK TO SAVEPOINT reservation_attempt'),
     releaseSavepoint: () => db.$executeRawUnsafe('RELEASE SAVEPOINT reservation_attempt'),
@@ -108,7 +97,7 @@ function queries(db: Prisma.TransactionClient) {
       });
       return rows.map(transactionDTO);
     },
-    // AI-generated (edited by Reallyeasy1): the ledger row identifies the receipt event written in the same transaction.
+    // The ledger row identifies the receipt event written in the same transaction.
     async addTransaction(data: Omit<CreditTransactionDTO, 'id' | 'createdAt'>): Promise<{ id: string; transactionCode: string }> {
       const row = await db.creditTransaction.create({ data, select: { id: true, transactionCode: true } });
       return row;

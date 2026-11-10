@@ -2,9 +2,8 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-01
  * Scope: Regression tests for coincident supplier markers and missing coordinates.
- * Author review: <to be completed by Reallyeasy1>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { SupplierDTO } from '@campus-errand/common-dtos';

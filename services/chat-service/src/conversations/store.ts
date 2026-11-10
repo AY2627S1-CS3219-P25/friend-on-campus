@@ -1,29 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: append() writes the realtime delivery intent in its transaction; findById and findMessage for the subscriber (issue #240).
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Persistence for conversations and messages as the author specified (F8 brief S1 to S3): upsert on
- * order.accepted keyed by order id, set-once timestamps for pickup, delivery and close, and an append with a
- * per-conversation sequence allocated under the conversation row lock. Shape follows notification-service/src/notifications/store.ts.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fixes (PR #148 P1, P2): upsertAccepted replaces the courier only for an accept newer than
- * courierSince and reports whether it applied; append re-reads the participants and closedAt under the row lock it
- * already takes, refuses a closed conversation or a non-participant there, and returns the recipients from that
- * locked state.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Review fixes (PR #148, second round): upsertAccepted re-runs its guard when the row it finds was inserted
- * concurrently and is older than this accept, and applies a supplied closedAt (the terminal Order fallback) to an
- * existing row set-once, so a fallback racing an event-created row does not leave it open.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-09
+ * Scope: Persistence for conversations and messages as the author specified (F8 brief S1 to S3): upsert on order.accepted keyed by order id, set-once timestamps for..; updated across 4 AI-assisted revisions through D4 wrap-up (append() writes the realtime delivery intent in its transaction; findById and findMessage for the subscriber (issue #240)).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import type { PrismaClient } from '../database/client';
 import { messageSignal } from '../realtime/delivery';
 

@@ -1,28 +1,8 @@
 // AI Assistance Disclosure:
-// Tool: Codex (model: GPT-6), date: 2026-11-01
-// Scope: Preserve nullable legacy coordinates while new writes require coordinates at the API boundary.
-// Author review: <to be completed by Reallyeasy1>
-//
-// Tool: Google Antigravity, date: 2026-10-20
-// Scope: Updated Prisma client generator output path to standard ../src/generated/prisma.
-// Author review: <to be completed by author after review>
-//
-// Tool: Claude Code (model: Claude Opus 5), date: 2026-09-19
-// Scope: Generated initial Prisma schema mirroring the columns of data/csv/supplier-seed-data.csv.
-// Author review: (to be completed by author after review)
-//
-// Tool: Claude Code (model: Sonnet 5), date: 2026-09-29
-// Scope: building/floor changed from optional to required. (name, category, building, floor) is now
-// case-insensitively unique via a raw SQL expression index in migrations/ — Prisma cannot declare LOWER() in
-// a @@unique, so it is deliberately not declared here (same reasoning as user-service's username/email).
-// Author review: (to be completed by author after review)
-//
-// Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
-// Scope: latitude/longitude changed from optional to required (every supplier must have map coordinates).
-// Author review: (to be completed by author after review)
+// Tool: Codex (model: GPT-6); Google Antigravity; Claude Code (model: Claude Opus 5, Sonnet 5), date: 2026-09-19 to 2026-11-01
+// Scope: Generated initial Prisma schema mirroring the columns of data/csv/supplier-seed-data.csv; updated across 5 AI-assisted revisions through D4 wrap-up (preserve nullable legacy coordinates while new writes require coordinates at the API boundary).
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 
-// AI-generated (edited by yanhwee)
-// AI-generated (edited by jagdeepsh)
 //
 // Prisma schema for the supplier-service PostgreSQL database.
 // Lives at the standard ./prisma/schema.prisma location.

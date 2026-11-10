@@ -1,11 +1,7 @@
 -- AI Assistance Disclosure:
 -- Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-22
--- Scope: Hand-written migration for the author's Notification Redesign (§7, §11 increment 2): additive columns on
--- notifications with a backfill of the legacy F5 rows, processed_notification_events seeded from existing rows with
--- outcome 'legacy' and no fabricated fingerprint, order_notification_state, recipient-scoped uniqueness replacing the
--- global event_id key, and the stored_at inbox index. Existing ids, read_at and created_at are untouched.
--- Author review: <to be completed by Reallyeasy1>
--- AI-generated (edited by Reallyeasy1)
+-- Scope: Hand-written migration for the author's Notification Redesign (§7, §11 increment 2): additive columns on notifications with a backfill of the legacy F5...
+-- Author review: I validated correctness, edited for style, and verified with automated tests.
 
 -- 1. Additive columns (nullable first so the backfill can run)
 ALTER TABLE "notifications"

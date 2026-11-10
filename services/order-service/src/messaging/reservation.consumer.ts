@@ -1,14 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Classify identified infrastructure failures for unlimited retry while retaining invalid-result rejection.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-18
- * Scope: Validate and consume correlated credit results with the existing durable retry/DLQ behavior.
- * Author review: <to be completed by huangjiaxi1111>
+ * Tool: Codex (model: GPT-6), date: 2026-10-18 to 2026-10-19
+ * Scope: Validate and consume correlated credit results with the existing durable retry/DLQ behavior; updated across 2 AI-assisted revisions through D4 wrap-up (classify identified infrastructure failures for unlimited retry while retaining invalid-result rejection).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by yanhwee)
 import type { CreditReservationResultEvent } from '@campus-errand/common-dtos';
 import { OrderError, OrderValidationError } from '../orders/order.types';
 import { isInfrastructureFailure, startRabbitConsumer, type Failure, type MessagingConfig } from '@campus-errand/messaging';

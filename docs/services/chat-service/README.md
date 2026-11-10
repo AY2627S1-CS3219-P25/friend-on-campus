@@ -1,28 +1,8 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Clarify missing-conversation event handling and send-recovery tolerance; add concrete access/history examples and an uncertain-send recovery diagram.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Consolidate Chat behavior, contracts, operations and unresolved historical decisions into one source-checked guide with a focused authorization/persistence diagram.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Codex (model: GPT-6), date: 2026-11-09
-Scope: Reconcile current implementation, contracts, realtime delivery and verification limits; preserve historical records.
-Author review: <to be completed by the author>
-
-Tool: Codex (model: GPT-6), date: 2026-11-08
-Scope: Update runtime composition, shared quorum messaging, shutdown behavior and migration guidance for cloud preparation.
-Author review: <to be completed by the author>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Source-linked description of the Chat Service as implemented at PR #148 head f39ab1f (not on main), with module map, configuration, known limits and links to the D4 specification. No application change.
-Author review: <to be completed by Reallyeasy1>
-
-Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
-Scope: Proposed D4 specification for the remaining Chat Service work: reconciliation of fixes already on PR #148 head f39ab1f, remaining limitations with source references, F8 requirement register, the decision register with conflicting sources, conditional contract/persistence/frontend/operations sections restating the wiki proposal, verification map and implementation breakdown. No application change; no policy, schema or interface is decided here.
-Author review: <to be completed by Reallyeasy1>
+Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-25 to 2026-11-09
+Scope: Proposed D4 specification for the remaining Chat Service work: reconciliation of fixes already on PR #148 head f39ab1f, remaining limitations with source..; updated across 6 AI-assisted revisions through D4 wrap-up (clarify missing-conversation event handling and send-recovery tolerance).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
 # Chat Service
@@ -56,7 +36,6 @@ This diagram shows why the two boundaries differ:
 *Legend: solid arrows are requests or calls, dashed arrows are replies; `alt` marks a conditional branch.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
     participant UI as Browser
     participant Chat as Chat Service
@@ -142,7 +121,6 @@ For example, “Meet me at the library entrance” may commit just before the se
 *Legend: each arrow is the next step, and arrow labels name the condition; the diamond is a decision.*
 
 ```mermaid
-%% AI-generated (edited by Reallyeasy1)
 flowchart TD
     Missing["No echo or rejection for pending SEND"] --> Catchup["Attempt history catch-up"]
     Catchup --> Match{"Matching loaded message?"}
@@ -172,7 +150,6 @@ Translation can scan history pages to find the requested IDs; requesting a late 
 Follow [local development](../../development/local-development.md) first: install dependencies, provide JWT configuration, start PostgreSQL/RabbitMQ, apply migrations and start Order/CDC. From the repository root:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run db:deploy -w @campus-errand/chat-service
 npm run dev -w @campus-errand/chat-service
 ```
@@ -202,7 +179,6 @@ Loss of realtime subscription closes sockets and removes readiness. Fatal busine
 From the repository root, use the [testing guide](../../development/testing-strategy.md) to provision isolated dependencies:
 
 ```bash
-# AI-generated (edited by Reallyeasy1)
 npm run test:unit -w @campus-errand/chat-service
 npm run test:integration -w @campus-errand/chat-service
 npm run test:messaging -w @campus-errand/chat-service

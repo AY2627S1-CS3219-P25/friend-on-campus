@@ -1,15 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Handled non-JSON error responses (e.g. NGINX 502/503 HTML pages during container startup) gracefully in loginWithPassword and registerUserAccount.
+ * Tool: Google Antigravity Agent, date: 2026-10-19 to 2026-10-22
+ * Scope: Extracted authentication API client functions from student-app App.tsx into modular api/auth.ts; updated across 2 AI-assisted revisions through D4 wrap-up (handled non-JSON error responses (e.g).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted authentication API client functions from student-app App.tsx into modular api/auth.ts.
- * Author review: Verified by yanhwee
  */
 
-// AI-generated (edited by yanhwee)
 
 export type AuthFetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -65,7 +60,7 @@ export async function registerUserAccount(payload: {
 
 export async function refreshSessionAccessToken(): Promise<string | null> {
   try {
-    // AI-generated (edited by Reallyeasy1): issue #169; a gateway that cannot reach User Service must not hold the
+    // Issue #169; a gateway that cannot reach User Service must not hold the
     // session check (and the whole app) on a spinner; after the timeout the login form shows with its error path.
     const res = await fetch('/api/auth/refresh', { method: 'POST', signal: AbortSignal.timeout(8000) });
     const data = await res.json();

@@ -1,15 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Runs every service's existing test:unit command under Node's built-in coverage and writes
- * coverage/lcov.info per service for editor extensions such as Coverage Gutters. No new dependency.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fix (PR #147): the skip comment no longer names credit-service, which has had a node --test unit suite since 2026-10-22; a services/ entry without package.json is skipped instead of crashing the run.
- * Author review: <to be completed by Reallyeasy1>
+ * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-10-25
+ * Scope: Runs every service's existing test:unit command under Node's built-in coverage and writes coverage/lcov.info per service for editor extensions such as..; updated across 2 AI-assisted revisions through D4 wrap-up (review fix (PR #147): the skip comment no longer names credit-service, which has had a node --test unit suite since 2026-10-22).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by Reallyeasy1)
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';

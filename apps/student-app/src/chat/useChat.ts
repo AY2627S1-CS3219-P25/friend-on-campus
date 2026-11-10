@@ -1,58 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
- * Scope: Issue #202 (simulated UAT case H03): a send whose echo never arrives (timeout, or the socket closed while it
- * was pending) is no longer reported as "not sent". The hook keeps what it sent (order, text, time) and reconciles
- * against the server's history: after the timeout it re-reads the thread from its cursor, and after a reconnect's
- * AUTH_OK catch-up it checks again; a copy of the text from this user at or after the send settles the send as
- * delivered (composer clears), otherwise the outcome is UNCONFIRMED with copy that asks the user to check the
- * conversation before sending again. The clientId stays correlation only; nothing deduplicates server side.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Multi-client UAT finding: a half-open socket kept the indicator on "Connected". The browser's offline event
- * now marks the chat disconnected (which disables Send), the online event drops the socket so the reconnect's AUTH_OK
- * catch-up fills the gap, and open threads are reconciled quietly from their cursor every 30 s and on focus, in the
- * shape of useNotifications' reconcile.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
- * Scope: Client side of the Chat Service contract (F8), in the shape of notifications/useNotifications.ts: AUTH
- * frame on /ws/chat/ after login, reconnect with backoff, token refresh on 4401, history over REST per errand,
- * SEND with a client id so a rejection (F8.2.3) is matched to the message that failed. New MESSAGE frames are
- * appended to the errand's list and deduplicated by id.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
- * Scope: Review fixes (PR #148): a pending send is settled only by the echo carrying its clientId; history pages by
- * afterSequence until the last page; after a reconnect every loaded thread catches up from its last sequence.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
- * Scope: Review fix (PR #148, second round): every AUTH_OK, the first included, reconciles the loaded threads from a
- * cursor that is the contiguous coverage of fetched history (loadedThrough), not the highest displayed sequence, so a
- * message that landed between the REST read and the socket authentication is fetched and a gap is never skipped over.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
- * Scope: Added translate(): asks the Chat Service for display-only translations of stored messages.
- * Author review: <to be completed by the author>
- *
- * Tool: Google Antigravity Agent, date: 2026-11-06
- * Scope: PR #228 review fixes: chunk messageIds to at most 200 per POST /api/chat/:orderId/translate request and pass
- * a 25 s request deadline signal so authFetch's default 10 s deadline does not abort the backend's 20 s LLM timeout.
+ * Tool: Claude Code (model: Claude Fable 5.1, Claude Sonnet 5.5); Google Antigravity Agent, date: 2026-10-20 to 2026-11-09
+ * Scope: Client side of the Chat Service contract (F8), in the shape of notifications/useNotifications.ts: AUTH frame on /ws/chat/ after login, reconnect with..; updated across 9 AI-assisted revisions through D4 wrap-up (issue #242 (RT4.2): a MODERATED_PEER frame whose eventId was already seen in this logged-in session is not counted again (countsAsRemoval)).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
- * Scope: A MODERATED_PEER ERROR frame adds a removed-message notice to the thread (in memory only).
- * Author review: <to be completed by the author>
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: Issue #242 (RT4.2): a MODERATED_PEER frame whose eventId was already seen in this logged-in session is not
- * counted again (countsAsRemoval); a frame without an eventId keeps the previous behaviour.
- * Author review: <to be completed by Reallyeasy1>
  */
-// AI-generated (edited by Reallyeasy1)
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatErrorCode, ChatHistoryResponse, ChatMessageDTO, ChatServerFrame, ConversationDTO } from '@campus-errand/common-dtos';
 import { createFirstSeen } from '../hooks/recentIds';
@@ -107,7 +58,6 @@ const TRANSLATE_DEADLINE_MS = 25_000;
 
 const EMPTY: ChatThread = { conversation: null, messages: [], loadedThrough: 0, isLoading: false, loadError: null, removedNotices: 0 };
 
-// AI-generated (edited by Reallyeasy1)
 /** Whether a MODERATED_PEER notice adds a removed-message line: once per eventId; always when it carries none (issue #242). */
 export function countsAsRemoval(eventId: string | undefined, firstSeen: (id: string) => boolean): boolean {
   return !eventId || firstSeen(eventId);
@@ -145,7 +95,7 @@ export function useChat(options: {
   const latest = useRef(options);
   latest.current = options;
   const socketRef = useRef<WebSocket | null>(null);
-  // AI-generated (edited by Reallyeasy1): a pending send remembers what it sent so it can be reconciled from history.
+  // A pending send remembers what it sent so it can be reconciled from history.
   const pending = useRef(new Map<string, { orderId: string; text: string; startedAt: number; resolve: (outcome: SendOutcome) => void; timer: ReturnType<typeof setTimeout> }>());
 
   const settle = (clientId: string | undefined, outcome: SendOutcome) => {
@@ -160,14 +110,14 @@ export function useChat(options: {
   // The socket callbacks read the threads through this ref so a reconnect can reload what is open without re-binding.
   const threadsRef = useRef(threads);
   threadsRef.current = threads;
-  // AI-generated (edited by Reallyeasy1): written inside every state update, so code that awaits load() can read the
+  // Written inside every state update, so code that awaits load() can read the
   // merged thread before React has rendered it (threadsRef lags until the next render).
   const latestThreads = useRef(threads);
   const updateThreads = useCallback((updater: (current: Record<string, ChatThread>) => Record<string, ChatThread>) => {
     setThreads((current) => { const next = updater(current); latestThreads.current = next; return next; });
   }, []);
 
-  // AI-generated (edited by Reallyeasy1): the threads whose panel is on screen; only those are reconciled on the
+  // The threads whose panel is on screen; only those are reconciled on the
   // timer, so a session that opened many errands does not re-read them all every 30 s. ChatPanel registers itself.
   const watched = useRef(new Set<string>());
   const watch = useCallback((orderId: string) => {
@@ -180,7 +130,7 @@ export function useChat(options: {
    * afterSequence until a page comes back short, so a long conversation is complete (F8.3.1). `afterSequence` lets a
    * catch-up fetch only what was missed; the thread's `loadedThrough` is the cursor for that.
    */
-  // AI-generated (edited by Reallyeasy1): a quiet catch-up (reconcile timer, focus) leaves isLoading alone so the
+  // A quiet catch-up (reconcile timer, focus) leaves isLoading alone so the
   // panel neither shows "Loading…" nor re-scrolls, never surfaces an error, and never runs twice at once for a thread
   // (focus and visibilitychange both fire on a tab return).
   const inFlight = useRef(new Set<string>());
@@ -214,7 +164,7 @@ export function useChat(options: {
         };
       });
     } catch (e) {
-      // AI-generated (edited by Reallyeasy1): a quiet catch-up that fails (the service is restarting, say) leaves the
+      // A quiet catch-up that fails (the service is restarting, say) leaves the
       // thread as it was; the next one retries.
       if (quiet) return;
       const message = e instanceof Error ? e.message : 'Could not load the conversation';
@@ -229,7 +179,6 @@ export function useChat(options: {
    * The same check runs after a reconnect's catch-up, so a socket that closed with the send pending is reconciled
    * as soon as history is readable again (issue #202).
    */
-  // AI-generated (edited by Reallyeasy1)
   const reconcilePending = useCallback(async (clientIds: string[], reload: boolean) => {
     const me = tokenUserId(latest.current.token);
     for (const clientId of clientIds) {
@@ -264,7 +213,6 @@ export function useChat(options: {
    * Display-only translations of stored messages into `language` (POST /api/chat/:orderId/translate).
    * Resolves to a map of message id to translated text, or null when translation is unavailable.
    */
-  // AI-generated (edited by yanhwee)
   const translate = useCallback(async (orderId: string, language: string, messageIds: string[]): Promise<Record<string, string> | null> => {
     try {
       const merged: Record<string, string> = {};
@@ -297,7 +245,7 @@ export function useChat(options: {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
-    // AI-generated (edited by Reallyeasy1): one cache per logged-in session, discarded with this effect (issue #242).
+    // One cache per logged-in session, discarded with this effect (issue #242).
     const firstSeen = createFirstSeen();
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${protocol}//${window.location.host}/ws/chat/`;
@@ -372,7 +320,7 @@ export function useChat(options: {
 
     connect(options.token);
 
-    // AI-generated (edited by Reallyeasy1): the browser hears about a lost network before a half-open socket does
+    // The browser hears about a lost network before a half-open socket does
     // (the hub's ping evicts only the server side). Offline: close the socket, which settles pending sends with
     // "Connection lost" and disables Send. Online: forget the backoff and reconnect at once (closing a socket that is
     // still there, else connecting), so the AUTH_OK catch-up fills the gap within a second. For drops the browser

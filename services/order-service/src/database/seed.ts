@@ -1,23 +1,9 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
- * Scope: The two Deck sample errands use the zone name 'FASS' instead of 'Arts & Social Sciences', which no feed tab
- * matched. Rows seeded earlier are corrected by migration 20261109190000_sample_errand_zone_fass.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Assigned deterministic UUIDs to the 4 seeded sample orders so Credit Service can seed matching escrow reservations.
+ * Tool: Claude Code (model: Claude Fable 5.1); Google Antigravity Agent; Codex (model: GPT-6), date: 2026-10-07 to 2026-11-09
+ * Scope: Seed initial development errands in Order Service if the database is empty; updated across 4 AI-assisted revisions through D4 wrap-up (the two Deck sample errands use the zone name 'FASS' instead of 'Arts & Social Sciences', which no feed tab matched).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Codex (model: GPT-6), date: 2026-10-19
- * Scope: Add two sample errands and insert missing seeds without changing existing orders.
- * Author review: <to be completed by huangjiaxi1111>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-07
- * Scope: Seed initial development errands in Order Service if the database is empty.
- * Author review: (to be completed by author after review)
  */
-// AI-generated (edited by yanhwee)
 import { prisma } from './client';
 
 export async function seedOrders() {
@@ -52,7 +38,7 @@ export async function seedOrders() {
       courierId: null,
       supplierId: '10000000-0000-4000-8000-000000000002',
       supplierName: 'The Deck (Arts Canteen)',
-      // AI-generated (edited by Reallyeasy1): the zone name every other source uses for The Deck; the feed tab is FASS.
+      // The zone name every other source uses for The Deck; the feed tab is FASS.
       campusZone: 'FASS',
       itemDescription: '2x Yong Tau Foo dry with bee hoon (sweet sauce)',
       specialNotes: 'Less noodles if possible',
@@ -64,7 +50,6 @@ export async function seedOrders() {
       createdAt: new Date(),
       version: 1,
     },
-    // AI-generated (edited by huangjiaxi1111)
     {
       id: '30000000-0000-4000-8000-000000000003',
       orderCode: 'ORD-76128',
@@ -103,7 +88,6 @@ export async function seedOrders() {
     },
   ];
 
-  // AI-generated (edited by huangjiaxi1111)
   const result = await prisma.order.createMany({
     data: sampleOrders,
     skipDuplicates: true,

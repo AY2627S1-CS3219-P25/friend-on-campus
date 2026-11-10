@@ -1,12 +1,9 @@
 /**
  * AI Assistance Disclosure:
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
- * Scope: Pure helpers for the drop-off credit estimate (author's decisions A17/A18 with D9 = 5 to 70): haversine
- * straight-line distance, the longest span across a building list (D_MAX), and the linear suggestion from the pickup
- * store to the drop-off point, rounded to the nearest credit and capped beyond D_MAX.
- * Author review: <to be completed by huangjiaxi1111>
+ * Scope: Pure helpers for the drop-off credit estimate (author's decisions A17/A18 with D9 = 5 to 70): haversine straight-line distance, the longest span across a...
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
-// AI-generated (edited by huangjiaxi1111)
 import type { SupplierDTO } from '@campus-errand/common-dtos';
 
 export interface LatLng {

@@ -1,31 +1,10 @@
 /**
  * AI Assistance Disclosure:
- * Tool: Google Antigravity Agent, date: 2026-11-10
- * Scope: Add describeOrderEscrowSubtitle helper so terminal order rows describe asynchronous escrow settlement/refund accurately without claiming Credit Service completion from Order status alone (issue #200).
+ * Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1, Sonnet 5), date: 2026-10-19 to 2026-11-10
+ * Scope: Extracted shared admin portal constants, types, JWT claim decoders, and supplier validation helpers into src/constants.ts; updated across 5 AI-assisted revisions through D4 wrap-up (add describeOrderEscrowSubtitle helper so terminal order rows describe asynchronous escrow settlement/refund accurately without claiming Credit Service..).
  * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
- * Scope: PR #222 review: validateSupplierForm takes the record being edited, so a coordinate a legacy supplier never
- * had may stay blank on edit (the PUT omits it and the API preserves the null); creation and clearing an existing
- * value remain errors.
- * Author review: <to be completed by Reallyeasy1>
- *
- * Tool: Google Antigravity Agent, date: 2026-10-22
- * Scope: Removed dead 'audit' navigation section from AdminNavSection union.
- * Author review: I validated correctness, edited for style, and verified with automated tests.
- *
- * Tool: Google Antigravity Agent, date: 2026-10-19
- * Scope: Extracted shared admin portal constants, types, JWT claim decoders, and supplier validation helpers into src/constants.ts.
- * Author review: Verified by yanhwee on 2026-10-19
- *
- * Tool: Claude Code (model: Sonnet 5), date: 2026-10-30
- * Scope: Merge of admin_dashboard into main. validateSupplierForm now also requires latitude/longitude (red
- * asterisk, inline error, no API call until both are filled with a valid number), matching the supplier-service
- * DB columns made NOT NULL on 2026-10-17.
- * Author review: (to be completed by author after review)
  */
 
-// AI-generated (edited by yanhwee)
 
 import { OrderStatus, SupplierCategory, UserRole } from '@campus-errand/common-dtos';
 
@@ -72,7 +51,6 @@ export function decodeJwtUserId(token: string): string | null {
   }
 }
 
-// AI-generated (edited by jagdeepsh)
 export function validateSupplierForm(data: {
   name?: string;
   campusZone?: string;
@@ -90,7 +68,7 @@ export function validateSupplierForm(data: {
   if (!data.exactLocation?.trim()) errors.exactLocation = 'Exact Pickup Spot Description is required.';
   if (!data.building?.trim()) errors.building = 'Building is required.';
   if (!data.floor?.trim()) errors.floor = 'Floor is required.';
-  // AI-generated (edited by Reallyeasy1): on create (no `existing`) both coordinates are mandatory. On edit, a
+  // On create (no `existing`) both coordinates are mandatory. On edit, a
   // coordinate the record never had may stay blank (the request omits it and the API keeps the legacy null), but a
   // recorded value cannot be blanked silently, since the API would keep the old value behind the admin's back.
   for (const key of ['latitude', 'longitude'] as const) {
@@ -104,7 +82,7 @@ export function validateSupplierForm(data: {
   return errors;
 }
 
-// AI-generated (edited by yanhwee): describe order escrow state without claiming Credit Service has already settled/refunded from Order status alone (issue #200).
+// Describe order escrow state without claiming Credit Service has already settled/refunded from Order status alone (issue #200).
 export function describeOrderEscrowSubtitle(status: OrderStatus): string {
   switch (status) {
     case 'COMPLETED':

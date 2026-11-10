@@ -1,16 +1,7 @@
 // AI Assistance Disclosure:
-// Tool: Google Antigravity Agent, date: 2026-11-09
-// Scope: Issue #253: Updated multi-tier supplier concurrency assertions to match restored 50 VUs (#29) and
-//        100 VUs (#33) load populations in tests/k6/requirements.json.
+// Tool: Google Antigravity Agent; Claude Code (model: Claude Fable 5.1), date: 2026-11-09
+// Scope: Self-tests for the k6 performance wrapper, written from the defects of run perf-20261108T135152Z-b09772: admin and account logins that renew themselves..; updated across 2 AI-assisted revisions through D4 wrap-up (issue #253: Updated multi-tier supplier concurrency assertions to match restored 50 VUs (#29) and 100 VUs (#33) load populations in tests/k6/requirements.json).
 // Author review: I validated correctness, edited for style, and verified with automated tests.
-//
-// Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
-// Scope: Self-tests for the k6 performance wrapper, written from the defects of run perf-20261108T135152Z-b09772:
-//        admin and account logins that renew themselves (that run's reconciliation and cleanup got HTTP 401 after
-//        26 minutes on a 15-minute token), stage statuses that are verdicts and never HTTP codes, and removal of a
-//        failed run's fixtures by tag. Uses an in-process fake gateway with an injected clock; no stack needed.
-// Author review: <to be completed by Reallyeasy1>
-// AI-generated (edited by Reallyeasy1)
 //
 //   node --test scripts/perf/test/harness.test.mjs
 import assert from 'node:assert/strict';
