@@ -248,4 +248,9 @@ test('Debezium connectors configure table-less WAL heartbeats and matching Rabbi
     assert.ok(writeRegex.test(`__debezium-heartbeat.${prefix}`), `${user} write regex must allow __debezium-heartbeat.${prefix}`);
     assert.ok(!writeRegex.test('__debezium-heartbeat.other'), `${user} write regex must not allow other heartbeat prefixes`);
   }
+
+  const ciWorkflow = readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
+  assert.match(ciWorkflow, /DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS=0/);
+  const composeTest = readFileSync(path.join(root, 'docker-compose.test.yml'), 'utf8');
+  assert.match(composeTest, /DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS:\s*"0"/);
 });

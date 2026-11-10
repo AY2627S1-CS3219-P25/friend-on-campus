@@ -8413,3 +8413,45 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 - `docker/rabbitmq/definitions.json` — allow `__debezium-heartbeat.<topic.prefix>` write permissions on `campus.events` for `user_service`, `order_service`, and `credit_service`
 - `scripts/ci/deployment.test.mjs` — add regression test for Debezium WAL heartbeats and RabbitMQ `topic_permissions`
 - `ai/usage-log.md` — append session usage log entries
+
+## 2026-11-10 21:29 SGT — Explain why RabbitMQ definitions on ECS use Secrets Manager and compare deploy-ecs.yml vs deploy-infra.yml
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Explain why the RabbitMQ `topic_permissions` change involves AWS Secrets Manager (`foc-ecs-runtime`) and whether running the GitHub Action `deploy-ecs.yml` deploys the CDC fix.
+
+**Usage scenario:** Debugging and infrastructure explanation — inspected `.github/workflows/deploy-ecs.yml`, `.github/workflows/deploy-infra.yml`, `infra/terraform/ecs/brokers.tf`, `infra/terraform/ecs/data-tasks.tf`, and `infra/terraform/ecs/generate-runtime-secrets.cjs` to explain the split between `deploy-ecs.yml` (9 app services only) and `deploy-infra.yml` (Terraform `cdc-*` and `broker-*` tasks) and how `foc-ecs-runtime` stores `broker_definitions`.
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:31 SGT — Outline step-by-step rollout plan using AWS CLI and GitHub Actions (`gh`) after PR #262 merges
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Confirm whether `gh` and `aws` CLI can be used to deploy the fix and list the exact steps that will be taken once the branch is merged to `main`.
+
+**Usage scenario:** Operational planning and explanation — outlined the ordered steps after PR #262 merges to `main` (updating `broker_definitions.topic_permissions` in `foc-ecs-runtime` via `aws secretsmanager`, rolling `broker-1..3` sequentially so RabbitMQ imports the new `topic_permissions` before heartbeats start, triggering `deploy-infra.yml` with `apply=true` via `gh workflow run`, and verifying `cdc-user`, `cdc-order`, and `cdc-credit` in CloudWatch logs).
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:40 SGT — Fix `Messaging | order-service` CI failure on PR #262 by disabling heartbeats on the ephemeral `credit-messaging-cdc` test container
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Investigate and fix the `CI / Messaging | order-service (pull_request)` check failure on PR #262 while all other 26 checks (including `Acceptance | API and CDC` and `Browser UAT | Chromium`) passed.
+
+**Usage scenario:** CI debugging and configuration fix — inspected the `messaging-order-service-failure` CI artifact (`credit-cdc.log` and `rabbitmq.log`) and identified that the ephemeral `credit-messaging-cdc` (`debezium-credit-messaging`) container starts before `services/order-service/test/reservation.messaging.test.ts` asserts the temporary exchange `credit-test.saga-cdc.events`. With `debezium.source.heartbeat.interval.ms=60000` in `docker/debezium/credit.properties`, Debezium dispatches a snapshot-completion heartbeat to `credit-test.saga-cdc.events` immediately after finishing its 0-row snapshot during `wait-for-cdc.mjs`, hitting `NOT_FOUND - no exchange 'credit-test.saga-cdc.events'` 500ms before the test starts. Disabled the heartbeat (`DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS=0`) on the ephemeral test container in `.github/workflows/ci.yml` and `docker-compose.test.yml`.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — set `DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS=0` on `credit-messaging-cdc` and update 4-line AI disclosure header
+- `docker-compose.test.yml` — set `DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS: "0"` on `debezium-credit-messaging` and update 4-line AI disclosure header
+- `scripts/ci/deployment.test.mjs` — assert that both ephemeral test CDC configurations set `DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS` to `0`
+- `ai/usage-log.md` — append session usage log entry
