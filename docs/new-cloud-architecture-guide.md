@@ -160,9 +160,9 @@ The two frontend containers serve Vite-built static assets through NGINX. They a
 
 ### Why local routing differs from AWS
 
-On host development, Vite normally proxies to individual service ports; `GATEWAY_URL` selects a gateway instead. In Compose, NGINX resolves service names through Docker DNS at `127.0.0.11`, with a ten-second cache. This lets it find a replaced container without restarting the gateway.
+On host development, Vite normally proxies to individual service ports; `GATEWAY_URL` selects a gateway instead. In Compose, NGINX routes through shared-memory `upstream` blocks with HTTP/1.1 `keepalive` connection pooling and `resolve` through Docker DNS at `127.0.0.11` (with a ten-second cache). This reuses backend TCP connections under load while still finding a replaced container without restarting the gateway.
 
-ECS overrides the gateway's startup command. [gateway-start.sh](../infra/terraform/ecs/gateway-start.sh) reads **IPv4 Service Connect aliases from `/etc/hosts`**, substitutes them in the NGINX configuration, then starts NGINX. Do not diagnose an ECS failure by assuming Docker's DNS server or a Kubernetes service is involved. The current Terraform root contains no K3s, Traefik or EKS layer.
+ECS overrides the gateway's startup command. [gateway-start.sh](../infra/terraform/ecs/gateway-start.sh) reads **IPv4 Service Connect aliases from `/etc/hosts`**, substitutes them into the `upstream` `server` and `http://` directives in the NGINX configuration, then starts NGINX. Do not diagnose an ECS failure by assuming Docker's DNS server or a Kubernetes service is involved. The current Terraform root contains no K3s, Traefik or EKS layer.
 
 ECS registers gateway tasks in the ALB's **instance target group** using dynamically allocated host ports. ALB traffic reaches a host/port mapping; it does not discover or route to Kubernetes pod IPs.
 

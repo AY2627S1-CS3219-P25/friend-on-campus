@@ -246,12 +246,12 @@ The configured load profile excludes a one-minute warm-up and measures five minu
 | Operation | Original requirement retained in configuration | Current harness |
 |---|---|---|
 | Order discovery | p95 < 1000 ms at 100 VUs (#74) | p95 < 3200 ms at 100 VUs |
-| Supplier search, first tier | p95 ≤ 2000 ms at 50 VUs (#29) | p95 ≤ 6500 ms at 20 VUs |
-| Supplier search, second tier | p95 ≤ 4000 ms at 100 VUs (#33) | p95 ≤ 9300 ms at 30 VUs |
+| Supplier search, first tier | p95 ≤ 2000 ms at 50 VUs (#29) | p95 ≤ 2000 ms at 50 VUs |
+| Supplier search, second tier | p95 ≤ 4000 ms at 100 VUs (#33) | p95 ≤ 4000 ms at 100 VUs |
 | Credit wallet read | p95 ≤ 500 ms at 100 concurrent requests (#43) | p95 ≤ 1900 ms with 100 VUs and a separate in-flight estimate |
 | Order lifecycle operations | Each p95 ≤ 500 ms at 50 VUs (#36) | Each p95 ≤ 4000 ms at 50 VUs |
 
-The author-approved relaxed values remain separate from `requirementP95Ms` and `requirementVus`. **A PASS against the current harness does not satisfy the original requirements** retained in [#236](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/236). Supplier work at original 50/100-VU populations remains tracked by [#253](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/253).
+The author-approved relaxed values remain separate from `requirementP95Ms` and `requirementVus`. **A PASS against a relaxed threshold does not satisfy the original requirement** retained in [#236](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/236); `supplier_search` enforces the exact #29 (50 VUs, p95 ≤ 2000 ms) and #33 (100 VUs, p95 ≤ 4000 ms) requirements after pushing supplier sorting and pagination to PostgreSQL ([#253](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/253)).
 
 A virtual user is a client repeatedly making requests; it is not proof that one request is continuously in flight. The report separately records configured VUs, requests per second and an estimated in-flight count. Its sustained-concurrency check can report `INCOMPLETE` even when latency thresholds pass; smoke reports concurrency as `NOT_ASSESSED`.
 

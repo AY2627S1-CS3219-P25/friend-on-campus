@@ -1,5 +1,10 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-09
+ * Scope: Added PostgreSQL integration test exercising getSuppliers case-insensitive sorting, deterministic id
+ *        tie-breaking, search/filter predicates, and LIMIT/OFFSET pagination against a real PostgreSQL schema (#253).
+ * Author review: <to be completed by yanhwee>
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #222 review (P3): one test drives the real Prisma CLI through the documented recovery path. The original
  *        NOT NULL migration is applied to a legacy row and fails, Prisma records the failed migration, then the
@@ -12,6 +17,7 @@
  * Author review: <to be completed by Reallyeasy1>
  */
 // AI-generated (edited by Reallyeasy1)
+// AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
@@ -20,6 +26,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { Client } from 'pg';
+import { PrismaClient } from '../src/generated/prisma';
 
 const url = process.env.DATABASE_URL;
 if (!url || !new URL(url).pathname.includes('_test')) {
@@ -166,6 +173,66 @@ test('a failed original coordinate migration is recovered with the documented re
     } finally {
       await client.end();
       await rm(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+// AI-generated (edited by yanhwee)
+test('getSuppliers sorts case-insensitively with deterministic id tie-breaking and paginates in PostgreSQL', async () => {
+  const schema = `supplier_test_${randomUUID().replaceAll('-', '')}`;
+  const schemaUrl = new URL(url);
+  schemaUrl.searchParams.set('schema', schema);
+  const client = new Client({ connectionString: url });
+  const scopedPrisma = new PrismaClient({ datasources: { db: { url: schemaUrl.href } } });
+  const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+  const previousPrisma = globalForPrisma.prisma;
+  await client.connect();
+  try {
+    await client.query(`CREATE SCHEMA "${schema}"`);
+    await client.query(`SET search_path TO "${schema}"`);
+    await migrate(client, [...initialMigrations, ...coordinateMigrations]);
+
+    await client.query(`
+      INSERT INTO suppliers (id, supplier_code, name, campus_zone, exact_location, category, building, floor, latitude, longitude, is_active, created_at, updated_at)
+      VALUES
+        ('3', 'SUP-002', 'The Deck', 'FASS', 'Level 1', 'Food', 'FASS', '1', 1.29, 103.77, true, '2026-09-03T00:00:00Z', NOW()),
+        ('1', 'SUP-004', 'he by He Brews', 'UTown', 'Town Plaza', 'Drinks', 'UTown', '1', 1.30, 103.77, true, '2026-09-01T00:00:00Z', NOW()),
+        ('4', 'SUP-001', 'TOMORO COFFEE', 'COM3', 'Lobby', 'drinks', 'COM3', '1', 1.29, 103.77, true, '2026-09-04T00:00:00Z', NOW()),
+        ('2', 'SUP-003', 'A Hot Hideout', 'com3', 'Terrace', 'Food', 'COM3', '2', 1.29, 103.77, false, '2026-09-02T00:00:00Z', NOW())
+    `);
+
+    globalForPrisma.prisma = scopedPrisma;
+    const { getSuppliers } = await import('../src/suppliers/supplierRepository.js');
+    const ids = async (filter?: Parameters<typeof getSuppliers>[0]) =>
+      (await getSuppliers(filter)).suppliers.map((s) => s.id).join('');
+
+    assert.equal(await ids({ sortBy: 'name' }), '2134');
+    assert.equal(await ids({ sortBy: 'name', sortOrder: 'desc' }), '4312');
+    assert.equal(await ids({ sortBy: 'supplierCode' }), '4321');
+    assert.equal(await ids({ sortBy: 'createdAt' }), '1234');
+    assert.equal(await ids({ sortBy: 'createdAt', sortOrder: 'desc' }), '4321');
+    assert.equal(await ids({ sortBy: 'category' }), '1423');
+    assert.equal(await ids({ sortBy: 'campusZone' }), '2431');
+
+    const paged = await getSuppliers({ page: 2, limit: 2, sortBy: 'name' });
+    assert.deepEqual(paged.suppliers.map((s) => s.id), ['3', '4']);
+    assert.equal(paged.total, 4);
+    assert.equal(paged.page, 2);
+    assert.equal(paged.limit, 2);
+    assert.equal(paged.totalPages, 2);
+
+    const pastEnd = await getSuppliers({ page: 5, limit: 2, isActive: true });
+    assert.deepEqual(pastEnd.suppliers, []);
+    assert.equal(pastEnd.total, 3);
+    assert.equal(pastEnd.totalPages, 2);
+  } finally {
+    globalForPrisma.prisma = previousPrisma;
+    await scopedPrisma.$disconnect();
+    try {
+      await client.query('SET search_path TO public');
+      await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+    } finally {
+      await client.end();
     }
   }
 });

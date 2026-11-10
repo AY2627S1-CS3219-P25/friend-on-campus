@@ -28,6 +28,10 @@ Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Reconciled the documentation with current main and the read-only wiki, archived historical records, repaired navigation and recorded validation.
 Author review: <to be completed by Reallyeasy1>
 
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Added usage-log entry for PR #254 (pushing Supplier Service sorting and pagination to PostgreSQL, gateway HTTP/1.1 keepalive connection pooling, and restoring 50/100 VU k6 supplier load profiles for #253 and #110).
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Recorded author-approved merge of PR #252 after checking the latest changes and CI.
 Author review: <to be completed by Reallyeasy1>
@@ -8310,6 +8314,38 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 
 **Files changed:**
 - `ai/usage-log.md` — preserves the two prior local review/publication entries and adds this merge record in the consolidated disclosure block.
+
+## 2026-11-09 21:39 SGT — Push Supplier Service sorting/pagination to PostgreSQL and restore 50/100 VU k6 load profiles (#253, #110)
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/supplier-db-sort-pagination (stacked on merged `feat/t4-k6-load-profiles` / `main`)
+
+**Prompt (summarised):** Fix issue #253 in a new git worktree stacked on top of `feat/t4-k6-load-profiles` and open a PR.
+
+**Usage scenario:** Performance/concurrency bug fix, gateway connection pooling improvement, and load-test verification for issues #253 and #110:
+- `services/supplier-service/src/suppliers/supplierRepository.ts`: Replaced full-table `prisma.supplier.findMany` + synchronous in-memory `String.prototype.localeCompare` sorting and array slicing with a parameterized PostgreSQL query (`prisma.$queryRaw` using `Prisma.sql`) that filters (`LOWER("campus_zone")`, `LOWER("category")`, `"is_active"`, `ILIKE` search across five columns), sorts (`ORDER BY LOWER(col) ASC|DESC, "id" ASC` on text columns and `"created_at"` for `createdAt`), and paginates (`COUNT(*) OVER()::int AS "totalCount"` + `LIMIT`/`OFFSET`, capping unpaginated requests at 100 rows and falling back to `COUNT(*)` only when an out-of-range page returns 0 rows). Verified directly on `postgres:16-alpine` that `LOWER(col)` with `"id" ASC` preserves both case-insensitive ordering (UAT check S8) and deterministic `id` tie-breaking on case-only ties, whereas deterministic ICU collations break case ties by tertiary weight before reaching `"id"`.
+- `gateway/nginx.conf`, `infra/terraform/ecs/gateway-start.sh`: Once `supplier-service` latency dropped from ~180 ms to ~2.7 ms (~500 req/s even at 2 VUs), un-pooled HTTP/1.0 upstream connections in `gateway` exhausted all 28,232 Linux ephemeral ports in `TIME_WAIT` (`connect() failed (99: Address not available)` -> HTTP 502) after 57 seconds. Added shared-memory `upstream` blocks with `server <service>:<port> resolve;` (preserving 10 s Docker DNS re-resolution from #173) and HTTP/1.1 `keepalive` connection pooling.
+- `tests/k6/requirements.json`, `tests/k6/README.md`, `scripts/perf/run-perf.mjs`, `scripts/perf/test/harness.test.mjs`, `.github/workflows/performance.yml`: Restored `supplier` load populations from the lowered 20/30 VUs workaround back to **50 VUs (#29)** and **100 VUs (#33)** and restored the exact issue latency thresholds (`p95 <= 2000 ms` at 50 VUs, `p95 <= 4000 ms` at 100 VUs).
+- Verification:
+  - Unit tests (`services/supplier-service/test/supplierRepository.test.ts`): 54/54 pass.
+  - PostgreSQL migration & sorting/pagination integration test (`services/supplier-service/test/coordinates.migration.ts`): 5/5 pass.
+  - Wrapper self-tests (`scripts/perf/test/harness.test.mjs`): 9/9 pass.
+  - Live D2 API UAT (`scripts/uat/uat-d2-api.mjs`): 62/62 pass (including S8 case-insensitive sort and S9 pagination).
+  - Live k6 `supplier` 50-VU load run (`supplier-50vus-253`, #29): **PASS** — 133,842 steady-state requests (446.1 req/s), **0% error rate**, `p50 = 106 ms`, `p95 = 154 ms`, `p99 = 207 ms`.
+  - Live k6 `supplier` 100-VU load run (`supplier-100vus-253`, #33): **PASS** — 107,280 steady-state requests (357.6 req/s), **0% error rate**, `p50 = 269 ms`, `p95 = 366 ms`, `p99 = 437 ms`.
+  - Workspace `typecheck`, `lint`, and `ci:validate-tests`: all pass.
+
+**Files changed:**
+- `services/supplier-service/src/suppliers/supplierRepository.ts` — PostgreSQL sorting, filtering, and pagination via `prisma.$queryRaw`
+- `services/supplier-service/test/supplierRepository.test.ts` — unit tests for `$queryRaw` SQL predicates, `LOWER()` ordering, `id` tie-breaking, clamping, 100-row cap, and out-of-range page `COUNT(*)` fallback
+- `services/supplier-service/test/coordinates.migration.ts` — PostgreSQL integration test for `getSuppliers` sorting and pagination
+- `gateway/nginx.conf` — upstream blocks with `resolve` (10 s DNS TTL) and HTTP/1.1 `keepalive` connection pooling
+- `infra/terraform/ecs/gateway-start.sh` — substitute Service Connect host IPs in `server <service>:<port>` upstream directives
+- `tests/k6/requirements.json` — restore supplier concurrency to 50 VUs (#29) and 100 VUs (#33) and latency limits to 2000 ms / 4000 ms (JSON, no disclosure header)
+- `tests/k6/README.md`, `scripts/perf/run-perf.mjs`, `scripts/perf/test/harness.test.mjs`, `.github/workflows/performance.yml` — align documentation, summary notes, and self-tests with 50/100 VU supplier populations
+- `docs/services/supplier-service/README.md`, `docs/services/supplier-service/contracts-and-data.md`, `docs/services/supplier-service/runtime-and-testing.md`, `docs/infrastructure/api-gateway.md` — update service and gateway documentation
+- `ai/usage-log.md` — this entry
 
 ## 2026-11-09 22:43 SGT — Tidy current documentation against main b989758
 

@@ -7,8 +7,7 @@
     "maxErrorRate comes from the issue when errorRateSource names one; otherwise it is the harness default of 1%.",
     "concurrency.mode: 'upTo' mirrors issue wording 'up to N concurrent'; 'sustained' mirrors 'sustained load of N concurrent requests' and is marked INCOMPLETE when the client-side in-flight estimate is below N * tolerance.",
     "extraThresholds entries like p(95)>=0 only make k6 keep that steady-state sub-metric in the summary; they are reporting hooks, not acceptance limits.",
-    "A limit entry with requirementP95Ms was raised above the figure in its linked issue by the author on 2026-11-09 so that the local load run passes. For order_feed, credit_wallet and the order lifecycle operations p95Ms is the highest p95 seen in three local load runs (perf-20261108T135152Z-b09772, baseline-local-20261109, limits-raised-20261109) plus 50%, rounded up to the next 100 ms. The supplier_search limits are described in the next note. requirementP95Ms keeps the figure the issue states. Such an entry no longer checks the requirement as written.",
-    "The supplier workload runs at a lowered load by the author's decision on 2026-11-09: 20 virtual users and a second population of 30 (secondLoadVus), where issues #29 and #33 state 50 and 100 (requirementVus). At 50 and 100 back-to-back users the Supplier Service exhausted its database connection pool and returned HTTP 500 in three of four local runs (tracked in #253); at 20 and 30 it returned no errors. Its limits are the p95 measured at 20 and 30 users (4318 ms and 6186 ms) plus 50%, rounded up to the next 100 ms. The dataset stays at 500 records."
+    "A limit entry with requirementP95Ms was raised above the figure in its linked issue by the author on 2026-11-09 so that the local load run passes. For order_feed, credit_wallet and the order lifecycle operations p95Ms is the highest p95 seen in three local load runs (perf-20261108T135152Z-b09772, baseline-local-20261109, limits-raised-20261109) plus 50%, rounded up to the next 100 ms. requirementP95Ms keeps the figure the issue states. Such an entry no longer checks the requirement as written."
   ],
   "limits": {
     "maxVus": 150,
@@ -75,12 +74,8 @@
       "env": {
         "WORKLOAD": "supplier"
       },
-      "baselineVus": 20,
-      "secondLoadVus": 30,
-      "requirementVus": [
-        50,
-        100
-      ],
+      "baselineVus": 50,
+      "secondLoadVus": 100,
       "accountSlots": 1,
       "needsSuppliers": true,
       "needsFeedOrders": false,
@@ -90,21 +85,17 @@
           "description": "GET /api/suppliers listing, search, campusZone/category filter and pagination over >= 500 active records",
           "limits": [
             {
-              "upToVus": 20,
-              "requiredVus": 20,
-              "p95Ms": 6500,
-              "requirementP95Ms": 2000,
-              "requirementVus": 50,
+              "upToVus": 50,
+              "requiredVus": 50,
+              "p95Ms": 2000,
               "comparator": "<=",
               "issue": "#29",
               "criterion": "Supplier N2.1"
             },
             {
               "upToVus": 150,
-              "requiredVus": 30,
-              "p95Ms": 9300,
-              "requirementP95Ms": 4000,
-              "requirementVus": 100,
+              "requiredVus": 100,
+              "p95Ms": 4000,
               "comparator": "<=",
               "issue": "#33",
               "criterion": "Supplier N4.1"
@@ -113,8 +104,7 @@
           "maxErrorRate": 0.01,
           "errorRateSource": "#31 (99% of valid requests succeed)",
           "concurrency": {
-            "required": 20,
-            "requirementRequired": 50,
+            "required": 50,
             "mode": "upTo",
             "issue": "#29 / #33"
           }

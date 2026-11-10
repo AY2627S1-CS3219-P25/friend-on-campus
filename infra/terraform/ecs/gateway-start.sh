@@ -1,4 +1,8 @@
 # AI Assistance Disclosure:
+# Tool: Google Antigravity Agent, date: 2026-11-09
+# Scope: Issue #253: Also substitute Service Connect host addresses in nginx `server <service>:<port>` upstream directives.
+# Author review: <to be completed by yanhwee>
+#
 # Tool: Codex (model: GPT-6), date: 2026-11-09
 # Scope: Select IPv4 Service Connect hosts entries for the IPv4 bridge network.
 # Author review: <to be completed by the author>
@@ -20,6 +24,6 @@ for service in student-app admin-portal user-service supplier-service order-serv
         }
     ' /etc/hosts)
     test -n "$address"
-    sed -i "s|http://$service:|http://$address:|g" /etc/nginx/nginx.conf
+    sed -i -e "s|http://$service:|http://$address:|g" -e "s|server $service:|server $address:|g" /etc/nginx/nginx.conf
 done
 exec nginx -g 'daemon off;'

@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Reconciled consolidated Supplier Service guide with PR #254 (`85033d0`) PostgreSQL sorting (`LOWER(col)` with `"id" ASC` tie-breaking) and pagination (`COUNT(*) OVER()` + `LIMIT`/`OFFSET`, 100-row unpaginated cap).
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Explain directory, map and order availability boundaries; add a decision diagram, read-only query examples and concrete seed/update guidance.
 Author review: <to be completed by Reallyeasy1>
@@ -11,6 +15,10 @@ Author review: <to be completed by Reallyeasy1>
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Reconcile implementation guidance with current source, simplify duplication and preserve historical attribution.
 Author review: <to be completed by the author>
+
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Updated supplierRepository.ts responsibility from in-memory sorting/pagination to PostgreSQL sorting and pagination (#110, #253).
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
 Scope: PR #222 review: seed description notes that recorded coordinates survive a reseed.
@@ -49,7 +57,7 @@ A student searching for a pickup point sends a request such as:
 GET /api/suppliers?campusZone=COM3&isActive=true&search=coffee&page=1&limit=10
 ```
 
-The route converts query parameters, the repository filters matching rows in PostgreSQL, and then the Node process sorts those rows and slices out the requested page. The response is shaped like:
+The route converts query parameters, and the repository executes filtering, case-insensitive sorting (`LOWER(col) ASC|DESC, "id" ASC`) and pagination (`COUNT(*) OVER()` + `LIMIT`/`OFFSET`) directly in PostgreSQL. The response is shaped like:
 
 ```json
 {
@@ -64,22 +72,22 @@ The route converts query parameters, the repository filters matching rows in Pos
 }
 ```
 
-This example is an empty search result, not a server failure. `total` counts all matches before paging. With neither `page` nor `limit`, the API returns **every match**, not a default ten-row page. Clients should explicitly request `isActive=true` when they only want currently available pickup points; omitted or invalid values include both active and inactive suppliers.
+This example is an empty search result, not a server failure. `total` counts all matches before paging. With neither `page` nor `limit`, the API returns up to **100 matching rows** (bounded by a 100-row SQL `LIMIT` cap). Clients should explicitly request `isActive=true` when they only want currently available pickup points; omitted or invalid values include both active and inactive suppliers.
 
-The distinction between database filtering and in-process pagination matters when diagnosing slow queries: requesting ten rows does not mean the database fetched only ten rows. Source inspection does not establish the original 50/100-VU performance requirements; the remaining Supplier query work is tracked by [#253](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/issues/253).
+Pushing sorting and pagination into PostgreSQL (`#110`, `#253`) avoids transferring and sorting the full table in Node on each request, allowing the 50-VU (`#29`) and 100-VU (`#33`) k6 load profiles to pass within their latency thresholds.
 
 ### Filters and ordering
 
 | Query field | Implemented behavior |
 |---|---|
-| `campusZone`, `category` | Case-insensitive equality |
-| `search` | Trimmed, case-insensitive substring over name, exact location, building, description and supplier code |
+| `campusZone`, `category` | Case-insensitive equality (`LOWER(col) = LOWER($n)`) |
+| `search` | Trimmed, case-insensitive `ILIKE` substring over name, exact location, building, description and supplier code |
 | `isActive` | Filters only for literal `true` or `false` |
 | `sortBy` | `name`, `campusZone`, `category`, `createdAt` or `supplierCode`; otherwise `name` |
 | `sortOrder` | Descending only for `desc`; otherwise ascending |
-| `page`, `limit` | Either enables pagination; defaults 1/10, page minimum 1 and limit clamped to 1–100 |
+| `page`, `limit` | Either enables pagination; defaults 1/10, page minimum 1, limit clamped to 1–100 (unpaginated requests capped at 100 rows) |
 
-Text sorting ignores case and breaks equal-sort-key ties by ID. Query numbers use `parseInt`, not strict finite-number validation: do not rely on malformed numeric inputs being rejected cleanly.
+Text sorting uses `LOWER(col)` in PostgreSQL and breaks equal-sort-key ties deterministically by `"id" ASC`. Query numbers use `parseInt` and repository sanitization (`Number.isFinite` + `Math.trunc`); do not rely on malformed numeric inputs being rejected with `400`.
 
 ### Directory presence, map position and availability are different
 
@@ -270,7 +278,7 @@ The [migration test](../../../services/supplier-service/test/coordinates.migrati
 | `409` saving a location | Location or supplier-code uniqueness | Case-insensitive name/category/building/floor combination; concurrent inserts may omit duplicate metadata |
 | Inactive places appear in search | `isActive` filter omitted or invalid | Send literal `isActive=true` |
 | `/ready` is green but queries return `500` | Connectivity works; schema/query may not | Selected database, committed migrations and server logs |
-| Directory response slows as it grows | All matching rows fetched and sorted in Node | Dataset size and filter selectivity; pagination alone does not reduce fetched matches |
+| Directory response slows as it grows | Unindexed `ILIKE '%...%'` substring search across five columns | Dataset size, search pattern and connection pool capacity |
 | Supplier is absent from the map | One or both coordinates are null | Repair with verified coordinates; do not fabricate a fallback location |
 | Seed stops partway through | Sequential upserts or invalid CSV | Preserve logs and inspect prior writes before rerunning |
 
@@ -291,7 +299,7 @@ The migration suite requires `DATABASE_URL` naming a **dedicated `_test` databas
 ## Find the implementation
 
 - [supplierRoutes.ts](../../../services/supplier-service/src/suppliers/supplierRoutes.ts) extracts HTTP inputs and maps errors; [supplierService.ts](../../../services/supplier-service/src/suppliers/supplierService.ts) validates writes and effective update values.
-- [supplierRepository.ts](../../../services/supplier-service/src/suppliers/supplierRepository.ts) implements database filters, in-memory ordering/pagination, code allocation and CRUD.
+- [supplierRepository.ts](../../../services/supplier-service/src/suppliers/supplierRepository.ts) implements PostgreSQL filtering, case-insensitive sorting (`LOWER(col)`), pagination (`COUNT(*) OVER()` + `LIMIT`/`OFFSET`), code allocation and CRUD.
 - The [schema](../../../services/supplier-service/prisma/schema.prisma) defines the directory row; [migration SQL](../../../services/supplier-service/prisma/migrations/20260929134701_add_location_uniqueness/migration.sql) defines its case-insensitive location index.
 - [seed.ts](../../../services/supplier-service/src/database/seed.ts) owns CSV parsing and coordinate preservation; [coordinates.migration.ts](../../../services/supplier-service/test/coordinates.migration.ts) is the upgrade/recovery executable reference.
 
