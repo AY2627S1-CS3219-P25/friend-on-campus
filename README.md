@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-10
+Scope: Link the API URL reference alongside developer guides and update the documentation count.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-11-10
 Scope: Added the required Project-Level AI Use Summary section at the end of README.md in compliance with the CS3219 AI Usage Policy (Appendix 2).
 Author review: I validated correctness, edited for style, and verified with automated tests.
@@ -112,7 +116,7 @@ Author review: <to be completed by huangjiaxi1111>
 
 A campus errand application with a student interface, an admin portal and six backend services. Students post errands, reserve credit rewards, coordinate with couriers and confirm delivery. Order and Credit complete cross-service work asynchronously.
 
-Start with the [developer guides](docs/README.md) for the system explanation, service APIs, testing and troubleshooting. The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) holds design and milestone context; its older implementation descriptions may differ from current source.
+Start with the [developer guides](docs/README.md) for the system explanation, testing and troubleshooting. Use the [API URL reference](docs/api-reference.md) to find HTTP routes, WebSockets and health probes. The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) holds design and milestone context; its older implementation descriptions may differ from current source.
 
 ## Quick start
 
@@ -176,7 +180,7 @@ The [testing guide](docs/development/testing-strategy.md) explains integration, 
 | `gateway/`, `docker/` | Local routing, PostgreSQL initialization, RabbitMQ and CDC |
 | `infra/terraform/ecs/` | Current AWS configuration and deployment runbook |
 | `scripts/`, `tests/` | Development/CI/UAT drivers, k6 and Postman fixtures |
-| `docs/` | Twelve implementation/operational guides and their index |
+| `docs/` | Thirteen implementation/operational guides and their index |
 
 For AWS, read the [cloud explanation](docs/new-cloud-architecture-guide.md), then use the [ECS Terraform runbook](infra/terraform/ecs/README.md). For code contributions and AI bookkeeping, read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Historical milestone records remain in the wiki and Git history.
 
