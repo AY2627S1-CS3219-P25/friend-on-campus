@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-10
+Scope: Record source verification and author-authorized publication/merge of the API URL reference.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Google Antigravity Agent, date: 2026-11-10
 Scope: Fix the 9 remaining actionable bug issues (#235, #234, #204, #201, #200, #171, #170, #168, #109), complete yanhwee Author review lines across the repository, and record the D4 wrap-up PR.
 Author review: I validated correctness, edited for style, and verified with automated tests.
@@ -8670,3 +8674,21 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 - `apps/admin-portal/src/api/suppliers.ts`, `apps/admin-portal/src/App.tsx`, `apps/admin-portal/src/constants.ts`, `apps/admin-portal/src/pages/OrdersPage.tsx`, `apps/admin-portal/test/supplier-form.test.ts`, `docs/frontend/README.md` — fixes, unit tests, and documentation for #201 and #200
 - 92 repository files with `Author review: <to be completed by yanhwee>` completed
 - `ai/usage-log.md` — this entry
+
+## 2026-11-10 14:22 SGT — Publish the API URL reference and merge once CI is green
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** docs/api-url-reference
+
+**Prompt (summarised):** Create a pull request for the requested API URL documentation, then merge it.
+
+**Usage scenario:** Documentation improvements and author-authorized GitHub publication. PR #255 was already merged, so prepare a new documentation-only branch from main `d5e9f61b2bf73eff80d248f12a361055c346f6ae`, preserve newer main changes, and recheck the reference against current source. Tracking issue #258 records this exact documentation scope. Create the PR and merge once CI is green; no application, infrastructure, schema or wiki changes. Human review fields remain incomplete.
+
+**Verification:** Exact method/path comparison covers all 40 business routes across six services, 12 direct backend probes, 12 gateway health aliases and both WebSocket paths. Checked gateway liveness, configured URL output, access guards and current query behavior; independent source review covered User, Supplier, Chat, gateway and Vite. All 394 local documentation links and 18 anchors checked; all 14 docs reachable from the index; all three new Bash blocks pass syntax checking. `npm run typecheck` passes all 12 workspaces; `npm run test:unit` passes 475 tests in nine workspace suites, with zero failures/skips; CI matrix validation passes 20 workspace suites and four system commands. No live endpoint requests, deployments or load tests. Existing diagrams were not changed or re-rendered. GitHub CI completion will be checked before merge rather than claimed in advance.
+
+**Files changed:**
+- `docs/api-reference.md` — source-linked URL reference, access requirements, queries, asynchronous outcomes, sockets, probes and safe local examples.
+- `docs/README.md` — API lookup entry and compact, separately scoped verification note.
+- `README.md` — API reference link and updated guide count.
+- `ai/usage-log.md` — this entry and consolidated disclosure.
