@@ -49,6 +49,110 @@ Order Service looks up a supplier synchronously before accepting a new errand an
 
 This guide was rechecked against documentation head `bc0efa4` on 9 November 2026, whose application baseline is `b989758`, in PR #255. It combines API behavior, local operation and the coordinate-upgrade procedure. Use [local development](../../development/local-development.md) for the shared setup.
 
+## Diagrams
+
+Legend: solid `->` is data flow, dashed `-.-.-.-` is control flow.
+
+**Where it sits**
+
+```mermaid
+flowchart LR
+  SA[Student app]
+  AP[Admin portal]
+  GW["Gateway (NGINX)<br/>no token check"]
+  OS["Order Service"]
+  UC["User Service<br/>signs tokens"]
+  CSV[("supplier-seed-data.csv")]
+  SEED["Seed script<br/>run by Compose before listening"]
+  SS["Supplier Service :8002<br/>verifies tokens and ADMIN role on mutations<br/>validates writes and checks duplicates<br/>filters, sorts and pages in SQL"]
+  DB[("supplier_db<br/>PostgreSQL")]
+
+  SA -->|"data: GET /api/suppliers"| GW
+  AP -->|"data: GET, and mutations with Bearer token"| GW
+  GW -->|"data: proxied request"| SS
+  OS -->|"data: GET list (isActive=true, limit=100) or by id, no token, 4 s timeout"| SS
+  SS -->|"data: Prisma queries and raw SQL"| DB
+  CSV -->|"data: rows"| SEED
+  SEED -->|"data: upsert"| DB
+  UC -.->|"control: public key verifies tokens offline"| SS
+  GW -.->|"control: /api/health/supplier/health, /ready"| SS
+```
+
+**API calls**
+
+```mermaid
+flowchart LR
+  subgraph Public["No token"]
+    G1["GET /api/suppliers"]
+    G2["GET /api/suppliers/:id (id, then supplierCode)"]
+    H["GET /health, GET /ready"]
+  end
+  subgraph Admin["Bearer token + ADMIN"]
+    P1["POST /api/suppliers"]
+    P2["PUT /api/suppliers/:id"]
+    P3["PATCH /api/suppliers/:id/toggle"]
+    P4["DELETE /api/suppliers/:id (?permanent=true removes the row)"]
+  end
+  SS["Supplier Service"]
+  D[("suppliers")]
+  Public -->|"data: request"| SS
+  Admin -.->|"control: token check, then ADMIN check, before anything runs"| SS
+  Admin -->|"data: request"| SS
+  SS -->|"data: queries and writes"| D
+  D -->|"data: rows"| SS
+```
+
+**Reading (public)**
+
+```mermaid
+sequenceDiagram
+  participant C as Apps / Order Service
+  participant SS as Supplier Service
+  participant DB as supplier_db
+  C->>SS: GET /api/suppliers?filters&sortBy&page&limit (via gateway, no token)
+  Note over SS: parse query, no auth needed
+  SS->>DB: one SQL query: WHERE filters and search, ORDER BY LOWER(col) then id, COUNT(*) OVER(), LIMIT and OFFSET
+  DB-->>SS: the requested page of rows plus the total match count
+  Note over SS: no page or limit given means LIMIT 100
+  SS-->>C: 200 data:{suppliers,total,page,limit,totalPages}
+```
+
+**Mutating (ADMIN)**
+
+```mermaid
+sequenceDiagram
+  participant A as Admin portal
+  participant SS as Supplier Service
+  participant DB as supplier_db
+  A->>SS: POST/PUT/PATCH/DELETE with Bearer token (via gateway)
+  Note over SS: authMiddleware verifies signature, issuer, audience, expiry
+  alt no header
+    SS-->>A: 401 MISSING_TOKEN
+  else bad signature, issuer, audience
+    SS-->>A: 401 INVALID_TOKEN
+  else expired
+    SS-->>A: 401 TOKEN_EXPIRED
+  else valid
+    Note over SS: requireAdmin checks the role in the token
+    alt role is not ADMIN
+      SS-->>A: 403 ADMIN_REQUIRED
+    else ADMIN
+      Note over SS: validate input (400 on bad input)
+      SS->>DB: duplicate check: case-insensitive name, category, building, floor (an update excludes its own row)
+      alt duplicate
+        SS-->>A: 409 with duplicate details
+      else free
+        SS->>DB: write under the unique index
+        alt written
+          SS-->>A: 201 / 200
+        else unique-index race
+          SS-->>A: 409 without details
+        end
+      end
+    end
+  end
+```
+
 ## Follow a directory request
 
 A student searching for a pickup point sends a request such as:

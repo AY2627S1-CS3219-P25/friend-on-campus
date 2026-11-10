@@ -106,6 +106,8 @@ The socket's first frame must be `AUTH` with a valid access token within five se
 
 The shared [realtime transport](../../infrastructure/cdc-and-broker.md) sends hints to every running replica. Notification's subscriber then rereads the owner and **current stored state**, rather than trusting an old payload. This service-specific check prevents a delayed hint from restoring an item that the student already read or an action that a newer Order event resolved:
 
+*Legend: each arrow is the next step, and arrow labels name the condition; diamonds are decisions.*
+
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
 flowchart TD
@@ -124,6 +126,8 @@ A missing or wrong-owner row also skips `NOTIFICATION`. The `INBOX_CHANGED` path
 When one tab marks a row read, other tabs on any replica receive an inbox-change hint and refetch. [`useNotifications.ts`](../../../apps/student-app/src/notifications/useNotifications.ts) reconciles on authentication/reconnection and hints, merges by ID and avoids repeated toasts for already seen IDs. [`inbox.ts`](../../../apps/student-app/src/notifications/inbox.ts) suppresses receipt/publication-confirmation toasts and can use the frontend's newer Order state to hide resolved delivery actions.
 
 The following successful-delivery example uses two tabs belonging to the same student. The HTTP response and asynchronous hint can arrive in either order; both refer back to the committed inbox state.
+
+*Legend: solid arrows are requests or calls, dashed arrows are replies or pushes to the browser; notes mark committed or asynchronous steps.*
 
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)

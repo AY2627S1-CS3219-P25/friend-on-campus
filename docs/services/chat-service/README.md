@@ -53,6 +53,8 @@ The other valid subscribed events are acknowledged and ignored when the conversa
 
 This diagram shows why the two boundaries differ:
 
+*Legend: solid arrows are requests or calls, dashed arrows are replies; `alt` marks a conditional branch.*
+
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
@@ -136,6 +138,8 @@ This matters when history contains messages 1–100 and live message 105 arrives
 If a send loses its echo, the client attempts to catch up from history before reporting the outcome. It looks in the loaded messages for the same sender/text at or after the attempted send time, allowing **one second before that time** for clock skew. An earlier identical message inside that tolerance can satisfy the match. This is a recovery heuristic, not a durable server receipt or exactly-once guarantee.
 
 For example, “Meet me at the library entrance” may commit just before the sender loses Wi-Fi. A history catch-up can find the stored copy and settle the pending send successfully even though its socket echo never arrived. Without a matching loaded copy, the UI reports `UNCONFIRMED`; this can also happen when the catch-up request fails. The client does not automatically resend the text.
+
+*Legend: each arrow is the next step, and arrow labels name the condition; the diamond is a decision.*
 
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)

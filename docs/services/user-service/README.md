@@ -47,6 +47,8 @@ An **access token** is a short-lived signed JWT. Other services verify it locall
 
 This sequence shows why refreshing needs User Service and its database, while an ordinary authenticated API request does not:
 
+*Legend: solid arrows are requests or calls, dashed arrows are replies; the note marks a state that persists.*
+
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
