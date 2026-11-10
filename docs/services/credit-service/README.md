@@ -126,6 +126,8 @@ Reservation processing creates a database savepoint before attempting the hold. 
 
 For a new, validated reservation event, the three outcomes differ in what can be committed. Matching event replays have already returned before reaching this diagram:
 
+*Legend: each arrow is the next step, and arrow labels name the condition; the diamond is a decision.*
+
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
 flowchart TD

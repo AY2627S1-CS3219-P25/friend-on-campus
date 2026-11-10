@@ -134,6 +134,44 @@ flowchart LR
   OR & CH -->|"data"| LLM
 ```
 
+## SoC LLM flow
+
+Legend: solid `->` is data flow, dashed `-.-.-.-` is control flow.
+
+```mermaid
+flowchart LR
+  subgraph SA["Student app"]
+    PE["Post errand page<br/>AI draft"]
+    CP["Chat panel<br/>send and translate toggle"]
+  end
+  subgraph OR["Order Service"]
+    AS["assistant.service<br/>POST /assistant/draft"]
+  end
+  subgraph CH["Chat Service"]
+    HUB["Socket hub<br/>SEND"]
+    SEND["service.send"]
+    MOD["moderate.ts"]
+    TR["translate.ts<br/>POST /:orderId/translate"]
+    DB[("chat_db")]
+  end
+  LLM["@campus-errand/llm<br/>callSoclaas<br/>returns null on no key, error or timeout"]
+  SOC["SoCLaaS<br/>/chat/completions"]
+
+  PE -->|"data: errand text"| AS
+  AS -->|"data: prompt + text"| LLM
+  CP -->|"data: message"| HUB
+  HUB -->|"data"| SEND
+  SEND -->|"data: text"| MOD
+  MOD -->|"data: prompt + text"| LLM
+  MOD -.->|"control: flagged, stop and do not save"| SEND
+  SEND -->|"data: clean message"| DB
+  CP -->|"data: language + message ids"| TR
+  TR -->|"data: batches of up to 30"| LLM
+  LLM -->|"data: HTTPS with SOCLAAS_API_KEY"| SOC
+```
+
+Three features call the model, all through `callSoclaas` in `@campus-errand/llm`. **Chat moderation** runs inside `service.send` after the access checks and before the message is saved. If the model answers `true`, nothing is written to `chat_db`; the sender receives a `MODERATED` error tied to their pending send and the other participant receives a transient `MODERATED_PEER` notice that is not stored, so it disappears on reload. If the model is unreachable, the message is delivered (fail open). **Chat translation** runs only when a participant picks a language with the translate toggle; the Chat Service translates the loaded messages in batches, skips text that is already plainly English for an English target, saves nothing, and answers `503 TRANSLATION_UNAVAILABLE` if the model cannot be reached. The **errand assistant** in Order Service turns a free-text request into a draft on `POST /api/orders/assistant/draft`, matching it against active suppliers, and falls back to a simpler offline extraction when SoCLaaS is not reached.
+
 ## Known limits and design context
 
 The service guides describe implemented behavior, including its limits. Read their failure sections before promising recovery or access guarantees:

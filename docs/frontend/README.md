@@ -305,34 +305,31 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-  participant B as Browser (useAdminAuth)
-  participant GW as Gateway
+  participant B as Admin portal (useAdminAuth)
   participant US as User Service
   participant SV as Supplier / Order / User Service
-  B->>GW: POST /api/auth/refresh (HttpOnly cookie) on page load
+  Note over B,SV: every request goes through the gateway, which proxies without checking tokens
+  B->>US: POST /api/auth/refresh (HttpOnly cookie) on page load
   alt cookie valid
-    GW->>US: proxy
     US-->>B: accessToken (kept in memory only)
-    B->>B: decode role from the JWT
-    Note over B: role ADMIN opens the portal, anything else stays on the login page
+    Note over B: decode role from the JWT, ADMIN opens the portal, anything else stays on the login page
   else no session
-    B->>B: show login page
-    B->>GW: POST /api/auth/login (email, password, keepLoggedIn)
-    GW->>US: proxy
+    Note over B: show login page
+    B->>US: POST /api/auth/login (email, password, keepLoggedIn)
     US-->>B: accessToken, or an error code shown on the page
-    B->>B: role not ADMIN gives FORBIDDEN_ROLE and no session
+    Note over B: role not ADMIN gives FORBIDDEN_ROLE and no session
   end
-  B->>GW: authFetch: request with Authorization Bearer token
-  GW->>SV: proxy, no token check at the gateway
+  B->>SV: authFetch: request with Authorization Bearer token
   alt token valid and role ADMIN
     SV-->>B: 200 data
   else 401
     SV-->>B: 401
-    B->>GW: POST /api/auth/refresh (once, shared if already running)
+    B->>US: POST /api/auth/refresh (once, shared if already running)
     alt new token
-      B->>GW: retry the request once
+      US-->>B: accessToken
+      B->>SV: retry the request once
     else refresh fails
-      B->>B: clear session and domain state, back to login
+      Note over B: clear session and domain state, back to login
     end
   else 403
     SV-->>B: 403 ADMIN_REQUIRED
@@ -343,21 +340,16 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  participant A as Admin (Orders page)
-  participant M as DisputeModal
-  participant GW as Gateway
+  participant A as Admin portal (Orders page)
   participant OS as Order Service
-  A->>A: Dispute filter chip lists orders with dispute = true
-  A->>M: View details on a DELIVERED, disputed order
-  M-->>A: read-only requester text and courier text (empty if not written)
+  Note over A: Dispute filter chip lists orders with dispute = true
+  Note over A: View details on a DELIVERED, disputed order shows read-only requester and courier text (empty if not written)
   alt Refund (side with requester)
-    M->>GW: POST /api/orders/:id/admin/cancel (reason, expectedVersion)
-    GW->>OS: proxy
-    OS-->>M: order CANCELLED, dispute cleared, order.cancelled event, credits returned
+    A->>OS: POST /api/orders/:id/admin/cancel (reason, expectedVersion) via gateway
+    OS-->>A: order CANCELLED, dispute cleared, order.cancelled event, credits returned
   else Complete (pay courier)
-    M->>GW: POST /api/orders/:id/admin/complete (reason, expectedVersion)
-    GW->>OS: proxy
-    OS-->>M: order COMPLETED, dispute cleared, order.completed event, credits released
+    A->>OS: POST /api/orders/:id/admin/complete (reason, expectedVersion) via gateway
+    OS-->>A: order COMPLETED, dispute cleared, order.completed event, credits released
   end
 ```
 

@@ -42,6 +42,8 @@ Submission has three durable milestones:
 
 This sequence shows the successful path. “CDC and RabbitMQ” represents the transport, not another business transaction.
 
+*Legend: solid arrows are requests or calls, dashed arrows are replies or events published to the bus; notes mark committed state.*
+
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
@@ -88,6 +90,8 @@ When a reservation result arrives, the [repository](../../../services/order-serv
 
 Suppose Mei's order has `expiresAt = 12:30`. Credit commits the 10-credit hold at 12:29, but Order does not process the success result until 12:31. Order compares its current time with the stored deadline, so the errand becomes `EXPIRED` without entering the open feed. Returning the credits still requires another event and another Credit transaction:
 
+*Legend: solid arrows are requests or calls, dashed arrows are events published to the bus; notes mark committed state.*
+
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
 sequenceDiagram
@@ -111,6 +115,8 @@ If Mei started with 100 available credits and has no other credit activity, she 
 ## Order lifecycle
 
 The main path and reservation outcomes are below. Cancellation and dispute permissions are described beneath the diagram so the primary flow stays readable.
+
+*Legend: each arrow is a state transition, and its label is the trigger.*
 
 ```mermaid
 %% AI-generated (edited by Reallyeasy1)
