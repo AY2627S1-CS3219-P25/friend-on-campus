@@ -8306,3 +8306,152 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 - `CLAUDE.md`, `.claude/README.md`, `.claude/agents/backend.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md`, `.claude/agents/reviewer.md`, `.claude/PLUGINS.md`, `.claude/rules/documentation.md`, `.claude/skills/issue-start/SKILL.md`, `.claude/skills/usage-log/SKILL.md` — updated AI disclosure rules, repository map, and header blocks
 - All 348 repository files carrying `AI Assistance Disclosure:` headers and/or inline `AI-generated` comments — consolidated into single 4-line disclosure headers and removed inline `AI-generated` markers
 - `ai/usage-log.md` — consolidated top HTML comment disclosure block and appended this entry
+
+## 2026-11-10 21:20 SGT — Create a separate D4 presentation folder
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1 (from existing project records; GitHub API unavailable during this session)
+**Branch:** main
+
+**Prompt (exact):** ok can you create a sibling folder from [friend-on-campus](</Users/yanhwee/Downloads/CS3219 Student Project/friend-on-campus/>) , and make slides as per @CS3219-ProjectDocument-FoC.pdf ?
+
+**Usage scenario:** Documentation formatting and summarization of existing project implementation. Read D4 requirements, Appendix 1 and AI policy; used canonical repository guides and existing team allocation/runbook. Created no new architecture, service boundaries, schemas or decision rationale. Excluded unsupported performance/C20/W100 claims from older presentation notes. Real signatures and team content review remain with the authors.
+
+**Key response:** Created `../foc-d4-slides/` as a new sibling folder; produced an editable 20-slide `output/ProjectGroup25.pptx`, slide previews, source and README. Preserved the existing `d4-presentation-and-demo` folder. Included the original unsigned declaration page for replacement with the team's signed scan.
+
+**Verification:** Inspected all 20 slide renders. Final PPTX package, layout, font and native-table checks pass with zero findings; first-party import succeeds with 20 slides. No PowerPoint application inspection, live deployment verification, application code changes or application tests. No commits or pushes.
+
+**Files changed:**
+- `../foc-d4-slides/output/ProjectGroup25.pptx` — editable final deck with speaker notes and source references.
+- `../foc-d4-slides/previews/slide-01.png` through `slide-20.png` — slide previews.
+- `../foc-d4-slides/.build/` — authoring source, original declaration render, draft and validation records.
+- `../foc-d4-slides/README.md` — usage instructions, source list, exact prompt and AI disclosure.
+- `ai/usage-log.md` — this entry, written last.
+
+## 2026-11-10 19:31 SGT — Investigate CDC outage reported during UAT on AWS ECS
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Check why CDC appeared down during the Browser Agent Creation Limits UAT run on `friend-on-campus` and inspect the AWS deployment.
+
+**Usage scenario:** Debugging assistance — reviewed the UAT walkthrough report, ECS Terraform (`infra/terraform/ecs/`), and Debezium connector configurations (`docker/debezium/`), and tested AWS CLI credentials (which required `aws sso login` refresh).
+
+**Files changed:**
+- none
+
+## 2026-11-10 19:43 SGT — Diagnose AWS ECS Debezium CDC failure and recovery via CloudWatch logs
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** After running `aws sso login`, inspect the AWS ECS cluster and CloudWatch logs to determine what happened to the CDC services.
+
+**Usage scenario:** Debugging assistance — inspected live ECS services (`cdc-user`, `cdc-order`, `cdc-credit`) and CloudWatch log group `/ecs/foc-ecs`, identifying that all three PostgreSQL replication slots (`debezium_user`, `debezium_order`, `debezium_credit`) had been invalidated (`wal_status = 'lost'`, `restart_lsn = NULL`) after exceeding `max_slot_wal_keep_size = 2048` MB, and that a teammate dropped and recreated the slots at `19:20–19:25 SGT`.
+
+**Files changed:**
+- none
+
+## 2026-11-10 19:50 SGT — Explain why dropping replication slots is a temporary fix and outline permanent fixes
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Explain why the manual slot reset is only a temporary fix that will recur and what the proper fix is.
+
+**Usage scenario:** Debugging and learning support — explained how AWS RDS's 5-minute 64 MB WAL segment switches across the shared PostgreSQL instance exhaust `max_slot_wal_keep_size = 2048` MB in ~2h40m whenever a connector's watched outbox table is idle (`heartbeat.interval.ms = 0`), and outlined the Debezium heartbeat and RabbitMQ `topic_permissions` configuration required.
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:00 SGT — Explain industry practices for multi-DB replication slot WAL retention and heartbeat storage impact
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Explain whether a heartbeat table is standard industry practice, whether it bloats the database, and how the multi-DB replication slot WAL trap is typically solved.
+
+**Usage scenario:** Learning support — explained PostgreSQL HOT updates and autovacuum on a single-row upsert table versus PostgreSQL 14+'s table-less `pg_logical_emit_message()`, and compared multi-DB heartbeats, schema-per-service consolidation, and outbox polling.
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:11 SGT — Verify table-less `pg_logical_emit_message` heartbeat configuration in Debezium 2.7
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Check whether the table-less `pg_logical_emit_message` alternative can be used to solve the issue on PostgreSQL 16 + Debezium 2.7.
+
+**Usage scenario:** Debugging and configuration analysis — verified in Debezium 2.7 (`PgOutputMessageDecoder`, `PostgresStreamingChangeEventSource`, `PostgresEventDispatcher`) that `SELECT pg_logical_emit_message(false, 'heartbeat', now()::varchar)` paired with `debezium.source.message.prefix.exclude.list=heartbeat` advances `LAST_COMMIT_LSN_KEY` and emits `__debezium-heartbeat.<topic.prefix>` while filtering out the `op = "m"` message before the Outbox `EventRouter` SMT.
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:25 SGT — Configure table-less Debezium WAL heartbeats, update RabbitMQ topic permissions, and open PR
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Proceed with the table-less `pg_logical_emit_message` heartbeat fix, create a branch, and open a PR via `gh`.
+
+**Usage scenario:** Boilerplate/configuration implementation and regression test coverage as directed by the author:
+- Added `debezium.source.heartbeat.interval.ms=60000`, `debezium.source.heartbeat.action.query=SELECT pg_logical_emit_message(false, 'heartbeat', now()::varchar)`, and `debezium.source.message.prefix.exclude.list=heartbeat` to `docker/debezium/application.properties`, `docker/debezium/user.properties`, and `docker/debezium/credit.properties`.
+- Updated `topic_permissions` in `docker/rabbitmq/definitions.json` so `order_service`, `user_service`, and `credit_service` can publish `__debezium-heartbeat.<topic.prefix>` to `campus.events`.
+- Added a regression test in `scripts/ci/deployment.test.mjs` verifying the heartbeat properties and matching RabbitMQ `topic_permissions` regexes.
+
+**Files changed:**
+- `docker/debezium/application.properties` — add table-less WAL heartbeat properties and update 4-line AI disclosure header
+- `docker/debezium/user.properties` — add table-less WAL heartbeat properties and update 4-line AI disclosure header
+- `docker/debezium/credit.properties` — add table-less WAL heartbeat properties and update 4-line AI disclosure header
+- `docker/rabbitmq/definitions.json` — allow `__debezium-heartbeat.<topic.prefix>` write permissions on `campus.events` for `user_service`, `order_service`, and `credit_service`
+- `scripts/ci/deployment.test.mjs` — add regression test for Debezium WAL heartbeats and RabbitMQ `topic_permissions`
+- `ai/usage-log.md` — append session usage log entries
+
+## 2026-11-10 21:29 SGT — Explain why RabbitMQ definitions on ECS use Secrets Manager and compare deploy-ecs.yml vs deploy-infra.yml
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Explain why the RabbitMQ `topic_permissions` change involves AWS Secrets Manager (`foc-ecs-runtime`) and whether running the GitHub Action `deploy-ecs.yml` deploys the CDC fix.
+
+**Usage scenario:** Debugging and infrastructure explanation — inspected `.github/workflows/deploy-ecs.yml`, `.github/workflows/deploy-infra.yml`, `infra/terraform/ecs/brokers.tf`, `infra/terraform/ecs/data-tasks.tf`, and `infra/terraform/ecs/generate-runtime-secrets.cjs` to explain the split between `deploy-ecs.yml` (9 app services only) and `deploy-infra.yml` (Terraform `cdc-*` and `broker-*` tasks) and how `foc-ecs-runtime` stores `broker_definitions`.
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:31 SGT — Outline step-by-step rollout plan using AWS CLI and GitHub Actions (`gh`) after PR #262 merges
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Confirm whether `gh` and `aws` CLI can be used to deploy the fix and list the exact steps that will be taken once the branch is merged to `main`.
+
+**Usage scenario:** Operational planning and explanation — outlined the ordered steps after PR #262 merges to `main` (updating `broker_definitions.topic_permissions` in `foc-ecs-runtime` via `aws secretsmanager`, rolling `broker-1..3` sequentially so RabbitMQ imports the new `topic_permissions` before heartbeats start, triggering `deploy-infra.yml` with `apply=true` via `gh workflow run`, and verifying `cdc-user`, `cdc-order`, and `cdc-credit` in CloudWatch logs).
+
+**Files changed:**
+- none
+
+## 2026-11-10 21:40 SGT — Fix `Messaging | order-service` CI failure on PR #262 by disabling heartbeats on the ephemeral `credit-messaging-cdc` test container
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/cdc-wal-heartbeat
+
+**Prompt (summarised):** Investigate and fix the `CI / Messaging | order-service (pull_request)` check failure on PR #262 while all other 26 checks (including `Acceptance | API and CDC` and `Browser UAT | Chromium`) passed.
+
+**Usage scenario:** CI debugging and configuration fix — inspected the `messaging-order-service-failure` CI artifact (`credit-cdc.log` and `rabbitmq.log`) and identified that the ephemeral `credit-messaging-cdc` (`debezium-credit-messaging`) container starts before `services/order-service/test/reservation.messaging.test.ts` asserts the temporary exchange `credit-test.saga-cdc.events`. With `debezium.source.heartbeat.interval.ms=60000` in `docker/debezium/credit.properties`, Debezium dispatches a snapshot-completion heartbeat to `credit-test.saga-cdc.events` immediately after finishing its 0-row snapshot during `wait-for-cdc.mjs`, hitting `NOT_FOUND - no exchange 'credit-test.saga-cdc.events'` 500ms before the test starts. Disabled the heartbeat (`DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS=0`) on the ephemeral test container in `.github/workflows/ci.yml` and `docker-compose.test.yml`.
+
+**Files changed:**
+- `.github/workflows/ci.yml` — set `DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS=0` on `credit-messaging-cdc` and update 4-line AI disclosure header
+- `docker-compose.test.yml` — set `DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS: "0"` on `debezium-credit-messaging` and update 4-line AI disclosure header
+- `scripts/ci/deployment.test.mjs` — assert that both ephemeral test CDC configurations set `DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS` to `0`
+- `ai/usage-log.md` — append session usage log entry

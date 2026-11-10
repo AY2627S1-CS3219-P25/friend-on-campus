@@ -1,6 +1,6 @@
 # AI Assistance Disclosure:
-# Tool: Codex (model: GPT-5), date: 2026-10-11
-# Scope: Remove fixed container names for isolated aggregate-test and CI Compose projects; updated across 2 AI-assisted revisions through D4 wrap-up (isolate aggregate-test host ports while retaining existing port defaults for standalone CI jobs).
+# Tool: Google Antigravity Agent; Codex (model: GPT-5), date: 2026-10-11 to 2026-11-10
+# Scope: Remove fixed container names for isolated aggregate-test and CI Compose projects; updated across 3 AI-assisted revisions through D4 wrap-up (disable Debezium WAL heartbeat on ephemeral debezium-credit-messaging container before test exchange creation).
 # Author review: I validated correctness, edited for style, and verified with automated tests.
 
 services:
@@ -56,6 +56,7 @@ services:
       DEBEZIUM_SOURCE_SLOT_NAME: debezium_credit_messaging
       DEBEZIUM_SOURCE_PUBLICATION_NAME: dbz_credit_messaging_publication
       DEBEZIUM_SOURCE_TOPIC_PREFIX: campus_credit_messaging
+      DEBEZIUM_SOURCE_HEARTBEAT_INTERVAL_MS: "0"
       DEBEZIUM_SINK_RABBITMQ_CONNECTION_USERNAME: credit_test
       DEBEZIUM_SINK_RABBITMQ_CONNECTION_PASSWORD: credit-test-dev
       DEBEZIUM_SINK_RABBITMQ_EXCHANGE: credit-test.saga-cdc.events
