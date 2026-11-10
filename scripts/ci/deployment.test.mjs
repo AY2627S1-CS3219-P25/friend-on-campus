@@ -1,6 +1,6 @@
 // AI Assistance Disclosure:
-// Tool: Codex (model: GPT-6), date: 2026-11-09
-// Scope: Verify manual delivery gates, migration failures, and preservation of live images during infrastructure rollout; updated across 5 AI-assisted revisions through D4 wrap-up (test rollout completion lag and reject a failed rollout).
+// Tool: Codex (model: GPT-6); Google Antigravity Agent, date: 2026-11-09 to 2026-11-10
+// Scope: Verify manual delivery gates, migration failures, preservation of live images during infrastructure rollout, and Debezium WAL heartbeat configuration.
 // Author review: I validated correctness, edited for style, and verified with automated tests.
 
 import assert from 'node:assert/strict';
@@ -224,4 +224,28 @@ test('rollout waits for ECS completion after tasks stabilize and stops on failur
   assert.notEqual(failed.status, 0);
   assert.match(failed.stderr, /ECS did not complete user-service/);
   assert.deepEqual(Object.keys(failed.state.services), ['user-service']);
+});
+
+test('Debezium connectors configure table-less WAL heartbeats and matching RabbitMQ topic permissions', () => {
+  const definitions = JSON.parse(readFileSync(path.join(root, 'docker/rabbitmq/definitions.json'), 'utf8'));
+  const connectors = [
+    { file: 'application.properties', user: 'order_service', prefix: 'campus', sampleEvent: 'order.created' },
+    { file: 'user.properties', user: 'user_service', prefix: 'campus_user', sampleEvent: 'user.registered' },
+    { file: 'credit.properties', user: 'credit_service', prefix: 'campus_credit', sampleEvent: 'credit.reservation.succeeded' },
+  ];
+
+  for (const { file, user, prefix, sampleEvent } of connectors) {
+    const props = readFileSync(path.join(root, 'docker/debezium', file), 'utf8');
+    assert.match(props, new RegExp(`^debezium\\.source\\.topic\\.prefix=${prefix}$`, 'm'));
+    assert.match(props, /^debezium\.source\.heartbeat\.interval\.ms=60000$/m);
+    assert.match(props, /^debezium\.source\.heartbeat\.action\.query=SELECT pg_logical_emit_message\(false, 'heartbeat', now\(\)::varchar\)$/m);
+    assert.match(props, /^debezium\.source\.message\.prefix\.exclude\.list=heartbeat$/m);
+
+    const topicPerm = definitions.topic_permissions.find(p => p.user === user && p.exchange === 'campus.events');
+    assert.ok(topicPerm, `Missing campus.events topic_permissions for ${user}`);
+    const writeRegex = new RegExp(topicPerm.write);
+    assert.ok(writeRegex.test(sampleEvent), `${user} write regex must allow ${sampleEvent}`);
+    assert.ok(writeRegex.test(`__debezium-heartbeat.${prefix}`), `${user} write regex must allow __debezium-heartbeat.${prefix}`);
+    assert.ok(!writeRegex.test('__debezium-heartbeat.other'), `${user} write regex must not allow other heartbeat prefixes`);
+  }
 });
