@@ -90,3 +90,5 @@ For AWS, read the [cloud explanation](docs/architecture/cloud-architecture.md), 
 - File-level attributions are recorded at the top of each AI-influenced file.
 - Agent configuration and policy enforcement files are tracked in [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md), and [`.claude/`](.claude/).
 - Timestamped prompts, usage scenarios, and affected files are archived in [`ai/usage-log.md`](ai/usage-log.md).
+
+**Group agreement:** All group members agreed to use AI only in the ways the CS3219 project requirements permit, and to follow the rules in [`CLAUDE.md`](CLAUDE.md) throughout. AI tools did not commit or push on their own; the human authors reviewed and committed every change. Each AI-assisted prompt is recorded in [`ai/usage-log.md`](ai/usage-log.md), and each AI-influenced file carries a short disclosure header.
