@@ -1,5 +1,41 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Merged origin/main (PR #254) and origin/docs_update (PR #250) into codex/docs-refresh-20261109 (PR #255), reconciled Supplier Service and k6 documentation with #254, integrated the OpenStreetMap coordinate flow diagram from #250 into docs/frontend/README.md, added the Project-Level AI Use Summary to README.md, and recorded the PR #255 merge.
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
+Tool: Codex (model: GPT-6), date: 2026-11-10
+Scope: Record authorized publication of the expanded developer guides and updated PR #255 description.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-10
+Scope: Expand the existing developer guides with source-checked explanations and eight additional diagrams; correct documentation review findings and record verification.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Review the consolidated documentation against source and provide a reusable review prompt; record findings and verification without changing or publishing guides.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record author-approved commit and publication of the consolidated documentation to the existing PR #255, with an updated description.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Consolidate the documentation into twelve detailed guides and one index; retain history through pinned Git references and repair dependent documentation links.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record author-approved publication of the documentation branch as a draft PR, including the unmatched linked-issue requirement.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconciled the documentation with current main and the read-only wiki, archived historical records, repaired navigation and recorded validation.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Google Antigravity Agent, date: 2026-11-09
+Scope: Added usage-log entry for PR #254 (pushing Supplier Service sorting and pagination to PostgreSQL, gateway HTTP/1.1 keepalive connection pooling, and restoring 50/100 VU k6 supplier load profiles for #253 and #110).
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Recorded author-approved merge of PR #252 after checking the latest changes and CI.
 Author review: <to be completed by Reallyeasy1>
@@ -8313,4 +8349,293 @@ Repeated all-workspace typecheck, 55 student unit tests, production build, root 
 - `tests/k6/requirements.json` — restore supplier concurrency to 50 VUs (#29) and 100 VUs (#33) and latency limits to 2000 ms / 4000 ms (JSON, no disclosure header)
 - `tests/k6/README.md`, `scripts/perf/run-perf.mjs`, `scripts/perf/test/harness.test.mjs`, `.github/workflows/performance.yml` — align documentation, summary notes, and self-tests with 50/100 VU supplier populations
 - `docs/services/supplier-service/README.md`, `docs/services/supplier-service/contracts-and-data.md`, `docs/services/supplier-service/runtime-and-testing.md`, `docs/infrastructure/api-gateway.md` — update service and gateway documentation
+- `ai/usage-log.md` — this entry
+
+## 2026-11-09 22:43 SGT — Tidy current documentation against main b989758
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Tidy and update docs against latest main and the wiki; preserve history, verify current behavior and navigation, perform documentation-only edits in an isolated branch, leave wiki read-only and all changes uncommitted.
+
+**Usage scenario:** Documentation and source verification. Read repository instructions and documentation rules, inspected main `b989758e766cb593c3b8c94102eb6dfb5c7d8491` and wiki `0571db5d4ad8c89679131c8707aae105402c7618`, and rechecked main unchanged before handoff. Inventoried 60 resulting docs files, six relevant external READMEs and 42 wiki files. Independent reviewers reconciled service/frontend/shared-package behavior, Saga/receipt semantics, realtime fanout, ECS configuration, test commands and CI. Preserved eleven historical snapshots, six forwarding pages, original attribution and incomplete human review. Current docs distinguish original performance requirements from relaxed harness limits and retain unresolved PR #252 findings. Human requirements, policy, design decisions and approval remain unchanged.
+
+Validation passed: 938 local links, 96 fragments, all 29 Mermaid blocks (Mermaid 12.3.0), 66 repository URL occurrences and 132 wiki URL occurrences; all 60 docs reachable and 25 literal npm script names found. Typecheck passed twelve workspaces; unit suites passed 469/469 with none skipped; lint, static CI matrix (20 workspace suites/four system commands), nine wrapper self-tests, hook tests and git diff whitespace checks passed. Docker/k6 unavailable, so no full isolated integration/messaging/migration/seed/UAT/load run. Chromium unavailable, so diagram visual rendering was not verified. No live AWS, deployment, restore or alert evidence claimed. Source inventory, drift and verification records detail limitations. Existing uncommitted work in other worktrees preserved; no code/infrastructure/schema/dependency/requirement changes, commit, push, merge, wiki edit, issue or PR creation.
+
+**Files changed:**
+- `README.md` — quick-start counts, commands, coverage and documentation navigation.
+- `ai/usage-log.md` — this task record and consolidated disclosure.
+- `docs/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/authentication-and-security.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/communication-and-events.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/data-ownership.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/service-boundaries.md` — source-verified reference, navigation or forwarding page.
+- `docs/architecture/system-overview.md` — source-verified reference, navigation or forwarding page.
+- `docs/archive/README.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-documentation-coverage.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-documentation-drift.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-pr-184-review.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-review-findings.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/audits/2026-10-25-source-inventory.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/infrastructure/2026-11-09-cloud-architecture-guide.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/plans/2026-10-22-notification-inbox.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/plans/2026-10-26-errand-details-page.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/services/chat-service/d4-implementation-specification.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/archive/services/notification-service/structure-review.md` — preserved historical evidence or archive navigation; repaired links/rendering where needed.
+- `docs/audits/documentation-coverage.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/documentation-drift.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/pr-184-review.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/review-findings.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/audits/source-inventory.md` — current provenance, drift, coverage or verification; retained historical pointers.
+- `docs/cloud-deployment-and-devops-guide.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/claude-code-workflow.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/local-development.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/repository-conventions.md` — source-verified reference, navigation or forwarding page.
+- `docs/development/testing-strategy.md` — source-verified reference, navigation or forwarding page.
+- `docs/frontend/admin-portal.md` — source-verified reference, navigation or forwarding page.
+- `docs/frontend/student-app.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/api-gateway.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/cdc-and-broker.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/ci-cd.md` — source-verified reference, navigation or forwarding page.
+- `docs/infrastructure/docker-and-deployment.md` — source-verified reference, navigation or forwarding page.
+- `docs/new-cloud-architecture-guide.md` — source-verified reference, navigation or forwarding page.
+- `docs/packages/auth.md` — source-verified reference, navigation or forwarding page.
+- `docs/packages/common-dtos.md` — source-verified reference, navigation or forwarding page.
+- `docs/packages/messaging.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/chat-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/chat-service/d4-implementation-specification.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/credit-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/credit-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/credit-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/implementation.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/reliability-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/notification-service/structure-review.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/order-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/order-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/order-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/coordinate-upgrades.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/supplier-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/user-service/README.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/user-service/contracts-and-data.md` — source-verified reference, navigation or forwarding page.
+- `docs/services/user-service/runtime-and-testing.md` — source-verified reference, navigation or forwarding page.
+- `docs/superpowers/plans/2026-10-22-notification-inbox.md` — source-verified reference, navigation or forwarding page.
+- `docs/superpowers/plans/2026-10-26-errand-details-page.md` — source-verified reference, navigation or forwarding page.
+- `infra/terraform/ecs/README.md` — current realtime implementation status and canonical reference.
+- `tests/k6/README.md` — configured harness limits, credential handling and implementation/recovery boundaries.
+
+## 2026-11-09 22:49 SGT — Publish documentation cleanup as a draft pull request
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Create a pull request in the GitHub repository for the completed documentation cleanup.
+
+**Usage scenario:** Author-approved commit, branch publication and pull-request creation. Rechecked main remains `b989758e766cb593c3b8c94102eb6dfb5c7d8491`, the prepared changes are documentation-only, and `git diff --check` passes. Include the prior cleanup entry and its existing validation evidence in the commit. Final staging exposed inherited trailing whitespace in the newly added K3s archive; normalized it, preserving intentional Markdown line breaks, and updated the archive/verification notes. No application changes or newly claimed runtime test results. Independent issue search found no existing open issue fully resolved by this cleanup; related #232 includes superseded K3s criteria and a cloud-access skill not implemented here. Create a draft PR with the tracking gap explicit and the linked-issue checkbox unchecked; do not falsely close #232 or create an issue without the separately required authorization. Preserve pending human-review fields. No merge or wiki changes. Verify the published branch tree and PR head against the prepared content.
+
+**Files changed:**
+- `ai/usage-log.md` — publication bookkeeping and consolidated disclosure.
+- `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — normalize inherited whitespace without changing historical technical content.
+- `docs/archive/README.md`, `docs/audits/review-findings.md` — record the formatting and complete staged verification.
+- Earlier prepared documentation changes — included in the approved commit.
+
+## 2026-11-09 23:23 SGT — Consolidate documentation into thirteen human-readable guides and index files
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Reduce excessive documentation to roughly 8–12 substantive guides plus an index, expand useful human explanations/diagrams, consolidate service references, preserve important history/limitations, verify links and commands, and leave the local changes uncommitted without publishing.
+
+**Usage scenario:** Documentation improvements and source verification. Rechecked PR #255 remains draft/open at `c45f9ed0eb46a54ac68937393e0355da34dd9f9d`, main remains `b989758e766cb593c3b8c94102eb6dfb5c7d8491`, and the read-only wiki remains `0571db5d4ad8c89679131c8707aae105402c7618`. Fetched the existing published PR commit and aligned the local branch only after its tree exactly matched the staged prior cleanup; no new commit was created and unrelated worktrees were left intact. Consolidated 60 docs files (41 active/reference documents, one main index, twelve archive files including their index, six forwarders) into twelve substantive guides plus one index. No archive/forwarding files remain: the wiki's Chat specification link already pins an immutable commit. Forty-eight old paths were removed, one combined frontend guide added, and original attribution from merged active guides retained; unique historical reviews/decisions/evidence remain accessible through pinned Git history. Six service guides now combine explanation, contracts, data, tests and troubleshooting. Added source-checked diagrams and concrete login/errand/credit/event/reconnect examples. Corrected Vite environment loading, default direct-mode Chat health routing notes, partial Supplier seed failure and seeded-versus-new-account wallet initialization. Retained async completion/recovery, Chat access/idempotency, original-versus-relaxed performance limits and unresolved #252 findings. Repaired necessary Markdown references, including instruction-file pointers, without changing authorization policy.
+
+Validation: all thirteen retained docs reachable; 332 local links, ten fragments and all twelve Mermaid diagrams pass across 25 current/changed Markdown files. Five pinned repository URLs, six wiki URLs and eight commit links validate; no unknown refs. Twenty-four literal npm script names resolve. Consolidated attribution checked against39original active source pages; historical attribution preserved through pinned history. `npm run typecheck` passes twelve workspaces; `npm run ci:validate-tests` passes20workspace suites/four system commands; `git diff --check` passes. No new unit/integration/load/runtime evidence claimed; application source unchanged. Chromium installation was attempted using existing Playwright but the download was an invalid/truncated archive, so diagram visual rendering remains unverified. No AWS, database/broker mutation, deployment, live UAT or load test performed. Wiki and PR unchanged; no commit, push, merge or issue creation. Human approvals and unresolved requirements remain with the author.
+
+**Files changed:**
+- `.claude/PLUGINS.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/README.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/backend.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/frontend.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/infrastructure.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/agents/reviewer.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/rules/documentation.md` — repair documentation references and factual setup/count wording after consolidation.
+- `.claude/skills/issue-start/SKILL.md` — repair documentation references and factual setup/count wording after consolidation.
+- `CLAUDE.md` — repair documentation references and factual setup/count wording after consolidation.
+- `README.md` — short quick start and navigation to detailed guides.
+- `ai/usage-log.md` — this task record and consolidated disclosure.
+- `docs/README.md` — task index, compact baseline/verification and historical-context pointers.
+- `docs/architecture/authentication-and-security.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/communication-and-events.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/data-ownership.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/service-boundaries.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/architecture/system-overview.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/archive/README.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-documentation-coverage.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-documentation-drift.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-pr-184-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-review-findings.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/audits/2026-10-25-source-inventory.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/infrastructure/2026-11-09-cloud-architecture-guide.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/infrastructure/cloud-deployment-and-devops-guide.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/plans/2026-10-22-notification-inbox.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/plans/2026-10-26-errand-details-page.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/services/chat-service/d4-implementation-specification.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/archive/services/notification-service/structure-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/documentation-coverage.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/documentation-drift.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/pr-184-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/review-findings.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/audits/source-inventory.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/cloud-deployment-and-devops-guide.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/development/claude-code-workflow.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/development/local-development.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/development/repository-conventions.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/development/testing-strategy.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/frontend/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/frontend/admin-portal.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/frontend/student-app.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/infrastructure/api-gateway.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/infrastructure/cdc-and-broker.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/infrastructure/ci-cd.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/infrastructure/docker-and-deployment.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/new-cloud-architecture-guide.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/packages/auth.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/packages/common-dtos.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/packages/messaging.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/chat-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/chat-service/d4-implementation-specification.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/credit-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/credit-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/credit-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/notification-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/implementation.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/reliability-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/notification-service/structure-review.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/order-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/order-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/order-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/supplier-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/supplier-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/supplier-service/coordinate-upgrades.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/supplier-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/user-service/README.md` — coherent implementation/operational guide with explanations, source links and troubleshooting.
+- `docs/services/user-service/contracts-and-data.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/services/user-service/runtime-and-testing.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/superpowers/plans/2026-10-22-notification-inbox.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `docs/superpowers/plans/2026-10-26-errand-details-page.md` — remove fragmented or obsolete page; useful content consolidated and historical evidence retained in pinned Git history.
+- `infra/terraform/ecs/README.md` — repair documentation references and factual setup/count wording after consolidation.
+- `tests/k6/README.md` — repair documentation references and factual setup/count wording after consolidation.
+
+## 2026-11-09 23:34 SGT — Publish the thirteen-file documentation consolidation to PR #255
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Commit the consolidated documentation to the existing pull request.
+
+**Usage scenario:** Explicitly authorized commit and branch publication. Rechecked PR #255 is draft/open at `c45f9ed0eb46a54ac68937393e0355da34dd9f9d`, matching local HEAD. Independent pre-publication review confirmed 74 Markdown paths: 25 modified,48 deleted,one new; twelve substantive guides plus one index remain. No application/configuration behavior changes or unresolved verification placeholders. Existing consolidation validation is preserved without claiming newly executed runtime tests; final whitespace/staged-tree checks precede publication. Publish one child commit using an expected-head guard and verify its tree against the local index. Update the PR title/body around the final thirteen-file structure and actual verification limits. Keep the PR draft because no matching tracking issue was authorized; no issue creation, wiki edits, merge or forced branch update.
+
+**Files changed:**
+- `ai/usage-log.md` — publication entry and consolidated disclosure. The previously prepared 73 other Markdown changes are included unchanged in the authorized commit.
+
+## 2026-11-09 23:51 SGT — Review the consolidated developer documentation
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Write a prompt to review the documentation and apply it to identify improvements.
+
+**Usage scenario:** Documentation review and debugging assistance. Reviewed PR #255 at `bc0efa46e9385ddb482cd3b56dbeea86badedce2`, with main/base `b989758e766cb593c3b8c94102eb6dfb5c7d8491` and read-only wiki revision `0571db5d4ad8c89679131c8707aae105402c7618`. Confirmed the PR remains draft/open with no existing review threads. Independent source reviews covered onboarding/testing, business services, realtime/messaging, cloud and frontend guides. Findings concern inherited aggregate-test targets, direct API E2E database assumptions, the Compose minimum, dispute length, User/Credit email validation disagreement, and missing-conversation terminal events; smaller precision corrections concern message TTL, Chat reconciliation time tolerance and bounded notification toast deduplication. No new requirements, architecture, historical rationale or deployment claims were invented.
+
+**Verification:** The thirteen retained Markdown documents passed 310 local link occurrences (154 unique targets), four local fragments and twelve Mermaid syntax checks. Five pinned repository links, two wiki links, eight commit links and one related fragment resolved against the inspected local Git/wiki histories; seven issue/PR/action links were outside that availability check. Read-only handler/parser probes confirmed dispute boundaries and User/Credit validation mismatch. A VM evaluation of the actual environment construction and consumer target expressions confirmed inherited BASE_URL/CREDIT_AMQP_URL survive aggregate configuration; no network calls or mutations were made by that probe. Checked Docker's official Compose merge documentation for the 2.24.4 minimum required by !override. No Docker/system suites, browser rendering, live UAT, cloud commands or load tests ran for this review. Semantic diagram checks were source-based; Mermaid syntax success is not a visual layout review.
+
+**Files changed:**
+- `ai/usage-log.md` — this required review entry and consolidated disclosure only. No guide, application or infrastructure changes; no commit, push, GitHub review publication, issue creation or wiki mutation.
+
+## 2026-11-10 00:01 SGT — Expand the consolidated guides for human readers
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Improve the documentation with more detail that humans can understand and more diagrams.
+
+**Usage scenario:** Authorized documentation improvements and learning support, describing the existing implementation rather than changing architecture or requirements. Rechecked PR #255 remains draft/open at local baseline `bc0efa46e9385ddb482cd3b56dbeea86badedce2`, with application/base revision `b989758e766cb593c3b8c94102eb6dfb5c7d8491`. Preserved the prior uncommitted usage entry. Kept twelve substantial guides plus the index, with no new archive/forwarding/overview files. Expanded service ownership and evidence checkpoints, local test targeting, ECS routing/scaling/recovery, Saga compensation, wallet transaction outcomes, uncertain Chat sends, Notification read-state synchronization, browser pending state and Supplier location/availability behavior. Increased Mermaid diagrams from twelve to twenty. Corrected all six substantive and three smaller findings from the previous review. Independent final source review also corrected the distinction between coordinate repair and migration recovery, and between React receipt state and the stored pending ID. Read-only wiki context remains revision `0571db5d4ad8c89679131c8707aae105402c7618`; no wiki edits or new design decisions.
+
+**Verification:** Across the thirteen docs and root README: 361 local links, 18 local fragments, twenty Mermaid 12.3.0 diagrams, 45 shell-block syntax checks, 24 literal npm script names, direct index reachability and consolidated disclosures pass. Five pinned repository links, three wiki occurrences, nine commit references and one associated fragment resolve against inspected Git/wiki history; issue/PR/action and general external availability were not exhaustively checked. Typechecking passes all twelve workspaces; CI matrix validation passes twenty workspace suites and four system commands. Focused User/Order/Credit unit suites pass 115/74/22 tests with no skips. Whitespace and documentation-only scope checks pass. Headless Chromium installation returned invalid/truncated archives, so visual diagram rendering remains unverified. No Docker/database/broker system tests, live UAT, load tests, deployments or failover drills ran. No application/configuration/schema/dependency changes, commit, push, issue creation or external publication.
+
+**Files changed:**
+- `README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `ai/usage-log.md` — record this task and preserve the preceding uncommitted review entry.
+- `docs/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/architecture/system-overview.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/development/local-development.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/development/testing-strategy.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/frontend/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/infrastructure/cdc-and-broker.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/new-cloud-architecture-guide.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/chat-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/credit-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/notification-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/order-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/supplier-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+- `docs/services/user-service/README.md` — improve source-checked explanations, diagrams, operational instructions or navigation; preserve attribution.
+
+## 2026-11-10 00:08 SGT — Publish expanded documentation to PR #255
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Update the existing pull request with the improved documentation.
+
+**Usage scenario:** Explicitly authorized commit and branch publication. Rechecked PR #255 remains draft/open at `bc0efa46e9385ddb482cd3b56dbeea86badedce2`, matching local HEAD. Independent pre-publication inspection found exactly fifteen Markdown changes: thirteen guides/index, root README and required usage bookkeeping, with no unrelated files or unresolved verification placeholders. Preserve the prior review and expansion entries. Publish one child commit with an expected-head guard and verify the remote tree against the staged tree. Update the PR title/body to describe the final thirteen-file structure, twenty diagrams, worked examples, corrected operational instructions and actual validation limits. Preserve draft status and the matching-issue gap; no issue creation, wiki changes, merge or forced update.
+
+**Verification:** Reused the unchanged expansion checks: 361 local links, 18 fragments, twenty Mermaid parses, 45 shell-block syntax checks, 24 script names, twelve-workspace typechecking, CI matrix validation and 211 focused unit tests. Final documentation-only and whitespace checks pass; no new runtime-test run is claimed. Visual rendering and live/infrastructure testing remain unavailable or unperformed as recorded in the preceding entry.
+
+**Files changed:**
+- `ai/usage-log.md` — publication entry and consolidated disclosure. The prepared fourteen other Markdown files are included unchanged in the authorized commit.
+
+## 2026-11-09 19:10 SGT — Fix feed zone chip counts
+
+**Tool:** Claude Code (model: Claude Sonnet 5.5)
+**Author:** jagdeepsh
+**Branch:** docs_update
+
+**Prompt (summarised):** On the student app Browse page the zone chips show correct counts under ALL (for example 2), but after selecting a zone such as PGPR every chip, including ALL, shows 0; selecting ALL again shows 2. Find and fix the bug.
+
+**Usage scenario:** Debugging assistance and a small fix. Cause: `FeedPage` computed each chip count from `filteredOrders`, which `App.tsx` had already narrowed to the selected zone, so every other chip counted zero. `App.tsx` now derives `openOrders` (all open errands not posted by the user) and passes it to `FeedPage`, which counts from it; the list shown still follows the selected zone. No design decision left open. Verification: student-app typecheck and lint pass, student-app unit tests 58/58.
+
+**Files changed:**
+- `apps/student-app/src/App.tsx` — adds `openOrders`, derives `filteredOrders` from it, passes `openOrders` to FeedPage; disclosure record (superseded on `main` by `0fd675e`)
+- `apps/student-app/src/pages/FeedPage.tsx` — new `openOrders` prop; chip counts use it; disclosure record (superseded on `main` by `0fd675e`)
+
+## 2026-11-10 10:49 SGT — Reconcile PR #255 with PR #254 and PR #250, add Project-Level AI Use Summary to README.md, and merge once CI is green
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** codex/docs-refresh-20261109
+
+**Prompt (summarised):** Review and merge open PRs (#254, #255, #250) and close superseded PR #233 and resolved issues; merge `main` (#254) and `docs_update` (#250) into PR #255, add the CS3219 Project-Level AI Use Summary to `README.md`, link #232, and merge PR #255 once CI is green.
+
+**Usage scenario:** Documentation reconciliation, conflict resolution, and author-approved PR merge:
+- Merged `origin/main` (including PR #254, `c6aa823`) into `codex/docs-refresh-20261109`, updating `docs/services/supplier-service/README.md`, `tests/k6/README.md`, `docs/development/testing-strategy.md`, and `docs/new-cloud-architecture-guide.md` to reflect PostgreSQL supplier sorting/pagination (`#110`, `#253`), NGINX upstream HTTP/1.1 keepalive pooling, and restored 50/100 VU k6 supplier load profiles (`#29`, `#33`).
+- Merged `origin/docs_update` (PR #250) into `codex/docs-refresh-20261109`, keeping `main`'s unit-tested `feedZones.ts` implementation (`0fd675e`) and integrating the OpenStreetMap coordinate flow diagram from PR #250 into `docs/frontend/README.md`.
+- Added the required Project-Level `## AI Use Summary` section as the final section of `README.md` per CS3219 Appendix 2.
+
+**Files changed:**
+- `README.md` — added `## AI Use Summary` section and updated disclosure block
+- `docs/frontend/README.md` — integrated OpenStreetMap coordinate flow diagram from PR #250
+- `docs/services/supplier-service/README.md` — updated sorting/pagination description for PR #254
+- `docs/development/testing-strategy.md`, `tests/k6/README.md` — updated supplier k6 load tiers to 50/100 VUs
+- `docs/new-cloud-architecture-guide.md` — documented NGINX upstream keepalive pooling and `gateway-start.sh` substitution
 - `ai/usage-log.md` — this entry

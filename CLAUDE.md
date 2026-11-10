@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Retire K3s deployment references and point readers to the ECS Terraform root.
 Author review: <to be completed by the author>
@@ -199,7 +203,7 @@ If a prompt asks for something in the not-allowed list (e.g. "which schema shoul
 
 ## 4. Repo map & coding rules
 
-Architecture, setup, seed accounts, and test categories are documented in `README.md` and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki). Use [docs/README.md](docs/README.md) for source-linked implementation navigation and [documentation drift](docs/audits/documentation-drift.md) for unresolved source conflicts. Pending PRs and proposals do not establish current behavior or human approval. Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
+Architecture, setup, seed accounts, and test categories are documented in `README.md` and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki). Use [docs/README.md](docs/README.md) for source-linked implementation navigation and [known limitations](docs/README.md#known-limits-and-design-context) for unresolved source conflicts. Pending PRs and proposals do not establish current behavior or human approval. Code (`packages/common-dtos`, `services/*/prisma/schema.prisma`, `gateway/nginx.conf`, `docker-compose.yml`) is the source of truth for implementation.
 
 ```
 services/user-service          :8001  Prisma (user_db)          entry src/index.ts
@@ -229,7 +233,7 @@ Rules for working in this repo:
 
 See `README.md` for full local dev, seeding, and test commands. Key agent verification rules:
 
-- **Before saying a change works:** always run `npm run typecheck` (which covers both `src/**` and `test/**` across all 10 workspaces) and the directly relevant test categories (`npm run test:unit`, `test:integration`, `test:messaging`, `test:e2e:api`, or full isolated `npm test`). Report the real output and any unavailable infrastructure.
+- **Before saying a change works:** always run `npm run typecheck` (which covers both `src/**` and `test/**` across all 12 workspaces) and the directly relevant test categories (`npm run test:unit`, `test:integration`, `test:messaging`, `test:e2e:api`, or full isolated `npm test`). Report the real output and any unavailable infrastructure.
 - **`npm run test:e2e:api` port requirement:** spawns `user-service` and `supplier-service` itself on ports 8001/8002 against `localhost:5432` (with seeded databases), so stop host/container listeners on 8001/8002 first.
 - **Test runner & linter:** Unit tests use Node's built-in `node --test` via `tsx` (no external test framework). Root `npm run lint` runs ESLint. Do not add another test framework or linter unprompted.
 - **Mandatory CI matrix sync:** whenever adding, renaming, moving, or removing a `test:*` script in any `package.json`, update `.github/workflows/ci.yml` in the same change and run `npm run ci:validate-tests`.

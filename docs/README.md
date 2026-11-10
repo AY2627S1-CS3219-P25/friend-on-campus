@@ -1,5 +1,17 @@
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Keep the thirteen-guide index concise while linking corrected failure boundaries and recording the expanded explanations, diagrams and executed checks.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Replace fragmented navigation/audits with one task index, compact provenance and unresolved-boundary notes; preserve prior attribution in history and consolidated records.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Reconcile the active documentation with main b989758 and simplify navigation; preserve historical attribution.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-11-08
 Scope: Link the ECS rollout after retirement of the K3s deployment files.
 Author review: <to be completed by the author>
@@ -31,93 +43,73 @@ Author review: <to be completed by Reallyeasy1>
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
 Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added drift rows D26-D30 (Chat PR #148 head f39ab1f versus main 9a36146, issue #56 and the wiki Chat proposal) and a pointer to the Chat decision register; earlier rows unchanged.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Recorded the PR #148 head and main commit inspected for the Chat documents and added the issue #56 row; wiki snapshot unchanged.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the Chat (pending PR #148) coverage row; other rows unchanged and not reverified.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Record executed documentation/local checks, independent corrections and unavailable runtime evidence for the November cleanup.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the dated "Chat documentation checks" block (executed chat-service unit run, link/anchor/Mermaid validation, inventory check); earlier checks not rerun.
+Author review: <to be completed by Reallyeasy1>
 -->
 
-# Technical implementation reference
+# Developer documentation
 
-Implementation baseline: [`52d791e`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/52d791e4eea28ce7d817f025ef096f8d96bda467); inspected 2026-10-25 (SGT).
+New to Friend on Campus? Read [how the system works](architecture/system-overview.md), then [run it locally](development/local-development.md). Each service has one guide covering its behavior, API, data, tests and troubleshooting.
 
-This directory documents the current five-service implementation and its verification boundaries. Start here for code navigation; the root [README](../README.md) remains the quick start and the [Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) retains architectural records and milestone history. This reference was reintroduced under the approved task after PR #154's earlier documentation consolidation.
+## Find the right guide
 
-Code/configuration establish implemented behavior; verified human specifications establish intended behavior. Issues contain acceptance criteria. Wiki/README statements are cross-checked, and disagreements remain visible in the drift register. Pending PR #184 and Chat/AWS proposals are labelled separately; no new architecture or design rationale is authored here.
-
-## Start by task
-
-| Task | Read |
+| I want to… | Read |
 |---|---|
-| Understand runtime components and integrations | [System overview](architecture/system-overview.md), [service boundaries](architecture/service-boundaries.md), [events](architecture/communication-and-events.md) |
-| Trace an HTTP/event/data path | Service reference below; [auth](packages/auth.md), [DTOs](packages/common-dtos.md), [messaging](packages/messaging.md) |
-| Run locally or diagnose UAT broker targeting | [Local development](development/local-development.md), [test/UAT configuration](development/testing-strategy.md#driver-environment-matrix) |
-| Deploy or review the CloudFront/ECS stack | [ECS Terraform rollout](../infra/terraform/ecs/README.md) and [cloud architecture guide](new-cloud-architecture-guide.md) |
-| Maintain docs or Claude instructions | [Conventions](development/repository-conventions.md), [Claude workflow](development/claude-code-workflow.md) |
-| Review evidence or unresolved discrepancies | [Coverage](audits/documentation-coverage.md), [verification](audits/review-findings.md), [drift](audits/documentation-drift.md), [source inventory](audits/source-inventory.md) |
-| Inspect the unmerged inbox change | [PR184 review](audits/pr-184-review.md), pinned separately to its inspected head |
+| Understand ownership, authentication and asynchronous work | [System overview](architecture/system-overview.md) |
+| Start the stack, edit a service or upgrade local data | [Local development](development/local-development.md) |
+| Pick a test suite and interpret its evidence | [Testing](development/testing-strategy.md) |
+| Understand the AWS request path, scaling and operations | [Cloud deployment](new-cloud-architecture-guide.md) |
+| Diagnose delayed events, retries or missing realtime updates | [Messaging and recovery](infrastructure/cdc-and-broker.md) |
+| Work on screens, session state, maps or live updates | [Frontend development](frontend/README.md) |
 
-## Service coverage
-
-| Service | Implementation coverage | Entry point |
-|---|---|---|
-| User | Auth, token/session rotation, profile/admin lifecycle, SQL models, outbox, failures and tests | [User](services/user-service/README.md) |
-| Supplier | Public directory, admin CRUD, validation/filtering, persistence/seed, errors and tests | [Supplier](services/supplier-service/README.md) |
-| Order | Routes/state predicates, Supplier call, reservation saga, concurrent mutation, outbox/CDC and expiry | [Order](services/order-service/README.md) |
-| Credit | Wallet/ledger, grants/escrow/refunds/settlement, serializable processing, replay/retry and tests | [Credit](services/credit-service/README.md) |
-| Notification | Full module/REST/socket/event traces, mapping, persistence, ACK/retry/DLQ boundaries and structural review | [Notification](services/notification-service/README.md) |
-| Chat (pending, PR #148 head `f39ab1f`, not on `main`) | F8 private conversation per accepted errand: REST history route, `/ws/chat/` socket hub, order-event projection, tests, known limits; proposed D4 work with decision register | [Chat](services/chat-service/README.md) · [D4 specification (proposal)](services/chat-service/d4-implementation-specification.md) |
-
-Coverage is source-backed documentation, not a claim that all runtime acceptance checks passed. See the verification record for executed and unavailable checks, and human-only review fields.
-
-## Complete documentation file inventory
-
-The table lists every Markdown file in `docs/`, including this index. Each service's README is its entry point; contracts/data documents enumerate interfaces and models; runtime/testing documents follow the implementation and failure boundaries.
-
-| File | Purpose |
+| Service guide | Start here for… |
 |---|---|
-| [README.md](README.md) | Navigation, service coverage and complete inventory |
-| [new-cloud-architecture-guide.md](new-cloud-architecture-guide.md) | CloudFront/ECS architecture, networking, trial resources and costs |
-| [architecture/authentication-and-security.md](architecture/authentication-and-security.md) | Authentication and authorization |
-| [architecture/communication-and-events.md](architecture/communication-and-events.md) | Communication and event catalogue |
-| [architecture/data-ownership.md](architecture/data-ownership.md) | Data ownership and persistence |
-| [architecture/service-boundaries.md](architecture/service-boundaries.md) | Service boundaries |
-| [architecture/system-overview.md](architecture/system-overview.md) | System overview |
-| [audits/documentation-coverage.md](audits/documentation-coverage.md) | Documentation coverage matrix |
-| [audits/documentation-drift.md](audits/documentation-drift.md) | Documentation drift and unresolved questions |
-| [audits/pr-184-review.md](audits/pr-184-review.md) | PR #184 inspection and pending-change audit |
-| [audits/review-findings.md](audits/review-findings.md) | Independent review and verification record |
-| [audits/source-inventory.md](audits/source-inventory.md) | Source inventory and provenance |
-| [development/claude-code-workflow.md](development/claude-code-workflow.md) | Claude Code workflow and configuration audit |
-| [development/local-development.md](development/local-development.md) | Local development reference |
-| [development/repository-conventions.md](development/repository-conventions.md) | Repository and documentation conventions |
-| [development/testing-strategy.md](development/testing-strategy.md) | Testing strategy and UAT configuration |
-| [frontend/admin-portal.md](frontend/admin-portal.md) | Admin application |
-| [frontend/student-app.md](frontend/student-app.md) | Student application |
-| [infrastructure/api-gateway.md](infrastructure/api-gateway.md) | Gateway and proxy routing |
-| [infrastructure/cdc-and-broker.md](infrastructure/cdc-and-broker.md) | CDC and broker implementation |
-| [infrastructure/ci-cd.md](infrastructure/ci-cd.md) | CI and pull-request checks |
-| [infrastructure/docker-and-deployment.md](infrastructure/docker-and-deployment.md) | Containers and local deployment |
-| [packages/auth.md](packages/auth.md) | Shared authentication package |
-| [packages/common-dtos.md](packages/common-dtos.md) | Shared contracts |
-| [packages/messaging.md](packages/messaging.md) | Shared RabbitMQ messaging |
-| [services/chat-service/README.md](services/chat-service/README.md) | Chat Service implementation at PR #148 head (pending, not on `main`) |
-| [services/chat-service/d4-implementation-specification.md](services/chat-service/d4-implementation-specification.md) | Proposed D4 Chat specification: reconciliation, decision register, conditional contracts and verification map |
-| [services/credit-service/README.md](services/credit-service/README.md) | Credit Service implementation |
-| [services/credit-service/contracts-and-data.md](services/credit-service/contracts-and-data.md) | Credit contracts and data |
-| [services/credit-service/runtime-and-testing.md](services/credit-service/runtime-and-testing.md) | Credit runtime, recovery and tests |
-| [services/notification-service/README.md](services/notification-service/README.md) | Notification Service implementation |
-| [services/notification-service/contracts-and-data.md](services/notification-service/contracts-and-data.md) | Notification contracts and data |
-| [services/notification-service/implementation.md](services/notification-service/implementation.md) | Notification execution paths |
-| [services/notification-service/reliability-and-testing.md](services/notification-service/reliability-and-testing.md) | Notification reliability and tests |
-| [services/notification-service/structure-review.md](services/notification-service/structure-review.md) | Notification structure review |
-| [services/order-service/README.md](services/order-service/README.md) | Order Service implementation |
-| [services/order-service/contracts-and-data.md](services/order-service/contracts-and-data.md) | Order contracts and data |
-| [services/order-service/runtime-and-testing.md](services/order-service/runtime-and-testing.md) | Order runtime, consistency and tests |
-| [services/supplier-service/README.md](services/supplier-service/README.md) | Supplier Service implementation |
-| [services/supplier-service/contracts-and-data.md](services/supplier-service/contracts-and-data.md) | Supplier contracts and data |
-| [services/supplier-service/runtime-and-testing.md](services/supplier-service/runtime-and-testing.md) | Supplier runtime, failures and tests |
-| [services/user-service/README.md](services/user-service/README.md) | User Service implementation |
-| [services/user-service/contracts-and-data.md](services/user-service/contracts-and-data.md) | User contracts and data |
-| [services/user-service/runtime-and-testing.md](services/user-service/runtime-and-testing.md) | User runtime, failure behavior and tests |
-| [superpowers/plans/2026-10-26-errand-details-page.md](superpowers/plans/2026-10-26-errand-details-page.md) | Implementation plan for the student-app errand details page (issues #188, #189; author-approved design of 2026-10-26, not a specification) |
+| [User](services/user-service/README.md) | Registration, login, sessions, profile and administration |
+| [Supplier](services/supplier-service/README.md) | Directory queries, coordinates, imports and admin writes |
+| [Order](services/order-service/README.md) | Errand lifecycle, reservation Saga, disputes and assistant drafts |
+| [Credit](services/credit-service/README.md) | Wallets, escrow, ledger, settlement and refunds |
+| [Notification](services/notification-service/README.md) | Recipient policy, inbox/read state and delivery |
+| [Chat](services/chat-service/README.md) | Conversation access, ordered history, sockets and translation |
 
-## Maintenance and pending work
+Commands with specialist operational detail stay beside their implementation: [ECS rollout](../infra/terraform/ecs/README.md), [k6 harness](../tests/k6/README.md), [auth package examples](../packages/auth/README.md) and [Postman collection](../tests/postman/order_credit_README.md). These guides link to them rather than maintaining competing runbooks.
 
-Follow [CLAUDE.md](../CLAUDE.md) and the docs-scoped rule. Update the service reference and shared contract catalogue together after a source change. Recheck pending-head facts after merge; retain dated test evidence as dated evidence. Do not silently reconcile source disagreements or complete human review fields. The source inventory records all 32 Wiki pages and relevant issues; the verification record lists manual runtime checks and decisions still required.
+## Known limits and design context
+
+The service guides describe implemented behavior, including its limits. Read their failure sections before promising recovery or access guarantees:
+
+- [Chat access and projection](services/chat-service/README.md#opening-a-conversation-and-checking-access): administrator reads and stale membership differ from stricter participant-only wording. A terminal event received before the conversation exists is discarded; waiting does not necessarily repair its state. Repeated SEND is not persistently idempotent.
+- [Wallet initialization](services/credit-service/README.md#wallet-initialization): a missing wallet can reflect delayed processing or the User/Credit email-limit mismatch. [Order](services/order-service/README.md#submission-and-the-saga) has no general PENDING watchdog; [messaging](infrastructure/cdc-and-broker.md) has no automated DLQ replay/alert loop.
+- [Cloud operations](new-cloud-architecture-guide.md): configured logs and scaling policies are not evidence of a complete monitoring stack, extra host capacity or successful failover.
+
+The [testing guide](development/testing-strategy.md) explains target overrides and fixture cleanup before its commands, keeps original performance requirements separate from relaxed k6 limits, and records the four unresolved findings on merged PR #252. A merged PR, a closed issue, an HTTP success response and a completed business operation are different kinds of evidence.
+
+The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) remains useful for design and milestone history, but some pages still say five services, pending Chat/inbox/fanout work, or current K3s/Traefik deployment. Notification bindings/retry descriptions, Supplier commands/coordinate requirements and some testing/monitoring proposals also need reconciliation. These pages were left unchanged; use source and the current guides for implementation.
+
+Earlier plans, review findings, human decision fields, estimates and dated test evidence remain available in the [pre-consolidation history](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/tree/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive). They are not current runbooks or newly approved requirements. The wiki links the old Chat specification at an immutable commit, so removing its current forwarding page does not break that historical reference.
+
+## Baseline and verification
+
+- **Code/configuration:** [PR #255](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/255) head [`bc0efa4`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/bc0efa46e9385ddb482cd3b56dbeea86badedce2), with application baseline main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), rechecked 9 November 2026 (SGT). The expanded explanations describe that source, not verified live AWS state.
+- **Wiki:** read-only revision `0571db5d4ad8c89679131c8707aae105402c7618`; 42 pages inventoried, relevant implementation descriptions compared with source.
+- **Checks for this expansion:** typechecking passed all twelve workspaces; the CI matrix validator passed twenty workspace suites and four system commands. Focused User/Order/Credit unit runs passed 115/74/22 tests respectively. All thirteen docs remain reachable from this index; local links/anchors, pinned repository/wiki references, command names and whitespace checks passed. All twenty diagrams parse with Mermaid 12.3.0.
+- **Not exercised:** database/broker integration, browser UAT, live load, AWS deployment or failover. Diagram visual rendering remains unverified: the headless Chromium download returned an invalid archive. Application code is unchanged. Third-party website availability was not exhaustively checked.
+
+To maintain these docs, update the owning guide and its source links when behavior changes. Keep current limitations beside the affected flow; keep this index as navigation, not a second specification. Preserve historical attribution and pending human-review fields, and only change a verification date after checking the relevant claims. [CLAUDE.md](../CLAUDE.md) contains contribution and AI-use policy.

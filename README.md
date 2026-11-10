@@ -1,5 +1,21 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Added the required Project-Level AI Use Summary section at the end of README.md in compliance with the CS3219 AI Usage Policy (Appendix 2).
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Separate foreground host startup from verification and point aggregate-test users to target-isolation prerequisites.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Keep the root README focused on quick start and canonical human-readable guides; move detailed workflows into docs without changing runtime instructions.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Refresh six-service quick-start facts, test scope and documentation navigation; remove stale duplicated topology and routine volume-reset advice.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-08
 Scope: Documented the k6 performance harness command (npm run perf:k6, tests/k6/README.md, performance.yml) in the test table and the D4 cheat sheet; removed the unbounded discovery/claim-race commands (issues #236, #237).
 Author review: <to be completed by Reallyeasy1>
@@ -92,337 +108,92 @@ Scope: Updated the local RabbitMQ dashboard login for separate service identitie
 Author review: <to be completed by huangjiaxi1111>
 -->
 
+# Friend on Campus
 
+A campus errand application with a student interface, an admin portal and six backend services. Students post errands, reserve credit rewards, coordinate with couriers and confirm delivery. Order and Credit complete cross-service work asynchronously.
 
+Start with the [developer guides](docs/README.md) for the system explanation, service APIs, testing and troubleshooting. The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) holds design and milestone context; its older implementation descriptions may differ from current source.
 
-# Friend on Campus (FoC) 🏃‍♂️💨
+## Quick start
 
-> **CS3219 Software Design and Architecture (AY26/27 S1) — Project Group 25**  
-> Peer-to-Peer Campus Errand Platform with Closed Credit Economy & Verified Campus Suppliers
+Prerequisites: Git, Node.js 22.3 or later with npm, and Docker with Compose. The setup below creates a local development stack; it is not a production deployment procedure.
 
-**Friend on Campus (FoC)** connects NUS students who need quick favors (coffee from COM3, printing at Central Library, parcel pickup from PGPR) with peers already walking nearby. The platform operates on a **closed credit economy** with escrow guarantees, discrete milestone updates, role-based access control, and asynchronous event notifications.
-
----
-
-## 🏛️ Architecture & System Design
-
-The platform uses a **Database-per-Service Microservices Architecture** organized in an **npm workspaces monorepo**:
-
-```mermaid
-flowchart TB
-    subgraph Clients["Frontend Clients (Vite + React + Tailwind)"]
-        StudentApp["Student App<br/>(Port 5173 / Mobile Web)"]
-        AdminApp["Admin Portal<br/>(Port 5174 / Desktop & Mobile)"]
-    end
-
-    subgraph Gateway["Ingress & Gateway (Port 80)"]
-        Nginx["Nginx Reverse Proxy / Gateway"]
-    end
-
-    subgraph Services["Backend Microservices (Node.js + Express + TypeScript)"]
-        UserSvc["User Service (M2)<br/>:8001 (Auth, Profiles, RBAC)"]
-        SupplierSvc["Supplier Service (M3)<br/>:8002 (Campus Directory CRUD)"]
-        OrderSvc["Order Service (M1)<br/>:8003 (State Machine, AI Assistant)"]
-        CreditSvc["Credit Service (M4)<br/>:8004 (Escrow & Ledger)"]
-        NotifSvc["Notification Service (M5)<br/>:8005 (WebSockets)"]
-    end
-
-    subgraph Storage["Backing Infrastructure"]
-        Postgres[("PostgreSQL 16<br/>(user_db, supplier_db, order_db,<br/>credit_db, notification_db)")]
-        RabbitMQ[("RabbitMQ 3.13<br/>(Event Bus)")]
-    end
-
-    Clients --> Nginx
-    Nginx --> Services
-    UserSvc --> Postgres
-    SupplierSvc --> Postgres
-    OrderSvc --> Postgres
-    CreditSvc --> Postgres
-    NotifSvc --> Postgres
-    OrderSvc -->|"supplier lookup (HTTP)"| SupplierSvc
-    UserSvc -.->|"publish user.registered"| RabbitMQ
-    OrderSvc -.->|"publish order.*"| RabbitMQ
-    CreditSvc -.->|"publish credit.reservation.*"| RabbitMQ
-    RabbitMQ -.->|"consume credit.reservation.*"| OrderSvc
-    RabbitMQ -.->|"consume user.registered, order.*"| CreditSvc
-    RabbitMQ -.->|"consume order.*"| NotifSvc
-```
-
-### Key Design Highlight: Multi-Service Prisma Isolation
-To avoid client collisions in the root `node_modules/@prisma/client`, each microservice maintains its schema at `prisma/schema.prisma` and generates its client to an isolated internal path (`output = "../src/generated/prisma"`), re-exported through `src/database/client.ts`. This guarantees compile-time type safety and prevents engine dylib conflicts across services.
-
----
-
-## 🎯 Milestone Status
-
-| Milestone | Scope & Deliverables | Status |
-| :--- | :--- | :---: |
-| **D1** | System Design, Product Backlog, Wireframes & Contracts | ✅ Completed |
-| **D2** | **User Service (M2) & Supplier Service (M3) Integration**<br/>• PostgreSQL persistence via Prisma ORM<br/>• Password hashing and valid-email account registration<br/>• Ed25519 access tokens, opaque refresh sessions, and Express RBAC middleware<br/>• Cross-service authorization (Admin CRUD vs Student 403 Forbidden)<br/>• Admin Portal (CRUD modals, sorting, search, Screen 6 mobile cards)<br/>• Student App live directory integration & spot pre-selection<br/>• Automated end-to-end contract suite requiring seeded PostgreSQL | ✅ **Completed** |
-| **D3** | **Order Service (M1), Credit Service (M4) & Notification Service (M5)**<br/>• All five services real (Prisma + PostgreSQL 16, one database each)<br/>• Errand lifecycle with transactional outbox, optimistic locking and single-winner accept<br/>• Credit wallets, ledger, escrow reserve/settle/refund and welcome grant over RabbitMQ<br/>• Notification consumer, store, REST and authenticated WebSocket; student-app bell, toasts and Alerts board<br/>• Admin order management (cancel, complete, unassign) and user management<br/>• CI with isolated test orchestration | 📋 **Prepared** (demo script and evidence: wiki [Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3); Week 10) |
-| **D4** | **AWS ECS Deployment & Distributed Concurrency Testing**<br/>• Terraform for ECS, CloudFront, RDS, RabbitMQ and EFS<br/>• k6 concurrency and load tests | Infrastructure code ready for deployment testing |
-
----
-
-## 🚀 Quick Start with Docker (Recommended)
-
-To spin up all microservices, frontends, PostgreSQL, RabbitMQ, Debezium CDC, and the Nginx Gateway (each service automatically runs `prisma migrate deploy` and seeds its database on container startup):
+From the repository root, create `.env` only if it does not already exist:
 
 ```bash
-# 1. One-time environment setup (if .env does not exist yet):
+# AI-generated (edited by Reallyeasy1)
 cp .env.example .env
-npm run generate:jwt-keys   # paste the printed JWT_PRIVATE_KEY and JWT_PUBLIC_KEY into .env
+npm run generate:jwt-keys
+```
 
-# 2. Build and start the full stack:
+Copy the generated `JWT_PRIVATE_KEY` and `JWT_PUBLIC_KEY` values into your local `.env`, then start the stack:
+
+```bash
+# AI-generated (edited by Reallyeasy1)
 docker compose up --build
 ```
 
-> **Upgrading or resetting an existing local Docker volume:** If your local machine previously ran an older stack (with classic RabbitMQ queues or pre-CDC volumes), reset the volumes and remove orphaned containers before starting so RabbitMQ recreates the consumer queues as quorum queues (`x-queue-type: quorum`) and Debezium starts cleanly:
-> ```bash
-> docker compose down -v --remove-orphans
-> docker compose up --build
-> ```
+Compose starts PostgreSQL, RabbitMQ, the three Debezium connectors, six backends, both frontends and NGINX. Its service commands apply committed migrations and run the configured User/Supplier/Order/Credit seeds. Application image defaults themselves start the application only.
 
-### Accessing the Platform
-| Component | Local Access URL | Description |
-| :--- | :--- | :--- |
-| **Unified Web Ingress** | [http://localhost](http://localhost) | Main Gateway (routes to Student Mobile App) |
-| **Admin Portal** | [http://localhost/admin/](http://localhost/admin/) | Admin login, supplier, user and order management; also available directly at [port 5174](http://localhost:5174/admin/) |
-| **Student App** | [http://localhost:5173](http://localhost:5173) | Student Errand Feed & Campus Spots |
-| **User Service Health** | [http://localhost:8001/health](http://localhost:8001/health) | M2 Health Probe (`/api/users/me` for auth) |
-| **Supplier Service Health**| [http://localhost:8002/health](http://localhost:8002/health) | M3 Health Probe (`/api/suppliers` for catalog) |
-| **Order Service Health** | [http://localhost:8003/health](http://localhost:8003/health) | M1 Health Probe (`/api/orders` for errands) |
-| **Credit Service Health** | [http://localhost:8004/health](http://localhost:8004/health) | M4 Health Probe (`/api/credits/wallet`, `/api/credits/ledger`) |
-| **Notification Service Health** | [http://localhost:8005/health](http://localhost:8005/health) | M5 Health Probe (`/api/notifications`; WebSocket through the gateway at `ws://localhost/ws/`) |
-| **RabbitMQ Web Dashboard** | [http://localhost:15672](http://localhost:15672) | Development login: `campus_admin` / `campus-admin-dev` (vhost `campus`; AMQP on port 5672) |
-| **PostgreSQL Shell** | `docker exec -it campuserrand-postgres psql -U postgres` | Database shell |
+| Open | Purpose |
+|---|---|
+| [http://localhost](http://localhost) | Student application through the gateway |
+| [http://localhost/admin/](http://localhost/admin/) | Administration portal |
+| [http://localhost/health](http://localhost/health) | Gateway liveness only, not a full-system health check |
 
----
+For the default local seed, `alice@u.nus.edu` and `bob@u.nus.edu` are student accounts and `admin@nus.edu.sg` is the administrator; the seeded password is `Password123!`. These are development fixtures. The Credit seeder initializes their wallets directly; wallets for newly registered accounts are initialized asynchronously.
 
-## 💻 Local Development Workflow (Without Docker)
+For host-based development, port conflicts, migrated data or startup failures, follow [local development](docs/development/local-development.md). Do not delete volumes to fix an ordinary startup error: `docker compose down -v` destroys the local stack's persisted data.
 
-When developing individual features directly on your machine with instant TypeScript execution (`tsx`) and hot-reloading:
+## Develop and test
 
-### 1. Install dependencies & generate Prisma clients
+Follow the [host development setup](docs/development/local-development.md#option-b-edit-applications-on-the-host), which ends by starting the applications in one terminal:
+
 ```bash
-npm install
-```
-*(Runs root `postinstall` hook which automatically executes `prisma generate` across all services).*
-
-### 2. Configure Environment & JWT Keys
-Copy `.env.example` to `.env` and generate an Ed25519 key pair for JWT access token signing:
-```bash
-cp .env.example .env
-npm run generate:jwt-keys   # prints JWT_PRIVATE_KEY and JWT_PUBLIC_KEY; paste them into .env
-```
-
-#### Optional: Natural-Language Errand Assistant (F6 / SoCLaaS)
-To enable zero-shot LLM parsing in the errand creation flow, obtain an API key from the [NUS School of Computing SoCLaaS Portal](https://soclaas-portal.comp.nus.edu.sg/) (only accessible on school network, use VPN if needed) and configure it in `.env`:
-```env
-SOCLAAS_BASE_URL=https://soclaas-api.comp.nus.edu.sg/v1
-SOCLAAS_API_KEY=your_soclaas_api_key_here
-SOCLAAS_MODEL=default
-```
-> **Note (Offline Fallback Resilience):** If `SOCLAAS_API_KEY` is omitted or left empty, `order-service` gracefully falls back to a deterministic offline regex/heuristic parser. An API key is **not** required for local development or automated tests.
-
-### 3. Start PostgreSQL & RabbitMQ
-```bash
-docker compose up postgres rabbitmq -d
-```
-
-### 4. Apply Database Migrations
-`docker/postgres-init/` only provisions the five empty databases and least-privilege service roles (`user_svc`, `supplier_svc`, `order_svc`, `credit_svc`, `notification_svc`). Apply all committed Prisma migrations across every service before seeding or starting Debezium CDC:
-```bash
-# Apply committed migrations across all 5 services (prisma migrate deploy)
-npm run db:deploy
-
-# Or apply migrations for an individual service:
-npm run db:deploy -w @campus-errand/user-service
-```
-*(Note: Use `db:deploy` to apply existing migrations—the least-privilege service roles do not have `CREATEDB` permissions for Prisma's shadow database. When authoring a new schema change with `npm run db:migrate -w @campus-errand/<service>`, supply a superuser `DATABASE_URL` or `SHADOW_DATABASE_URL`.)*
-
-Transactional outbox events from User, Order, and Credit are published to RabbitMQ by Debezium (`debezium-user`, `debezium-order`, `debezium-credit`). Once migrations are applied, start the CDC connectors so outbox events flow during host-based development:
-```bash
-docker compose up --no-deps -d debezium-user debezium-order debezium-credit
-```
-
-### 5. Seed Databases (First-Time Setup)
-```bash
-# Seed all services at once (User, Supplier, Order, and Credit)
-npm run db:seed
-
-# Or seed individual workspaces:
-npm run db:seed -w @campus-errand/user-service     # admin@nus.edu.sg, alice@u.nus.edu, bob@u.nus.edu
-npm run db:seed -w @campus-errand/supplier-service # 21 verified NUS campus locations from CSV
-npm run db:seed -w @campus-errand/order-service    # sample OPEN errands (requires SEED_SAMPLE_ORDERS=true in .env)
-npm run db:seed -w @campus-errand/credit-service   # 100-credit wallets for the three seed accounts
-```
-*(When `user-service` is running at `USER_SERVICE_URL`, `credit-service` resolves the seed accounts via HTTP login; when run offline before starting dev servers, it falls back to the deterministic seed account UUIDs.)*
-
-### 6. Run Development Servers
-```bash
-# Run everything in parallel (5 backend services + 2 frontend apps)
+# AI-generated (edited by Reallyeasy1)
 npm run dev
-
-# Or run only backend services or only frontend apps in parallel
-npm run dev:services    # Ports 8001–8005
-npm run dev:apps        # Ports 5173–5174
-
-# Or run individual workspaces (via scripts/dev.mjs filter or native npm -w)
-npm run dev -- user supplier
-npm run dev -w services/user-service         # Port 8001 (User & Auth Service)
-npm run dev -w services/supplier-service     # Port 8002 (Supplier Directory Service)
-npm run dev -w services/order-service        # Port 8003 (Order Service)
-npm run dev -w services/credit-service       # Port 8004 (Credit Service)
-npm run dev -w services/notification-service # Port 8005 (Notification Service)
-npm run dev -w apps/student-app              # Port 5173 (Student Web App)
-npm run dev -w apps/admin-portal             # Port 5174 (Admin Web Portal)
 ```
 
----
-
-## 🧪 Testing & Verification
-
-### Full Isolated Suite
-Creates a uniquely named Compose project on free loopback ports, runs every category below (installing Chromium if needed), and removes only that project's containers and volumes:
-```bash
-npm test
-```
-
-### Test Categories
-| Command | Scope |
-| :--- | :--- |
-| `npm run test:unit` | Unit suites (Node's built-in `node --test` via `tsx`, no framework): user, supplier, order and notification services |
-| `npm run test:integration` | PostgreSQL-backed suites: user-service admin guard, notification store and routes, credit-service |
-| `npm run test:messaging` | PostgreSQL + RabbitMQ suites: credit-service, notification-service, order-service (`npm test` provisions isolated `credit_messaging_test` and `order_messaging_test` databases automatically; direct runs require migrated `_test` databases and the `*_TEST_*` env vars below) |
-| `npm run test:migration` / `npm run test:seed` | Credit Service migration and seed validation (`test:migration` and `test:seed` run on `credit-service`) |
-| `npm run test:acceptance` | Acceptance drivers against a healthy Compose stack: `scripts/uat/uat-d2-api.mjs`, `scripts/uat/uat-notifications.mjs`, and `scripts/uat/uat-cdc.mjs` |
-| `npm run test:e2e:api` | Milestone D2 API end-to-end suite (`scripts/test-d2-e2e.ts`, below) |
-| `npm run test:e2e:ui` | Chromium browser UAT (`scripts/uat/uat-d2-ui.mjs`, Playwright) against a healthy Compose stack |
-| `npm run test:e2e:ui:realtime` | Multi-client real-time UAT (`scripts/uat/uat-realtime.mjs`, Playwright): the requester on two clients, two couriers racing for one errand; checks notifications and chat stay consistent live. Registers one throwaway `uatcourier-<stamp>@u.nus.edu` account. `UAT_RESTART_CHAT=1` adds a Chat Service container restart under load (opt-in; runs `docker restart` on the host) |
-| `npm run coverage` | Unit coverage per service via Node's built-in reporter; writes `services/<svc>/coverage/lcov.info` (git-ignored) for editor extensions such as Coverage Gutters. Not a CI check |
-| `npm run test:e2e` | API E2E, then browser UAT, using the isolated orchestration |
-| `npm run ci:validate-tests` | Checks workspace `test:*` scripts against the static CI matrices in `.github/workflows/ci.yml` |
-| `npm run perf:k6 -- --target <gateway url> --profile smoke|load|stress --workload all|discovery|supplier|credit|lifecycle` | k6 API load harness (manual, not a CI gate): run-owned fixtures, per-operation thresholds from issues #74/#29/#33/#43/#45/#36, reconciliation and an evidence bundle under `test-results/<runId>/`; needs the `k6` binary; remote targets also need `PERF_ADMIN_EMAIL`/`PERF_ADMIN_PASSWORD` (loopback defaults to the seeded admin). `npm run perf:k6:load` runs every requirement-load population against the local stack. See [`tests/k6/README.md`](tests/k6/README.md) and the manual `performance.yml` workflow |
-
-### CI & Test-Suite Conventions (`.github/workflows/ci.yml`)
-- **Naming convention:** Package-level automated tests use `test:unit`, `test:integration`, `test:messaging`, `test:migration`, or `test:seed`. Interactive/watch scripts (`test:watch`) are excluded from CI.
-- **Static matrix validation:** Whenever adding, renaming, moving, or removing a test script, update the corresponding matrix entry in `.github/workflows/ci.yml` and run `npm run ci:validate-tests`.
-- **Direct category environment variables:** Running `npm test` provisions isolated databases and injects test URLs automatically. When running `test:integration`, `test:messaging`, `test:migration`, or `test:seed` directly outside `npm test`, supply migrated `_test` databases (`POSTGRES_ADMIN_URL=... TEST_DATABASE_NAME=... node scripts/ci/create-test-database.mjs`) and the required test environment variables (`USER_TEST_DATABASE_URL`, `CREDIT_TEST_DATABASE_URL`, `ORDER_TEST_DATABASE_URL`, `NOTIFICATION_TEST_DATABASE_URL`, `CREDIT_TEST_RABBITMQ_URL`, `NOTIFICATION_TEST_RABBITMQ_URL`).
-- **Test artifacts:** Browser UAT screenshots and JSON reports are written to the git-ignored `test-results/` directory (`test-results/screenshots/`, `test-results/uat-d2-ui-results.json`, `test-results/uat-d2-api-results.json`, `test-results/uat-realtime/`) and uploaded as CI workflow artifacts.
-
-### Automated Milestone D2 End-to-End Suite
-Generates a test-only Ed25519 key pair and verifies account registration followed by
-separate login, immutable email, administration authorization (user list, status and role toggles), supplier querying,
-and cross-service ADMIN RBAC enforcement. It requires PostgreSQL with the User and Supplier
-Service seed data present; it does not use the `.env` JWT key pair. It spawns user-service and
-supplier-service itself on ports 8001/8002, so those ports must be free.
+Keep that terminal running while you use the application. In a second terminal at the repository root, check types and run unit tests:
 
 ```bash
-npm run test:e2e:api
-```
-
-### Lint, Build & Universal Typecheck
-Typechecks all 10 workspaces (2 apps, 5 services, 3 packages); each service's `typecheck` covers its tests too:
-```bash
-npm run lint
-npm run build
+# AI-generated (edited by Reallyeasy1)
 npm run typecheck
+npm run test:unit
 ```
 
----
+The development guide covers `npm ci`, environment keys, database migrations, seeding and the database/broker/CDC startup sequence. `npm ci` generates the six Prisma clients; it does not create database tables.
 
-## ☁️ Cloud Deployment & DevOps (Milestone D4)
+The [testing guide](docs/development/testing-strategy.md) explains integration, messaging, browser, concurrency and k6 coverage, prerequisites and interpretation. Before using `npm test`, follow its [aggregate setup](docs/development/testing-strategy.md#let-the-aggregate-runner-provision-an-isolated-stack): Compose 2.24.4+ is required, and inherited target overrides must be cleared. Realtime browser checks and k6 campaigns have separate scope. Do not run seeded/admin UAT drivers unchanged against a live shared site.
 
-Use the [ECS Terraform rollout](infra/terraform/ecs/README.md) to deploy in AWS Singapore. The stack runs on three shared ARM64 hosts behind CloudFront and an Application Load Balancer. The [cloud architecture guide](docs/new-cloud-architecture-guide.md) covers sizing, costs and verification. From `main`, use **Deploy applications to ECS** for tested ARM64 application releases and migrations, or **Deploy ECS infrastructure** to preview and apply infrastructure updates. Both workflows are manually triggered. Complete the linked OIDC and shared-state setup before using GitHub delivery.
+## Find the implementation
 
-After deployment, use the CloudFront URL from Terraform's `public_url` output for k6 tests. Run from the repository root.
+| Directory | Contents |
+|---|---|
+| `apps/` | Student and admin React frontends |
+| `services/` | Six backends, per-service schemas/migrations and tests |
+| `packages/` | Shared auth, contracts, messaging and LLM libraries |
+| `gateway/`, `docker/` | Local routing, PostgreSQL initialization, RabbitMQ and CDC |
+| `infra/terraform/ecs/` | Current AWS configuration and deployment runbook |
+| `scripts/`, `tests/` | Development/CI/UAT drivers, k6 and Postman fixtures |
+| `docs/` | Twelve implementation/operational guides and their index |
 
-```bash
-# AI-generated (edited by ngkhengyang)
-export TARGET_HOST="$(terraform -chdir=infra/terraform/ecs output -raw public_url)"
-# Bounded k6 API load against the deployed gateway. Agree the target and limits first; the manual
-# "Performance (k6, manual)" GitHub Actions workflow runs the same command. The k6 scripts need the fixtures
-# this wrapper creates, so they are not run directly (tests/k6/README.md).
-PERF_ADMIN_EMAIL=<admin email> PERF_ADMIN_PASSWORD=<admin password> \
-  npm run perf:k6 -- --target "$TARGET_HOST" --profile smoke --workload all
-# Load and stress profiles against a deployed target also need --acknowledge-remote-load.
-```
+For AWS, read the [cloud explanation](docs/new-cloud-architecture-guide.md), then use the [ECS Terraform runbook](infra/terraform/ecs/README.md). For code contributions and AI bookkeeping, read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Historical milestone records remain in the wiki and Git history.
 
----
+## AI Use Summary
 
-## 🔐 Default Seed Accounts & Credentials
+**Tools:** Claude Code (Claude Sonnet 5.5, Claude Fable 5.1, Claude Opus 5.5), Codex (GPT-5, GPT-5.6 Terra, GPT-6), Google Antigravity Agent, ChatGPT (GPT-5.6 Sol)
 
-For local development, testing, and mentor demonstrations, the following accounts are pre-seeded:
+**Prohibited phases avoided:** Wholesale requirements elicitation, backlog prioritization, sprint planning, proposing/changing system architecture or component boundaries, selecting design patterns, deciding data schemas, defining interfaces, and drafting architectural decision rationales or trade-off analyses.
 
-| Role | Email Address | Password | Permissions |
-| :--- | :--- | :--- | :--- |
-| **Administrator** | `admin@nus.edu.sg` | `Password123!` | Full directory CRUD; user management (list, enable/disable, role toggle, delete); admin order cancel / complete / unassign |
-| **Student (Alice)** | `alice@u.nus.edu` | `Password123!` | Dual-role (Requester/Courier), read directory, manage profile; 100 starting credits |
-| **Student (Bob)** | `bob@u.nus.edu` | `Password123!` | Dual-role (Requester/Courier), read directory, manage profile; 100 starting credits |
+**Used for:**
+- Refining requirement phrasing and checking for edge-case contradictions in human-defined functional and non-functional specifications.
+- Generating Express, React, Prisma, Docker, NGINX, and Terraform implementation code and boilerplate against human-approved schemas, contracts, and architectural boundaries.
+- Writing and maintaining automated unit, integration, messaging, migration, browser UAT, and k6 load/concurrency test suites.
+- Debugging assistance, code review, refactoring, and source-linked developer documentation.
 
----
-
-## 📦 Monorepo Structure
-
-```
-friend-on-campus/
-├── apps/
-│   ├── student-app/             # Student Mobile PWA (Port 5173)
-│   └── admin-portal/            # Staff Admin Web Portal (Port 5174)
-├── services/
-│   ├── user-service/            # Port 8001: Auth, Profiles, RBAC (M2)
-│   ├── supplier-service/        # Port 8002: Campus Locations CRUD (M3)
-│   ├── order-service/           # Port 8003: Lifecycle State Machine (M1) & NLP Assistant (F6)
-│   ├── credit-service/          # Port 8004: Closed Economy Ledger & Escrow (M4)
-│   └── notification-service/    # Port 8005: WebSockets & Async Push (M5)
-├── packages/
-│   ├── auth/                    # @campus-errand/auth: offline Ed25519 access-token verification middleware
-│   ├── common-dtos/             # Shared TypeScript schemas, DTOs & event types
-│   └── messaging/               # @campus-errand/messaging: RabbitMQ quorum-queue & DLQ consumer/publisher client
-├── infra/
-│   └── terraform/ecs/           # AWS ECS Terraform and rollout instructions
-├── gateway/
-│   └── nginx.conf               # Port 80 gateway routes: /api/*, /ws/, /admin/, /
-├── docker/
-│   ├── debezium/                # Debezium Server CDC configs for User, Order and Credit outboxes
-│   ├── postgres-init/           # Creates the five logical databases and least-privilege roles
-│   └── rabbitmq/                # Broker config and definitions: vhost, exchanges, service accounts, permissions
-├── scripts/
-│   ├── ci/                      # Isolated aggregate test runner, test-matrix validator, test-database helper
-│   ├── uat/                     # Acceptance drivers: API, notifications, Chromium UI
-│   ├── dev.mjs                  # Parallel cross-platform workspace dev runner
-│   ├── generate-jwt-keys.mjs    # Ed25519 key pair for .env
-│   ├── prisma-migrate.mjs       # Shared Prisma migration runner with .env loading
-│   └── test-d2-e2e.ts           # Milestone D2 contract suite with test-only Ed25519 keys
-├── tests/
-│   ├── k6/                      # Distributed load & concurrency tests (race conditions & HPA)
-│   └── postman/                 # Postman collection and environment
-├── data/
-│   ├── csv/                     # NUS campus supplier seed datasets
-│   └── images/                  # Supplier images
-├── ai/
-│   └── usage-log.md             # AI assistance usage disclosures per course policy
-├── docker-compose.yml           # Full stack
-└── docker-compose.test.yml      # Port and container-name overrides for the isolated test stacks
-```
-
----
-
-## 📄 System Documentation & Project Wiki
-
-- **[Confirmed CloudFront and ECS cloud architecture](docs/new-cloud-architecture-guide.md)**: Viewer HTTPS, HTTP origin, bridge networking, three-host ceiling, accepted trial resources, costs and deferred team decisions.
-- **[ECS Terraform rollout](infra/terraform/ecs/README.md)**: Provisioning, secrets, database setup and startup order.
-- **[Technical reference and complete documentation index](docs/README.md)**: All five services, frontends, packages, infrastructure and source/Wiki audit.
-- **[Test and UAT configuration](docs/development/testing-strategy.md#driver-environment-matrix)**: `GW`, `AMQP_URL`, `WS_URL`, output paths and broker-port overrides for each driver.
-- **[Documentation verification and pending questions](docs/audits/review-findings.md)**: Actual check results, source boundaries and human review items.
-
-Full architectural documentation, domain specifications, and milestone presentation guides are maintained in the **[Project Wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**:
-
-- **[Wiki Home](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki)**: Project overview & milestone navigation
-- **[System Architecture](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Architecture)**: Microservice topology, Debezium CDC outbox connectors, RabbitMQ quorum queues, and reservation saga choreography
-- **[Authentication & Roles](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Authentication-and-Roles)**: Ed25519 access tokens, rotating opaque refresh cookies, RBAC matrix, and least-privilege database/broker identities
-- **[Services & Domain Lifecycle](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Services)**: Order state machine (`PENDING` → `OPEN` → `ACCEPTED` → `IN_TRANSIT` → `DELIVERED` → `COMPLETED`), closed credit economy & escrow ledger, and real-time notifications
-- **[Data Model](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Data-Model)**: Per-service PostgreSQL schemas (`user_db`, `supplier_db`, `order_db`, `credit_db`, `notification_db`)
-- **[Testing & Evidence](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Testing-and-Evidence)** & **[Milestone D3](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki/Milestone-D3)**: Automated test matrix, acceptance evidence, and Milestone D3 presentation runbook
-- **Claude Code Set-up**: [`.claude/README.md`](./.claude/README.md) & [`CLAUDE.md`](./CLAUDE.md)
+**Verification & Disclosure:**
+- All AI outputs were reviewed, edited, and verified against automated tests by the human authors.
+- File-level attributions are recorded at the top of each AI-influenced file.
+- Agent configuration and policy enforcement files are tracked in [`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md), and [`.claude/`](.claude/).
+- Timestamped prompts, usage scenarios, and affected files are archived in [`ai/usage-log.md`](ai/usage-log.md).

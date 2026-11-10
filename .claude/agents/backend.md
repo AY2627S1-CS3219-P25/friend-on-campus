@@ -5,6 +5,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash, LSP
 ---
 <!--
 AI Assistance Disclosure:
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Repair documentation references after consolidation and align factual setup/count wording; preserve authorization policy.
+Author review: <to be completed by Reallyeasy1>
+
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Added source-linked technical navigation and corrected verified Claude workflow facts; preserved course policy and permissions.
 Author review: <to be completed by Reallyeasy1>
@@ -51,7 +55,7 @@ Your prompt does not include the conversation, so build context from the repo fi
 3. `packages/common-dtos` — shared contracts, DTOs, and event types (executable TypeScript source of truth).
 4. `packages/auth` & `packages/messaging` — shared Ed25519 access-token verification middleware and RabbitMQ quorum-queue consumer/publisher helpers.
 
-Technical reference: `docs/README.md`, `docs/services/` and `docs/audits/documentation-drift.md`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
+Technical reference: `docs/README.md`, `docs/services/` and `docs/README.md#known-limits-and-design-context`. Verify statements against source; historical Wiki evidence and pending PRs are labelled separately.
 
 Directory, from your seat:
 

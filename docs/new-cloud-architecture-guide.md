@@ -1,6 +1,18 @@
 <!--
 AI Assistance Disclosure:
 Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Explain the configured ECS objects, request routing, task scaling, fixed host capacity and recovery boundaries with focused diagrams and examples; distinguish configuration from live evidence.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Consolidate cloud, gateway and container operations into one source-verified guide with request routing, scaling, state, probes and troubleshooting; retain decision history through pinned links.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Replace mixed proposal/current guidance with a source-verified ECS overview; preserve the previous explanatory guide in the archive.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Record manually triggered main-branch delivery and shared Terraform state requirements.
 Author review: <to be completed by the author>
 
@@ -31,238 +43,266 @@ Author review: <to be completed by the author>
 Tool: Codex (model: GPT-6), date: 2026-11-07
 Scope: Expanded the team's existing infrastructure write-up into an educational companion with deployment details, cost assumptions, and a glossary.
 Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Verify gateway routes and distinguish Compose DNS, Vite proxying and ECS Service Connect at the current baseline.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-27
+Scope: Issues #173/#169/#206: upstreams resolved per request through Docker DNS (variables, 10 s TTL), 3 s connect timeout, Chat health routes; diagnostics paragraph updated accordingly.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-25
+Scope: Added the /api/chat and /ws/chat/ routes of the Chat Service (F8, PR #148) while merging main into that PR.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-10-25
+Scope: Source-linked implementation documentation and evidence review requested by Reallyeasy1.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Refresh container startup, local/cloud probe differences and current realtime shutdown; preserve the actual runtime-version and gateway-user distinctions.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Document application-only image startup, preserved Compose bootstrap, and graceful socket-service shutdown.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Replace the retired K3s guide with navigation to its preserved archive and the current ECS documentation.
+Author review: <to be completed by Reallyeasy1>
+
+Tool: Codex (model: GPT-6), date: 2026-11-08
+Scope: Mark the retired K3s guide as historical and link the current rollout.
+Author review: <to be completed by the author>
+
+Tool: Codex (model: GPT-6), date: 2026-11-09
+Scope: Archive the previous guide without treating its commands, decisions or prices as current; relocate source links.
+Author review: <to be completed by Reallyeasy1>
 -->
 
-# Friend on Campus cloud architecture guide
+# Cloud deployment and operations
 
-This guide explains how the selected cloud components work together, how the listed alternatives behave, and what needs to be tested before evaluation. If you're new to AWS, the [beginner glossary](#beginner-glossary) at the end explains the services and terms used here.
+This guide explains how the checked-in AWS configuration routes a request, runs containers and preserves data. Use it to understand a failure before changing infrastructure. The [ECS Terraform runbook](../infra/terraform/ecs/README.md) contains the provisioning, migration, release and stop/resume commands; [local development](development/local-development.md) covers Docker Compose.
 
-**Target architecture confirmed by the author on 8 November 2026, including CloudFront.** The [ECS Terraform root](../infra/terraform/ecs/README.md) implements this infrastructure. The author selected manual GitHub delivery from `main` on 9 November 2026. **Deploy applications to ECS** requires successful CI, builds ARM64 images, applies release migrations and deploys application revisions. **Deploy ECS infrastructure** previews or applies Terraform changes using shared S3 state, then rolls application configuration with the deployed images. GitHub OIDC setup, state migration and live workflow verification remain deployment prerequisites. This migration preserves business logic, schemas, authorization and public APIs. The application remains runnable and testable locally with Docker Compose.
+Implementation was checked against main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491) on 9 November 2026. The configuration described here is not evidence that a particular image or resource is currently running in AWS.
 
-## Contents
+## What runs where
 
-1. [Architecture at a glance](#architecture-at-a-glance)
-2. [Public entry point and frontend hosting](#public-entry-point-and-frontend-hosting)
-3. [Backend compute and scaling](#backend-compute-and-scaling)
-4. [RabbitMQ and message delivery](#rabbitmq-and-message-delivery)
-5. [Debezium and checkpoint storage](#debezium-and-checkpoint-storage)
-6. [PostgreSQL on RDS](#postgresql-on-rds)
-7. [Demo schedule and cost](#demo-schedule-and-cost)
-8. [What to verify before the demo](#what-to-verify-before-the-demo)
-9. [Beginner glossary](#beginner-glossary)
+Amazon Elastic Container Service (ECS) manages the containers; Amazon Elastic Compute Cloud (EC2) supplies the machines they run on. This repository uses ECS on EC2. The same host can run tasks from several application services alongside a RabbitMQ broker.
 
-## Architecture at a glance
+| Object | Meaning in this deployment | Example |
+|---|---|---|
+| Container image | Built application files and their runtime, stored in a registry | The Order image built from its Dockerfile and pushed to ECR |
+| Container | A running process environment created from an image | A Node process serving Order requests |
+| Task definition | A versioned template describing containers, commands, resource limits, ports and secret references | The `foc-ecs-order-service` family |
+| Task | A running instance of a task definition; it can include multiple containers | An Order container with the ECS-managed Service Connect proxy |
+| ECS service | Maintains a desired task count and manages replacement and rollout | `order-service` starts at two tasks when applications are enabled |
+| EC2 instance / host | A machine providing CPU, memory and local storage to multiple tasks | One of the three `m7g.xlarge` host slots |
+| ECS cluster | The management group containing these registered hosts, services and tasks | `foc-ecs` |
 
-The regional origin resources are in **AWS Singapore (`ap-southeast-1`)**. **Amazon CloudFront** is a global service in front of the Singapore ALB; its creation permissions and compatibility with the course/sandbox's regional restrictions still need confirmation. Host and replica counts are listed below. Two paths explain most of it:
+Creating another Order task creates another running copy of Order. It does not create another Order database or another EC2 host. Replacing an image changes what a task runs; changing a service's desired count changes how many copies ECS tries to keep running. [applications.tf](../infra/terraform/ecs/applications.tf) defines the application tasks and services; [hosts.tf](../infra/terraform/ecs/hosts.tf) defines their machines.
 
-- **Browser traffic.** Browser → CloudFront over HTTPS/WSS → public ALB over HTTP/WS → NGINX → ECS Service Connect → frontend or backend task. CloudFront provides the generated public HTTPS hostname. NGINX selects the service based on the URL. Service Connect selects a replica of that service.
-- **Order and credit events.** A backend commits a database change and an outbox event to PostgreSQL. Debezium reads the committed event and publishes it to RabbitMQ. RabbitMQ routes it to the appropriate queues. Backend consumers process those events and update their own databases.
+## Follow a browser request
 
-The baseline and maximum are **three shared `m7g.xlarge` EC2 hosts**, providing **12 vCPU and 48 GiB RAM in total**. Backend services, both frontends, NGINX, Debezium and RabbitMQ run on this same fleet. Each host runs **one RabbitMQ node** with its own data volume; there are no additional dedicated broker instances. Configure the EC2 Auto Scaling group with normal minimum/desired/maximum capacity of three and keep replacement/rollout procedures within the approved host ceiling. A host failure temporarily leaves two surviving hosts until replacement.
+Suppose a student opens the app and then requests `/api/orders`. CloudFront is the public HTTPS entry point. The Application Load Balancer (ALB) selects a healthy gateway task, and NGINX selects the destination service from the URL path. ECS Service Connect supplies connectivity between the gateway and that service.
 
-**Bridge networking is confirmed**, with host public-IP egress and no NAT gateway in the selected demo configuration. Security groups must restrict application ingress to the ALB and internal service/broker traffic to the required VPC resources; do not expose service, broker, database or SSH ports to the internet. Bridge networking does not itself grant public access to every container port. RDS and the broker NLB remain private. [ECS bridge networking](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/networking-networkmode-bridge.html) · [Outbound connectivity](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/networking-outbound.html)
-
-The demo places the shared fleet and EFS in one AZ because a full AZ outage is out of scope. The public ALB still uses two AZ subnets, and RDS has a standby in another AZ for database failover. An ALB with two subnets does not make application tasks in a single AZ resilient to losing that AZ.
+The diagram follows request routing only. The Service Connect box represents proxies associated with the application tasks, rather than another shared gateway machine. Storage and event delivery are explained separately below.
 
 ```mermaid
-%% AI-generated (edited by ngkhengyang)
-flowchart TB
-    Browser["Browser"] -->|"HTTPS / WSS"| CF["CloudFront · global edge service<br/>Generated cloudfront.net hostname and certificate"]
-    CF -->|"HTTP / WS · confirmed demo origin connection"| ALB["Public ALB · Singapore origin"]
-    subgraph Fleet["ECS on EC2 · three shared m7g.xlarge hosts · one AZ"]
-        NGINX["NGINX · 2–3 tasks"] --> SC["Service Connect"]
-        SC --> FE["Student · 2–3 tasks<br/>Admin · 1–2 tasks"]
-        SC --> API["Six backends · 2–3 tasks per service"]
-        CDC["Debezium · 3 singleton connectors"]
-        subgraph Hosts["Application and connector tasks are distributed across these same hosts"]
-            H1["Host 1 · RabbitMQ node A<br/>Own 10 GiB gp3 data volume"]
-            H2["Host 2 · RabbitMQ node B<br/>Own 10 GiB gp3 data volume"]
-            H3["Host 3 · RabbitMQ node C<br/>Own 10 GiB gp3 data volume"]
-        end
-    end
-    ALB --> NGINX
-    API -->|"Prisma reads / writes"| RDS["Private RDS PostgreSQL 16 · Multi-AZ<br/>Six logical databases"]
-    RDS -->|"Logical replication"| CDC
-    CDC <-->|"Separate checkpoint directories"| EFS["EFS One Zone"]
-    CDC -->|"Publish"| NLB["Private NLB · shared AMQP endpoint"]
-    API <-->|"Publish / consume"| NLB
-    NLB -->|"AMQP"| H1
-    NLB -->|"AMQP"| H2
-    NLB -->|"AMQP"| H3
-    API -->|"Outbound HTTPS via EC2 host public IP"| SoCLaaS["NUS SoCLaaS"]
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    Browser["Student or administrator"] -->|"HTTPS / WSS"| CF["CloudFront"]
+    CF -->|"HTTP / WS and origin header"| ALB["Public ALB"]
+    ALB -->|"Select gateway host and port"| GW["NGINX in a gateway task"]
+    GW -->|"Choose service from URL path"| SC["Service Connect task proxies"]
+    SC -->|"Frontend destination"| UI["Student or admin task"]
+    SC -->|"API or socket destination"| API["Backend task"]
 ```
 
-The application boxes show logical services, not extra hosts. The three RabbitMQ nodes share the hosts on which ECS places the application and connector tasks.
+CloudFront, ALB and NGINX serve different purposes:
 
-## Public entry point and frontend hosting
+| Component | What it decides | What it does not establish |
+|---|---|---|
+| CloudFront | Public TLS termination and forwarding to the configured origin | Whether an order or wallet operation completed |
+| ALB | Which healthy gateway task receives the connection | Which backend owns `/api/orders` or whether its dependencies work |
+| NGINX gateway | Which frontend, backend or socket endpoint matches the path | Whether the caller is authorized to use that operation |
+| Service Connect | Resolves the selected service through task proxies and connects to its replicas | Cross-replica delivery of Chat or Notification updates |
+| Backend middleware and handlers | Authentication, authorization and business processing | Completion of downstream asynchronous work merely because HTTP succeeded |
 
-**CloudFront is the public entry point** for both portals, APIs and WebSockets. Use its generated `https://<distribution>.cloudfront.net` hostname and AWS-provided viewer certificate; no team-owned domain, DNS validation or separately requested viewer ACM certificate is needed for that address. The frontends remain ECS services behind NGINX; adding CloudFront does not move them to S3. [CloudFront-provided viewer HTTPS](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-viewers-to-cloudfront.html)
+For example, a `202` from Order means the request was accepted. The gateway does not reserve credits or wait for the Saga to finish. Follow the persisted state described in the [Order guide](services/order-service/README.md).
 
-The **public Application Load Balancer (ALB)** is CloudFront's origin and forwards traffic to healthy NGINX tasks. Two gateway tasks on different hosts let the ALB continue sending new connections to the other gateway when one host fails. Existing WebSocket connections to the failed task may drop and need to reconnect.
+Opening `/` first retrieves the student app's static files. The JavaScript then makes a separate `/api/orders` request through the same public entry point. NGINX routes the first request to Student and the second to Order. The ALB chooses a gateway target; the gateway chooses a service name; Service Connect connects that request to a service replica. These are separate routing decisions, so a working page does not establish that Order is reachable.
 
-**Viewer TLS and origin TLS are separate connections.** The author confirmed **HTTPS/WSS for browser-to-CloudFront and HTTP/WS for CloudFront-to-ALB**. No origin hostname or ACM certificate is required for the selected demo connection. The HTTPS row below is explanatory and is not selected:
+### Routes that matter when debugging
 
-| CloudFront-to-ALB connection | What it requires |
-| --- | --- |
-| **HTTP / WS** | ALB HTTP listener and forwarding configuration. No origin certificate is needed. Browser-to-CloudFront traffic remains HTTPS/WSS; this origin connection is unencrypted. |
-| **HTTPS / WSS** | ALB HTTPS listener with a certificate from a publicly trusted CA, covering the configured origin hostname or the forwarded `Host` name. An ACM origin certificate for the Singapore ALB must be in Singapore. CloudFront's generated viewer certificate does not supply a certificate for the ALB. |
+These routes come from [gateway/nginx.conf](../gateway/nginx.conf). API paths retain their URI unless noted.
 
-For origin HTTPS, CloudFront validates the certificate's name, chain and validity. It rejects self-signed or invalid origin certificates with a 502 response. The team's own ACM request cannot cover AWS-owned `amazonaws.com` or `cloudfront.net` names. A validated origin hostname and matching trusted certificate are therefore still needed before using ALB origin HTTPS; changing the origin protocol setting alone is insufficient. [Origin HTTPS requirements](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-https-cloudfront-to-custom-origin.html) · [AWS-owned certificate names](https://docs.aws.amazon.com/acm/latest/userguide/troubleshooting-cert-requests.html)
+| Browser path | Destination |
+|---|---|
+| `/` | Student frontend, container port 5173 |
+| `/admin` / `/admin/` | Redirect to `/admin/`, then the admin frontend on 5174 |
+| `/api/auth/`, `/api/users` | User Service on 8001 |
+| `/api/suppliers` | Supplier Service on 8002 |
+| `/api/orders` | Order Service on 8003 |
+| `/api/credits` | Credit Service on 8004 |
+| `/api/notifications` | Notification Service on 8005 |
+| `/api/chat` | Chat Service on 8006 |
+| `/ws/chat/` | Upgrade to Chat's root WebSocket endpoint |
+| `/ws/` | Upgrade to Notification's root WebSocket endpoint |
+| `/api/health/{service}/{health,ready}` | Probe for `user`, `supplier`, `order`, `credit`, `notification` or `chat` |
+| `/health` | Gateway liveness only |
+| `/images/` | Supplier images served by the gateway |
 
-CloudFront configuration must permit the HTTP methods used by the APIs and forward the required authorization headers, cookies, query strings and WebSocket handshake headers. Authenticated responses and `Set-Cookie` responses must not be shared through caching. Set and verify the cache/origin request policies for API/authentication and WebSocket paths; verify static-content caching separately. Keep NGINX's public block on internal escrow routes. CloudFront supports WebSockets, but does not solve cross-replica socket delivery. [CloudFront WebSockets](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-working-with.websockets.html) · [Cache policy settings](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html)
+Unknown `/api` paths return 404. The `/api/credits/escrow` prefix returns 403 at the gateway; there is no public HTTP escrow mutation API. Authentication and business authorization remain inside the services.
 
-Configure the application's public origin for the CloudFront HTTPS address. The existing production `Secure` refresh-cookie setting can remain when the browser uses that address, including when the origin connection is HTTP. Both portals already use relative API paths, and the Student app chooses WSS for an HTTPS page. Verify cookie forwarding, refresh/logout and both socket connections through CloudFront. Local Docker Compose continues to use its existing local configuration.
+The two frontend containers serve Vite-built static assets through NGINX. They are separate ECS services: CloudFront is not serving these files from S3. Admin uses the `/admin/` base path. See the [frontend guide](frontend/README.md) for browser behavior.
 
-**NGINX** keeps the app's routing and access rules. It sends the root path to the student app, `/admin/` to the admin portal, and API and WebSocket paths to the corresponding backend. It also blocks public access to internal credit escrow routes. The routes carry over, but the deployed NGINX configuration must use ECS service endpoints rather than relying on the Docker Compose resolver. Check that CloudFront, ALB, NGINX and Service Connect timeouts work together for WebSockets. [Current gateway configuration](../gateway/nginx.conf) · [ALB integration with ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/alb.html) · [Service Connect configuration](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect-concepts-deploy.html)
+### Why local routing differs from AWS
 
-Each portal already builds to static files served by its own NGINX container. Run them as **separate ECS services** so they can deploy and scale independently, while keeping the same browser hostname for frontend, API, and WebSocket traffic. The student app starts at two replicas because it serves the main user flows. The admin portal starts at one and can scale to two. At one replica, its availability after host failure depends on task replacement.
+On host development, Vite normally proxies to individual service ports; `GATEWAY_URL` selects a gateway instead. In Compose, NGINX routes through shared-memory `upstream` blocks with HTTP/1.1 `keepalive` connection pooling and `resolve` through Docker DNS at `127.0.0.11` (with a ten-second cache). This reuses backend TCP connections under load while still finding a replaced container without restarting the gateway.
 
-| Alternative | Trade-off |
-| --- | --- |
-| **Expose NGINX directly** | NGINX can serve HTTPS itself. Pointing public DNS at one host is simpler to set up, but a second replica does not automatically take over that address. The ALB provides a shared endpoint and health-based routing. |
-| **Amazon API Gateway** | Useful if the team needs managed API features such as per-route throttling. Replacing NGINX would mean recreating route and access rules and handling frontend serving separately. Moving the WebSockets to API Gateway's WebSocket API also changes how the app manages connections and sends messages. If API Gateway is added while keeping existing ingress, it adds request charges. [WebSocket API model](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-overview.html) · [Pricing](https://aws.amazon.com/api-gateway/pricing/) |
+ECS overrides the gateway's startup command. [gateway-start.sh](../infra/terraform/ecs/gateway-start.sh) reads **IPv4 Service Connect aliases from `/etc/hosts`**, substitutes them into the `upstream` `server` and `http://` directives in the NGINX configuration, then starts NGINX. Do not diagnose an ECS failure by assuming Docker's DNS server or a Kubernetes service is involved. The current Terraform root contains no K3s, Traefik or EKS layer.
 
-## Backend compute and scaling
+ECS registers gateway tasks in the ALB's **instance target group** using dynamically allocated host ports. ALB traffic reaches a host/port mapping; it does not discover or route to Kubernetes pod IPs.
 
-**ECS on EC2** runs each backend as its own ECS service. Scaling Order Service adds Order tasks without changing the other services. Service Auto Scaling adjusts the task count when configured. The EC2 Auto Scaling group maintains the three shared hosts and replaces failed instances; scaling beyond three hosts is not approved. Normal scale-in must retain at least three shared hosts for the three broker placements. If existing hosts have spare room, extra tasks can run without another EC2 instance charge. Running EC2 hosts are billed even while idle. The ECS control plane adds no separate charge for this launch model. Storage, networking, and other services still have their own charges. [ECS pricing](https://aws.amazon.com/ecs/pricing/) · [Service Auto Scaling](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-auto-scaling.html) · [Capacity providers](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html)
+Bridge networking separates the port inside a container from the port exposed on its host. Two gateway tasks can each listen on container port 80 because their host ports differ. The ALB uses those registered host ports. For internal calls, the gateway uses aliases such as `order-service:8003`; its startup script substitutes the local Service Connect alias address, not a fixed address of an Order task. A task replacement can therefore change the destination replica without requiring a hard-coded replacement IP in NGINX.
 
-| What scales | Target range |
-| --- | --- |
-| Shared EC2 fleet | **Three `m7g.xlarge` hosts**, minimum/desired/maximum three in normal operation; each has 4 vCPU and 16 GiB RAM |
-| NGINX, student frontend, User, Supplier, Order, Credit, Chat, Notification | **2–3 tasks per service**, with replicas on different hosts where possible |
-| Admin frontend | **1–2 tasks** |
-| Debezium | **3 fixed tasks**, one active task per connector |
-| RabbitMQ | **3 fixed broker tasks**, one on each of the same three shared hosts, each with a retained **10 GiB gp3 data volume** |
+## Network and security boundaries
 
-These are **per-service targets**, not a guarantee that every service can reach its maximum simultaneously. Use the accepted trial resource budget below, including brokers and host allowances. Losing one shared host leaves **8 vCPU and 32 GiB RAM** for the surviving application tasks and two broker nodes until replacement. Verify task placement, startup time and the required user flows under that condition before claiming host-failure recovery. [Service Connect proxy resources](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-connect-concepts-deploy.html)
+[edge.tf](../infra/terraform/ecs/edge.tf) configures HTTPS/WSS between browsers and CloudFront, with HTTP viewers redirected to HTTPS. CloudFront's connection to the ALB is **HTTP/WS**. Browser HTTPS therefore does not establish end-to-end TLS to the origin.
 
-Chat and Notification need a separate correctness check when scaled. A live socket belongs to the process that accepted it. A queue consumer on another replica may handle the event without having that socket. Load balancing incoming connections does not deliver those events across replicas. Verify cross-replica delivery before relying on the two-task production minimum. [Chat socket hub](../services/chat-service/src/ws/hub.ts) · [Notification delivery](../services/notification-service/src/notifications/events.ts)
+The ALB security group accepts port 80 from the AWS CloudFront origin-facing prefix list. Its default listener action returns 403; forwarding requires the configured `X-Foc-Origin` header. The header is private configuration stored in Terraform state. These restrictions control origin access, but do not encrypt the origin hop or replace application authentication.
 
-**Secrets and local execution.** Store application credentials and keys in **AWS Secrets Manager** and reference the required values in ECS task definitions. ECS retrieves them at task startup using the execution role and supplies the existing application environment variables. Updated values require new tasks. Local Docker Compose continues to supply local environment configuration without requiring Secrets Manager access. [ECS secret injection](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/secrets-envvar-secrets-manager.html)
+Caching is disabled for all paths. The origin request policy forwards viewer data except the viewer `Host` header, and all seven configured HTTP methods are allowed. A stale business view should first be investigated as application state, asynchronous processing or client reconciliation, rather than attributed to an enabled CloudFront cache.
 
-**Accepted trial resource budget:** the author accepted the following starting values for testing, not as proven safe allocations. CPU shares/reservations and hard CPU/memory limits must be distinguished when implementing task definitions. Service Connect allowances are included in the first two rows, not extra tasks to count again.
+The EC2 hosts occupy one public subnet in one Availability Zone (AZ). They use public IPv4 for outbound traffic, with no NAT gateway. Their application ports are restricted to the ALB and internal host traffic; RDS and the broker Network Load Balancer (NLB) are private. The ALB uses two public subnets, but the application fleet is still single-AZ.
 
-| Workload | CPU budget per task | RAM budget per task |
-| --- | ---: | ---: |
-| Each backend, including Service Connect | 0.375 vCPU | 768 MiB |
-| Each frontend or gateway, including Service Connect | 0.375 vCPU | 384 MiB |
-| Each Debezium connector | 0.5 vCPU | 1 GiB |
-| Each RabbitMQ broker | 0.5 vCPU | 2 GiB |
-| Host operating system/ECS agent allowance, per EC2 host | 0.25 vCPU | 1 GiB |
+Runtime JWT keys and service credentials are referenced from Secrets Manager. Keep secret values, Terraform state and saved plans out of reports. The [runbook](../infra/terraform/ecs/README.md) documents initial secret provisioning and the separate deployment-role permissions.
 
-At the baseline of two tasks for each backend, student frontend and gateway, one admin task, and three connectors/brokers, the calculated budget is **10.125 vCPU and 22.875 GiB RAM**, including host allowances. All documented application maxima together would require **13.5 vCPU** including host allowances and do not fit the 12-vCPU fleet. Full baseline capacity also does not fit two surviving hosts under this trial budget. Placement, actual consumption, rolling deployments and recovery after a failed host must be tested and tuned; this budget does not establish the recovery target.
+## What scales, and what stays fixed
 
-**Deferred application decision:** the team will choose and implement RabbitMQ versus PostgreSQL signalling for Chat/Notification cross-replica live delivery. Redis is excluded. This is primarily application code and does not block the core infrastructure definitions; broker permissions/configuration may need adjustment after selection. The existing competing-consumer queues alone do not provide replica broadcast. GitHub delivery is manually triggered from `main`, with setup documented in the ECS Terraform rollout.
+There are two separate controls: the number of application tasks and the number of EC2 hosts available to run them. Application Auto Scaling can change the first. The host Auto Scaling groups maintain fixed slots; they do not expand in response to a queue of unplaced tasks.
 
-**Confirmed deployment inputs:** CloudFront pay-as-you-go, fresh existing seed data, bridge networking with host public-IP egress, HTTP origin connection, three-host ceiling and the trial resource budget. Creation permissions, applicable free allowances and acceptance of global CloudFront under course/sandbox restrictions still need verification. The author has revoked the requirement to retain the old deployment until replacement verification and does not require old data. Retain only identified reusable resources and reconcile their Terraform ownership before applying the replacement configuration.
+[hosts.tf](../infra/terraform/ecs/hosts.tf) defines three Auto Scaling groups, each with a maximum of **one** EC2 instance. With `hosts_running = true`, there are three ARM64 `m7g.xlarge` host slots. Each has a 30 GiB root disk and a separate retained 10 GiB RabbitMQ disk. The groups replace hosts but cannot expand beyond the three-host ceiling.
 
-| Alternative | Trade-off |
-| --- | --- |
-| **ECS on Fargate** | AWS manages the hosts. You pay for requested CPU and RAM for each task while it runs, including quiet periods. Smaller tasks and scaling out can save money if the workload fits, but scaling adds tasks rather than making one task larger. A cluster can use EC2 for some services and Fargate for others. A single service's capacity provider strategy cannot mix the two, so EC2 tasks do not automatically spill over onto Fargate. [Fargate pricing](https://aws.amazon.com/fargate/pricing/) · [ECS compute options](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/capacity-launch-type-comparison.html) |
-| **Run containers directly on EC2** | A single host can run different replica counts for each service, but they share one machine's capacity and failure risk. Across hosts, the team would own more of task placement, discovery, replacement, and deployment. |
-| **Kubernetes on EKS or k3s** | Both can manage and scale containers. Kubernetes isn't required for this evaluation, so the extra cluster configuration and operational work would need a separate justification. |
-| **AWS Lambda** | Lambda scales automatically and supports container images. The migration cost comes from changing how persistent HTTP servers, RabbitMQ consumers, and WebSocket connections run. Lambda can discard idle environments, so some requests wait for initialization. ECS can keep replicas ready, although adding a new task still takes time. [Lambda container images](https://docs.aws.amazon.com/lambda/latest/dg/images-create.html) · [Lambda execution lifecycle](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html) |
+Application tasks use bridge networking, dynamic host ports and spread placement by instance. [applications.tf](../infra/terraform/ecs/applications.tf) configures independent task scaling:
 
-## RabbitMQ and message delivery
+| Service | Minimum tasks when enabled | Maximum tasks |
+|---|---:|---:|
+| Each backend | 2 | 3 |
+| Student frontend | 2 | 3 |
+| Admin frontend | 1 | 2 |
+| Gateway | 2 | 3 |
 
-Run **three RabbitMQ broker tasks**, **one on each of the three shared `m7g.xlarge` EC2 hosts**, alongside application and connector tasks. Each broker has its own retained **10 GiB gp3 EBS data volume**. There is no separate broker EC2 fleet. A three-member quorum queue has one leader and two followers. RabbitMQ routes operations to that queue's leader and replicates its state. Different queues can have leaders on different nodes. With two members online, the queue can still operate. With only one survivor, it cannot form a majority. The normal baseline therefore has three shared hosts and three broker nodes; after a host failure, two brokers can continue while the failed node is recovered. [RabbitMQ quorum queues](https://www.rabbitmq.com/docs/quorum-queues)
+The target is 65% average service CPU, with a 60-second scale-out cooldown and a 180-second scale-in cooldown. If Order is busy, its desired count can rise while another service remains at its minimum. That is independent service scaling within a shared fleet.
 
-Clients can connect to any broker in the cluster. The **private NLB** gives the backends and Debezium one AMQP address for new connections to healthy brokers. It serves internal messaging rather than public browser traffic. If a broker connection drops, the client still has to reconnect. Scaling an application service changes its task count, not the three-node broker count. Broker CPU and memory usage are part of the shared fleet's capacity. If broker load becomes the bottleneck, first check whether consumers, disk throughput, or a busy queue leader are limiting throughput. Adding broker nodes requires managing queue placement and does not automatically speed up one busy queue.
+```mermaid
+%% AI-generated (edited by Reallyeasy1)
+flowchart TD
+    CPU["Average CPU for one service"] --> Policy["CPU target tracking"]
+    Policy --> Desired["Desired task count within limits"]
+    Desired --> Scheduler["ECS task placement"]
+    Scheduler --> Tasks["Running application tasks"]
+    Tasks --> CPU
+    Failure["A host is lost"] --> ASG["Its one-instance Auto Scaling group"]
+    ASG --> Host["Replacement host completes bootstrap"]
+    Host -->|"Available CPU and memory"| Scheduler
+```
 
-Each broker writes to its own data directory. Separate EBS volumes keep the disks independent. If a broker task restarts on its original host, it can reuse its mount. If the host fails, ECS does not automatically reattach that existing disk. Recover the node by mounting the retained disk on a replacement in the same AZ, or replace the node and rebuild its queue replicas from the surviving members. During repair, the other two members can continue serving quorum queues. Confirmed publishes and consumer acknowledgements help protect delivery. A retried event can still reach a consumer twice, so credit settlement must handle duplicates safely. [RabbitMQ reliability](https://www.rabbitmq.com/docs/reliability) · [EBS attachment rules](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-attaching-volume.html)
+Read the upper loop as demand for task copies and the lower branch as replacement of hardware. There is no configured link that turns pending application tasks into a fourth host. Spread placement distributes tasks across instances where capacity permits; it is not a reserved machine for each service or a guarantee that another task can fit.
 
-| Alternative | Trade-off |
-| --- | --- |
-| **One RabbitMQ task on EC2** | Lowest operational complexity and disk cost. If its host fails, all messaging waits for recovery. EBS can preserve data but cannot serve it while the broker is down. Two broker nodes also do not solve that problem when both are needed for quorum. |
-| **Amazon MQ for RabbitMQ** | AWS operates the broker infrastructure and provides an endpoint. A single broker still has an outage during replacement. A three-node cluster is the like-for-like availability comparison. At the earlier Singapore rates, 14 days of `mq.m7g.medium` compute was about S$80 for one broker or S$240 for three. AWS no longer offers `mq.t3.micro` for new RabbitMQ brokers. [Broker sizes](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rmq-broker-instance-types.html) · [Deployment options](https://docs.aws.amazon.com/amazon-mq/latest/developer-guide/rabbitmq-broker-architecture.html) |
-| **Amazon SNS and SQS** | SNS distributes events to subscribed queues, and SQS holds events for consumers. They remove broker host management, but replacing RabbitMQ would mean adapting publishers, consumers, routing, retries, and the Debezium delivery path. SQS Standard can deliver duplicates or out of order, so the application still needs safe credit retries. [SNS delivery](https://docs.aws.amazon.com/sns/latest/dg/fifo-message-delivery.html) · [SQS Standard](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html) |
+For a concrete count, the minimum is **17 application tasks**: twelve backend tasks, two Student, one Admin and two Gateway. Their combined maximum is **26**. Each application task definition has 384 CPU units; three brokers and three CDC tasks add 512 units each. In the `live` phase, the configured task totals are therefore `17 × 384 + 6 × 512 = 9,600` CPU units at application minima, and `26 × 384 + 6 × 512 = 13,056` at maxima. These are configured task allocations, not measured CPU use or throughput. They also exclude temporary database jobs and extra tasks during deployment. The [runbook](../infra/terraform/ecs/README.md) records that the simultaneous maxima exceed the trial fleet budget.
 
-## Debezium and checkpoint storage
+Actual placement needs both CPU and memory on a suitable host. For example, if Order's desired count rises from two to three but its running count stays at two, inspect ECS placement events and remaining host resources before expecting more capacity. Rolling updates also need spare room: application deployment allows up to twice the desired task count while retaining the healthy minimum. That limit permits overlap; it does not reserve resources for it.
 
-There are **three Debezium Server tasks**, one each for the Order, User, and Credit databases. Each reads its configured PostgreSQL outbox and publishes to the `campus.events` exchange. The count follows the configured connectors, not the number of RabbitMQ nodes or queues. All three use the same broker endpoint. Each connector has its own replication slot and checkpoint directory. Run one active task per connector. Two copies sharing a slot and checkpoint do not divide the work. [Current connector settings](../docker/debezium/) · [Debezium PostgreSQL connector](https://debezium.io/documentation/reference/connectors/postgresql.html)
+## Where state lives
 
-**One EFS One Zone filesystem** gives the three connectors separate directories that any eligible ECS host in the demo AZ can mount. If a host fails, the replacement reads the latest stored checkpoint without moving a disk. EBS could also hold these files, but a standard gp3 volume attaches to one host at a time. Moving it to another host would require a same-AZ detach, attach, and mount procedure. The small amount of checkpoint data makes ease of recovery more important than the difference in storage price. EFS alone does not guarantee recovery. PostgreSQL still needs the relevant slot and WAL, and the broker must be reachable. Watch for retained WAL if a connector falls behind. [ECS EFS support](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/efs-volumes.html) · [RDS logical replication](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.FeatureSupport.LogicalReplication.html)
+Restarting a task and recovering its data are separate concerns. These are the checked-in persistence boundaries:
 
-## PostgreSQL on RDS
+| State | Storage and configuration | Operational implication |
+|---|---|---|
+| Six service databases | Private RDS PostgreSQL 16; `db.t4g.small`, encrypted 20 GiB gp3, Multi-AZ, one-day backup retention | Application tasks can be replaced without moving their database. Multi-AZ is configured failover, not read scaling or multiple writable primaries |
+| RabbitMQ node data | One encrypted 10 GiB EBS disk per host slot; stable broker node names | Replacement must attach the correct retained disk and restore cluster membership |
+| Debezium checkpoints | Separate access points/directories on encrypted EFS One Zone | A connector restarts from its checkpoint; losing the checkpoint or replication slot needs separate investigation |
+| Application process memory | The task itself | WebSocket connections disappear on replacement; clients must reconnect and recover persisted state |
 
-Use a **private RDS PostgreSQL 16 Multi-AZ DB instance** with a starting size of **`db.t4g.small` and 20 GiB gp3**. The six services keep separate logical databases and credentials on the same instance. The primary handles application reads and writes. A synchronous standby takes over if the primary fails. AWS reports typical database failover of **60–120 seconds**. Application reconnects and Debezium catch-up can extend the full workflow recovery time. Storage can grow automatically if configured. To add compute, resize the instance. A separate read replica can serve suitable queries if needed, but the standby itself does not serve reads. [RDS Multi-AZ](https://aws.amazon.com/rds/features/multi-az/) · [Failover timing](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.Failover.html)
+A private NLB provides the AMQP endpoint for the three RabbitMQ nodes. Each broker task is constrained to its host slot. [Host bootstrap](../infra/terraform/ecs/host-bootstrap.sh.tftpl) waits for the retained disk, attaches/mounts it and publishes private DNS before ECS starts. It does not force-detach a disk that is still unavailable. This protects the storage handover, but can delay replacement; retaining a disk is not proof of a particular recovery time.
 
-The author confirmed a **fresh environment using the existing seed data**, without migration of old deployment data. Keep the Prisma schemas and migrations. Provision the six databases and roles, update connection URLs and TLS settings, run the existing migrations and seed commands, and enable logical replication in the RDS parameter group. Configure the three connectors with the appropriate replication and table permissions. Start them with fresh checkpoints for the fresh databases. No business logic change is expected from the RDS move itself. [Database bootstrap](../docker/postgres-init/01-init-databases.sql) · [RDS TLS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.SSL.html)
+The event path also crosses these storage boundaries. Order, User and Credit write their outbox records to PostgreSQL. Their Debezium tasks read database changes, publish to RabbitMQ through the private NLB, and retain connector checkpoints on EFS. Backend consumers then process the messages. A healthy HTTP route, a database row, and a completed downstream operation are three separate observations. Use [messaging and recovery](infrastructure/cdc-and-broker.md) to follow a delayed operation across them.
 
-**PostgreSQL on EC2 with EBS** can cost less if it fits on a host the team already pays for. A single instance would still interrupt reads and writes when that host fails. The team would also own backups, restore testing, and patching, and the database would compete for host capacity. RDS moves those operational responsibilities off the shared hosts and provides the standby used in this design.
+Compare two failures. If only an Order task exits, ECS can replace that copy on an eligible host and it reconnects to the existing RDS database. If a host disappears, all tasks on it lose their processes together. Application tasks can be placed on remaining capacity, but that host slot's broker needs its retained disk and stable node identity restored on the replacement. Existing WebSocket connections also disappear; browser reconnect and history reconciliation recover the view. None of those steps justifies reseeding committed orders or wallet records.
 
-## Demo schedule and cost
+On a host failure, ECS has application tasks to replace, the Auto Scaling group has a host slot to replace, and RabbitMQ has a member to recover. Available capacity, disk attachment and quorum health determine the outcome. RDS Multi-AZ does not fix an application-AZ outage, and EFS One Zone is another single-AZ dependency. The team’s recorded demo constraint excludes a complete AZ outage; it still requires recovery of the main order/credit workflow within minutes of a host failure. That is a requirement to demonstrate, not a result established by these files.
 
-The estimate uses **three shared `m7g.xlarge` hosts** and **144 total active hours** for setup, the **Thursday, 12 November 2026 demo**, and requested verification. The stack can be stopped and resumed after the demo, with data retained for verification through **28 November**. **504 hours** is the retained-resource allowance; align actual creation/deletion times with the verification window. It is not 504 hours of running EC2 or RDS compute.
+## Deploy, stop and resume safely
 
-The following Singapore On-Demand rates were checked against AWS's public catalogues on **8 November 2026**. Storage is prorated with the earlier **730-hour month approximation**. Figures are USD before tax, with no Free Tier or account credits deducted.
+Use the [ECS Terraform runbook](../infra/terraform/ecs/README.md) rather than copying commands from an old cloud plan. Its phases intentionally separate infrastructure from working event delivery:
 
-| Item | Basis | Estimated USD before tax |
-| --- | --- | ---: |
-| Shared EC2 compute | 3 × `m7g.xlarge` × 144 h × US$0.204/h | 88.13 |
-| Additional broker EC2 instances | None; RabbitMQ shares those three hosts | 0.00 |
-| RDS PostgreSQL Multi-AZ compute | `db.t4g.small` × 144 h × US$0.102/h; rate includes the standby | 14.69 |
-| RDS storage | 20 GiB × US$0.276/GB-month × 504/730; Multi-AZ rate | 3.81 |
-| EC2 root and broker disks | 3 × 30 GiB root + 3 × 10 GiB broker gp3, at US$0.096/GB-month × 504/730 | 7.95 |
-| Public ALB and private NLB | 2 × 504 h × US$0.0252/h | 25.40 |
-| Load-balancer traffic allowance | Very light LCU/NLCU usage; unmeasured allowance | 0.79 |
-| Public IPv4 | 2 ALB addresses × 504 h + 3 host addresses × 144 h, at US$0.005/address-h | 7.20 |
-| Other usage allowance | EFS, ECR, logs, secrets, modest data transfer and short RDS restarts; unmeasured allowance | 10.00 |
-| **Base subtotal, excluding CloudFront** | Calculated before rounding individual rows | **157.97** |
+| Phase | Workloads enabled | What a successful phase does not prove |
+|---|---|---|
+| `foundation` | Infrastructure and task definitions; workload services at zero | Schemas, secrets or seeded data are ready |
+| `brokers` | Three RabbitMQ services | Consumers/queues have formed correctly |
+| `applications` | Frontends, gateway and backend tasks | CDC is delivering events; its services are still at zero |
+| `live` | Three Debezium connectors as well | A full user journey, scaling or failure recovery passed |
 
-At the retained assumptions of **US$1 = S$1.28** and **9% GST**, the base estimate is **S$220.40**, approximately **S$220–221**, before CloudFront usage. Using a 720-hour storage month gives **S$220.63**. This is the shared-host estimate; the previous separate-broker-host totals no longer describe the selected deployment. Exchange rate, tax treatment, usage allowances and operating hours remain assumptions rather than a verified account bill.
+Each connector has one task and its own EFS checkpoint path. The access points use UID 185/GID 0 to match the configured Debezium image. A mount ownership failure can prevent container creation before connector logs exist. Connector rollout may temporarily have zero healthy tasks; business events can wait during that interval.
 
-The base estimate assumes light traffic and the confirmed bridge networking with host public-IP egress. CloudFront supplies the viewer hostname and certificate without a domain purchase. The confirmed HTTP origin requires no origin certificate. The estimate excludes NAT gateways, paid interface endpoints, hosts beyond the approved ceiling, excess backup/storage usage, unexpected RDS burst CPU charges and heavier traffic. Retained Elastic IPs are charged even while idle; the host IPv4 row assumes charges only for the listed active hours. The US$10 allowance does not establish the actual cost of its included services.
+Database roles/publications and migrations run as separate one-off jobs. Default backend images only start the application. Seeds are explicit fresh-environment operations, not a routine repair for a failed rollout. In particular, normal release migrations must not be confused with rerunning the demo account seed.
 
-### Incremental CloudFront pricing
+[Deploy applications to ECS](../.github/workflows/deploy-ecs.yml) is manually dispatched from a tested `main` commit. It builds ARM64 images, runs selected backend migrations before updates, pins images by digest and rolls services sequentially. If a later rollout fails, earlier successful updates and committed migrations remain; this is not an all-or-nothing release.
 
-**Pay-as-you-go is confirmed.** AWS's published monthly allowances are **1 TB of viewer data transfer and 10 million HTTP/HTTPS requests**, subject to account/billing eligibility and remaining allowance. Do not assume that the NUS sandbox has unused allowances. For Singapore delivery after the allowances, the next transfer tier is **US$0.120/GB**, and HTTPS requests are **US$0.012 per 10,000**. WebSockets have no separate protocol surcharge; traffic and request charges still apply.
+[Deploy ECS infrastructure](../.github/workflows/deploy-infra.yml) is also manually dispatched from `main`. It uses shared S3 Terraform state and rolls application configuration while preserving deployed image digests. It does not run application migrations. A local Terraform apply does not by itself switch application services to newly registered task revisions, because their selected revisions are workflow-owned.
 
-As a usage illustration, **10 GB of billable viewer delivery plus 100,000 billable HTTPS requests**, without deducting free allowances, costs **US$1.32**, or **S$1.84** at the retained exchange-rate/GST assumptions. The base estimate plus that example is **S$222.24**. This is not a measured usage forecast. Viewer-to-origin data transfer, such as request bodies and client-to-server WebSocket traffic, is separately priced (currently **US$0.060/GB** for Singapore); logging and optional features can also add charges and are excluded from this illustration. The generated viewer hostname/certificate does not require a domain purchase. ALB, EC2 and the other origin resources remain billable. [CloudFront pay-as-you-go pricing](https://aws.amazon.com/cloudfront/pricing/pay-as-you-go/)
+For stop/resume, reverse the workload phases before stopping hosts, retain disks/checkpoints/database state, then resume in order without reseeding. The runbook owns the exact procedure. The [project constraints](../CLAUDE.md#cloud-deployment-and-evaluation-constraints) specify AWS Singapore, S$250 total, verification availability through 28 November 2026, and permission to stop/resume after the 12 November demo. This guide does not provide a fresh cost quote or billing check.
 
-AWS also publishes a **US$0/month Free flat-rate plan** with **100 GB and 1 million requests**, but it has account and configuration restrictions, including limits on custom caching controls. Its applicability to this app's API/cookie/WebSocket configuration has not been verified. Do not substitute a guaranteed zero CloudFront cost without confirming the selected plan and eligibility. [Flat-rate pricing](https://aws.amazon.com/cloudfront/pricing/) · [Plan restrictions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/flat-rate-pricing-plan.html)
+## Health, logs and monitoring
 
-The author reports **S$249 remaining** in the sandbox allowance. The S$222.24 example would leave **S$26.76**, before excluded charges and deviations from the assumptions. Reconcile this with the actual account tracker during deployment.
+A health indicator answers a particular question. Check the narrowest failing layer instead of treating every green light as proof the application works.
 
-The author has approved removing the old deployment before replacement verification, without retaining its data. A read-only check on **8 November 2026 at approximately 21:52 SGT** found the master stopped but the old worker ASG still at minimum/desired two with **two running replacement workers**. This estimate excludes old-deployment compute, prior account spending, and retained disks, snapshots or allocated Elastic IPs. Those charges still count against the total **S$250 project allowance**. Recheck the allowance after cleanup.
+| Signal | What it tells you | What to check next |
+|---|---|---|
+| Gateway `/health` / ALB target health | NGINX can answer its liveness endpoint | Relevant service `/ready` |
+| Backend `/health` | Process liveness | `/ready` and the business operation |
+| Backend `/ready` | That service’s configured dependencies/readiness conditions | Persisted state and downstream processing |
+| ECS task health | Configured container probe result | Task logs, service events, desired/running/pending counts |
+| Admin health page | Browser-driven polling of the service probes | It is not an independent monitoring service or alert destination |
+| Successful HTTP response | The endpoint reached its own success condition | For asynchronous work, final order/wallet/inbox state |
 
-EBS, EFS, and retained load balancers still cost money while compute is stopped. RDS automatically restarts after seven consecutive days stopped, so check it before the exam and stop it again when appropriate. Use the EC2 Auto Scaling group's standby procedure when stopping managed hosts so it does not launch replacements unexpectedly. [RDS stop behavior](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html) · [EC2 Auto Scaling standby](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-enter-exit-standby.html)
+ECS uses backend `/ready` checks. Compose currently uses `/health` for Order/Credit and `/ready` for User/Supplier/Chat/Notification. Compose also has no Debezium health check, and gateway startup does not wait for CDC progress. A healthy local stack can therefore still have a broken event path.
 
-Rate sources: [Singapore EC2 Linux catalogue](https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/Asia%20Pacific%20%28Singapore%29/Linux/index.json) · [Singapore RDS catalogue](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-southeast-1/index.json) · [Singapore load-balancer catalogue](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ap-southeast-1/index.json) · [EBS pricing](https://aws.amazon.com/ebs/pricing/) · [Public IPv4 pricing](https://aws.amazon.com/vpc/pricing/)
+ECS task definitions send application, broker, connector and database-job logs through the `awslogs` driver into `/ecs/foc-ecs`, retained for seven days. That is centralized logging. The checked-in Terraform does **not** provision the proposed operational dashboards, SNS health alerts, Prometheus/Grafana stack or OpenTelemetry tracing pipeline. CPU target-tracking policies support scaling; they are not the proposed application alerting system.
 
-## What to verify before the demo
+With an authorized AWS profile and the required read permissions, these commands inspect the current deployment without changing it:
 
-1. **Build and start.** Verify the deployed images on ARM64, inject secrets, run migrations and seeding, and check CloudFront HTTPS/WSS-to-ALB HTTP/WS-to-gateway connectivity and access to all service endpoints.
-2. **Try the user flows through CloudFront.** Check both portals, login, refresh/logout, isolation of different users' responses, live chat/notifications, translation and the order assistant through SoCLaaS, and the internal escrow route's public block. Verify API methods, cookie/header forwarding, cache behaviour and WSS reconnects. Chat and Order need outbound HTTPS from the deployment.
-3. **Lose one shared host at a time.** Its application/connector tasks and one RabbitMQ node fail together. Check task placement on the two surviving hosts, connector checkpoint recovery, RabbitMQ reconnects, recovery of the third broker and whether the surviving capacity is enough.
-4. **Force RDS failover.** Confirm the app reconnects and all three connectors resume. Submit a transaction around the interruption and verify the order and credit workflow settles within the target, with no missing or duplicate credit movement.
-5. **Stop and resume the stack.** Retain the broker data disks and connector checkpoints. Bring the database, brokers, and applications back and run the key user flows again before depending on on-demand verification.
+```bash
+# AI-generated (edited by Reallyeasy1)
+aws ecs describe-services --cluster foc-ecs --services gateway order-service --region ap-southeast-1
+aws logs tail /ecs/foc-ecs --since 10m --region ap-southeast-1
+```
 
-## Beginner glossary
+Compare desired/running/pending counts and recent service events with the task logs. Record the failing service, task revision, time and affected record IDs; sanitize logs before sharing them. No end-to-end distributed trace is established merely by collecting logs in one group.
 
-| Term | What it means here |
-| --- | --- |
-| **Amazon Web Services (AWS), region, and Availability Zone (AZ)** | AWS is the cloud provider. A region is a geographic AWS location. Singapore hosts the regional origin resources; CloudFront is global. An AZ is an isolated location within a region. Separate hosts protect against a machine failure. Separate AZs protect against losing a whole location when the rest of the design also spans AZs. |
-| **Virtual Private Cloud (VPC) and security group** | A VPC is the deployment's private network. A security group controls which connections can reach a resource. For example, the database accepts connections from the deployed application rather than the public internet. |
-| **Amazon Elastic Compute Cloud (EC2)** | Provides the virtual machines that host the application's containers and the RabbitMQ brokers. |
-| **Amazon Elastic Container Service (ECS), Fargate, task, and service** | ECS schedules containers. A **task** is a running unit of one or more containers. An ECS **service** keeps the desired number of tasks running. Fargate runs ECS tasks without the team managing the underlying hosts. |
-| **Amazon CloudFront, content delivery network (CDN), viewer and origin** | CloudFront is the public HTTPS/WSS entry point, using an AWS-provided hostname/certificate. A viewer is the browser connecting to CloudFront. The origin is the ALB from which CloudFront fetches responses. Viewer TLS and origin TLS are separate connections. |
-| **Application Load Balancer (ALB), NGINX, and Service Connect** | The public ALB receives origin requests from CloudFront and chooses a healthy gateway. NGINX chooses a service based on the request path. Service Connect chooses a replica of that service. |
-| **AWS Certificate Manager (ACM)** | Can manage an ALB origin certificate if origin HTTPS is selected. The certificate must match a validated hostname. CloudFront's generated viewer hostname already has an AWS-provided certificate; it does not supply the ALB's origin certificate. |
-| **Network Load Balancer (NLB) and Advanced Message Queuing Protocol (AMQP)** | The private NLB gives the app one broker address. AMQP is the protocol the app and Debezium use to talk to RabbitMQ. |
-| **Load Balancer Capacity Unit (LCU) and Network Load Balancer Capacity Unit (NLCU)** | Usage-based billing units for ALB and NLB traffic, charged in addition to each load balancer's hourly fee. The cost table carries an allowance rather than measured usage. |
-| **Amazon Elastic Block Store (EBS) and Amazon Elastic File System (EFS)** | EBS provides virtual disks. A **General Purpose SSD (gp3)** volume normally attaches to one host at a time. EFS is a network filesystem that multiple hosts can mount. We use separate broker disks and shared access to connector checkpoints. |
-| **RabbitMQ node, exchange, and queue** | A node is a running broker. An exchange routes published messages to queues using routing rules. A queue holds messages for consumers. |
-| **Quorum queue** | A queue replicated across broker nodes. With three members, two must be available for the queue to keep working. Each queue has its own leader. |
-| **Amazon Relational Database Service (RDS), primary, and standby** | RDS manages the database instance. The primary serves reads and writes. The standby is a ready copy that takes over after failure. |
-| **Outbox, CDC, WAL, and offset** | An **outbox** stores events alongside application changes in a database transaction. **Change data capture (CDC)** reads committed changes. PostgreSQL's **write-ahead log (WAL)** records them. An **offset** is Debezium's checkpoint for where to resume. |
-| **Amazon Elastic Container Registry (ECR), Secrets Manager, and CloudWatch** | ECR stores container images. Secrets Manager holds credentials. CloudWatch collects logs and metrics for debugging and monitoring. |
-| **Amazon Elastic Kubernetes Service (EKS)** | An AWS service for running Kubernetes, which schedules containers across machines. |
-| **Amazon Simple Notification Service (SNS) and Amazon Simple Queue Service (SQS)** | SNS distributes an event to subscribers. SQS holds events until a consumer can process them. |
-| **Application Programming Interface (API), Uniform Resource Locator (URL), and Domain Name System (DNS)** | An API defines how software calls a service. A URL identifies a resource, such as an API endpoint. DNS resolves the hostname in a URL so the caller can reach it. |
-| **Hypertext Transfer Protocol (HTTP), HTTP Secure (HTTPS), and Transport Layer Security (TLS)** | HTTP carries web requests and responses. HTTPS uses TLS to encrypt that traffic. |
-| **Egress, WebSocket, and WSS** | Egress is outbound traffic. A WebSocket is a long-lived connection the backend can use to push messages to the browser. The `wss://` scheme denotes a WebSocket secured with TLS. |
-| **SoCLaaS (School of Computing Large Language Model as a Service)** | The National University of Singapore (NUS) service that Chat and Order call for translation and the order assistant. [SoCLaaS workshop](https://tg.me/nuswit/514) |
-| **Virtual central processing unit (vCPU), random-access memory (RAM), and gibibyte (GiB)** | A vCPU is a unit of compute capacity. RAM is working memory. GiB measures memory or storage. **ARM64** is the 64-bit processor architecture used by the planned Graviton hosts. |
-| **Goods and Services Tax (GST)** | The Singapore tax included in the guide's cost estimates. |
-| **Idempotency** | Handling the same event twice has the same effect as handling it once. For credits, a retried delivery must not apply a second ledger movement. |
+## Troubleshoot by symptom
+
+| Symptom | Start here | Avoid this mistaken conclusion |
+|---|---|---|
+| Direct ALB URL returns 403 | Verify the intended CloudFront URL and origin-header configuration | That a denied direct-origin request means the app is down |
+| CloudFront responds but an API returns 502 | ALB target health, gateway logs, service `/ready`, Service Connect aliases | That healthy gateway liveness proves healthy backends |
+| Desired task count exceeds running count | ECS placement events and available CPU/memory | That the fixed host groups will grow beyond three |
+| Registration works but wallet is missing | `live` phase, `cdc-user`, broker queues and Credit consumer | That a successful registration means welcome credits already arrived |
+| Errand remains pending or refund is late | [Messaging diagnosis](infrastructure/cdc-and-broker.md#trace-a-delayed-operation), then Order/Credit persisted state | That retrying the browser request is automatically safe |
+| Chat/inbox updates arrive only after refresh | Subscriber/relay readiness, outbox backlog and socket reconnect behavior | That a gateway or sticky session can replace fanout |
+| WebSockets disconnect | Service readiness/token expiry, ALB idle timeout and client reconnect logs | That NGINX's long timeout overrides every other hop |
+| CDC task never starts | ECS stopped-task reason, EFS mount/access-point ownership and secrets | That an absence of connector logs proves the database is the cause |
+| Replacement host never joins ECS | Retained disk state, bootstrap/mount and host permissions | That deleting the disk or force-detaching it is routine recovery |
+
+NGINX uses a three-second connect timeout and 60-second ordinary read/send timeouts. Its socket routes use 86400 seconds, while the ALB idle timeout is 120 seconds. These values describe different hops; none overrides service-side token expiry. After an ambiguous write timeout, inspect whether the operation committed before submitting it again.
+
+## Source map and historical decisions
+
+For a routing change, start with [gateway/nginx.conf](../gateway/nginx.conf), [edge.tf](../infra/terraform/ecs/edge.tf) and [applications.tf](../infra/terraform/ecs/applications.tf). For state or replacement behavior, read [main.tf](../infra/terraform/ecs/main.tf), [hosts.tf](../infra/terraform/ecs/hosts.tf), [brokers.tf](../infra/terraform/ecs/brokers.tf) and [data-tasks.tf](../infra/terraform/ecs/data-tasks.tf). [Messaging and recovery](infrastructure/cdc-and-broker.md) explains how those dependencies affect asynchronous outcomes.
+
+The [recorded cloud decisions and dated cost estimates](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/blob/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive/infrastructure/2026-11-09-cloud-architecture-guide.md) and [retired K3s guide](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/blob/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive/infrastructure/cloud-deployment-and-devops-guide.md) remain in Git history. Their dates and assumptions remain intact; neither is a current deployment runbook.
+
+[Documentation index](README.md) · [Testing and evidence](development/testing-strategy.md)
