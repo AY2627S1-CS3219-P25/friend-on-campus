@@ -2,15 +2,15 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Polished ChatPanel message bubbles with gradients, glowing indicators, and tactile send button.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for outgoing chat bubble styling.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: PR #196 review: the panel registers its thread with the chat hook while mounted, so only on-screen threads
@@ -44,7 +44,7 @@
  * Scope: PR #228 review fixes: show the "· translated" badge only when the translated text differs from the original,
  * reset inFlight when switching languages or turning translation off, and keep the translate toggle accessible when
  * the conversation is closed/read-only.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-07
  * Scope: Red translucent notices: the sender's MODERATED error and the other participant's removed-message notice.

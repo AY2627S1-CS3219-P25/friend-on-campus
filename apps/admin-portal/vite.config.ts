@@ -1,7 +1,7 @@
 // AI Assistance Disclosure:
 // Tool: Google Antigravity Agent, date: 2026-10-22
 // Scope: Added /api/health/{user,supplier,order,credit,notification} proxy routes for live microservice health and readiness checks in host and gateway dev modes.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Google Antigravity Agent, date: 2026-10-11
 // Scope: Added /api/orders proxy route to order service for host-based development.

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Require closed-store confirmation in handleOrderAgain (#234) and revalidate the supplier directory when navigating to the Post or Places tabs (#171).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: The Browse feed is built with orders/feedZones.ts and passed whole to FeedPage for the zone tab counts;
  * only the cards are narrowed to the selected tab.
@@ -7,31 +11,31 @@
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the soft blue-white campus canvas behind the existing app layout.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Preserve bottom-navigation clearance on tablet widths until the desktop header appears at 1024px.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Fixed mobile layout issue where fixed BottomNav was covering bottom content (e.g. Danger Zone / Delete Account on ProfilePage): replaced conflicting pb-8 on <main> with safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Eliminated credit balance flicker on tab navigation by removing redundant wallet/ledger state wipes and introducing quiet background revalidation.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Unified body and navigation max-width: wrapped main content in max-w-7xl mx-auto container and aligned horizontal padding with HeaderNav across all responsive breakpoints.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Polished lifecycle action toast notifications to user-friendly consumer copy without internal microservice references.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned student-app frontend shell and layout, enhanced card styling and rounded-3xl aesthetics across all sub-pages.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Drop-off estimator: the post form keeps the drop-off point and whether the reward was set by hand, clears
@@ -52,15 +56,15 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refined main viewport padding to eliminate excessive vertical whitespace under the sticky navbar.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned student-app UI/UX, handled order submission rejection states, prevented multi-click duplicate submissions and credit balance overdraw.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Passed authFetch to PostErrandPage for F6 Natural-Language Errand Assistant.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: Multi-client UAT finding: no courier alert exists for a newly posted errand, so the Feed polls quietly (no
@@ -95,11 +99,11 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Wired courier unassign (Drop Errand) action in App.tsx to TasksPage and forwarded optional courierContactNote on accept (F3.3.6).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Wired courier pickup/deliver and requester complete/cancel lifecycle handlers in App.tsx to TasksPage with action banners, credit wallet refreshes, and 400/403/409 error surfacing (Issue #132).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-20
  * Scope: Wires the chat socket hook (F8) and passes it to TasksPage.
@@ -183,7 +187,7 @@ import { NUS_SPAN_KM } from './map/nusBuildings';
 import { shouldToast } from './notifications/inbox';
 import { useNotifications } from './notifications/useNotifications';
 import { feedOrders, inFeedZone } from './orders/feedZones';
-import { buildReorderRequest } from './orders/reorder';
+import { buildReorderRequest, confirmReorderWhenStoreClosed } from './orders/reorder';
 import { useOrderSubmission } from './orders/useOrderSubmission';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuthGatePage } from './pages/AuthGatePage';
@@ -619,12 +623,16 @@ export default function App() {
     }
   };
 
-  const fetchLiveSuppliers = async () => {
-    setIsSuppliersLoading(true);
-    setSupplierError(null);
+  const fetchLiveSuppliers = async (options: { quiet?: boolean } = {}) => {
+    const quiet = Boolean(options.quiet && suppliers.length > 0);
+    if (!quiet) {
+      setIsSuppliersLoading(true);
+      setSupplierError(null);
+    }
     try {
       const items = await fetchAllSuppliers();
       setSuppliers(items);
+      setSupplierError(null);
       setFormData((current) => {
         const selected =
           items.find((item) => item.id === current.supplierId && item.isActive) ??
@@ -637,16 +645,27 @@ export default function App() {
         };
       });
     } catch {
-      setSuppliers([]);
-      setSupplierError('Unable to load pickup spots. Please try again.');
+      if (!quiet) {
+        setSuppliers([]);
+        setSupplierError('Unable to load pickup spots. Please try again.');
+      }
     } finally {
-      setIsSuppliersLoading(false);
+      if (!quiet) {
+        setIsSuppliersLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     void fetchLiveSuppliers();
   }, []);
+
+  // AI-generated (edited by yanhwee): revalidate pickup spots when opening Post Errand or Places so admin status toggles take effect without a full page reload (issue #171).
+  useEffect(() => {
+    if (isAuthenticated && (activeTab === 'post' || activeTab === 'spots')) {
+      void fetchLiveSuppliers({ quiet: true });
+    }
+  }, [isAuthenticated, activeTab]);
 
   // AI-generated (edited by jagdeepsh): "Order again" posts a new errand with the details of a completed one.
   const handleOrderAgain = (order: OrderDTO) => {
@@ -656,6 +675,10 @@ export default function App() {
       setNotification(
         `Insufficient credits: this errand offers ${order.rewardCredits} C, but you only have ${wallet.availableCredits} C available.`
       );
+      return;
+    }
+    // AI-generated (edited by yanhwee): require confirmation when the pickup store is outside operating hours (issue #234).
+    if (!confirmReorderWhenStoreClosed(order, suppliers)) {
       return;
     }
     setNotification(null);

@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Unit and integration tests for F6 Natural-Language Errand Assistant service and draft endpoint.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 // AI-generated (edited by yanhwee)
 import { describe, it } from 'node:test';

@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add describeOrderEscrowSubtitle helper so terminal order rows describe asynchronous escrow settlement/refund accurately without claiming Credit Service completion from Order status alone (issue #200).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #222 review: validateSupplierForm takes the record being edited, so a coordinate a legacy supplier never
  * had may stay blank on edit (the PUT omits it and the API preserves the null); creation and clearing an existing
@@ -8,7 +12,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Removed dead 'audit' navigation section from AdminNavSection union.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted shared admin portal constants, types, JWT claim decoders, and supplier validation helpers into src/constants.ts.
@@ -23,7 +27,7 @@
 
 // AI-generated (edited by yanhwee)
 
-import { SupplierCategory, UserRole } from '@campus-errand/common-dtos';
+import { OrderStatus, SupplierCategory, UserRole } from '@campus-errand/common-dtos';
 
 export type AdminNavSection = 'suppliers' | 'orders' | 'health' | 'users';
 
@@ -98,4 +102,21 @@ export function validateSupplierForm(data: {
     }
   }
   return errors;
+}
+
+// AI-generated (edited by yanhwee): describe order escrow state without claiming Credit Service has already settled/refunded from Order status alone (issue #200).
+export function describeOrderEscrowSubtitle(status: OrderStatus): string {
+  switch (status) {
+    case 'COMPLETED':
+      return 'Settlement queued';
+    case 'CANCELLED':
+    case 'EXPIRED':
+      return 'Refund queued';
+    case 'REJECTED':
+      return 'Not Reserved';
+    case 'PENDING':
+      return 'Awaiting Escrow';
+    default:
+      return 'Held in Escrow';
+  }
 }

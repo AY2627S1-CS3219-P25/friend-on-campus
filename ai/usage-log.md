@@ -1,6 +1,10 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Fix the 9 remaining actionable bug issues (#235, #234, #204, #201, #200, #171, #170, #168, #109), complete yanhwee Author review lines across the repository, and record the D4 wrap-up PR.
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
+Tool: Google Antigravity Agent, date: 2026-11-10
 Scope: Merged origin/main (PR #254) and origin/docs_update (PR #250) into codex/docs-refresh-20261109 (PR #255), reconciled Supplier Service and k6 documentation with #254, integrated the OpenStreetMap coordinate flow diagram from #250 into docs/frontend/README.md, added the Project-Level AI Use Summary to README.md, and recorded the PR #255 merge.
 Author review: I validated correctness, edited for style, and verified with automated tests.
 
@@ -50,171 +54,171 @@ Author review: <to be completed by Reallyeasy1>
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Direction B (Crisp Modern Canvas) theme across the tompang student application. Updated FriendPinLogo.tsx and public/favicon.svg with crisp white squircle canvas with subtle border, featuring the modern vibrant sunset gradient 't.' with cheerful curved smile tail and campus location pin dot. Updated HeaderNav.tsx and AuthGatePage.tsx logo containers to crisp floating canvas styling with subtle border and sleek hover states.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Direction A (Warm Campus Mango) visual theme across the tompang student application. Updated FriendPinLogo.tsx and public/favicon.svg with vibrant warm sunset tangerine/mango gradient (#FF5E3A -> #FF9500), crisp white courier pin, warm sunlight face (#FFF7ED), cute blush cheeks, and white motion trails. Harmonized HeaderNav.tsx brand hover glow, desktop active navigation tabs with mobile bottom bar's vibrant orange accent, and refreshed mobile FoC badge. Harmonized AuthGatePage.tsx ambient glow, tagline gradient, and logo shadow. Harmonized FeedPage.tsx, SpotsPage.tsx, TasksPage.tsx, and ErrandCard.tsx active filter chips, empty state icon containers, loading spinners, and hover borders to warm orange accents.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined ErrandCard.tsx header layout by removing the redundant visual recommended credit estimate (Est. X) from the public feed, elevating the locked reward pill (+Credits) to a single crisp horizontal row aligned with the campus zone badge while preserving sr-only data-testid='errand-estimate' for test suite compatibility.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Rebranded student-app to tompang. with custom Friend Pin vector logo component (FriendPinLogo.tsx), featuring official CS3219 course name subtitle 'by Friend on Campus (FoC)'. Updated top navbar HeaderNav.tsx and AuthGatePage.tsx promotional showcase, updated apps/student-app/index.html document title and added public/favicon.svg, corrected historical 'Friend of Campus' typo in README.md, and eliminated confusing 'No estimate' label in ErrandCard.tsx when no walking distance calculation is present while strictly preserving data-testid='errand-estimate' contract when present.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Standardized header actions and layout width across account trio (AlertsPage.tsx, ProfileWalletPage.tsx, NotificationBell.tsx): anchored Campus Alerts with matching 1-line header row and uniform action buttons (Mark all as read and Refresh), removed redundant duplicate buttons from NotificationPanel filter row, and harmonized page container width to max-w-4xl across Alerts, Credit Wallet, and Student Profile. Redesigned AuthGatePage.tsx into a high-converting promotional showcase featuring split desktop layout, Direction A brand identity, 100 Credits Welcome Grant banner, and verified NUS campus value props while preserving all form IDs and accessibility semantics.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Direction A clean modern tech brand identity (HeaderNav.tsx): removed confusing blinking pulse badge from package icon, unified brand typography to NUS Blue and Slate-900 with signature orange accent dot, and removed subtitle for compact 48px header height. Unified Student Profile (ProfileWalletPage.tsx) with clean 1-line header and promoted Log Out action matching Credit Wallet and Alerts, eliminating redundant Session Management card. Harmonized Feed empty state CTA (FeedPage.tsx) with brand warm orange gradient.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Eliminated phantom top margin on Student Profile view (ProfileWalletPage.tsx) by isolating the sr-only heading from the space-y card container, bringing the NUS Student Pass card flush with standard viewport padding.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restored clean 1-line Campus Alerts page title header without redundant multi-line subtitle copy in AlertsPage.tsx, eliminating phantom space-y margin bug and anchoring the notifications view with consistent page typography matching Credit Wallet.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Fixed mobile layout issue where fixed BottomNav obstructed bottom content (e.g. Danger Zone / Delete Account on ProfilePage): eliminated conflicting pb-8 on <main> in App.tsx and index.css in favor of safe-area aware pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-10, guaranteeing ~56px breathing room above the mobile dock.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restored clean 1-line Credit Wallet page header with inline refresh action in ProfileWalletPage.tsx, paired with a compact, authoritative balance card (~80px) featuring bold available credits typography and contextual active order reservations.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Aligned Credit Wallet layout with Campus Alerts toolbar: converted balance stats into a sleek, ultra space-efficient toolbar (~40px) eliminating the bulky card container, guaranteed single-line earned metrics, and illuminated the top nav wallet capsule with vibrant amber active styling when activeTab === 'wallet' for clear, immediate page orientation.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned Credit Wallet in ProfileWalletPage.tsx into a consumer-first single-row hero card focused strictly on Available Balance, contextual active order reservations, and integrated refresh control, removing synthetic Total Account Value and redundant title banner to bring Recent Activity directly above the fold.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Removed visual Campus Alerts title banner and subtitle from AlertsPage.tsx in favor of sr-only accessible heading, bringing notification filters and alert list immediately above the fold aligned with other sub-pages.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined Credit Wallet summary card (ProfileWalletPage.tsx) into a compact 3-column stat bar (Available, In Active Orders, Total Value) and aligned header toolbar, reducing card height by ~60% and bringing transaction history above the fold.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Eliminated credit balance flicker on tab navigation in student-app (App.tsx): removed redundant wallet and ledger state resets on background refetches, preserving cached balances across tab switches (stale-while-revalidate), and added quiet background revalidations.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Eliminated orphan whitespace row on mobile errand cards (TasksPage) by locking order code, reward credits, and 'View details' CTA into unified top row, moving mobile status to dedicated left-aligned line.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Removed visual "Post New Errand" title banner and subtitle from PostErrandPage, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) in PostErrandPage with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Resolved text truncation and missing dropoff icon on My Errands cards (TasksPage): gave item description dedicated full-width line preventing truncation, added orange MapPin to dropoff route stop, and removed arbitrary max-width caps on location addresses.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined AI Errand Assistant in PostErrandPage into 1-click inline smart autofill: eliminated redundant intermediate draft preview card and extra "Apply to Form Below" button, directly populating form fields in place with inline success feedback and prominent parser warnings.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Polished My Errands (TasksPage) segmented role filter into a high-end h-11 segmented control with consistent blue active styling and embedded count badges. Removed redundant metadata row (Role: STUDENT, Status: Active, Affiliation: National University of Singapore) from ProfileWalletPage student pass card.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Standardized filter chip aesthetics across FeedPage and SpotsPage using soft tinted blue active chips with matching count indicators. Streamlined My Errands (TasksPage) cards into sleek compact 2-line cards (~72px), removing duplicate status badges and box-in-a-box styling while giving route addresses full card width to prevent text clipping.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Harmonized toolbar element heights across SpotsPage and FeedPage: aligned search inputs, counter badges, and list/grid segmented switchers to strict h-11 (44px) using min-h-0 on buttons to prevent vertical protrusion caused by base CSS min-height rules.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned My Errands (TasksPage) into responsive full-width horizontal tracking rows on desktop with ample room for full pickup/dropoff addresses without text truncation, eliminated 3-column whitespace gaps, and suppressed redundant empty-state placeholders in the All filter view when active errands exist.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Softened desktop profile button active styling with subtle blue tint (bg-blue-50, text-nus-blue, border-nus-blue/40, ring-2 ring-blue-500/20) resolving harsh dark-navy fill and poor icon contrast.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Redesigned SpotsPage into high-density campus directory list view with list/grid toggle, dense mobile directory rows, and eliminated orphan whitespace rows across mobile toolbars (Spots, Feed, Tasks) by pairing search inputs, count badges, filter chips, and refresh buttons on unified rows.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Renamed Tasks navigation and page copy to My Errands for consistent mental model, and removed redundant visible Student Profile heading in ProfileWalletPage for clean above-the-fold pass visibility.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Resolved card text truncation across Feed and Tasks pages: widened responsive grid minmax track to 21.5rem (establishing uniform 3-column desktop layout matching SpotsPage), converted compact route to 2-line layout with full card width per pickup/dropoff stop, and added title tooltips for accessibility.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Unified body content and navigation container grid: wrapped main application viewport in max-w-7xl mx-auto and aligned horizontal padding across all breakpoints (px-3.5 sm:px-6 lg:px-8) so logo, search bars, and card grids share identical grid margins.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Compact high-density errand cards for Tasks and Feed pages: inlined metadata headers (order code/zone, reward credits, status), single-line connected route banners (pickup -> dropoff), removed redundant progress stepper on task list cards, and tightened card padding to increase card density by ~58%.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Option A (Left-Aligned Unified Nav + Compact Right Utilities) on desktop header: anchored browsing tabs next to brand logo, streamlined right cluster with hero Post CTA, spendable wallet capsule, and compact icon-only alerts bell and profile buttons.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Implemented Option B for real-time WebSocket connection state: silent header during connected operation with discreet top reconnection notice on drop, preserving data-status locators for test harnesses.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Removed meta indicators (Verified Student, CAMPUS-ID, STUDENT header badge) and internal backend jargon (Credit Service, microservices ecosystem) across student-app.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Refined PC desktop top nav to Marketplace Pattern (Approach 1): pure browsing navigation on left (Feed, Spots, Tasks) and standout primary action CTA (+ Post) alongside personal utility hub on right.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined mobile top header to single-row layout: integrated inline Live indicator, balanced h-9 utility buttons, and eliminated orphan sub-badge while preserving test-ids.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined persistent header wallet capsule to show available spendable balance only, maintaining detailed escrow and pending funds breakdown exclusively on the dedicated wallet screen.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Harmonized Post action across mobile and PC viewports: flush Instagram/TikTok style center action in mobile bottom dock and prominent CTA pill button alongside browsing tabs in desktop top nav.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Restructured mobile navigation architecture: moved Alerts notification bell into universal top header alongside Credit wallet, and balanced mobile bottom dock to 5-item industry standard with elevated center Post action.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Streamlined top-level navigation tabs (SpotsPage, TasksPage, FeedPage) by removing redundant static page headings and bulky hero banners into action-first toolbars (search bar, verified pill, segmented filter bar, and live open errand counts).
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Removed technical meta information and architecture jargon (WS Hub, Saga Escrow, NUS SoCLaaS M3, evaluator demo logins, microservice name leaks) across student-app into production-ready consumer presentation.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-06
 Scope: Complete redesign of student-app frontend from scratch in worktree friend-on-campus-redesign: modern glassmorphic theme with elevated cards, glowing indicators, responsive layouts, role-based visual polish, while preserving all 51/51 unit tests and UAT locators.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Codex (model: GPT-6), date: 2026-11-01
 Scope: Recorded the review and authorized merge of PR #220, follow-up fixes on a separate branch, issue #221, and verification results.
@@ -222,23 +226,23 @@ Author review: <to be completed by Reallyeasy1>
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Disambiguated stepper button aria-labels ('Decrease amount' and 'Increase amount') in student-app PostErrandPage to resolve Playwright getByLabel('Reward credits') strict mode collision across UO1, UO6, RT02, and RT12.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Restored exact UAT placeholder strings in student-app SpotsPage ('Search food, cafes, lockers, print hubs...') and PostErrandPage ('e.g. COM2 Level 2 Room #02-04 (Wearing NUS grey hoodie)', 'e.g. Less ice, separate paper bag, PIN code for lockers') to fix CI Browser UAT job failures while maintaining light elegant theme.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Light elegant theme unification across all student-app buttons, cards, modals, and tabs (replacing dark navy and muddy tints with warm orange, crisp white pills, and luminous blue accents; full UAT locator preservation).
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Updated README.md developer setup documentation for F6 SoCLaaS environment variables, offline fallback resilience, and monorepo structure.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Natural-Language Errand Creation Assistant (F6 / Issues #53, #137, #138): shared DTOs, Order Service SoCLaaS LLM integration, offline fallback, D1 §3.3 timing constraint enforcement, and student-app UI assistant drawer with prefill.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Codex (model: GPT-6), date: 2026-10-25
 Scope: Recorded the initial read-only plan and approved documentation/configuration execution, including direct PR #184 inspection.
@@ -246,19 +250,19 @@ Author review: <to be completed by Reallyeasy1>
 
 Tool: Google Antigravity Agent, date: 2026-10-22
 Scope: Recorded local development workflow fixes, deterministic seed UUID alignment, offline Credit Service seed fallback, root db:deploy script, and README updates.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-22
 Scope: Recorded removal of dead AuditPage placeholder in admin-portal and live wiring of HealthPage to /health and /ready probes across all 5 microservices.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Recorded removal of clipboard copying logic from scripts/generate-jwt-keys.mjs and corresponding README/.env.example/CI updates.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Recorded student-app order lifecycle actions (Issue #132), D1 F3.1.5 durationMinutes input, admin DELIVERED dispute-cancel button, courier cancelled history inclusion, and UO1-UO6 E2E UI checks.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Codex (model: GPT-5), date: 2026-10-19
 Scope: Recorded CI matrix consistency root-cause analysis and fix for the missing order-service messaging matrix entry.
@@ -8638,4 +8642,31 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 - `docs/services/supplier-service/README.md` — updated sorting/pagination description for PR #254
 - `docs/development/testing-strategy.md`, `tests/k6/README.md` — updated supplier k6 load tiers to 50/100 VUs
 - `docs/new-cloud-architecture-guide.md` — documented NGINX upstream keepalive pooling and `gateway-start.sh` substitution
+- `ai/usage-log.md` — this entry
+
+## 2026-11-10 11:04 SGT — Fix remaining 9 actionable bug issues (#235, #234, #204, #201, #200, #171, #170, #168, #109) and complete yanhwee Author review disclosures
+
+**Tool:** Google Antigravity Agent
+**Author:** yanhwee
+**Branch:** fix/d4-wrapup-polish
+
+**Prompt (summarised):** Fix the 9 remaining actionable bug issues (`#235`, `#234`, `#204`, `#201`, `#200`, `#171`, `#170`, `#168`, `#109`) in a final D4 wrap-up PR, complete all `Author review: <to be completed by yanhwee>` placeholders across the repository, verify with automated tests, and merge the PR once CI passes.
+
+**Usage scenario:** Bug-fix implementation, unit-test coverage, documentation alignment, and AI disclosure completion for Milestone D4:
+- **#235 (Chat Service):** Re-fetch and re-validate conversation participants and open status after `await deps.moderate(trimmed)` in `services/chat-service/src/conversations/service.ts` so a courier reassignment or conversation close during moderation cannot notify a former courier or allow a removed courier to trigger a flagged notice.
+- **#109 (User Service):** Updated `assertAdminRemains` in `services/user-service/src/persistence/user-repository.ts` (and `makeFakeUserRepository` in `services/user-service/test/helpers.ts`) so demoting or deleting an enabled `ADMIN` requires at least one other **enabled** `ADMIN` (`role = 'ADMIN' AND status = true`), while allowing a disabled `ADMIN` to be demoted or deleted when an enabled `ADMIN` remains.
+- **#234 (Student App):** Added `confirmReorderWhenStoreClosed` in `apps/student-app/src/orders/reorder.ts` and wired it into `handleOrderAgain` in `apps/student-app/src/App.tsx` so "Order again" prompts for confirmation when the pickup store is outside operating hours.
+- **#204 & #170 (Student App):** Added `EMPTY_SIGNUP_DATA` and `runSignupWithAutoLogin` in `apps/student-app/src/hooks/useAuthSession.ts` so sign-up fields and errors reset on session clear and after registration, and post-registration auto-login failures transition to the login view with a visible `loginError` banner and prefilled email.
+- **#168 (Student App):** Updated `fetchWalletAndLedger` in `apps/student-app/src/api/credits.ts` to poll briefly on HTTP 404 while the `user.registered` CDC event initializes a newly registered student's wallet.
+- **#171 (Student App):** Updated `apps/student-app/src/App.tsx` to quietly revalidate the supplier directory when navigating to the `post` or `spots` tabs.
+- **#201 & #200 (Admin Portal):** Removed `FALLBACK_SUPPLIERS` from `apps/admin-portal/src/api/suppliers.ts` and `apps/admin-portal/src/App.tsx` so supplier API failures clear the list with an honest error banner, and added `describeOrderEscrowSubtitle` in `apps/admin-portal/src/constants.ts` and `apps/admin-portal/src/pages/OrdersPage.tsx` so terminal order rows describe asynchronous escrow settlement/refund accurately.
+- Completed `Author review` lines for `yanhwee` across repository files and verified with `npm run typecheck`, `npm run lint`, `npm run ci:validate-tests`, and workspace unit tests.
+
+**Files changed:**
+- `services/chat-service/src/conversations/service.ts`, `services/chat-service/test/service.test.ts` — fix and regression tests for #235
+- `services/user-service/src/persistence/user-repository.ts`, `services/user-service/test/helpers.ts`, `services/user-service/test/user-module.test.ts`, `services/user-service/test/app.test.ts`, `services/user-service/test/admin-guard.integration.test.ts`, `docs/services/user-service/README.md` — fix, tests, and documentation for #109
+- `apps/student-app/src/orders/reorder.ts`, `apps/student-app/test/reorder.test.ts`, `apps/student-app/src/App.tsx` — fix and unit tests for #234 and #171
+- `apps/student-app/src/hooks/useAuthSession.ts`, `apps/student-app/test/auth-fetch.test.ts`, `apps/student-app/src/api/credits.ts` — fixes and unit tests for #204, #170, and #168
+- `apps/admin-portal/src/api/suppliers.ts`, `apps/admin-portal/src/App.tsx`, `apps/admin-portal/src/constants.ts`, `apps/admin-portal/src/pages/OrdersPage.tsx`, `apps/admin-portal/test/supplier-form.test.ts`, `docs/frontend/README.md` — fixes, unit tests, and documentation for #201 and #200
+- 92 repository files with `Author review: <to be completed by yanhwee>` completed
 - `ai/usage-log.md` — this entry

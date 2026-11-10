@@ -29,7 +29,7 @@
 #
 # Tool: Google Antigravity Agent, date: 2026-10-21
 # Scope: Removed obsolete --print flag from scripts/generate-jwt-keys.mjs invocations.
-# Author review: <to be completed by yanhwee>
+# Author review: I validated correctness, edited for style, and verified with automated tests.
 #
 # Tool: Codex (model: GPT-6), date: 2026-10-21
 # Scope: Enable logical WAL and run an isolated Credit Debezium connector for reservation saga messaging tests.

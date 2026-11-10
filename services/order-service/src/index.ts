@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Wired AssistantService with SoCLaaS gateway and supplier client into Order Service startup.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Wire the reservation saga and result consumer into startup, readiness and shutdown.

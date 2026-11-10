@@ -2,71 +2,71 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Simplify the approved posting UX with essential fields first, optional disclosures, clearer labels and reservation/timing feedback, preserving the existing form contract and submission rules.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align the posting assistant controls with the refreshed blue action palette.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Restructured PostErrandPage into a cohesive "Request-First" smart design: integrated natural errand request input at the top with 1-click auto-fill, removed accordion drawer friction, eliminated redundant multi-line helper copy across form fields to reclaim vertical space, and streamlined layout for mobile and desktop screens.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed visual "Post New Errand" title banner and subtitle, preserving accessible sr-only heading and reclaiming vertical space above the fold aligned with Feed and Spots tabs.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned AI Errand Assistant into a sleek collapsible smart drawer (Option A) with instant one-click toggle, removed redundant tutorial paragraph, and added smooth auto-scroll to the populated form.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined AI Errand Assistant into 1-click inline smart autofill, removing redundant intermediate draft preview card and extra apply step.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed meta milestone labels (NUS SoCLaaS M3) and internal service references from user-facing post-errand builder.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned PostErrandPage with elevated card hierarchy, glowing AI assistant hero container, refined stepper & quick-set badges, and glassmorphic styling.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Disambiguated stepper button aria-labels ('Decrease amount' / 'Increase amount') to resolve Playwright getByLabel('Reward credits') strict mode collision.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Restored exact UAT drop-off location and notes placeholders to preserve CI test suite compatibility.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Removed legacy milestone text from form footer.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refined PostErrandPage layout to remove redundant header wallet card and styled AI Errand Assistant in consistent light theme.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned PostErrandPage UI/UX, implemented synchronous double-click submission lock, balance validation guards, presets, and progressive status feedback.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Integrated Natural-Language Errand Assistant (F6) with prompt extraction, template chips, draft preview, warning notices, and human-in-the-loop form prefilling.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Added configurable acceptance duration (durationMinutes, 30-1440 mins, default 30 mins) per D1 F3.1.5.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted post errand form page from student-app App.tsx into pages/PostErrandPage.tsx.

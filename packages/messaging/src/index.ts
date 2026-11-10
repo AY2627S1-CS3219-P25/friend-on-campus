@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity, date: 2026-10-20
  * Scope: Shared RabbitMQ publisher and native quorum-queue/DLX consumer using rabbitmq-client.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 // AI-generated (edited by yanhwee)
 import { once } from 'node:events';

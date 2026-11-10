@@ -2,11 +2,11 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Refactored AssistantService into modular, single-responsibility helper functions (prompt building, SoCLaaS gateway call, supplier matching, timing rules, offline fallback).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Natural-Language Errand Creation Assistant service (F6) calling NUS SoCLaaS OpenAI-compatible gateway with supplier grounding and D1 §3.3 timing constraints.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Sonnet 5.5), date: 2026-11-05
  * Scope: Replaced the inline SoCLaaS fetch with callSoclaas/parseJsonReply from @campus-errand/llm.

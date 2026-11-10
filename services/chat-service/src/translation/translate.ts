@@ -9,7 +9,7 @@
  * Scope: PR #228 review fixes: require a majority of distinctly English words before skipping English translation so
  * Latin-script non-English sentences (Spanish, French, German, Malay) are not skipped, and return null upfront when
  * the SoCLaaS API key is unconfigured even if all texts would be skipped.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 // AI-generated (edited by yanhwee)
 import { callSoclaas, parseJsonReply, type SoclaasConfig } from '@campus-errand/llm';

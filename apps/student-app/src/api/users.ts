@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Handled non-JSON error responses gracefully in fetchCurrentUserProfile and updateCurrentUsername.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted user profile and account deletion API helpers from student-app App.tsx into modular api/users.ts.

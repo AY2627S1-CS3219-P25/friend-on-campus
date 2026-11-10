@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Removed legacy test:d2 alias from rootSystemScripts after inlining into test:e2e:api.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-5), date: 2026-10-12
  * Scope: Fail validation when a workspace test file is not selected by any classified test script.

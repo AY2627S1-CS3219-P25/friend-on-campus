@@ -2,63 +2,63 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align browsing filters with the royal-blue navigation identity.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized FeedPage with Direction A Warm Campus Mango theme: updated selected zone pills to warm orange tint, empty state illustration box to warm amber tint, and spinner to nus-orange.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized empty-state CTA button with brand warm orange action styling, eliminating harsh dark navy button.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Standardized zone filter chips to soft tinted blue styling aligned with SpotsPage category chips.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Harmonized search input and open errands badge to strict h-11 (44px) matching SpotsPage toolbar height.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Compact mobile toolbar placing search and open count on a single row, eliminating redundant header whitespace.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Adjusted skeleton route placeholder height to match 2-line route box.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Compact skeleton loading cards matching new high-density errand card dimensions.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined FeedPage to action-first search and zone filter toolbar, eliminating the redundant hero banner to present open errands immediately above the fold.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned FeedPage with campus pulse banner, instant keyword filter search, and elevated card grid.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for reset zone filter button.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Fixed zone filter chip horizontal clipping on "ALL" chip with padded scroll container.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Elevated FeedPage with polished campus zone filter chips, skeleton loading shimmers, animated empty state with quick reset, and real-time open errand counters.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Forwarded optional courierContactNote in onAcceptOrder prop (F3.3.6).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted errand feed page from student-app App.tsx into pages/FeedPage.tsx.

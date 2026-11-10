@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Mirror last-enabled-admin check on toggleRole and deleteById in fake UserRepository (issue #109).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Codex (model: GPT-6), date: 2026-10-21
  * Scope: Keep registration outbox persistence in the fake and remove obsolete polling publisher operations.
  * Author review: <to be completed by huangjiaxi1111>
@@ -239,10 +243,15 @@ export function makeFakeUserRepository(seed: UserRecord[] = [], shared?: Map<str
       u.status = !u.status;
       return { ...u };
     },
+    // AI-generated (edited by yanhwee)
     async toggleRole(userId) {
       const u = users.get(userId);
       if (!u) return null;
-      if (u.role === 'ADMIN' && [...users.values()].filter((user) => user.role === 'ADMIN').length <= 1) {
+      if (
+        u.role === 'ADMIN' &&
+        u.status &&
+        ![...users.values()].some((user) => user.id !== u.id && user.role === 'ADMIN' && user.status)
+      ) {
         throw new LastAdminError();
       }
       u.role = u.role === 'ADMIN' ? 'STUDENT' : 'ADMIN';
@@ -251,7 +260,11 @@ export function makeFakeUserRepository(seed: UserRecord[] = [], shared?: Map<str
     async deleteById(userId) {
       userId = userId.toLowerCase();
       const u = users.get(userId);
-      if (u?.role === 'ADMIN' && [...users.values()].filter((user) => user.role === 'ADMIN').length <= 1) {
+      if (
+        u?.role === 'ADMIN' &&
+        u.status &&
+        ![...users.values()].some((user) => user.id !== u.id && user.role === 'ADMIN' && user.status)
+      ) {
         throw new LastAdminError();
       }
       return users.delete(userId);

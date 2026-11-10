@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Sonnet 5), date: 2026-10-17
  * Scope: Interactive React Leaflet map (OpenStreetMap tiles) for the Post Errand pickup-spot picker. Drops a

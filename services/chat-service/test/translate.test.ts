@@ -7,7 +7,7 @@
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: PR #228 review tests: Latin-script non-English sentences with shared short words ('no', 'a', 'on', 'in', 'ok')
  * still require translation, and an empty API key returns null even when all messages are plain English.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 // AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';

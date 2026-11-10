@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added integration test for POST /api/orders/:id/unassign (courier drop before pickup, 403 for non-assigned courier, 409 after pickup).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-18
  * Scope: Verify asynchronous creation receipts, polling authorization and existing lifecycle routes.

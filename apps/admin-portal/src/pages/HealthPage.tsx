@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Wired HealthPage to live /health and /ready probes across all 5 microservices, displaying liveness, readiness, latency, and storage status.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted HealthPage component into src/pages/HealthPage.tsx.

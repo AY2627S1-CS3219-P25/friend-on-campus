@@ -41,15 +41,15 @@ Scope: Link the confirmed shared-host ECS architecture and distinguish it from t
 Author review: <to be completed by the author>
 Tool: Codex (model: GPT-6), date: 2026-11-07
 Scope: Restore Friend on Campus as the product name in the heading and overview.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-11-07
 Scope: Updated project heading and overview to tompang. — Friend on Campus (FoC), fixing historical 'Friend of Campus' typo to align with official CS3219 lecture project designation (FoC – Friend on Campus).
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-28
 Scope: Added infra/k8s/README.md documentation index, updated worker ASG sizing (min=2, desired=2) in Day 1/Day 2 operations guide and ASCII topology, documented Docker k6 commands, recorded ServiceLB ALB port forwarding and Debezium CDC outbox integration, and documented Natural-Language Errand Assistant (F6) environment configuration (SOCLAAS_*), offline fallback resilience, and monorepo structure updates.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
 Scope: Test-command table gained the `npm run test:e2e:ui:realtime` row and the artifacts note names `test-results/uat-realtime/` (issue #197).
@@ -65,19 +65,19 @@ Author review: <to be completed by Reallyeasy1>
 
 Tool: Google Antigravity Agent, date: 2026-10-22
 Scope: Fixed Local Development Workflow migration/seeding ordering (db:deploy before db:seed), documented root db:deploy and offline db:seed commands, added .env setup to Quick Start with Docker, and updated test:seed and test:acceptance descriptions.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated JWT key generation instructions after removing clipboard copying from scripts/generate-jwt-keys.mjs.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Consolidated CI/testing documentation from docs/ci.md into Testing & Verification, removed docs/ from the monorepo tree, and updated System Documentation links to point to the project Wiki.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Google Antigravity Agent, date: 2026-10-21
 Scope: Updated local development server commands, test category table, and monorepo structure tree for scripts/dev.mjs, scripts/prisma-migrate.mjs, and test:e2e:api.
-Author review: <to be completed by yanhwee>
+Author review: I validated correctness, edited for style, and verified with automated tests.
 
 Tool: Claude Code (model: Claude Opus 5.5 subagent, Claude Fable 5.1 session), date: 2026-10-18
 Scope: Refreshed facts to main @ 7f2d972: diagram arrows, Milestone Status (D2 done, D3 prepared, wiki link), access URLs for all services, seed commands, Testing & Verification categories, seed-account permissions, Monorepo Structure tree; merged the second disclosure block into this one.

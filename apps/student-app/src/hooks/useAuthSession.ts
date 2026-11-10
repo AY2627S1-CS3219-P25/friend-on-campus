@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Reset sign-up form state on session clear and after registration (#170), and surface post-registration auto-login failures on the login view via loginError (#204).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #225 review (P1): requests started under one session are cancelled when that session is cleared. A
  *        per-session AbortSignal is combined with the deadline (withRequestDeadline), captured when authFetch is
@@ -42,6 +46,81 @@ export interface SignupFormData {
   email: string;
   password: string;
   retypePassword: string;
+}
+
+// AI-generated (edited by yanhwee)
+export const EMPTY_SIGNUP_DATA: SignupFormData = {
+  username: '',
+  email: '',
+  password: '',
+  retypePassword: '',
+};
+
+export type SignupFlowOutcome =
+  | { kind: 'authenticated'; accessToken: string }
+  | { kind: 'registration_failed'; error: { code: string; message: string } }
+  | { kind: 'auto_login_failed'; email: string; error: { code: string; message: string } };
+
+/**
+ * Runs account registration followed by automatic sign-in, keeping registration failures distinct from
+ * post-registration sign-in failures so a created account always transitions to the login view (issue #204).
+ */
+export async function runSignupWithAutoLogin(
+  input: { username: string; email: string; password: string },
+  deps: {
+    register?: typeof registerUserAccount;
+    login?: typeof loginWithPassword;
+  } = {},
+): Promise<SignupFlowOutcome> {
+  const register = deps.register ?? registerUserAccount;
+  const login = deps.login ?? loginWithPassword;
+  try {
+    const regResult = await register({
+      username: input.username.trim(),
+      email: input.email,
+      password: input.password,
+    });
+    if (!regResult.ok) {
+      return {
+        kind: 'registration_failed',
+        error: { code: regResult.code, message: regResult.message },
+      };
+    }
+  } catch (err) {
+    return {
+      kind: 'registration_failed',
+      error: {
+        code: 'NETWORK_ERROR',
+        message: (err instanceof Error && err.message) || 'Could not reach the registration server.',
+      },
+    };
+  }
+
+  try {
+    const loginResult = await login(input.email, input.password);
+    if (!loginResult.ok) {
+      return {
+        kind: 'auto_login_failed',
+        email: input.email,
+        error: {
+          code: loginResult.code || 'AUTO_LOGIN_FAILED',
+          message:
+            loginResult.message ||
+            'Account created, but automatic login failed. Please sign in with your new account.',
+        },
+      };
+    }
+    return { kind: 'authenticated', accessToken: loginResult.accessToken };
+  } catch {
+    return {
+      kind: 'auto_login_failed',
+      email: input.email,
+      error: {
+        code: 'AUTO_LOGIN_FAILED',
+        message: 'Account created, but automatic login could not reach the server. Please sign in with your new account.',
+      },
+    };
+  }
 }
 
 // AI-generated (edited by Reallyeasy1)
@@ -191,10 +270,14 @@ export function useAuthSession(onSessionCleared: () => void) {
     onSessionCleared();
     setIsAuthenticated(false);
     setAuthToken('');
+    setAuthView('login');
     setLoginEmail('');
     setLoginPassword('');
     setLoginError(null);
     setRememberMe(false);
+    // AI-generated (edited by yanhwee): clear sign-up form state when session ends (issue #170).
+    setSignupData(EMPTY_SIGNUP_DATA);
+    setSignupError(null);
   };
 
   const authFetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
@@ -276,32 +359,28 @@ export function useAuthSession(onSessionCleared: () => void) {
 
     setIsSigningUp(true);
     try {
-      const regResult = await registerUserAccount({
-        username: signupData.username.trim(),
+      // AI-generated (edited by yanhwee): keep post-registration auto-login failures on loginError and reset sign-up fields (#170, #204).
+      const outcome = await runSignupWithAutoLogin({
+        username: signupData.username,
         email: signupData.email,
         password: signupData.password,
       });
-      if (!regResult.ok) {
-        setSignupError({ code: regResult.code, message: regResult.message });
+      if (outcome.kind === 'registration_failed') {
+        setSignupError(outcome.error);
         return;
       }
-      const login = await loginWithPassword(signupData.email, signupData.password);
-      if (!login.ok) {
-        setSignupError({
-          code: login.code,
-          message:
-            login.message || 'Account created, but automatic login failed. Please log in.',
-        });
-        setAuthView('login');
+      setSignupData(EMPTY_SIGNUP_DATA);
+      setSignupError(null);
+      setAuthView('login');
+      if (outcome.kind === 'auto_login_failed') {
+        setLoginEmail(outcome.email);
+        setLoginPassword('');
+        setLoginError(outcome.error);
         return;
       }
-      setAuthToken(login.accessToken);
+      setLoginError(null);
+      setAuthToken(outcome.accessToken);
       setIsAuthenticated(true);
-    } catch (err) {
-      setSignupError({
-        code: 'NETWORK_ERROR',
-        message: (err instanceof Error && err.message) || 'Could not reach the registration server.',
-      });
     } finally {
       setIsSigningUp(false);
     }

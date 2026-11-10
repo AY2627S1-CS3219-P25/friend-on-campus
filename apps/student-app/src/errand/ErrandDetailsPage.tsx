@@ -2,31 +2,31 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-08
  * Scope: Resolve main merge conflict by preserving the delivered-requester dispute and confirmation controls alongside redesigned details.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the approved student-app consistency pass: calmer surfaces, readable type, blue actions and selection, and preserved semantic status colours.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned ErrandDetailsPage into a balanced, centered single-column layout (max-w-3xl), eliminating empty space, 2-column height asymmetry, and redundant header item titles, while strictly preserving all data-testids, locators, and UAT contracts.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Removed internal microservice references (Credit Service) from user-facing errand action button captions and timeline details.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned ErrandDetailsPage with polished glassmorphic cards, luminous status tracker with pulsing milestone markers, route cards, tactile action buttons with NUS gradients, and full test-id preservation.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Light elegant theme update for primary action buttons.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Modernized ErrandDetailsPage with pulsing active tracker rings, route card layout, tactile action buttons, and responsive grid layout.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-26
  * Scope: UAT finding: the participant card's "Accepted <date>" line wraps instead of truncating at phone width.

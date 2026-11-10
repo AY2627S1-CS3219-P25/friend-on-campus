@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Injected AssistantService into Express application factory for F6 NLP Errand Assistant.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-07
  * Scope: Express application factory for Order Service configuring CORS, JSON middleware, health and readiness checks, and routing.

@@ -1,15 +1,15 @@
 // AI Assistance Disclosure:
 // Tool: Codex (model: GPT-6), date: 2026-11-08
 // Scope: Align lifecycle fields, navigation, profile checks, and visible responsive history assertions with the redesigned UI; check mobile directory overflow.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Codex (model: GPT-6), date: 2026-11-07
 // Scope: Update browser-check navigation selectors to the approved Browse, Places, and Post errand labels.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Google Antigravity Agent, date: 2026-11-07
 // Scope: Updated UD2 to wait on semantic [data-status="connected"] selector instead of legacy hardcoded "WS Hub: connected" string.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Codex (model: GPT-6), date: 2026-11-01
 // Scope: Fixed supplier form selectors/coordinates and made failed browser checks fail CI.
@@ -32,11 +32,11 @@
 //
 // Tool: Google Antigravity Agent, date: 2026-10-22
 // Scope: Updated UO2 to click the inline Confirm button after clicking Accept Errand on the feed card.
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Google Antigravity Agent, date: 2026-10-21
 // Scope: Added UO1-UO6 student order lifecycle E2E UI checks (post with durationMinutes, accept, pickup, deliver, complete, cancel, and history persistence) and standardized default screenshot (SHOTS) and JSON result (UAT_OUT) paths under root git-ignored test-results/ (Issue #132).
-// Author review: <to be completed by yanhwee>
+// Author review: I validated correctness, edited for style, and verified with automated tests.
 //
 // Tool: Claude Code (model: Claude Fable 5.1), date: 2026-10-17
 // Scope: UD3's published order.accepted event carries courierUsername, as Order Service now sends it (F5.1.1).

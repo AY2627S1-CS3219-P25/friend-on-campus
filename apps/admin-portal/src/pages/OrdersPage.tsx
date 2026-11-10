@@ -1,8 +1,12 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Use describeOrderEscrowSubtitle for reward credit subtitles so COMPLETED and CANCELLED/EXPIRED rows reflect asynchronous escrow settlement/refund accurately (issue #200).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Google Antigravity Agent, date: 2026-10-21
  * Scope: Added Dispute Cancel button alongside Force Complete for DELIVERED orders in OrdersPage.tsx to match backend adminCancelOrder support.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted OrdersPage state management component into src/pages/OrdersPage.tsx.
@@ -28,7 +32,7 @@ import {
   X,
 } from 'lucide-react';
 import { OrderDTO, OrderStatus } from '@campus-errand/common-dtos';
-import { CAMPUS_ZONES } from '../constants';
+import { CAMPUS_ZONES, describeOrderEscrowSubtitle } from '../constants';
 import { renderDisputedBadge, renderOrderStatusBadge } from '../components/OrderStatusBadge';
 
 interface OrdersPageProps {
@@ -307,16 +311,9 @@ export function OrdersPage({
                                 </td>
                                 <td className="p-4 align-top">
                                   <div className="font-bold text-slate-900">{order.rewardCredits} pts</div>
+                                  {/* AI-generated (edited by yanhwee): reflect async escrow boundary honestly (#200). */}
                                   <div className="text-[11px] text-slate-400">
-                                    {order.status === 'COMPLETED'
-                                      ? 'Settled'
-                                      : order.status === 'CANCELLED' || order.status === 'EXPIRED'
-                                      ? 'Refunded'
-                                      : order.status === 'REJECTED'
-                                      ? 'Not Reserved'
-                                      : order.status === 'PENDING'
-                                      ? 'Awaiting Escrow'
-                                      : 'Held in Escrow'}
+                                    {describeOrderEscrowSubtitle(order.status)}
                                   </div>
                                 </td>
                                 <td className="p-4 align-top">

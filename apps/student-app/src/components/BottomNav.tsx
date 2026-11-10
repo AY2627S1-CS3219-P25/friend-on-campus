@@ -2,35 +2,35 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Use royal blue for the selected page and fresh coral for the permanent mobile Post action.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Clarify Browse and Places labels, distinguish the current page from Post with a top marker, and keep the bottom bar through tablet widths.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Refine the approved campus UI with quieter surfaces, readable hierarchy, and accessible interactions.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Renamed Tasks navigation item to My Errands for natural user mental model and consistent errand vocabulary.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Redesigned mobile center Post action to flush TikTok/Instagram style with aligned baseline and no protrusion.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Streamlined mobile bottom dock to 5-item industry standard with elevated center Post action and moved Alerts to top header.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-06
  * Scope: Redesigned BottomNav with frosted glass floating dock, spring-feel pill indicators, and ergonomic touch targets.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Redesigned BottomNav with frosted-glass mobile bar, touch-friendly footprints (>=44px), active glowing indicator pills, and ergonomic spacing.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted mobile bottom navigation bar from student-app App.tsx into components/BottomNav.tsx.

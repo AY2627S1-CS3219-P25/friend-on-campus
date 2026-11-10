@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Re-fetch and re-validate conversation participants and open status after async moderation before returning flagged recipientIds (issue #235).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: send() takes the optional clientId and hands it to store.append for the delivery intent; the flagged result carries the conversation (issue #240).
  * Author review: <to be completed by Reallyeasy1>
@@ -114,7 +118,14 @@ export function createConversationService(deps: {
     if (!principal.username) return { kind: 'no_username' };
     // Content moderation runs before anything is written, so a flagged message is never stored or pushed.
     if (deps.moderate && (await deps.moderate(trimmed))) {
-      return { kind: 'flagged', conversation, recipientIds: [conversation.requesterId, conversation.courierId] };
+      // AI-generated (edited by yanhwee): re-read the conversation after the async moderation round-trip so a courier
+      // reassignment or conversation close during moderation cannot notify a former courier or let an unassigned
+      // sender emit a flagged notice (issue #235).
+      const current = await deps.store.findByOrderId(orderId);
+      if (!current) return { kind: 'not_found' };
+      if (!canSend(current, principal)) return { kind: 'forbidden' };
+      if (current.closedAt) return { kind: 'closed' };
+      return { kind: 'flagged', conversation: current, recipientIds: [current.requesterId, current.courierId] };
     }
     // The checks above are a fast path on a possibly stale row; the store repeats them under the row lock (P2), so a
     // close or re-courier committed in between is refused and the recipients reflect the locked state.

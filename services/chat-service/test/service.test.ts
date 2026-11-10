@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add regression tests for courier reassignment and conversation closure during delayed moderation (issue #235).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-09
  * Scope: The flagged send result now carries the conversation; the assertion checks kind and recipients (issue #240).
  * Author review: <to be completed by Reallyeasy1>
@@ -254,4 +258,49 @@ test('send: a flagged message is not stored; a clean one is; an absent moderator
   assert.equal(checked.length, 2);
   const plain = createConversationService({ store, orders });
   assert.equal((await plain.send(ORDER, principal(BOB, { username: 'bob' }), 'badword')).kind, 'sent');
+});
+
+// AI-generated (edited by yanhwee)
+test('send: delayed moderation re-checks courier reassignment and closure before returning flagged recipients (issue #235)', async () => {
+  const { store, messages } = memoryStore();
+  await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:00:00.000Z' });
+  const orders = fakeOrders({ kind: 'not_found' });
+
+  // Case 1: Alice sends a flagged message while courier changes from Bob to Carol during moderation.
+  let onModerate: (() => Promise<void>) | undefined;
+  const service = createConversationService({
+    store,
+    orders,
+    moderate: async (text) => {
+      if (onModerate) await onModerate();
+      return text.includes('badword');
+    },
+  });
+
+  onModerate = async () => {
+    await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: CAROL, createdAt: '2026-10-20T04:10:00.000Z' });
+  };
+  const flaggedAfterReassign = await service.send(ORDER, principal(ALICE, { username: 'alice' }), 'badword');
+  assert.equal(flaggedAfterReassign.kind, 'flagged');
+  assert.deepEqual(
+    flaggedAfterReassign.kind === 'flagged' && flaggedAfterReassign.recipientIds,
+    [ALICE, CAROL],
+    'former courier Bob must not be notified after reassignment',
+  );
+  assert.equal(flaggedAfterReassign.kind === 'flagged' && flaggedAfterReassign.conversation.courierId, CAROL);
+
+  // Case 2: Former courier Carol sends a flagged message and is replaced by Bob while moderation is in flight.
+  onModerate = async () => {
+    await store.upsertAccepted({ orderId: ORDER, requesterId: ALICE, courierId: BOB, createdAt: '2026-10-20T04:20:00.000Z' });
+  };
+  const removedSender = await service.send(ORDER, principal(CAROL, { username: 'carol' }), 'badword');
+  assert.equal(removedSender.kind, 'forbidden');
+
+  // Case 3: Conversation closes while moderation is in flight.
+  onModerate = async () => {
+    await store.close(ORDER, '2026-10-20T04:30:00.000Z');
+  };
+  const closedDuringModeration = await service.send(ORDER, principal(ALICE, { username: 'alice' }), 'badword');
+  assert.equal(closedDuringModeration.kind, 'closed');
+  assert.equal(messages.length, 0);
 });

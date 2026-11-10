@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Handled non-JSON / 502 Bad Gateway responses gracefully in handleAdminLogin.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted admin authentication, token refresh, and authFetch session hook into src/hooks/useAdminAuth.ts.

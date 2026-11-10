@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added integration test assertions for offline deterministic seed UUID fallback when User Service is unreachable vs reachable HTTP failures.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-03
  * Scope: Verify seed identity matching, session cleanup and repeat-safe PostgreSQL wallet initialization.

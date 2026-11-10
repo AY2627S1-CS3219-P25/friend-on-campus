@@ -1,5 +1,9 @@
 /**
  * AI Assistance Disclosure:
+ * Tool: Google Antigravity Agent, date: 2026-11-10
+ * Scope: Add unit tests for runSignupWithAutoLogin and EMPTY_SIGNUP_DATA covering post-registration auto-login failures and sign-up state reset (issues #170, #204).
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
+ *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #225 review regression cases: a session abort stops a retry loop and aborts the combined deadline signal;
  *        a lifecycle write whose 2xx body cannot be read is reported as unconfirmed, not "HTTP 200"; parseErrandDraft
@@ -22,7 +26,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DRAFT_DEADLINE_MS, acceptOrderById, parseErrandDraft } from '../src/api/orders';
+import { fetchWalletAndLedger } from '../src/api/credits';
 import {
+  EMPTY_SIGNUP_DATA,
   READ_RETRY_ATTEMPTS,
   READ_RETRY_BASE_MS,
   REQUEST_DEADLINE_MS,
@@ -31,6 +37,7 @@ import {
   isSafeRead,
   readRetryDelayMs,
   retrySafeRead,
+  runSignupWithAutoLogin,
   withRequestDeadline,
 } from '../src/hooks/useAuthSession';
 
@@ -216,4 +223,118 @@ test('the draft assistant sends its own deadline that outlasts the supplier look
   assert.equal((draft as { itemDescription: string }).itemDescription, 'coffee');
   assert.ok(seen?.signal instanceof AbortSignal);
   assert.equal(isSafeRead(seen!), false);
+});
+
+// AI-generated (edited by yanhwee)
+test('runSignupWithAutoLogin distinguishes registration failures from post-registration auto-login failures (issues #170, #204)', async () => {
+  assert.deepEqual(EMPTY_SIGNUP_DATA, { username: '', email: '', password: '', retypePassword: '' });
+
+  // 1. Registration failure keeps user in registration_failed state without attempting login
+  let loginCalled = false;
+  const regFailed = await runSignupWithAutoLogin(
+    { username: ' alice ', email: 'alice@u.nus.edu', password: 'Password123!' },
+    {
+      register: async () => ({ ok: false, code: 'DUPLICATE_EMAIL', message: 'Email already registered' }),
+      login: async () => {
+        loginCalled = true;
+        return { ok: true, accessToken: 'tok' };
+      },
+    },
+  );
+  assert.equal(loginCalled, false);
+  assert.deepEqual(regFailed, {
+    kind: 'registration_failed',
+    error: { code: 'DUPLICATE_EMAIL', message: 'Email already registered' },
+  });
+
+  // 2. Registration succeeds, but auto-login returns !ok -> returns auto_login_failed with email for login view
+  const autoLoginRejected = await runSignupWithAutoLogin(
+    { username: ' alice ', email: 'alice@u.nus.edu', password: 'Password123!' },
+    {
+      register: async () => ({ ok: true }),
+      login: async () => ({ ok: false, code: 'RATE_LIMITED', message: '' }),
+    },
+  );
+  assert.deepEqual(autoLoginRejected, {
+    kind: 'auto_login_failed',
+    email: 'alice@u.nus.edu',
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Account created, but automatic login failed. Please sign in with your new account.',
+    },
+  });
+
+  // 3. Registration succeeds, but auto-login throws a network error -> still returns auto_login_failed so user is sent to login view
+  const autoLoginNetworkErr = await runSignupWithAutoLogin(
+    { username: ' alice ', email: 'alice@u.nus.edu', password: 'Password123!' },
+    {
+      register: async () => ({ ok: true }),
+      login: async () => {
+        throw new TypeError('Failed to fetch');
+      },
+    },
+  );
+  assert.deepEqual(autoLoginNetworkErr, {
+    kind: 'auto_login_failed',
+    email: 'alice@u.nus.edu',
+    error: {
+      code: 'AUTO_LOGIN_FAILED',
+      message: 'Account created, but automatic login could not reach the server. Please sign in with your new account.',
+    },
+  });
+
+  // 4. Both succeed -> authenticated
+  const ok = await runSignupWithAutoLogin(
+    { username: ' alice ', email: 'alice@u.nus.edu', password: 'Password123!' },
+    {
+      register: async (payload) => {
+        assert.equal(payload.username, 'alice');
+        return { ok: true };
+      },
+      login: async () => ({ ok: true, accessToken: 'jwt-123' }),
+    },
+  );
+  assert.deepEqual(ok, { kind: 'authenticated', accessToken: 'jwt-123' });
+});
+
+// AI-generated (edited by yanhwee)
+test('fetchWalletAndLedger retries HTTP 404 while a new account wallet is being initialized by CDC (issue #168)', async () => {
+  const waits: number[] = [];
+  let walletCalls = 0;
+  const wallet = {
+    userId: 'u1',
+    availableCredits: 100,
+    escrowCredits: 0,
+    totalEarnedCredits: 100,
+    updatedAt: '2026-11-10T00:00:00.000Z',
+  };
+
+  const settled = await fetchWalletAndLedger(
+    async (url) => {
+      if (url === '/api/credits/wallet') {
+        walletCalls++;
+        if (walletCalls < 3) {
+          return new Response(JSON.stringify({ success: false, error: 'Wallet not found' }), { status: 404 });
+        }
+        return new Response(JSON.stringify({ success: true, data: wallet }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ success: true, data: [] }), { status: 200 });
+    },
+    { initRetryAttempts: 5, initRetryDelayMs: 500, wait: async (ms) => void waits.push(ms) },
+  );
+  assert.equal(settled.status, 'ok');
+  assert.equal(walletCalls, 3);
+  assert.deepEqual(waits, [500, 500]);
+
+  // Exhausting all attempts returns not_initialized
+  let exhaustedCalls = 0;
+  const uninitialized = await fetchWalletAndLedger(
+    async () => {
+      exhaustedCalls++;
+      return new Response(JSON.stringify({ success: false, error: 'Wallet not found' }), { status: 404 });
+    },
+    { initRetryAttempts: 3, initRetryDelayMs: 250, wait: async () => {} },
+  );
+  assert.equal(uninitialized.status, 'not_initialized');
+  assert.equal(exhaustedCalls, 3);
 });

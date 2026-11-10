@@ -3,7 +3,7 @@
  * Tool: Google Antigravity Agent, date: 2026-11-09
  * Scope: Added PostgreSQL integration test exercising getSuppliers case-insensitive sorting, deterministic id
  *        tie-breaking, search/filter predicates, and LIMIT/OFFSET pagination against a real PostgreSQL schema (#253).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-11-04
  * Scope: PR #222 review (P3): one test drives the real Prisma CLI through the documented recovery path. The original

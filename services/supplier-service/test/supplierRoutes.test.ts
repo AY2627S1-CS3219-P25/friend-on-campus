@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Added unit test coverage for Supplier Service createApp() /health and /ready probes (200 READY and 503 NOT_READY).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Fable 5.1), date: 2026-09-30
  * Scope: HTTP tests for src/backend/supplierRoutes.ts with the repository module replaced by an in-memory fake

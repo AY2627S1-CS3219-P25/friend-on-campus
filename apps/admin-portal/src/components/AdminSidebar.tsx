@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Removed dead Audit & Disputes navigation button and wired Microservice Health button to trigger fetchServicesHealth.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-10-19
  * Scope: Extracted desktop left sidebar component into src/components/AdminSidebar.tsx.

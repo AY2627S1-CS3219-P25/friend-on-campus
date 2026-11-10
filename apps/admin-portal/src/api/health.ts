@@ -6,7 +6,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Created microservice health and readiness probe API client for the Admin Portal HealthPage.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
 // AI-generated (edited by yanhwee)

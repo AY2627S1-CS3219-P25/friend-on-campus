@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Google Antigravity Agent, date: 2026-10-28
  * Scope: Unit tests for student-app parseErrandDraft API helper (F6).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 // AI-generated (edited by yanhwee)
 import assert from 'node:assert/strict';

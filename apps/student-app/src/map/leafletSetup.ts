@@ -2,7 +2,7 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Align map controls and drop-off marker styling with the shared blue/coral palette without changing map selection behaviour.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Claude Code (model: Claude Opus 5.5), date: 2026-11-04
  * Scope: Moved the bundled marker icon fix out of SupplierPickupMap so the drop-off maps share it; also holds the

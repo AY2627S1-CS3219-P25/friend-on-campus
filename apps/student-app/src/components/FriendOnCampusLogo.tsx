@@ -2,23 +2,23 @@
  * AI Assistance Disclosure:
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Present the supplied origami artwork as an unboxed mark with tighter framing; preserve the original favicon artwork.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-11-07
  * Scope: Apply the supplied origami courier logo and Friend on Campus product identity.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Implemented Direction B (Crisp Modern Canvas) brand logo: crisp white squircle canvas with subtle border, featuring the vibrant sunset gradient 't.' with cheerful curved smile tail and campus location pin dot.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Updated FriendPinLogo to Direction A Warm Campus Mango theme with vibrant tangerine/mango gradient (#FF5E3A -> #FF9500), pure white courier pin, warm sunlight face (#FFF7ED), rosy cheeks, and white motion trails.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Google Antigravity Agent, date: 2026-11-07
  * Scope: Created FriendPinLogo brand component featuring the verified Kent Ridge location pin merged with smiling student courier companion face, speed trails, and delivery star in NUS Blue and NUS Orange gradients.
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  */
 
 import React from 'react';

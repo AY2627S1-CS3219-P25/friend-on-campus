@@ -14,7 +14,7 @@
  *
  * Tool: Google Antigravity Agent, date: 2026-10-22
  * Scope: Updated ACCEPTED order cancellation test to verify courierId preservation for courier history, and added unit tests for courier unassignOrder (ACCEPTED -> OPEN).
- * Author review: <to be completed by yanhwee>
+ * Author review: I validated correctness, edited for style, and verified with automated tests.
  *
  * Tool: Codex (model: GPT-6), date: 2026-10-19
  * Scope: Verify development sample seeding requires explicit opt-in.

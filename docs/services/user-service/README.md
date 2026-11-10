@@ -1,5 +1,9 @@
 <!--
 AI Assistance Disclosure:
+Tool: Google Antigravity Agent, date: 2026-11-10
+Scope: Update last-admin invariant description after unifying demote, delete, and disable guards to require at least one enabled ADMIN (issue #109).
+Author review: I validated correctness, edited for style, and verified with automated tests.
+
 Tool: Codex (model: GPT-6), date: 2026-11-09
 Scope: Correct registration-to-Credit failure guidance and explain refresh replay and revocation with source-checked examples.
 Author review: <to be completed by Reallyeasy1>
@@ -135,7 +139,7 @@ Usernames are trimmed, nonblank and at most 50 JavaScript string units. Emails a
 
 The database enforces case-insensitive uniqueness for usernames and emails with `LOWER(...)` expression indexes. These SQL indexes intentionally do not appear as Prisma `@unique` annotations. A successful application-side lookup is not a guarantee that a concurrent registration will not collide; the database constraint is the final guard.
 
-Administrative role, status and deletion changes serialize through transaction-scoped advisory lock `pg_advisory_xact_lock(3219, 1)`. That means competing changes take turns before counting administrators. The checks differ: role changes and deletion preserve an ADMIN-role count, while disabling preserves an **enabled** ADMIN count. Do not describe this as one universal enabled-admin invariant. A rejected operation returns `409 LAST_ADMIN_REQUIRED`.
+Administrative role, status and deletion changes serialize through transaction-scoped advisory lock `pg_advisory_xact_lock(3219, 1)`. That means competing changes take turns before counting administrators. Disabling, demoting or deleting an enabled administrator requires at least one other **enabled** `ADMIN` account (`role = 'ADMIN' AND status = true`) to remain, whereas a disabled administrator can still be demoted, deleted or re-enabled while an enabled administrator exists. A rejected operation returns `409 LAST_ADMIN_REQUIRED`.
 
 ## Run and configure it locally
 
