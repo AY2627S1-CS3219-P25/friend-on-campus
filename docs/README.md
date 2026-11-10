@@ -17,7 +17,7 @@ New to Friend on Campus? Read [how the system works](architecture/system-overvie
 | Understand ownership, authentication and asynchronous work | [System overview](architecture/system-overview.md) |
 | Start the stack, edit a service or upgrade local data | [Local development](development/local-development.md) |
 | Pick a test suite and interpret its evidence | [Testing](development/testing-strategy.md) |
-| Understand the AWS request path, scaling and operations | [Cloud deployment](new-cloud-architecture-guide.md) |
+| Understand the AWS request path, scaling and operations | [Cloud deployment](architecture/cloud-architecture.md) |
 | Diagnose delayed events, retries or missing realtime updates | [Messaging and recovery](infrastructure/cdc-and-broker.md) |
 | Work on screens, session state, maps or live updates | [Frontend development](frontend/README.md) |
 
@@ -119,7 +119,7 @@ The service guides describe implemented behavior, including its limits. Read the
 
 - [Chat access and projection](services/chat-service/README.md#opening-a-conversation-and-checking-access): administrator reads and stale membership differ from stricter participant-only wording. A terminal event received before the conversation exists is discarded; waiting does not necessarily repair its state. Repeated SEND is not persistently idempotent.
 - [Wallet initialization](services/credit-service/README.md#wallet-initialization): a missing wallet can reflect delayed processing or the User/Credit email-limit mismatch. [Order](services/order-service/README.md#submission-and-the-saga) has no general PENDING watchdog; [messaging](infrastructure/cdc-and-broker.md) has no automated DLQ replay/alert loop.
-- [Cloud operations](new-cloud-architecture-guide.md): configured logs and scaling policies are not evidence of a complete monitoring stack, extra host capacity or successful failover.
+- [Cloud operations](architecture/cloud-architecture.md): configured logs and scaling policies are not evidence of a complete monitoring stack, extra host capacity or successful failover.
 
 The [testing guide](development/testing-strategy.md) explains target overrides and fixture cleanup before its commands, keeps original performance requirements separate from relaxed k6 limits, and records the four unresolved findings on merged PR #252. A merged PR, a closed issue, an HTTP success response and a completed business operation are different kinds of evidence.
 
@@ -128,6 +128,8 @@ The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) remains
 Earlier plans, review findings, human decision fields, estimates and dated test evidence remain available in the [pre-consolidation history](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/tree/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive). They are not current runbooks or newly approved requirements. The wiki links the old Chat specification at an immutable commit, so removing its current forwarding page does not break that historical reference.
 
 ## Baseline and verification
+
+The cloud guide was moved to `architecture/cloud-architecture.md` on 10 November 2026. Its new overview SVG is generated from the adjacent `.mjs` source against the existing ECS configuration; 217 local links across the ten affected Markdown files pass existence checks, SVG generation is deterministic, and the diagram was rendered and visually inspected in Edge. The diagram was restyled against the supplied Eraser AWS example using standalone icons, labels underneath and thin unfilled group outlines. The diagram embeds official AWS icons from the 30 April 2026 package; all fourteen icon instances decode successfully offline. Typecheck and unit commands could not run because `npm` is unavailable in this shell. This documentation update does not establish live deployment state.
 
 The [API URL reference](api-reference.md) was separately checked against main `d5e9f61` on 10 November 2026 (SGT). Its URLs describe source/configuration, not a live-site test. The earlier guide expansion checks below retain their original scope.
 

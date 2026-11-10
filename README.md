@@ -71,7 +71,7 @@ The [testing guide](docs/development/testing-strategy.md) explains integration, 
 | `scripts/`, `tests/` | Development/CI/UAT drivers, k6 and Postman fixtures |
 | `docs/` | Thirteen implementation/operational guides and their index |
 
-For AWS, read the [cloud explanation](docs/new-cloud-architecture-guide.md), then use the [ECS Terraform runbook](infra/terraform/ecs/README.md). For code contributions and AI bookkeeping, read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Historical milestone records remain in the wiki and Git history.
+For AWS, read the [cloud explanation](docs/architecture/cloud-architecture.md), then use the [ECS Terraform runbook](infra/terraform/ecs/README.md). For code contributions and AI bookkeeping, read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Historical milestone records remain in the wiki and Git history.
 
 ## AI Use Summary
 

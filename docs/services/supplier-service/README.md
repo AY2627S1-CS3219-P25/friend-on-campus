@@ -291,7 +291,7 @@ npm run db:seed -w @campus-errand/supplier-service
 
 The script reports each created/updated code and finishes with `created=... updated=...`. Verify the intended rows through the read API afterward. A completed seed does not check that locations are geographically correct; a failed run may have already changed earlier rows, so inspect the last successful code before retrying.
 
-Local Compose explicitly runs migrations and this development seed before listening. The application image itself starts only the app; [cloud deployment](../../new-cloud-architecture-guide.md) uses separate migration/seed tasks. Reseeding is not an automatic production recovery procedure.
+Local Compose explicitly runs migrations and this development seed before listening. The application image itself starts only the app; [cloud deployment](../../architecture/cloud-architecture.md) uses separate migration/seed tasks. Reseeding is not an automatic production recovery procedure.
 
 ## Upgrade a database with missing coordinates
 
