@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
 Tool: Google Antigravity Agent; Codex (model: GPT-6, GPT-5.6 Terra); Claude Code (model: Claude Fable 5.1, Claude Opus 5.5), date: 2026-09-21 to 2026-11-10
-Scope: Repository overview, system architecture, local and Docker setup instructions, test suite guide, and project-level AI use summary.
+Scope: Repository overview, system architecture, local and Docker setup instructions, test suite guide, API URL reference link, and project-level AI use summary.
 Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
@@ -9,7 +9,7 @@ Author review: I validated correctness, edited for style, and verified with auto
 
 A campus errand application with a student interface, an admin portal and six backend services. Students post errands, reserve credit rewards, coordinate with couriers and confirm delivery. Order and Credit complete cross-service work asynchronously.
 
-Start with the [developer guides](docs/README.md) for the system explanation, service APIs, testing and troubleshooting. The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) holds design and milestone context; its older implementation descriptions may differ from current source.
+Start with the [developer guides](docs/README.md) for the system explanation, testing and troubleshooting. Use the [API URL reference](docs/api-reference.md) to find HTTP routes, WebSockets and health probes. The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) holds design and milestone context; its older implementation descriptions may differ from current source.
 
 ## Quick start
 
@@ -69,7 +69,7 @@ The [testing guide](docs/development/testing-strategy.md) explains integration, 
 | `gateway/`, `docker/` | Local routing, PostgreSQL initialization, RabbitMQ and CDC |
 | `infra/terraform/ecs/` | Current AWS configuration and deployment runbook |
 | `scripts/`, `tests/` | Development/CI/UAT drivers, k6 and Postman fixtures |
-| `docs/` | Twelve implementation/operational guides and their index |
+| `docs/` | Thirteen implementation/operational guides and their index |
 
 For AWS, read the [cloud explanation](docs/new-cloud-architecture-guide.md), then use the [ECS Terraform runbook](infra/terraform/ecs/README.md). For code contributions and AI bookkeeping, read [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Historical milestone records remain in the wiki and Git history.
 

@@ -1,7 +1,7 @@
 <!--
 AI Assistance Disclosure:
-Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-09
-Scope: Added the Chat Service row to the service table; updated across 16 AI-assisted revisions through D4 wrap-up (keep the thirteen-guide index concise while linking corrected failure boundaries and recording the expanded explanations, diagrams and executed checks).
+Tool: Codex (model: GPT-6); Claude Code (model: Claude Fable 5.1), date: 2026-10-20 to 2026-11-10
+Scope: Added the Chat Service row to the service table; updated across 17 AI-assisted revisions through D4 wrap-up (link the API URL reference and keep the fourteen-guide index concise while recording expanded explanations, diagrams, and executed checks).
 Author review: I validated correctness, edited for style, and verified with automated tests.
 -->
 
@@ -13,6 +13,7 @@ New to Friend on Campus? Read [how the system works](architecture/system-overvie
 
 | I want to… | Read |
 |---|---|
+| Find an HTTP endpoint, WebSocket URL or health probe | [API URL reference](api-reference.md) |
 | Understand ownership, authentication and asynchronous work | [System overview](architecture/system-overview.md) |
 | Start the stack, edit a service or upgrade local data | [Local development](development/local-development.md) |
 | Pick a test suite and interpret its evidence | [Testing](development/testing-strategy.md) |
@@ -127,6 +128,8 @@ The [wiki](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/wiki) remains
 Earlier plans, review findings, human decision fields, estimates and dated test evidence remain available in the [pre-consolidation history](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/tree/c45f9ed0eb46a54ac68937393e0355da34dd9f9d/docs/archive). They are not current runbooks or newly approved requirements. The wiki links the old Chat specification at an immutable commit, so removing its current forwarding page does not break that historical reference.
 
 ## Baseline and verification
+
+The [API URL reference](api-reference.md) was separately checked against main `d5e9f61` on 10 November 2026 (SGT). Its URLs describe source/configuration, not a live-site test. The earlier guide expansion checks below retain their original scope.
 
 - **Code/configuration:** [PR #255](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/pull/255) head [`bc0efa4`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/bc0efa46e9385ddb482cd3b56dbeea86badedce2), with application baseline main [`b989758`](https://github.com/AY2627S1-CS3219-P25/friend-on-campus/commit/b989758e766cb593c3b8c94102eb6dfb5c7d8491), rechecked 9 November 2026 (SGT). The expanded explanations describe that source, not verified live AWS state.
 - **Wiki:** read-only revision `0571db5d4ad8c89679131c8707aae105402c7618`; 42 pages inventoried, relevant implementation descriptions compared with source.

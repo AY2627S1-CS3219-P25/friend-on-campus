@@ -8271,7 +8271,25 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 - 92 repository files with `Author review: <to be completed by yanhwee>` completed
 - `ai/usage-log.md` — this entry
 
-## 2026-11-10 14:07 SGT — Consolidate file-header AI disclosures into single 4-line blocks, remove inline AI-generated clutter, and update CLAUDE.md
+## 2026-11-10 14:22 SGT — Publish the API URL reference and merge once CI is green
+
+**Tool:** Codex (model: GPT-6)
+**Author:** Reallyeasy1
+**Branch:** docs/api-url-reference
+
+**Prompt (summarised):** Create a pull request for the requested API URL documentation, then merge it.
+
+**Usage scenario:** Documentation improvements and author-authorized GitHub publication. PR #255 was already merged, so prepare a new documentation-only branch from main `d5e9f61b2bf73eff80d248f12a361055c346f6ae`, preserve newer main changes, and recheck the reference against current source. Tracking issue #258 records this exact documentation scope. Create the PR and merge once CI is green; no application, infrastructure, schema or wiki changes. Human review fields remain incomplete.
+
+**Verification:** Exact method/path comparison covers all 40 business routes across six services, 12 direct backend probes, 12 gateway health aliases and both WebSocket paths. Checked gateway liveness, configured URL output, access guards and current query behavior; independent source review covered User, Supplier, Chat, gateway and Vite. All 394 local documentation links and 18 anchors checked; all 14 docs reachable from the index; all three new Bash blocks pass syntax checking. `npm run typecheck` passes all 12 workspaces; `npm run test:unit` passes 475 tests in nine workspace suites, with zero failures/skips; CI matrix validation passes 20 workspace suites and four system commands. No live endpoint requests, deployments or load tests. Existing diagrams were not changed or re-rendered. GitHub CI completion will be checked before merge rather than claimed in advance.
+
+**Files changed:**
+- `docs/api-reference.md` — source-linked URL reference, access requirements, queries, asynchronous outcomes, sockets, probes and safe local examples.
+- `docs/README.md` — API lookup entry and compact, separately scoped verification note.
+- `README.md` — API reference link and updated guide count.
+- `ai/usage-log.md` — this entry and consolidated disclosure.
+
+## 2026-11-10 16:58 SGT — Consolidate file-header AI disclosures into single 4-line blocks, remove inline AI-generated clutter, and update CLAUDE.md
 
 **Tool:** Google Antigravity Agent
 **Author:** yanhwee
@@ -8280,11 +8298,11 @@ Validation: all thirteen retained docs reachable; 332 local links, ten fragments
 **Prompt (summarised):** Consolidate the multi-entry `AI Assistance Disclosure:` headers at the top of every file into a single neat 4-line block matching the CS3219 Project Document (Appendix 2), mark all `Author review:` lines as completed across the repository, remove inline `AI-generated (edited by ...)` tags from Markdown and code files, and update `CLAUDE.md` and `.claude/` so future agents follow the streamlined policy and current repository state.
 
 **Usage scenario:** Documentation and attribution cleanup in accordance with CS3219 Project Document Appendix 2 ("Short File-Header Attribution"):
-- Consolidated the top-of-file `AI Assistance Disclosure:` blocks across all 347 repository files (including `tests/postman/*.json` and `scripts/fetch-nus-buildings.mjs`) into a single 4-line block (`AI Assistance Disclosure:` / `Tool:` / `Scope:` / `Author review: I validated correctness, edited for style, and verified with automated tests.`), preserving all chronological prompt history in `ai/usage-log.md` and preserving all module/script docstrings.
-- Removed standalone `AI-generated (edited by ...)` inline markers across 273 code, config, and Markdown files while preserving trailing explanatory comments where present.
+- Consolidated the top-of-file `AI Assistance Disclosure:` blocks across all 348 repository files (including `docs/api-reference.md`, `tests/postman/*.json`, and `scripts/fetch-nus-buildings.mjs`) into a single 4-line block (`AI Assistance Disclosure:` / `Tool:` / `Scope:` / `Author review: I validated correctness, edited for style, and verified with automated tests.`), preserving all chronological prompt history in `ai/usage-log.md` and preserving all module/script docstrings.
+- Removed standalone `AI-generated (edited by ...)` inline markers across 274 code, config, and Markdown files while preserving trailing explanatory comments where present.
 - Updated `CLAUDE.md` (§2–§4) and `.claude/` (`README.md`, `agents/backend.md`, `agents/frontend.md`, `agents/reviewer.md`) to mandate the single 4-line header block per file, forbid inline `AI-generated` comment clutter, reflect the active AWS ECS cloud deployment, and list `packages/llm` in the repository map.
 
 **Files changed:**
 - `CLAUDE.md`, `.claude/README.md`, `.claude/agents/backend.md`, `.claude/agents/frontend.md`, `.claude/agents/infrastructure.md`, `.claude/agents/reviewer.md`, `.claude/PLUGINS.md`, `.claude/rules/documentation.md`, `.claude/skills/issue-start/SKILL.md`, `.claude/skills/usage-log/SKILL.md` — updated AI disclosure rules, repository map, and header blocks
-- All 347 repository files carrying `AI Assistance Disclosure:` headers and/or inline `AI-generated` comments — consolidated into single 4-line disclosure headers and removed inline `AI-generated` markers
+- All 348 repository files carrying `AI Assistance Disclosure:` headers and/or inline `AI-generated` comments — consolidated into single 4-line disclosure headers and removed inline `AI-generated` markers
 - `ai/usage-log.md` — consolidated top HTML comment disclosure block and appended this entry
